@@ -15,7 +15,6 @@ import (
 
 const AlarmOffset = 3
 const VRF_EVENT = "vrf_random_words_fulfilled"
-const MAX_FEED_SUBMISSION_COUNT = 8
 
 var EventCheckInterval time.Duration
 var POR_BUFFER = 60 * time.Second
@@ -139,11 +138,12 @@ func checkFeeds(ctx context.Context, FeedsToCheck []FeedToCheck) {
 
 		count, err := countLastMinFeedEvents(ctx, feed)
 		if err == nil {
-			if count >= MAX_FEED_SUBMISSION_COUNT {
+			maxFeedSubmissionCount := int(time.Minute.Milliseconds() / (time.Duration(feed.ExpectedInterval) * time.Millisecond).Milliseconds()) * 2
+			if count >= maxFeedSubmissionCount {
 				log.Warn().Str("feed", feed.FeedName).Msg(fmt.Sprintf("%s submitted %d times in one minute", feed.FeedName, count))
 				FeedsToCheck[i].OversubmissionCount++
 				if FeedsToCheck[i].OversubmissionCount > AlarmOffset {
-					msg += fmt.Sprintf("%s made over %d submissions/minute %d times consecutively\n", feed.FeedName, MAX_FEED_SUBMISSION_COUNT, AlarmOffset+1)
+					msg += fmt.Sprintf("%s made over %d submissions/minute %d times consecutively\n", feed.FeedName, maxFeedSubmissionCount, AlarmOffset+1)
 					FeedsToCheck[i].OversubmissionCount = 0
 				}
 			} else {
