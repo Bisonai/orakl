@@ -122,33 +122,14 @@ func checkFeeds(ctx context.Context, FeedsToCheck []FeedToCheck) {
 	for i, feed := range FeedsToCheck {
 		offset, err := timeSinceLastFeedEvent(ctx, feed)
 		if err == nil {
-			if offset > time.Duration(feed.ExpectedInterval)*time.Millisecond*2 {
-				log.Warn().Str("feed", feed.FeedName).Msg(fmt.Sprintf("%s delayed by %s", feed.FeedName, offset-time.Duration(feed.ExpectedInterval)*time.Millisecond))
-				FeedsToCheck[i].LatencyChecked++
-				if FeedsToCheck[i].LatencyChecked > AlarmOffset {
-					msg += fmt.Sprintf("%s delayed by %s\n", feed.FeedName, offset-time.Duration(feed.ExpectedInterval)*time.Millisecond)
-					FeedsToCheck[i].LatencyChecked = 0
-				}
-			} else {
-				FeedsToCheck[i].LatencyChecked = 0
-			}
+			handleFeedSubmissionDelay(offset, &FeedsToCheck[i], msg)
 		} else {
 			log.Error().Err(err).Str("feed", feed.FeedName).Msg("Failed to check feed")
 		}
 
 		count, err := countLastMinFeedEvents(ctx, feed)
 		if err == nil {
-			maxFeedSubmissionCount := int(time.Minute.Milliseconds() / (time.Duration(feed.ExpectedInterval) * time.Millisecond).Milliseconds()) * 2
-			if count >= maxFeedSubmissionCount {
-				log.Warn().Str("feed", feed.FeedName).Msg(fmt.Sprintf("%s submitted %d times in one minute", feed.FeedName, count))
-				FeedsToCheck[i].OversubmissionCount++
-				if FeedsToCheck[i].OversubmissionCount > AlarmOffset {
-					msg += fmt.Sprintf("%s made over %d submissions/minute %d times consecutively\n", feed.FeedName, maxFeedSubmissionCount, AlarmOffset+1)
-					FeedsToCheck[i].OversubmissionCount = 0
-				}
-			} else {
-				FeedsToCheck[i].OversubmissionCount = 0
-			}
+			handleFeedOverSubmission(count, &FeedsToCheck[i], msg)
 		} else {
 			log.Error().Err(err).Str("feed", feed.FeedName).Msg("Failed to count last minute feed events")
 		}
@@ -287,4 +268,31 @@ func loadSubgraphInfoMap(ctx context.Context) (map[string]SubgraphInfo, error) {
 	}
 
 	return subgraphInfoMap, nil
+}
+
+func handleFeedSubmissionDelay(offset time.Duration, feed *FeedToCheck, msg string) {
+	if offset > time.Duration(feed.ExpectedInterval)*time.Millisecond*2 {
+		log.Warn().Str("feed", feed.FeedName).Msg(fmt.Sprintf("%s delayed by %s", feed.FeedName, offset-time.Duration(feed.ExpectedInterval)*time.Millisecond))
+		feed.LatencyChecked++
+		if feed.LatencyChecked > AlarmOffset {
+			msg += fmt.Sprintf("%s delayed by %s\n", feed.FeedName, offset-time.Duration(feed.ExpectedInterval)*time.Millisecond)
+			feed.LatencyChecked = 0
+		}
+	} else {
+		feed.LatencyChecked = 0
+	}
+}
+
+func handleFeedOverSubmission(count int, feed *FeedToCheck, msg string) {
+	maxFeedSubmissionCount := int(time.Minute.Milliseconds() / (time.Duration(feed.ExpectedInterval) * time.Millisecond).Milliseconds()) * 2
+	if count >= maxFeedSubmissionCount {
+		log.Warn().Str("feed", feed.FeedName).Msg(fmt.Sprintf("%s submitted %d times in one minute", feed.FeedName, count))
+		feed.OversubmissionCount++
+		if feed.OversubmissionCount > AlarmOffset {
+			msg += fmt.Sprintf("%s made over %d submissions/minute %d times consecutively\n", feed.FeedName, maxFeedSubmissionCount, AlarmOffset+1)
+			feed.OversubmissionCount = 0
+		}
+	} else {
+		feed.OversubmissionCount = 0
+	}
 }
