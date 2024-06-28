@@ -48,11 +48,19 @@ get_public_klay_block() {
     public_json_rpc=$1
 
     # Request block number to public JSON-RPC node
-    response=$(curl \
+    response=$(curl --connect-timeout 10 --max-time 20 \
 		   -H "Content-type: application/json" \
 		   --data '{"jsonrpc":"2.0","method":"klay_blockNumber","params":[],"id":83}' \
            -s \
 		   $public_json_rpc)
+
+    exit_code=$?
+
+    if [ $exit_code -ne 0 ]; then
+        echo "[ERROR] Failed to get block number from our JSON-RPC node: $1"
+        echo "Curl command failed with exit code: $exit_code"
+        exit 1
+    fi
 
     # Get block number from response
     # Print result field without "0x" in json response
@@ -65,11 +73,19 @@ get_our_klay_block() {
     our_json_rpc=$1
 
     # Request block number to public JSON-RPC node
-    response=$(curl \
+    response=$(curl --connect-timeout 10 --max-time 20 \
 		   -H "Content-type: application/json" \
 		   --data '{"jsonrpc":"2.0","method":"klay_blockNumber","params":[],"id":1}' \
            -s \
 		   $our_json_rpc)
+    
+    exit_code=$?
+
+    if [ $exit_code -ne 0 ]; then
+        echo "[ERROR] Failed to get block number from our JSON-RPC node: $1"
+        echo "Curl command failed with exit code: $exit_code"
+        exit 1
+    fi
 
     # Get block number from response
     # Print result field without "0x" in json response
