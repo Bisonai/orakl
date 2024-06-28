@@ -5,19 +5,19 @@ import (
 	"math/big"
 	"time"
 
-	errorSentinel "bisonai.com/orakl/node/pkg/error"
 	"github.com/rs/zerolog/log"
 )
 
 func Retry(job func() error, maxAttempts int, initialTimeout time.Duration, maxTimeout time.Duration) error {
 	failureTimeout := initialTimeout
+	var err error
 	for i := 0; i < maxAttempts; i++ {
 		failureTimeout = calculateJitter(failureTimeout)
 		if failureTimeout > maxTimeout {
 			failureTimeout = maxTimeout
 		}
 
-		err := job()
+		err = job()
 		if err != nil {
 			log.Error().Err(err).Msg("job failed, retrying")
 			time.Sleep(failureTimeout)
@@ -26,7 +26,7 @@ func Retry(job func() error, maxAttempts int, initialTimeout time.Duration, maxT
 		return nil
 	}
 	log.Error().Msg("job failed")
-	return errorSentinel.ErrRetrierJobFail
+	return err
 }
 
 func calculateJitter(baseTimeout time.Duration) time.Duration {
