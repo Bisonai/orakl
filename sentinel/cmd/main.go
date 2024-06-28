@@ -51,6 +51,7 @@ func main() {
 		err := balance.Start(ctx)
 		if err != nil {
 			log.Error().Err(err).Msg("error starting balance checker")
+			os.Exit(1)
 		}
 	}()
 
@@ -59,7 +60,11 @@ func main() {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		health.Start()
+		err := health.Start()
+		if err != nil {
+			log.Error().Err(err).Msg("error starting health checker")
+			os.Exit(1)
+		}
 	}()
 
 	log.Info().Msg("health checker started")
@@ -70,6 +75,7 @@ func main() {
 		err := event.Start(ctx)
 		if err != nil {
 			log.Error().Err(err).Msg("error starting event checker")
+			os.Exit(1)
 		}
 	}()
 
@@ -81,6 +87,7 @@ func main() {
 		err := signer.Start(ctx)
 		if err != nil {
 			log.Error().Err(err).Msg("error starting signer checker")
+			os.Exit(1)
 		}
 	}()
 

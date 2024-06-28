@@ -29,7 +29,7 @@ var cypressJSON []byte
 var HealthCheckUrls []HealthCheckUrl
 var HealthCheckInterval time.Duration
 
-func init() {
+func setUp() error {
 	chain := os.Getenv("CHAIN")
 	if chain == "" {
 		chain = "baobab"
@@ -45,25 +45,31 @@ func init() {
 	}
 
 	if chain == "baobab" {
-		err := json.Unmarshal(baobabJSON, &HealthCheckUrls)
+		err = json.Unmarshal(baobabJSON, &HealthCheckUrls)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to unmarshal baobab_healthcheck.json")
-			os.Exit(1)
+			return err
 		}
 	} else if chain == "cypress" {
-		err := json.Unmarshal(cypressJSON, &HealthCheckUrls)
+		err = json.Unmarshal(cypressJSON, &HealthCheckUrls)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to unmarshal cypress_healthcheck.json")
-			os.Exit(1)
+			return err
 		}
 	} else {
 		log.Error().Msg("Invalid chain")
-		os.Exit(1)
+		return err
 	}
 	log.Info().Msg("Loaded healthcheck.json")
+	return nil
 }
 
-func Start() {
+func Start() error {
+	err := setUp()
+	if err != nil {
+		return err
+	}
+
 	log.Info().Msg("Starting health checker")
 	ticker := time.NewTicker(HealthCheckInterval)
 	defer ticker.Stop()
@@ -81,12 +87,13 @@ func Start() {
 			} else if serviceWasDown, serviceNameFound := downServices[healthCheckUrl.Name]; serviceWasDown && serviceNameFound {
 				downServices[healthCheckUrl.Name] = false
 				alarmMessage += healthCheckUrl.Name + " is back up\n"
-			} 
+			}
 		}
 		if alarmMessage != "" {
 			alert.SlackAlert(alarmMessage)
 		}
 	}
+	return nil
 }
 
 func checkUrl(healthCheckUrl HealthCheckUrl) bool {

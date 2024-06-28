@@ -86,7 +86,6 @@ func setUp(ctx context.Context) error {
 func Start(ctx context.Context) error {
 	err := setUp(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to set up signer expiration checker")
 		return err
 	}
 
