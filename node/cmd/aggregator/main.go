@@ -53,7 +53,8 @@ func main() {
 		defer wg.Done()
 		adminErr := admin.Run(mb)
 		if adminErr != nil {
-			log.Error().Err(adminErr).Msg("Failed to start admin server")
+			log.Fatal().Err(adminErr).Msg("Failed to start admin server")
+			os.Exit(1)
 			return
 		}
 	}()
@@ -72,7 +73,8 @@ func main() {
 		f := fetcher.New(mb)
 		fetcherErr := f.Run(ctx)
 		if fetcherErr != nil {
-			log.Error().Err(fetcherErr).Msg("Failed to start fetcher")
+			log.Fatal().Err(fetcherErr).Msg("Failed to start fetcher")
+			os.Exit(1)
 			return
 		}
 	}()
@@ -85,7 +87,7 @@ func main() {
 		a := aggregator.New(mb, host, ps)
 		aggregatorErr := a.Run(ctx)
 		if aggregatorErr != nil {
-			log.Error().Err(aggregatorErr).Msg("Failed to start aggregator")
+			log.Fatal().Err(aggregatorErr).Msg("Failed to start aggregator")
 			os.Exit(1)
 		}
 	}()
@@ -109,6 +111,7 @@ func getLogLevel(input string) zerolog.Level {
 	case "panic":
 		return zerolog.PanicLevel
 	default:
+		log.Warn().Msg("Unrecognized log level, defaulting to InfoLevel")
 		return zerolog.InfoLevel
 	}
 }
