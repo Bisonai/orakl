@@ -26,7 +26,7 @@ jobs:
       - name: Set Slack Payload
         id: set-payload
         run: |
-          echo "::set-output name=payload::{\"text\":\"${{ inputs.slack-message }}\"}"
+          echo "payload={\"text\":\"${{ inputs.slack-message }}\"}" >> $GITHUB_OUTPUT
 
       - name: Post to a Slack channel
         id: slack
@@ -36,5 +36,3 @@ jobs:
           payload: ${{ steps.set-payload.outputs.payload }}
         env:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-
-

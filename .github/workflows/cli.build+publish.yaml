@@ -39,7 +39,7 @@ jobs:
         id: check-version
         run: |
           npm install -g semver
-          echo "::set-output name=isGreater::$(node -e "console.log(require('semver').gt('${{ steps.packageJsonVersion.outputs.value }}', '${{ steps.npmPackageVersion.outputs.VERSION }}'))")"
+          echo "isGreater=$(node -e "console.log(require('semver').gt('${{ steps.packageJsonVersion.outputs.value }}', '${{ steps.npmPackageVersion.outputs.VERSION }}'))")" >> $GITHUB_OUTPUT
         shell: bash
       - name: Publish package
         if: steps.check-version.outputs.isGreater == 'true'
