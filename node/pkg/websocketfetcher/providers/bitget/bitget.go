@@ -26,7 +26,7 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 	args := []Arg{}
 	for feed := range fetcher.FeedMap {
 		arg := Arg{
-			InstType: "SP",
+			InstType: "SPOT",
 			Channel:  "ticker",
 			InstId:   feed,
 		}
@@ -52,12 +52,18 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 }
 
 func (f *BitgetFetcher) handleMessage(ctx context.Context, message map[string]any) error {
+
 	response, err := common.MessageToStruct[Response](message)
 	if err != nil {
 		log.Error().Str("Player", "Bitget").Err(err).Msg("error in MessageToResponse")
 		return err
 	}
-	feedDataList, err := ResponseToFeedDataList(response, f.FeedMap)
+
+	if response.Action == nil || *response.Action != "snapshot" {
+		return nil
+	}
+
+	feedDataList := ResponseToFeedDataList(response, f.FeedMap)
 	if err != nil {
 		log.Error().Str("Player", "Bitget").Err(err).Msg("error in ResponseToFeedDataList")
 		return err
@@ -75,7 +81,9 @@ func (f *BitgetFetcher) Run(ctx context.Context) {
 }
 
 func (f *BitgetFetcher) ping(ctx context.Context) {
-	ticker := time.NewTicker(10 * time.Second)
+	// ping timer expected to have 30 seconds interval
+	// https://www.bitget.com/api-doc/common/websocket-intro
+	ticker := time.NewTicker(30 * time.Second)
 	go func() {
 		for {
 			select {
