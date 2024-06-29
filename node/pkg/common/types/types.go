@@ -43,7 +43,7 @@ type GlobalAggregate struct {
 type Proof struct {
 	ConfigID int32  `db:"config_id" json:"configId"`
 	Round    int32  `db:"round" json:"round"`
-	Proof    []byte `db:"proof" json:"proofs"`
+	Proof    []byte `db:"proof" json:"proof"`
 }
 
 type Config struct {
