@@ -116,6 +116,55 @@ func isConnectionError(err error) bool {
 	return err == redis.TxFailedErr || err.Error() == "redis: connection closed"
 }
 
+func Publish(ctx context.Context, channel string, value any) error {
+	if channel == "" {
+		return errors.New("channel cannot be empty")
+	}
+
+	if value == nil {
+		return errors.New("value cannot be nil")
+	}
+	data, err := json.Marshal(value)
+	if err != nil {
+		log.Error().Err(err).Msg("Error marshalling object")
+		return err
+	}
+	operation := func(client *redis.Client) error {
+		return client.Publish(ctx, channel, string(data)).Err()
+	}
+	return executeWithRetry(ctx, operation)
+}
+
+func Subscribe[T any](ctx context.Context, channel string, ch chan T) error {
+	if channel == "" {
+		return errors.New("channel cannot be empty")
+	}
+	var sub *redis.PubSub
+	operation := func(client *redis.Client) error {
+		sub = client.Subscribe(ctx, channel)
+		rawCh := sub.Channel()
+		go func() {
+			for {
+				select {
+				case <-ctx.Done():
+					sub.Close()
+					return
+				case msg := <-rawCh:
+					var data T
+					err := json.Unmarshal([]byte(msg.Payload), &data)
+					if err != nil {
+						log.Error().Err(err).Msg("Error unmarshalling message")
+					}
+					ch <- data
+				}
+			}
+		}()
+
+		return nil
+	}
+	return executeWithRetry(ctx, operation)
+}
+
 func MSet(ctx context.Context, values map[string]string) error {
 	operation := func(client *redis.Client) error {
 		var pairs []any
