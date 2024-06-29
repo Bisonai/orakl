@@ -275,7 +275,7 @@ func TestUpdateProofs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UpsertProofs failed: %v", err)
 	}
-	result, err := db.QueryRows[PgsqlProof](ctx, "SELECT * FROM proofs WHERE config_id IN ("+strconv.Itoa(int(tmpConfigs[0].ID))+", "+strconv.Itoa(int(tmpConfigs[1].ID))+")", nil)
+	result, err := db.QueryRows[Proof](ctx, "SELECT * FROM proofs WHERE config_id IN ("+strconv.Itoa(int(tmpConfigs[0].ID))+", "+strconv.Itoa(int(tmpConfigs[1].ID))+")", nil)
 	if err != nil {
 		t.Fatalf("QueryRows failed: %v", err)
 	}
@@ -296,7 +296,7 @@ func TestUpdateProofs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UpdateProofs failed: %v", err)
 	}
-	result, err = db.QueryRows[PgsqlProof](ctx, "SELECT * FROM proofs WHERE config_id IN ("+strconv.Itoa(int(tmpConfigs[0].ID))+", "+strconv.Itoa(int(tmpConfigs[1].ID))+")", nil)
+	result, err = db.QueryRows[Proof](ctx, "SELECT * FROM proofs WHERE config_id IN ("+strconv.Itoa(int(tmpConfigs[0].ID))+", "+strconv.Itoa(int(tmpConfigs[1].ID))+")", nil)
 	if err != nil {
 		t.Fatalf("QueryRows failed: %v", err)
 	}

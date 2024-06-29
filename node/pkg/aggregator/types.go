@@ -30,20 +30,7 @@ const (
 )
 
 type LocalAggregate types.LocalAggregate
-
-type PgsqlProof struct {
-	ID        int64     `db:"id"`
-	ConfigID  int32     `json:"configId"`
-	Round     int32     `json:"round"`
-	Proof     []byte    `json:"proof"`
-	Timestamp time.Time `json:"timestamp"`
-}
-
-type Proof struct {
-	ConfigID int32  `json:"configId"`
-	Round    int32  `json:"round"`
-	Proof    []byte `json:"proofs"`
-}
+type Proof types.Proof
 
 type GlobalAggregate types.GlobalAggregate
 
