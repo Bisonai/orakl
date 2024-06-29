@@ -54,6 +54,34 @@ func reconnectRedis(ctx context.Context) error {
 	return nil
 }
 
+func loadRedisConnectionString() (RedisConnectionInfo, error) {
+	host := os.Getenv("REDIS_HOST")
+	if host == "" {
+		log.Error().Msg("REDIS_HOST not set")
+		return RedisConnectionInfo{}, errorSentinel.ErrRdbHostNotFound
+	}
+
+	port := os.Getenv("REDIS_PORT")
+	if port == "" {
+		log.Error().Msg("REDIS_PORT not set")
+		return RedisConnectionInfo{}, errorSentinel.ErrRdbPortNotFound
+	}
+
+	return RedisConnectionInfo{Host: host, Port: port}, nil
+}
+
+func connectToRedis(ctx context.Context, connectionInfo RedisConnectionInfo) (*redis.Client, error) {
+	rdbConn := redis.NewClient(&redis.Options{
+		Addr: connectionInfo.Host + ":" + connectionInfo.Port,
+	})
+	_, rdbErr := rdbConn.Ping(ctx).Result()
+	if rdbErr != nil {
+		log.Error().Err(rdbErr).Msg("Error connecting to redis")
+		return nil, rdbErr
+	}
+	return rdbConn, nil
+}
+
 func executeWithRetry(ctx context.Context, operation func(*redis.Client) error) error {
 	retryOperation := func() error {
 		rdbConn, err := GetRedisConn(ctx)
@@ -313,42 +341,6 @@ func PopAllObject[T any](ctx context.Context, key string) ([]T, error) {
 		}
 	}
 	return results, nil
-}
-
-func connectToRedis(ctx context.Context, connectionInfo RedisConnectionInfo) (*redis.Client, error) {
-	rdbConn := redis.NewClient(&redis.Options{
-		Addr: connectionInfo.Host + ":" + connectionInfo.Port,
-	})
-	_, rdbErr := rdbConn.Ping(ctx).Result()
-	if rdbErr != nil {
-		log.Error().Err(rdbErr).Msg("Error connecting to redis")
-		return nil, rdbErr
-	}
-	return rdbConn, nil
-}
-
-func loadRedisConnectionString() (RedisConnectionInfo, error) {
-	host := os.Getenv("REDIS_HOST")
-	if host == "" {
-		log.Error().Msg("REDIS_HOST not set")
-		return RedisConnectionInfo{}, errorSentinel.ErrRdbHostNotFound
-	}
-
-	port := os.Getenv("REDIS_PORT")
-	if port == "" {
-		log.Error().Msg("REDIS_PORT not set")
-		return RedisConnectionInfo{}, errorSentinel.ErrRdbPortNotFound
-	}
-
-	return RedisConnectionInfo{Host: host, Port: port}, nil
-}
-
-func setRedis(ctx context.Context, rdb *redis.Client, key string, value string, exp time.Duration) error {
-	return rdb.Set(ctx, key, value, exp).Err()
-}
-
-func getRedis(ctx context.Context, rdb *redis.Client, key string) (string, error) {
-	return rdb.Get(ctx, key).Result()
 }
 
 func CloseRedis() {
