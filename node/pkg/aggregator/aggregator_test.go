@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"bisonai.com/orakl/node/pkg/common/keys"
 	"bisonai.com/orakl/node/pkg/db"
 	"github.com/stretchr/testify/assert"
 )
@@ -119,7 +120,7 @@ func TestGetLatestRoundId(t *testing.T) {
 	assert.Equal(t, roundId, testItems.tmpData.globalAggregate.Round)
 }
 
-func TestInsertGlobalAggregate(t *testing.T) {
+func TestSetLatestGlobalAggregateAndProof(t *testing.T) {
 	ctx := context.Background()
 	cleanup, testItems, err := setup(ctx)
 	if err != nil {
@@ -136,9 +137,26 @@ func TestInsertGlobalAggregate(t *testing.T) {
 		t.Fatal("error creating new node")
 	}
 
-	err = InsertGlobalAggregate(ctx, node.ID, 20, 2, time.Now())
+	p, err := node.SignHelper.MakeGlobalAggregateProof(
+		testItems.tmpData.globalAggregate.Value,
+		testItems.tmpData.globalAggregate.Timestamp,
+		"test_pair",
+	)
 	if err != nil {
-		t.Fatal("error inserting global aggregate")
+		t.Fatal("error making global aggregate proof")
+	}
+
+	concatProof := bytes.Join([][]byte{p, p}, nil)
+
+	proof := Proof{
+		ConfigID: node.ID,
+		Round:    testItems.tmpData.globalAggregate.Round,
+		Proof:    concatProof,
+	}
+
+	SetLatestGlobalAggregateAndProof(ctx, node.ID, testItems.tmpData.globalAggregate, proof)
+	if err != nil {
+		t.Fatal("error setting latest global aggregate and proof")
 	}
 
 	roundId, err := getLatestRoundId(ctx, node.ID)
@@ -146,22 +164,30 @@ func TestInsertGlobalAggregate(t *testing.T) {
 		t.Fatal("error getting latest round id")
 	}
 
-	redisResult, err := getLatestGlobalAggregateFromRdb(ctx, node.ID)
+	globalAggregateResult, err := getLatestGlobalAggregateFromRdb(ctx, node.ID)
 	if err != nil {
 		t.Fatal("error getting latest global aggregate from rdb")
 	}
-	assert.Equal(t, int64(20), redisResult.Value)
-	assert.Equal(t, int32(2), redisResult.Round)
-	assert.Equal(t, int32(2), roundId)
+
+	proofResult, err := getProofFromRdb(ctx, node.ID, roundId)
+	if err != nil {
+		t.Fatal("error getting proof from rdb")
+	}
+
+	assert.Equal(t, int64(15), globalAggregateResult.Value)
+	assert.Equal(t, int32(1), globalAggregateResult.Round)
+	assert.Equal(t, int32(1), roundId)
+	assert.EqualValues(t, bytes.Join([][]byte{p, p}, nil), proofResult.Proof)
 }
 
-func TestInsertProof(t *testing.T) {
-	ctx := context.Background()
+func TestPublishGlobalAggregateAndProof(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
 	cleanup, testItems, err := setup(ctx)
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
 	defer func() {
+		cancel()
 		if cleanupErr := cleanup(); cleanupErr != nil {
 			t.Logf("Cleanup failed: %v", cleanupErr)
 		}
@@ -172,34 +198,38 @@ func TestInsertProof(t *testing.T) {
 		t.Fatal("error creating new node")
 	}
 
-	value := int64(20)
-	round := int32(2)
-	p, err := node.SignHelper.MakeGlobalAggregateProof(value, time.Now(), "test-aggregate")
+	p, err := node.SignHelper.MakeGlobalAggregateProof(
+		testItems.tmpData.globalAggregate.Value,
+		testItems.tmpData.globalAggregate.Timestamp,
+		"test_pair",
+	)
 	if err != nil {
 		t.Fatal("error making global aggregate proof")
 	}
 
-	err = InsertProof(ctx, node.ID, round, [][]byte{p, p})
-	if err != nil {
-		t.Fatal("error inserting proof")
+	concatProof := bytes.Join([][]byte{p, p}, nil)
+
+	proof := Proof{
+		ConfigID: node.ID,
+		Round:    testItems.tmpData.globalAggregate.Round,
+		Proof:    concatProof,
 	}
 
-	rdbResult, err := getProofFromRdb(ctx, node.ID, round)
+	ch := make(chan SubmissionData)
+	err = db.Subscribe(ctx, keys.SubmissionDataStreamKey(node.ID), ch)
 	if err != nil {
-		t.Fatal("error getting proof from rdb")
+		t.Fatal("error subscribing to stream")
 	}
 
-	assert.EqualValues(t, bytes.Join([][]byte{p, p}, nil), rdbResult.Proof)
-
-	pgsqlResult, err := getProofFromPgsql(ctx, node.ID, round)
+	err = PublishGlobalAggregateAndProof(ctx, testItems.tmpData.globalAggregate, proof)
 	if err != nil {
-		t.Fatal("error getting proof from pgsql:" + err.Error())
+		t.Fatal("error publishing global aggregate and proof")
 	}
 
-	assert.EqualValues(t, bytes.Join([][]byte{p, p}, nil), pgsqlResult.Proof)
+	data := <-ch
+	assert.EqualValues(t, proof, data.Proof)
+	assert.Equal(t, testItems.tmpData.globalAggregate.Round, data.GlobalAggregate.Round)
+	assert.Equal(t, testItems.tmpData.globalAggregate.Value, data.GlobalAggregate.Value)
+	assert.Equal(t, testItems.tmpData.globalAggregate.Timestamp.UTC(), data.GlobalAggregate.Timestamp.UTC())
 
-	err = db.QueryWithoutResult(ctx, "DELETE FROM proofs", nil)
-	if err != nil {
-		t.Fatal("error deleting proofs")
-	}
 }
