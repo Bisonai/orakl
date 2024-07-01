@@ -28,15 +28,19 @@ var (
 )
 
 func GetRedisClient(ctx context.Context) (*redis.Client, error) {
-	rdbMutex.Lock()
-	defer rdbMutex.Unlock()
-
 	if rdb != nil {
 		return rdb, nil
 	}
 
-	err := reconnectRedis(ctx)
-	return rdb, err
+	rdbMutex.Lock()
+	defer rdbMutex.Unlock()
+
+	if rdb == nil {
+		err := reconnectRedis(ctx)
+		return rdb, err
+	}
+
+	return rdb, nil
 }
 
 func reconnectRedis(ctx context.Context) error {
