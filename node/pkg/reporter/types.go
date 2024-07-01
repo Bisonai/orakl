@@ -130,19 +130,7 @@ type Reporter struct {
 
 type GlobalAggregate types.GlobalAggregate
 
-type Proof struct {
-	ConfigID int32  `json:"configId"`
-	Round    int32  `json:"round"`
-	Proof    []byte `json:"proofs"`
-}
-
-type PgsqlProof struct {
-	ID        int32     `db:"id" json:"id"`
-	ConfigID  int32     `db:"config_id" json:"configId"`
-	Round     int32     `db:"round" json:"round"`
-	Proof     []byte    `db:"proof" json:"proof"`
-	Timestamp time.Time `db:"timestamp" json:"timestamp"`
-}
+type Proof types.Proof
 
 type SubmissionMessage struct {
 	Submissions []GlobalAggregate `json:"submissions"`

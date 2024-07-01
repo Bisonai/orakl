@@ -131,7 +131,7 @@ func getProofFromRdb(ctx context.Context, configId int32, round int32) (Proof, e
 
 // used for testing
 func getProofFromPgsql(ctx context.Context, configId int32, round int32) (Proof, error) {
-	rawProof, err := db.QueryRow[PgsqlProof](ctx, "SELECT * FROM proofs WHERE config_id = @config_id AND round = @round", map[string]any{"config_id": configId, "round": round})
+	rawProof, err := db.QueryRow[Proof](ctx, "SELECT * FROM proofs WHERE config_id = @config_id AND round = @round", map[string]any{"config_id": configId, "round": round})
 	if err != nil {
 		return Proof{}, err
 	}

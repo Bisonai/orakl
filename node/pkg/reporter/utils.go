@@ -85,18 +85,6 @@ func ProofsToMap(proofs []Proof) map[int32][]byte {
 	return m
 }
 
-func ConvertPgsqlProofsToProofs(pgsqlProofs []PgsqlProof) []Proof {
-	proofs := make([]Proof, len(pgsqlProofs))
-	for i, pgsqlProof := range pgsqlProofs {
-		proofs[i] = Proof{
-			ConfigID: pgsqlProof.ConfigID,
-			Round:    pgsqlProof.Round,
-			Proof:    pgsqlProof.Proof,
-		}
-	}
-	return proofs
-}
-
 func MakeContractArgsWithProofs(aggregates []GlobalAggregate, submissionPairs map[int32]SubmissionPair, proofMap map[int32][]byte) ([][32]byte, []*big.Int, []*big.Int, [][]byte, error) {
 	if len(aggregates) == 0 {
 		return nil, nil, nil, nil, errorSentinel.ErrReporterEmptyAggregatesParam
@@ -168,12 +156,7 @@ func GetProofsRdb(ctx context.Context, aggregates []GlobalAggregate) ([]Proof, e
 
 func GetProofsPgsql(ctx context.Context, aggregates []GlobalAggregate) ([]Proof, error) {
 	q := makeGetProofsQuery(aggregates)
-	rawResult, err := db.QueryRows[PgsqlProof](ctx, q, nil)
-	if err != nil {
-		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to get proofs from pgsql")
-		return nil, err
-	}
-	return ConvertPgsqlProofsToProofs(rawResult), nil
+	return db.QueryRows[Proof](ctx, q, nil)
 }
 
 func GetProofsAsMap(ctx context.Context, aggregates []GlobalAggregate) (map[int32][]byte, error) {
