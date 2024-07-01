@@ -134,3 +134,4 @@ The microservices can also be started separately in any arbitrary order by repla
 - **sentinel** v0.0.1.20240628.0920.7fb4ffa <br> *`PR`*: Sentinel Update request packag... <br><br> 
 - **node** v0.0.1.20240701.0129.82bd4e0 <br> *`PR`*: OraklNode Remove unused column... <br><br> 
 - **node** v0.0.1.20240701.0528.b6b6a7e <br> *`PR`*: OraklNode Remove unused column... <br><br> 
+- **node** v0.0.1.20240701.0602.97ca5e2 <br> *`PR`*: OraklNode PubSub based GlobalA... <br><br> 
