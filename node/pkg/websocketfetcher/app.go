@@ -194,7 +194,9 @@ func (a *App) initializeDex(ctx context.Context, appConfig AppConfig) error {
 		return errors.New("KAIA_WEBSOCKET_URL and ETH_WEBSOCKET_URL must be set")
 	}
 
-	chainReader, err := websocketchainreader.New(kaiaWebsocketUrl, ethWebsocketUrl)
+	chainReader, err := websocketchainreader.New(
+		websocketchainreader.WithEthWebsocketUrl(ethWebsocketUrl),
+		websocketchainreader.WithKaiaWebsocketUrl(kaiaWebsocketUrl))
 	if err != nil {
 		log.Error().Err(err).Msg("error in creating chain reader")
 		return err

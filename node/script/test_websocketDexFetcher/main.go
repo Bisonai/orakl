@@ -104,7 +104,10 @@ func main() {
 	kaiaWebsocketUrl := os.Getenv("KAIA_WEBSOCKET_URL")
 	ethWebsocketUrl := os.Getenv("ETH_WEBSOCKET_URL")
 
-	chainReader, err := websocketchainreader.New(kaiaWebsocketUrl, ethWebsocketUrl)
+	chainReader, err := websocketchainreader.New(
+		websocketchainreader.WithEthWebsocketUrl(ethWebsocketUrl),
+		websocketchainreader.WithKaiaWebsocketUrl(kaiaWebsocketUrl),
+	)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to create websocketchainreader")
 		return

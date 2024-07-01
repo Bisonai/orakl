@@ -15,44 +15,51 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func New(kaiaWssUrl, ethWssUrl string) (*ChainReader, error) {
-	if kaiaWssUrl == "" {
-		log.Error().Str("Player", "ChainReader").Err(errorSentinel.ErrChainKaiaWebsocketUrlNotFound).Msg("Kaia websocket url not found")
-		return nil, errorSentinel.ErrChainKaiaWebsocketUrlNotFound
+func New(opts ...ChainReaderOption) (*ChainReader, error) {
+	config := &ChainReaderConfig{}
+	for _, opt := range opts {
+		opt(config)
 	}
 
-	if ethWssUrl == "" {
-		log.Error().Str("Player", "ChainReader").Err(errorSentinel.ErrChainEthWebsocketUrlNotFound).Msg("Eth websocket url not found")
-		return nil, errorSentinel.ErrChainEthWebsocketUrlNotFound
-	}
-
-	ethClient, err := eth_client.Dial(ethWssUrl)
-	if err != nil {
-		log.Error().Str("Player", "ChainReader").Err(err).Msg("Failed to connect to eth websocket")
-		return nil, err
-	}
-
-	ethChainId, err := ethClient.ChainID(context.Background())
-	if err != nil {
-		log.Error().Str("Player", "ChainReader").Err(err).Msg("Failed to get eth chain id")
-		return nil, err
-	}
-
-	kaiaClient, err := client.Dial(kaiaWssUrl)
-	if err != nil {
-		log.Error().Str("Player", "ChainReader").Err(err).Msg("Failed to connect to kaia websocket")
-		return nil, err
-	}
-
-	kaiaChainId, err := kaiaClient.ChainID(context.Background())
-	if err != nil {
-		log.Error().Str("Player", "ChainReader").Err(err).Msg("Failed to get kaia chain id")
-		return nil, err
+	if config.EthWebsocketUrl == "" && config.KaiaWebsocketUrl == "" {
+		return nil, errorSentinel.ErrChainWebsocketUrlNotProvided
 	}
 
 	chainIdToChainType := make(map[string]BlockchainType)
-	chainIdToChainType[ethChainId.String()] = Ethereum
-	chainIdToChainType[kaiaChainId.String()] = Kaia
+
+	var err error
+
+	var ethClient *eth_client.EthClient
+	var ethChainId *big.Int
+	if config.EthWebsocketUrl != "" {
+		ethClient, err = eth_client.Dial(config.EthWebsocketUrl)
+		if err != nil {
+			return nil, err
+		}
+
+		ethChainId, err = ethClient.ChainID(context.Background())
+		if err != nil {
+			return nil, err
+		}
+
+		chainIdToChainType[ethChainId.String()] = Ethereum
+	}
+
+	var kaiaClient *client.Client
+	var kaiaChainId *big.Int
+	if config.KaiaWebsocketUrl != "" {
+		kaiaClient, err = client.Dial(config.KaiaWebsocketUrl)
+		if err != nil {
+			return nil, err
+		}
+
+		kaiaChainId, err = kaiaClient.ChainID(context.Background())
+		if err != nil {
+			return nil, err
+		}
+
+		chainIdToChainType[kaiaChainId.String()] = Kaia
+	}
 
 	return &ChainReader{
 		EthClient:          ethClient,
