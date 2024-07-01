@@ -15,12 +15,12 @@ import (
 func TestGetRedisConnSingleton(t *testing.T) {
 	ctx := context.Background()
 	// Call GetRedisConn multiple times
-	rdb1, err := GetRedisConn(ctx)
+	rdb1, err := GetRedisClient(ctx)
 	if err != nil {
 		t.Fatalf("GetRedisConn failed: %v", err)
 	}
 
-	rdb2, err := GetRedisConn(ctx)
+	rdb2, err := GetRedisClient(ctx)
 	if err != nil {
 		t.Fatalf("GetRedisConn failed: %v", err)
 	}

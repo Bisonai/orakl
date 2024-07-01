@@ -27,7 +27,7 @@ var (
 	rdb      *redis.Client
 )
 
-func GetRedisConn(ctx context.Context) (*redis.Client, error) {
+func GetRedisClient(ctx context.Context) (*redis.Client, error) {
 	rdbMutex.Lock()
 	defer rdbMutex.Unlock()
 
@@ -71,24 +71,24 @@ func loadRedisConnectionString() (RedisConnectionInfo, error) {
 }
 
 func connectToRedis(ctx context.Context, connectionInfo RedisConnectionInfo) (*redis.Client, error) {
-	rdbConn := redis.NewClient(&redis.Options{
+	rdbClient := redis.NewClient(&redis.Options{
 		Addr: connectionInfo.Host + ":" + connectionInfo.Port,
 	})
-	_, rdbErr := rdbConn.Ping(ctx).Result()
+	_, rdbErr := rdbClient.Ping(ctx).Result()
 	if rdbErr != nil {
 		log.Error().Err(rdbErr).Msg("Error connecting to redis")
 		return nil, rdbErr
 	}
-	return rdbConn, nil
+	return rdbClient, nil
 }
 
 func executeWithRetry(ctx context.Context, operation func(*redis.Client) error) error {
 	retryOperation := func() error {
-		rdbConn, err := GetRedisConn(ctx)
+		rdbClient, err := GetRedisClient(ctx)
 		if err != nil {
 			return err
 		}
-		err = operation(rdbConn)
+		err = operation(rdbClient)
 		if isConnectionError(err) {
 			_ = reconnectRedis(ctx)
 			return err
@@ -248,12 +248,12 @@ func GetObject[T any](ctx context.Context, key string) (T, error) {
 }
 
 func Del(ctx context.Context, key string) error {
-	rdbConn, err := GetRedisConn(ctx)
+	rdbClient, err := GetRedisClient(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Error getting redis connection")
 		return err
 	}
-	return rdbConn.Del(ctx, key).Err()
+	return rdbClient.Del(ctx, key).Err()
 }
 
 func LRange(ctx context.Context, key string, start int64, end int64) ([]string, error) {
