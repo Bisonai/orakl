@@ -524,3 +524,79 @@ func TestMSetObjectWithExp(t *testing.T) {
 		}
 	}
 }
+
+func TestRedisPublish(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	channel := "testChannel"
+	value := map[string]string{
+		"key1": "value1",
+		"key2": "value2",
+	}
+
+	// Test Subscribe
+	ch := make(chan map[string]string)
+	err := Subscribe(ctx, channel, ch)
+	if err != nil {
+		t.Errorf("Error subscribing to channel: %v", err)
+	}
+
+	// Test Publish
+	err = Publish(ctx, channel, value)
+	if err != nil {
+		t.Errorf("Error publishing message: %v", err)
+	}
+
+	gotValue := <-ch
+	assert.Equal(t, value, gotValue)
+}
+
+func TestRedisPublishEmptyValue(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	channel := "testChannel"
+
+	// Test Publish
+	err := Publish(ctx, channel, nil)
+	if err == nil {
+		t.Errorf("Expected to have err")
+	}
+}
+
+func TestRedisPublishEmptyChannel(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	channel := ""
+	value := map[string]string{
+		"key1": "value1",
+		"key2": "value2",
+	}
+
+	// Test Publish
+	err := Publish(ctx, channel, value)
+	if err == nil {
+		t.Errorf("Expected to have err")
+	}
+}
+
+func TestRedisSubscribeEmptyChannel(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	channel := ""
+	ch := make(chan interface{})
+
+	// Test Subscribe
+	err := Subscribe(ctx, channel, ch)
+	if err == nil {
+		t.Errorf("Expected to have err")
+	}
+	select {
+	case <-ch:
+		t.Errorf("Expected to not receive message")
+	default:
+	}
+}
