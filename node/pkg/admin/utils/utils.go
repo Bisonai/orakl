@@ -35,7 +35,7 @@ func Setup(setupInfo SetupInfo) (*fiber.App, error) {
 		return nil, errorSentinel.ErrAdminDbPoolNotFound
 	}
 
-	_, err = db.GetRedisConn(ctx)
+	_, err = db.GetRedisClient(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("error getting redis conn")
 		return nil, errorSentinel.ErrAdminRedisConnNotFound
