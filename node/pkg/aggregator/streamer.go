@@ -69,7 +69,7 @@ type Streamer struct {
 	cancelFunc context.CancelFunc
 }
 
-const DefaultLatestDataUpdateInterval = 5 * time.Second
+const DefaultLatestDataUpdateInterval = 3 * time.Second
 const DefaultPgsqlBulkInsertInterval = 1 * time.Second
 const DefaultBufferSize = 1000
 
