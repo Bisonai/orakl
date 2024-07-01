@@ -23,18 +23,19 @@ type RedisConnectionInfo struct {
 }
 
 var (
-	rdbMutex sync.Mutex
+	rdbMutex sync.RWMutex
 	rdb      *redis.Client
 )
 
 func GetRedisClient(ctx context.Context) (*redis.Client, error) {
-	rdbMutex.Lock()
-	defer rdbMutex.Unlock()
-
+	rdbMutex.RLock()
 	if rdb != nil {
 		return rdb, nil
 	}
+	rdbMutex.RUnlock()
 
+	rdbMutex.Lock()
+	defer rdbMutex.Unlock()
 	err := reconnectRedis(ctx)
 	return rdb, err
 }
