@@ -31,8 +31,12 @@ const (
 
 type LocalAggregate types.LocalAggregate
 type Proof types.Proof
-
 type GlobalAggregate types.GlobalAggregate
+
+type SubmissionData struct {
+	GlobalAggregate GlobalAggregate
+	Proof           Proof
+}
 
 type App struct {
 	Bus         *bus.MessageBus

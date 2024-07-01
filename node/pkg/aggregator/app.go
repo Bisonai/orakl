@@ -34,7 +34,7 @@ func (a *App) Run(ctx context.Context) error {
 	}
 
 	a.setStreamer(configs)
-	a.Streamer.Start(ctx)
+	a.startStreamer(ctx)
 
 	err = a.setAggregators(ctx, a.Host, a.Pubsub, configs)
 	if err != nil {
