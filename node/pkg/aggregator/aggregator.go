@@ -284,12 +284,11 @@ func (n *Aggregator) HandleProofMessage(ctx context.Context, msg raft.Message) e
 		concatProof := bytes.Join(n.CollectedProofs[proofMessage.RoundID], nil)
 		proof := Proof{ConfigID: n.ID, Round: proofMessage.RoundID, Proof: concatProof}
 
-		go func() {
-			err := PublishGlobalAggregateAndProof(ctx, globalAggregate, proof)
-			if err != nil {
-				log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to publish global aggregate and proof")
-			}
-		}()
+		err := PublishGlobalAggregateAndProof(ctx, globalAggregate, proof)
+		if err != nil {
+			log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to publish global aggregate and proof")
+			return err
+		}
 	}
 	return nil
 }
