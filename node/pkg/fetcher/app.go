@@ -15,6 +15,10 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+const LocalAggregatesChannelSize = 1_000
+const DefaultLocalAggregateInterval = 250 * time.Millisecond
+
+
 func New(bus *bus.MessageBus) *App {
 	return &App{
 		Fetchers:         make(map[int32]*Fetcher, 0),
@@ -355,6 +359,11 @@ func (a *App) initialize(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+
+	// initialize channel for temporarily keeping local aggregates
+	localAggregatesChannel := make(chan LocalAggregatesChannel, LocalAggregatesChannelSize)
+	go localAggregatesChannelProcessor(ctx, localAggregatesChannel)
+	
 	a.Fetchers = make(map[int32]*Fetcher, len(configs))
 	a.Collectors = make(map[int32]*Collector, len(configs))
 	for _, config := range configs {
@@ -373,7 +382,7 @@ func (a *App) initialize(ctx context.Context) error {
 		if getFeedsErr != nil {
 			return getFeedsErr
 		}
-		a.Collectors[config.ID] = NewCollector(config, collectorFeeds)
+		a.Collectors[config.ID] = NewCollector(config, collectorFeeds, localAggregatesChannel)
 	}
 	streamIntervalRaw := os.Getenv("FEED_DATA_STREAM_INTERVAL")
 	streamInterval, err := time.ParseDuration(streamIntervalRaw)
@@ -393,6 +402,40 @@ func (a *App) initialize(ctx context.Context) error {
 		return err
 	}
 
+	return nil
+}
+
+func localAggregatesChannelProcessor(ctx context.Context, localAggregatesChannel chan LocalAggregatesChannel) {
+	ticker := time.NewTicker(DefaultLocalAggregateInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+			case <-ctx.Done():
+				log.Debug().Str("Player", "Fetcher").Msg("fetcher local aggregates channel goroutine stopped")
+				return
+			case <-ticker.C:
+				localAggregatesChannelProcessorJob(ctx, localAggregatesChannel)
+			default:
+				if len(localAggregatesChannel) == LocalAggregatesChannelSize {
+					localAggregatesChannelProcessorJob(ctx, localAggregatesChannel)
+				}
+		}
+	}
+}
+
+func localAggregatesChannelProcessorJob(ctx context.Context, localAggregatesChannel chan LocalAggregatesChannel) error {
+	localAggregatesData := []LocalAggregatesChannel{}
+	for data := range localAggregatesChannel {	
+		localAggregatesData = append(localAggregatesData, data)
+	}
+	
+	// err1 := insertLocalAggregateRdb(ctx, id, aggregated)
+	// err2 := insertLocalAggregatePgsql(ctx, id, aggregated)
+
+	// if err1 != nil || err2 != nil {
+	// 	return fmt.Errorf("errors occurred in insertAggregateData: %v, %v", err1, err2)
+	// }
 	return nil
 }
 
