@@ -16,7 +16,9 @@ import (
 )
 
 func New(opts ...ChainReaderOption) (*ChainReader, error) {
-	config := &ChainReaderConfig{}
+	config := &ChainReaderConfig{
+		RetryInterval: 1 * time.Second,
+	}
 	for _, opt := range opts {
 		opt(config)
 	}
@@ -64,7 +66,7 @@ func New(opts ...ChainReaderOption) (*ChainReader, error) {
 	return &ChainReader{
 		EthClient:          ethClient,
 		KaiaClient:         kaiaClient,
-		RetryPeriod:        1 * time.Second,
+		RetryPeriod:        config.RetryInterval,
 		ChainIdToChainType: chainIdToChainType,
 	}, nil
 }
