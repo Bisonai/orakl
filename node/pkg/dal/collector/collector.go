@@ -11,7 +11,7 @@ import (
 	"bisonai.com/orakl/node/pkg/chain/websocketchainreader"
 	"bisonai.com/orakl/node/pkg/common/keys"
 	"bisonai.com/orakl/node/pkg/common/types"
-	dalcommon "bisonai.com/orakl/node/pkg/dalapi/common"
+	dalcommon "bisonai.com/orakl/node/pkg/dal/common"
 	"bisonai.com/orakl/node/pkg/db"
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
 	klaytncommon "github.com/klaytn/klaytn/common"
@@ -146,10 +146,10 @@ func (c *Collector) IncomingDataToOutgoingData(ctx context.Context, data aggrega
 	if err != nil {
 		log.Error().Err(err).Str("Player", "DalCollector").Msg("failed to order proof")
 		if errors.Is(err, errorSentinel.ErrReporterSignerNotWhitelisted) {
-			newList, err := getAllOracles(ctx, c.chainReader, c.submissionProxyContractAddr)
-			if err != nil {
-				log.Error().Err(err).Str("Player", "DalCollector").Msg("failed to refresh oracles")
-				return nil, err
+			newList, getAllOraclesErr := getAllOracles(ctx, c.chainReader, c.submissionProxyContractAddr)
+			if getAllOraclesErr != nil {
+				log.Error().Err(getAllOraclesErr).Str("Player", "DalCollector").Msg("failed to refresh oracles")
+				return nil, getAllOraclesErr
 			}
 			c.mu.Lock()
 			c.CachedWhitelist = newList

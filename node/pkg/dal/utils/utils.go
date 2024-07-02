@@ -64,7 +64,7 @@ func CustomErrorHandler(c *fiber.Ctx, err error) error {
 	// | ${status} | ${ip} | ${method} | ${path} | ${error}",
 
 	log.
-		Info().
+		Error().
 		Err(err).
 		Int("status", code).
 		Str("ip", c.IP()).
