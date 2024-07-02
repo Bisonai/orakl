@@ -21,8 +21,8 @@ import (
 
 const (
 	DefaultDecimals = "8"
-	GetAllOracles   = "function getAllOracles() public view returns (address[])"
-	OracleAdded     = "event OracleAdded(address oracle, uint256 expirationTime)"
+	GetAllOracles   = "getAllOracles() public view returns (address[] memory)"
+	OracleAdded     = "OracleAdded(address oracle, uint256 expirationTime)"
 )
 
 type Collector struct {
@@ -32,10 +32,11 @@ type Collector struct {
 	FeedHashes      map[int32][]byte
 	CachedWhitelist []klaytncommon.Address
 
+	Ctx        context.Context
+	CancelFunc context.CancelFunc
+
 	chainReader                 *websocketchainreader.ChainReader
 	submissionProxyContractAddr string
-	ctx                         context.Context
-	cancelFunc                  context.CancelFunc
 
 	mu sync.RWMutex
 }
@@ -82,22 +83,23 @@ func NewCollector(ctx context.Context, configs []types.Config) (*Collector, erro
 }
 
 func (c *Collector) Start(ctx context.Context) {
-	if c.ctx != nil {
+	if c.Ctx != nil {
 		log.Debug().Str("Player", "DalCollector").Msg("Collector already running")
 		return
 	}
 
 	ctxWithCancel, cancel := context.WithCancel(ctx)
-	c.cancelFunc = cancel
-	c.ctx = ctxWithCancel
+	c.CancelFunc = cancel
+	c.Ctx = ctxWithCancel
 
 	c.receive(ctxWithCancel)
 	c.trackOracleAdded(ctxWithCancel)
 }
 
 func (c *Collector) Stop() {
-	if c.cancelFunc != nil {
-		c.cancelFunc()
+	if c.CancelFunc != nil {
+		c.CancelFunc()
+		c.Ctx = nil
 	}
 }
 

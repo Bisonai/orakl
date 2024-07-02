@@ -50,19 +50,21 @@ func subscribeAddOracleEvent(ctx context.Context, chainReader *websocketchainrea
 		return err
 	}
 
-	for eventLog := range logChannel {
-		result, err := oracleAddedEventABI.Unpack(eventName, eventLog.Data)
-		if err != nil {
-			continue
-		}
+	go func() {
+		for eventLog := range logChannel {
+			result, err := oracleAddedEventABI.Unpack(eventName, eventLog.Data)
+			if err != nil {
+				continue
+			}
 
-		_, ok := result[0].(klaytncommon.Address)
-		if !ok {
-			continue
-		}
+			_, ok := result[0].(klaytncommon.Address)
+			if !ok {
+				continue
+			}
 
-		isUpdated <- true
-	}
+			isUpdated <- true
+		}
+	}()
 
 	return nil
 }

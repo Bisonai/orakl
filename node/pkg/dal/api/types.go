@@ -13,7 +13,8 @@ type Subscription struct {
 }
 
 type Controller struct {
-	Collector  *collector.Collector
+	Collector *collector.Collector
+
 	configs    map[string]types.Config
 	clients    map[*websocket.Conn]map[string]bool
 	register   chan *websocket.Conn
