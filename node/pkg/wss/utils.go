@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"sync"
 	"time"
 
 	"bisonai.com/orakl/node/pkg/utils/retrier"
@@ -23,7 +22,6 @@ type WebsocketHelper struct {
 	Compression    bool
 	CustomDialFunc *func(context.Context, string, *websocket.DialOptions) (*websocket.Conn, *http.Response, error)
 	CustomReadFunc *func(context.Context, *websocket.Conn) (map[string]interface{}, error)
-	mu             sync.Mutex
 }
 
 type ConnectionConfig struct {
@@ -96,7 +94,6 @@ func NewWebsocketHelper(ctx context.Context, opts ...ConnectionOption) (*Websock
 		Subscriptions: config.Subscriptions,
 		Proxy:         config.Proxy,
 		Compression:   config.Compression,
-		mu:            sync.Mutex{},
 	}
 
 	if config.DialFunc != nil {
@@ -111,8 +108,6 @@ func NewWebsocketHelper(ctx context.Context, opts ...ConnectionOption) (*Websock
 }
 
 func (ws *WebsocketHelper) Dial(ctx context.Context) error {
-	ws.mu.Lock()
-	defer ws.mu.Unlock()
 	dialOption := &websocket.DialOptions{}
 	if ws.Proxy != "" {
 		proxyURL, err := url.Parse(ws.Proxy)
@@ -199,9 +194,8 @@ func (ws *WebsocketHelper) Run(ctx context.Context, router func(context.Context,
 			}
 
 			for {
-				ws.mu.Lock()
+
 				data, err := readFunc(ctx, ws.Conn)
-				ws.mu.Unlock()
 				if err != nil {
 					log.Error().Err(err).Str("endpoint", ws.Endpoint).Msg("error reading from websocket")
 					break
@@ -213,9 +207,7 @@ func (ws *WebsocketHelper) Run(ctx context.Context, router func(context.Context,
 					}
 				}()
 			}
-			ws.mu.Lock()
 			ws.Close()
-			ws.mu.Unlock()
 		}
 	}
 }
