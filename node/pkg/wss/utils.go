@@ -194,7 +194,6 @@ func (ws *WebsocketHelper) Run(ctx context.Context, router func(context.Context,
 			}
 
 			for {
-
 				data, err := readFunc(ctx, ws.Conn)
 				if err != nil {
 					log.Error().Err(err).Str("endpoint", ws.Endpoint).Msg("error reading from websocket")
