@@ -9,14 +9,13 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-const DefaultLocalAggregateInterval = 250 * time.Millisecond
-
-func NewCollector(config Config, feeds []Feed) *Collector {
+func NewCollector(config Config, feeds []Feed, localAggregatesChannel chan LocalAggregatesChannel) *Collector {
 	return &Collector{
 		Config:       config,
 		Feeds:        feeds,
 		collectorCtx: nil,
 		cancel:       nil,
+		localAggregatesChannel: localAggregatesChannel,
 	}
 }
 
@@ -79,7 +78,7 @@ func (c *Collector) processFXPricePair(ctx context.Context, feeds []FeedData) er
 		log.Error().Err(err).Str("Player", "Collector").Msg("error in calculateMedian in collector")
 		return err
 	}
-	return insertAggregateData(ctx, c.ID, median)
+	return c.insertAggregateData(ctx, median)
 }
 
 func (c *Collector) processVolumeWeightedFeeds(ctx context.Context, feeds []FeedData) error {
@@ -97,7 +96,7 @@ func (c *Collector) processVolumeWeightedFeeds(ctx context.Context, feeds []Feed
 	}
 	log.Info().Str("Player", "Collector").Msg(fmt.Sprintf("VWAP: %f Median: %f", vwap, median))
 	aggregated := calculateAggregatedPrice(vwap, median)
-	return insertAggregateData(ctx, c.ID, aggregated)
+	return c.insertAggregateData(ctx, aggregated)
 }
 
 func partitionFeeds(feeds []FeedData) ([]FeedData, []FeedData) {
@@ -124,17 +123,10 @@ func calculateAggregatedPrice(valueWeightedAveragePrice, medianPrice float64) fl
 	return valueWeightedAveragePrice*(1-DefaultMedianRatio) + medianPrice*DefaultMedianRatio
 }
 
-func insertAggregateData(ctx context.Context, id int32, aggregated float64) error {
-	if aggregated == 0 {
-		return nil
+func (c *Collector) insertAggregateData(ctx context.Context, aggregated float64) error {
+	if aggregated != 0 {
+		c.localAggregatesChannel <- LocalAggregatesChannel{localAggregatedValue: aggregated, configId: c.ID}
 	}
-	err1 := insertLocalAggregateRdb(ctx, id, aggregated)
-	err2 := insertLocalAggregatePgsql(ctx, id, aggregated)
-
-	if err1 != nil || err2 != nil {
-		return fmt.Errorf("errors occurred in insertAggregateData: %v, %v", err1, err2)
-	}
-
 	return nil
 }
 

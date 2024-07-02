@@ -50,6 +50,8 @@ type Collector struct {
 	collectorCtx context.Context
 	cancel       context.CancelFunc
 	isRunning    bool
+
+	localAggregatesChannel chan LocalAggregatesChannel
 }
 
 type Streamer struct {
@@ -91,4 +93,9 @@ type ChainHelper interface {
 	ReadContract(ctx context.Context, contractAddress string, functionString string, args ...interface{}) (interface{}, error)
 	ChainID() *big.Int
 	Close()
+}
+
+type LocalAggregatesChannel struct {
+	localAggregatedValue	float64
+	configId				int32
 }
