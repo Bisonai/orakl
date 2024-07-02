@@ -18,8 +18,7 @@ import (
 
 var ApiController Controller
 
-func init() {
-	ctx := context.Background()
+func Setup(ctx context.Context) {
 	configs, err := db.QueryRows[types.Config](ctx, "SELECT * FROM configs", nil)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to get configs")
@@ -50,7 +49,7 @@ func NewController(configs map[string]types.Config, internalCollector *collector
 	}
 }
 
-func (c *Controller) Run(ctx context.Context) {
+func (c *Controller) Start(ctx context.Context) {
 	go c.Collector.Start(ctx)
 	go func() {
 		for {
@@ -73,7 +72,15 @@ func (c *Controller) Run(ctx context.Context) {
 	for symbol := range c.configs {
 		go c.broadcastDataForSymbol(symbol)
 	}
+}
 
+func (c *Controller) configIdToSymbol(id int32) string {
+	for symbol, config := range c.configs {
+		if config.ID == id {
+			return symbol
+		}
+	}
+	return ""
 }
 
 func (c *Controller) broadcastDataForSymbol(symbol string) {
@@ -85,6 +92,35 @@ func (c *Controller) broadcastDataForSymbol(symbol string) {
 					delete(c.clients, conn)
 					conn.Close()
 				}
+			}
+		}
+	}
+}
+
+func (c *Controller) handleWebsocket(conn *websocket.Conn) {
+	c.register <- conn
+	defer func() {
+		c.unregister <- conn
+		conn.Close()
+	}()
+
+	for {
+		var msg Subscription
+		if err := conn.ReadJSON(&msg); err != nil {
+			log.Error().Err(err).Msg("failed to read message")
+			return
+		}
+
+		if msg.Method == "SUBSCRIBE" {
+			if c.clients[conn] == nil {
+				c.clients[conn] = make(map[string]bool)
+			}
+			for _, param := range msg.Params {
+				symbol := strings.TrimPrefix(param, "submission@")
+				if _, ok := c.configs[symbol]; !ok {
+					continue
+				}
+				c.clients[conn][symbol] = true
 			}
 		}
 	}
@@ -154,44 +190,6 @@ func (c *Controller) getLatestSubmissionDataSingle(ctx context.Context, symbol s
 	}, nil
 }
 
-func (c *Controller) handleWebsocket(conn *websocket.Conn) {
-	c.register <- conn
-	defer func() {
-		c.unregister <- conn
-		conn.Close()
-	}()
-
-	for {
-		var msg Subscription
-		if err := conn.ReadJSON(&msg); err != nil {
-			log.Error().Err(err).Msg("failed to read message")
-			return
-		}
-
-		if msg.Method == "SUBSCRIBE" {
-			if c.clients[conn] == nil {
-				c.clients[conn] = make(map[string]bool)
-			}
-			for _, param := range msg.Params {
-				symbol := strings.TrimPrefix(param, "submission@")
-				if _, ok := c.configs[symbol]; !ok {
-					continue
-				}
-				c.clients[conn][symbol] = true
-			}
-		}
-	}
-}
-
-func (c *Controller) configIdToSymbol(id int32) string {
-	for symbol, config := range c.configs {
-		if config.ID == id {
-			return symbol
-		}
-	}
-	return ""
-}
-
 func getLatestFeeds(c *fiber.Ctx) error {
 	submissionData, err := ApiController.getLatestSubmissionData(c.Context())
 	if err != nil {
@@ -220,7 +218,9 @@ func getLatestFeed(c *fiber.Ctx) error {
 		return errors.New("symbol should be in {BASE}-{QUOTE} format")
 	}
 
-	symbol = strings.ToUpper(symbol)
+	if !strings.Contains(symbol, "test") {
+		symbol = strings.ToUpper(symbol)
+	}
 
 	submissionData, err := ApiController.getLatestSubmissionDataSingle(c.Context(), symbol)
 	if err != nil {

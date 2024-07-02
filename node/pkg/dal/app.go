@@ -19,7 +19,9 @@ func Run(ctx context.Context) error {
 		return err
 	}
 
-	api.ApiController.Run(ctx)
+	api.Setup(ctx)
+	api.ApiController.Start(ctx)
+
 	log.Debug().Str("Player", "DAL API").Msg("DAL API collector started")
 	v1 := app.Group("/api/v1")
 	v1.Get("/", func(c *fiber.Ctx) error {

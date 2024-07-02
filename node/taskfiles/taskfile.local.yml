@@ -113,6 +113,10 @@ tasks:
     dotenv: [".env"]
     cmds:
       - go test ./pkg/websocketfetcher/tests -v
+  test-dal:
+    dotenv: [".env"]
+    cmds:
+      - go test ./pkg/dal/tests -v
 
   check-api:
     dotenv: [".env"]
