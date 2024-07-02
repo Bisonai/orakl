@@ -1,11 +1,11 @@
-package dalapi
+package dal
 
 import (
 	"context"
 	"os"
 
-	"bisonai.com/orakl/node/pkg/dalapi/api"
-	"bisonai.com/orakl/node/pkg/dalapi/utils"
+	"bisonai.com/orakl/node/pkg/dal/api"
+	"bisonai.com/orakl/node/pkg/dal/utils"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog/log"
@@ -19,7 +19,7 @@ func Run(ctx context.Context) error {
 		return err
 	}
 
-	go api.ApiController.Collector.Start(ctx)
+	api.ApiController.Run(ctx)
 	log.Debug().Str("Player", "DAL API").Msg("DAL API collector started")
 	v1 := app.Group("/api/v1")
 	v1.Get("/", func(c *fiber.Ctx) error {

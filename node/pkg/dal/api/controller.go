@@ -8,24 +8,62 @@ import (
 	"bisonai.com/orakl/node/pkg/aggregator"
 	"bisonai.com/orakl/node/pkg/common/keys"
 	"bisonai.com/orakl/node/pkg/common/types"
-	"bisonai.com/orakl/node/pkg/dalapi/collector"
-	dalcommon "bisonai.com/orakl/node/pkg/dalapi/common"
+	"bisonai.com/orakl/node/pkg/dal/collector"
+	dalcommon "bisonai.com/orakl/node/pkg/dal/common"
 	"bisonai.com/orakl/node/pkg/db"
 	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog/log"
 )
 
-type Controller struct {
-	configs    map[string]types.Config
-	Collector  *collector.Collector
-	clients    map[*websocket.Conn]map[string]bool
-	register   chan *websocket.Conn
-	unregister chan *websocket.Conn
-	broadcast  chan dalcommon.OutgoingSubmissionData
+var ApiController Controller
+
+func init() {
+	ctx := context.Background()
+	configs, err := db.QueryRows[types.Config](ctx, "SELECT * FROM configs", nil)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to get configs")
+		panic(err)
+	}
+	configMap := make(map[string]types.Config)
+	for _, config := range configs {
+		configMap[config.Name] = config
+	}
+	collector, err := collector.NewCollector(ctx, configs)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to create collector")
+		panic(err)
+	}
+
+	ApiController = *NewController(configMap, collector)
 }
 
-var ApiController Controller
+func (c *Controller) Run(ctx context.Context) {
+	go c.Collector.Start(ctx)
+	go func() {
+		for {
+			select {
+			case conn := <-c.register:
+				c.clients[conn] = make(map[string]bool)
+			case conn := <-c.unregister:
+				delete(c.clients, conn)
+				conn.Close()
+			}
+		}
+	}()
+
+	for configId, stream := range c.Collector.OutgoingStream {
+		symbol := c.configIdToSymbol(configId)
+		c.broadcast[symbol] = make(chan dalcommon.OutgoingSubmissionData)
+		c.broadcast[symbol] = stream
+	}
+
+	go func() {
+		for symbol := range c.configs {
+			go c.broadcastDataForSymbol(symbol)
+		}
+	}()
+}
 
 func NewController(configs map[string]types.Config, internalCollector *collector.Collector) *Controller {
 	return &Controller{
@@ -35,7 +73,7 @@ func NewController(configs map[string]types.Config, internalCollector *collector
 		clients:    make(map[*websocket.Conn]map[string]bool),
 		register:   make(chan *websocket.Conn),
 		unregister: make(chan *websocket.Conn),
-		broadcast:  make(chan dalcommon.OutgoingSubmissionData),
+		broadcast:  make(map[string]chan dalcommon.OutgoingSubmissionData),
 	}
 }
 
@@ -82,15 +120,6 @@ func (c *Controller) getLatestSubmissionData(ctx context.Context) ([]aggregator.
 }
 
 func (c *Controller) getLatestSubmissionDataSingle(ctx context.Context, symbol string) (*aggregator.SubmissionData, error) {
-	if symbol == "" {
-		return nil, errors.New("invalid symbol: empty symbol")
-	}
-	if strings.Contains(symbol, "-") {
-		return nil, errors.New("symbol should be in {BASE}-{QUOTE} format")
-	}
-
-	symbol = strings.ToUpper(symbol)
-
 	config, ok := c.configs[symbol]
 	if !ok {
 		return nil, errors.New("invalid symbol")
@@ -112,25 +141,54 @@ func (c *Controller) getLatestSubmissionDataSingle(ctx context.Context, symbol s
 	}, nil
 }
 
-func init() {
-	ctx := context.Background()
-	configs, err := db.QueryRows[types.Config](ctx, "SELECT * FROM configs", nil)
-	if err != nil {
-		log.Error().Err(err).Msg("failed to get configs")
-		panic(err)
-	}
-	configMap := make(map[string]types.Config)
-	for _, config := range configs {
-		configMap[config.Name] = config
-	}
-	collector, err := collector.NewCollector(ctx, configs)
-	if err != nil {
-		log.Error().Err(err).Msg("failed to create collector")
-		panic(err)
-	}
+func (c *Controller) handleWebsocket(conn *websocket.Conn) {
+	c.register <- conn
+	defer func() {
+		c.unregister <- conn
+		conn.Close()
+	}()
 
-	ApiController = *NewController(configMap, collector)
+	for {
+		var msg Subscription
+		if err := conn.ReadJSON(&msg); err != nil {
+			log.Error().Err(err).Msg("failed to read message")
+			return
+		}
 
+		if msg.Method == "SUBSCRIBE" {
+			if c.clients[conn] == nil {
+				c.clients[conn] = make(map[string]bool)
+			}
+			for _, param := range msg.Params {
+				symbol := strings.TrimPrefix(param, "submission@")
+				if _, ok := c.configs[symbol]; !ok {
+					continue
+				}
+				c.clients[conn][symbol] = true
+			}
+		}
+	}
+}
+
+func (c *Controller) configIdToSymbol(id int32) string {
+	for symbol, config := range c.configs {
+		if config.ID == id {
+			return symbol
+		}
+	}
+	return ""
+}
+
+func (c *Controller) broadcastDataForSymbol(symbol string) {
+	for data := range c.broadcast[symbol] {
+		for conn := range c.clients {
+			if _, ok := c.clients[conn][symbol]; ok {
+				if err := conn.WriteJSON(data); err != nil {
+					log.Error().Err(err).Msg("failed to write message")
+				}
+			}
+		}
+	}
 }
 
 func getLatestFeeds(c *fiber.Ctx) error {
@@ -153,6 +211,15 @@ func getLatestFeeds(c *fiber.Ctx) error {
 
 func getLatestFeed(c *fiber.Ctx) error {
 	symbol := c.Params("symbol")
+
+	if symbol == "" {
+		return errors.New("invalid symbol: empty symbol")
+	}
+	if !strings.Contains(symbol, "-") {
+		return errors.New("symbol should be in {BASE}-{QUOTE} format")
+	}
+
+	symbol = strings.ToUpper(symbol)
 
 	submissionData, err := ApiController.getLatestSubmissionDataSingle(c.Context(), symbol)
 	if err != nil {
