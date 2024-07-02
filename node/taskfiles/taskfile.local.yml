@@ -25,6 +25,10 @@ tasks:
     dotenv: [".env"]
     cmds:
       - go run ./cmd/aggregator/main.go
+  dal:
+    dotenv: [".env"]
+    cmds:
+      - go run ./cmd/dal/main.go
 
   script-submission:
     dotenv: [".env"]

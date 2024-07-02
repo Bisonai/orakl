@@ -15,6 +15,32 @@ const (
 	Ethereum BlockchainType = 2
 )
 
+type ChainReaderConfig struct {
+	KaiaWebsocketUrl string
+	EthWebsocketUrl  string
+	RetryInterval    time.Duration
+}
+
+type ChainReaderOption func(*ChainReaderConfig)
+
+func WithKaiaWebsocketUrl(url string) ChainReaderOption {
+	return func(c *ChainReaderConfig) {
+		c.KaiaWebsocketUrl = url
+	}
+}
+
+func WithEthWebsocketUrl(url string) ChainReaderOption {
+	return func(c *ChainReaderConfig) {
+		c.EthWebsocketUrl = url
+	}
+}
+
+func WithRetryInterval(interval time.Duration) ChainReaderOption {
+	return func(c *ChainReaderConfig) {
+		c.RetryInterval = interval
+	}
+}
+
 type ChainReader struct {
 	KaiaClient         utils.ClientInterface
 	EthClient          utils.ClientInterface
