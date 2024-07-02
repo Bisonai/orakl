@@ -38,6 +38,18 @@ func init() {
 	ApiController = *NewController(configMap, collector)
 }
 
+func NewController(configs map[string]types.Config, internalCollector *collector.Collector) *Controller {
+	return &Controller{
+		Collector: internalCollector,
+		configs:   configs,
+
+		clients:    make(map[*websocket.Conn]map[string]bool),
+		register:   make(chan *websocket.Conn),
+		unregister: make(chan *websocket.Conn),
+		broadcast:  make(map[string]chan dalcommon.OutgoingSubmissionData),
+	}
+}
+
 func (c *Controller) Run(ctx context.Context) {
 	go c.Collector.Start(ctx)
 	go func() {
@@ -58,22 +70,23 @@ func (c *Controller) Run(ctx context.Context) {
 		c.broadcast[symbol] = stream
 	}
 
-	go func() {
-		for symbol := range c.configs {
-			go c.broadcastDataForSymbol(symbol)
-		}
-	}()
+	for symbol := range c.configs {
+		go c.broadcastDataForSymbol(symbol)
+	}
+
 }
 
-func NewController(configs map[string]types.Config, internalCollector *collector.Collector) *Controller {
-	return &Controller{
-		Collector: internalCollector,
-		configs:   configs,
-
-		clients:    make(map[*websocket.Conn]map[string]bool),
-		register:   make(chan *websocket.Conn),
-		unregister: make(chan *websocket.Conn),
-		broadcast:  make(map[string]chan dalcommon.OutgoingSubmissionData),
+func (c *Controller) broadcastDataForSymbol(symbol string) {
+	for data := range c.broadcast[symbol] {
+		for conn := range c.clients {
+			if _, ok := c.clients[conn][symbol]; ok {
+				if err := conn.WriteJSON(data); err != nil {
+					log.Error().Err(err).Msg("failed to write message")
+					delete(c.clients, conn)
+					conn.Close()
+				}
+			}
+		}
 	}
 }
 
@@ -177,18 +190,6 @@ func (c *Controller) configIdToSymbol(id int32) string {
 		}
 	}
 	return ""
-}
-
-func (c *Controller) broadcastDataForSymbol(symbol string) {
-	for data := range c.broadcast[symbol] {
-		for conn := range c.clients {
-			if _, ok := c.clients[conn][symbol]; ok {
-				if err := conn.WriteJSON(data); err != nil {
-					log.Error().Err(err).Msg("failed to write message")
-				}
-			}
-		}
-	}
 }
 
 func getLatestFeeds(c *fiber.Ctx) error {

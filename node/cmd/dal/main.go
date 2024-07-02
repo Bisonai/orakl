@@ -11,7 +11,7 @@ func main() {
 	ctx := context.Background()
 	err := dal.Run(ctx)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to start dalapi")
+		log.Fatal().Err(err).Msg("Failed to start dal")
 		return
 	}
 }
