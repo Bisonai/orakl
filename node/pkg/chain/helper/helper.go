@@ -308,11 +308,123 @@ func NewSignHelper(ctx context.Context) (*SignHelper, error) {
 		log.Error().Err(err).Msg("failed to convert pk")
 		return nil, err
 	}
-	return &SignHelper{
+
+	chainHelper, err := NewChainHelper(ctx, WithReporterPk(pk), WithoutAdditionalWallets())
+	if err != nil {
+		log.Error().Err(err).Msg("failed to set chainHelper for signerfeat")
+	}
+
+	submissionProxyContractAddr := os.Getenv("SUBMISSION_PROXY_CONTRACT")
+	if submissionProxyContractAddr == "" {
+		log.Error().Msg("SUBMISSION_PROXY_CONTRACT not found")
+		return nil, errorSentinel.ErrChainSubmissionProxyContractNotFound
+	}
+
+	signHelper := &SignHelper{
 		PK: privateKey,
-	}, nil
+
+		chainHelper:                 chainHelper,
+		submissionProxyContractAddr: submissionProxyContractAddr,
+	}
+
+	expirationDate, err := signHelper.LoadExpiration(ctx)
+	if err != nil {
+		return nil, err
+	}
+	signHelper.expirationDate = expirationDate
+
+	go signHelper.autoRenew(ctx)
+
+	return signHelper, nil
 }
 
 func (s *SignHelper) MakeGlobalAggregateProof(val int64, timestamp time.Time, name string) ([]byte, error) {
-	return utils.MakeValueSignature(val, timestamp.Unix(), name, s.PK)
+	s.mu.RLock()
+	pk := s.PK
+	s.mu.RUnlock()
+	return utils.MakeValueSignature(val, timestamp.Unix(), name, pk)
+}
+
+func (s *SignHelper) autoRenew(ctx context.Context) {
+	autoRenewTicker := time.NewTicker(SignerRenewInterval)
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-autoRenewTicker.C:
+			err := s.CheckAndUpdateSignerPK(ctx)
+			if err != nil {
+				log.Error().Err(err).Msg("failed to renew signer pk")
+			}
+		}
+	}
+}
+
+func (s *SignHelper) CheckAndUpdateSignerPK(ctx context.Context) error {
+	if !s.IsRenewalRequired() {
+		return nil
+	}
+	err := s.Renew(ctx)
+	if err != nil {
+		return err
+	}
+
+	newExpiration, err := s.LoadExpiration(ctx)
+	if err != nil {
+		return err
+	}
+	s.expirationDate = newExpiration
+	return nil
+}
+
+func (s *SignHelper) LoadExpiration(ctx context.Context) (*time.Time, error) {
+	readResult, err := s.chainHelper.ReadContract(ctx, s.submissionProxyContractAddr, SignerDetailFuncSignature)
+	if err != nil {
+		return nil, err
+	}
+
+	values := readResult.([]interface{})
+	rawTimestamp := values[1].(*big.Int)
+	expirationDate := time.Unix(int64(rawTimestamp.Int64()), 0)
+
+	return &expirationDate, nil
+}
+
+func (s *SignHelper) IsRenewalRequired() bool {
+	return (time.Until(*s.expirationDate) < SignerRenewThreshold)
+}
+
+func (s *SignHelper) Renew(ctx context.Context) error {
+	newPK, newPkStr, err := utils.NewPk(ctx)
+	if err != nil {
+		return err
+	}
+
+	newPublicAddr, err := utils.StringPkToAddressHex(newPkStr)
+	if err != nil {
+		return err
+	}
+	addr := common.HexToAddress(newPublicAddr)
+
+	rawTx, err := s.chainHelper.MakeFeeDelegatedTx(ctx, s.submissionProxyContractAddr, UpdateSignerFuncSignature, 0, addr)
+	if err != nil {
+		return err
+	}
+
+	signedTx, err := s.chainHelper.GetSignedFromDelegator(rawTx)
+	if err != nil {
+		return err
+	}
+
+	err = s.chainHelper.SubmitRawTx(ctx, signedTx)
+	if err != nil {
+		return err
+	}
+
+	s.mu.Lock()
+	s.PK = newPK
+	s.mu.Unlock()
+
+	return utils.StoreSignerPk(ctx, newPkStr)
 }

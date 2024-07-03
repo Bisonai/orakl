@@ -3,6 +3,8 @@ package helper
 import (
 	"crypto/ecdsa"
 	"math/big"
+	"sync"
+	"time"
 
 	"bisonai.com/orakl/node/pkg/chain/eth_client"
 	"bisonai.com/orakl/node/pkg/chain/utils"
@@ -58,7 +60,11 @@ func WithoutAdditionalWallets() ChainHelperOption {
 }
 
 type SignHelper struct {
-	PK *ecdsa.PrivateKey
+	PK                          *ecdsa.PrivateKey
+	chainHelper                 *ChainHelper
+	submissionProxyContractAddr string
+	expirationDate              *time.Time
+	mu                          sync.RWMutex
 }
 
 type signedTx struct {
@@ -90,4 +96,9 @@ const (
 	SignerPk        = "SIGNER_PK"
 	EthProviderUrl  = "ETH_PROVIDER_URL"
 	EthReporterPk   = "ETH_REPORTER_PK"
+
+	SignerRenewInterval       = 12 * time.Hour
+	SignerRenewThreshold      = 7 * 24 * time.Hour
+	SignerDetailFuncSignature = "whitelist(address) returns ((uint256, uint256))"
+	UpdateSignerFuncSignature = "updateOracle(address) returns (uint256)"
 )

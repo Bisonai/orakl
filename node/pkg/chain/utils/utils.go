@@ -704,3 +704,13 @@ func StoreSignerPk(ctx context.Context, pk string) error {
 	}
 	return db.QueryWithoutResult(ctx, "INSERT INTO signer (pk) VALUES (@pk)", map[string]any{"pk": encryptedPk})
 }
+
+func NewPk(ctx context.Context) (*ecdsa.PrivateKey, string, error) {
+	pk, err := crypto.GenerateKey()
+	if err != nil {
+		return nil, "", err
+	}
+
+	bytes := crypto.FromECDSA(pk)
+	return pk, fmt.Sprintf("%x", bytes), nil
+}
