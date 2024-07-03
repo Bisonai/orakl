@@ -206,3 +206,4 @@ tasks:
       - task: test-chain
       - task: test-wss
       - task: test-websocketfetcher
+      - task: test-dal
