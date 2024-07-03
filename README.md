@@ -136,3 +136,4 @@ The microservices can also be started separately in any arbitrary order by repla
 - **node** v0.0.1.20240701.0528.b6b6a7e <br> *`PR`*: OraklNode Remove unused column... <br><br> 
 - **node** v0.0.1.20240701.0602.97ca5e2 <br> *`PR`*: OraklNode PubSub based GlobalA... <br><br> 
 - **node** v0.0.1.20240701.0650.4eaa326 <br> *`PR`*: OraklNode Reduce default lates... <br><br> 
+- **node** v0.0.1.20240703.0658.ffead85 <br> *`PR`*: OraklNode Set fixed deviation ... <br><br> 
