@@ -32,7 +32,7 @@ func NewReporter(ctx context.Context, opts ...ReporterOption) (*Reporter, error)
 
 	topicString := TOPIC_STRING + "-"
 	if config.JobType == DeviationJob {
-		topicString += "deviation-" + strconv.Itoa(config.Interval)
+		topicString += "deviation"
 	} else {
 		topicString += strconv.Itoa(config.Interval)
 	}

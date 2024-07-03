@@ -79,7 +79,7 @@ func (a *App) setReporters(ctx context.Context, h host.Host, ps *pubsub.PubSub) 
 		)
 		if errNewReporter != nil {
 			log.Error().Str("Player", "Reporter").Err(errNewReporter).Msg("failed to set reporter")
-			continue
+			return errNewReporter
 		}
 		a.Reporters = append(a.Reporters, reporter)
 	}
@@ -88,24 +88,21 @@ func (a *App) setReporters(ctx context.Context, h host.Host, ps *pubsub.PubSub) 
 		return errorSentinel.ErrReporterNotFound
 	}
 
-	groupedDeviationConfigs := groupConfigsByAggregateIntervals(configs)
-	for groupInterval, configs := range groupedDeviationConfigs {
-		deviationReporter, errNewDeviationReporter := NewReporter(
-			ctx,
-			WithHost(h),
-			WithPubsub(ps),
-			WithConfigs(configs),
-			WithInterval(groupInterval),
-			WithContractAddress(contractAddress),
-			WithCachedWhitelist(cachedWhitelist),
-			WithJobType(DeviationJob),
-		)
-		if errNewDeviationReporter != nil {
-			log.Error().Str("Player", "Reporter").Err(errNewDeviationReporter).Msg("failed to set deviation reporter")
-			continue
-		}
-		a.Reporters = append(a.Reporters, deviationReporter)
+	deviationReporter, errNewDeviationReporter := NewReporter(
+		ctx,
+		WithHost(h),
+		WithPubsub(ps),
+		WithConfigs(configs),
+		WithInterval(DEVIATION_INTERVAL),
+		WithContractAddress(contractAddress),
+		WithCachedWhitelist(cachedWhitelist),
+		WithJobType(DeviationJob),
+	)
+	if errNewDeviationReporter != nil {
+		log.Error().Str("Player", "Reporter").Err(errNewDeviationReporter).Msg("failed to set deviation reporter")
+		return errNewDeviationReporter
 	}
+	a.Reporters = append(a.Reporters, deviationReporter)
 
 	log.Info().Str("Player", "Reporter").Msgf("%d reporters set", len(a.Reporters))
 	return nil
@@ -307,18 +304,6 @@ func groupConfigsBySubmitIntervals(reporterConfigs []Config) map[int][]Config {
 		var interval = 5000
 		if sa.SubmitInterval != nil && *sa.SubmitInterval > 0 {
 			interval = *sa.SubmitInterval
-		}
-		grouped[interval] = append(grouped[interval], sa)
-	}
-	return grouped
-}
-
-func groupConfigsByAggregateIntervals(reporterConfigs []Config) map[int][]Config {
-	grouped := make(map[int][]Config)
-	for _, sa := range reporterConfigs {
-		var interval = 5000
-		if sa.AggregateInterval != nil && *sa.AggregateInterval > 0 {
-			interval = *sa.AggregateInterval
 		}
 		grouped[interval] = append(grouped[interval], sa)
 	}
