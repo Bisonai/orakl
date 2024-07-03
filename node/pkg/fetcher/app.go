@@ -362,7 +362,7 @@ func (a *App) initialize(ctx context.Context) error {
 	}
 
 	// initialize channel for temporarily keeping local aggregates
-	localAggregatesChannel := make(chan LocalAggregatesChannel, LocalAggregatesChannelSize)
+	localAggregatesChannel := make(chan LocalAggregate, LocalAggregatesChannelSize)
 	go localAggregatesChannelProcessor(ctx, localAggregatesChannel)
 	
 	a.Fetchers = make(map[int32]*Fetcher, len(configs))
@@ -406,7 +406,7 @@ func (a *App) initialize(ctx context.Context) error {
 	return nil
 }
 
-func localAggregatesChannelProcessor(ctx context.Context, localAggregatesChannel chan LocalAggregatesChannel) {
+func localAggregatesChannelProcessor(ctx context.Context, localAggregatesChannel chan LocalAggregate) {
 	ticker := time.NewTicker(DefaultLocalAggregateInterval)
 	defer ticker.Stop()
 
@@ -425,7 +425,7 @@ func localAggregatesChannelProcessor(ctx context.Context, localAggregatesChannel
 	}
 }
 
-func localAggregatesChannelProcessorJob(ctx context.Context, localAggregatesChannel chan LocalAggregatesChannel) {
+func localAggregatesChannelProcessorJob(ctx context.Context, localAggregatesChannel chan LocalAggregate) {
 	if len(localAggregatesChannel) == 0 {
 		return
 	}
@@ -433,11 +433,11 @@ func localAggregatesChannelProcessorJob(ctx context.Context, localAggregatesChan
 	var localAggregatesDataPgsql [][]any
 	
 	loop:
-		for i := 0; i < LocalAggregatesChannelSize; i++ {
+		for {
 			select {
 				case data := <-localAggregatesChannel:
-					localAggregatesDataRedis[keys.LocalAggregateKey(data.configId)] = LocalAggregate{ConfigID: data.configId, Value: int64(data.localAggregatedValue), Timestamp: time.Now()}
-					localAggregatesDataPgsql = append(localAggregatesDataPgsql, []any{data.configId, int64(data.localAggregatedValue)})
+					localAggregatesDataRedis[keys.LocalAggregateKey(data.ConfigID)] = LocalAggregate{ConfigID: data.ConfigID, Value: int64(data.Value), Timestamp: time.Now()}
+					localAggregatesDataPgsql = append(localAggregatesDataPgsql, []any{data.ConfigID, int64(data.Value)})
 				default:
 					break loop
 			}	

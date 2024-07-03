@@ -9,7 +9,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func NewCollector(config Config, feeds []Feed, localAggregatesChannel chan LocalAggregatesChannel) *Collector {
+func NewCollector(config Config, feeds []Feed, localAggregatesChannel chan LocalAggregate) *Collector {
 	return &Collector{
 		Config:       config,
 		Feeds:        feeds,
@@ -125,7 +125,11 @@ func calculateAggregatedPrice(valueWeightedAveragePrice, medianPrice float64) fl
 
 func (c *Collector) insertAggregateData(ctx context.Context, aggregated float64) error {
 	if aggregated != 0 {
-		c.localAggregatesChannel <- LocalAggregatesChannel{localAggregatedValue: aggregated, configId: c.ID}
+		c.localAggregatesChannel <- LocalAggregate{
+			ConfigID: c.ID,
+			Value:   int64(aggregated),
+			Timestamp:  time.Now(),
+		}
 	}
 	
 	return nil

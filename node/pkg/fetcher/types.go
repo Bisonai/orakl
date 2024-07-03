@@ -25,6 +25,7 @@ const (
 
 type Feed types.Feed
 type FeedData types.FeedData
+type LocalAggregate types.LocalAggregate
 
 type Config struct {
 	ID            int32  `db:"id"`
@@ -51,7 +52,7 @@ type Collector struct {
 	cancel       context.CancelFunc
 	isRunning    bool
 
-	localAggregatesChannel chan LocalAggregatesChannel
+	localAggregatesChannel chan LocalAggregate
 }
 
 type Streamer struct {
@@ -87,15 +88,10 @@ type Definition struct {
 	Reciprocal     *bool   `json:"reciprocal"`
 }
 
-type LocalAggregate types.LocalAggregate
+
 
 type ChainHelper interface {
 	ReadContract(ctx context.Context, contractAddress string, functionString string, args ...interface{}) (interface{}, error)
 	ChainID() *big.Int
 	Close()
-}
-
-type LocalAggregatesChannel struct {
-	localAggregatedValue	float64
-	configId				int32
 }
