@@ -19,7 +19,11 @@ func Run(ctx context.Context) error {
 		return err
 	}
 
-	api.Setup(ctx)
+	err = api.Setup(ctx)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to setup DAL API server")
+		return err
+	}
 	api.ApiController.Start(ctx)
 
 	log.Debug().Str("Player", "DAL API").Msg("DAL API collector started")

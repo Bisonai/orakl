@@ -80,7 +80,10 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 		return nil, nil, err
 	}
 	testItems.App = app
-	api.Setup(ctx)
+	err = api.Setup(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
 	testItems.Controller = &api.ApiController
 	testItems.Collector = api.ApiController.Collector
 

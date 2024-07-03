@@ -18,9 +18,15 @@ import (
 )
 
 func Setup(ctx context.Context) (*fiber.App, error) {
-	_, err := db.GetRedisClient(ctx)
+	_, err := db.GetPool(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("error getting redis conn")
+		log.Error().Err(err).Msg("error getting pgs conn in Setup")
+		return nil, errorSentinel.ErrAdminDbPoolNotFound
+	}
+
+	_, err = db.GetRedisClient(ctx)
+	if err != nil {
+		log.Error().Err(err).Msg("error getting redis conn in Setup")
 		return nil, errorSentinel.ErrAdminRedisConnNotFound
 	}
 
@@ -66,7 +72,8 @@ func CustomErrorHandler(c *fiber.Ctx, err error) error {
 		Str("path", c.Path()).
 		Msg("error")
 
-	return c.Status(code).SendString(err.Error())
+	c.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSONCharsetUTF8)
+	return c.Status(code).JSON(fiber.Map{"error": err.Error()})
 }
 
 func CustomStackTraceHandler(_ *fiber.Ctx, e interface{}) {
@@ -74,11 +81,10 @@ func CustomStackTraceHandler(_ *fiber.Ctx, e interface{}) {
 	var failPoint string
 
 	for _, line := range stackTrace {
-		if strings.Contains(line, "controller.go") {
+		if strings.Contains(line, ".go") {
 			path := strings.Split(strings.TrimSpace(line), " ")[0]
 			splitted := strings.Split(path, "/")
 			failPoint = splitted[len(splitted)-2] + "/" + splitted[len(splitted)-1]
-
 			break
 		}
 	}
