@@ -312,6 +312,7 @@ func NewSignHelper(ctx context.Context) (*SignHelper, error) {
 	chainHelper, err := NewChainHelper(ctx, WithReporterPk(pk), WithoutAdditionalWallets())
 	if err != nil {
 		log.Error().Err(err).Msg("failed to set chainHelper for signerfeat")
+		log.Error().Err(err).Msg("failed to set chainHelper for signHelper")
 	}
 
 	submissionProxyContractAddr := os.Getenv("SUBMISSION_PROXY_CONTRACT")
@@ -379,12 +380,22 @@ func (s *SignHelper) CheckAndUpdateSignerPK(ctx context.Context) error {
 }
 
 func (s *SignHelper) LoadExpiration(ctx context.Context) (*time.Time, error) {
-	readResult, err := s.chainHelper.ReadContract(ctx, s.submissionProxyContractAddr, SignerDetailFuncSignature)
+	publicKey := s.PK.Public()
+	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
+	if !ok {
+		return nil, errorSentinel.ErrChainPubKeyToECDSAFail
+	}
+	addr := crypto.PubkeyToAddress(*publicKeyECDSA)
+
+	readResult, err := s.chainHelper.ReadContract(ctx, s.submissionProxyContractAddr, SignerDetailFuncSignature, addr)
 	if err != nil {
 		return nil, err
 	}
 
-	values := readResult.([]interface{})
+	values, ok := readResult.([]interface{})
+	if !ok {
+		return nil, fmt.Errorf("interface conversion failure")
+	}
 	rawTimestamp := values[1].(*big.Int)
 	expirationDate := time.Unix(int64(rawTimestamp.Int64()), 0)
 
@@ -392,7 +403,7 @@ func (s *SignHelper) LoadExpiration(ctx context.Context) (*time.Time, error) {
 }
 
 func (s *SignHelper) IsRenewalRequired() bool {
-	return (time.Until(*s.expirationDate) < SignerRenewThreshold)
+	return time.Until(*s.expirationDate) < SignerRenewThreshold
 }
 
 func (s *SignHelper) Renew(ctx context.Context) error {
@@ -407,17 +418,7 @@ func (s *SignHelper) Renew(ctx context.Context) error {
 	}
 	addr := common.HexToAddress(newPublicAddr)
 
-	rawTx, err := s.chainHelper.MakeFeeDelegatedTx(ctx, s.submissionProxyContractAddr, UpdateSignerFuncSignature, 0, addr)
-	if err != nil {
-		return err
-	}
-
-	signedTx, err := s.chainHelper.GetSignedFromDelegator(rawTx)
-	if err != nil {
-		return err
-	}
-
-	err = s.chainHelper.SubmitRawTx(ctx, signedTx)
+	err = s.signerUpdate(ctx, addr)
 	if err != nil {
 		return err
 	}
@@ -427,4 +428,31 @@ func (s *SignHelper) Renew(ctx context.Context) error {
 	s.mu.Unlock()
 
 	return utils.StoreSignerPk(ctx, newPkStr)
+}
+
+func (s *SignHelper) signerUpdate(ctx context.Context, newAddr common.Address) error {
+	if s.chainHelper.delegatorUrl != "" {
+		return s.delegatedSignerUpdate(ctx, newAddr)
+	}
+	return s.directSignerUpdate(ctx, newAddr)
+}
+
+func (s *SignHelper) delegatedSignerUpdate(ctx context.Context, newAddr common.Address) error {
+	rawTx, err := s.chainHelper.MakeFeeDelegatedTx(ctx, s.submissionProxyContractAddr, UpdateSignerFuncSignature, 0, newAddr)
+	if err != nil {
+		return err
+	}
+	signedTx, err := s.chainHelper.GetSignedFromDelegator(rawTx)
+	if err != nil {
+		return err
+	}
+	return s.chainHelper.SubmitRawTx(ctx, signedTx)
+}
+
+func (s *SignHelper) directSignerUpdate(ctx context.Context, newAddr common.Address) error {
+	rawTx, err := s.chainHelper.MakeDirectTx(ctx, s.submissionProxyContractAddr, UpdateSignerFuncSignature, newAddr)
+	if err != nil {
+		return err
+	}
+	return s.chainHelper.SubmitRawTx(ctx, rawTx)
 }

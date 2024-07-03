@@ -711,6 +711,8 @@ func NewPk(ctx context.Context) (*ecdsa.PrivateKey, string, error) {
 		return nil, "", err
 	}
 
-	bytes := crypto.FromECDSA(pk)
-	return pk, fmt.Sprintf("%x", bytes), nil
+	privateKeyBytes := crypto.FromECDSA(pk)
+	privateKeyHex := hex.EncodeToString(privateKeyBytes)
+
+	return pk, privateKeyHex, nil
 }
