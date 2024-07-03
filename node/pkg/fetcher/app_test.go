@@ -116,3 +116,58 @@ func TestAppRun(t *testing.T) {
 	}
 	assert.Greater(t, len(localAggregateResult), 0)
 }
+
+func TestLocalAggregatesChannel(t *testing.T) {
+	ctx := context.Background()
+	clean, testItems, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer func() {
+		if cleanupErr := clean(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
+		}
+	}()
+	app := testItems.app
+
+	// get configs, initialize channel, and start collectors
+	configs, err := app.getConfigs(ctx)
+	// t.Logf("configs: %v", configs)
+	if err != nil {
+		t.Fatalf("error getting configs: %v", err)
+	}
+	configsLen := len(configs)
+
+	localAggregatesChannel := make(chan LocalAggregate, LocalAggregatesChannelSize)
+	app.Collectors = make(map[int32]*Collector, len(configs))
+
+	feedData := make(map[string]any)
+	for _, config := range configs {
+		collectorFeeds, getFeedsErr := app.getFeeds(ctx, config.ID)
+		// t.Logf("collectorFeeds: %v", collectorFeeds)
+		if getFeedsErr != nil {
+			t.Fatalf("error getting configs: %v", getFeedsErr)
+		}
+		app.Collectors[config.ID] = NewCollector(config, collectorFeeds, localAggregatesChannel)
+		for i, feed := range collectorFeeds {
+			feedData[keys.LatestFeedDataKey(feed.ID)] = FeedData{FeedID: feed.ID, Value: float64(i+1), Timestamp: nil, Volume: float64(i+1)}
+		}
+	}
+	err = app.startAllCollectors(ctx)
+	if err != nil {
+		t.Fatalf("error starting collectors: %v", err)
+	}
+
+	err = db.MSetObject(ctx, feedData)
+	if err != nil {
+		t.Fatalf("error setting feed data in redis: %v", err)
+	}
+
+	// wait until collectors fetch and process data from db
+	time.Sleep(250*time.Millisecond)
+	assert.Equal(t, len(localAggregatesChannel), configsLen)
+
+	go app.localAggregatesChannelProcessor(ctx, localAggregatesChannel)
+	time.Sleep(250*time.Millisecond)
+	assert.Equal(t, len(localAggregatesChannel), 0)
+}

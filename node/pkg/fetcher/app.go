@@ -363,7 +363,7 @@ func (a *App) initialize(ctx context.Context) error {
 
 	// initialize channel for temporarily keeping local aggregates
 	localAggregatesChannel := make(chan LocalAggregate, LocalAggregatesChannelSize)
-	go localAggregatesChannelProcessor(ctx, localAggregatesChannel)
+	go a.localAggregatesChannelProcessor(ctx, localAggregatesChannel)
 	
 	a.Fetchers = make(map[int32]*Fetcher, len(configs))
 	a.Collectors = make(map[int32]*Collector, len(configs))
@@ -406,7 +406,7 @@ func (a *App) initialize(ctx context.Context) error {
 	return nil
 }
 
-func localAggregatesChannelProcessor(ctx context.Context, localAggregatesChannel chan LocalAggregate) {
+func (a *App) localAggregatesChannelProcessor(ctx context.Context, localAggregatesChannel chan LocalAggregate) {
 	ticker := time.NewTicker(DefaultLocalAggregateInterval)
 	defer ticker.Stop()
 
