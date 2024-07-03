@@ -162,7 +162,10 @@ func TestApiWebsocket(t *testing.T) {
 		t.Fatalf("error generating sample submission data: %v", err)
 	}
 
-	testPublishData(ctx, *sampleSubmissionData)
+	err = testPublishData(ctx, *sampleSubmissionData)
+	if err != nil {
+		t.Fatalf("error publishing sample submission data: %v", err)
+	}
 
 	expected, err := testItems.Collector.IncomingDataToOutgoingData(ctx, *sampleSubmissionData)
 	if err != nil {
