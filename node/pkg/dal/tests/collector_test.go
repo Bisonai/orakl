@@ -60,7 +60,10 @@ func TestCollectorStream(t *testing.T) {
 		t.Fatalf("error generating sample submission data: %v", err)
 	}
 
-	testPublishData(ctx, *sampleSubmissionData)
+	err = testPublishData(ctx, *sampleSubmissionData)
+	if err != nil {
+		t.Fatalf("error publishing data: %v", err)
+	}
 
 	time.Sleep(10 * time.Millisecond)
 

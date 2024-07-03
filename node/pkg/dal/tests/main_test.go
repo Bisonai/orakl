@@ -28,8 +28,8 @@ type TestItems struct {
 	TmpConfig  types.Config
 }
 
-func testPublishData(ctx context.Context, submissionData aggregator.SubmissionData) {
-	_ = db.Publish(ctx, keys.SubmissionDataStreamKey(submissionData.GlobalAggregate.ConfigID), submissionData)
+func testPublishData(ctx context.Context, submissionData aggregator.SubmissionData) error {
+	return db.Publish(ctx, keys.SubmissionDataStreamKey(submissionData.GlobalAggregate.ConfigID), submissionData)
 }
 
 func generateSampleSubmissionData(configId int32, value int64, timestamp time.Time, round int32, symbol string) (*aggregator.SubmissionData, error) {
