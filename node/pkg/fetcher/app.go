@@ -425,22 +425,30 @@ func localAggregatesChannelProcessor(ctx context.Context, localAggregatesChannel
 	}
 }
 
-func localAggregatesChannelProcessorJob(ctx context.Context, localAggregatesChannel chan LocalAggregatesChannel) error {
+func localAggregatesChannelProcessorJob(ctx context.Context, localAggregatesChannel chan LocalAggregatesChannel) {
+	if len(localAggregatesChannel) == 0 {
+		return
+	}
 	localAggregatesDataRedis := make(map[string]interface{})
 	var localAggregatesDataPgsql [][]any
-	for data := range localAggregatesChannel {	
-		localAggregatesDataRedis[keys.LocalAggregateKey(data.configId)] = LocalAggregate{ConfigID: data.configId, Value: int64(data.localAggregatedValue), Timestamp: time.Now()}
-		localAggregatesDataPgsql = append(localAggregatesDataPgsql, []any{data.configId, int64(data.localAggregatedValue)})
-	}
+	
+	loop:
+		for i := 0; i < LocalAggregatesChannelSize; i++ {
+			select {
+				case data := <-localAggregatesChannel:
+					localAggregatesDataRedis[keys.LocalAggregateKey(data.configId)] = LocalAggregate{ConfigID: data.configId, Value: int64(data.localAggregatedValue), Timestamp: time.Now()}
+					localAggregatesDataPgsql = append(localAggregatesDataPgsql, []any{data.configId, int64(data.localAggregatedValue)})
+				default:
+					break loop
+			}	
+		}
 	
 	redisErr := db.MSetObject(ctx, localAggregatesDataRedis)
 	_, pgsqlErr := db.BulkCopy(ctx, "local_aggregates", []string{"config_id", "value"}, localAggregatesDataPgsql)
 
 	if redisErr != nil || pgsqlErr != nil{
-		return fmt.Errorf("couldn't store local aggregates in db: %v, %v", redisErr, pgsqlErr)
+		log.Error().Err(redisErr).Err(pgsqlErr).Msg("failed to save local aggregates")
 	}
-
-	return nil
 }
 
 func (a *App) String() string {
