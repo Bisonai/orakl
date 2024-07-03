@@ -53,7 +53,7 @@ func testContractFeeDelegatedCall(ctx context.Context, contractAddress string, c
 func main() {
 	ctx := context.Background()
 
-	s, err := helper.NewSignHelper("")
+	s, err := helper.NewSignHelper(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("NewSignHelper")
 

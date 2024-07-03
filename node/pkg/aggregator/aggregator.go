@@ -17,7 +17,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string, config Config) (*Aggregator, error) {
+func NewAggregator(ctx context.Context, h host.Host, ps *pubsub.PubSub, topicString string, config Config) (*Aggregator, error) {
 	if h == nil || ps == nil || topicString == "" {
 		return nil, errorSentinel.ErrAggregatorInvalidInitValue
 	}
@@ -28,7 +28,7 @@ func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string, config Co
 		return nil, err
 	}
 
-	signHelper, err := helper.NewSignHelper("")
+	signHelper, err := helper.NewSignHelper(ctx)
 	if err != nil {
 		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to create sign helper")
 		return nil, err

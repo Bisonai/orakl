@@ -56,7 +56,8 @@ func TestNewKaiaHelper(t *testing.T) {
 }
 
 func TestNewChainHelper(t *testing.T) {
-	_, err := helper.NewSignHelper("")
+	ctx := context.Background()
+	_, err := helper.NewSignHelper(ctx)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -520,7 +521,8 @@ func TestInsertWalletEmptyDbEnv(t *testing.T) {
 }
 
 func TestMakeGlobalAggregateProof(t *testing.T) {
-	s, err := helper.NewSignHelper("")
+	ctx := context.Background()
+	s, err := helper.NewSignHelper(ctx)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -540,7 +542,7 @@ func TestMakeGlobalAggregateProof(t *testing.T) {
 		t.Errorf("Unexpected error: %v", err)
 	}
 
-	pk, err := utils.StringToPk(os.Getenv("KAIA_REPORTER_PK"))
+	pk, err := utils.StringToPk(os.Getenv("SIGNER_PK"))
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}

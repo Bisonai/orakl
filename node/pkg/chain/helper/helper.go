@@ -284,13 +284,19 @@ func (t *ChainHelper) retryOnJsonRpcFailure(ctx context.Context, job func(c util
 	return nil
 }
 
-func NewSignHelper(pk string) (*SignHelper, error) {
+func NewSignHelper(ctx context.Context) (*SignHelper, error) {
+	pk, err := utils.LoadSignerPk(ctx)
+	if err != nil || pk == "" {
+		log.Warn().Msg("failed to load signer pk from pgs")
+	}
+
 	if pk == "" {
 		pk = secrets.GetSecret(SignerPk)
 		if pk == "" {
 			log.Error().Msg("signer pk not set")
 			return nil, errorSentinel.ErrChainSignerPKNotFound
 		}
+		utils.StoreSignerPk(ctx, pk)
 	}
 
 	pk = strings.TrimPrefix(pk, "0x")

@@ -78,7 +78,7 @@ func (a *App) setAggregators(ctx context.Context, h host.Host, ps *pubsub.PubSub
 		return err
 	}
 
-	return a.initializeLoadedAggregators(configs, h, ps)
+	return a.initializeLoadedAggregators(ctx, configs, h, ps)
 }
 
 func (a *App) clearAggregators() error {
@@ -98,14 +98,14 @@ func (a *App) clearAggregators() error {
 	return nil
 }
 
-func (a *App) initializeLoadedAggregators(loadedConfigs []Config, h host.Host, ps *pubsub.PubSub) error {
+func (a *App) initializeLoadedAggregators(ctx context.Context, loadedConfigs []Config, h host.Host, ps *pubsub.PubSub) error {
 	for _, config := range loadedConfigs {
 		if a.Aggregators[config.ID] != nil {
 			continue
 		}
 
 		topicString := config.Name + "-global-aggregator-topic-" + strconv.Itoa(int(config.AggregateInterval))
-		tmpNode, err := NewAggregator(h, ps, topicString, config)
+		tmpNode, err := NewAggregator(ctx, h, ps, topicString, config)
 		if err != nil {
 			return err
 		}
