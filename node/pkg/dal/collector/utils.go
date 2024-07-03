@@ -22,10 +22,15 @@ func getAllOracles(ctx context.Context, chainReader *websocketchainreader.ChainR
 	}
 	rawResultSlice, ok := rawResult.([]interface{})
 	if !ok {
-		return nil, errors.New("failed to cast result to []interface{}")
+		return nil, errors.New("failed to cast result to []interface{} in getAllOracles")
 	}
 
-	return rawResultSlice[0].([]klaytncommon.Address), nil
+	addresses, ok := rawResultSlice[0].([]klaytncommon.Address)
+	if !ok {
+		return nil, errors.New("failed to cast first element to []klaytncommon.Address")
+	}
+
+	return addresses, nil
 }
 
 func subscribeAddOracleEvent(ctx context.Context, chainReader *websocketchainreader.ChainReader, submissionProxyContractAddr string, isUpdated chan any) error {
@@ -51,14 +56,17 @@ func subscribeAddOracleEvent(ctx context.Context, chainReader *websocketchainrea
 	}
 
 	go func() {
+		defer close(logChannel)
 		for eventLog := range logChannel {
 			result, err := oracleAddedEventABI.Unpack(eventName, eventLog.Data)
 			if err != nil {
+				log.Error().Err(err).Msg("failed to unpack event log data in subscribeAddOracleEvent")
 				continue
 			}
 
 			_, ok := result[0].(klaytncommon.Address)
 			if !ok {
+				log.Error().Msg("failed to cast result to klaytncommon.Address in subscribeAddOracleEvent")
 				continue
 			}
 
@@ -74,16 +82,19 @@ func orderProof(ctx context.Context, proof []byte, value int64, timestamp time.T
 	hash := chainutils.Value2HashForSign(value, timestamp.Unix(), symbol)
 	proofChunks, err := reporter.SplitProofToChunk(proof)
 	if err != nil {
+		log.Error().Err(err).Msg("failed to split proof to chunks in orderProof")
 		return nil, err
 	}
 
 	signers, err := reporter.GetSignerListFromProofs(hash, proofChunks)
 	if err != nil {
+		log.Error().Err(err).Msg("failed to get signer list from proofs in orderProof")
 		return nil, err
 	}
 
 	err = reporter.CheckForNonWhitelistedSigners(signers, cachedWhitelist)
 	if err != nil {
+		log.Error().Err(err).Msg("non-whitelisted signers found in orderProof")
 		return nil, err
 	}
 

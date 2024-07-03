@@ -18,11 +18,11 @@ import (
 
 var ApiController Controller
 
-func Setup(ctx context.Context) {
+func Setup(ctx context.Context) error {
 	configs, err := db.QueryRows[types.Config](ctx, "SELECT * FROM configs", nil)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to get configs")
-		panic(err)
+		return err
 	}
 	configMap := make(map[string]types.Config)
 	for _, config := range configs {
@@ -31,10 +31,11 @@ func Setup(ctx context.Context) {
 	collector, err := collector.NewCollector(ctx, configs)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to create collector")
-		panic(err)
+		return err
 	}
 
 	ApiController = *NewController(configMap, collector)
+	return nil
 }
 
 func NewController(configs map[string]types.Config, internalCollector *collector.Collector) *Controller {
@@ -85,13 +86,18 @@ func (c *Controller) configIdToSymbol(id int32) string {
 
 func (c *Controller) broadcastDataForSymbol(symbol string) {
 	for data := range c.broadcast[symbol] {
-		for conn := range c.clients {
-			if _, ok := c.clients[conn][symbol]; ok {
-				if err := conn.WriteJSON(data); err != nil {
-					log.Error().Err(err).Msg("failed to write message")
-					delete(c.clients, conn)
-					conn.Close()
-				}
+		go c.castSubmissionData(&data, &symbol)
+	}
+}
+
+// pass by pointer to reduce memory copy time
+func (c *Controller) castSubmissionData(data *dalcommon.OutgoingSubmissionData, symbol *string) {
+	for conn := range c.clients {
+		if _, ok := c.clients[conn][*symbol]; ok {
+			if err := conn.WriteJSON(*data); err != nil {
+				log.Error().Err(err).Msg("failed to write message")
+				delete(c.clients, conn)
+				conn.Close()
 			}
 		}
 	}

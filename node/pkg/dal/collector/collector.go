@@ -84,7 +84,7 @@ func NewCollector(ctx context.Context, configs []types.Config) (*Collector, erro
 
 func (c *Collector) Start(ctx context.Context) {
 	if c.Ctx != nil {
-		log.Debug().Str("Player", "DalCollector").Msg("Collector already running")
+		log.Warn().Str("Player", "DalCollector").Msg("Collector already running, skipping start")
 		return
 	}
 
@@ -105,19 +105,23 @@ func (c *Collector) Stop() {
 
 func (c *Collector) receive(ctx context.Context) {
 	for id := range c.IncomingStream {
-		go c.receiveEach(ctx, id)
+		go func(id int32) {
+			if err := c.receiveEach(ctx, id); err != nil {
+				log.Error().Err(err).Str("Player", "DalCollector").Msg("Error in receiveEach goroutine")
+			}
+		}(id)
 	}
 }
 
-func (c *Collector) receiveEach(ctx context.Context, configId int32) {
+func (c *Collector) receiveEach(ctx context.Context, configId int32) error {
 	err := db.Subscribe(ctx, keys.SubmissionDataStreamKey(configId), c.IncomingStream[configId])
 	if err != nil {
-		log.Error().Err(err).Str("Player", "DalCollector").Msg("failed to subscribe to submission stream")
+		return err
 	}
 	for {
 		select {
 		case <-ctx.Done():
-			return
+			return nil
 		case data := <-c.IncomingStream[configId]:
 			go c.processIncomingData(ctx, data)
 		}
@@ -146,7 +150,7 @@ func (c *Collector) IncomingDataToOutgoingData(ctx context.Context, data aggrega
 		c.Symbols[data.GlobalAggregate.ConfigID],
 		whitelist)
 	if err != nil {
-		log.Error().Err(err).Str("Player", "DalCollector").Msg("failed to order proof")
+		log.Error().Err(err).Str("Player", "DalCollector").Str("Symbol", c.Symbols[data.GlobalAggregate.ConfigID]).Msg("failed to order proof")
 		if errors.Is(err, errorSentinel.ErrReporterSignerNotWhitelisted) {
 			newList, getAllOraclesErr := getAllOracles(ctx, c.chainReader, c.submissionProxyContractAddr)
 			if getAllOraclesErr != nil {
