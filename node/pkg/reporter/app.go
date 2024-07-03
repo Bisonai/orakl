@@ -79,7 +79,7 @@ func (a *App) setReporters(ctx context.Context, h host.Host, ps *pubsub.PubSub) 
 		)
 		if errNewReporter != nil {
 			log.Error().Str("Player", "Reporter").Err(errNewReporter).Msg("failed to set reporter")
-			continue
+			return errNewReporter
 		}
 		a.Reporters = append(a.Reporters, reporter)
 	}
@@ -100,6 +100,7 @@ func (a *App) setReporters(ctx context.Context, h host.Host, ps *pubsub.PubSub) 
 	)
 	if errNewDeviationReporter != nil {
 		log.Error().Str("Player", "Reporter").Err(errNewDeviationReporter).Msg("failed to set deviation reporter")
+		return errNewDeviationReporter
 	}
 	a.Reporters = append(a.Reporters, deviationReporter)
 
