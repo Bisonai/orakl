@@ -65,6 +65,12 @@ func generateSampleSubmissionData(configId int32, value int64, timestamp time.Ti
 func setup(ctx context.Context) (func() error, *TestItems, error) {
 	var testItems = new(TestItems)
 
+	err := db.QueryWithoutResult(ctx, "DELETE FROM configs", nil)
+	if err != nil {
+		log.Error().Err(err).Msg("error deleting config")
+		return nil, nil, err
+	}
+
 	tmpConfig, err := db.QueryRow[types.Config](
 		ctx,
 		`INSERT INTO configs (name, fetch_interval, aggregate_interval, submit_interval) VALUES (@name, @fetch_interval, @aggregate_interval, @submit_interval) RETURNING name, id, submit_interval, aggregate_interval, fetch_interval;`,
