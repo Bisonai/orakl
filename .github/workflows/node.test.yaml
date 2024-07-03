@@ -6,10 +6,6 @@ on:
       - "master"
     paths:
       - "node/**"
-    paths-ignore:
-      - "node/pkg/dal/**"
-      - "node/pkg/boot/**"
-      - "node/migrations/boot/**"
   workflow_dispatch:
 
 jobs:
