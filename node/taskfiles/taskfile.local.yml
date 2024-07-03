@@ -62,6 +62,10 @@ tasks:
     dotenv: [".env"]
     cmds:
       - go run ./script/test_websocketdexfetcher/main.go
+  script-test-dal:
+    dotenv: [".env"]
+    cmds:
+      - go run ./script/test_dal_consumer/main.go
 
   test-db:
     dotenv: [".env"]
