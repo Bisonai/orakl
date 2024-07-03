@@ -1,4 +1,4 @@
-name: "orakl node test"
+name: "orakl dal test"
 
 on:
   push:
