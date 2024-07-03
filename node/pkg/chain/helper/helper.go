@@ -296,7 +296,10 @@ func NewSignHelper(ctx context.Context) (*SignHelper, error) {
 			log.Error().Msg("signer pk not set")
 			return nil, errorSentinel.ErrChainSignerPKNotFound
 		}
-		utils.StoreSignerPk(ctx, pk)
+		err = utils.StoreSignerPk(ctx, pk)
+		if err != nil {
+			log.Warn().Msg("failed to store pk")
+		}
 	}
 
 	pk = strings.TrimPrefix(pk, "0x")
