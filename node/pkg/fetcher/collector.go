@@ -127,6 +127,7 @@ func (c *Collector) insertAggregateData(ctx context.Context, aggregated float64)
 	if aggregated != 0 {
 		c.localAggregatesChannel <- LocalAggregatesChannel{localAggregatedValue: aggregated, configId: c.ID}
 	}
+	
 	return nil
 }
 

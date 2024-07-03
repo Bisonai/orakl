@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"bisonai.com/orakl/node/pkg/bus"
+	"bisonai.com/orakl/node/pkg/common/keys"
 	"bisonai.com/orakl/node/pkg/db"
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
 	"bisonai.com/orakl/node/pkg/websocketfetcher"
@@ -425,17 +426,20 @@ func localAggregatesChannelProcessor(ctx context.Context, localAggregatesChannel
 }
 
 func localAggregatesChannelProcessorJob(ctx context.Context, localAggregatesChannel chan LocalAggregatesChannel) error {
-	localAggregatesData := []LocalAggregatesChannel{}
+	localAggregatesDataRedis := make(map[string]interface{})
+	var localAggregatesDataPgsql [][]any
 	for data := range localAggregatesChannel {	
-		localAggregatesData = append(localAggregatesData, data)
+		localAggregatesDataRedis[keys.LocalAggregateKey(data.configId)] = LocalAggregate{ConfigID: data.configId, Value: int64(data.localAggregatedValue), Timestamp: time.Now()}
+		localAggregatesDataPgsql = append(localAggregatesDataPgsql, []any{data.configId, int64(data.localAggregatedValue)})
 	}
 	
-	// err1 := insertLocalAggregateRdb(ctx, id, aggregated)
-	// err2 := insertLocalAggregatePgsql(ctx, id, aggregated)
+	redisErr := db.MSetObject(ctx, localAggregatesDataRedis)
+	_, pgsqlErr := db.BulkCopy(ctx, "local_aggregates", []string{"config_id", "value"}, localAggregatesDataPgsql)
 
-	// if err1 != nil || err2 != nil {
-	// 	return fmt.Errorf("errors occurred in insertAggregateData: %v, %v", err1, err2)
-	// }
+	if redisErr != nil || pgsqlErr != nil{
+		return fmt.Errorf("couldn't store local aggregates in db: %v, %v", redisErr, pgsqlErr)
+	}
+
 	return nil
 }
 
