@@ -3,6 +3,7 @@ package fetcher
 
 import (
 	"context"
+	"os"
 	"testing"
 	"time"
 
@@ -12,6 +13,7 @@ import (
 )
 
 const WAIT_SECONDS = 4 * time.Second
+const DUMMY_FEED_VALUE = 1.0
 
 func TestFetcherInitialize(t *testing.T) {
 	ctx := context.Background()
@@ -132,11 +134,9 @@ func TestLocalAggregatesChannel(t *testing.T) {
 
 	// get configs, initialize channel, and start collectors
 	configs, err := app.getConfigs(ctx)
-	// t.Logf("configs: %v", configs)
 	if err != nil {
 		t.Fatalf("error getting configs: %v", err)
 	}
-	configsLen := len(configs)
 
 	localAggregatesChannel := make(chan LocalAggregate, LocalAggregatesChannelSize)
 	app.Collectors = make(map[int32]*Collector, len(configs))
@@ -144,13 +144,12 @@ func TestLocalAggregatesChannel(t *testing.T) {
 	feedData := make(map[string]any)
 	for _, config := range configs {
 		collectorFeeds, getFeedsErr := app.getFeeds(ctx, config.ID)
-		// t.Logf("collectorFeeds: %v", collectorFeeds)
 		if getFeedsErr != nil {
 			t.Fatalf("error getting configs: %v", getFeedsErr)
 		}
 		app.Collectors[config.ID] = NewCollector(config, collectorFeeds, localAggregatesChannel)
-		for i, feed := range collectorFeeds {
-			feedData[keys.LatestFeedDataKey(feed.ID)] = FeedData{FeedID: feed.ID, Value: float64(i+1), Timestamp: nil, Volume: float64(i+1)}
+		for _, feed := range collectorFeeds {
+			feedData[keys.LatestFeedDataKey(feed.ID)] = FeedData{FeedID: feed.ID, Value: DUMMY_FEED_VALUE, Timestamp: nil, Volume: DUMMY_FEED_VALUE}
 		}
 	}
 	err = app.startAllCollectors(ctx)
@@ -164,10 +163,31 @@ func TestLocalAggregatesChannel(t *testing.T) {
 	}
 
 	// wait until collectors fetch and process data from db
-	time.Sleep(250*time.Millisecond)
-	assert.Equal(t, len(localAggregatesChannel), configsLen)
+	localAggregateIntervalRaw := os.Getenv("LOCAL_AGGREGATE_INTERVAL")
+	localAggregateInterval, err := time.ParseDuration(localAggregateIntervalRaw)
+	if err != nil {
+		localAggregateInterval = DefaultLocalAggregateInterval
+	}
+	time.Sleep(localAggregateInterval*2)
+
+	data := <- localAggregatesChannel
+	assert.Equal(t, float64(data.Value), DUMMY_FEED_VALUE)
 
 	go app.localAggregatesChannelProcessor(ctx, localAggregatesChannel)
-	time.Sleep(250*time.Millisecond)
-	assert.Equal(t, len(localAggregatesChannel), 0)
+
+	time.Sleep(localAggregateInterval*2)
+
+	redisData, redisErr := db.GetObject[LocalAggregate](ctx, keys.LocalAggregateKey(data.ConfigID))
+	if redisErr != nil {
+		t.Fatalf("error getting local aggregate from redis: %v", redisErr)
+	}
+	assert.Equal(t, float64(redisData.Value), DUMMY_FEED_VALUE)
+
+	pgsqlData, pgsqlErr := db.QueryRow[LocalAggregate](ctx, "SELECT * FROM local_aggregates WHERE config_id = @config_id", map[string]any{
+		"config_id": data.ConfigID,
+	})
+	if pgsqlErr != nil {
+		t.Fatalf("error getting local aggregate from pgsql: %v", pgsqlErr)
+	}
+	assert.Equal(t, float64(pgsqlData.Value), DUMMY_FEED_VALUE)
 }

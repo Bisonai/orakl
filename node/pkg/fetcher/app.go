@@ -16,7 +16,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-const LocalAggregatesChannelSize = 1_000
+const LocalAggregatesChannelSize = 2_000
 const DefaultLocalAggregateInterval = 250 * time.Millisecond
 
 
@@ -436,15 +436,15 @@ func localAggregatesChannelProcessorJob(ctx context.Context, localAggregatesChan
 		for {
 			select {
 				case data := <-localAggregatesChannel:
-					localAggregatesDataRedis[keys.LocalAggregateKey(data.ConfigID)] = LocalAggregate{ConfigID: data.ConfigID, Value: int64(data.Value), Timestamp: time.Now()}
-					localAggregatesDataPgsql = append(localAggregatesDataPgsql, []any{data.ConfigID, int64(data.Value)})
+					localAggregatesDataRedis[keys.LocalAggregateKey(data.ConfigID)] = data
+					localAggregatesDataPgsql = append(localAggregatesDataPgsql, []any{data.ConfigID, int64(data.Value), data.Timestamp})
 				default:
 					break loop
 			}	
 		}
 	
 	redisErr := db.MSetObject(ctx, localAggregatesDataRedis)
-	_, pgsqlErr := db.BulkCopy(ctx, "local_aggregates", []string{"config_id", "value"}, localAggregatesDataPgsql)
+	_, pgsqlErr := db.BulkCopy(ctx, "local_aggregates", []string{"config_id", "value", "timestamp"}, localAggregatesDataPgsql)
 
 	if redisErr != nil || pgsqlErr != nil{
 		log.Error().Err(redisErr).Err(pgsqlErr).Msg("failed to save local aggregates")
