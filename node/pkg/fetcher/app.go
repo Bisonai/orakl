@@ -156,7 +156,7 @@ func (a *App) startAll(ctx context.Context) error {
 		return err
 	}
 
-	go a.Accumulator.Run(ctx)
+	a.startAccumulator(ctx)
 
 	err = a.startAllCollectors(ctx)
 	if err != nil { 
@@ -224,7 +224,7 @@ func (a *App) startAccumulator(ctx context.Context) error {
 		return nil
 	}
 
-	a.Accumulator.Run(ctx)
+	go a.Accumulator.Run(ctx)
 
 	log.Debug().Str("Player", "Accumulator").Msg("accumulator started")
 	return nil
