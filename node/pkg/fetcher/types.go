@@ -63,6 +63,15 @@ type Streamer struct {
 	isRunning   bool
 }
 
+type Accumulator struct {
+	Interval time.Duration
+
+	accumulatorCtx 	context.Context
+	cancel      	context.CancelFunc
+	isRunning   	bool
+	accumulatorChannel chan LocalAggregate
+}
+
 type App struct {
 	Bus              *bus.MessageBus
 	Fetchers         map[int32]*Fetcher
@@ -70,7 +79,7 @@ type App struct {
 	Streamer         *Streamer
 	WebsocketFetcher *websocketfetcher.App
 	Proxies          []Proxy
-	localAggregatesChannel chan LocalAggregate
+	Accumulator	  	*Accumulator
 }
 
 type Definition struct {

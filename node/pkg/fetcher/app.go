@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"bisonai.com/orakl/node/pkg/bus"
-	"bisonai.com/orakl/node/pkg/common/keys"
 	"bisonai.com/orakl/node/pkg/db"
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
 	"bisonai.com/orakl/node/pkg/websocketfetcher"
@@ -29,10 +28,6 @@ func New(bus *bus.MessageBus) *App {
 }
 
 func (a *App) Run(ctx context.Context) error {
-	localAggregatesChannel := make(chan LocalAggregate, LocalAggregatesChannelSize)
-	a.localAggregatesChannel = localAggregatesChannel
-	go a.bulkStoreLocalAggregates(ctx)
-
 	err := a.initialize(ctx)
 	if err != nil {
 		return err
@@ -161,8 +156,10 @@ func (a *App) startAll(ctx context.Context) error {
 		return err
 	}
 
+	go a.Accumulator.Run(ctx)
+
 	err = a.startAllCollectors(ctx)
-	if err != nil {
+	if err != nil { 
 		return err
 	}
 
@@ -218,6 +215,18 @@ func (a *App) startStreamer(ctx context.Context) error {
 	a.Streamer.Run(ctx)
 
 	log.Debug().Str("Player", "Streamer").Msg("streamer started")
+	return nil
+}
+
+func (a *App) startAccumulator(ctx context.Context) error {
+	if a.Accumulator.isRunning {
+		log.Debug().Str("Player", "Accumulator").Msg("accumulator already running")
+		return nil
+	}
+
+	a.Accumulator.Run(ctx)
+
+	log.Debug().Str("Player", "Accumulator").Msg("accumulator started")
 	return nil
 }
 
@@ -367,6 +376,9 @@ func (a *App) initialize(ctx context.Context) error {
 	
 	a.Fetchers = make(map[int32]*Fetcher, len(configs))
 	a.Collectors = make(map[int32]*Collector, len(configs))
+	a.Accumulator = NewAccumulator(DefaultLocalAggregateInterval)
+	a.Accumulator.accumulatorChannel = make(chan LocalAggregate, LocalAggregatesChannelSize)
+	
 	for _, config := range configs {
 		// for fetcher it'll get fetcherFeeds without websocket fetcherFeeds
 		fetcherFeeds, getFeedsErr := a.getFeedsWithoutWss(ctx, config.ID)
@@ -383,7 +395,7 @@ func (a *App) initialize(ctx context.Context) error {
 		if getFeedsErr != nil {
 			return getFeedsErr
 		}
-		a.Collectors[config.ID] = NewCollector(config, collectorFeeds, a.localAggregatesChannel)
+		a.Collectors[config.ID] = NewCollector(config, collectorFeeds, a.Accumulator.accumulatorChannel)
 	}
 	streamIntervalRaw := os.Getenv("FEED_DATA_STREAM_INTERVAL")
 	streamInterval, err := time.ParseDuration(streamIntervalRaw)
@@ -404,51 +416,6 @@ func (a *App) initialize(ctx context.Context) error {
 	}
 
 	return nil
-}
-
-func (a *App) bulkStoreLocalAggregates(ctx context.Context) {
-	ticker := time.NewTicker(DefaultLocalAggregateInterval)
-	defer ticker.Stop()
-
-	for {
-		select {
-			case <-ctx.Done():
-				log.Debug().Str("Player", "Fetcher").Msg("fetcher local aggregates channel goroutine stopped")
-				return
-			case <-ticker.C:
-				go a.bulkStoreLocalAggregatesJob(ctx)
-			default:
-				if len(a.localAggregatesChannel) == LocalAggregatesChannelSize {
-					go a.bulkStoreLocalAggregatesJob(ctx)
-				}
-		}
-	}
-}
-
-func (a *App) bulkStoreLocalAggregatesJob(ctx context.Context) {
-	if len(a.localAggregatesChannel) == 0 {
-		return
-	}
-	localAggregatesDataRedis := make(map[string]interface{})
-	var localAggregatesDataPgsql [][]any
-	
-	loop:
-		for {
-			select {
-				case data := <-a.localAggregatesChannel:
-					localAggregatesDataRedis[keys.LocalAggregateKey(data.ConfigID)] = data
-					localAggregatesDataPgsql = append(localAggregatesDataPgsql, []any{data.ConfigID, int64(data.Value), data.Timestamp})
-				default:
-					break loop
-			}	
-		}
-	
-	redisErr := db.MSetObject(ctx, localAggregatesDataRedis)
-	_, pgsqlErr := db.BulkCopy(ctx, "local_aggregates", []string{"config_id", "value", "timestamp"}, localAggregatesDataPgsql)
-
-	if redisErr != nil || pgsqlErr != nil{
-		log.Error().Err(redisErr).Err(pgsqlErr).Msg("failed to save local aggregates")
-	}
 }
 
 func (a *App) String() string {
