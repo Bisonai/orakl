@@ -24,7 +24,7 @@ func TestNewAggregator(t *testing.T) {
 		}
 	}()
 
-	_, err = NewAggregator(ctx, testItems.app.Host, testItems.app.Pubsub, testItems.topicString, testItems.tmpData.config, testItems.signHelper)
+	_, err = NewAggregator(ctx, testItems.app.Host, testItems.app.Pubsub, testItems.topicString, testItems.tmpData.config, testItems.signer)
 	if err != nil {
 		t.Fatal("error creating new node")
 	}
@@ -48,7 +48,7 @@ func TestLeaderJob(t *testing.T) {
 		}
 	}()
 
-	node, err := NewAggregator(ctx, testItems.app.Host, testItems.app.Pubsub, testItems.topicString, testItems.tmpData.config, testItems.signHelper)
+	node, err := NewAggregator(ctx, testItems.app.Host, testItems.app.Pubsub, testItems.topicString, testItems.tmpData.config, testItems.signer)
 	if err != nil {
 		t.Fatal("error creating new node")
 	}
@@ -72,7 +72,7 @@ func TestGetLatestLocalAggregate(t *testing.T) {
 		}
 	}()
 
-	node, err := NewAggregator(ctx, testItems.app.Host, testItems.app.Pubsub, testItems.topicString, testItems.tmpData.config, testItems.signHelper)
+	node, err := NewAggregator(ctx, testItems.app.Host, testItems.app.Pubsub, testItems.topicString, testItems.tmpData.config, testItems.signer)
 
 	if err != nil {
 		t.Fatal("error creating new node")
@@ -106,7 +106,7 @@ func TestGetLatestRoundId(t *testing.T) {
 		}
 	}()
 
-	node, err := NewAggregator(ctx, testItems.app.Host, testItems.app.Pubsub, testItems.topicString, testItems.tmpData.config, testItems.signHelper)
+	node, err := NewAggregator(ctx, testItems.app.Host, testItems.app.Pubsub, testItems.topicString, testItems.tmpData.config, testItems.signer)
 	if err != nil {
 		t.Fatal("error creating new node")
 	}
@@ -133,7 +133,7 @@ func TestSetLatestGlobalAggregateAndProof(t *testing.T) {
 		}
 	}()
 
-	node, err := NewAggregator(ctx, testItems.app.Host, testItems.app.Pubsub, testItems.topicString, testItems.tmpData.config, testItems.signHelper)
+	node, err := NewAggregator(ctx, testItems.app.Host, testItems.app.Pubsub, testItems.topicString, testItems.tmpData.config, testItems.signer)
 	if err != nil {
 		t.Fatal("error creating new node")
 	}
@@ -194,7 +194,7 @@ func TestPublishGlobalAggregateAndProof(t *testing.T) {
 		}
 	}()
 
-	node, err := NewAggregator(ctx, testItems.app.Host, testItems.app.Pubsub, testItems.topicString, testItems.tmpData.config, testItems.signHelper)
+	node, err := NewAggregator(ctx, testItems.app.Host, testItems.app.Pubsub, testItems.topicString, testItems.tmpData.config, testItems.signer)
 	if err != nil {
 		t.Fatal("error creating new node")
 	}

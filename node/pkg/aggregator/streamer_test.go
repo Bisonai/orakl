@@ -86,7 +86,7 @@ func TestStreamerDataStore(t *testing.T) {
 	defer streamer.Stop()
 	assert.NotEqual(t, nil, streamer.ctx)
 
-	node, err := NewAggregator(ctx, testItems.app.Host, testItems.app.Pubsub, testItems.topicString, testItems.tmpData.config, testItems.signHelper)
+	node, err := NewAggregator(ctx, testItems.app.Host, testItems.app.Pubsub, testItems.topicString, testItems.tmpData.config, testItems.signer)
 	if err != nil {
 		t.Fatal("error creating new node")
 	}

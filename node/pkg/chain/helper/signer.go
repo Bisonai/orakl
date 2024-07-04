@@ -32,28 +32,26 @@ func getSignerPk(ctx context.Context, config SignerConfig) (string, error) {
 	var pk string
 	var err error
 	if config.pk != "" {
-		pk = strings.TrimPrefix(config.pk, "0x")
-		return pk, nil
-	} else {
-		pk, err = utils.LoadSignerPk(ctx)
-		if err != nil || pk == "" {
-			log.Warn().Msg("failed to load signer from pgs")
-		}
-
-		if pk == "" {
-			pk = secrets.GetSecret(SignerPk)
-			if pk == "" {
-				log.Error().Msg("signer pk not set")
-				return "", errorSentinel.ErrChainSignerPKNotFound
-			}
-			err = utils.StoreSignerPk(ctx, pk)
-			if err != nil {
-				log.Warn().Msg("failed to store pk")
-			}
-		}
-
-		return strings.TrimPrefix(pk, "0x"), nil
+		return strings.TrimPrefix(config.pk, "0x"), nil
 	}
+	pk, err = utils.LoadSignerPk(ctx)
+	if err != nil {
+		log.Warn().Str("Player", "Signer").Err(err).Msg("failed to load signer from pgs")
+	}
+
+	if pk == "" {
+		pk = secrets.GetSecret(SignerPk)
+		if pk == "" {
+			log.Error().Str("Player", "Signer").Msg("signer pk not set")
+			return "", errorSentinel.ErrChainSignerPKNotFound
+		}
+		err = utils.StoreSignerPk(ctx, pk)
+		if err != nil {
+			log.Warn().Str("Player", "Signer").Err(err).Msg("failed to store pk")
+		}
+	}
+
+	return strings.TrimPrefix(pk, "0x"), nil
 }
 
 func NewSigner(ctx context.Context, opts ...SignerOption) (*Signer, error) {
@@ -64,25 +62,25 @@ func NewSigner(ctx context.Context, opts ...SignerOption) (*Signer, error) {
 
 	pk, err := getSignerPk(ctx, config)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to get signer pk")
+		log.Error().Str("Player", "Signer").Err(err).Msg("failed to get signer pk")
 		return nil, err
 	}
 
 	privateKey, err := utils.StringToPk(pk)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to convert pk")
+		log.Error().Str("Player", "Signer").Err(err).Msg("failed to convert pk")
 		return nil, err
 	}
 
 	chainHelper, err := NewChainHelper(ctx, WithReporterPk(pk), WithoutAdditionalWallets())
 	if err != nil {
-		log.Error().Err(err).Msg("failed to set chainHelper for signHelper")
+		log.Error().Str("Player", "Signer").Err(err).Msg("failed to set chainHelper for signHelper")
 		return nil, err
 	}
 
 	submissionProxyContractAddr := os.Getenv("SUBMISSION_PROXY_CONTRACT")
 	if submissionProxyContractAddr == "" {
-		log.Error().Msg("SUBMISSION_PROXY_CONTRACT not found, signer initialization failed")
+		log.Error().Str("Player", "Signer").Msg("SUBMISSION_PROXY_CONTRACT not found, signer initialization failed")
 		return nil, errorSentinel.ErrChainSubmissionProxyContractNotFound
 	}
 
@@ -115,7 +113,7 @@ func (s *Signer) autoRenew(ctx context.Context) {
 		case <-autoRenewTicker.C:
 			err := s.CheckAndUpdateSignerPK(ctx)
 			if err != nil {
-				log.Error().Err(err).Msg("failed to renew signer pk")
+				log.Error().Str("Player", "Signer").Err(err).Msg("failed to renew signer pk")
 			}
 		}
 	}
@@ -125,6 +123,7 @@ func (s *Signer) CheckAndUpdateSignerPK(ctx context.Context) error {
 	if s.expirationDate == nil || s.expirationDate.IsZero() {
 		_, err := s.LoadExpiration(ctx)
 		if err != nil {
+			log.Error().Str("Player", "Signer").Err(err).Msg("failed to load expiration date")
 			return err
 		}
 	}
@@ -135,6 +134,7 @@ func (s *Signer) CheckAndUpdateSignerPK(ctx context.Context) error {
 
 	newPK, newPkHex, err := utils.NewPk(ctx)
 	if err != nil {
+		log.Error().Str("Player", "Signer").Err(err).Msg("failed to generate new pk")
 		return err
 	}
 
@@ -145,17 +145,20 @@ func (s *Signer) LoadExpiration(ctx context.Context) (*time.Time, error) {
 	publicKey := s.PK.Public()
 	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
 	if !ok {
+		log.Error().Str("Player", "Signer").Err(errorSentinel.ErrChainPubKeyToECDSAFail).Msg("failed to convert pk")
 		return nil, errorSentinel.ErrChainPubKeyToECDSAFail
 	}
 	addr := crypto.PubkeyToAddress(*publicKeyECDSA)
 
 	readResult, err := s.chainHelper.ReadContract(ctx, s.submissionProxyContractAddr, SignerDetailFuncSignature, addr)
 	if err != nil {
+		log.Error().Str("Player", "Signer").Err(err).Msg("failed to read contract")
 		return nil, err
 	}
 
 	values, ok := readResult.([]interface{})
 	if !ok {
+		log.Error().Str("Player", "Signer").Err(errorSentinel.ErrChainFailedToParseContractResult).Msg("failed to parse contract result")
 		return nil, errorSentinel.ErrChainFailedToParseContractResult
 	}
 	rawTimestamp := values[1].(*big.Int)
@@ -171,12 +174,14 @@ func (s *Signer) IsRenewalRequired() bool {
 func (s *Signer) Renew(ctx context.Context, newPK *ecdsa.PrivateKey, newPkHex string) error {
 	newPublicAddr, err := utils.StringPkToAddressHex(newPkHex)
 	if err != nil {
+		log.Error().Str("Player", "Signer").Err(err).Msg("failed to convert pk")
 		return err
 	}
 	addr := common.HexToAddress(newPublicAddr)
 
 	err = s.signerUpdate(ctx, addr)
 	if err != nil {
+		log.Error().Str("Player", "Signer").Err(err).Msg("failed to update signer")
 		return err
 	}
 	log.Debug().Str("Player", "Signer").Msg("signer renewed from the contract")
@@ -188,12 +193,14 @@ func (s *Signer) Renew(ctx context.Context, newPK *ecdsa.PrivateKey, newPkHex st
 	s.chainHelper.Close()
 	newChainHelper, err := NewChainHelper(ctx, WithReporterPk(newPkHex), WithoutAdditionalWallets())
 	if err != nil {
+		log.Error().Str("Player", "Signer").Err(err).Msg("failed to create new chain helper")
 		return err
 	}
 	s.chainHelper = newChainHelper
 
 	_, err = s.LoadExpiration(ctx)
 	if err != nil {
+		log.Error().Str("Player", "Signer").Err(err).Msg("failed to load expiration date")
 		return err
 	}
 	return utils.StoreSignerPk(ctx, newPkHex)
@@ -209,10 +216,12 @@ func (s *Signer) signerUpdate(ctx context.Context, newAddr common.Address) error
 func (s *Signer) delegatedSignerUpdate(ctx context.Context, newAddr common.Address) error {
 	rawTx, err := s.chainHelper.MakeFeeDelegatedTx(ctx, s.submissionProxyContractAddr, UpdateSignerFuncSignature, 0, newAddr)
 	if err != nil {
+		log.Error().Str("Player", "Signer").Err(err).Msg("failed to make fee delegated tx")
 		return err
 	}
 	signedTx, err := s.chainHelper.GetSignedFromDelegator(rawTx)
 	if err != nil {
+		log.Error().Str("Player", "Signer").Err(err).Msg("failed to sign tx")
 		return err
 	}
 	return s.chainHelper.SubmitRawTx(ctx, signedTx)
@@ -221,6 +230,7 @@ func (s *Signer) delegatedSignerUpdate(ctx context.Context, newAddr common.Addre
 func (s *Signer) directSignerUpdate(ctx context.Context, newAddr common.Address) error {
 	rawTx, err := s.chainHelper.MakeDirectTx(ctx, s.submissionProxyContractAddr, UpdateSignerFuncSignature, newAddr)
 	if err != nil {
+		log.Error().Str("Player", "Signer").Err(err).Msg("failed to make direct tx")
 		return err
 	}
 	return s.chainHelper.SubmitRawTx(ctx, rawTx)

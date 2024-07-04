@@ -41,7 +41,7 @@ type TestItems struct {
 	topicString string
 	messageBus  *bus.MessageBus
 	tmpData     *TmpData
-	signHelper  *helper.Signer
+	signer      *helper.Signer
 }
 
 func setup(ctx context.Context) (func() error, *TestItems, error) {
@@ -84,7 +84,7 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	testItems.signHelper = signHelper
+	testItems.signer = signHelper
 
 	v1 := admin.Group("/api/v1")
 	aggregator.Routes(v1)
