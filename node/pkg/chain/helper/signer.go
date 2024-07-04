@@ -16,19 +16,19 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-type SignHelperConfig struct {
+type SignerConfig struct {
 	pk string
 }
 
-type SignHelperOption func(*SignHelperConfig)
+type SignerOption func(*SignerConfig)
 
-func WithSignerPk(pk string) SignHelperOption {
-	return func(config *SignHelperConfig) {
+func WithSignerPk(pk string) SignerOption {
+	return func(config *SignerConfig) {
 		config.pk = pk
 	}
 }
 
-func getSignerPk(ctx context.Context, config SignHelperConfig) (string, error) {
+func getSignerPk(ctx context.Context, config SignerConfig) (string, error) {
 	var pk string
 	var err error
 	if config.pk != "" {
@@ -56,8 +56,8 @@ func getSignerPk(ctx context.Context, config SignHelperConfig) (string, error) {
 	}
 }
 
-func NewSignHelper(ctx context.Context, opts ...SignHelperOption) (*SignHelper, error) {
-	config := SignHelperConfig{}
+func NewSigner(ctx context.Context, opts ...SignerOption) (*Signer, error) {
+	config := SignerConfig{}
 	for _, opt := range opts {
 		opt(&config)
 	}
@@ -86,7 +86,7 @@ func NewSignHelper(ctx context.Context, opts ...SignHelperOption) (*SignHelper, 
 		return nil, errorSentinel.ErrChainSubmissionProxyContractNotFound
 	}
 
-	signHelper := &SignHelper{
+	signHelper := &Signer{
 		PK: privateKey,
 
 		chainHelper:                 chainHelper,
@@ -98,14 +98,14 @@ func NewSignHelper(ctx context.Context, opts ...SignHelperOption) (*SignHelper, 
 	return signHelper, nil
 }
 
-func (s *SignHelper) MakeGlobalAggregateProof(val int64, timestamp time.Time, name string) ([]byte, error) {
+func (s *Signer) MakeGlobalAggregateProof(val int64, timestamp time.Time, name string) ([]byte, error) {
 	s.mu.RLock()
 	pk := s.PK
 	s.mu.RUnlock()
 	return utils.MakeValueSignature(val, timestamp.Unix(), name, pk)
 }
 
-func (s *SignHelper) autoRenew(ctx context.Context) {
+func (s *Signer) autoRenew(ctx context.Context) {
 	autoRenewTicker := time.NewTicker(SignerRenewInterval)
 
 	for {
@@ -121,7 +121,7 @@ func (s *SignHelper) autoRenew(ctx context.Context) {
 	}
 }
 
-func (s *SignHelper) CheckAndUpdateSignerPK(ctx context.Context) error {
+func (s *Signer) CheckAndUpdateSignerPK(ctx context.Context) error {
 	if s.expirationDate == nil || s.expirationDate.IsZero() {
 		_, err := s.LoadExpiration(ctx)
 		if err != nil {
@@ -141,7 +141,7 @@ func (s *SignHelper) CheckAndUpdateSignerPK(ctx context.Context) error {
 	return s.Renew(ctx, newPK, newPkHex)
 }
 
-func (s *SignHelper) LoadExpiration(ctx context.Context) (*time.Time, error) {
+func (s *Signer) LoadExpiration(ctx context.Context) (*time.Time, error) {
 	publicKey := s.PK.Public()
 	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
 	if !ok {
@@ -164,11 +164,11 @@ func (s *SignHelper) LoadExpiration(ctx context.Context) (*time.Time, error) {
 	return s.expirationDate, nil
 }
 
-func (s *SignHelper) IsRenewalRequired() bool {
+func (s *Signer) IsRenewalRequired() bool {
 	return time.Until(*s.expirationDate) < SignerRenewThreshold
 }
 
-func (s *SignHelper) Renew(ctx context.Context, newPK *ecdsa.PrivateKey, newPkHex string) error {
+func (s *Signer) Renew(ctx context.Context, newPK *ecdsa.PrivateKey, newPkHex string) error {
 	newPublicAddr, err := utils.StringPkToAddressHex(newPkHex)
 	if err != nil {
 		return err
@@ -199,14 +199,14 @@ func (s *SignHelper) Renew(ctx context.Context, newPK *ecdsa.PrivateKey, newPkHe
 	return utils.StoreSignerPk(ctx, newPkHex)
 }
 
-func (s *SignHelper) signerUpdate(ctx context.Context, newAddr common.Address) error {
+func (s *Signer) signerUpdate(ctx context.Context, newAddr common.Address) error {
 	if s.chainHelper.delegatorUrl != "" {
 		return s.delegatedSignerUpdate(ctx, newAddr)
 	}
 	return s.directSignerUpdate(ctx, newAddr)
 }
 
-func (s *SignHelper) delegatedSignerUpdate(ctx context.Context, newAddr common.Address) error {
+func (s *Signer) delegatedSignerUpdate(ctx context.Context, newAddr common.Address) error {
 	rawTx, err := s.chainHelper.MakeFeeDelegatedTx(ctx, s.submissionProxyContractAddr, UpdateSignerFuncSignature, 0, newAddr)
 	if err != nil {
 		return err
@@ -218,7 +218,7 @@ func (s *SignHelper) delegatedSignerUpdate(ctx context.Context, newAddr common.A
 	return s.chainHelper.SubmitRawTx(ctx, signedTx)
 }
 
-func (s *SignHelper) directSignerUpdate(ctx context.Context, newAddr common.Address) error {
+func (s *Signer) directSignerUpdate(ctx context.Context, newAddr common.Address) error {
 	rawTx, err := s.chainHelper.MakeDirectTx(ctx, s.submissionProxyContractAddr, UpdateSignerFuncSignature, newAddr)
 	if err != nil {
 		return err

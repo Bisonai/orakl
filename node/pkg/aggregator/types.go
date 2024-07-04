@@ -66,7 +66,7 @@ type Aggregator struct {
 
 	RoundID int32
 
-	SignHelper *helper.SignHelper
+	Signer *helper.Signer
 
 	nodeCtx    context.Context
 	nodeCancel context.CancelFunc

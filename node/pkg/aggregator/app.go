@@ -100,7 +100,7 @@ func (a *App) clearAggregators() error {
 }
 
 func (a *App) initializeLoadedAggregators(ctx context.Context, loadedConfigs []Config, h host.Host, ps *pubsub.PubSub) error {
-	signHelper, err := helper.NewSignHelper(ctx)
+	signHelper, err := helper.NewSigner(ctx)
 	if err != nil {
 		return err
 	}

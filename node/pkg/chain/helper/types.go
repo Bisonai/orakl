@@ -59,7 +59,7 @@ func WithoutAdditionalWallets() ChainHelperOption {
 	}
 }
 
-type SignHelper struct {
+type Signer struct {
 	PK                          *ecdsa.PrivateKey
 	chainHelper                 *ChainHelper
 	submissionProxyContractAddr string

@@ -41,7 +41,7 @@ type TestItems struct {
 	topicString string
 	messageBus  *bus.MessageBus
 	tmpData     *TmpData
-	signHelper  *helper.SignHelper
+	signHelper  *helper.Signer
 }
 
 func setup(ctx context.Context) (func() error, *TestItems, error) {
@@ -80,7 +80,7 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 	}
 	testItems.tmpData = tmpData
 
-	signHelper, err := helper.NewSignHelper(ctx)
+	signHelper, err := helper.NewSigner(ctx)
 	if err != nil {
 		return nil, nil, err
 	}

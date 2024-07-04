@@ -60,7 +60,7 @@ func TestNewKaiaHelper(t *testing.T) {
 
 func TestNewChainHelper(t *testing.T) {
 	ctx := context.Background()
-	_, err := helper.NewSignHelper(ctx)
+	_, err := helper.NewSigner(ctx)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -525,7 +525,7 @@ func TestInsertWalletEmptyDbEnv(t *testing.T) {
 
 func TestMakeGlobalAggregateProof(t *testing.T) {
 	ctx := context.Background()
-	s, err := helper.NewSignHelper(ctx)
+	s, err := helper.NewSigner(ctx)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -577,7 +577,7 @@ func TestSignerRenew(t *testing.T) {
 		t.Skip("Skipping test because SUBMISSION_PROXY_CONTRACT is not set")
 	}
 
-	s, err := helper.NewSignHelper(ctx)
+	s, err := helper.NewSigner(ctx)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}

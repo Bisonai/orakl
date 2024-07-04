@@ -41,7 +41,7 @@ type TmpData struct {
 func insertSampleData(ctx context.Context) (*TmpData, error) {
 	var tmpData = new(TmpData)
 
-	signHelper, err := helper.NewSignHelper(ctx)
+	signHelper, err := helper.NewSigner(ctx)
 	if err != nil {
 		return nil, err
 	}

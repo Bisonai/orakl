@@ -138,7 +138,7 @@ func TestSetLatestGlobalAggregateAndProof(t *testing.T) {
 		t.Fatal("error creating new node")
 	}
 
-	p, err := node.SignHelper.MakeGlobalAggregateProof(
+	p, err := node.Signer.MakeGlobalAggregateProof(
 		testItems.tmpData.globalAggregate.Value,
 		testItems.tmpData.globalAggregate.Timestamp,
 		"test_pair",
@@ -199,7 +199,7 @@ func TestPublishGlobalAggregateAndProof(t *testing.T) {
 		t.Fatal("error creating new node")
 	}
 
-	p, err := node.SignHelper.MakeGlobalAggregateProof(
+	p, err := node.Signer.MakeGlobalAggregateProof(
 		testItems.tmpData.globalAggregate.Value,
 		testItems.tmpData.globalAggregate.Timestamp,
 		"test_pair",
