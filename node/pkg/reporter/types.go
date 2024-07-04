@@ -162,5 +162,5 @@ func makeGetProofsQuery(aggregates []GlobalAggregate) string {
 		placeHolders[i] = fmt.Sprintf("('%d', %d)", agg.ConfigID, agg.Round)
 	}
 
-	return fmt.Sprintf("SELECT * FROM proofs WHERE (config_id, round) IN (%s);", strings.Join(placeHolders, ","))
+	return fmt.Sprintf("SELECT config_id, round, proof FROM proofs WHERE (config_id, round) IN (%s);", strings.Join(placeHolders, ","))
 }
