@@ -101,6 +101,6 @@ jobs:
           ETH_PROVIDER_URL: "https://ethereum-sepolia.g.allthatnode.com/full/evm"
           ETH_REPORTER_PK: ${{ secrets.TEST_DELEGATOR_REPORTER_PK}}
           TEST_FEE_PAYER_PK: ${{ secrets.DELEGATOR_FEEPAYER_PK}}
-          SUBMISSION_PROXY_CONTRACT: "0x35bA1102A4954147272782302856BD8440227B85"
+          SUBMISSION_PROXY_CONTRACT: "0x82AD9C0107c610fBbD3E5150a2802b36134725a0"
           CHAIN: "test"
           SIGNER_PK: ${{ secrets.TEST_DELEGATOR_REPORTER_PK}}

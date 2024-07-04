@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"bisonai.com/orakl/node/pkg/bus"
+	"bisonai.com/orakl/node/pkg/chain/helper"
 	"bisonai.com/orakl/node/pkg/db"
 
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
@@ -99,13 +100,18 @@ func (a *App) clearAggregators() error {
 }
 
 func (a *App) initializeLoadedAggregators(ctx context.Context, loadedConfigs []Config, h host.Host, ps *pubsub.PubSub) error {
+	signHelper, err := helper.NewSignHelper(ctx)
+	if err != nil {
+		return err
+	}
+
 	for _, config := range loadedConfigs {
 		if a.Aggregators[config.ID] != nil {
 			continue
 		}
 
 		topicString := config.Name + "-global-aggregator-topic-" + strconv.Itoa(int(config.AggregateInterval))
-		tmpNode, err := NewAggregator(ctx, h, ps, topicString, config)
+		tmpNode, err := NewAggregator(ctx, h, ps, topicString, config, signHelper)
 		if err != nil {
 			return err
 		}

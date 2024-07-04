@@ -328,12 +328,6 @@ func NewSignHelper(ctx context.Context) (*SignHelper, error) {
 		submissionProxyContractAddr: submissionProxyContractAddr,
 	}
 
-	expirationDate, err := signHelper.LoadExpiration(ctx)
-	if err != nil {
-		return nil, err
-	}
-	signHelper.expirationDate = expirationDate
-
 	go signHelper.autoRenew(ctx)
 
 	return signHelper, nil
@@ -363,9 +357,18 @@ func (s *SignHelper) autoRenew(ctx context.Context) {
 }
 
 func (s *SignHelper) CheckAndUpdateSignerPK(ctx context.Context) error {
+	if s.expirationDate == nil || s.expirationDate.IsZero() {
+		expirationDate, err := s.LoadExpiration(ctx)
+		if err != nil {
+			return err
+		}
+		s.expirationDate = expirationDate
+	}
+
 	if !s.IsRenewalRequired() {
 		return nil
 	}
+
 	err := s.Renew(ctx)
 	if err != nil {
 		return err
@@ -426,6 +429,12 @@ func (s *SignHelper) Renew(ctx context.Context) error {
 	s.mu.Lock()
 	s.PK = newPK
 	s.mu.Unlock()
+
+	expirationDate, err := s.LoadExpiration(ctx)
+	if err != nil {
+		return err
+	}
+	s.expirationDate = expirationDate
 
 	return utils.StoreSignerPk(ctx, newPkStr)
 }
