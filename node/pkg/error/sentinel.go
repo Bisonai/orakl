@@ -123,6 +123,7 @@ var (
 	ErrChainEmptyEventNameStringParam        = &CustomError{Service: Others, Code: InvalidInputError, Message: "empty event name string param"}
 	ErrChainWebsocketUrlNotProvided          = &CustomError{Service: Others, Code: InvalidInputError, Message: "websocket url not provided"}
 	ErrChainSubmissionProxyContractNotFound  = &CustomError{Service: Others, Code: InvalidInputError, Message: "submission proxy contract not found"}
+	ErrChainFailedToParseContractResult      = &CustomError{Service: Others, Code: InvalidInputError, Message: "failed to parse contract result"}
 
 	ErrDbDatabaseUrlNotFound            = &CustomError{Service: Others, Code: InternalError, Message: "DATABASE_URL not found"}
 	ErrDbEmptyTableNameParam            = &CustomError{Service: Others, Code: InvalidInputError, Message: "empty table name"}

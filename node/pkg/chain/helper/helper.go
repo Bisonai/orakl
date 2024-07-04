@@ -311,8 +311,8 @@ func NewSignHelper(ctx context.Context) (*SignHelper, error) {
 
 	chainHelper, err := NewChainHelper(ctx, WithReporterPk(pk), WithoutAdditionalWallets())
 	if err != nil {
-		log.Error().Err(err).Msg("failed to set chainHelper for signerfeat")
 		log.Error().Err(err).Msg("failed to set chainHelper for signHelper")
+		return nil, err
 	}
 
 	submissionProxyContractAddr := os.Getenv("SUBMISSION_PROXY_CONTRACT")
@@ -394,7 +394,7 @@ func (s *SignHelper) LoadExpiration(ctx context.Context) (*time.Time, error) {
 
 	values, ok := readResult.([]interface{})
 	if !ok {
-		return nil, fmt.Errorf("interface conversion failure")
+		return nil, errorSentinel.ErrChainFailedToParseContractResult
 	}
 	rawTimestamp := values[1].(*big.Int)
 	expirationDate := time.Unix(int64(rawTimestamp.Int64()), 0)
