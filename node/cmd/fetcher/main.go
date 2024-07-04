@@ -8,7 +8,7 @@ import (
 
 	"bisonai.com/orakl/node/pkg/admin"
 	"bisonai.com/orakl/node/pkg/bus"
-	app "bisonai.com/orakl/node/pkg/fetcher"
+	"bisonai.com/orakl/node/pkg/fetcher"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
@@ -45,10 +45,10 @@ func main() {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		a := app.New(mb)
-		appErr := a.Run(ctx)
-		if appErr != nil {
-			log.Error().Err(appErr).Msg("Failed to start fetcher")
+		f := fetcher.New(mb)
+		fetcherErr := f.Run(ctx)
+		if fetcherErr != nil {
+			log.Error().Err(fetcherErr).Msg("Failed to start fetcher")
 			return
 		}
 	}()
