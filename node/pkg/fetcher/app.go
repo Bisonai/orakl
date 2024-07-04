@@ -218,16 +218,14 @@ func (a *App) startStreamer(ctx context.Context) error {
 	return nil
 }
 
-func (a *App) startAccumulator(ctx context.Context) error {
+func (a *App) startAccumulator(ctx context.Context) {
 	if a.Accumulator.isRunning {
 		log.Debug().Str("Player", "Accumulator").Msg("accumulator already running")
-		return nil
 	}
 
 	go a.Accumulator.Run(ctx)
 
 	log.Debug().Str("Player", "Accumulator").Msg("accumulator started")
-	return nil
 }
 
 func (a *App) startFetcherById(ctx context.Context, configId int32) error {
