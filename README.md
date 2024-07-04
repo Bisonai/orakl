@@ -139,3 +139,4 @@ The microservices can also be started separately in any arbitrary order by repla
 - **node** v0.0.1.20240703.0658.ffead85 <br> *`PR`*: OraklNode Set fixed deviation ... <br><br> 
 - **node** v0.0.1.20240704.0800.32673c4 <br> *`PR`*: OraklNode Bulk insert local ag... <br><br> 
 - **node** v0.0.1.20240704.0933.8e7fd48 <br> *`PR`*: OraklNode Rollback timestamp c... <br><br> 
+- **node** v0.0.1.20240704.1212.0c148b2 <br> *`PR`*: fix accumulator cpu issue <br><br> 
