@@ -15,6 +15,10 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+const LocalAggregatesChannelSize = 2_000
+const DefaultLocalAggregateInterval = 250 * time.Millisecond
+
+
 func New(bus *bus.MessageBus) *App {
 	return &App{
 		Fetchers:         make(map[int32]*Fetcher, 0),
@@ -152,8 +156,10 @@ func (a *App) startAll(ctx context.Context) error {
 		return err
 	}
 
+	a.startAccumulator(ctx)
+
 	err = a.startAllCollectors(ctx)
-	if err != nil {
+	if err != nil { 
 		return err
 	}
 
@@ -169,6 +175,11 @@ func (a *App) stopAll(ctx context.Context) error {
 	}
 
 	err = a.stopAllCollectors(ctx)
+	if err != nil {
+		return err
+	}
+
+	err = a.stopAccumulator()
 	if err != nil {
 		return err
 	}
@@ -210,6 +221,16 @@ func (a *App) startStreamer(ctx context.Context) error {
 
 	log.Debug().Str("Player", "Streamer").Msg("streamer started")
 	return nil
+}
+
+func (a *App) startAccumulator(ctx context.Context) {
+	if a.Accumulator.isRunning {
+		log.Debug().Str("Player", "Accumulator").Msg("accumulator already running")
+	}
+
+	go a.Accumulator.Run(ctx)
+
+	log.Debug().Str("Player", "Accumulator").Msg("accumulator started")
 }
 
 func (a *App) startFetcherById(ctx context.Context, configId int32) error {
@@ -288,6 +309,20 @@ func (a *App) stopStreamer(ctx context.Context) error {
 	return nil
 }
 
+func (a *App) stopAccumulator() error {
+	log.Debug().Msg("stopping Accumulator")
+	if !a.Accumulator.isRunning {
+		log.Debug().Str("Player", "Accumulator").Msg("Accumulator already stopped")
+		return nil
+	}
+	if a.Accumulator.cancel == nil {
+		return errorSentinel.ErrAccumulatorCancelNotFound
+	}
+	a.Accumulator.cancel()
+	a.Accumulator.isRunning = false
+	return nil
+}
+
 func (a *App) stopFetcherById(ctx context.Context, configId int32) error {
 	if fetcher, ok := a.Fetchers[configId]; ok {
 		return a.stopFetcher(ctx, fetcher)
@@ -355,8 +390,12 @@ func (a *App) initialize(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	
 	a.Fetchers = make(map[int32]*Fetcher, len(configs))
 	a.Collectors = make(map[int32]*Collector, len(configs))
+	a.Accumulator = NewAccumulator(DefaultLocalAggregateInterval)
+	a.Accumulator.accumulatorChannel = make(chan LocalAggregate, LocalAggregatesChannelSize)
+	
 	for _, config := range configs {
 		// for fetcher it'll get fetcherFeeds without websocket fetcherFeeds
 		fetcherFeeds, getFeedsErr := a.getFeedsWithoutWss(ctx, config.ID)
@@ -373,7 +412,7 @@ func (a *App) initialize(ctx context.Context) error {
 		if getFeedsErr != nil {
 			return getFeedsErr
 		}
-		a.Collectors[config.ID] = NewCollector(config, collectorFeeds)
+		a.Collectors[config.ID] = NewCollector(config, collectorFeeds, a.Accumulator.accumulatorChannel)
 	}
 	streamIntervalRaw := os.Getenv("FEED_DATA_STREAM_INTERVAL")
 	streamInterval, err := time.ParseDuration(streamIntervalRaw)

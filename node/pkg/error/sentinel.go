@@ -144,6 +144,7 @@ var (
 	ErrCollectorCancelNotFound            = &CustomError{Service: Fetcher, Code: InternalError, Message: "Collector cancel function not found"}
 	ErrCollectorZeroVolume                = &CustomError{Service: Fetcher, Code: InvalidInputError, Message: "Zero volume"}
 	ErrStreamerCancelNotFound             = &CustomError{Service: Fetcher, Code: InternalError, Message: "Streamer cancel function not found"}
+	ErrAccumulatorCancelNotFound          = &CustomError{Service: Fetcher, Code: InternalError, Message: "Accumulator cancel function not found"}
 	ErrFetcherNoMatchingChainID           = &CustomError{Service: Fetcher, Code: InvalidInputError, Message: "No matching chain ID"}
 	ErrFetcherFailedToGetDexResultSlice   = &CustomError{Service: Fetcher, Code: InternalError, Message: "Failed to get dex result slice"}
 	ErrFetcherFailedBigIntConvert         = &CustomError{Service: Fetcher, Code: InternalError, Message: "Failed to convert to fetched data to big.Int"}

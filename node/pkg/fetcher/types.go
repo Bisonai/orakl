@@ -25,6 +25,7 @@ const (
 
 type Feed types.Feed
 type FeedData types.FeedData
+type LocalAggregate types.LocalAggregate
 
 type Config struct {
 	ID            int32  `db:"id"`
@@ -50,6 +51,8 @@ type Collector struct {
 	collectorCtx context.Context
 	cancel       context.CancelFunc
 	isRunning    bool
+
+	localAggregatesChannel chan LocalAggregate
 }
 
 type Streamer struct {
@@ -60,6 +63,15 @@ type Streamer struct {
 	isRunning   bool
 }
 
+type Accumulator struct {
+	Interval time.Duration
+
+	accumulatorCtx 	context.Context
+	cancel      	context.CancelFunc
+	isRunning   	bool
+	accumulatorChannel chan LocalAggregate
+}
+
 type App struct {
 	Bus              *bus.MessageBus
 	Fetchers         map[int32]*Fetcher
@@ -67,6 +79,7 @@ type App struct {
 	Streamer         *Streamer
 	WebsocketFetcher *websocketfetcher.App
 	Proxies          []Proxy
+	Accumulator	  	*Accumulator
 }
 
 type Definition struct {
@@ -85,7 +98,7 @@ type Definition struct {
 	Reciprocal     *bool   `json:"reciprocal"`
 }
 
-type LocalAggregate types.LocalAggregate
+
 
 type ChainHelper interface {
 	ReadContract(ctx context.Context, contractAddress string, functionString string, args ...interface{}) (interface{}, error)

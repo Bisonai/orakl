@@ -12,6 +12,7 @@ import (
 )
 
 const WAIT_SECONDS = 4 * time.Second
+const DUMMY_FEED_VALUE = 1.0
 
 func TestFetcherInitialize(t *testing.T) {
 	ctx := context.Background()
