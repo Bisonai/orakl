@@ -31,10 +31,6 @@ func (a *Accumulator) Run(ctx context.Context) {
 				return
 			case <-ticker.C:
 				go a.accumulatorJob(ctx)
-			default:
-				if len(a.accumulatorChannel) == LocalAggregatesChannelSize {
-					go a.accumulatorJob(ctx)
-				}
 		}
 	}
 }
