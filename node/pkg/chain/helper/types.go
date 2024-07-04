@@ -64,6 +64,8 @@ type Signer struct {
 	chainHelper                 *ChainHelper
 	submissionProxyContractAddr string
 	expirationDate              *time.Time
+	renewInterval               time.Duration
+	renewThreshold              time.Duration
 	mu                          sync.RWMutex
 }
 
@@ -97,8 +99,8 @@ const (
 	EthProviderUrl  = "ETH_PROVIDER_URL"
 	EthReporterPk   = "ETH_REPORTER_PK"
 
-	SignerRenewInterval       = 12 * time.Hour
-	SignerRenewThreshold      = 7 * 24 * time.Hour
-	SignerDetailFuncSignature = "whitelist(address) returns ((uint256, uint256))"
-	UpdateSignerFuncSignature = "updateOracle(address) returns (uint256)"
+	DefaultSignerRenewInterval  = 12 * time.Hour
+	DefaultSignerRenewThreshold = 7 * 24 * time.Hour
+	SignerDetailFuncSignature   = "whitelist(address) returns ((uint256, uint256))"
+	UpdateSignerFuncSignature   = "updateOracle(address) returns (uint256)"
 )

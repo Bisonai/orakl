@@ -3,6 +3,7 @@ package aggregator
 import (
 	"context"
 	"math/rand"
+	"os"
 	"strconv"
 	"time"
 
@@ -100,7 +101,21 @@ func (a *App) clearAggregators() error {
 }
 
 func (a *App) initializeLoadedAggregators(ctx context.Context, loadedConfigs []Config, h host.Host, ps *pubsub.PubSub) error {
-	signHelper, err := helper.NewSigner(ctx)
+	signerOptions := []helper.SignerOption{}
+
+	signerRenewIntervalRaw := os.Getenv("SIGNER_RENEW_INTERVAL")
+	duration, err := time.ParseDuration(signerRenewIntervalRaw)
+	if err == nil {
+		signerOptions = append(signerOptions, helper.WithRenewInterval(duration))
+	}
+
+	signerRenewThresholdRaw := os.Getenv("SIGNER_RENEW_THRESHOLD")
+	threshold, err := time.ParseDuration(signerRenewThresholdRaw)
+	if err == nil {
+		signerOptions = append(signerOptions, helper.WithRenewThreshold(threshold))
+	}
+
+	signHelper, err := helper.NewSigner(ctx, signerOptions...)
 	if err != nil {
 		return err
 	}

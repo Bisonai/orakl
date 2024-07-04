@@ -17,7 +17,9 @@ import (
 )
 
 type SignerConfig struct {
-	pk string
+	pk             string
+	renewInterval  time.Duration
+	renewThreshold time.Duration
 }
 
 type SignerOption func(*SignerConfig)
@@ -25,6 +27,18 @@ type SignerOption func(*SignerConfig)
 func WithSignerPk(pk string) SignerOption {
 	return func(config *SignerConfig) {
 		config.pk = pk
+	}
+}
+
+func WithRenewInterval(renewInterval time.Duration) SignerOption {
+	return func(config *SignerConfig) {
+		config.renewInterval = renewInterval
+	}
+}
+
+func WithRenewThreshold(renewThreshold time.Duration) SignerOption {
+	return func(config *SignerConfig) {
+		config.renewThreshold = renewThreshold
 	}
 }
 
@@ -55,7 +69,10 @@ func getSignerPk(ctx context.Context, config SignerConfig) (string, error) {
 }
 
 func NewSigner(ctx context.Context, opts ...SignerOption) (*Signer, error) {
-	config := SignerConfig{}
+	config := SignerConfig{
+		renewInterval:  DefaultSignerRenewInterval,
+		renewThreshold: DefaultSignerRenewThreshold,
+	}
 	for _, opt := range opts {
 		opt(&config)
 	}
@@ -89,6 +106,8 @@ func NewSigner(ctx context.Context, opts ...SignerOption) (*Signer, error) {
 
 		chainHelper:                 chainHelper,
 		submissionProxyContractAddr: submissionProxyContractAddr,
+		renewInterval:               config.renewInterval,
+		renewThreshold:              config.renewThreshold,
 	}
 
 	go signHelper.autoRenew(ctx)
@@ -104,7 +123,7 @@ func (s *Signer) MakeGlobalAggregateProof(val int64, timestamp time.Time, name s
 }
 
 func (s *Signer) autoRenew(ctx context.Context) {
-	autoRenewTicker := time.NewTicker(SignerRenewInterval)
+	autoRenewTicker := time.NewTicker(s.renewInterval)
 
 	for {
 		select {
@@ -168,7 +187,7 @@ func (s *Signer) LoadExpiration(ctx context.Context) (*time.Time, error) {
 }
 
 func (s *Signer) IsRenewalRequired() bool {
-	return time.Until(*s.expirationDate) < SignerRenewThreshold
+	return time.Until(*s.expirationDate) < s.renewThreshold
 }
 
 func (s *Signer) Renew(ctx context.Context, newPK *ecdsa.PrivateKey, newPkHex string) error {
