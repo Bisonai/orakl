@@ -70,6 +70,7 @@ type App struct {
 	Streamer         *Streamer
 	WebsocketFetcher *websocketfetcher.App
 	Proxies          []Proxy
+	localAggregatesChannel chan LocalAggregate
 }
 
 type Definition struct {

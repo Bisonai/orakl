@@ -78,7 +78,7 @@ func (c *Collector) processFXPricePair(ctx context.Context, feeds []FeedData) er
 		log.Error().Err(err).Str("Player", "Collector").Msg("error in calculateMedian in collector")
 		return err
 	}
-	return c.insertAggregateData(ctx, median)
+	return c.streamLocalAggregate(ctx, median)
 }
 
 func (c *Collector) processVolumeWeightedFeeds(ctx context.Context, feeds []FeedData) error {
@@ -96,7 +96,7 @@ func (c *Collector) processVolumeWeightedFeeds(ctx context.Context, feeds []Feed
 	}
 	log.Info().Str("Player", "Collector").Msg(fmt.Sprintf("VWAP: %f Median: %f", vwap, median))
 	aggregated := calculateAggregatedPrice(vwap, median)
-	return c.insertAggregateData(ctx, aggregated)
+	return c.streamLocalAggregate(ctx, aggregated)
 }
 
 func partitionFeeds(feeds []FeedData) ([]FeedData, []FeedData) {
@@ -123,7 +123,7 @@ func calculateAggregatedPrice(valueWeightedAveragePrice, medianPrice float64) fl
 	return valueWeightedAveragePrice*(1-DefaultMedianRatio) + medianPrice*DefaultMedianRatio
 }
 
-func (c *Collector) insertAggregateData(ctx context.Context, aggregated float64) error {
+func (c *Collector) streamLocalAggregate(ctx context.Context, aggregated float64) error {
 	if aggregated != 0 {
 		c.localAggregatesChannel <- LocalAggregate{
 			ConfigID: c.ID,

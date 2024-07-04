@@ -29,6 +29,10 @@ func New(bus *bus.MessageBus) *App {
 }
 
 func (a *App) Run(ctx context.Context) error {
+	localAggregatesChannel := make(chan LocalAggregate, LocalAggregatesChannelSize)
+	a.localAggregatesChannel = localAggregatesChannel
+	go a.bulkStoreLocalAggregates(ctx)
+
 	err := a.initialize(ctx)
 	if err != nil {
 		return err
@@ -360,10 +364,6 @@ func (a *App) initialize(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-
-	// initialize channel for temporarily keeping local aggregates
-	localAggregatesChannel := make(chan LocalAggregate, LocalAggregatesChannelSize)
-	go a.localAggregatesChannelProcessor(ctx, localAggregatesChannel)
 	
 	a.Fetchers = make(map[int32]*Fetcher, len(configs))
 	a.Collectors = make(map[int32]*Collector, len(configs))
@@ -383,7 +383,7 @@ func (a *App) initialize(ctx context.Context) error {
 		if getFeedsErr != nil {
 			return getFeedsErr
 		}
-		a.Collectors[config.ID] = NewCollector(config, collectorFeeds, localAggregatesChannel)
+		a.Collectors[config.ID] = NewCollector(config, collectorFeeds, a.localAggregatesChannel)
 	}
 	streamIntervalRaw := os.Getenv("FEED_DATA_STREAM_INTERVAL")
 	streamInterval, err := time.ParseDuration(streamIntervalRaw)
@@ -406,7 +406,7 @@ func (a *App) initialize(ctx context.Context) error {
 	return nil
 }
 
-func (a *App) localAggregatesChannelProcessor(ctx context.Context, localAggregatesChannel chan LocalAggregate) {
+func (a *App) bulkStoreLocalAggregates(ctx context.Context) {
 	ticker := time.NewTicker(DefaultLocalAggregateInterval)
 	defer ticker.Stop()
 
@@ -416,17 +416,17 @@ func (a *App) localAggregatesChannelProcessor(ctx context.Context, localAggregat
 				log.Debug().Str("Player", "Fetcher").Msg("fetcher local aggregates channel goroutine stopped")
 				return
 			case <-ticker.C:
-				localAggregatesChannelProcessorJob(ctx, localAggregatesChannel)
+				go a.bulkStoreLocalAggregatesJob(ctx)
 			default:
-				if len(localAggregatesChannel) == LocalAggregatesChannelSize {
-					localAggregatesChannelProcessorJob(ctx, localAggregatesChannel)
+				if len(a.localAggregatesChannel) == LocalAggregatesChannelSize {
+					go a.bulkStoreLocalAggregatesJob(ctx)
 				}
 		}
 	}
 }
 
-func localAggregatesChannelProcessorJob(ctx context.Context, localAggregatesChannel chan LocalAggregate) {
-	if len(localAggregatesChannel) == 0 {
+func (a *App) bulkStoreLocalAggregatesJob(ctx context.Context) {
+	if len(a.localAggregatesChannel) == 0 {
 		return
 	}
 	localAggregatesDataRedis := make(map[string]interface{})
@@ -435,7 +435,7 @@ func localAggregatesChannelProcessorJob(ctx context.Context, localAggregatesChan
 	loop:
 		for {
 			select {
-				case data := <-localAggregatesChannel:
+				case data := <-a.localAggregatesChannel:
 					localAggregatesDataRedis[keys.LocalAggregateKey(data.ConfigID)] = data
 					localAggregatesDataPgsql = append(localAggregatesDataPgsql, []any{data.ConfigID, int64(data.Value), data.Timestamp})
 				default:

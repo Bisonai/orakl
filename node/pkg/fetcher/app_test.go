@@ -3,7 +3,6 @@ package fetcher
 
 import (
 	"context"
-	"os"
 	"testing"
 	"time"
 
@@ -140,6 +139,7 @@ func TestLocalAggregatesChannel(t *testing.T) {
 
 	localAggregatesChannel := make(chan LocalAggregate, LocalAggregatesChannelSize)
 	app.Collectors = make(map[int32]*Collector, len(configs))
+	app.localAggregatesChannel = localAggregatesChannel
 
 	feedData := make(map[string]any)
 	for _, config := range configs {
@@ -162,20 +162,12 @@ func TestLocalAggregatesChannel(t *testing.T) {
 		t.Fatalf("error setting feed data in redis: %v", err)
 	}
 
-	// wait until collectors fetch and process data from db
-	localAggregateIntervalRaw := os.Getenv("LOCAL_AGGREGATE_INTERVAL")
-	localAggregateInterval, err := time.ParseDuration(localAggregateIntervalRaw)
-	if err != nil {
-		localAggregateInterval = DefaultLocalAggregateInterval
-	}
-	time.Sleep(localAggregateInterval*2)
-
 	data := <- localAggregatesChannel
 	assert.Equal(t, float64(data.Value), DUMMY_FEED_VALUE)
 
-	go app.localAggregatesChannelProcessor(ctx, localAggregatesChannel)
+	go app.bulkStoreLocalAggregates(ctx)
 
-	time.Sleep(localAggregateInterval*2)
+	time.Sleep(DefaultLocalAggregateInterval*2)
 
 	redisData, redisErr := db.GetObject[LocalAggregate](ctx, keys.LocalAggregateKey(data.ConfigID))
 	if redisErr != nil {
