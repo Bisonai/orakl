@@ -179,6 +179,11 @@ func (a *App) stopAll(ctx context.Context) error {
 		return err
 	}
 
+	err = a.stopAccumulator()
+	if err != nil {
+		return err
+	}
+
 	return a.stopStreamer(ctx)
 }
 
@@ -301,6 +306,20 @@ func (a *App) stopStreamer(ctx context.Context) error {
 	}
 	a.Streamer.cancel()
 	a.Streamer.isRunning = false
+	return nil
+}
+
+func (a *App) stopAccumulator() error {
+	log.Debug().Msg("stopping Accumulator")
+	if !a.Accumulator.isRunning {
+		log.Debug().Str("Player", "Accumulator").Msg("Accumulator already stopped")
+		return nil
+	}
+	if a.Accumulator.cancel == nil {
+		return errorSentinel.ErrAccumulatorCancelNotFound
+	}
+	a.Accumulator.cancel()
+	a.Accumulator.isRunning = false
 	return nil
 }
 
