@@ -55,12 +55,12 @@ func TestAccumulator(t *testing.T) {
 		t.Fatalf("error setting feed data in redis: %v", err)
 	}
 
-	data := <- localAggregatesChannel
+	data := <-localAggregatesChannel
 	assert.Equal(t, float64(data.Value), DUMMY_FEED_VALUE)
 
 	go app.Accumulator.Run(ctx)
 
-	time.Sleep(DefaultLocalAggregateInterval*2)
+	time.Sleep(DefaultLocalAggregateInterval * 2)
 
 	redisData, redisErr := db.GetObject[LocalAggregate](ctx, keys.LocalAggregateKey(data.ConfigID))
 	if redisErr != nil {

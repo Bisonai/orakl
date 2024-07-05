@@ -11,10 +11,10 @@ import (
 
 func NewCollector(config Config, feeds []Feed, localAggregatesChannel chan LocalAggregate) *Collector {
 	return &Collector{
-		Config:       config,
-		Feeds:        feeds,
-		collectorCtx: nil,
-		cancel:       nil,
+		Config:                 config,
+		Feeds:                  feeds,
+		collectorCtx:           nil,
+		cancel:                 nil,
 		localAggregatesChannel: localAggregatesChannel,
 	}
 }
@@ -126,12 +126,12 @@ func calculateAggregatedPrice(valueWeightedAveragePrice, medianPrice float64) fl
 func (c *Collector) streamLocalAggregate(ctx context.Context, aggregated float64) error {
 	if aggregated != 0 {
 		c.localAggregatesChannel <- LocalAggregate{
-			ConfigID: c.ID,
-			Value:   int64(aggregated),
-			Timestamp:  time.Now(),
+			ConfigID:  c.ID,
+			Value:     int64(aggregated),
+			Timestamp: time.Now(),
 		}
 	}
-	
+
 	return nil
 }
 

@@ -26,11 +26,11 @@ func (a *Accumulator) Run(ctx context.Context) {
 
 	for {
 		select {
-			case <-ctx.Done():
-				log.Debug().Str("Player", "Fetcher").Msg("fetcher local aggregates channel goroutine stopped")
-				return
-			case <-ticker.C:
-				go a.accumulatorJob(ctx)
+		case <-ctx.Done():
+			log.Debug().Str("Player", "Fetcher").Msg("fetcher local aggregates channel goroutine stopped")
+			return
+		case <-ticker.C:
+			go a.accumulatorJob(ctx)
 		}
 	}
 }
@@ -41,22 +41,22 @@ func (a *Accumulator) accumulatorJob(ctx context.Context) {
 	}
 	localAggregatesDataRedis := make(map[string]interface{})
 	var localAggregatesDataPgsql [][]any
-	
-	loop:
-		for {
-			select {
-				case data := <-a.accumulatorChannel:
-					localAggregatesDataRedis[keys.LocalAggregateKey(data.ConfigID)] = data
-					localAggregatesDataPgsql = append(localAggregatesDataPgsql, []any{data.ConfigID, int64(data.Value), data.Timestamp})
-				default:
-					break loop
-			}	
+
+loop:
+	for {
+		select {
+		case data := <-a.accumulatorChannel:
+			localAggregatesDataRedis[keys.LocalAggregateKey(data.ConfigID)] = data
+			localAggregatesDataPgsql = append(localAggregatesDataPgsql, []any{data.ConfigID, int64(data.Value), data.Timestamp})
+		default:
+			break loop
 		}
-	
+	}
+
 	redisErr := db.MSetObject(ctx, localAggregatesDataRedis)
 	_, pgsqlErr := db.BulkCopy(ctx, "local_aggregates", []string{"config_id", "value", "timestamp"}, localAggregatesDataPgsql)
 
-	if redisErr != nil || pgsqlErr != nil{
+	if redisErr != nil || pgsqlErr != nil {
 		log.Error().Err(redisErr).Err(pgsqlErr).Msg("failed to save local aggregates")
 	}
 }

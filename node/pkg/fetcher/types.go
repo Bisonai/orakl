@@ -66,9 +66,9 @@ type Streamer struct {
 type Accumulator struct {
 	Interval time.Duration
 
-	accumulatorCtx 	context.Context
-	cancel      	context.CancelFunc
-	isRunning   	bool
+	accumulatorCtx     context.Context
+	cancel             context.CancelFunc
+	isRunning          bool
 	accumulatorChannel chan LocalAggregate
 }
 
@@ -79,7 +79,7 @@ type App struct {
 	Streamer         *Streamer
 	WebsocketFetcher *websocketfetcher.App
 	Proxies          []Proxy
-	Accumulator	  	*Accumulator
+	Accumulator      *Accumulator
 }
 
 type Definition struct {
@@ -97,8 +97,6 @@ type Definition struct {
 	Token1Decimals *int64  `json:"token1Decimals"`
 	Reciprocal     *bool   `json:"reciprocal"`
 }
-
-
 
 type ChainHelper interface {
 	ReadContract(ctx context.Context, contractAddress string, functionString string, args ...interface{}) (interface{}, error)
