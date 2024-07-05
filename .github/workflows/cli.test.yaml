@@ -98,6 +98,20 @@ jobs:
           REDIS_HOST: "localhost"
           REDIS_PORT: "6379"
 
+      - name: Check Delegator Service Health
+        run: |
+          until $(curl --output /dev/null --silent --head --fail http://127.0.0.1:3002/api/v1); do
+            echo "Waiting for delegator service to be ready..."
+            sleep 1
+          done
+
+      - name: Check API Service Health
+        run: |
+          until $(curl --output /dev/null --silent --head --fail http://127.0.0.1:3000/api/v1); do
+            echo "Waiting for api service to be ready..."
+            sleep 1
+          done
+
       - name: Run tests
         run: yarn cli build && yarn cli test
         env:
