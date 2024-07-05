@@ -15,7 +15,7 @@ import { IDataFeedTransactionParameters, IOracleRoundState, IRoundData } from '.
 export async function getSynchronizedDelay({
   oracleAddress,
   heartbeat,
-  logger
+  logger,
 }: {
   oracleAddress: string
   heartbeat: number
@@ -25,7 +25,7 @@ export async function getSynchronizedDelay({
 
   const startedAt = await currentRoundStartedAtCall({
     oracleAddress,
-    logger
+    logger,
   })
 
   let delay: number
@@ -43,7 +43,7 @@ export async function getSynchronizedDelay({
 
 async function currentRoundStartedAtCall({
   oracleAddress,
-  logger
+  logger,
 }: {
   oracleAddress: string
   logger?: Logger
@@ -60,7 +60,7 @@ export async function oracleRoundStateCall({
   operatorAddress,
   logger,
   roundId,
-  provider
+  provider,
 }: {
   oracleAddress: string
   operatorAddress: string
@@ -85,13 +85,13 @@ export async function oracleRoundStateCall({
     timeout: state._timeout,
     availableFunds: state._availableFunds,
     oracleCount: state._oracleCount,
-    paymentAmount: state._paymentAmount
+    paymentAmount: state._paymentAmount,
   }
 }
 
 export async function getRoundDataCall({
   oracleAddress,
-  roundId
+  roundId,
 }: {
   oracleAddress: string
   roundId: number
@@ -113,7 +113,7 @@ export function buildTransaction({
   to,
   gasMinimum,
   iface,
-  logger
+  logger,
 }: {
   payloadParameters: IDataFeedTransactionParameters
   to: string
@@ -127,7 +127,7 @@ export function buildTransaction({
   const tx = {
     payload,
     gasLimit,
-    to
+    to,
   }
   logger.debug(tx)
   return tx

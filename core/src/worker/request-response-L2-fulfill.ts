@@ -9,13 +9,13 @@ import {
   L2_REPORTER_REQUEST_RESPONSE_FULFILL_QUEUE_NAME,
   L2_WORKER_REQUEST_RESPONSE_FULFILL_QUEUE_NAME,
   REQUEST_RESPONSE_FULFILL_GAS_MINIMUM,
-  WORKER_JOB_SETTINGS
+  WORKER_JOB_SETTINGS,
 } from '../settings'
 import {
   IL2RequestResponseFulfillListenerWorker,
   IL2RequestResponseFulfillTransactionParameters,
   ITransactionParameters,
-  QueueType
+  QueueType,
 } from '../types'
 import { JOB_ID_MAPPING } from './request-response.utils'
 
@@ -27,7 +27,7 @@ export async function worker(redisClient: RedisClientType, _logger: Logger) {
   const worker = new Worker(
     L2_WORKER_REQUEST_RESPONSE_FULFILL_QUEUE_NAME,
     await job(queue, _logger),
-    BULLMQ_CONNECTION
+    BULLMQ_CONNECTION,
   )
 
   async function handleExit() {
@@ -53,7 +53,7 @@ export async function job(reporterQueue: QueueType, _logger: Logger) {
         requestId: inData.l2RequestId,
         response: inData.response,
         callbackGasLimit: BigNumber.from(inData.callbackGasLimit).toNumber(),
-        jobId: inData.jobId
+        jobId: inData.jobId,
       }
       const to = L2_ENDPOINT
       const tx = buildTransaction(
@@ -61,13 +61,13 @@ export async function job(reporterQueue: QueueType, _logger: Logger) {
         to,
         REQUEST_RESPONSE_FULFILL_GAS_MINIMUM,
         iface,
-        logger
+        logger,
       )
       logger.debug(tx, 'tx')
 
       await reporterQueue.add('l2RRFulfill', tx, {
         jobId: inData.requestId,
-        ...WORKER_JOB_SETTINGS
+        ...WORKER_JOB_SETTINGS,
       })
 
       return tx
@@ -85,7 +85,7 @@ function buildTransaction(
   to: string,
   gasMinimum: number,
   iface: ethers.utils.Interface,
-  logger: Logger
+  logger: Logger,
 ): ITransactionParameters {
   const { requestId, response, callbackGasLimit, jobId } = payloadParameters
   const gasLimit = callbackGasLimit + gasMinimum
@@ -95,6 +95,6 @@ function buildTransaction(
   return {
     payload,
     gasLimit,
-    to
+    to,
   }
 }

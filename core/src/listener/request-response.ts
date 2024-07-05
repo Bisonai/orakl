@@ -9,7 +9,7 @@ import {
   LISTENER_REQUEST_RESPONSE_PROCESS_EVENT_QUEUE_NAME,
   REQUEST_RESPONSE_LISTENER_STATE_NAME,
   REQUEST_RESPONSE_SERVICE_NAME,
-  WORKER_REQUEST_RESPONSE_QUEUE_NAME
+  WORKER_REQUEST_RESPONSE_QUEUE_NAME,
 } from '../settings'
 import { IDataRequested, IListenerConfig, IRequestResponseListenerWorker } from '../types'
 import { listenerService } from './listener'
@@ -20,7 +20,7 @@ const FILE_NAME = import.meta.url
 export async function buildListener(
   config: IListenerConfig[],
   redisClient: RedisClientType,
-  logger: Logger
+  logger: Logger,
 ) {
   const stateName = REQUEST_RESPONSE_LISTENER_STATE_NAME
   const service = REQUEST_RESPONSE_SERVICE_NAME
@@ -47,7 +47,7 @@ export async function buildListener(
     processFn: await processEvent({ iface, logger }),
     redisClient,
     listenerInitType: 'latest',
-    logger
+    logger,
   })
 }
 
@@ -69,7 +69,7 @@ async function processEvent({ iface, logger }: { iface: ethers.utils.Interface; 
       sender: eventData.sender,
       isDirectPayment: eventData.isDirectPayment,
       numSubmission: eventData.numSubmission,
-      data: eventData.data.toString()
+      data: eventData.data.toString(),
     }
     _logger.debug(jobData, 'jobData')
 

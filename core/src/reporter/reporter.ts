@@ -8,7 +8,7 @@ import {
   CaverWallet,
   sendTransaction,
   sendTransactionCaver,
-  sendTransactionDelegatedFee
+  sendTransactionDelegatedFee,
 } from './utils'
 
 export function reporter(state: State, logger: Logger) {
@@ -48,7 +48,7 @@ export function reporter(state: State, logger: Logger) {
         } catch (e) {
           if (
             ![OraklErrorCode.CaverTxTransactionFailed, OraklErrorCode.TxNonceExpired].includes(
-              e.code
+              e.code,
             )
           ) {
             throw e
@@ -67,7 +67,7 @@ export function reporter(state: State, logger: Logger) {
               OraklErrorCode.TxNotMined,
               OraklErrorCode.TxProcessingResponseError,
               OraklErrorCode.TxMissingResponseError,
-              OraklErrorCode.TxNonceExpired
+              OraklErrorCode.TxNonceExpired,
             ].includes(e.code)
           ) {
             throw e

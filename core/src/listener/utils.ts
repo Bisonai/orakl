@@ -56,7 +56,7 @@ const FILE_NAME = import.meta.url
  * @return {IListenerGroupConfig} grouped raw listener configurations based on `service` property
  */
 export function groupListeners({
-  listenersRawConfig
+  listenersRawConfig,
 }: {
   listenersRawConfig: IListenerRawConfig[]
 }): IListenerGroupConfig {
@@ -98,7 +98,7 @@ export function validateListenerConfig(config: IListenerConfig[], logger?: Logge
     if (!isAddressValid(c.address)) {
       logger?.error(
         { name: 'validateListenerConfig', file: FILE_NAME, address: c.address },
-        'invalid address'
+        'invalid address',
       )
       return false
     }
@@ -111,7 +111,7 @@ export function postprocessListeners({
   listenersRawConfig,
   service,
   chain,
-  logger
+  logger,
 }: {
   listenersRawConfig: IListenerRawConfig[]
   service: string
@@ -121,12 +121,12 @@ export function postprocessListeners({
   if (listenersRawConfig.length == 0) {
     throw new OraklError(
       OraklErrorCode.NoListenerFoundGivenRequirements,
-      `service: [${service}], chain: [${chain}]`
+      `service: [${service}], chain: [${chain}]`,
     )
   }
   const listenersConfig = groupListeners({ listenersRawConfig })
   const isValid = Object.keys(listenersConfig).map((k) =>
-    validateListenerConfig(listenersConfig[k], logger)
+    validateListenerConfig(listenersConfig[k], logger),
   )
 
   if (!isValid.every((t) => t)) {
@@ -135,7 +135,7 @@ export function postprocessListeners({
 
   logger?.info(
     { name: 'postprocessListeners', file: FILE_NAME, ...listenersConfig },
-    'listenersConfig'
+    'listenersConfig',
   )
 
   return listenersConfig

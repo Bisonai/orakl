@@ -22,24 +22,24 @@ describe('Test Caver-js', function () {
         from: account.address,
         to: to,
         gas: '21000',
-        value: amount
+        value: amount,
       })
 
       const txFee = BigNumber.from(txReceipt.effectiveGasPrice).mul(
-        BigNumber.from(txReceipt.gasUsed)
+        BigNumber.from(txReceipt.gasUsed),
       )
       const afterBalanceOfTo = await caver.klay.getBalance(to)
       const afterBalanceOfAccount = await caver.klay.getBalance(account.address)
 
       expect(
         BigNumber.from(afterBalanceOfTo).eq(
-          BigNumber.from(beforeBalanceOfTo).add(BigNumber.from(amount))
-        )
+          BigNumber.from(beforeBalanceOfTo).add(BigNumber.from(amount)),
+        ),
       ).toBe(true)
       expect(
         BigNumber.from(afterBalanceOfAccount).eq(
-          BigNumber.from(beforeBalanceOfAccount).sub(BigNumber.from(amount)).sub(txFee)
-        )
+          BigNumber.from(beforeBalanceOfAccount).sub(BigNumber.from(amount)).sub(txFee),
+        ),
       ).toBe(true)
     }, 60_000)
   } else {
@@ -55,7 +55,7 @@ describe('Test Caver-js', function () {
       const tx = {
         from: wallet.address,
         to: to,
-        value: amount
+        value: amount,
       }
 
       // Send transaction

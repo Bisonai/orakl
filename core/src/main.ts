@@ -46,7 +46,7 @@ const LISTENERS: IListeners = {
   VRF_L2_REQUEST: buildVrfL2RequestListener,
   VRF_L2_FULFILL: buildVrfL2FulfillListener,
   REQUEST_RESPONSE_L2_REQUEST: buildRequestResponseL2RequestListener,
-  REQUEST_RESPONSE_L2_FULFILL: buildRequestResponseL2FulfillListener
+  REQUEST_RESPONSE_L2_FULFILL: buildRequestResponseL2FulfillListener,
 }
 
 const WORKERS: IWorkers = {
@@ -57,7 +57,7 @@ const WORKERS: IWorkers = {
   VRF_L2_REQUEST: l2VrfRequestWorker,
   VRF_L2_FULFILL: l2VrfFulfillWorker,
   REQUEST_RESPONSE_L2_REQUEST: l2RequestResponseRequestWorker,
-  REQUEST_RESPONSE_L2_FULFILL: l2RequestResponseFulfillWorker
+  REQUEST_RESPONSE_L2_FULFILL: l2RequestResponseFulfillWorker,
 }
 
 const REPORTERS: IReporters = {
@@ -68,7 +68,7 @@ const REPORTERS: IReporters = {
   VRF_L2_REQUEST: buildL2VrfRequestReporter,
   VRF_L2_FULFILL: buildL2VrfFulfillReporter,
   REQUEST_RESPONSE_L2_REQUEST: buildL2RequestResponseRequestReporter,
-  REQUEST_RESPONSE_L2_FULFILL: buildL2RequestResponseFulfillReporter
+  REQUEST_RESPONSE_L2_FULFILL: buildL2RequestResponseFulfillReporter,
 }
 
 const LOGGER = buildLogger()
@@ -80,7 +80,7 @@ async function startListenerService(service: string, redisClient: RedisClientTyp
     listenersRawConfig,
     service,
     chain: CHAIN,
-    logger: LOGGER
+    logger: LOGGER,
   })
 
   if (!listenersConfig[service]) {
@@ -120,13 +120,13 @@ async function main() {
 
 function loadArgs(): string {
   const {
-    values: { service }
+    values: { service },
   } = parseArgs({
     options: {
       service: {
-        type: 'string'
-      }
-    }
+        type: 'string',
+      },
+    },
   })
 
   if (!service) {

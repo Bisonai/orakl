@@ -6,7 +6,7 @@ import {
   DATA_FEED_SERVICE_NAME,
   L2_CHAIN,
   L2_DATA_FEED_SERVICE_NAME,
-  ORAKL_NETWORK_API_URL
+  ORAKL_NETWORK_API_URL,
 } from './settings'
 import { IReporterConfig, IVrfConfig } from './types'
 import { buildUrl } from './utils'
@@ -23,7 +23,7 @@ const FILE_NAME = import.meta.url
  */
 export async function getVrfConfig({
   chain,
-  logger
+  logger,
 }: {
   chain: string
   logger?: Logger
@@ -58,7 +58,7 @@ export async function getVrfConfig({
 export async function getReporters({
   service,
   chain,
-  logger
+  logger,
 }: {
   service?: string
   chain?: string
@@ -87,7 +87,7 @@ export async function getReporters({
  */
 export async function getReporter({
   id,
-  logger
+  logger,
 }: {
   id: string
   logger?: Logger
@@ -120,7 +120,7 @@ export async function getReporterByOracleAddress({
   service,
   chain,
   oracleAddress,
-  logger
+  logger,
 }: {
   service: string
   chain: string
@@ -157,7 +157,7 @@ export async function getReporterByOracleAddress({
  */
 export async function getOperatorAddress({
   oracleAddress,
-  logger
+  logger,
 }: {
   oracleAddress: string
   logger: Logger
@@ -169,14 +169,14 @@ export async function getOperatorAddress({
       service: DATA_FEED_SERVICE_NAME,
       chain: CHAIN,
       oracleAddress,
-      logger
+      logger,
     })
   ).address
 }
 
 export async function getOperatorAddressL2({
   oracleAddress,
-  logger
+  logger,
 }: {
   oracleAddress: string
   logger: Logger
@@ -188,7 +188,7 @@ export async function getOperatorAddressL2({
       service: L2_DATA_FEED_SERVICE_NAME,
       chain: L2_CHAIN,
       oracleAddress,
-      logger
+      logger,
     })
   ).address
 }

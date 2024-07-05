@@ -12,7 +12,7 @@ import {
   VRF_FULFILL_GAS_MINIMUM,
   VRF_FULLFILL_GAS_PER_WORD,
   WORKER_JOB_SETTINGS,
-  WORKER_VRF_QUEUE_NAME
+  WORKER_VRF_QUEUE_NAME,
 } from '../settings'
 import {
   ITransactionParameters,
@@ -21,7 +21,7 @@ import {
   IVrfTransactionParameters,
   Proof,
   QueueType,
-  RequestCommitmentVRF
+  RequestCommitmentVRF,
 } from '../types'
 import { remove0x } from '../utils'
 
@@ -35,7 +35,7 @@ export async function worker(redisClient: RedisClientType, _logger: Logger) {
   const worker = new Worker(
     WORKER_VRF_QUEUE_NAME,
     await job(nonceManagerQueue, vrfConfig, _logger),
-    BULLMQ_CONNECTION
+    BULLMQ_CONNECTION,
   )
 
   async function handleExit() {
@@ -58,7 +58,7 @@ export async function job(nonceManagerQueue: QueueType, config: IVrfConfig, _log
 
     try {
       const alpha = remove0x(
-        ethers.utils.solidityKeccak256(['uint256', 'bytes32'], [inData.seed, inData.blockHash])
+        ethers.utils.solidityKeccak256(['uint256', 'bytes32'], [inData.seed, inData.blockHash]),
       )
 
       logger.debug({ alpha })
@@ -76,7 +76,7 @@ export async function job(nonceManagerQueue: QueueType, config: IVrfConfig, _log
         proof,
         preSeed: inData.seed,
         uPoint,
-        vComponents
+        vComponents,
       }
 
       const to = inData.callbackAddress
@@ -85,13 +85,13 @@ export async function job(nonceManagerQueue: QueueType, config: IVrfConfig, _log
         to,
         VRF_FULFILL_GAS_MINIMUM + VRF_FULLFILL_GAS_PER_WORD * inData.numWords,
         iface,
-        logger
+        logger,
       )
       logger.debug(tx, 'tx')
 
       await nonceManagerQueue.add('vrf', tx, {
         jobId: inData.requestId,
-        ...WORKER_JOB_SETTINGS
+        ...WORKER_JOB_SETTINGS,
       })
 
       return tx
@@ -109,7 +109,7 @@ function buildTransaction(
   to: string,
   gasMinimum: number,
   iface: ethers.utils.Interface,
-  logger: Logger
+  logger: Logger,
 ): ITransactionParameters {
   const gasLimit = payloadParameters.callbackGasLimit + gasMinimum
   const rc: RequestCommitmentVRF = [
@@ -117,7 +117,7 @@ function buildTransaction(
     payloadParameters.accId,
     payloadParameters.callbackGasLimit,
     payloadParameters.numWords,
-    payloadParameters.sender
+    payloadParameters.sender,
   ]
   logger.debug(rc, 'rc')
 
@@ -126,19 +126,19 @@ function buildTransaction(
     payloadParameters.proof,
     payloadParameters.preSeed,
     payloadParameters.uPoint,
-    payloadParameters.vComponents
+    payloadParameters.vComponents,
   ]
   logger.debug(proof, 'proof')
 
   const payload = iface.encodeFunctionData('fulfillRandomWords', [
     proof,
     rc,
-    payloadParameters.isDirectPayment
+    payloadParameters.isDirectPayment,
   ])
 
   return {
     payload,
     gasLimit,
-    to
+    to,
   }
 }

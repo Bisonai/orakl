@@ -30,10 +30,10 @@ describe('Request-Response Worker', function () {
       sender,
       isDirectPayment: false,
       numSubmission: 1,
-      data: KlayPriceRequest()
+      data: KlayPriceRequest(),
     }
     const tx = await wrapperFn({
-      data: listenerData
+      data: listenerData,
     })
 
     expect(tx?.gasLimit).toBe(REQUEST_RESPONSE_FULFILL_GAS_MINIMUM + listenerData.callbackGasLimit)

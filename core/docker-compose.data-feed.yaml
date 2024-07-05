@@ -9,7 +9,7 @@ services:
     expose:
       - 6379
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ['CMD', 'redis-cli', 'ping']
       interval: 5s
       timeout: 30s
       retries: 50
@@ -19,24 +19,22 @@ services:
     image: core-icn
     container_name: listener_aggregator_dev
     hostname: listener_aggregator_dev
-    entrypoint: ["yarn", "start:listener:aggregator"]
+    entrypoint: ['yarn', 'start:listener:aggregator']
     extra_hosts:
-      - "host.docker.internal:host-gateway"
+      - 'host.docker.internal:host-gateway'
     environment:
       - NODE_ENV=production
       - ORAKL_DIR=/app/db
       - CHAIN
       - HEALTH_CHECK_PORT
       - SLACK_WEBHOOK_URL
-    healthcheck:
-      &common-healthcheck
-      test: "curl --fail http://localhost:${HEALTH_CHECK_PORT} || exit 1"
+    healthcheck: &common-healthcheck
+      test: 'curl --fail http://localhost:${HEALTH_CHECK_PORT} || exit 1'
       interval: 5s
       timeout: 30s
       retries: 3
       start_period: 10s
-    depends_on:
-      &common-depends_on
+    depends_on: &common-depends_on
       redis:
         condition: service_healthy
     restart: unless-stopped
@@ -47,13 +45,13 @@ services:
     image: core-icn
     container_name: worker_aggregator_dev
     hostname: worker_aggregator_dev
-    entrypoint: ["yarn", "start:worker:aggregator"]
+    entrypoint: ['yarn', 'start:worker:aggregator']
     environment:
       - NODE_ENV=production
       - ORAKL_DIR=/app/db
       - CHAIN
       - HEALTH_CHECK_PORT
-      - SLACK_WEBHOOK_URL      
+      - SLACK_WEBHOOK_URL
     healthcheck:
       <<: *common-healthcheck
     depends_on:
@@ -66,15 +64,15 @@ services:
     image: core-icn
     container_name: reporter_aggregator_dev
     hostname: reporter_aggregator_dev
-    entrypoint: ["yarn", "start:reporter:aggregator"]
+    entrypoint: ['yarn', 'start:reporter:aggregator']
     extra_hosts:
-      - "host.docker.internal:host-gateway"
+      - 'host.docker.internal:host-gateway'
     environment:
       - NODE_ENV=production
       - ORAKL_DIR=/app/db
       - CHAIN
       - HEALTH_CHECK_PORT
-      - SLACK_WEBHOOK_URL      
+      - SLACK_WEBHOOK_URL
     healthcheck:
       <<: *common-healthcheck
     depends_on:

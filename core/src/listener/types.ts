@@ -10,7 +10,7 @@ import {
   IL2VrfFulfillListenerWorker,
   IListenerConfig,
   IRequestResponseListenerWorker,
-  IVrfListenerWorker
+  IVrfListenerWorker,
 } from '../types'
 
 export interface IListeners {

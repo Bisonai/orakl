@@ -9,7 +9,7 @@ services:
     expose:
       - 6379
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ['CMD', 'redis-cli', 'ping']
       interval: 5s
       timeout: 30s
       retries: 50
@@ -19,9 +19,38 @@ services:
     image: orakl:v.0.0.1
     container_name: listener_vrf_dev
     hostname: listener_vrf_dev
-    entrypoint: ["yarn", "start:listener:vrf"]
+    entrypoint: ['yarn', 'start:listener:vrf']
     extra_hosts:
-      - "host.docker.internal:host-gateway"
+      - 'host.docker.internal:host-gateway'
+    environment:
+      - NODE_ENV=production
+      - ORAKL_DIR=/app/db
+      - CHAIN=baobab
+      - HEALTH_CHECK_PORT
+      - SLACK_WEBHOOK_URL
+      - LOG_DIR=/app/log
+      - LOG_LEVEL=info
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    healthcheck: &common-healthcheck
+      test: 'curl --fail http://localhost:${HEALTH_CHECK_PORT} || exit 1'
+      interval: 5s
+      timeout: 30s
+      retries: 3
+      start_period: 10s
+    depends_on: &common-depends_on
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    volumes:
+      - ${HOST_SETTINGS_DB_DIR}:/app/db
+      - ${HOST_SETTINGS_LOG_DIR}:/app/log
+
+  worker-vrf:
+    image: orakl:v.0.0.1
+    container_name: worker_vrf_dev
+    hostname: worker_vrf_dev
+    entrypoint: ['yarn', 'start:worker:vrf']
     environment:
       - NODE_ENV=production
       - ORAKL_DIR=/app/db
@@ -33,52 +62,21 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
     healthcheck:
-      &common-healthcheck
-      test: "curl --fail http://localhost:${HEALTH_CHECK_PORT} || exit 1"
-      interval: 5s
-      timeout: 30s
-      retries: 3
-      start_period: 10s
-    depends_on:
-      &common-depends_on
-      redis:
-        condition: service_healthy
-    restart: unless-stopped
-    volumes:
-      - ${HOST_SETTINGS_DB_DIR}:/app/db    
-      - ${HOST_SETTINGS_LOG_DIR}:/app/log
-
-  worker-vrf:
-    image: orakl:v.0.0.1
-    container_name: worker_vrf_dev
-    hostname: worker_vrf_dev
-    entrypoint: ["yarn", "start:worker:vrf"]
-    environment:
-      - NODE_ENV=production
-      - ORAKL_DIR=/app/db
-      - CHAIN=baobab
-      - HEALTH_CHECK_PORT
-      - SLACK_WEBHOOK_URL
-      - LOG_DIR=/app/log
-      - LOG_LEVEL=info      
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379      
-    healthcheck:
       <<: *common-healthcheck
     depends_on:
       <<: *common-depends_on
     restart: unless-stopped
     volumes:
-      - ${HOST_SETTINGS_DB_DIR}:/app/db    
+      - ${HOST_SETTINGS_DB_DIR}:/app/db
       - ${HOST_SETTINGS_LOG_DIR}:/app/log
 
   reporter-vrf:
     image: orakl:v.0.0.1
     extra_hosts:
-      - "host.docker.internal:host-gateway"
+      - 'host.docker.internal:host-gateway'
     container_name: reporter_vrf_dev
     hostname: reporter_vrf_dev
-    entrypoint: ["yarn", "start:reporter:vrf"]
+    entrypoint: ['yarn', 'start:reporter:vrf']
     environment:
       - NODE_ENV=production
       - ORAKL_DIR=/app/db
@@ -86,14 +84,14 @@ services:
       - HEALTH_CHECK_PORT
       - SLACK_WEBHOOK_URL
       - LOG_DIR=/app/log
-      - LOG_LEVEL=info      
+      - LOG_LEVEL=info
       - REDIS_HOST=redis
-      - REDIS_PORT=6379      
+      - REDIS_PORT=6379
     healthcheck:
       <<: *common-healthcheck
     depends_on:
       <<: *common-depends_on
     restart: unless-stopped
     volumes:
-      - ${HOST_SETTINGS_DB_DIR}:/app/db    
+      - ${HOST_SETTINGS_DB_DIR}:/app/db
       - ${HOST_SETTINGS_LOG_DIR}:/app/log

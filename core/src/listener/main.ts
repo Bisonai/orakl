@@ -26,7 +26,7 @@ const LISTENERS: IListeners = {
   VRF_L2_REQUEST: buildVrfL2RequestListener,
   VRF_L2_FULFILL: buildVrfL2FulfillListener,
   REQUEST_RESPONSE_L2_REQUEST: buildRequestResponseL2RequestListener,
-  REQUEST_RESPONSE_L2_FULFILL: buildRequestResponseL2FulfillListener
+  REQUEST_RESPONSE_L2_FULFILL: buildRequestResponseL2FulfillListener,
 }
 
 const FILE_NAME = import.meta.url
@@ -40,7 +40,7 @@ async function main() {
     listenersRawConfig,
     service,
     chain: CHAIN,
-    logger: LOGGER
+    logger: LOGGER,
   })
 
   if (!LISTENERS[service] || !listenersConfig[service]) {
@@ -59,13 +59,13 @@ async function main() {
 
 function loadArgs(): string {
   const {
-    values: { service }
+    values: { service },
   } = parseArgs({
     options: {
       service: {
-        type: 'string'
-      }
-    }
+        type: 'string',
+      },
+    },
   })
 
   if (!service) {

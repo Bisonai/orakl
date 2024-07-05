@@ -24,13 +24,13 @@ import {
   SUBMIT_HEARTBEAT_QUEUE_SETTINGS,
   WORKER_AGGREGATOR_QUEUE_NAME,
   WORKER_CHECK_HEARTBEAT_QUEUE_NAME,
-  WORKER_DEVIATION_QUEUE_NAME
+  WORKER_DEVIATION_QUEUE_NAME,
 } from '../settings'
 import {
   IAggregatorHeartbeatWorker,
   IAggregatorSubmitHeartbeatWorker,
   IDataFeedListenerWorker,
-  QueueType
+  QueueType,
 } from '../types'
 import { buildHeartbeatJobId, buildSubmissionRoundJobId } from '../utils'
 import { fetchDataFeedByAggregatorId, getAggregatorGivenAddress, getAggregators } from './api'
@@ -77,7 +77,7 @@ export async function worker(redisClient: RedisClientType, _logger: Logger) {
     heartbeatQueue,
     submitHeartbeatQueue,
     chain: CHAIN,
-    logger
+    logger,
   })
   await state.clear()
 
@@ -96,8 +96,8 @@ export async function worker(redisClient: RedisClientType, _logger: Logger) {
     WORKER_AGGREGATOR_QUEUE_NAME,
     aggregatorJob(submitHeartbeatQueue, reporterQueue, state, _logger),
     {
-      ...BULLMQ_CONNECTION
-    }
+      ...BULLMQ_CONNECTION,
+    },
   )
   aggregatorWorker.on('error', (e) => {
     logger.error(e)
@@ -107,7 +107,7 @@ export async function worker(redisClient: RedisClientType, _logger: Logger) {
   const heartbeatWorker = new Worker(
     HEARTBEAT_QUEUE_NAME,
     heartbeatJob(aggregatorQueue, state, _logger),
-    BULLMQ_CONNECTION
+    BULLMQ_CONNECTION,
   )
   heartbeatWorker.on('error', (e) => {
     logger.error(e)
@@ -117,7 +117,7 @@ export async function worker(redisClient: RedisClientType, _logger: Logger) {
   const submitHeartbeatWorker = new Worker(
     SUBMIT_HEARTBEAT_QUEUE_NAME,
     submitHeartbeatJob(heartbeatQueue, state, _logger),
-    BULLMQ_CONNECTION
+    BULLMQ_CONNECTION,
   )
   submitHeartbeatWorker.on('error', (e) => {
     logger.error(e)
@@ -127,7 +127,7 @@ export async function worker(redisClient: RedisClientType, _logger: Logger) {
   const checkHeartbeatWorker = new Worker(
     WORKER_CHECK_HEARTBEAT_QUEUE_NAME,
     checkHeartbeatJob(submitHeartbeatQueue, state, _logger),
-    BULLMQ_CONNECTION
+    BULLMQ_CONNECTION,
   )
   checkHeartbeatWorker.on('error', (e) => {
     logger.error(e)
@@ -138,7 +138,7 @@ export async function worker(redisClient: RedisClientType, _logger: Logger) {
   const deviationWorker = new Worker(
     WORKER_DEVIATION_QUEUE_NAME,
     deviationJob(reporterQueue, _logger),
-    BULLMQ_CONNECTION
+    BULLMQ_CONNECTION,
   )
   deviationWorker.on('error', (e) => {
     logger.error(e, 'deviation error')
@@ -181,7 +181,7 @@ export function aggregatorJob(
   submitHeartbeatQueue: QueueType,
   reporterQueue: QueueType,
   state: State,
-  _logger: Logger
+  _logger: Logger,
 ) {
   const logger = _logger.child({ name: 'aggregatorJob' })
   const iface = new ethers.utils.Interface(Aggregator__factory.abi)
@@ -200,26 +200,26 @@ export function aggregatorJob(
       // TODO store in ephemeral state
       const { id: aggregatorId, heartbeat: delay } = await getAggregatorGivenAddress({
         oracleAddress,
-        logger
+        logger,
       })
 
       const { timestamp, value: submission } = await fetchDataFeedByAggregatorId({
         aggregatorId,
-        logger
+        logger,
       })
       logger.debug(
         { aggregatorId, fetchedAt: timestamp, submission },
-        `Latest data aggregate by aggregatorId`
+        `Latest data aggregate by aggregatorId`,
       )
 
       // Submit heartbeat
       const outDataSubmitHeartbeat: IAggregatorSubmitHeartbeatWorker = {
         oracleAddress,
-        delay
+        delay,
       }
       logger.debug(outDataSubmitHeartbeat, 'outDataSubmitHeartbeat')
       await submitHeartbeatQueue.add('aggregator-submission', outDataSubmitHeartbeat, {
-        ...SUBMIT_HEARTBEAT_QUEUE_SETTINGS
+        ...SUBMIT_HEARTBEAT_QUEUE_SETTINGS,
       })
 
       if (!submission || isStale({ timestamp, logger })) {
@@ -228,12 +228,12 @@ export function aggregatorJob(
         const tx = buildTransaction({
           payloadParameters: {
             roundId,
-            submission
+            submission,
           },
           to: oracleAddress,
           gasMinimum: DATA_FEED_FULFILL_GAS_MINIMUM,
           iface,
-          logger
+          logger,
         })
         logger.debug(tx, 'tx')
 
@@ -241,7 +241,7 @@ export function aggregatorJob(
           jobId: buildSubmissionRoundJobId({
             oracleAddress,
             roundId,
-            deploymentName: DEPLOYMENT_NAME
+            deploymentName: DEPLOYMENT_NAME,
           }),
           removeOnComplete: REMOVE_ON_COMPLETE,
           // Reporter job can fail, and should be either retried or
@@ -252,7 +252,7 @@ export function aggregatorJob(
           // specific aggregator on specific round.
           //
           // FIXME Rethink!
-          removeOnFail: true
+          removeOnFail: true,
         })
 
         return tx
@@ -323,7 +323,7 @@ function heartbeatJob(aggregatorQueue: Queue, state: State, _logger: Logger) {
         oracleAddress,
         operatorAddress,
         logger,
-        provider: PROVIDER
+        provider: PROVIDER,
       })
       logger.debug(oracleRoundState, 'oracleRoundState')
 
@@ -331,7 +331,7 @@ function heartbeatJob(aggregatorQueue: Queue, state: State, _logger: Logger) {
       const outData: IDataFeedListenerWorker = {
         oracleAddress,
         roundId,
-        workerSource: 'heartbeat'
+        workerSource: 'heartbeat',
       }
       logger.debug(outData, 'outData')
 
@@ -341,7 +341,7 @@ function heartbeatJob(aggregatorQueue: Queue, state: State, _logger: Logger) {
         const jobId = buildSubmissionRoundJobId({
           oracleAddress,
           roundId,
-          deploymentName: DEPLOYMENT_NAME
+          deploymentName: DEPLOYMENT_NAME,
         })
 
         // [heartbeat] worker is executed at predefined intervals and
@@ -360,7 +360,7 @@ function heartbeatJob(aggregatorQueue: Queue, state: State, _logger: Logger) {
         await aggregatorQueue.add('fixed', outData, {
           jobId,
           removeOnComplete: REMOVE_ON_COMPLETE,
-          ...AGGREGATOR_QUEUE_SETTINGS
+          ...AGGREGATOR_QUEUE_SETTINGS,
         })
         logger.debug({ job: 'added', eligible: true, roundId }, 'eligible-fixed')
       } else {
@@ -400,12 +400,12 @@ function submitHeartbeatJob(heartbeatQueue: Queue, state: State, _logger: Logger
 
     const jobId = buildHeartbeatJobId({ oracleAddress, deploymentName: DEPLOYMENT_NAME })
     const allDelayed = (await heartbeatQueue.getJobs(['delayed'])).filter(
-      (job) => job.opts.jobId == jobId
+      (job) => job.opts.jobId == jobId,
     )
 
     if (!state.isActive({ oracleAddress })) {
       logger.warn(
-        `submitHeartbeatJob for oracle ${oracleAddress} is no longer active. Removing job.`
+        `submitHeartbeatJob for oracle ${oracleAddress} is no longer active. Removing job.`,
       )
       return
     }
@@ -413,7 +413,7 @@ function submitHeartbeatJob(heartbeatQueue: Queue, state: State, _logger: Logger
     if (allDelayed.length > 1) {
       throw new OraklError(
         OraklErrorCode.UnexpectedNumberOfJobsInQueue,
-        `Number of jobs ${allDelayed.length}`
+        `Number of jobs ${allDelayed.length}`,
       )
     } else if (allDelayed.length == 1) {
       const delayedJob = allDelayed[0]
@@ -423,12 +423,12 @@ function submitHeartbeatJob(heartbeatQueue: Queue, state: State, _logger: Logger
     }
 
     const outData: IAggregatorHeartbeatWorker = {
-      oracleAddress
+      oracleAddress,
     }
     await heartbeatQueue.add(HEARTBEAT_JOB_NAME, outData, {
       jobId,
       delay,
-      ...HEARTBEAT_QUEUE_SETTINGS
+      ...HEARTBEAT_QUEUE_SETTINGS,
     })
 
     await state.updateTimestamp(oracleAddress)
@@ -464,11 +464,11 @@ function checkHeartbeatJob(submitHeartbeatQueue: Queue, state: State, _logger: L
         logger.warn(`Aggregator heartbeat job for oracle ${oracleAddress} found dead.`)
         const outDataSubmitHeartbeat: IAggregatorSubmitHeartbeatWorker = {
           oracleAddress,
-          delay: aggregator.heartbeat
+          delay: aggregator.heartbeat,
         }
         logger.debug(outDataSubmitHeartbeat, 'outDataSubmitHeartbeat')
         await submitHeartbeatQueue.add('checkHeartbeat-submission', outDataSubmitHeartbeat, {
-          ...SUBMIT_HEARTBEAT_QUEUE_SETTINGS
+          ...SUBMIT_HEARTBEAT_QUEUE_SETTINGS,
         })
         logger.info(`Aggregater heartbeat job for oracle ${oracleAddress} resubmitted.`)
       }
@@ -497,7 +497,7 @@ function checkHeartbeatJob(submitHeartbeatQueue: Queue, state: State, _logger: L
  */
 async function removeAggregatorDeadlock(aggregatorQueue: Queue, jobId: string, logger: Logger) {
   const blockingJob = (await aggregatorQueue.getJobs(['completed'])).filter(
-    (job) => job.opts.jobId == jobId
+    (job) => job.opts.jobId == jobId,
   )
 
   if (blockingJob.length == 1) {
@@ -506,7 +506,7 @@ async function removeAggregatorDeadlock(aggregatorQueue: Queue, jobId: string, l
   } else if (blockingJob.length > 1) {
     throw new OraklError(
       OraklErrorCode.UnexpectedNumberOfDeadlockJobs,
-      `Found ${blockingJob.length} blocking jobs. Expected 1 at most.`
+      `Found ${blockingJob.length} blocking jobs. Expected 1 at most.`,
     )
   }
 }
@@ -536,7 +536,7 @@ export function deviationJob(reporterQueue: QueueType, _logger: Logger) {
       oracleAddress,
       operatorAddress,
       logger,
-      provider: PROVIDER
+      provider: PROVIDER,
     })
     logger.debug(oracleRoundState, 'oracleRoundState')
 
@@ -544,7 +544,7 @@ export function deviationJob(reporterQueue: QueueType, _logger: Logger) {
     try {
       const { aggregatorHash } = await getAggregatorGivenAddress({
         oracleAddress,
-        logger
+        logger,
       })
       logger.debug({ aggregatorHash, fetchedAt: timestamp, submission }, 'Latest data aggregate')
       if (isStale({ timestamp, logger })) {
@@ -553,12 +553,12 @@ export function deviationJob(reporterQueue: QueueType, _logger: Logger) {
         const tx = buildTransaction({
           payloadParameters: {
             roundId,
-            submission
+            submission,
           },
           to: oracleAddress,
           gasMinimum: DATA_FEED_FULFILL_GAS_MINIMUM,
           iface,
-          logger
+          logger,
         })
         logger.debug(tx, 'tx')
 
@@ -566,10 +566,10 @@ export function deviationJob(reporterQueue: QueueType, _logger: Logger) {
           jobId: buildSubmissionRoundJobId({
             oracleAddress,
             roundId,
-            deploymentName: DEPLOYMENT_NAME
+            deploymentName: DEPLOYMENT_NAME,
           }),
           removeOnComplete: REMOVE_ON_COMPLETE,
-          removeOnFail: true
+          removeOnFail: true,
         })
 
         return tx

@@ -10,7 +10,7 @@ import {
   L2_LISTENER_REQUEST_RESPONSE_REQUEST_PROCESS_EVENT_QUEUE_NAME,
   L2_REQUEST_RESPONSE_REQUEST_LISTENER_STATE_NAME,
   L2_REQUEST_RESPONSE_REQUEST_SERVICE_NAME,
-  L2_WORKER_REQUEST_RESPONSE_REQUEST_QUEUE_NAME
+  L2_WORKER_REQUEST_RESPONSE_REQUEST_QUEUE_NAME,
 } from '../settings'
 import { IL2DataRequested, IL2RequestResponseListenerWorker, IListenerConfig } from '../types'
 import { listenerService } from './listener'
@@ -21,7 +21,7 @@ const FILE_NAME = import.meta.url
 export async function buildListener(
   config: IListenerConfig[],
   redisClient: RedisClientType,
-  logger: Logger
+  logger: Logger,
 ) {
   const stateName = L2_REQUEST_RESPONSE_REQUEST_LISTENER_STATE_NAME
   const service = L2_REQUEST_RESPONSE_REQUEST_SERVICE_NAME
@@ -48,7 +48,7 @@ export async function buildListener(
     processFn: await processEvent({ iface, logger }),
     redisClient,
     listenerInitType: 'latest',
-    logger
+    logger,
   })
 }
 
@@ -69,7 +69,7 @@ async function processEvent({ iface, logger }: { iface: ethers.utils.Interface; 
       callbackGasLimit: eventData.callbackGasLimit,
       sender: eventData.sender,
       numSubmission: eventData.numSubmission,
-      req: eventData.req
+      req: eventData.req,
     }
     _logger.debug(jobData, 'jobData')
 

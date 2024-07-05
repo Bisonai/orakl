@@ -23,7 +23,7 @@ const WORKERS: IWorkers = {
   VRF_L2_REQUEST: l2VrfRequestWorker,
   VRF_L2_FULFILL: l2VrfFulfillWorker,
   REQUEST_RESPONSE_L2_REQUEST: l2RequestResponseRequestWorker,
-  REQUEST_RESPONSE_L2_FULFILL: l2RequestResponseFulfillWorker
+  REQUEST_RESPONSE_L2_FULFILL: l2RequestResponseFulfillWorker,
 }
 
 const LOGGER = buildLogger()
@@ -45,13 +45,13 @@ async function main() {
 
 function loadArgs() {
   const {
-    values: { worker }
+    values: { worker },
   } = parseArgs({
     options: {
       worker: {
-        type: 'string'
-      }
-    }
+        type: 'string',
+      },
+    },
   })
 
   if (!worker) {

@@ -13,7 +13,7 @@ export async function decodeRequest(anyApiRequest: string): Promise<IRequestOper
   if (decodedMessage.length % 2 == 1) {
     throw new OraklError(
       OraklErrorCode.InvalidDecodedMesssageLength,
-      decodedMessage.length.toString()
+      decodedMessage.length.toString(),
     )
   }
 

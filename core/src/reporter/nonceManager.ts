@@ -8,7 +8,7 @@ export function nonceManager(
   reporterQueue: QueueType,
   jobName: string,
   state: State,
-  logger: Logger
+  logger: Logger,
 ) {
   async function wrapper(job: Job) {
     const tx: ITransactionParameters = job.data
@@ -19,7 +19,7 @@ export function nonceManager(
       const txWithNonce: ITransactionParametersWithNonce = { ...tx, nonce }
       await reporterQueue.add(jobName, txWithNonce, {
         jobId: job.id,
-        ...NONCE_MANAGER_JOB_SETTINGS
+        ...NONCE_MANAGER_JOB_SETTINGS,
       })
     } catch (e) {
       logger.error(`Failed to get and increment nonce for oracle with address ${to}. Retrying...`)

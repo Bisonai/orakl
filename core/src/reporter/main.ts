@@ -23,7 +23,7 @@ const REPORTERS: IReporters = {
   VRF_L2_REQUEST: buildL2VrfRequestReporter,
   VRF_L2_FULFILL: buildL2VrfFulfillReporter,
   REQUEST_RESPONSE_L2_REQUEST: buildL2RequestResponseRequestReporter,
-  REQUEST_RESPONSE_L2_FULFILL: buildL2RequestResponseFulfillReporter
+  REQUEST_RESPONSE_L2_FULFILL: buildL2RequestResponseFulfillReporter,
 }
 
 const LOGGER = buildLogger()
@@ -43,13 +43,13 @@ async function main() {
 
 function loadArgs(): string {
   const {
-    values: { reporter }
+    values: { reporter },
   } = parseArgs({
     options: {
       reporter: {
-        type: 'string'
-      }
-    }
+        type: 'string',
+      },
+    },
   })
 
   if (!reporter) {

@@ -19,7 +19,7 @@ export async function factory({
   delegatedFee,
   _logger,
   providerUrl = PROVIDER_URL,
-  chain = CHAIN
+  chain = CHAIN,
 }: {
   redisClient: RedisClientType
   stateName: string
@@ -41,7 +41,7 @@ export async function factory({
     service,
     chain,
     delegatedFee,
-    logger
+    logger,
   })
   await state.refresh()
 
@@ -50,7 +50,7 @@ export async function factory({
     activeReporters.map((x) => {
       return { address: x.address, oracleAddress: x.oracleAddress }
     }),
-    'Active reporters'
+    'Active reporters',
   )
 
   const reporterQueue = new Queue(reporterQueueName, BULLMQ_CONNECTION)
@@ -59,8 +59,8 @@ export async function factory({
     await nonceManager(reporterQueue, service, state, logger),
     {
       ...BULLMQ_CONNECTION,
-      concurrency
-    }
+      concurrency,
+    },
   )
   nonceManagerWorker.on('error', (e) => {
     logger.error(e)
@@ -68,7 +68,7 @@ export async function factory({
 
   const reporterWorker = new Worker(reporterQueueName, await reporter(state, logger), {
     ...BULLMQ_CONNECTION,
-    concurrency
+    concurrency,
   })
   reporterWorker.on('error', (e) => {
     logger.error(e)

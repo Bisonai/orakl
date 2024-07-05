@@ -269,7 +269,7 @@ export type Proof = [
   [string, string, string, string] /* proof */,
   string /* preSeed */,
   [string, string] /* uPoint */,
-  [string, string, string, string] /* vComponents */
+  [string, string, string, string] /* vComponents */,
 ]
 
 export type RequestCommitmentVRF = [
@@ -277,7 +277,7 @@ export type RequestCommitmentVRF = [
   string /* accId */,
   number /* callbackGasLimit */,
   number /* numWords */,
-  string /* sender */
+  string /* sender */,
 ]
 
 export type RequestCommitmentRequestResponse = [
@@ -287,7 +287,7 @@ export type RequestCommitmentRequestResponse = [
   number /* callbackGasLimit */,
   string /* sender */,
   boolean /* isDirectPayment */,
-  string /* jobId */
+  string /* jobId */,
 ]
 
 export interface IVrfConfig {

@@ -143,7 +143,7 @@ export const ALL_QUEUES = [
   REPORTER_REQUEST_RESPONSE_QUEUE_NAME,
   REPORTER_VRF_QUEUE_NAME,
   REPORTER_AGGREGATOR_QUEUE_NAME,
-  L2_WORKER_AGGREGATOR_QUEUE_NAME
+  L2_WORKER_AGGREGATOR_QUEUE_NAME,
 ]
 
 export const VRF_LISTENER_STATE_NAME = `${DEPLOYMENT_NAME}-listener-vrf-state`
@@ -173,8 +173,8 @@ export const BULLMQ_CONNECTION = {
   concurrency: CONCURRENCY,
   connection: {
     host: REDIS_HOST,
-    port: REDIS_PORT
-  }
+    port: REDIS_PORT,
+  },
 }
 
 function createJsonRpcProvider(providerUrl: string = PROVIDER_URL) {
@@ -189,7 +189,7 @@ export const L2_ENDPOINT = process.env.L2_ENDPOINT || ''
 export const HEARTBEAT_QUEUE_SETTINGS = {
   removeOnComplete: true,
   attempts: 10,
-  backoff: 1_000
+  backoff: 1_000,
 }
 
 export const AGGREGATOR_QUEUE_SETTINGS = {
@@ -197,14 +197,14 @@ export const AGGREGATOR_QUEUE_SETTINGS = {
   // resubmit the job with the same job ID.
   removeOnFail: true,
   attempts: 10,
-  backoff: 1_000
+  backoff: 1_000,
 }
 
 export const SUBMIT_HEARTBEAT_QUEUE_SETTINGS = {
   removeOnComplete: REMOVE_ON_COMPLETE,
   removeOnFail: REMOVE_ON_FAIL,
   attempts: 10,
-  backoff: 1_000
+  backoff: 1_000,
 }
 
 export const CHECK_HEARTBEAT_QUEUE_SETTINGS = {
@@ -213,15 +213,15 @@ export const CHECK_HEARTBEAT_QUEUE_SETTINGS = {
   attempts: 10,
   backoff: 1_000,
   repeat: {
-    every: 2_000
-  }
+    every: 2_000,
+  },
 }
 
 export const LISTENER_JOB_SETTINGS = {
   removeOnComplete: REMOVE_ON_COMPLETE,
   removeOnFail: REMOVE_ON_FAIL,
   attempts: 10,
-  backoff: 1_000
+  backoff: 1_000,
 }
 
 export const WORKER_JOB_SETTINGS = {
@@ -230,14 +230,14 @@ export const WORKER_JOB_SETTINGS = {
   // testnet, we can safely keep this settings.
   removeOnFail: REMOVE_ON_FAIL,
   attempts: 10,
-  backoff: 1_000
+  backoff: 1_000,
 }
 
 export const NONCE_MANAGER_JOB_SETTINGS = {
   removeOnComplete: REMOVE_ON_COMPLETE,
   removeOnFail: REMOVE_ON_FAIL,
   attempts: 10,
-  backoff: 500
+  backoff: 500,
 }
 
 export function getObservedBlockRedisKey(contractAddress: string) {
