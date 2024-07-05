@@ -11,7 +11,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 10
 
     services:
       postgres:
@@ -67,6 +67,11 @@ jobs:
         working-directory: ./api
         run: go mod tidy
 
+      - name: Create delegator database
+        run: PGPASSWORD=$POSTGRES_PASSWORD psql -h localhost -U postgres -c "CREATE DATABASE delegator"
+        env:
+          POSTGRES_PASSWORD: postgres
+
       - name: Delegator db migrate
         working-directory: ./delegator
         run: migrate -database "postgresql://postgres:postgres@localhost:5432/delegator?search_path=public&sslmode=disable" -verbose -path ./migrations up
@@ -92,6 +97,20 @@ jobs:
           APP_PORT: "3000"
           REDIS_HOST: "localhost"
           REDIS_PORT: "6379"
+
+      - name: Check Delegator Service Health
+        run: |
+          until $(curl --output /dev/null --silent --head --fail http://127.0.0.1:3002/api/v1); do
+            echo "Waiting for delegator service to be ready..."
+            sleep 5
+          done
+
+      - name: Check API Service Health
+        run: |
+          until $(curl --output /dev/null --silent --head --fail http://127.0.0.1:3000/api/v1); do
+            echo "Waiting for api service to be ready..."
+            sleep 5
+          done
 
       - name: Run tests
         run: yarn cli build && yarn cli test

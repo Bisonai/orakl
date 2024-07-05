@@ -43,7 +43,7 @@ describe('CLI Delegator', function () {
       organizationId: Number(organization.id)
     })
     expect(reporter.address).toBe(reporterAddress)
-    expect(reporter.organizationId).toBe(organization.id)
+    expect(Number(reporter.organizationId)).toBe(Number(organization.id))
 
     // Insert Contract
     const contract = await contractInsertHandler()({ address: contractAddress })
