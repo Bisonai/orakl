@@ -10,15 +10,15 @@ dotenv.config()
 const commonConfig = {
   gas: 5_000_000,
   accounts: {
-    mnemonic: process.env.MNEMONIC || ''
-  }
+    mnemonic: process.env.MNEMONIC || '',
+  },
 }
 
 const _baobab = {
   url: 'https://public-en.kairos.node.kaia.io',
   chainId: 1001,
   ...commonConfig,
-  gasPrice: 250_000_000_000
+  gasPrice: 250_000_000_000,
 }
 
 const config = {
@@ -27,76 +27,76 @@ const config = {
     settings: {
       optimizer: {
         enabled: true,
-        runs: 1_000
-      }
-    }
+        runs: 1_000,
+      },
+    },
   },
 
   networks: {
     localhost: {
-      gasPrice: 250_000_000_000
+      gasPrice: 250_000_000_000,
     },
     hardhat: {
-      gasPrice: 250_000_000_000
+      gasPrice: 250_000_000_000,
     },
     baobab: {
-      ..._baobab
+      ..._baobab,
     },
     baobab_test: {
       //same baobab network but used for test purposes
-      ..._baobab
+      ..._baobab,
     },
     cypress: {
       url: 'https://public-en-cypress.klaytn.net',
       ...commonConfig,
-      gasPrice: 250_000_000_000
+      gasPrice: 250_000_000_000,
     },
     l2node: {
       url: process.env.L2_PROVIDER || '',
       ...commonConfig,
-      gasPrice: 250_000_000_000
-    }
+      gasPrice: 250_000_000_000,
+    },
   },
   paths: {
-    sources: './src'
+    sources: './src',
   },
   namedAccounts: {
     // migrations
     deployer: {
-      default: 0
+      default: 0,
     },
     consumer: {
-      default: 1
+      default: 1,
     },
     // tests
     account0: {
-      default: 2
+      default: 2,
     },
     account1: {
-      default: 3
+      default: 3,
     },
     account2: {
-      default: 4
+      default: 4,
     },
     account3: {
-      default: 5
+      default: 5,
     },
     account4: {
-      default: 6
+      default: 6,
     },
     account5: {
-      default: 7
+      default: 7,
     },
     account6: {
-      default: 8
+      default: 8,
     },
     account7: {
-      default: 9
+      default: 9,
     },
     account8: {
-      default: 10
-    }
-  }
+      default: 10,
+    },
+  },
 }
 
 task('address', 'Convert mnemonic to address')
@@ -124,7 +124,7 @@ task('read-data-feed', 'Read latest data from DataFeedConsumerMock')
     const dataFeedConsumerSigner = await ethers.getContractAt(
       'DataFeedConsumerMock',
       dataFeedConsumerMock.address,
-      _consumer
+      _consumer,
     )
     console.log('DataFeedConsumerMock', dataFeedConsumerMock.address)
 
@@ -191,7 +191,7 @@ task('send-klay', 'Send $KLAY from faucet')
     const tx = {
       from: wallet.address,
       to: taskArgs.address,
-      value
+      value,
     }
     const txReceipt = await (await wallet.sendTransaction(tx)).wait()
 

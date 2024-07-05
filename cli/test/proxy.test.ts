@@ -5,13 +5,13 @@ describe('CLI Proxy', function () {
   const proxyData_0 = {
     protocol: 'http',
     host: '127.0.0.1',
-    port: 80
+    port: 80,
   }
 
   const proxyData_1 = {
     protocol: 'http',
     host: '127.0.0.2',
-    port: 80
+    port: 80,
   }
 
   let initialProxyId
@@ -43,7 +43,7 @@ describe('CLI Proxy', function () {
     await insertHandler()(proxyData_1)
     const msg = await insertHandler()(proxyData_1)
     expect(msg).toEqual(
-      'ERROR: duplicate key value violates unique constraint "proxies_protocol_host_port_key" (SQLSTATE 23505)'
+      'ERROR: duplicate key value violates unique constraint "proxies_protocol_host_port_key" (SQLSTATE 23505)',
     )
   })
 

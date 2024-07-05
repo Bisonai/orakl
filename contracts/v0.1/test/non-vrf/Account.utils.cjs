@@ -4,7 +4,7 @@ const AccountType = {
   FIAT_SUBSCRIPTION: 1,
   KLAY_SUBSCRIPTION: 2,
   KLAY_DISCOUNT: 3,
-  KLAY_REGULAR: 4
+  KLAY_REGULAR: 4,
 }
 function parseAccountCreatedTx(prepayment, tx) {
   expect(tx.events.length).to.be.equal(1)

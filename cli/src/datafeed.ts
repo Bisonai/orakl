@@ -3,7 +3,7 @@ import { insertHandler as adapterInsertHandler } from './adapter.js'
 import {
   activateHandler as aggregatorActivateHandler,
   deactivateHandler as aggregatorDeactivateHandler,
-  insertHandler as aggregatorInsertHandler
+  insertHandler as aggregatorInsertHandler,
 } from './aggregator.js'
 import {
   IAdapter,
@@ -11,7 +11,7 @@ import {
   IDatafeedBulk,
   IDatafeedBulkInsertElement,
   ReadFile,
-  readFileFromSource
+  readFileFromSource,
 } from './cli-types.js'
 import {
   contractConnectHandler,
@@ -24,25 +24,25 @@ import {
   organizationListHandler,
   reporterInsertHandler as delegatorReporterInsertHandler,
   reporterListHandler as delegatorReporterListHandler,
-  reporterRemoveHandler as delegatorReporterRemoveHandler
+  reporterRemoveHandler as delegatorReporterRemoveHandler,
 } from './delegator.js'
 import {
   startHandler as fetcherStartHandler,
-  stopHandler as fetcherStopHandler
+  stopHandler as fetcherStopHandler,
 } from './fetcher.js'
 import {
   activateHandler as listenerActivateHandler,
   deactivateHandler as listenerDeactivateHandler,
   insertHandler as listenerInsertHandler,
   listHandler as listenerListHandler,
-  removeHandler as listenerRemoveHandler
+  removeHandler as listenerRemoveHandler,
 } from './listener.js'
 import {
   activateHandler as reporterActivateHandler,
   deactivateHandler as reporterDeactivateHandler,
   insertHandler as reporterInsertHandler,
   listHandler as reporterListHandler,
-  removeHandler as reporterRemoveHandler
+  removeHandler as reporterRemoveHandler,
 } from './reporter.js'
 import {
   FETCHER_HOST,
@@ -52,7 +52,7 @@ import {
   REPORTER_SERVICE_HOST,
   REPORTER_SERVICE_PORT,
   WORKER_SERVICE_HOST,
-  WORKER_SERVICE_PORT
+  WORKER_SERVICE_PORT,
 } from './settings.js'
 import { isValidUrl } from './utils.js'
 
@@ -67,10 +67,10 @@ export function datafeedSub() {
     args: {
       data: option({
         type: ReadFile,
-        long: 'source'
-      })
+        long: 'source',
+      }),
     },
-    handler: bulkInsertHandler()
+    handler: bulkInsertHandler(),
   })
 
   const remove = command({
@@ -78,10 +78,10 @@ export function datafeedSub() {
     args: {
       data: option({
         type: ReadFile,
-        long: 'source'
-      })
+        long: 'source',
+      }),
     },
-    handler: bulkRemoveHandler()
+    handler: bulkRemoveHandler(),
   })
 
   const activate = command({
@@ -89,10 +89,10 @@ export function datafeedSub() {
     args: {
       data: option({
         type: ReadFile,
-        long: 'source'
-      })
+        long: 'source',
+      }),
     },
-    handler: bulkActivateHandler()
+    handler: bulkActivateHandler(),
   })
 
   const deactivate = command({
@@ -100,15 +100,15 @@ export function datafeedSub() {
     args: {
       data: option({
         type: ReadFile,
-        long: 'source'
-      })
+        long: 'source',
+      }),
     },
-    handler: bulkDeactivateHandler()
+    handler: bulkDeactivateHandler(),
   })
 
   return subcommands({
     name: 'datafeed',
-    cmds: { insert, remove, activate, deactivate }
+    cmds: { insert, remove, activate, deactivate },
   })
 }
 
@@ -122,7 +122,7 @@ export function bulkInsertHandler() {
     const functionName = bulkData?.functionName || 'submit(uint256,int256)'
     const eventName = bulkData?.eventName || 'NewRound'
     const organizationId = (await organizationListHandler()()).find(
-      (_organization) => _organization.name == organization
+      (_organization) => _organization.name == organization,
     ).id
 
     if (!checkBulkSource(data?.bulk)) {
@@ -148,32 +148,32 @@ export function bulkInsertHandler() {
 
       const reporterInsertResult = await delegatorReporterInsertHandler()({
         address: insertElement.reporter.walletAddress,
-        organizationId: Number(organizationId)
+        organizationId: Number(organizationId),
       })
       const contractInsertResult = await contractInsertHandler()({
-        address: aggregatorData.address
+        address: aggregatorData.address,
       })
 
       await functionInsertHandler()({
         name: functionName,
-        contractId: Number(contractInsertResult.id)
+        contractId: Number(contractInsertResult.id),
       })
       await contractConnectHandler()({
         contractId: Number(contractInsertResult.id),
-        reporterId: Number(reporterInsertResult.id)
+        reporterId: Number(reporterInsertResult.id),
       })
       await reporterInsertHandler()({
         chain,
         service: service,
         privateKey: insertElement.reporter.walletPrivateKey,
         address: insertElement.reporter.walletAddress,
-        oracleAddress: aggregatorData.address
+        oracleAddress: aggregatorData.address,
       })
       await listenerInsertHandler()({
         chain,
         service: service,
         address: aggregatorData.address,
-        eventName
+        eventName,
       })
     }
   }
@@ -210,18 +210,18 @@ export function bulkRemoveHandler() {
 
       const listenerId = listeners.find((listener) => listener.address == aggregatorData.address).id
       const reporterId = reporters.find(
-        (reporter) => reporter.address == removeElement.reporter.walletAddress
+        (reporter) => reporter.address == removeElement.reporter.walletAddress,
       ).id
 
       const delegatorReporterId = delegatorReporters.find(
         (reporter) =>
-          reporter.address.toLowerCase() == removeElement.reporter.walletAddress.toLowerCase()
+          reporter.address.toLowerCase() == removeElement.reporter.walletAddress.toLowerCase(),
       ).id
       const delegatorContractId = delegatorContracts.find(
-        (contract) => contract.address.toLowerCase() == aggregatorData.address.toLowerCase()
+        (contract) => contract.address.toLowerCase() == aggregatorData.address.toLowerCase(),
       ).id
       const functionId = delegatorFunctions.find(
-        (_function) => _function.address.toLowerCase() == aggregatorData.address.toLowerCase()
+        (_function) => _function.address.toLowerCase() == aggregatorData.address.toLowerCase(),
       ).id
 
       await listenerRemoveHandler()({ id: listenerId })
@@ -272,17 +272,17 @@ export function bulkActivateHandler() {
 
       const reporterId = reporters.find(
         (reporter) =>
-          reporter.address.toLowerCase() == activateElement.reporter.walletAddress.toLowerCase()
+          reporter.address.toLowerCase() == activateElement.reporter.walletAddress.toLowerCase(),
       )?.id
       if (!reporterId) {
         console.error(
-          `reporterId not found for ${activateElement.reporter.walletAddress}, skipping activation`
+          `reporterId not found for ${activateElement.reporter.walletAddress}, skipping activation`,
         )
         continue
       }
 
       const listenerId = listeners.find(
-        (listener) => listener.address == aggregatorData.address
+        (listener) => listener.address == aggregatorData.address,
       )?.id
       if (!listenerId) {
         console.error(`listenerId not found for ${aggregatorData.address}, skipping activation`)
@@ -294,27 +294,27 @@ export function bulkActivateHandler() {
           id: aggregatorData.aggregatorHash,
           chain,
           host: fetcherHost,
-          port: fetcherPort
+          port: fetcherPort,
         })
         await aggregatorActivateHandler()({
           aggregatorHash: aggregatorData.aggregatorHash,
           host: workerHost,
-          port: workerPort
+          port: workerPort,
         })
 
         await reporterActivateHandler()({
           id: Number(reporterId),
           host: reporterHost,
-          port: reporterPort
+          port: reporterPort,
         })
         await listenerActivateHandler()({
           id: Number(listenerId),
           host: listenerHost,
-          port: listenerPort
+          port: listenerPort,
         })
       } catch (e) {
         console.error(
-          `activation failed for ${activateElement.aggregatorSource}, breaking iteration`
+          `activation failed for ${activateElement.aggregatorSource}, breaking iteration`,
         )
         console.error(e?.response?.data)
         break
@@ -358,17 +358,17 @@ export function bulkDeactivateHandler() {
 
       const reporterId = reporters.find(
         (reporter) =>
-          reporter.address.toLowerCase() == deactivateElement.reporter.walletAddress.toLowerCase()
+          reporter.address.toLowerCase() == deactivateElement.reporter.walletAddress.toLowerCase(),
       )?.id
       if (!reporterId) {
         console.error(
-          `reporterId not found for ${deactivateElement.reporter.walletAddress}, skipping deactivation`
+          `reporterId not found for ${deactivateElement.reporter.walletAddress}, skipping deactivation`,
         )
         continue
       }
 
       const listenerId = listeners.find(
-        (listener) => listener.address == aggregatorData.address
+        (listener) => listener.address == aggregatorData.address,
       )?.id
       if (!listenerId) {
         console.error(`listenerId not found for ${aggregatorData.address}, skipping deactivation`)
@@ -379,30 +379,30 @@ export function bulkDeactivateHandler() {
         await listenerDeactivateHandler()({
           id: Number(listenerId),
           host: listenerHost,
-          port: listenerPort
+          port: listenerPort,
         })
 
         await reporterDeactivateHandler()({
           id: Number(reporterId),
           host: reporterHost,
-          port: reporterPort
+          port: reporterPort,
         })
 
         await aggregatorDeactivateHandler()({
           aggregatorHash: aggregatorData.aggregatorHash,
           host: workerHost,
-          port: workerPort
+          port: workerPort,
         })
 
         await fetcherStopHandler()({
           id: aggregatorData.aggregatorHash,
           chain,
           host: fetcherHost,
-          port: fetcherPort
+          port: fetcherPort,
         })
       } catch (e) {
         console.error(
-          `deactivation failed for ${deactivateElement.aggregatorSource}, breaking iteration`
+          `deactivation failed for ${deactivateElement.aggregatorSource}, breaking iteration`,
         )
         console.error(e?.response?.data)
         break

@@ -7,7 +7,7 @@ describe('Decode incoming request', function () {
   test('test getAndPath with CBOR', async function () {
     const request = {
       get: 'https://min-api.cryptocompare.com/data/pricemultifull?fsyms=ETH&tsyms=USD',
-      path: 'RAW,ETH,USD,PRICE'
+      path: 'RAW,ETH,USD,PRICE',
     }
 
     const b: Buffer[] = []

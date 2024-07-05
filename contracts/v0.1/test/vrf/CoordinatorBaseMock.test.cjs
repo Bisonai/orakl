@@ -11,13 +11,13 @@ async function deploy() {
 
   // CoordinatorBaseMock
   let contract = await ethers.getContractFactory('CoordinatorBaseMock', {
-    signer: deployerSigner
+    signer: deployerSigner,
   })
   contract = await contract.deploy()
   await contract.deployed()
 
   return {
-    contract
+    contract,
   }
 }
 
@@ -40,7 +40,7 @@ describe('CoordinatorBaseMock', function () {
       reqsForTier2: 0,
       reqsForTier3: 0,
       reqsForTier4: 0,
-      reqsForTier5: 0
+      reqsForTier5: 0,
     }
     await contract.setConfig(MAX_GAS_LIMIT, GAS_AFTER_PAYMENT_CALCULATION, Object.values(feeConfig))
 
@@ -61,7 +61,7 @@ describe('CoordinatorBaseMock', function () {
       reqsForTier2: 10,
       reqsForTier3: 20,
       reqsForTier4: 30,
-      reqsForTier5: 40
+      reqsForTier5: 40,
     }
     await contract.setConfig(MAX_GAS_LIMIT, GAS_AFTER_PAYMENT_CALCULATION, Object.values(feeConfig))
 
@@ -89,7 +89,7 @@ describe('CoordinatorBaseMock', function () {
     // reqCount > fc.reqsForTier5
     expect(parseKlay('1')).to.be.equal(await contract.computeFee(feeConfig.reqsForTier5 + 1))
     expect(parseKlay('1')).to.be.equal(
-      await contract.computeFee(feeConfig.reqsForTier4 + 1_000_000)
+      await contract.computeFee(feeConfig.reqsForTier4 + 1_000_000),
     )
   })
 })

@@ -8,10 +8,10 @@ function aggregatorConfig() {
     timeout,
     validator,
     decimals,
-    description
+    description,
   }
 }
 
 module.exports = {
-  aggregatorConfig
+  aggregatorConfig,
 }

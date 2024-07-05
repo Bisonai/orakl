@@ -4,7 +4,7 @@ import { OraklError, OraklErrorCode } from '../errors'
 import {
   IRequestResponseTransactionParameters,
   ITransactionParameters,
-  RequestCommitmentRequestResponse
+  RequestCommitmentRequestResponse,
 } from '../types'
 
 export const JOB_ID_UINT128 = ethers.utils.id('uint128')
@@ -20,7 +20,7 @@ export const JOB_ID_MAPPING = {
   [JOB_ID_BOOL]: 'fulfillDataRequestBool',
   [JOB_ID_STRING]: 'fulfillDataRequestString',
   [JOB_ID_BYTES32]: 'fulfillDataRequestBytes32',
-  [JOB_ID_BYTES]: 'fulfillDataRequestBytes'
+  [JOB_ID_BYTES]: 'fulfillDataRequestBytes',
 }
 
 export function buildTransaction(
@@ -28,7 +28,7 @@ export function buildTransaction(
   to: string,
   gasMinimum: number,
   iface: ethers.utils.Interface,
-  logger: Logger
+  logger: Logger,
 ): ITransactionParameters {
   const gasLimit = payloadParameters.callbackGasLimit + gasMinimum
 
@@ -68,20 +68,20 @@ export function buildTransaction(
     payloadParameters.callbackGasLimit,
     payloadParameters.sender,
     payloadParameters.isDirectPayment,
-    payloadParameters.jobId
+    payloadParameters.jobId,
   ]
   logger.debug(rc, 'rc')
 
   const payload = iface.encodeFunctionData(fulfillDataRequestFn, [
     payloadParameters.requestId,
     response,
-    rc
+    rc,
   ])
 
   const tx = {
     payload,
     gasLimit,
-    to
+    to,
   }
   logger.debug(tx, 'tx')
 

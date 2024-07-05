@@ -13,16 +13,16 @@ describe('Data Feed Worker', function () {
     const tx = buildTransaction({
       payloadParameters: {
         roundId: 10,
-        submission: BigInt(123)
+        submission: BigInt(123),
       },
       to: oracleAddress,
       gasMinimum: DATA_FEED_FULFILL_GAS_MINIMUM,
       iface,
-      logger
+      logger,
     })
 
     expect(tx?.payload).toBe(
-      '0x202ee0ed000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000007b'
+      '0x202ee0ed000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000007b',
     )
     expect(tx?.gasLimit).toBe(DATA_FEED_FULFILL_GAS_MINIMUM)
     expect(tx?.to).toBe(oracleAddress)

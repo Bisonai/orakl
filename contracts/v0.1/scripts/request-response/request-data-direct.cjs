@@ -8,7 +8,7 @@ async function main() {
   const requestResponseConsumerSigner = await ethers.getContractAt(
     'RequestResponseConsumerMock',
     requestResponseConsumerMock.address,
-    consumer
+    consumer,
   )
 
   const callbackGasLimit = 500_000
@@ -19,8 +19,8 @@ async function main() {
     numSubmission,
     refundRecipient,
     {
-      value: ethers.utils.parseEther('1.0')
-    }
+      value: ethers.utils.parseEther('1.0'),
+    },
   )
 }
 

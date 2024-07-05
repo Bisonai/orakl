@@ -47,17 +47,17 @@ export async function sendToSlack(e: Error) {
       errorObj = {
         message: e[0]?.message,
         stack: e[0]?.stack,
-        name: e[0]?.name
+        name: e[0]?.name,
       }
     } else {
       errorObj = {
         message: e.message,
         stack: e.stack,
-        name: e.name
+        name: e.name,
       }
     }
     const text = ` :fire: _An error has occurred at_ \`${os.hostname()}\`\n \`\`\`${JSON.stringify(
-      errorObj
+      errorObj,
     )} \`\`\`\n>*System information*\n>*memory*: ${os.freemem()}/${os.totalmem()}\n>*machine*: ${os.machine()}\n>*platform*: ${os.platform()}\n>*upTime*: ${os.uptime()}\n>*version*: ${os.version()}
    `
 
@@ -94,7 +94,7 @@ export function hookConsoleError(logger) {
 export async function createRedisClient(host: string, port: number): Promise<RedisClientType> {
   const client: RedisClientType = createClient({
     // redis[s]://[[username][:password]@][host][:port][/db-number]
-    url: `redis://${host}:${port}`
+    url: `redis://${host}:${port}`,
   })
   await client.connect()
   return client
@@ -103,7 +103,7 @@ export async function createRedisClient(host: string, port: number): Promise<Red
 export function buildSubmissionRoundJobId({
   oracleAddress,
   roundId,
-  deploymentName
+  deploymentName,
 }: {
   oracleAddress: string
   roundId: number
@@ -114,7 +114,7 @@ export function buildSubmissionRoundJobId({
 
 export function buildHeartbeatJobId({
   oracleAddress,
-  deploymentName
+  deploymentName,
 }: {
   oracleAddress: string
   deploymentName: string

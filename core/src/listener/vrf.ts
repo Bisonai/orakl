@@ -10,7 +10,7 @@ import {
   LISTENER_VRF_PROCESS_EVENT_QUEUE_NAME,
   VRF_LISTENER_STATE_NAME,
   VRF_SERVICE_NAME,
-  WORKER_VRF_QUEUE_NAME
+  WORKER_VRF_QUEUE_NAME,
 } from '../settings'
 import { IListenerConfig, IRandomWordsRequested, IVrfListenerWorker } from '../types'
 import { listenerService } from './listener'
@@ -21,7 +21,7 @@ const FILE_NAME = import.meta.url
 export async function buildListener(
   config: IListenerConfig[],
   redisClient: RedisClientType,
-  logger: Logger
+  logger: Logger,
 ) {
   const stateName = VRF_LISTENER_STATE_NAME
   const service = VRF_SERVICE_NAME
@@ -48,7 +48,7 @@ export async function buildListener(
     processFn: await processEvent({ iface, logger }),
     redisClient,
     listenerInitType: 'latest',
-    logger
+    logger,
   })
 }
 
@@ -75,7 +75,7 @@ async function processEvent({ iface, logger }: { iface: ethers.utils.Interface; 
         callbackGasLimit: eventData.callbackGasLimit,
         numWords: eventData.numWords,
         sender: eventData.sender,
-        isDirectPayment: eventData.isDirectPayment
+        isDirectPayment: eventData.isDirectPayment,
       }
       _logger.debug(jobData, 'jobData')
 

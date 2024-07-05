@@ -6,19 +6,19 @@ const {
   setupOracle: setupVrfCoordinator,
   parseRandomWordsRequestedTx,
   fulfillRandomWords,
-  parseRandomWordsFulfilledTx
+  parseRandomWordsFulfilledTx,
 } = require('./VRFCoordinator.utils.cjs')
 const { parseKlay } = require('../utils.cjs')
 const {
   deploy: deployRrCoordinator,
   setupOracle: setupRequestResponseCoordinator,
   parseDataRequestedTx,
-  parseDataRequestFulfilledTx
+  parseDataRequestFulfilledTx,
 } = require('../non-vrf/RequestResponseCoordinator.utils.cjs')
 const {
   deploy: deployPrepayment,
   createAccount,
-  deposit
+  deposit,
 } = require('../non-vrf/Prepayment.utils.cjs')
 const { vrfConfig } = require('./VRFCoordinator.config.cjs')
 const { requestResponseConfig } = require('../non-vrf/RequestResponse.config.cjs')
@@ -31,27 +31,27 @@ async function deploy() {
     account1: consumerSigner,
     account2: vrfOracleSigner,
     account3: rrOracleSigner,
-    account4: protocolFeeRecipientSigner
+    account4: protocolFeeRecipientSigner,
   } = await createSigners()
 
   // Prepayment
   const prepaymentContract = await deployPrepayment(
     protocolFeeRecipientSigner.address,
-    deployerSigner
+    deployerSigner,
   )
   const prepayment = {
     contract: prepaymentContract,
-    signer: deployerSigner
+    signer: deployerSigner,
   }
 
   // VRFCoordinator
   const vrfCoordinatorContract = await deployVrfCoordinator(
     prepaymentContract.address,
-    deployerSigner
+    deployerSigner,
   )
   const vrfCoordinator = {
     contract: vrfCoordinatorContract,
-    signer: deployerSigner
+    signer: deployerSigner,
   }
 
   // VRFCoordinator setup
@@ -61,11 +61,11 @@ async function deploy() {
   // RequestResponseCoordinator
   const rrCoordinatorContract = await deployRrCoordinator(
     prepaymentContract.address,
-    deployerSigner
+    deployerSigner,
   )
   const rrCoordinator = {
     contract: rrCoordinatorContract,
-    signer: deployerSigner
+    signer: deployerSigner,
   }
 
   // RequestResponseCoordinator setup
@@ -74,27 +74,27 @@ async function deploy() {
 
   // VRFConsumerRevertFulfillmentMock
   let vrfConsumerContract = await ethers.getContractFactory('VRFConsumerRevertFulfillmentMock', {
-    signer: consumerSigner
+    signer: consumerSigner,
   })
   vrfConsumerContract = await vrfConsumerContract.deploy(vrfCoordinatorContract.address)
   await vrfConsumerContract.deployed()
   const vrfConsumer = {
     contract: vrfConsumerContract,
-    signer: consumerSigner
+    signer: consumerSigner,
   }
 
   // RequestResponseConsumerRevertFulfillmentMock
   let rrConsumerContract = await ethers.getContractFactory(
     'RequestResponseConsumerRevertFulfillmentMock',
     {
-      signer: consumerSigner
-    }
+      signer: consumerSigner,
+    },
   )
   rrConsumerContract = await rrConsumerContract.deploy(rrCoordinatorContract.address)
   await rrConsumerContract.deployed()
   const rrConsumer = {
     contract: rrConsumerContract,
-    signer: consumerSigner
+    signer: consumerSigner,
   }
 
   const { accId } = await createAccount(prepaymentContract, consumerSigner)
@@ -111,7 +111,7 @@ async function deploy() {
     vrfConsumer,
     rrCoordinator,
     rrConsumer,
-    accId
+    accId,
   }
 }
 
@@ -142,7 +142,7 @@ describe('Revert Fulfillment Test', function () {
       callbackGasLimit,
       sender,
       isDirectPayment,
-      numWords
+      numWords,
     )
 
     const { payment, success } = parseRandomWordsFulfilledTx(vrfCoordinator.contract, txFulfill)
@@ -153,7 +153,7 @@ describe('Revert Fulfillment Test', function () {
     expect(protocolFeeRecipientBalanceAfter).to.be.gt(protocolFeeRecipientBalanceBefore)
 
     const protocolRecipientRevenue = protocolFeeRecipientBalanceAfter.sub(
-      protocolFeeRecipientBalanceBefore
+      protocolFeeRecipientBalanceBefore,
     )
     const protocolFee = ethers.BigNumber.from('500000000000000')
     expect(protocolRecipientRevenue).to.be.equal(protocolFee)
@@ -169,7 +169,7 @@ describe('Revert Fulfillment Test', function () {
     expect(extraGasRebate).to.be.gte(0)
     console.log(
       'extraGasRebate',
-      extraGasRebate.div(hre.network.config.gasPrice.toString()).toString()
+      extraGasRebate.div(hre.network.config.gasPrice.toString()).toString(),
     )
   })
 
@@ -184,7 +184,7 @@ describe('Revert Fulfillment Test', function () {
     ).wait()
     const { requestId, sender, blockNumber, jobId, isDirectPayment } = parseDataRequestedTx(
       rrCoordinator.contract,
-      tx
+      tx,
     )
 
     const protocolFeeRecipientBalanceBefore = await getBalance(protocolFeeRecipientSigner.address)
@@ -197,7 +197,7 @@ describe('Revert Fulfillment Test', function () {
       numSubmission,
       sender,
       isDirectPayment,
-      jobId
+      jobId,
     }
 
     const txFulfill = await (
@@ -209,7 +209,7 @@ describe('Revert Fulfillment Test', function () {
     const { payment, success } = parseDataRequestFulfilledTx(
       rrCoordinator.contract,
       txFulfill,
-      'DataRequestFulfilledUint128'
+      'DataRequestFulfilledUint128',
     )
     expect(payment).to.be.above(0)
     expect(success).to.be.equal(false)
@@ -218,7 +218,7 @@ describe('Revert Fulfillment Test', function () {
     expect(protocolFeeRecipientBalanceAfter).to.be.gt(protocolFeeRecipientBalanceBefore)
 
     const protocolRecipientRevenue = protocolFeeRecipientBalanceAfter.sub(
-      protocolFeeRecipientBalanceBefore
+      protocolFeeRecipientBalanceBefore,
     )
     const protocolFee = ethers.BigNumber.from('500000000000000')
     expect(protocolRecipientRevenue).to.be.equal(protocolFee)
@@ -234,7 +234,7 @@ describe('Revert Fulfillment Test', function () {
     expect(extraGasRebate).to.be.gte(0)
     console.log(
       'extraGasRebate',
-      extraGasRebate.div(hre.network.config.gasPrice.toString()).toString()
+      extraGasRebate.div(hre.network.config.gasPrice.toString()).toString(),
     )
   })
 })

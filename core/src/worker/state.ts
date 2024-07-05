@@ -25,7 +25,7 @@ export class State {
     heartbeatQueue,
     submitHeartbeatQueue,
     chain,
-    logger
+    logger,
   }: {
     redisClient: RedisClientType
     stateName: string
@@ -124,7 +124,7 @@ export class State {
     const toAddAggregator = await getAggregator({
       aggregatorHash,
       chain: this.chain,
-      logger: this.logger
+      logger: this.logger,
     })
     if (!toAddAggregator || !toAddAggregator.active) {
       const msg = `Aggregator with aggregatorHash=${aggregatorHash} cannot be found / is not active on chain=${this.chain}`
@@ -142,11 +142,11 @@ export class State {
       threshold: toAddAggregator.threshold,
       absoluteThreshold: toAddAggregator.absoluteThreshold,
       chain: this.chain,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     }
     await this.redisClient.set(
       this.stateName,
-      JSON.stringify([...activeAggregators, aggregatorConfig])
+      JSON.stringify([...activeAggregators, aggregatorConfig]),
     )
 
     const outDataSubmitHeartbeat: IAggregatorSubmitHeartbeatWorker = {
@@ -154,12 +154,12 @@ export class State {
       delay: await getSynchronizedDelay({
         oracleAddress: toAddAggregator.address,
         heartbeat: toAddAggregator.heartbeat,
-        logger: this.logger
-      })
+        logger: this.logger,
+      }),
     }
     this.logger.debug(outDataSubmitHeartbeat, 'outDataSubmitHeartbeat')
     await this.submitHeartbeatQueue.add('state-submission', outDataSubmitHeartbeat, {
-      ...SUBMIT_HEARTBEAT_QUEUE_SETTINGS
+      ...SUBMIT_HEARTBEAT_QUEUE_SETTINGS,
     })
 
     return aggregatorConfig
@@ -218,13 +218,13 @@ export class State {
     const timestamp = Date.now()
     const updatedAggregator: IAggregatorConfig = {
       ...activeAggregators.splice(index, 1)[0],
-      timestamp
+      timestamp,
     }
 
     // Update active aggregators
     await this.redisClient.set(
       this.stateName,
-      JSON.stringify([...activeAggregators, updatedAggregator])
+      JSON.stringify([...activeAggregators, updatedAggregator]),
     )
 
     return updatedAggregator

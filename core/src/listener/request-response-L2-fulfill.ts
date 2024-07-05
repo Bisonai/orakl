@@ -10,12 +10,12 @@ import {
   L2_LISTENER_REQUEST_RESPONSE_FULFILL_PROCESS_EVENT_QUEUE_NAME,
   L2_REQUEST_RESPONSE_FULFILL_LISTENER_STATE_NAME,
   L2_REQUEST_RESPONSE_FULFILL_SERVICE_NAME,
-  L2_WORKER_REQUEST_RESPONSE_FULFILL_QUEUE_NAME
+  L2_WORKER_REQUEST_RESPONSE_FULFILL_QUEUE_NAME,
 } from '../settings'
 import {
   IL2DataRequestFulfilled,
   IL2RequestResponseFulfillListenerWorker,
-  IListenerConfig
+  IListenerConfig,
 } from '../types'
 import { listenerService } from './listener'
 import { parseResponse } from './request-response-L2.utils'
@@ -26,7 +26,7 @@ const FILE_NAME = import.meta.url
 export async function buildListener(
   config: IListenerConfig[],
   redisClient: RedisClientType,
-  logger: Logger
+  logger: Logger,
 ) {
   const stateName = L2_REQUEST_RESPONSE_FULFILL_LISTENER_STATE_NAME
   const service = L2_REQUEST_RESPONSE_FULFILL_SERVICE_NAME
@@ -53,14 +53,14 @@ export async function buildListener(
     processFn: await processEvent({ iface, logger }),
     redisClient,
     listenerInitType: 'latest',
-    logger
+    logger,
   })
 }
 
 async function processEvent({ iface, logger }: { iface: ethers.utils.Interface; logger: Logger }) {
   const _logger = logger.child({
     name: 'L2-Request-Response-Fulfill processEvent',
-    file: FILE_NAME
+    file: FILE_NAME,
   })
 
   async function wrapper(log: ethers.Event): Promise<ProcessEventOutputType | undefined> {
@@ -76,7 +76,7 @@ async function processEvent({ iface, logger }: { iface: ethers.utils.Interface; 
       jobId: eventData.jobId.toString(),
       callbackGasLimit: eventData.callbackGasLimit,
       sender: eventData.sender,
-      response
+      response,
     }
     _logger.debug(jobData, 'jobData')
 

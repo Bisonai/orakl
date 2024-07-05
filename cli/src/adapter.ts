@@ -15,7 +15,7 @@ export function adapterSub() {
   const list = command({
     name: 'list',
     args: {},
-    handler: listHandler(true)
+    handler: listHandler(true),
   })
 
   const insert = command({
@@ -23,18 +23,18 @@ export function adapterSub() {
     args: {
       data: option({
         type: ReadFile,
-        long: 'source'
-      })
+        long: 'source',
+      }),
     },
-    handler: insertHandler()
+    handler: insertHandler(),
   })
 
   const remove = command({
     name: 'remove',
     args: {
-      id: idOption
+      id: idOption,
     },
-    handler: removeHandler()
+    handler: removeHandler(),
   })
 
   const hash = command({
@@ -42,19 +42,19 @@ export function adapterSub() {
     args: {
       verify: flag({
         type: cmdboolean,
-        long: 'verify'
+        long: 'verify',
       }),
       data: option({
         type: ReadFile,
-        long: 'source'
-      })
+        long: 'source',
+      }),
     },
-    handler: hashHandler()
+    handler: hashHandler(),
   })
 
   return subcommands({
     name: 'adapter',
-    cmds: { list, insert, remove, hash }
+    cmds: { list, insert, remove, hash },
   })
 }
 

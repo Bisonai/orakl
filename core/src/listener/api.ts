@@ -21,7 +21,7 @@ const FILE_NAME = import.meta.url
 export async function getListeners({
   service,
   chain,
-  logger
+  logger,
 }: {
   service?: string
   chain?: string
@@ -46,7 +46,7 @@ export async function getListeners({
  */
 export async function getListener({
   id,
-  logger
+  logger,
 }: {
   id: string
   logger?: Logger
@@ -96,7 +96,7 @@ export async function getUnprocessedBlocks({ service }: { service: string }): Pr
  */
 export async function insertUnprocessedBlocks({
   blocks,
-  service
+  service,
 }: {
   service: string
   blocks: number[]
@@ -117,7 +117,7 @@ export async function insertUnprocessedBlocks({
  */
 export async function deleteUnprocessedBlock({
   blockNumber,
-  service
+  service,
 }: {
   blockNumber: number
   service: string
@@ -138,7 +138,7 @@ export async function deleteUnprocessedBlock({
  */
 export async function upsertObservedBlock({
   blockNumber,
-  service
+  service,
 }: {
   service: string
   blockNumber: number

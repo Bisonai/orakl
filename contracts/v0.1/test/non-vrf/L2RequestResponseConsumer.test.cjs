@@ -12,7 +12,7 @@ async function deploy() {
     account2,
     account3,
     account4,
-    account5
+    account5,
   } = await createSigners()
 
   // L2 endpoint
@@ -22,19 +22,19 @@ async function deploy() {
 
   const endpoint = {
     contract: l2EndpointContract,
-    signer: deployerSigner
+    signer: deployerSigner,
   }
 
   // L2 consumer
   let l2RRConsumerMock = await ethers.getContractFactory('L2RequestResponseConsumerMock', {
-    signer: deployerSigner
+    signer: deployerSigner,
   })
   l2RRConsumerMock = await l2RRConsumerMock.deploy(l2EndpointContract.address)
   await l2RRConsumerMock.deployed()
 
   const consumer = {
     contract: l2RRConsumerMock,
-    signer: deployerSigner
+    signer: deployerSigner,
   }
 
   return {
@@ -43,7 +43,7 @@ async function deploy() {
     account2,
     account3,
     account4,
-    account5
+    account5,
   }
 }
 
@@ -62,7 +62,7 @@ async function requestAndFulfill(requestFn, fulfillFn, dataResponseFn, dataRespo
 
   await expect(endpoint.contract[fulfillFn](requestId, dataResponse)).revertedWithCustomError(
     endpoint.contract,
-    'InvalidSubmitter'
+    'InvalidSubmitter',
   )
 
   await (await endpoint.contract.addSubmitter(endpoint.signer.address)).wait()
@@ -77,7 +77,7 @@ describe('L2 Request-Response', function () {
       'requestDataUint128',
       'fulfillDataRequestUint128',
       'sResponseUint128',
-      1
+      1,
     )
   })
 
@@ -94,7 +94,7 @@ describe('L2 Request-Response', function () {
       'requestDataString',
       'fulfillDataRequestString',
       'sResponseString',
-      'hello'
+      'hello',
     )
   })
 
@@ -103,7 +103,7 @@ describe('L2 Request-Response', function () {
       'requestDataBytes32',
       'fulfillDataRequestBytes32',
       'sResponseBytes32',
-      ethers.utils.formatBytes32String('hello')
+      ethers.utils.formatBytes32String('hello'),
     )
   })
 
@@ -112,7 +112,7 @@ describe('L2 Request-Response', function () {
       'requestDataBytes',
       'fulfillDataRequestBytes',
       'sResponseBytes',
-      ethers.utils.formatBytes32String('hello')
+      ethers.utils.formatBytes32String('hello'),
     )
   })
 })

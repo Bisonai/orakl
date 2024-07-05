@@ -6,7 +6,7 @@ const {
   deployAggregatorProxy,
   deployAggregator,
   parseSetRequesterPermissionsTx,
-  deployDataFeedConsumerMock
+  deployDataFeedConsumerMock,
 } = require('./Aggregator.utils.cjs')
 const { createSigners } = require('../utils.cjs')
 
@@ -25,7 +25,7 @@ async function changeOracles(aggregator, removeOracles, addOracles) {
       added,
       minSubmissionCount,
       maxSubmissionCount,
-      restartDelay
+      restartDelay,
     )
   ).wait()
 }
@@ -37,24 +37,24 @@ async function deploy() {
     account2,
     account3,
     account4,
-    account5
+    account5,
   } = await createSigners()
 
   // Aggregator /////////////////////////////////////////////////////////////////
   const aggregatorContract = await deployAggregator(deployerSigner)
   const aggregator = {
     contract: aggregatorContract,
-    signer: deployerSigner
+    signer: deployerSigner,
   }
 
   // AggregatorProxy ////////////////////////////////////////////////////////////
   const aggregatorProxyContract = await deployAggregatorProxy(
     aggregator.contract.address,
-    deployerSigner
+    deployerSigner,
   )
   const aggregatorProxy = {
     contract: aggregatorProxyContract,
-    signer: deployerSigner
+    signer: deployerSigner,
   }
 
   // Read configuration of Aggregator & AggregatorProxy
@@ -65,11 +65,11 @@ async function deploy() {
   // DataFeedConsumerMock ///////////////////////////////////////////////////////
   const consumerContract = await deployDataFeedConsumerMock(
     aggregatorProxy.contract.address,
-    consumerSigner
+    consumerSigner,
   )
   const consumer = {
     contract: consumerContract,
-    signer: consumerSigner
+    signer: consumerSigner,
   }
 
   return {
@@ -79,7 +79,7 @@ async function deploy() {
     account2,
     account3,
     account4,
-    account5
+    account5,
   }
 }
 
@@ -89,7 +89,7 @@ describe('Aggregator', function () {
       aggregator,
       account2: oracle0,
       account3: oracle1,
-      account4: oracle2
+      account4: oracle2,
     } = await loadFixture(deploy)
 
     // Add 2 Oracles ////////////////////////////////////////////////////////////
@@ -98,7 +98,7 @@ describe('Aggregator', function () {
     // Remove Oracle //////////////////////////////////////////////////////////
     // Cannot remove oracle that has not been added
     await expect(
-      aggregator.contract.changeOracles([oracle2.address], [], 1, 1, 0)
+      aggregator.contract.changeOracles([oracle2.address], [], 1, 1, 0),
     ).to.be.revertedWithCustomError(aggregator.contract, 'OracleNotEnabled')
 
     // Remove oracle that has been added before
@@ -116,7 +116,7 @@ describe('Aggregator', function () {
       consumer,
       account2: oracle0,
       account3: oracle1,
-      account4: oracle2
+      account4: oracle2,
     } = await loadFixture(deploy)
 
     // Change oracles /////////////////////////////////////////////////////////////
@@ -165,7 +165,7 @@ describe('Aggregator', function () {
       answer: pAnswer,
       startedAt: pStartedAt,
       updatedAt: pUpdatedAt,
-      answeredInRound: pAnsweredInRound
+      answeredInRound: pAnsweredInRound,
     } = await aggregatorProxy.contract.connect(consumer.signer).getRoundData(sId)
     expect(pId).to.be.equal(sId)
     expect(pAnswer).to.be.equal(sAnswer)
@@ -186,7 +186,7 @@ describe('Aggregator', function () {
 
     // Cannot add the same oracle twice
     await expect(
-      aggregator.contract.changeOracles([], [oracle0.address], 1, 2, 0)
+      aggregator.contract.changeOracles([], [oracle0.address], 1, 2, 0),
     ).to.be.revertedWithCustomError(aggregator.contract, 'OracleAlreadyEnabled')
   })
 
@@ -197,7 +197,7 @@ describe('Aggregator', function () {
       consumer,
       account2: oracle0,
       account3: oracle1,
-      account4: invalidOracle
+      account4: invalidOracle,
     } = await loadFixture(deploy)
 
     // Aggregator /////////////////////////////////////////////////////////////////
@@ -209,7 +209,7 @@ describe('Aggregator', function () {
     // proposeAggregator ////////////////////////////////////////////////////////
     // Aggregator can be proposed only by owner
     await expect(
-      aggregatorProxy.contract.connect(consumer.signer).proposeAggregator(aggregator.address)
+      aggregatorProxy.contract.connect(consumer.signer).proposeAggregator(aggregator.address),
     ).to.be.revertedWith('Ownable: caller is not the owner')
 
     // Propose aggregator with contract owner
@@ -218,7 +218,7 @@ describe('Aggregator', function () {
     ).wait()
     expect(proposeAggregatorTx.events.length).to.be.equal(1)
     const proposeAggregatorEvent = aggregatorProxy.contract.interface.parseLog(
-      proposeAggregatorTx.events[0]
+      proposeAggregatorTx.events[0],
     )
     expect(proposeAggregatorEvent.name).to.be.equal('AggregatorProposed')
     const { current, proposed } = proposeAggregatorEvent.args
@@ -228,7 +228,7 @@ describe('Aggregator', function () {
     // proposedLatestRoundData //////////////////////////////////////////////////
     // If no data has been submitted to proposed yet, reading from proxy reverts
     await expect(
-      aggregatorProxy.contract.connect(consumer.signer).proposedLatestRoundData()
+      aggregatorProxy.contract.connect(consumer.signer).proposedLatestRoundData(),
     ).to.be.revertedWithCustomError(aggregator, 'NoDataPresent')
     await aggregator.connect(oracle0).submit(1, 10)
     await aggregator.connect(oracle1).submit(1, 10)
@@ -246,7 +246,7 @@ describe('Aggregator', function () {
       answer: pAnswer,
       startedAt: pStartedAt,
       updatedAt: pUpdatedAt,
-      answeredInRound: pAnsweredInRound
+      answeredInRound: pAnsweredInRound,
     } = await aggregatorProxy.contract.connect(consumer.signer).proposedGetRoundData(id)
     expect(id).to.be.equal(pId)
     expect(answer).to.be.equal(pAnswer)
@@ -257,12 +257,12 @@ describe('Aggregator', function () {
     // confirmAggregator ////////////////////////////////////////////////////////
     // Aggregator can be confirmed only by owner
     expect(
-      aggregatorProxy.contract.connect(consumer.signer).confirmAggregator(aggregator.address)
+      aggregatorProxy.contract.connect(consumer.signer).confirmAggregator(aggregator.address),
     ).to.be.revertedWith('Ownable: caller is not the owner')
 
     // Owner must pass proposed aggregator address, otherwise reverts
     await expect(
-      aggregatorProxy.contract.confirmAggregator(invalidOracle.address)
+      aggregatorProxy.contract.confirmAggregator(invalidOracle.address),
     ).to.be.revertedWithCustomError(aggregatorProxy.contract, 'InvalidProposedAggregator')
 
     // The initial `phaseId` is equal to 1
@@ -326,7 +326,7 @@ describe('Aggregator', function () {
     const {
       aggregator,
       account2: authorizedRequester,
-      account3: unauthorizedRequester
+      account3: unauthorizedRequester,
     } = await loadFixture(deploy)
 
     const requesterAddress = authorizedRequester.address
@@ -340,7 +340,7 @@ describe('Aggregator', function () {
       ).wait()
       const { requester, authorized, delay } = parseSetRequesterPermissionsTx(
         aggregator.contract,
-        tx
+        tx,
       )
       expect(requester).to.be.equal(authorizedRequester.address)
       expect(authorized).to.be.equal(_authorized)
@@ -361,7 +361,7 @@ describe('Aggregator', function () {
     // Request NewRound /////////////////////////////////////////////////////////
     // Only authorized requester can request new round, otherwise reverts
     await expect(
-      aggregator.contract.connect(unauthorizedRequester).requestNewRound()
+      aggregator.contract.connect(unauthorizedRequester).requestNewRound(),
     ).to.be.revertedWithCustomError(aggregator.contract, 'RequesterNotAuthorized')
 
     // Request with authorized requester
@@ -387,12 +387,12 @@ describe('Aggregator', function () {
         await aggregator.contract.setRequesterPermissions(
           authorizedRequester.address,
           _authorized,
-          _delay
+          _delay,
         )
       ).wait()
       const { requester, authorized, delay } = parseSetRequesterPermissionsTx(
         aggregator.contract,
-        tx
+        tx,
       )
       expect(requester).to.be.equal(authorizedRequester.address)
       expect(authorized).to.be.equal(_authorized)
@@ -415,7 +415,7 @@ describe('Aggregator', function () {
 
     const { address: oracle } = ethers.Wallet.createRandom()
     await expect(
-      aggregator.contract.changeOracles([], [oracle], i, i, 0)
+      aggregator.contract.changeOracles([], [oracle], i, i, 0),
     ).to.be.revertedWithCustomError(aggregator.contract, 'TooManyOracles')
   })
 
@@ -424,7 +424,7 @@ describe('Aggregator', function () {
     const minSubmissionCount = 1
     const maxSubmissionCount = 0
     await expect(
-      aggregator.contract.changeOracles([], [], minSubmissionCount, maxSubmissionCount, 0)
+      aggregator.contract.changeOracles([], [], minSubmissionCount, maxSubmissionCount, 0),
     ).to.be.revertedWithCustomError(aggregator.contract, 'MinSubmissionGtMaxSubmission')
   })
 
@@ -433,7 +433,7 @@ describe('Aggregator', function () {
     const minSubmissionCount = 0
     const maxSubmissionCount = 1
     await expect(
-      aggregator.contract.changeOracles([], [], minSubmissionCount, maxSubmissionCount, 0)
+      aggregator.contract.changeOracles([], [], minSubmissionCount, maxSubmissionCount, 0),
     ).to.be.revertedWithCustomError(aggregator.contract, 'MaxSubmissionGtOracleNum')
   })
 
@@ -449,8 +449,8 @@ describe('Aggregator', function () {
         [oracle],
         minSubmissionCount,
         maxSubmissionCount,
-        restartDelay
-      )
+        restartDelay,
+      ),
     ).to.be.revertedWithCustomError(aggregator.contract, 'RestartDelayExceedOracleNum')
   })
 
@@ -466,8 +466,8 @@ describe('Aggregator', function () {
         [oracle],
         minSubmissionCount,
         maxSubmissionCount,
-        restartDelay
-      )
+        restartDelay,
+      ),
     ).to.be.revertedWithCustomError(aggregator.contract, 'MinSubmissionZero')
   })
 
@@ -478,7 +478,7 @@ describe('Aggregator', function () {
       account2: requester,
       account3: oracle0,
       account4: oracle1,
-      account5: oracle2
+      account5: oracle2,
     } = await loadFixture(deploy)
     const authorized = true
     const delay = 0
@@ -489,7 +489,7 @@ describe('Aggregator', function () {
       [oracle0.address, oracle1.address, oracle2.address],
       2,
       3,
-      0
+      0,
     )
 
     // First round
@@ -497,7 +497,7 @@ describe('Aggregator', function () {
     // Only single oracle submitted, but did not compute answer (requires at least two submissions)
 
     await expect(
-      aggregator.contract.connect(requester).requestNewRound()
+      aggregator.contract.connect(requester).requestNewRound(),
     ).to.be.revertedWithCustomError(aggregator.contract, 'PrevRoundNotSupersedable')
   })
 
@@ -520,7 +520,7 @@ describe('Aggregator', function () {
     {
       const roundId = 1
       await expect(aggregator.contract.connect(oracle0).submit(roundId, answer)).to.be.revertedWith(
-        'not enabled oracle'
+        'not enabled oracle',
       )
     }
 
@@ -529,7 +529,7 @@ describe('Aggregator', function () {
     {
       const roundId = 2
       await expect(aggregator.contract.connect(oracle0).submit(roundId, answer)).to.be.revertedWith(
-        'invalid round to report'
+        'invalid round to report',
       )
     }
 
@@ -537,7 +537,7 @@ describe('Aggregator', function () {
       const roundId = 1
       await aggregator.contract.connect(oracle0).submit(roundId, answer)
       await expect(aggregator.contract.connect(oracle0).submit(roundId, answer)).to.be.revertedWith(
-        'cannot report on previous rounds'
+        'cannot report on previous rounds',
       )
     }
 
@@ -547,7 +547,7 @@ describe('Aggregator', function () {
       const roundId = 2
       await aggregator.contract.connect(oracle0).submit(roundId, answer)
       await expect(
-        aggregator.contract.connect(oracle0).submit(roundId + 1, answer)
+        aggregator.contract.connect(oracle0).submit(roundId + 1, answer),
       ).to.be.revertedWith('previous round not supersedable')
     }
 
@@ -559,7 +559,7 @@ describe('Aggregator', function () {
       const roundId = 3
       await aggregator.contract.connect(oracle1).submit(roundId, answer)
       await expect(
-        aggregator.contract.connect(oracle1).submit(roundId + 1, answer)
+        aggregator.contract.connect(oracle1).submit(roundId + 1, answer),
       ).to.be.revertedWith('no longer allowed oracle')
     }
   })
@@ -583,7 +583,7 @@ describe('Aggregator', function () {
       // round 2
       const { _eligibleToSubmit, _roundId } = await aggregator.contract.oracleRoundState(
         oracle0.address,
-        0
+        0,
       )
       expect(_roundId).to.be.equal(2)
       await aggregator.contract.connect(oracle0).submit(_roundId, 123)
@@ -594,7 +594,7 @@ describe('Aggregator', function () {
       // round 3
       const { _eligibleToSubmit, _roundId } = await aggregator.contract.oracleRoundState(
         oracle0.address,
-        0
+        0,
       )
       expect(_roundId).to.be.equal(3)
       await aggregator.contract.connect(oracle0).submit(_roundId, 123)
@@ -605,7 +605,7 @@ describe('Aggregator', function () {
       // skipping round 2, should submit to round 3
       const { _eligibleToSubmit, _roundId } = await aggregator.contract.oracleRoundState(
         oracle1.address,
-        0
+        0,
       )
       expect(_roundId).to.be.equal(3)
     }

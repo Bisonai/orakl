@@ -4,7 +4,7 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers')
 const { deploy: deployPrepayment } = require('./Prepayment.utils.cjs')
 const {
   deploy: deployRrCoordinator,
-  parseOracleRegisterdTx
+  parseOracleRegisterdTx,
 } = require('./RequestResponseCoordinator.utils.cjs')
 const { createSigners } = require('../utils.cjs')
 
@@ -12,7 +12,7 @@ async function deploy() {
   const {
     account0: deployerSigner,
     account1: protocolFeeRecipient,
-    account2: consumerSigner
+    account2: consumerSigner,
   } = await createSigners()
 
   // PREPAYMENT
@@ -21,12 +21,12 @@ async function deploy() {
   // COORDINATOR
   const coordinatorContract = await deployRrCoordinator(prepaymentContract.address, deployerSigner)
   expect(await coordinatorContract.connect(consumerSigner).typeAndVersion()).to.be.equal(
-    'RequestResponseCoordinator v0.1'
+    'RequestResponseCoordinator v0.1',
   )
 
   return {
     coordinatorContract,
-    consumerSigner
+    consumerSigner,
   }
 }
 
@@ -39,7 +39,7 @@ describe('RequestResponseCoordinator', function () {
 
     // oracle 1 is not registered yet
     expect(
-      await coordinatorContract.connect(consumerSigner).isOracleRegistered(oracle1)
+      await coordinatorContract.connect(consumerSigner).isOracleRegistered(oracle1),
     ).to.be.equal(false)
 
     // Register oracle 1
@@ -51,7 +51,7 @@ describe('RequestResponseCoordinator', function () {
 
     // oracle 1 is now registered
     expect(
-      await coordinatorContract.connect(consumerSigner).isOracleRegistered(oracle1)
+      await coordinatorContract.connect(consumerSigner).isOracleRegistered(oracle1),
     ).to.be.equal(true)
 
     // Register oracle 2
@@ -69,7 +69,7 @@ describe('RequestResponseCoordinator', function () {
     await (await coordinatorContract.registerOracle(oracle)).wait()
     await expect(coordinatorContract.registerOracle(oracle)).to.be.revertedWithCustomError(
       coordinatorContract,
-      'OracleAlreadyRegistered'
+      'OracleAlreadyRegistered',
     )
   })
 
@@ -80,7 +80,7 @@ describe('RequestResponseCoordinator', function () {
     // Cannot deregister underegistered oracle
     await expect(coordinatorContract.deregisterOracle(oracle)).to.be.revertedWithCustomError(
       coordinatorContract,
-      'NoSuchOracle'
+      'NoSuchOracle',
     )
 
     // Registration

@@ -25,7 +25,7 @@ export class CaverWallet {
 
 export function buildWallet({
   privateKey,
-  providerUrl
+  providerUrl,
 }: {
   privateKey: string
   providerUrl: string
@@ -38,7 +38,7 @@ export function buildWallet({
 
 export function buildCaverWallet({
   privateKey,
-  providerUrl
+  providerUrl,
 }: {
   privateKey: string
   providerUrl: string
@@ -66,7 +66,7 @@ export async function sendTransaction({
   gasLimit,
   value,
   logger,
-  nonce
+  nonce,
 }: {
   wallet: NonceManager
   to: string
@@ -86,7 +86,7 @@ export async function sendTransaction({
     from: await wallet.getAddress(),
     to: to,
     data: payload || '0x00',
-    value: value || '0x00'
+    value: value || '0x00',
   }
 
   if (gasLimit) {
@@ -140,7 +140,7 @@ export async function sendTransactionDelegatedFee({
   gasLimit,
   value,
   logger,
-  nonce
+  nonce,
 }: {
   wallet: CaverWallet
   to: string
@@ -158,7 +158,7 @@ export async function sendTransactionDelegatedFee({
     to,
     input: payload,
     gas: gasLimit,
-    value: value || '0x00'
+    value: value || '0x00',
   }
   const tx = wallet.caver.transaction.feeDelegatedSmartContractExecution.create(txParams)
   await wallet.caver.wallet.sign(wallet.address, tx)
@@ -175,7 +175,7 @@ export async function sendTransactionDelegatedFee({
     v: tx.signatures[0].v,
     r: tx.signatures[0].r,
     s: tx.signatures[0].s,
-    rawTx: tx.getRawTransaction()
+    rawTx: tx.getRawTransaction(),
   }
   _logger.debug(transactionData)
 
@@ -199,7 +199,7 @@ export async function sendTransactionDelegatedFee({
         to: tx.to,
         input: tx.input,
         gas: tx.gas,
-        value: tx.value
+        value: tx.value,
       })
       const txReceipt = await wallet.caver.rpc.klay.sendRawTransaction(response.signedRawTx)
       _logger.debug(txReceipt, 'txReceipt')
@@ -220,7 +220,7 @@ export async function sendTransactionCaver({
   gasLimit,
   logger,
   value,
-  nonce
+  nonce,
 }: {
   wallet: CaverWallet
   to: string
@@ -238,7 +238,7 @@ export async function sendTransactionCaver({
     to,
     input: payload,
     gas: gasLimit,
-    value: value || '0x00'
+    value: value || '0x00',
   }
 
   try {
@@ -250,7 +250,7 @@ export async function sendTransactionCaver({
       to: tx.to,
       input: tx.input,
       gas: tx.gas,
-      value: tx.value
+      value: tx.value,
     })
     const txReceipt = await wallet.caver.rpc.klay.sendRawTransaction(tx.getRawTransaction())
     _logger.debug(txReceipt, 'txReceipt')

@@ -31,7 +31,7 @@ async function main() {
     _timeout,
     _availableFunds,
     _oracleCount,
-    _paymentAmount
+    _paymentAmount,
   } = await aggregator.connect(_consumer).oracleRoundState(_feedOracle0, 0)
 
   console.log(`_eligibleToSubmit  ${_eligibleToSubmit}`)

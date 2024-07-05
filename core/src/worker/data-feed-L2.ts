@@ -13,7 +13,7 @@ import {
   L2_PROVIDER,
   L2_REPORTER_AGGREGATOR_QUEUE_NAME,
   L2_WORKER_AGGREGATOR_QUEUE_NAME,
-  REMOVE_ON_COMPLETE
+  REMOVE_ON_COMPLETE,
 } from '../settings'
 import { IDataFeedListenerWorkerL2, QueueType } from '../types'
 import { buildSubmissionRoundJobId } from '../utils'
@@ -42,8 +42,8 @@ export async function worker(redisClient: RedisClientType, _logger: Logger) {
     L2_WORKER_AGGREGATOR_QUEUE_NAME,
     aggregatorJob(reporterQueue, _logger),
     {
-      ...BULLMQ_CONNECTION
-    }
+      ...BULLMQ_CONNECTION,
+    },
   )
   aggregatorWorker.on('error', (e) => {
     logger.error(e)
@@ -89,7 +89,7 @@ export function aggregatorJob(reporterQueue: QueueType, _logger: Logger) {
       const { l2AggregatorAddress } = await getL2AddressGivenL1Address({
         oracleAddress,
         chain: L2_CHAIN,
-        logger
+        logger,
       })
 
       const answer = inData.answer
@@ -97,14 +97,14 @@ export function aggregatorJob(reporterQueue: QueueType, _logger: Logger) {
       logger.debug({ oracleAddress, fetchedData: answer }, 'Latest data')
       const operatorAddress = await getOperatorAddressL2({
         oracleAddress: l2AggregatorAddress,
-        logger
+        logger,
       })
 
       const oracleRoundState = await oracleRoundStateCall({
         oracleAddress: l2AggregatorAddress,
         operatorAddress,
         logger,
-        provider: L2_PROVIDER
+        provider: L2_PROVIDER,
       })
       logger.debug(oracleRoundState, 'oracleRoundState')
 
@@ -114,12 +114,12 @@ export function aggregatorJob(reporterQueue: QueueType, _logger: Logger) {
         const tx = buildTransaction({
           payloadParameters: {
             roundId,
-            submission: BigInt(answer)
+            submission: BigInt(answer),
           },
           to: l2AggregatorAddress,
           gasMinimum: DATA_FEED_FULFILL_GAS_MINIMUM,
           iface,
-          logger
+          logger,
         })
         logger.debug(tx, 'tx')
 
@@ -127,7 +127,7 @@ export function aggregatorJob(reporterQueue: QueueType, _logger: Logger) {
           jobId: buildSubmissionRoundJobId({
             oracleAddress,
             roundId,
-            deploymentName: DEPLOYMENT_NAME
+            deploymentName: DEPLOYMENT_NAME,
           }),
           removeOnComplete: REMOVE_ON_COMPLETE,
           // Reporter job can fail, and should be either retried or
@@ -138,7 +138,7 @@ export function aggregatorJob(reporterQueue: QueueType, _logger: Logger) {
           // specific aggregator on specific round.
           //
           // FIXME Rethink!
-          removeOnFail: true
+          removeOnFail: true,
         })
         return tx
       } else {

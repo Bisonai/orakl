@@ -9,7 +9,7 @@ import {
   DATA_FEED_REPORTER_STATE_NAME,
   DATA_FEED_SERVICE_NAME,
   PROVIDER,
-  REPORTER_AGGREGATOR_QUEUE_NAME
+  REPORTER_AGGREGATOR_QUEUE_NAME,
 } from '../settings'
 import { factory } from './factory'
 
@@ -27,6 +27,6 @@ export async function buildReporter(redisClient: RedisClientType, logger: Logger
     reporterQueueName: REPORTER_AGGREGATOR_QUEUE_NAME,
     concurrency: DATA_FEED_REPORTER_CONCURRENCY,
     delegatedFee: [BAOBAB_CHAIN_ID, CYPRESS_CHAIN_ID].includes(chainId) ? true : false,
-    _logger: logger
+    _logger: logger,
   })
 }

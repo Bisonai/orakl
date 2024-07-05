@@ -9,11 +9,11 @@ import { JobModule } from './job/job.module'
   imports: [
     JobModule,
     ConfigModule.forRoot({
-      isGlobal: true
+      isGlobal: true,
     }),
-    BullModule
+    BullModule,
   ],
   controllers: [AppController],
-  providers: [AppService, ConfigService]
+  providers: [AppService, ConfigService],
 })
 export class AppModule {}

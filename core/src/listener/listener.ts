@@ -8,7 +8,7 @@ import {
   deleteUnprocessedBlock,
   getObservedBlock,
   insertUnprocessedBlocks,
-  upsertObservedBlock
+  upsertObservedBlock,
 } from './api'
 import { State } from './state'
 import {
@@ -16,7 +16,7 @@ import {
   ILatestListenerJob,
   IProcessEventListenerJob,
   ListenerInitType,
-  ProcessEventOutputType
+  ProcessEventOutputType,
 } from './types'
 import { watchman } from './watchman'
 
@@ -63,7 +63,7 @@ export async function listenerService({
   processFn,
   redisClient,
   listenerInitType,
-  logger
+  logger,
 }: {
   config: IListenerConfig[]
   abi: ethers.ContractInterface
@@ -95,7 +95,7 @@ export async function listenerService({
     eventName,
     abi,
     listenerInitType,
-    logger
+    logger,
   })
   await state.clear()
 
@@ -106,9 +106,9 @@ export async function listenerService({
       historyListenerQueue,
       processEventQueue,
       service,
-      logger
+      logger,
     }),
-    BULLMQ_CONNECTION
+    BULLMQ_CONNECTION,
   )
   latestWorker.on('error', (e) => {
     logger.error(e)
@@ -117,7 +117,7 @@ export async function listenerService({
   const historyWorker = new Worker(
     historyQueueName,
     historyJob({ state, processEventQueue, service, logger }),
-    BULLMQ_CONNECTION
+    BULLMQ_CONNECTION,
   )
   historyWorker.on('error', (e) => {
     logger.error(e)
@@ -126,7 +126,7 @@ export async function listenerService({
   const processEventWorker = new Worker(
     processEventQueueName,
     processEventJob({ workerQueue, processFn, service, logger }),
-    BULLMQ_CONNECTION
+    BULLMQ_CONNECTION,
   )
   processEventWorker.on('error', (e) => {
     logger.error(e)
@@ -179,7 +179,7 @@ function latestJob({
   processEventQueue,
   historyListenerQueue,
   service,
-  logger
+  logger,
 }: {
   state: State
   processEventQueue: Queue
@@ -233,11 +233,11 @@ function latestJob({
         // dont include observedBlock as it's considered processed
         const unprocessedBlocks = Array.from(
           { length: latestBlock - observedBlock },
-          (_, i) => observedBlock + i + 1
+          (_, i) => observedBlock + i + 1,
         )
         await insertUnprocessedBlocks({
           blocks: unprocessedBlocks,
-          service
+          service,
         })
 
         // Update observed_block table
@@ -248,12 +248,12 @@ function latestJob({
           const outData: IProcessEventListenerJob = {
             contractAddress,
             events,
-            blockNumber
+            blockNumber,
           }
           // dont submit jobId to process so that historyJob can submit duplicate jobs
           // in case of failure
           await processEventQueue.add('latest', outData, {
-            ...LISTENER_JOB_SETTINGS
+            ...LISTENER_JOB_SETTINGS,
           })
           latestObservedBlock = blockNumber
         }
@@ -273,7 +273,7 @@ function latestJob({
         const outData: IHistoryListenerJob = { contractAddress, blockNumber }
         await historyListenerQueue.add('failure', outData, {
           jobId: `${blockNumber.toString()}-${contractAddress}`,
-          ...LISTENER_JOB_SETTINGS
+          ...LISTENER_JOB_SETTINGS,
         })
       }
     }
@@ -301,7 +301,7 @@ function historyJob({
   state,
   processEventQueue,
   service,
-  logger
+  logger,
 }: {
   state: State
   processEventQueue: Queue
@@ -327,10 +327,10 @@ function historyJob({
     const outData: IProcessEventListenerJob = {
       contractAddress,
       events,
-      blockNumber
+      blockNumber,
     }
     await processEventQueue.add('history', outData, {
-      ...LISTENER_JOB_SETTINGS
+      ...LISTENER_JOB_SETTINGS,
     })
   }
 
@@ -348,7 +348,7 @@ function processEventJob({
   workerQueue,
   processFn,
   service,
-  logger
+  logger,
 }: {
   workerQueue: Queue
   processFn: (log: ethers.Event) => Promise<ProcessEventOutputType | undefined>
@@ -370,7 +370,7 @@ function processEventJob({
           const queueSettings = jobQueueSettings ? jobQueueSettings : LISTENER_JOB_SETTINGS
           await workerQueue.add(jobName, jobData, {
             jobId,
-            ...queueSettings
+            ...queueSettings,
           })
           _logger.debug(`Listener submitted job [${jobId}] for [${jobName}]`)
         } else {
@@ -381,7 +381,7 @@ function processEventJob({
 
       await deleteUnprocessedBlock({
         blockNumber,
-        service
+        service,
       })
     } catch (e) {
       _logger.error(e, 'Error in user defined listener processing function')

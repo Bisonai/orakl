@@ -15,7 +15,7 @@ describe('nonce-manager', () => {
     privateKey: '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',
     oracleAddress: ORACLE_ADDRESS,
     chain: '',
-    service: ''
+    service: '',
   }
 
   jest.spyOn(State.prototype, 'all').mockImplementation(async () => [REPORTER])
@@ -34,7 +34,7 @@ describe('nonce-manager', () => {
       service: '',
       chain: '',
       delegatedFee: false,
-      logger: buildMockLogger()
+      logger: buildMockLogger(),
     })
 
     delegatedState = new State({
@@ -44,7 +44,7 @@ describe('nonce-manager', () => {
       service: '',
       chain: '',
       delegatedFee: true,
-      logger: buildMockLogger()
+      logger: buildMockLogger(),
     })
   })
 

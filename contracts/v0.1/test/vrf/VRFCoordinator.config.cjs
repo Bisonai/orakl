@@ -10,7 +10,7 @@ function vrfConfig() {
     reqsForTier2: 0,
     reqsForTier3: 0,
     reqsForTier4: 0,
-    reqsForTier5: 0
+    reqsForTier5: 0,
   }
 
   // The following settings were generate using `yarn cli vrf keygen`
@@ -31,10 +31,10 @@ function vrfConfig() {
     pkX,
     pkY,
     publicProvingKey,
-    keyHash
+    keyHash,
   }
 }
 
 module.exports = {
-  vrfConfig
+  vrfConfig,
 }

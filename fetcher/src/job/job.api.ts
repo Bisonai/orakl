@@ -23,7 +23,7 @@ export async function loadActiveAggregators({ chain, logger }: { chain: string; 
 export async function loadAggregator({
   aggregatorHash,
   chain,
-  logger
+  logger,
 }: {
   aggregatorHash: string
   chain: string
@@ -43,7 +43,7 @@ export async function loadAggregator({
 export async function insertMultipleData({
   aggregatorId,
   timestamp,
-  data
+  data,
 }: {
   aggregatorId: string
   timestamp: string
@@ -54,7 +54,7 @@ export async function insertMultipleData({
       aggregatorId: aggregatorId,
       feedId: d.id,
       timestamp: timestamp,
-      value: d.value
+      value: d.value,
     }
   })
 
@@ -63,14 +63,14 @@ export async function insertMultipleData({
   return {
     status: response?.status,
     statusText: response?.statusText,
-    data: response?.data
+    data: response?.data,
   }
 }
 
 export async function insertAggregateData({
   aggregatorId,
   timestamp,
-  value
+  value,
 }: {
   aggregatorId: string
   timestamp: string
@@ -81,7 +81,7 @@ export async function insertAggregateData({
   return {
     status: response?.status,
     statusText: response?.statusText,
-    data: response?.data
+    data: response?.data,
   }
 }
 
@@ -101,7 +101,7 @@ export async function deactivateAggregator(aggregatorHash: string, chain: string
 
 export async function fetchDataFeed({
   aggregatorHash,
-  logger
+  logger,
 }: {
   aggregatorHash: string
   logger: Logger
@@ -116,7 +116,7 @@ export async function fetchDataFeed({
 
 export async function fetchDataFeedByAggregatorId({
   aggregatorId,
-  logger
+  logger,
 }: {
   aggregatorId: bigint
   logger: Logger

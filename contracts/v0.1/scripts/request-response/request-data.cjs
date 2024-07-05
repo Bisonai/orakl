@@ -8,7 +8,7 @@ async function main() {
   const requestResponseConsumerSigner = await ethers.getContractAt(
     'RequestResponseConsumerMock',
     requestResponseConsumerMock.address,
-    consumer
+    consumer,
   )
 
   const accId = 1

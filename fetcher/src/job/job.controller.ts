@@ -5,27 +5,27 @@ import {
   DEVIATION_QUEUE_NAME,
   FETCHER_QUEUE_NAME,
   FETCHER_TYPE,
-  FETCH_FREQUENCY
+  FETCH_FREQUENCY,
 } from '../settings'
 import {
   activateAggregator,
   deactivateAggregator,
   loadActiveAggregators,
   loadAggregator,
-  loadProxies
+  loadProxies,
 } from './job.api'
 import { IProxy } from './job.types'
 import { extractFeeds } from './job.utils'
 
 @Controller({
-  version: '1'
+  version: '1',
 })
 export class JobController {
   private readonly logger = new Logger(JobController.name)
   private proxyList: IProxy[] = []
   constructor(
     @InjectQueue(FETCHER_QUEUE_NAME) private queue: Queue,
-    @InjectQueue(DEVIATION_QUEUE_NAME) private deviationQueue: Queue
+    @InjectQueue(DEVIATION_QUEUE_NAME) private deviationQueue: Queue,
   ) {}
 
   async onModuleInit() {
@@ -57,10 +57,10 @@ export class JobController {
   private async activeAggregators() {
     const activeAggregators = await loadActiveAggregators({
       chain: process.env.CHAIN,
-      logger: this.logger
+      logger: this.logger,
     })
     const filteredActiveAggregators = activeAggregators.filter(
-      (aggregator) => aggregator.fetcherType == FETCHER_TYPE
+      (aggregator) => aggregator.fetcherType == FETCHER_TYPE,
     )
     return filteredActiveAggregators
   }
@@ -68,7 +68,7 @@ export class JobController {
   private async startFetcher({
     aggregatorHash,
     chain,
-    isInitial
+    isInitial,
   }: {
     aggregatorHash: string
     chain: string
@@ -102,16 +102,16 @@ export class JobController {
       aggregator.absoluteThreshold,
       aggregator.address,
       this.proxyList,
-      this.logger
+      this.logger,
     )
 
     // Launch recurrent data collection
     await this.queue.add(aggregatorHash, feeds, {
       repeat: {
-        every: FETCH_FREQUENCY
+        every: FETCH_FREQUENCY,
       },
       removeOnComplete: true,
-      removeOnFail: true
+      removeOnFail: true,
     })
 
     try {

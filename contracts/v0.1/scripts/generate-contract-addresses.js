@@ -92,7 +92,7 @@ const readDeployments = async (folderPath, tags) => {
             others[network][contractName] = address
           }
         }
-      })
+      }),
     )
   }
 
@@ -130,11 +130,11 @@ async function main() {
   const { dataFeeds, others } = await readDeployments(deploymentsPath, tags)
   await storeJson(
     path.join(deploymentsPath, 'datafeeds-addresses.json'),
-    JSON.stringify(dataFeeds, null, 2)
+    JSON.stringify(dataFeeds, null, 2),
   )
   await storeJson(
     path.join(deploymentsPath, 'other-addresses.json'),
-    JSON.stringify(others, null, 2)
+    JSON.stringify(others, null, 2),
   )
 }
 

@@ -16,9 +16,9 @@ export function vrfSub() {
   const list = command({
     name: 'list',
     args: {
-      chain: chainOptionalOption
+      chain: chainOptionalOption,
     },
-    handler: listHandler(true)
+    handler: listHandler(true),
   })
 
   const insert = command({
@@ -26,49 +26,49 @@ export function vrfSub() {
     args: {
       chain: option({
         type: cmdstring,
-        long: 'chain'
+        long: 'chain',
       }),
       sk: option({
         type: cmdstring,
-        long: 'sk'
+        long: 'sk',
       }),
       pk: option({
         type: cmdstring,
-        long: 'pk'
+        long: 'pk',
       }),
       pkX: option({
         type: cmdstring,
-        long: 'pkX'
+        long: 'pkX',
       }),
       pkY: option({
         type: cmdstring,
-        long: 'pkY'
+        long: 'pkY',
       }),
       keyHash: option({
         type: cmdstring,
-        long: 'keyHash'
-      })
+        long: 'keyHash',
+      }),
     },
-    handler: insertHandler()
+    handler: insertHandler(),
   })
 
   const remove = command({
     name: 'remove',
     args: {
-      id: idOption
+      id: idOption,
     },
-    handler: removeHandler()
+    handler: removeHandler(),
   })
 
   const keygen = command({
     name: 'keygen',
     args: {},
-    handler: keygenHandler()
+    handler: keygenHandler(),
   })
 
   return subcommands({
     name: 'vrf',
-    cmds: { list, insert, remove, keygen }
+    cmds: { list, insert, remove, keygen },
   })
 }
 
@@ -103,7 +103,7 @@ export function insertHandler() {
     sk,
     pkX,
     pkY,
-    keyHash
+    keyHash,
   }: {
     chain: string
     pk: string

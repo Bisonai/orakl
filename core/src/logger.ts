@@ -3,7 +3,7 @@ import { LOG_LEVEL } from './settings'
 
 export function buildLogger() {
   const transport = pino.transport({
-    targets: [{ target: 'pino-pretty', level: LOG_LEVEL, options: { destination: 1 } }]
+    targets: [{ target: 'pino-pretty', level: LOG_LEVEL, options: { destination: 1 } }],
   })
 
   const logger = pino(transport)
@@ -21,7 +21,7 @@ export function buildLogger() {
  */
 export function buildMockLogger() {
   const transport = pino.transport({
-    targets: [{ target: 'pino-pretty', level: LOG_LEVEL, options: { destination: 1 } }]
+    targets: [{ target: 'pino-pretty', level: LOG_LEVEL, options: { destination: 1 } }],
   })
 
   const logger = pino(transport)

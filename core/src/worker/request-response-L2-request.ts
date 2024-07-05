@@ -9,13 +9,13 @@ import {
   L2_REPORTER_REQUEST_RESPONSE_REQUEST_QUEUE_NAME,
   L2_WORKER_REQUEST_RESPONSE_REQUEST_QUEUE_NAME,
   REQUEST_RESPONSE_FULFILL_GAS_MINIMUM,
-  WORKER_JOB_SETTINGS
+  WORKER_JOB_SETTINGS,
 } from '../settings'
 import {
   IL2RequestResponseListenerWorker,
   IL2RequestResponseRequestTransactionParameters,
   ITransactionParameters,
-  QueueType
+  QueueType,
 } from '../types'
 
 const FILE_NAME = import.meta.url
@@ -26,7 +26,7 @@ export async function worker(redisClient: RedisClientType, _logger: Logger) {
   const worker = new Worker(
     L2_WORKER_REQUEST_RESPONSE_REQUEST_QUEUE_NAME,
     await job(queue, _logger),
-    BULLMQ_CONNECTION
+    BULLMQ_CONNECTION,
   )
 
   async function handleExit() {
@@ -55,7 +55,7 @@ export async function job(reporterQueue: QueueType, _logger: Logger) {
         numSubmission: inData.numSubmission,
         sender: inData.sender,
         l2RequestId: inData.requestId,
-        req: inData.req
+        req: inData.req,
       }
 
       const to = L1_ENDPOINT
@@ -64,13 +64,13 @@ export async function job(reporterQueue: QueueType, _logger: Logger) {
         to,
         REQUEST_RESPONSE_FULFILL_GAS_MINIMUM,
         iface,
-        logger
+        logger,
       )
       logger.debug(tx, 'tx')
 
       await reporterQueue.add('l2RRRequest', tx, {
         jobId: inData.requestId,
-        ...WORKER_JOB_SETTINGS
+        ...WORKER_JOB_SETTINGS,
       })
 
       return tx
@@ -88,7 +88,7 @@ function buildTransaction(
   to: string,
   gasMinimum: number,
   iface: ethers.utils.Interface,
-  logger: Logger
+  logger: Logger,
 ): ITransactionParameters {
   const { callbackGasLimit, numSubmission, accId, sender, l2RequestId, req } = payloadParameters
   const gasLimit = callbackGasLimit + gasMinimum
@@ -98,13 +98,13 @@ function buildTransaction(
     numSubmission,
     sender,
     l2RequestId,
-    req
+    req,
   ])
   logger.debug(payload, 'payload')
 
   return {
     payload,
     gasLimit,
-    to
+    to,
   }
 }

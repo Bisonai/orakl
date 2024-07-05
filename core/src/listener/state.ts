@@ -56,7 +56,7 @@ export class State {
     eventName,
     abi,
     listenerInitType,
-    logger
+    logger,
   }: {
     redisClient: RedisClientType
     latestListenerQueue: Queue
@@ -99,7 +99,7 @@ export class State {
     await Promise.all(
       jobs.map((J) => {
         this.latestListenerQueue.removeRepeatableByKey(J.key)
-      })
+      }),
     )
   }
 
@@ -129,10 +129,10 @@ export class State {
   async addBlockToHistoryQueue(contractAddress: string, blockNumber: number) {
     const historyOutData: IHistoryListenerJob = {
       contractAddress,
-      blockNumber
+      blockNumber,
     }
     await this.historyListenerQueue.add('history', historyOutData, {
-      ...LISTENER_JOB_SETTINGS
+      ...LISTENER_JOB_SETTINGS,
     })
   }
 
@@ -164,7 +164,7 @@ export class State {
       listenersRawConfig,
       service: this.service,
       chain: this.chain,
-      logger: this.logger
+      logger: this.logger,
     })
 
     const allServiceListeners = allListeners[this.service] || []
@@ -222,14 +222,14 @@ export class State {
 
     // Insert listener jobs
     const outData: ILatestListenerJob = {
-      contractAddress
+      contractAddress,
     }
     await this.latestListenerQueue.add('latest-repeatable', outData, {
       ...LISTENER_JOB_SETTINGS,
       jobId: contractAddress,
       repeat: {
-        every: LISTENER_DELAY
-      }
+        every: LISTENER_DELAY,
+      },
     })
 
     return toAddListener
@@ -259,13 +259,13 @@ export class State {
     const removedListener = activeListeners.splice(index, 1)[0]
 
     const jobs = (await this.latestListenerQueue.getRepeatableJobs()).filter(
-      (job) => job.id == removedListener.address
+      (job) => job.id == removedListener.address,
     )
 
     if (jobs.length != 1) {
       throw new OraklError(
         OraklErrorCode.UnexpectedNumberOfJobsInQueue,
-        `Number of jobs ${jobs.length}`
+        `Number of jobs ${jobs.length}`,
       )
     } else {
       const delayedJob = jobs[0]
@@ -298,7 +298,7 @@ export class State {
     return await this.contracts[contractAddress].queryFilter(
       this.eventName,
       fromBlockNumber,
-      toBlockNumber
+      toBlockNumber,
     )
   }
 
@@ -318,7 +318,7 @@ export class State {
    */
   async setObservedBlockNumberIfNotDefined(
     observedBlockRedisKey: string,
-    observedBlockNumber: number
+    observedBlockNumber: number,
   ) {
     if ((await this.redisClient.get(observedBlockRedisKey)) === null) {
       await this.redisClient.set(observedBlockRedisKey, observedBlockNumber)

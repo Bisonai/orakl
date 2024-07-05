@@ -6,7 +6,7 @@ const func = async function (hre) {
   const registryDeployment = await deploy('Registry', {
     args: [],
     from: deployer,
-    log: true
+    log: true,
   })
 
   console.log('registeryDeployment:', registryDeployment)

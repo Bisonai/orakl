@@ -2,7 +2,7 @@ const { expect } = require('chai')
 
 async function deploy(signer) {
   let contract = await ethers.getContractFactory('Registry', {
-    signer
+    signer,
   })
   contract = await contract.deploy()
   await contract.deployed()
@@ -12,7 +12,7 @@ async function deploy(signer) {
 async function propose(registry, signer, pChainID, jsonRpc, endpoint, value) {
   const tx = await (
     await registry.connect(signer).proposeNewChain(pChainID, jsonRpc, endpoint, {
-      value
+      value,
     })
   ).wait()
   expect(tx.events.length).to.be.equal(1)
@@ -25,7 +25,7 @@ async function propose(registry, signer, pChainID, jsonRpc, endpoint, value) {
 async function editChainInfor(registry, signer, pChainID, jsonRpc, pEndpoint, value) {
   const tx = await (
     await registry.connect(signer).editChainInfo(pChainID, jsonRpc, pEndpoint, {
-      value
+      value,
     })
   ).wait()
   expect(tx.events.length).to.be.equal(1)
@@ -111,5 +111,5 @@ module.exports = {
   addAggregator,
   removeAggregator,
   addConsumer,
-  removeConsumer
+  removeConsumer,
 }

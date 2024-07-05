@@ -2,13 +2,13 @@ import { describe, expect, test } from '@jest/globals'
 import {
   insertHandler as adapterInsertHandler,
   listHandler as adapterListHandler,
-  removeHandler as adapterRemoveHandler
+  removeHandler as adapterRemoveHandler,
 } from '../src/adapter'
 import { insertHandler, listHandler, removeHandler } from '../src/aggregator'
 import {
   insertHandler as chainInsertHandler,
   listHandler as chainListHandler,
-  removeHandler as chainRemoveHandler
+  removeHandler as chainRemoveHandler,
 } from '../src/chain'
 import { ADAPTER_0, ADAPTER_1, AGGREGATOR_0, AGGREGATOR_1 } from './mockData'
 
@@ -56,7 +56,7 @@ describe('CLI Aggregator', function () {
 
     const msg = await insertHandler()({ data: AGGREGATOR_1, chain: 'localhost' })
     expect(msg).toEqual(
-      'ERROR: duplicate key value violates unique constraint "aggregators_address_key" (SQLSTATE 23505)'
+      'ERROR: duplicate key value violates unique constraint "aggregators_address_key" (SQLSTATE 23505)',
     )
   })
 

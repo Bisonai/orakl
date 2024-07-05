@@ -8,5 +8,5 @@ function parseRequestCanceled(coordinator, tx) {
 }
 
 module.exports = {
-  parseRequestCanceled
+  parseRequestCanceled,
 }

@@ -10,7 +10,7 @@ import {
   buildCaverWallet,
   buildWallet,
   sendTransaction,
-  sendTransactionDelegatedFee
+  sendTransactionDelegatedFee,
 } from '../src/reporter/utils'
 
 // The following tests have to be run with hardhat network launched.
@@ -23,7 +23,7 @@ describe('Reporter', function () {
   beforeEach(() => {
     const transport = pino.transport({
       target: 'pino/file',
-      options: { destination: '/dev/null' }
+      options: { destination: '/dev/null' },
     })
     logger = pino(transport)
   })
@@ -34,7 +34,7 @@ describe('Reporter', function () {
       try {
         const wallet = await buildWallet({
           privateKey: PRIVATE_KEY,
-          providerUrl: PROVIDER_URL
+          providerUrl: PROVIDER_URL,
         })
         const nonce = await wallet.getTransactionCount()
 
@@ -70,16 +70,16 @@ describe('Reporter', function () {
           name: 'increment',
           outputs: [],
           stateMutability: 'nonpayable',
-          type: 'function'
-        }
-      ]
+          type: 'function',
+        },
+      ],
     }
 
     const wallet = buildCaverWallet({
       // 0 $KLAY in Account
       // address: '0x9bf123A486DD67d5B2B859c74BFa3035c99b9243'
       privateKey: '0xaa8707622845b72c76b7b9f329b154140441eda385ca39e3cdc66d2bee5f98e0',
-      providerUrl: 'https://public-en.kairos.node.kaia.io'
+      providerUrl: 'https://public-en.kairos.node.kaia.io',
     })
     const nonce = Number(await wallet.caver.rpc.klay.getTransactionCount(wallet.address))
 
@@ -92,7 +92,7 @@ describe('Reporter', function () {
       payload,
       logger,
       gasLimit: 100_000,
-      nonce
+      nonce,
     })
   })
 })
@@ -109,7 +109,7 @@ describe('Filter invalid reporters inside of State', function () {
     privateKey: '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',
     oracleAddress: '0x0E4E90de7701B72df6F21343F51C833F7d2d3CFb',
     chain: '',
-    service: ''
+    service: '',
   }
   const INVALID_REPORTER = {
     id: '1',
@@ -117,7 +117,7 @@ describe('Filter invalid reporters inside of State', function () {
     privateKey: 'INVALID KEY',
     oracleAddress: '0x0E4E90de7701B72df6F21343F51C833F7d2d3CFb',
     chain: '',
-    service: ''
+    service: '',
   }
 
   test('Via refresh()', async function () {
@@ -136,7 +136,7 @@ describe('Filter invalid reporters inside of State', function () {
         service: '',
         chain: '',
         delegatedFee,
-        logger: buildMockLogger()
+        logger: buildMockLogger(),
       })
 
       const reporters = await state.refresh()
@@ -159,7 +159,7 @@ describe('Filter invalid reporters inside of State', function () {
         service: '',
         chain: '',
         delegatedFee,
-        logger: buildMockLogger()
+        logger: buildMockLogger(),
       })
 
       const reporter = await state.add(VALID_REPORTER.id)
@@ -182,7 +182,7 @@ describe('Filter invalid reporters inside of State', function () {
         service: '',
         chain: '',
         delegatedFee,
-        logger: buildMockLogger()
+        logger: buildMockLogger(),
       })
 
       await expect(state.add(INVALID_REPORTER.id)).rejects.toThrow()

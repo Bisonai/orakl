@@ -13,5 +13,5 @@ export enum ReducerErrorCode {
   MissingKeyInJson,
   DivisionByZero,
   InvalidData,
-  InvalidDataFormat
+  InvalidDataFormat,
 }

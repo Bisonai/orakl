@@ -12,5 +12,5 @@ export enum CliErrorCode {
   FileNotFound,
   InconsistentAdapterId,
   EnvironmentVariableNotSet,
-  UnmatchingHash
+  UnmatchingHash,
 }

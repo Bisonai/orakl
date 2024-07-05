@@ -15,5 +15,5 @@ export enum FetcherErrorCode {
   InvalidReducer,
   MissingKeyInJson,
   UnexpectedNumberOfJobs,
-  DivisionByZero
+  DivisionByZero,
 }

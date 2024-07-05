@@ -29,7 +29,7 @@ export class State {
     service,
     chain,
     delegatedFee,
-    logger
+    logger,
   }: {
     redisClient: RedisClientType
     providerUrl: string
@@ -140,13 +140,13 @@ export class State {
     if (this.delegatedFee) {
       wallet = buildCaverWallet({
         privateKey: toAddReporter.privateKey,
-        providerUrl: this.providerUrl
+        providerUrl: this.providerUrl,
       })
       nonce = Number(await wallet.caver.rpc.klay.getTransactionCount(wallet.address))
     } else {
       wallet = buildWallet({
         privateKey: toAddReporter.privateKey,
-        providerUrl: this.providerUrl
+        providerUrl: this.providerUrl,
       })
       nonce = await wallet.getTransactionCount()
     }
@@ -155,7 +155,7 @@ export class State {
     // Update nonce
     this.nonces = {
       ...this.nonces,
-      [toAddReporter.oracleAddress]: nonce
+      [toAddReporter.oracleAddress]: nonce,
     }
 
     return toAddReporter
@@ -221,17 +221,17 @@ export class State {
       if (!isPrivateKeyAddressPairValid(reporter.privateKey, reporter.address)) {
         this.logger.warn(
           { name: 'refresh', file: FILE_NAME },
-          `Reporter with ID=${reporter.id} has invalid private key.`
+          `Reporter with ID=${reporter.id} has invalid private key.`,
         )
       } else if (!isAddressValid(reporter.address)) {
         this.logger.warn(
           { name: 'refresh', file: FILE_NAME },
-          `Reporter with ID=${reporter.id} has invalid reporter address. ${reporter.address}`
+          `Reporter with ID=${reporter.id} has invalid reporter address. ${reporter.address}`,
         )
       } else if (!isAddressValid(reporter.oracleAddress)) {
         this.logger.warn(
           { name: 'refresh', file: FILE_NAME },
-          `Reporter with ID=${reporter.id} has invalid oracle address. ${reporter.oracleAddress}`
+          `Reporter with ID=${reporter.id} has invalid oracle address. ${reporter.oracleAddress}`,
         )
       } else {
         reporters.push(reporter)
@@ -245,13 +245,13 @@ export class State {
       if (this.delegatedFee) {
         wallet = buildCaverWallet({
           privateKey: R.privateKey,
-          providerUrl: this.providerUrl
+          providerUrl: this.providerUrl,
         })
         nonce = Number(await wallet.caver.rpc.klay.getTransactionCount(wallet.address))
       } else {
         wallet = buildWallet({
           privateKey: R.privateKey,
-          providerUrl: this.providerUrl
+          providerUrl: this.providerUrl,
         })
         nonce = await wallet.getTransactionCount()
       }
@@ -261,7 +261,7 @@ export class State {
       // Update nonce
       this.nonces = {
         ...this.nonces,
-        [R.oracleAddress]: nonce
+        [R.oracleAddress]: nonce,
       }
 
       // Create a mutex object

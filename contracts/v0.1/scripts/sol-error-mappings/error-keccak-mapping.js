@@ -21,13 +21,13 @@ function processFile(filePath) {
             `${match
               .split(' ')
               .filter((_, idx) => idx % 2 === 0)
-              .join(',')})`
+              .join(',')})`,
         )
         .replace(';', '')
       const hash = `0x${sha3.keccak256(processedLine)}`
       mapping[hash] = {
         file: filePath,
-        error: trimmedLine
+        error: trimmedLine,
       }
     }
   }

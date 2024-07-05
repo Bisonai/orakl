@@ -14,15 +14,15 @@ export function fetcherSub() {
       host: option({
         type: cmdstring,
         long: 'host',
-        defaultValue: () => FETCHER_HOST
+        defaultValue: () => FETCHER_HOST,
       }),
       port: option({
         type: cmdstring,
         long: 'port',
-        defaultValue: () => String(FETCHER_PORT)
-      })
+        defaultValue: () => String(FETCHER_PORT),
+      }),
     },
-    handler: activeHandler()
+    handler: activeHandler(),
   })
 
   const start = command({
@@ -30,24 +30,24 @@ export function fetcherSub() {
     args: {
       id: option({
         type: cmdstring,
-        long: 'id'
+        long: 'id',
       }),
       chain: option({
         type: cmdstring,
-        long: 'chain'
+        long: 'chain',
       }),
       host: option({
         type: cmdstring,
         long: 'host',
-        defaultValue: () => FETCHER_HOST
+        defaultValue: () => FETCHER_HOST,
       }),
       port: option({
         type: cmdstring,
         long: 'port',
-        defaultValue: () => String(FETCHER_PORT)
-      })
+        defaultValue: () => String(FETCHER_PORT),
+      }),
     },
-    handler: startHandler()
+    handler: startHandler(),
   })
 
   const stop = command({
@@ -55,29 +55,29 @@ export function fetcherSub() {
     args: {
       id: option({
         type: cmdstring,
-        long: 'id'
+        long: 'id',
       }),
       chain: option({
         type: cmdstring,
-        long: 'chain'
+        long: 'chain',
       }),
       host: option({
         type: cmdstring,
         long: 'host',
-        defaultValue: () => FETCHER_HOST
+        defaultValue: () => FETCHER_HOST,
       }),
       port: option({
         type: cmdstring,
         long: 'port',
-        defaultValue: () => String(FETCHER_PORT)
-      })
+        defaultValue: () => String(FETCHER_PORT),
+      }),
     },
-    handler: stopHandler()
+    handler: stopHandler(),
   })
 
   return subcommands({
     name: 'fetcher',
-    cmds: { active, start, stop }
+    cmds: { active, start, stop },
   })
 }
 
@@ -102,7 +102,7 @@ export function startHandler() {
     id,
     chain,
     host,
-    port
+    port,
   }: {
     id: string
     chain: string
@@ -129,7 +129,7 @@ export function stopHandler() {
     id,
     chain,
     host,
-    port
+    port,
   }: {
     id: string
     chain: string

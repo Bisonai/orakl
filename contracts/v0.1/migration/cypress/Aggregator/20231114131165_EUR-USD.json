@@ -1,18 +1,16 @@
 {
-	"deploy": {
-		"name": "EUR-USD",
-		"timeout": 0,
-		"validator": "0x0000000000000000000000000000000000000000",
-		"decimals": 8,
-		"description": "EUR-USD"
-	},
-	"changeOracles": {
-		"removed": [],
-		"added": [
-			"0xE505dd4Ff478b7CA2BF4cfCa1A116daD12E4eD71"
-		],
-		"minSubmissionCount": 1,
-		"maxSubmissionCount": 1,
-		"restartDelay": 0
-	}
+  "deploy": {
+    "name": "EUR-USD",
+    "timeout": 0,
+    "validator": "0x0000000000000000000000000000000000000000",
+    "decimals": 8,
+    "description": "EUR-USD"
+  },
+  "changeOracles": {
+    "removed": [],
+    "added": ["0xE505dd4Ff478b7CA2BF4cfCa1A116daD12E4eD71"],
+    "minSubmissionCount": 1,
+    "maxSubmissionCount": 1,
+    "restartDelay": 0
+  }
 }

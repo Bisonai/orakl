@@ -6,7 +6,7 @@ const {
   validateCoordinatorDeployConfig,
   validateSetConfig,
   validateVrfDeregisterOracle,
-  validateVrfRegisterOracle
+  validateVrfRegisterOracle,
 } = require('../../scripts/utils.cjs')
 
 const func = async function (hre) {
@@ -39,12 +39,12 @@ const func = async function (hre) {
         contract: 'VRFCoordinator',
         args: [prepayment.address],
         from: deployer,
-        log: true
+        log: true,
       })
 
       vrfCoordinator = await ethers.getContractAt(
         'VRFCoordinator',
-        vrfCoordinatorDeployment.address
+        vrfCoordinatorDeployment.address,
       )
 
       // VRFConsumermock
@@ -53,7 +53,7 @@ const func = async function (hre) {
           deploy,
           vrfCoordinator,
           prepayment,
-          name: deployConfig.version
+          name: deployConfig.version,
         })
       }
     }
@@ -75,7 +75,7 @@ const func = async function (hre) {
           await vrfCoordinator.registerOracle(oracle.address, oracle.publicProvingKey)
         ).wait()
         console.log(
-          `Oracle registered with address=${tx.events[0].args.oracle} and keyHash=${tx.events[0].args.keyHash}`
+          `Oracle registered with address=${tx.events[0].args.oracle} and keyHash=${tx.events[0].args.keyHash}`,
         )
       }
     }
@@ -91,7 +91,7 @@ const func = async function (hre) {
       for (const oracle of deregisterOracleConfig) {
         const tx = await (await vrfCoordinator.deregisterOracle(oracle.address)).wait()
         console.log(
-          `Oracle deregistered with address=${tx.events[0].args.oracle} and keyHash=${tx.events[0].args.keyHash}`
+          `Oracle deregistered with address=${tx.events[0].args.oracle} and keyHash=${tx.events[0].args.keyHash}`,
         )
       }
     }
@@ -108,7 +108,7 @@ const func = async function (hre) {
         await vrfCoordinator.setConfig(
           setConfig.maxGasLimit,
           setConfig.gasAfterPaymentCalculation,
-          setConfig.feeConfig
+          setConfig.feeConfig,
         )
       ).wait()
     }
@@ -128,7 +128,7 @@ const func = async function (hre) {
       const prepaymentDeployerSigner = await ethers.getContractAt(
         'Prepayment',
         prepayment.address,
-        deployer
+        deployer,
       )
       await (await prepaymentDeployerSigner.addCoordinator(vrfCoordinatorAddress)).wait()
     }
@@ -143,13 +143,13 @@ async function localhostDeployment(args) {
   const vrfConsumerMockDeployment = await deploy('VRFConsumerMock', {
     args: [vrfCoordinator.address],
     from: consumer,
-    log: true
+    log: true,
   })
 
   const prepaymentConsumerSigner = await ethers.getContractAt(
     'Prepayment',
     prepayment.address,
-    consumer
+    consumer,
   )
 
   // Create account

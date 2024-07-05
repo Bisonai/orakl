@@ -5,7 +5,7 @@ import {
   L2_DATA_FEED_REPORTER_STATE_NAME,
   L2_DATA_FEED_SERVICE_NAME,
   L2_PROVIDER_URL,
-  L2_REPORTER_AGGREGATOR_QUEUE_NAME
+  L2_REPORTER_AGGREGATOR_QUEUE_NAME,
 } from '../settings'
 import { factory } from './factory'
 
@@ -20,6 +20,6 @@ export async function buildReporter(redisClient: RedisClientType, logger: Logger
     delegatedFee: false,
     _logger: logger,
     providerUrl: L2_PROVIDER_URL,
-    chain: L2_CHAIN
+    chain: L2_CHAIN,
   })
 }

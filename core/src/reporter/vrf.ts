@@ -5,7 +5,7 @@ import {
   NONCE_MANAGER_VRF_QUEUE_NAME,
   REPORTER_VRF_QUEUE_NAME,
   VRF_REPORTER_STATE_NAME,
-  VRF_SERVICE_NAME
+  VRF_SERVICE_NAME,
 } from '../settings'
 import { factory } from './factory'
 
@@ -18,6 +18,6 @@ export async function buildReporter(redisClient: RedisClientType, logger: Logger
     reporterQueueName: REPORTER_VRF_QUEUE_NAME,
     concurrency: CONCURRENCY,
     delegatedFee: false,
-    _logger: logger
+    _logger: logger,
   })
 }

@@ -5,7 +5,7 @@ import {
   flag,
   option,
   string as cmdstring,
-  subcommands
+  subcommands,
 } from 'cmd-ts'
 import { IAggregator, ReadFile } from './cli-types.js'
 import { ORAKL_NETWORK_API_URL, WORKER_SERVICE_HOST, WORKER_SERVICE_PORT } from './settings.js'
@@ -15,7 +15,7 @@ import {
   fetcherTypeOptionalOption,
   idOption,
   isOraklNetworkApiHealthy,
-  isServiceHealthy
+  isServiceHealthy,
 } from './utils.js'
 
 const AGGREGATOR_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'aggregator')
@@ -33,11 +33,11 @@ export function aggregatorSub() {
     name: 'list',
     args: {
       active: flag({
-        long: 'active'
+        long: 'active',
       }),
-      chain: chainOptionalOption
+      chain: chainOptionalOption,
     },
-    handler: listHandler(true)
+    handler: listHandler(true),
   })
 
   const insert = command({
@@ -45,23 +45,23 @@ export function aggregatorSub() {
     args: {
       data: option({
         type: ReadFile,
-        long: 'source'
+        long: 'source',
       }),
       chain: option({
         type: cmdstring,
-        long: 'chain'
+        long: 'chain',
       }),
-      fetcherType: fetcherTypeOptionalOption
+      fetcherType: fetcherTypeOptionalOption,
     },
-    handler: insertHandler()
+    handler: insertHandler(),
   })
 
   const remove = command({
     name: 'remove',
     args: {
-      id: idOption
+      id: idOption,
     },
-    handler: removeHandler()
+    handler: removeHandler(),
   })
 
   const hash = command({
@@ -69,14 +69,14 @@ export function aggregatorSub() {
     args: {
       verify: flag({
         type: cmdboolean,
-        long: 'verify'
+        long: 'verify',
       }),
       data: option({
         type: ReadFile,
-        long: 'source'
-      })
+        long: 'source',
+      }),
     },
-    handler: hashHandler()
+    handler: hashHandler(),
   })
 
   const active = command({
@@ -85,15 +85,15 @@ export function aggregatorSub() {
       host: option({
         type: cmdstring,
         long: 'host',
-        defaultValue: () => WORKER_SERVICE_HOST
+        defaultValue: () => WORKER_SERVICE_HOST,
       }),
       port: option({
         type: cmdstring,
         long: 'port',
-        defaultValue: () => String(WORKER_SERVICE_PORT)
-      })
+        defaultValue: () => String(WORKER_SERVICE_PORT),
+      }),
     },
-    handler: activeHandler()
+    handler: activeHandler(),
   })
 
   const activate = command({
@@ -101,20 +101,20 @@ export function aggregatorSub() {
     args: {
       aggregatorHash: option({
         type: cmdstring,
-        long: 'aggregatorHash'
+        long: 'aggregatorHash',
       }),
       host: option({
         type: cmdstring,
         long: 'host',
-        defaultValue: () => WORKER_SERVICE_HOST
+        defaultValue: () => WORKER_SERVICE_HOST,
       }),
       port: option({
         type: cmdstring,
         long: 'port',
-        defaultValue: () => String(WORKER_SERVICE_PORT)
-      })
+        defaultValue: () => String(WORKER_SERVICE_PORT),
+      }),
     },
-    handler: activateHandler()
+    handler: activateHandler(),
   })
 
   const deactivate = command({
@@ -123,25 +123,25 @@ export function aggregatorSub() {
     args: {
       aggregatorHash: option({
         type: cmdstring,
-        long: 'aggregatorHash'
+        long: 'aggregatorHash',
       }),
       host: option({
         type: cmdstring,
         long: 'host',
-        defaultValue: () => WORKER_SERVICE_HOST
+        defaultValue: () => WORKER_SERVICE_HOST,
       }),
       port: option({
         type: cmdstring,
         long: 'port',
-        defaultValue: () => String(WORKER_SERVICE_PORT)
-      })
+        defaultValue: () => String(WORKER_SERVICE_PORT),
+      }),
     },
-    handler: deactivateHandler()
+    handler: deactivateHandler(),
   })
 
   return subcommands({
     name: 'aggregator',
-    cmds: { list, insert, remove, hash, active, activate, deactivate }
+    cmds: { list, insert, remove, hash, active, activate, deactivate },
   })
 }
 
@@ -181,7 +181,7 @@ export function insertHandler() {
   async function wrapper({
     data,
     chain,
-    fetcherType
+    fetcherType,
   }: {
     data
     chain: string
@@ -225,7 +225,7 @@ export function hashHandler() {
       const aggregator = data as IAggregator
       const aggregatorWithCorrectHash = (
         await axios.post(endpoint, aggregator, {
-          params: { verify }
+          params: { verify },
         })
       ).data
       console.dir(aggregatorWithCorrectHash, { depth: null })
@@ -262,7 +262,7 @@ export function activateHandler() {
   async function wrapper({
     host,
     port,
-    aggregatorHash
+    aggregatorHash,
   }: {
     host: string
     port: string
@@ -273,7 +273,7 @@ export function activateHandler() {
 
     const activateAggregatorEndpoint = buildUrl(
       aggregatorServiceEndpoint,
-      `activate/${aggregatorHash}`
+      `activate/${aggregatorHash}`,
     )
 
     try {
@@ -292,7 +292,7 @@ export function deactivateHandler() {
   async function wrapper({
     host,
     port,
-    aggregatorHash
+    aggregatorHash,
   }: {
     host: string
     port: string
@@ -303,7 +303,7 @@ export function deactivateHandler() {
 
     const deactivateAggregatorEndpoint = buildUrl(
       aggregatorServiceEndpoint,
-      `deactivate/${aggregatorHash}`
+      `deactivate/${aggregatorHash}`,
     )
 
     try {

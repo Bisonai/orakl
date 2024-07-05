@@ -4,7 +4,7 @@ import {
   NONCE_MANAGER_REQUEST_RESPONSE_QUEUE_NAME,
   REPORTER_REQUEST_RESPONSE_QUEUE_NAME,
   REQUEST_RESPONSE_REPORTER_STATE_NAME,
-  REQUEST_RESPONSE_SERVICE_NAME
+  REQUEST_RESPONSE_SERVICE_NAME,
 } from '../settings'
 import { factory } from './factory'
 
@@ -17,6 +17,6 @@ export async function buildReporter(redisClient: RedisClientType, logger: Logger
     reporterQueueName: REPORTER_REQUEST_RESPONSE_QUEUE_NAME,
     concurrency: 1,
     delegatedFee: false,
-    _logger: logger
+    _logger: logger,
   })
 }

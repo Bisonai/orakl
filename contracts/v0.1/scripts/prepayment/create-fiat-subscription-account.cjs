@@ -4,7 +4,7 @@ const {
   REQUEST_NUMBER,
   OWNER_ADDRESS,
   PROVIDER_URL,
-  MNEMONIC
+  MNEMONIC,
 } = require('./config.ts')
 const { ethers } = require('hardhat')
 

@@ -1,18 +1,16 @@
 {
-	"deploy": {
-		"name": "KRW-USD",
-		"timeout": 0,
-		"validator": "0x0000000000000000000000000000000000000000",
-		"decimals": 8,
-		"description": "KRW-USD"
-	},
-	"changeOracles": {
-		"removed": [],
-		"added": [
-			"0x30167101c91dac2757e4F55e337f3aB6E23eC671"
-		],
-		"minSubmissionCount": 1,
-		"maxSubmissionCount": 1,
-		"restartDelay": 0
-	}
+  "deploy": {
+    "name": "KRW-USD",
+    "timeout": 0,
+    "validator": "0x0000000000000000000000000000000000000000",
+    "decimals": 8,
+    "description": "KRW-USD"
+  },
+  "changeOracles": {
+    "removed": [],
+    "added": ["0x30167101c91dac2757e4F55e337f3aB6E23eC671"],
+    "minSubmissionCount": 1,
+    "maxSubmissionCount": 1,
+    "restartDelay": 0
+  }
 }

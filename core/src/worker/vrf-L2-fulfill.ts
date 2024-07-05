@@ -9,13 +9,13 @@ import {
   L2_WORKER_VRF_FULFILL_QUEUE_NAME,
   VRF_FULFILL_GAS_MINIMUM,
   VRF_FULLFILL_GAS_PER_WORD,
-  WORKER_JOB_SETTINGS
+  WORKER_JOB_SETTINGS,
 } from '../settings'
 import {
   IL2VrfFulfillListenerWorker,
   IL2VrfFulfillTransactionParameters,
   ITransactionParameters,
-  QueueType
+  QueueType,
 } from '../types'
 
 const FILE_NAME = import.meta.url
@@ -26,7 +26,7 @@ export async function worker(redisClient: RedisClientType, _logger: Logger) {
   const worker = new Worker(
     L2_WORKER_VRF_FULFILL_QUEUE_NAME,
     await job(queue, _logger),
-    BULLMQ_CONNECTION
+    BULLMQ_CONNECTION,
   )
 
   async function handleExit() {
@@ -51,7 +51,7 @@ export async function job(reporterQueue: QueueType, _logger: Logger) {
       const payloadParameters: IL2VrfFulfillTransactionParameters = {
         requestId: inData.l2RequestId,
         randomWords: inData.randomWords,
-        callbackGasLimit: BigNumber.from(inData.callbackGasLimit).toNumber()
+        callbackGasLimit: BigNumber.from(inData.callbackGasLimit).toNumber(),
       }
       const to = inData.callbackAddress
       const tx = buildTransaction(
@@ -59,13 +59,13 @@ export async function job(reporterQueue: QueueType, _logger: Logger) {
         to,
         VRF_FULFILL_GAS_MINIMUM + VRF_FULLFILL_GAS_PER_WORD * inData.randomWords.length,
         iface,
-        logger
+        logger,
       )
       logger.debug(tx, 'tx')
 
       await reporterQueue.add('vrf', tx, {
         jobId: inData.requestId,
-        ...WORKER_JOB_SETTINGS
+        ...WORKER_JOB_SETTINGS,
       })
 
       return tx
@@ -83,7 +83,7 @@ function buildTransaction(
   to: string,
   gasMinimum: number,
   iface: ethers.utils.Interface,
-  logger: Logger
+  logger: Logger,
 ): ITransactionParameters {
   const { requestId, randomWords, callbackGasLimit } = payloadParameters
   const gasLimit = callbackGasLimit + gasMinimum
@@ -92,6 +92,6 @@ function buildTransaction(
   return {
     payload,
     gasLimit,
-    to
+    to,
   }
 }

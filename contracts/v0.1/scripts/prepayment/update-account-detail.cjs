@@ -5,7 +5,7 @@ const {
   START_TIME,
   SUBSCRIPTION_PRICE,
   PROVIDER_URL,
-  MNEMONIC
+  MNEMONIC,
 } = require('./config.ts')
 const { ethers } = require('hardhat')
 
@@ -57,7 +57,7 @@ async function main() {
   console.log(`Subscription Duration:\t\t${sPeriod / (60 * 60 * 24)} days`)
   console.log(`Periodic Request Count:\t\t${sPeriodReqCount}`)
   console.log(
-    `Subscription Price (KLAY):\t${ethers.utils.formatUnits(sSubscriptionPrice, 'ether')}`
+    `Subscription Price (KLAY):\t${ethers.utils.formatUnits(sSubscriptionPrice, 'ether')}`,
   )
   console.log('Transaction Hash:\t\t', txReceipt.transactionHash)
 }

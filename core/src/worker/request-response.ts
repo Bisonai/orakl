@@ -9,13 +9,13 @@ import {
   NONCE_MANAGER_REQUEST_RESPONSE_QUEUE_NAME,
   REQUEST_RESPONSE_FULFILL_GAS_MINIMUM,
   WORKER_JOB_SETTINGS,
-  WORKER_REQUEST_RESPONSE_QUEUE_NAME
+  WORKER_REQUEST_RESPONSE_QUEUE_NAME,
 } from '../settings'
 import {
   IErrorMsgData,
   IRequestResponseListenerWorker,
   IRequestResponseTransactionParameters,
-  QueueType
+  QueueType,
 } from '../types'
 
 import { buildReducer, pipe, REDUCER_MAPPING } from '@bisonai/orakl-util'
@@ -32,7 +32,7 @@ export async function worker(redisClient: RedisClientType, _logger: Logger) {
   const worker = new Worker(
     WORKER_REQUEST_RESPONSE_QUEUE_NAME,
     await job(queue, _logger),
-    BULLMQ_CONNECTION
+    BULLMQ_CONNECTION,
   )
 
   async function handleExit() {
@@ -65,7 +65,7 @@ export async function job(reporterQueue: QueueType, _logger: Logger) {
         callbackGasLimit: inData.callbackGasLimit,
         sender: inData.sender,
         isDirectPayment: inData.isDirectPayment,
-        response
+        response,
       }
       const to = inData.callbackAddress
 
@@ -74,13 +74,13 @@ export async function job(reporterQueue: QueueType, _logger: Logger) {
         to,
         REQUEST_RESPONSE_FULFILL_GAS_MINIMUM,
         iface,
-        logger
+        logger,
       )
       logger.debug(tx, 'tx')
 
       await reporterQueue.add('request-response', tx, {
         jobId: inData.requestId,
-        ...WORKER_JOB_SETTINGS
+        ...WORKER_JOB_SETTINGS,
       })
 
       return tx
@@ -93,7 +93,7 @@ export async function job(reporterQueue: QueueType, _logger: Logger) {
         timestamp: new Date(Date.now()).toISOString(),
         code: error instanceof OraklError ? error.code.toString() : '',
         name: error.name.toString(),
-        stack: JSON.stringify(error)
+        stack: JSON.stringify(error),
       }
 
       await storeErrorMsg({ data: errorData, logger: _logger })
@@ -110,7 +110,7 @@ async function processRequest(reqEnc: string, _logger: Logger): Promise<string |
   logger.debug(req, 'req')
 
   const options = {
-    method: 'GET'
+    method: 'GET',
   }
   const rawData = (await axios.get(req[0].args, options)).data
   const reducers = buildReducer(REDUCER_MAPPING, req.slice(1))

@@ -13,7 +13,7 @@ export function serviceSub() {
   const list = command({
     name: 'list',
     args: {},
-    handler: listHandler(true)
+    handler: listHandler(true),
   })
 
   const insert = command({
@@ -21,23 +21,23 @@ export function serviceSub() {
     args: {
       name: option({
         type: cmdstring,
-        long: 'name'
-      })
+        long: 'name',
+      }),
     },
-    handler: insertHandler()
+    handler: insertHandler(),
   })
 
   const remove = command({
     name: 'remove',
     args: {
-      id: idOption
+      id: idOption,
     },
-    handler: removeHandler()
+    handler: removeHandler(),
   })
 
   return subcommands({
     name: 'service',
-    cmds: { list, insert, remove }
+    cmds: { list, insert, remove },
   })
 }
 

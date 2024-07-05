@@ -8,12 +8,12 @@ const DATA_REQUEST_EVENT_ARGS = [
   'callbackGasLimit',
   'sender',
   'isDirectPayment',
-  'data'
+  'data',
 ]
 
 async function deploy(prepaymentAddress, signer) {
   let contract = await ethers.getContractFactory('RequestResponseCoordinator', {
-    signer
+    signer,
   })
   contract = await contract.deploy(prepaymentAddress)
   await contract.deployed()
@@ -47,7 +47,7 @@ function parseDataRequestedTx(coordinator, tx) {
     isDirectPayment,
     data,
     blockNumber,
-    blockHash
+    blockHash,
   }
 }
 
@@ -68,7 +68,7 @@ function parseDataRequestFulfilledTx(coordinator, tx, eventName) {
     blockHash,
     blockNumber,
     gasUsed,
-    cumulativeGasUsed
+    cumulativeGasUsed,
   }
 }
 
@@ -86,5 +86,5 @@ module.exports = {
   parseDataRequestedTx,
   DATA_REQUEST_EVENT_ARGS,
   parseDataRequestFulfilledTx,
-  parseOracleRegisterdTx
+  parseOracleRegisterdTx,
 }

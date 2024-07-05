@@ -1,17 +1,16 @@
 {
-    "deploy": {
-      "name": "",
-      "timeout": 0,
-      "validator": "0x0000000000000000000000000000000000000000",
-      "decimals": 8,
-      "description": ""
-    },
-    "changeOracles": {
-      "removed": [],
-      "added": [],
-      "minSubmissionCount": 1,
-      "maxSubmissionCount": 1,
-      "restartDelay": 0
-    }
+  "deploy": {
+    "name": "",
+    "timeout": 0,
+    "validator": "0x0000000000000000000000000000000000000000",
+    "decimals": 8,
+    "description": ""
+  },
+  "changeOracles": {
+    "removed": [],
+    "added": [],
+    "minSubmissionCount": 1,
+    "maxSubmissionCount": 1,
+    "restartDelay": 0
   }
-  
+}

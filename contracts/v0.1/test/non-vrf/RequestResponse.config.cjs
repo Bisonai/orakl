@@ -10,16 +10,16 @@ function requestResponseConfig() {
     reqsForTier2: 0,
     reqsForTier3: 0,
     reqsForTier4: 0,
-    reqsForTier5: 0
+    reqsForTier5: 0,
   }
 
   return {
     maxGasLimit,
     gasAfterPaymentCalculation,
-    feeConfig
+    feeConfig,
   }
 }
 
 module.exports = {
-  requestResponseConfig
+  requestResponseConfig,
 }

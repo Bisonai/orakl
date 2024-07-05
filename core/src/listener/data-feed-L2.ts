@@ -11,7 +11,7 @@ import {
   L2_LISTENER_DATA_FEED_HISTORY_QUEUE_NAME,
   L2_LISTENER_DATA_FEED_LATEST_QUEUE_NAME,
   L2_LISTENER_DATA_FEED_PROCESS_EVENT_QUEUE_NAME,
-  L2_WORKER_AGGREGATOR_QUEUE_NAME
+  L2_WORKER_AGGREGATOR_QUEUE_NAME,
 } from '../settings'
 import { IAnswerUpdated, IDataFeedListenerWorkerL2, IListenerConfig } from '../types'
 import { buildSubmissionRoundJobId } from '../utils'
@@ -22,7 +22,7 @@ const FILE_NAME = import.meta.url
 export async function buildListener(
   config: IListenerConfig[],
   redisClient: RedisClientType,
-  logger: Logger
+  logger: Logger,
 ) {
   const stateName = L2_DATA_FEED_LISTENER_STATE_NAME
   const service = L2_DATA_FEED_SERVICE_NAME
@@ -49,7 +49,7 @@ export async function buildListener(
     processFn: await processEvent({ iface, logger }),
     redisClient,
     listenerInitType: 'latest',
-    logger
+    logger,
   })
 }
 
@@ -67,13 +67,13 @@ async function processEvent({ iface, logger }: { iface: ethers.utils.Interface; 
     const jobId = buildSubmissionRoundJobId({
       oracleAddress,
       roundId,
-      deploymentName: DEPLOYMENT_NAME
+      deploymentName: DEPLOYMENT_NAME,
     })
     const jobData: IDataFeedListenerWorkerL2 = {
       oracleAddress,
       roundId,
       answer: eventData.current.toNumber(),
-      workerSource: 'event'
+      workerSource: 'event',
     }
     _logger.debug(jobData, 'jobData')
 

@@ -1,18 +1,16 @@
 {
-    "deploy": {
-        "name": "KSP-KRW",
-        "timeout": 0,
-        "validator": "0x0000000000000000000000000000000000000000",
-        "decimals": 8,
-        "description": "KSP-KRW"
-    },
-    "changeOracles": {
-        "removed": [],
-        "added": [
-            "0x60d690E4d5db4025F4781c6cF3bFf8669500823C"
-        ],
-        "minSubmissionCount": 1,
-        "maxSubmissionCount": 1,
-        "restartDelay": 0
-    }
+  "deploy": {
+    "name": "KSP-KRW",
+    "timeout": 0,
+    "validator": "0x0000000000000000000000000000000000000000",
+    "decimals": 8,
+    "description": "KSP-KRW"
+  },
+  "changeOracles": {
+    "removed": [],
+    "added": ["0x60d690E4d5db4025F4781c6cF3bFf8669500823C"],
+    "minSubmissionCount": 1,
+    "maxSubmissionCount": 1,
+    "restartDelay": 0
+  }
 }

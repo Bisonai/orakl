@@ -22,7 +22,7 @@ export const L2_AGGREGATOR_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'l2aggrega
  */
 export async function fetchDataFeed({
   aggregatorHash,
-  logger
+  logger,
 }: {
   aggregatorHash: string
   logger: Logger
@@ -38,7 +38,7 @@ export async function fetchDataFeed({
 
 export async function fetchDataFeedByAggregatorId({
   aggregatorId,
-  logger
+  logger,
 }: {
   aggregatorId: string
   logger: Logger
@@ -62,7 +62,7 @@ export async function fetchDataFeedByAggregatorId({
  */
 export async function getAggregatorGivenAddress({
   oracleAddress,
-  logger
+  logger,
 }: {
   oracleAddress: string
   logger: Logger
@@ -105,7 +105,7 @@ export async function getAggregatorGivenAddress({
 export async function getAggregators({
   chain,
   active,
-  logger
+  logger,
 }: {
   chain: string
   active?: boolean
@@ -137,7 +137,7 @@ export async function getAggregators({
 export async function getAggregator({
   aggregatorHash,
   chain,
-  logger
+  logger,
 }: {
   aggregatorHash: string
   chain: string
@@ -179,7 +179,7 @@ export async function storeErrorMsg({ data, logger }: { data: IErrorMsgData; log
 export async function getL2AddressGivenL1Address({
   oracleAddress,
   chain,
-  logger
+  logger,
 }: {
   oracleAddress: string
   chain: string

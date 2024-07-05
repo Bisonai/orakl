@@ -10,16 +10,16 @@ async function deploy() {
     account0: deployerSigner,
     account1: consumerSigner,
     account2: protocolFeeRecipientSigner,
-    account3: accountBalanceRecipientSigner
+    account3: accountBalanceRecipientSigner,
   } = await createSigners()
 
   const prepaymentContract = await deployPrepayment(
     protocolFeeRecipientSigner.address,
-    deployerSigner
+    deployerSigner,
   )
   const prepayment = {
     contract: prepaymentContract,
-    signer: deployerSigner
+    signer: deployerSigner,
   }
 
   return { consumerSigner, accountBalanceRecipientSigner, prepayment }
@@ -47,7 +47,7 @@ describe('Account', function () {
 
     await expect(accountContract.setFeeRatio(50)).to.be.revertedWithCustomError(
       accountContract,
-      'MustBePaymentSolution'
+      'MustBePaymentSolution',
     )
     const startTime = Math.round(new Date().getTime() / 1000) - 60 * 60
     const period = 60 * 60 * 24 * 7
@@ -55,13 +55,13 @@ describe('Account', function () {
     const subscriptionPrice = parseKlay(100)
 
     await expect(
-      accountContract.updateAccountDetail(startTime, period, requestNumber, subscriptionPrice)
+      accountContract.updateAccountDetail(startTime, period, requestNumber, subscriptionPrice),
     ).to.be.revertedWithCustomError(accountContract, 'MustBePaymentSolution')
 
     // Cancel account ///////////////////////////////////////////////////////////
     // Account cannot be canceled directly
     await expect(
-      accountContract.cancelAccount(accountBalanceRecipientSigner.address)
+      accountContract.cancelAccount(accountBalanceRecipientSigner.address),
     ).to.be.revertedWithCustomError(accountContract, 'MustBePaymentSolution')
 
     // Account has to be canceled through payment solution (e.g. Prepayment)
@@ -69,12 +69,12 @@ describe('Account', function () {
       prepayment.contract,
       consumerSigner,
       accId,
-      accountBalanceRecipientSigner.address
+      accountBalanceRecipientSigner.address,
     )
 
     // Account was canceled, we cannot access it through account ID anymore
     await expect(
-      prepayment.contract.connect(consumerSigner).getAccount(accId)
+      prepayment.contract.connect(consumerSigner).getAccount(accId),
     ).to.be.revertedWithCustomError(prepayment.contract, 'InvalidAccount')
   })
 })

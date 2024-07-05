@@ -1,6 +1,6 @@
 async function deploy(coordinatorAddress, signer) {
   let contract = await ethers.getContractFactory('VRFConsumerMock', {
-    signer
+    signer,
   })
   contract = await contract.deploy(coordinatorAddress)
   await contract.deployed()
@@ -8,5 +8,5 @@ async function deploy(coordinatorAddress, signer) {
 }
 
 module.exports = {
-  deploy
+  deploy,
 }

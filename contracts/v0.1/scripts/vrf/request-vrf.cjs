@@ -8,7 +8,7 @@ async function main() {
   const vrfConsumerSigner = await ethers.getContractAt(
     'VRFConsumerMock',
     vrfConsumerMock.address,
-    consumer
+    consumer,
   )
 
   const keyHash = '0x47ede773ef09e40658e643fe79f8d1a27c0aa6eb7251749b268f829ea49f2024'

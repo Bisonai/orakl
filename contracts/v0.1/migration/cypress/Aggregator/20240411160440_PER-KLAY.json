@@ -8,9 +8,7 @@
   },
   "changeOracles": {
     "removed": [],
-    "added": [
-      "0xD07bD0bcd3A8Fa1087430B1BE457E05c4A412A4B"
-    ],
+    "added": ["0xD07bD0bcd3A8Fa1087430B1BE457E05c4A412A4B"],
     "minSubmissionCount": 1,
     "maxSubmissionCount": 1,
     "restartDelay": 0

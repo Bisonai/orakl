@@ -1,18 +1,16 @@
 {
-	"deploy": {
-		"name": "CHF-USD",
-		"timeout": 0,
-		"validator": "0x0000000000000000000000000000000000000000",
-		"decimals": 8,
-		"description": "CHF-USD"
-	},
-	"changeOracles": {
-		"removed": [],
-		"added": [
-			"0xa68a486a654Ca02623e8A41f703A1b24A2cd666e"
-		],
-		"minSubmissionCount": 1,
-		"maxSubmissionCount": 1,
-		"restartDelay": 0
-	}
+  "deploy": {
+    "name": "CHF-USD",
+    "timeout": 0,
+    "validator": "0x0000000000000000000000000000000000000000",
+    "decimals": 8,
+    "description": "CHF-USD"
+  },
+  "changeOracles": {
+    "removed": [],
+    "added": ["0xa68a486a654Ca02623e8A41f703A1b24A2cd666e"],
+    "minSubmissionCount": 1,
+    "maxSubmissionCount": 1,
+    "restartDelay": 0
+  }
 }

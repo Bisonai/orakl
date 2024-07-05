@@ -13,7 +13,7 @@ export function proxySub() {
   const list = command({
     name: 'list',
     args: {},
-    handler: listHandler(true)
+    handler: listHandler(true),
   })
 
   const insert = command({
@@ -21,32 +21,32 @@ export function proxySub() {
     args: {
       protocol: option({
         type: cmdstring,
-        long: 'protocol'
+        long: 'protocol',
       }),
       host: option({
         type: cmdstring,
-        long: 'host'
+        long: 'host',
       }),
       port: option({
         type: number,
-        long: 'port'
+        long: 'port',
       }),
-      location: proxyOptionalOption
+      location: proxyOptionalOption,
     },
-    handler: insertHandler()
+    handler: insertHandler(),
   })
 
   const remove = command({
     name: 'remove',
     args: {
-      id: idOption
+      id: idOption,
     },
-    handler: removeHandler()
+    handler: removeHandler(),
   })
 
   return subcommands({
     name: 'proxy',
-    cmds: { list, insert, remove }
+    cmds: { list, insert, remove },
   })
 }
 
@@ -72,7 +72,7 @@ export function insertHandler() {
     protocol,
     host,
     port,
-    location
+    location,
   }: {
     protocol: string
     host: string

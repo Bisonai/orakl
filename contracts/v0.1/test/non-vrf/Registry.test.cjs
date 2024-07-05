@@ -12,7 +12,7 @@ const {
   removeAggregator,
   createAccount,
   addConsumer,
-  removeConsumer
+  removeConsumer,
 } = require('./Registry.utils.cjs')
 const { parseKlay, getBalance, createSigners } = require('../utils.cjs')
 const { exp } = require('mathjs')
@@ -24,7 +24,7 @@ async function deploy() {
     account2,
     account3,
     account4,
-    account5
+    account5,
   } = await createSigners()
 
   const registryContract = await deployRegistry(deployerSigner)
@@ -36,7 +36,7 @@ async function deploy() {
     account3,
     account4,
     account5,
-    registryContract
+    registryContract,
   }
 }
 describe('Registry', function () {
@@ -49,7 +49,7 @@ describe('Registry', function () {
 
   it('propose & confirm', async function () {
     const { registryContract, deployerSigner, account1, account2, account3 } = await loadFixture(
-      deploy
+      deploy,
     )
     const fee = parseKlay(1)
     const pChainID = '100001'
@@ -61,7 +61,7 @@ describe('Registry', function () {
       pChainID,
       jsonRpc,
       endpoint,
-      fee
+      fee,
     )
     expect(chainID).to.be.equal(pChainID)
 
@@ -71,7 +71,7 @@ describe('Registry', function () {
 
   it('edit chain infor', async function () {
     const { registryContract, deployerSigner, account1, account2, account3 } = await loadFixture(
-      deploy
+      deploy,
     )
     const fee = parseKlay(1)
     const pChainID = '100001'
@@ -83,7 +83,7 @@ describe('Registry', function () {
       pChainID,
       jsonRpc,
       endpoint,
-      fee
+      fee,
     )
     await confirm(registryContract, deployerSigner, chainID)
     jsonRpc = '345'
@@ -94,14 +94,14 @@ describe('Registry', function () {
       chainID,
       jsonRpc,
       endpoint,
-      fee
+      fee,
     )
     expect(chainInfor.rpc).to.be.equal(jsonRpc)
   })
 
   it('add & remove aggregator', async function () {
     const { registryContract, deployerSigner, account1, account2, account3 } = await loadFixture(
-      deploy
+      deploy,
     )
     const fee = parseKlay(1)
     const pChainID = '100001'
@@ -116,7 +116,7 @@ describe('Registry', function () {
       pChainID,
       jsonRpc,
       endpoint,
-      fee
+      fee,
     )
     await confirm(registryContract, deployerSigner, chainID)
     const { aggregatorID } = await addAggregator(
@@ -124,7 +124,7 @@ describe('Registry', function () {
       deployerSigner,
       chainID,
       l1Aggregator,
-      l2Aggregator
+      l2Aggregator,
     )
     await removeAggregator(registryContract, deployerSigner, chainID, aggregatorID)
   })
@@ -141,7 +141,7 @@ describe('Registry', function () {
       pChainID,
       jsonRpc,
       endpoint,
-      fee
+      fee,
     )
     await confirm(registryContract, deployerSigner, chainID)
     const { accId, owner } = await createAccount(registryContract, deployerSigner, chainID)
@@ -155,7 +155,7 @@ describe('Registry', function () {
 
   it('withdraw', async function () {
     const { registryContract, deployerSigner, account1, account2, account3 } = await loadFixture(
-      deploy
+      deploy,
     )
     const fee = parseKlay(1)
     const pChainID = '100001'
@@ -167,7 +167,7 @@ describe('Registry', function () {
       pChainID,
       jsonRpc,
       endpoint,
-      fee
+      fee,
     )
     const beforeWithdraw = await getBalance(registryContract.address)
     await withdraw(registryContract, deployerSigner, fee)

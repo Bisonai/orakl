@@ -8,7 +8,7 @@ async function deploy() {
   deployer = await ethers.getSigner(deployer)
 
   let contract = await ethers.getContractFactory('TestEllipticCurve', {
-    signer: deployer.address
+    signer: deployer.address,
   })
   contract = await contract.deploy()
   await contract.deployed()
@@ -55,7 +55,7 @@ for (const curve of auxCurves) {
       }`, async () => {
         const ecLib = await loadFixture(deploy)
         await expect(ecLib.invMod(test.input.k, test.input.mod)).to.be.rejectedWith(
-          test.output.error
+          test.output.error,
         )
       })
     }
@@ -85,7 +85,7 @@ for (const curve of auxCurves) {
       }`, async () => {
         const ecLib = await loadFixture(deploy)
         expect(await ecLib.isOnCurve(test.input.x, test.input.y, aa, bb, pp)).to.be.equal(
-          test.output.isOnCurve
+          test.output.isOnCurve,
         )
       })
     }
@@ -124,7 +124,7 @@ for (const curve of curves) {
           test.input.x2,
           test.input.y2,
           aa,
-          pp
+          pp,
         )
 
         expect(res[0]).to.be.equal(test.output.x)
@@ -142,7 +142,7 @@ for (const curve of curves) {
           test.input.x2,
           test.input.y2,
           aa,
-          pp
+          pp,
         )
 
         expect(res[0]).to.be.equal(test.output.x)

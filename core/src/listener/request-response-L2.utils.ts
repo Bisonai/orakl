@@ -26,5 +26,5 @@ export const parseResponse = {
   },
   [BYTES]: function (x: IL2DataRequestFulfilled) {
     return x.responseBytes
-  }
+  },
 } satisfies Record<string, (x: IL2DataRequestFulfilled) => number | string | boolean>
