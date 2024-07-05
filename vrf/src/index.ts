@@ -61,7 +61,7 @@ const ECVRF_prove = (SK, alpha_string) => {
   const pi_string = [
     ...point_to_string(Gamma),
     ...int_to_string(c, 16 /* n */),
-    ...int_to_string(s, 32 /* qLen */)
+    ...int_to_string(s, 32 /* qLen */),
   ]
   return Hex(pi_string)
 }
@@ -113,7 +113,7 @@ const ECVRF_hash_to_curve_try_and_increment = (Y, alpha_string) => {
       PK_string,
       Buffer.from(alpha_string, 'hex'),
       ctr_string,
-      zero_string
+      zero_string,
     )
     H = arbitrary_string_to_point(hash_string)
     ctr++
@@ -222,8 +222,8 @@ const ECVRF_keygen = (entropy?) => {
       key: public_key,
       compressed: keypair.getPublic(true, 'hex'),
       x: keypair.getPublic().getX(),
-      y: keypair.getPublic().getY()
-    }
+      y: keypair.getPublic().getY(),
+    },
   }
 }
 
@@ -247,7 +247,7 @@ const getFastVerifyComponents = (Y, pi_string, alpha_string) => {
     sHX: sH.x.toString(),
     sHY: sH.y.toString(),
     cGX: cG.x.toString(),
-    cGY: cG.y.toString()
+    cGY: cG.y.toString(),
   }
 }
 
@@ -264,7 +264,7 @@ const processVrfRequest = (alpha: string, config: IVrfConfig): IVrfResponse => {
     pk: [config.pkX, config.pkY],
     proof: [Gamma.x.toString(), Gamma.y.toString(), c.toString(), s.toString()],
     uPoint: [fast.uX, fast.uY],
-    vComponents: [fast.sHX, fast.sHY, fast.cGX, fast.cGY]
+    vComponents: [fast.sHX, fast.sHY, fast.cGX, fast.cGY],
   }
 }
 
@@ -278,5 +278,5 @@ export {
   point_to_string,
   processVrfRequest,
   VrfError,
-  VrfErrorCode
+  VrfErrorCode,
 }

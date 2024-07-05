@@ -8,7 +8,7 @@ class VrfError extends Error {
 }
 
 enum VrfErrorCode {
-  InvalidProofError = 10000
+  InvalidProofError = 10000,
 }
 
 export { VrfError, VrfErrorCode }
