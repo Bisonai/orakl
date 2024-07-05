@@ -82,7 +82,7 @@ jobs:
 
       - name: Run delegator
         working-directory: ./delegator
-        run: go run main.go
+        run: go run main.go &
         env:
           DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/delegator?search_path=public"
           PROVIDER_URL: "https://public-en.kairos.node.kaia.io"
@@ -102,14 +102,14 @@ jobs:
         run: |
           until $(curl --output /dev/null --silent --head --fail http://127.0.0.1:3002/api/v1); do
             echo "Waiting for delegator service to be ready..."
-            sleep 1
+            sleep 5
           done
 
       - name: Check API Service Health
         run: |
           until $(curl --output /dev/null --silent --head --fail http://127.0.0.1:3000/api/v1); do
             echo "Waiting for api service to be ready..."
-            sleep 1
+            sleep 5
           done
 
       - name: Run tests
