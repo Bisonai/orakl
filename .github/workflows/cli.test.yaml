@@ -67,6 +67,11 @@ jobs:
         working-directory: ./api
         run: go mod tidy
 
+      - name: Create delegator database
+        run: PGPASSWORD=$POSTGRES_PASSWORD psql -h localhost -U postgres -c "CREATE DATABASE delegator"
+        env:
+          POSTGRES_PASSWORD: postgres
+
       - name: Delegator db migrate
         working-directory: ./delegator
         run: migrate -database "postgresql://postgres:postgres@localhost:5432/delegator?search_path=public&sslmode=disable" -verbose -path ./migrations up
