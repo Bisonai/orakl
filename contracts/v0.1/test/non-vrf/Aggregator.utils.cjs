@@ -11,7 +11,7 @@ async function deployAggregator(signer) {
 
 async function deployAggregatorProxy(aggregatorAddress, signer) {
   let contract = await ethers.getContractFactory('AggregatorProxy', {
-    signer
+    signer,
   })
   contract = await contract.deploy(aggregatorAddress)
   await contract.deployed()
@@ -20,7 +20,7 @@ async function deployAggregatorProxy(aggregatorAddress, signer) {
 
 async function deployDataFeedConsumerMock(aggregatorProxyAddress, signer) {
   let contract = await ethers.getContractFactory('DataFeedConsumerMock', {
-    signer
+    signer,
   })
   contract = await contract.deploy(aggregatorProxyAddress)
   await contract.deployed()
@@ -40,5 +40,5 @@ module.exports = {
   deployAggregator,
   parseSetRequesterPermissionsTx,
   deployAggregatorProxy,
-  deployDataFeedConsumerMock
+  deployDataFeedConsumerMock,
 }

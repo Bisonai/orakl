@@ -1,18 +1,16 @@
 {
-    "deploy": {
-        "name": "MBX-KRW",
-        "timeout": 0,
-        "validator": "0x0000000000000000000000000000000000000000",
-        "decimals": 8,
-        "description": "MBX-KRW"
-    },
-    "changeOracles": {
-        "removed": [],
-        "added": [
-            "0x95B4cef2d1d6a0B22B339306cEA3aff74548CF83"
-        ],
-        "minSubmissionCount": 1,
-        "maxSubmissionCount": 1,
-        "restartDelay": 0
-    }
+  "deploy": {
+    "name": "MBX-KRW",
+    "timeout": 0,
+    "validator": "0x0000000000000000000000000000000000000000",
+    "decimals": 8,
+    "description": "MBX-KRW"
+  },
+  "changeOracles": {
+    "removed": [],
+    "added": ["0x95B4cef2d1d6a0B22B339306cEA3aff74548CF83"],
+    "minSubmissionCount": 1,
+    "maxSubmissionCount": 1,
+    "restartDelay": 0
+  }
 }

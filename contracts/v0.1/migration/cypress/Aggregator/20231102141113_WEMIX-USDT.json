@@ -1,18 +1,16 @@
 {
-    "deploy": {
-        "name": "WEMIX-USDT",
-        "timeout": 0,
-        "validator": "0x0000000000000000000000000000000000000000",
-        "decimals": 8,
-        "description": "WEMIX-USDT"
-    },
-    "changeOracles": {
-        "removed": [],
-        "added": [
-            "0xeB560be082c90250D73D827B47CaC786321F166e"
-        ],
-        "minSubmissionCount": 1,
-        "maxSubmissionCount": 1,
-        "restartDelay": 0
-    }
+  "deploy": {
+    "name": "WEMIX-USDT",
+    "timeout": 0,
+    "validator": "0x0000000000000000000000000000000000000000",
+    "decimals": 8,
+    "description": "WEMIX-USDT"
+  },
+  "changeOracles": {
+    "removed": [],
+    "added": ["0xeB560be082c90250D73D827B47CaC786321F166e"],
+    "minSubmissionCount": 1,
+    "maxSubmissionCount": 1,
+    "restartDelay": 0
+  }
 }

@@ -52,7 +52,7 @@ const readDeployments = async (folderPath: string): Promise<deployments> => {
             console.error(`Error parsing JSON file ${file}: ${error.message}`)
           }
         }
-      })
+      }),
     )
   }
 
@@ -70,7 +70,7 @@ const _getContractAddressWithTokenPairs = async (
   network: string,
   contractName: string,
   token_0: string,
-  token_1: string
+  token_1: string,
 ) => {
   const name = `${contractName}_${token_0.toUpperCase()}-${token_1.toUpperCase()}`
   return await getContractAddress(network, name)
@@ -83,7 +83,7 @@ export const getAggregatorAddress = async (network: string, token_0: string, tok
 export const getAggregatorProxyAddress = async (
   network: string,
   token_0: string,
-  token_1: string
+  token_1: string,
 ) => {
   return await _getContractAddressWithTokenPairs(network, 'AggregatorProxy', token_0, token_1)
 }

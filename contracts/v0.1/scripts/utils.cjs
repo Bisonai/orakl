@@ -118,7 +118,7 @@ function validateAggregatorChangeOraclesConfig(config) {
     'added',
     'minSubmissionCount',
     'maxSubmissionCount',
-    'restartDelay'
+    'restartDelay',
   ]
 
   if (!validateProperties(config, requiredProperties)) {
@@ -262,5 +262,5 @@ module.exports = {
   validatePrepaymentDeployConfig,
   validateAggregatorRedirectProxyConfig,
   getFormattedDate,
-  loadDeployments
+  loadDeployments,
 }

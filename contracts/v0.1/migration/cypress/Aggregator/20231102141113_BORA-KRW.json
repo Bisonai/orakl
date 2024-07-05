@@ -1,18 +1,16 @@
 {
-    "deploy": {
-        "name": "BORA-KRW",
-        "timeout": 0,
-        "validator": "0x0000000000000000000000000000000000000000",
-        "decimals": 8,
-        "description": "BORA-KRW"
-    },
-    "changeOracles": {
-        "removed": [],
-        "added": [
-            "0x5147611E86AAb2C457A7e1ef5E4B1De4152a820b"
-        ],
-        "minSubmissionCount": 1,
-        "maxSubmissionCount": 1,
-        "restartDelay": 0
-    }
+  "deploy": {
+    "name": "BORA-KRW",
+    "timeout": 0,
+    "validator": "0x0000000000000000000000000000000000000000",
+    "decimals": 8,
+    "description": "BORA-KRW"
+  },
+  "changeOracles": {
+    "removed": [],
+    "added": ["0x5147611E86AAb2C457A7e1ef5E4B1De4152a820b"],
+    "minSubmissionCount": 1,
+    "maxSubmissionCount": 1,
+    "restartDelay": 0
+  }
 }

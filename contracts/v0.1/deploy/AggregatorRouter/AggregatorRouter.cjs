@@ -3,7 +3,7 @@ const {
   loadJson,
   loadMigration,
   updateMigration,
-  loadDeployments
+  loadDeployments,
 } = require('../../scripts/utils.cjs')
 
 const func = async function (hre) {
@@ -26,12 +26,12 @@ const func = async function (hre) {
       const aggregatorRouterDeployment = await deploy('AggregatorRouter', {
         args: [],
         from: deployer,
-        log: true
+        log: true,
       })
 
       aggregatorRouter = await ethers.getContractAt(
         'AggregatorRouter',
-        aggregatorRouterDeployment.address
+        aggregatorRouterDeployment.address,
       )
 
       console.log('AggregatorRouter:', aggregatorRouterDeployment)
@@ -50,7 +50,7 @@ const func = async function (hre) {
 
       if (updateProxiesConfig.updateAll) {
         const deployments = await loadDeployments(`./deployments/${network.name}`)
-        
+
         for (const key in deployments) {
           if (key.includes('AggregatorProxy')) {
             const feedName = key.split('_')[1]
@@ -66,7 +66,6 @@ const func = async function (hre) {
           feedNames.push(feedName)
           addresses.push(address)
         }
-
       }
       if (feedNames.length == 0 || addresses.length == 0) {
         throw new Error('no proxies to update')

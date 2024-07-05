@@ -24,5 +24,5 @@ module.exports = {
   SUBSCRIPTION_PRICE,
   ACC_ID,
   PROVIDER_URL,
-  MNEMONIC
+  MNEMONIC,
 }

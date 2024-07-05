@@ -10,7 +10,7 @@ const {
   propose,
   confirm,
   createAccount,
-  addConsumer
+  addConsumer,
 } = require('./Registry.utils.cjs')
 
 const { deploy: deployCoordinator } = require('./RequestResponseCoordinator.utils.cjs')
@@ -20,14 +20,14 @@ async function deploy() {
     account0: deployerSigner,
     account2,
     account3,
-    account4: protocolFeeRecipient
+    account4: protocolFeeRecipient,
   } = await createSigners()
 
   // Prepayment
   const prepaymentContract = await deployPrepayment(protocolFeeRecipient.address, deployerSigner)
   const prepayment = {
     contract: prepaymentContract,
-    signer: deployerSigner
+    signer: deployerSigner,
   }
 
   // VRFCoordinator
@@ -36,7 +36,7 @@ async function deploy() {
   expect(await coordinatorContract.typeAndVersion()).to.be.equal('VRFCoordinator v0.1')
   const coordinator = {
     contract: coordinatorContract,
-    signer: deployerSigner
+    signer: deployerSigner,
   }
   await addCoordinator(prepayment.contract, prepayment.signer, coordinator.contract.address)
 
@@ -47,7 +47,7 @@ async function deploy() {
   // registry
 
   let registryContract = await ethers.getContractFactory('Registry', {
-    signer: deployerSigner
+    signer: deployerSigner,
   })
   registryContract = await registryContract.deploy()
   await registryContract.deployed()
@@ -63,7 +63,7 @@ async function deploy() {
     pChainID,
     jsonRpc,
     L2Endpoint,
-    fee
+    fee,
   )
   await confirm(registryContract, deployerSigner, chainID)
   const { accId: rAccId } = await createAccount(registryContract, deployerSigner, chainID)
@@ -71,12 +71,12 @@ async function deploy() {
   await addConsumer(registryContract, deployerSigner, rAccId, deployerSigner.address)
 
   let endpointContract = await ethers.getContractFactory('L1Endpoint', {
-    signer: deployerSigner
+    signer: deployerSigner,
   })
   endpointContract = await endpointContract.deploy(
     registryContract.address,
     coordinatorContract.address,
-    rRCoordinatorContract.address
+    rRCoordinatorContract.address,
   )
   await endpointContract.deployed()
   await endpointContract.addOracle(deployerSigner.address)
@@ -86,12 +86,12 @@ async function deploy() {
 
   const endpoint = {
     contract: endpointContract,
-    signer: deployerSigner
+    signer: deployerSigner,
   }
 
   const registry = {
     contract: registryContract,
-    signer: deployerSigner
+    signer: deployerSigner,
   }
 
   return {
@@ -102,7 +102,7 @@ async function deploy() {
     registry,
     account2,
     account3,
-    registrAccount: rAccId
+    registrAccount: rAccId,
   }
 }
 

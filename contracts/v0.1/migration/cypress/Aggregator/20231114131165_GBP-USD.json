@@ -1,18 +1,16 @@
 {
-	"deploy": {
-		"name": "GBP-USD",
-		"timeout": 0,
-		"validator": "0x0000000000000000000000000000000000000000",
-		"decimals": 8,
-		"description": "GBP-USD"
-	},
-	"changeOracles": {
-		"removed": [],
-		"added": [
-			"0x496Fb9Ab3BEc7eaFD2b66C227D197d4a5Fb634e7"
-		],
-		"minSubmissionCount": 1,
-		"maxSubmissionCount": 1,
-		"restartDelay": 0
-	}
+  "deploy": {
+    "name": "GBP-USD",
+    "timeout": 0,
+    "validator": "0x0000000000000000000000000000000000000000",
+    "decimals": 8,
+    "description": "GBP-USD"
+  },
+  "changeOracles": {
+    "removed": [],
+    "added": ["0x496Fb9Ab3BEc7eaFD2b66C227D197d4a5Fb634e7"],
+    "minSubmissionCount": 1,
+    "maxSubmissionCount": 1,
+    "restartDelay": 0
+  }
 }

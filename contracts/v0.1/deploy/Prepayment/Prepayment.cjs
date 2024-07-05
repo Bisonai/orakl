@@ -3,7 +3,7 @@ const {
   loadJson,
   loadMigration,
   updateMigration,
-  validatePrepaymentDeployConfig
+  validatePrepaymentDeployConfig,
 } = require('../../scripts/utils.cjs')
 
 const func = async function (hre) {
@@ -31,7 +31,7 @@ const func = async function (hre) {
       const prepaymentDeployment = await deploy('Prepayment', {
         args: [deployConfig.protocolFeeRecipient],
         from: deployer,
-        log: true
+        log: true,
       })
     }
 

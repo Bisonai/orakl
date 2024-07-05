@@ -6,7 +6,7 @@ const VRF = import('@bisonai/orakl-vrf')
 
 async function deploy(prepaymentAddress, signer) {
   let contract = await ethers.getContractFactory('VRFCoordinator', {
-    signer
+    signer,
   })
   contract = await contract.deploy(prepaymentAddress)
   await contract.deployed()
@@ -26,12 +26,12 @@ async function generateVrf(
   accId,
   callbackGasLimit,
   sender,
-  numWords
+  numWords,
 ) {
   const { sk, pk, pkX, pkY, publicProvingKey, keyHash } = vrfConfig()
 
   const alpha = remove0x(
-    ethers.utils.solidityKeccak256(['uint256', 'bytes32'], [preSeed, blockHash])
+    ethers.utils.solidityKeccak256(['uint256', 'bytes32'], [preSeed, blockHash]),
   )
 
   // Simulate off-chain proof generation
@@ -41,7 +41,7 @@ async function generateVrf(
     pk,
     pkX,
     pkY,
-    keyHash
+    keyHash,
   })
 
   const pi = [publicProvingKey, proof, preSeed, uPoint, vComponents]
@@ -60,7 +60,7 @@ function parseRandomWordsRequestedTx(coordinator, tx) {
     callbackGasLimit,
     numWords,
     sender,
-    isDirectPayment
+    isDirectPayment,
   } = event.args
   const blockHash = tx.blockHash
   const blockNumber = tx.blockNumber
@@ -75,7 +75,7 @@ function parseRandomWordsRequestedTx(coordinator, tx) {
     sender,
     isDirectPayment,
     blockHash,
-    blockNumber
+    blockNumber,
   }
 }
 
@@ -99,7 +99,7 @@ async function fulfillRandomWords(
   callbackGasLimit,
   sender,
   isDirectPayment,
-  numWords
+  numWords,
 ) {
   const { pi, rc } = await generateVrf(
     preSeed,
@@ -108,7 +108,7 @@ async function fulfillRandomWords(
     accId,
     callbackGasLimit,
     sender,
-    numWords
+    numWords,
   )
 
   const tx = await (
@@ -130,7 +130,7 @@ async function computeExactFee(
   signer,
   reqCount,
   numSubmission,
-  callbackGasLimit
+  callbackGasLimit,
 ) {
   const serviceFee = await coordinatorContract
     .connect(signer)
@@ -148,5 +148,5 @@ module.exports = {
   parseRandomWordsRequestedTx,
   parseRandomWordsFulfilledTx,
   parseRequestCanceledTx,
-  computeExactFee
+  computeExactFee,
 }

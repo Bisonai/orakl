@@ -160,14 +160,7 @@
     "invalid": [
       {
         "description": "wrong gamma sign",
-        "asserts": [
-          true,
-          true,
-          true,
-          true,
-          true,
-          false
-        ],
+        "asserts": [true, true, true, true, true, false],
         "pi": "0x021f4dbca087a1972d04a07a779b7df1caa99e0f5db2aa21f3aecc4f9e10e85d0814faa89697b482daa377fb6b4a8b0191a65d34a6d90a8a2461e5db9205d4cf0bb4b2c31b5ef6997a585a9f1a72517b6f",
         "publicKey": {
           "x": "0x2c8c31fc9f990c6b55e3865a184a4ce50e09481f2eaeb3e60ec1cea13a6ae645",
@@ -191,14 +184,7 @@
       },
       {
         "description": "wrong public key",
-        "asserts": [
-          false,
-          false,
-          false,
-          false,
-          true,
-          true
-        ],
+        "asserts": [false, false, false, false, true, true],
         "pi": "0x031f4dbca087a1972d04a07a779b7df1caa99e0f5db2aa21f3aecc4f9e10e85d0814faa89697b482daa377fb6b4a8b0191a65d34a6d90a8a2461e5db9205d4cf0bb4b2c31b5ef6997a585a9f1a72517b6f",
         "publicKey": {
           "x": "0xe493dbf1c10d80f3581e4904930b1404cc6c13900ee0758474fa94abe8c4cd13",
@@ -222,14 +208,7 @@
       },
       {
         "description": "wrong message",
-        "asserts": [
-          false,
-          false,
-          false,
-          false,
-          true,
-          true
-        ],
+        "asserts": [false, false, false, false, true, true],
         "pi": "0x031f4dbca087a1972d04a07a779b7df1caa99e0f5db2aa21f3aecc4f9e10e85d0814faa89697b482daa377fb6b4a8b0191a65d34a6d90a8a2461e5db9205d4cf0bb4b2c31b5ef6997a585a9f1a72517b6f",
         "publicKey": {
           "x": "0xe493dbf1c10d80f3581e4904930b1404cc6c13900ee0758474fa94abe8c4cd13",

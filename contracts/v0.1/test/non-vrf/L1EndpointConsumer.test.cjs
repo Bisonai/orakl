@@ -6,7 +6,7 @@ const { parseKlay, createSigners, median, majorityVotingBool } = require('../uti
 const {
   setupOracle,
   generateVrf,
-  deploy: deployVrfCoordinator
+  deploy: deployVrfCoordinator,
 } = require('../vrf/VRFCoordinator.utils.cjs')
 const { deploy: deployPrepayment, addCoordinator } = require('./Prepayment.utils.cjs')
 
@@ -15,7 +15,7 @@ const { propose, confirm, createAccount, addConsumer } = require('./Registry.uti
 const { requestResponseConfig } = require('./RequestResponse.config.cjs')
 const {
   deploy: deployCoordinator,
-  setupOracle: setupRROracle
+  setupOracle: setupRROracle,
 } = require('./RequestResponseCoordinator.utils.cjs')
 
 const SINGLE_WORD = 1
@@ -25,11 +25,11 @@ async function fulfillRandomWords(
   notRegisteredOracleSigner,
   pi,
   rc,
-  isDirectPayment
+  isDirectPayment,
 ) {
   // Random word request cannot be fulfilled by an unregistered oracle
   await expect(
-    coordinator.connect(notRegisteredOracleSigner).fulfillRandomWords(pi, rc, isDirectPayment)
+    coordinator.connect(notRegisteredOracleSigner).fulfillRandomWords(pi, rc, isDirectPayment),
   ).to.be.revertedWithCustomError(coordinator, 'NoSuchProvingKey')
 
   // Registered oracle can submit data back to chain
@@ -39,7 +39,7 @@ async function fulfillRandomWords(
 
   // However even registered oracle cannot fulfill the request more than once
   await expect(
-    coordinator.connect(registeredOracleSigner).fulfillRandomWords(pi, rc, isDirectPayment)
+    coordinator.connect(registeredOracleSigner).fulfillRandomWords(pi, rc, isDirectPayment),
   ).to.be.revertedWithCustomError(coordinator, 'NoCorrespondingRequest')
 
   return tx
@@ -53,7 +53,7 @@ function validateRandomWordsRequestedEvent(
   maxGasLimit,
   numWords,
   sender,
-  isDirectPayment
+  isDirectPayment,
 ) {
   let eventIndex = expect(tx.events.length).to.be.equal(5)
   eventIndex = 2
@@ -68,7 +68,7 @@ function validateRandomWordsRequestedEvent(
     callbackGasLimit: eCallbackGasLimit,
     numWords: eNumWords,
     sender: eSender,
-    isDirectPayment: eIsDirectPayment
+    isDirectPayment: eIsDirectPayment,
   } = event.args
   expect(eKeyHash).to.be.equal(keyHash)
   if (!isDirectPayment) {
@@ -118,7 +118,7 @@ async function verifyFulfillment(prepayment, endpoint, txReceipt, accId, respons
     responseBool,
     responseString,
     responseBytes32,
-    responseBytes
+    responseBytes,
   } = endpointEvent.args
   switch (jobId) {
     case ethers.utils.keccak256(ethers.utils.toUtf8Bytes('uint128')):
@@ -148,7 +148,7 @@ async function requestAndFulfill(
   fulfillValue,
   fulfillEventName,
   dataType,
-  numSubmission
+  numSubmission,
 ) {
   const {
     l1Endpoint,
@@ -158,7 +158,7 @@ async function requestAndFulfill(
     registry,
     registrAccount,
     account2: rrOracle1,
-    account3: rrOracle2
+    account3: rrOracle2,
   } = await loadFixture(deploy)
   const oracles = [rrOracle1, rrOracle2]
   const { maxGasLimit: callbackGasLimit } = requestResponseConfig()
@@ -181,7 +181,7 @@ async function requestAndFulfill(
       registrAccount,
       callbackGasLimit,
       numSubmission,
-      l2RequestId
+      l2RequestId,
     )
   ).wait()
 
@@ -200,7 +200,7 @@ async function requestAndFulfill(
     numSubmission,
     sender,
     isDirectPayment,
-    jobId
+    jobId,
   }
 
   let fulfillReceipt
@@ -223,14 +223,14 @@ async function deploy() {
     account0: deployerSigner,
     account2,
     account3,
-    account4: protocolFeeRecipient
+    account4: protocolFeeRecipient,
   } = await createSigners()
 
   // Prepayment
   const prepaymentContract = await deployPrepayment(protocolFeeRecipient.address, deployerSigner)
   const prepayment = {
     contract: prepaymentContract,
-    signer: deployerSigner
+    signer: deployerSigner,
   }
 
   // VRFCoordinator
@@ -239,7 +239,7 @@ async function deploy() {
   expect(await coordinatorContract.typeAndVersion()).to.be.equal('VRFCoordinator v0.1')
   const coordinator = {
     contract: coordinatorContract,
-    signer: deployerSigner
+    signer: deployerSigner,
   }
   await addCoordinator(prepayment.contract, prepayment.signer, coordinator.contract.address)
 
@@ -250,7 +250,7 @@ async function deploy() {
   // registry
 
   let registryContract = await ethers.getContractFactory('Registry', {
-    signer: deployerSigner
+    signer: deployerSigner,
   })
   registryContract = await registryContract.deploy()
   await registryContract.deployed()
@@ -266,7 +266,7 @@ async function deploy() {
     pChainID,
     jsonRpc,
     L2Endpoint,
-    fee
+    fee,
   )
   await confirm(registryContract, deployerSigner, chainID)
   const { accId: rAccId } = await createAccount(registryContract, deployerSigner, chainID)
@@ -274,12 +274,12 @@ async function deploy() {
   await addConsumer(registryContract, deployerSigner, rAccId, deployerSigner.address)
 
   let endpointContract = await ethers.getContractFactory('L1Endpoint', {
-    signer: deployerSigner
+    signer: deployerSigner,
   })
   endpointContract = await endpointContract.deploy(
     registryContract.address,
     coordinatorContract.address,
-    rRCoordinatorContract.address
+    rRCoordinatorContract.address,
   )
   await endpointContract.deployed()
   await endpointContract.addOracle(deployerSigner.address)
@@ -289,24 +289,24 @@ async function deploy() {
 
   const l1Endpoint = {
     contract: endpointContract,
-    signer: deployerSigner
+    signer: deployerSigner,
   }
 
   const registry = {
     contract: registryContract,
-    signer: deployerSigner
+    signer: deployerSigner,
   }
 
   // consumer
   let consumerMock = await ethers.getContractFactory('L1EndpointConsumerMock', {
-    signer: deployerSigner
+    signer: deployerSigner,
   })
   consumerMock = await consumerMock.deploy(endpointContract.address)
   await consumerMock.deployed()
 
   const consumer = {
     contract: consumerMock,
-    signer: deployerSigner
+    signer: deployerSigner,
   }
 
   await addConsumer(registryContract, deployerSigner, rAccId, consumerMock.address)
@@ -321,7 +321,7 @@ async function deploy() {
     registry,
     account2,
     account3,
-    registrAccount: rAccId
+    registrAccount: rAccId,
   }
 }
 
@@ -333,7 +333,7 @@ describe('L1Endpoint', function () {
       registry,
       account2: oracle,
       account3: unregisteredOracle,
-      registrAccount
+      registrAccount,
     } = await loadFixture(deploy)
 
     const { maxGasLimit: callbackGasLimit, keyHash } = vrfConfig()
@@ -357,7 +357,7 @@ describe('L1Endpoint', function () {
         SINGLE_WORD,
         registrAccount,
         l1Endpoint.signer.address, // consumer
-        l2RequestId
+        l2RequestId,
       )
     ).wait()
     expect(txRequestRandomWords.events.length).to.be.equal(5)
@@ -374,7 +374,7 @@ describe('L1Endpoint', function () {
       callbackGasLimit,
       numWords,
       sender,
-      isDirectPayment
+      isDirectPayment,
     )
     const { pi, rc } = await generateVrf(
       preSeed,
@@ -383,7 +383,7 @@ describe('L1Endpoint', function () {
       accId,
       callbackGasLimit,
       sender,
-      numWords
+      numWords,
     )
 
     const txFulfillRandomWords = await fulfillRandomWords(
@@ -392,7 +392,7 @@ describe('L1Endpoint', function () {
       unregisteredOracle,
       pi,
       rc,
-      isDirectPayment
+      isDirectPayment,
     )
 
     const fulfillEvent = l1Endpoint.contract.interface.parseLog(txFulfillRandomWords.events[0])
@@ -413,7 +413,7 @@ describe('L1Endpoint', function () {
       fulfillValue,
       fulfillEventName,
       dataType,
-      numSubmission
+      numSubmission,
     )
   })
 
@@ -430,7 +430,7 @@ describe('L1Endpoint', function () {
       fulfillValue,
       fulfillEventName,
       dataType,
-      numSubmission
+      numSubmission,
     )
   })
 
@@ -447,7 +447,7 @@ describe('L1Endpoint', function () {
       fulfillValue,
       fulfillEventName,
       dataType,
-      numSubmission
+      numSubmission,
     )
   })
 
@@ -464,7 +464,7 @@ describe('L1Endpoint', function () {
       fulfillValue,
       fulfillEventName,
       dataType,
-      numSubmission
+      numSubmission,
     )
   })
 
@@ -481,7 +481,7 @@ describe('L1Endpoint', function () {
       fulfillValue,
       fulfillEventName,
       dataType,
-      numSubmission
+      numSubmission,
     )
   })
 
@@ -498,7 +498,7 @@ describe('L1Endpoint', function () {
       fulfillValue,
       fulfillEventName,
       dataType,
-      numSubmission
+      numSubmission,
     )
   })
 })

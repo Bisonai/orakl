@@ -17,10 +17,10 @@ const func = async function (hre) {
         args: [
           deployConfig.registry,
           deployConfig.vrfCoordinator,
-          deployConfig.requestResponseCoordinator
+          deployConfig.requestResponseCoordinator,
         ],
         from: deployer,
-        log: true
+        log: true,
       })
 
       console.log('L1Endpoint:', l1Endpoint)

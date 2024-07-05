@@ -24,7 +24,7 @@ async function main() {
       addedAdmins,
       minSubmissionCount,
       maxSubmissionCount,
-      restartDelay
+      restartDelay,
     )
   ).wait()
 }

@@ -5,7 +5,7 @@ const {
   deploy: deployPrepayment,
   createAccount,
   deposit,
-  withdraw
+  withdraw,
 } = require('./Prepayment.utils.cjs')
 const { parseKlay, getBalance, createSigners } = require('../utils.cjs')
 
@@ -21,12 +21,12 @@ async function deploy() {
     account2: protocolFeeRecipientSigner,
     account3,
     account4,
-    account5
+    account5,
   } = await createSigners()
 
   const prepaymentContract = await deployPrepayment(
     protocolFeeRecipientSigner.address,
-    deployerSigner
+    deployerSigner,
   )
 
   return {
@@ -36,7 +36,7 @@ async function deploy() {
     account3,
     account4,
     account5,
-    prepaymentContract
+    prepaymentContract,
   }
 }
 
@@ -60,7 +60,7 @@ describe('Prepayment', function () {
 
     const higherThresholdRatio = 100
     await expect(
-      prepaymentContract.setBurnFeeRatio(higherThresholdRatio)
+      prepaymentContract.setBurnFeeRatio(higherThresholdRatio),
     ).to.be.revertedWithCustomError(prepaymentContract, 'TooHighFeeRatio')
 
     // 3. Set burnFee ratio with
@@ -69,7 +69,7 @@ describe('Prepayment', function () {
 
     const ratioAboveThreshold = 101
     await expect(
-      prepaymentContract.setBurnFeeRatio(ratioAboveThreshold)
+      prepaymentContract.setBurnFeeRatio(ratioAboveThreshold),
     ).to.be.revertedWithCustomError(prepaymentContract, 'RatioOutOfBounds')
   })
 
@@ -87,7 +87,7 @@ describe('Prepayment', function () {
 
     const higherThresholdRatio = 100
     await expect(
-      prepaymentContract.setProtocolFeeRatio(higherThresholdRatio)
+      prepaymentContract.setProtocolFeeRatio(higherThresholdRatio),
     ).to.be.revertedWithCustomError(prepaymentContract, 'TooHighFeeRatio')
 
     // 3. Set burn ratio with
@@ -96,7 +96,7 @@ describe('Prepayment', function () {
 
     const ratioAboveThreshold = 101
     await expect(
-      prepaymentContract.setProtocolFeeRatio(ratioAboveThreshold)
+      prepaymentContract.setProtocolFeeRatio(ratioAboveThreshold),
     ).to.be.revertedWithCustomError(prepaymentContract, 'RatioOutOfBounds')
   })
 
@@ -121,7 +121,7 @@ describe('Prepayment', function () {
     const {
       prepaymentContract,
       protocolFeeRecipientSigner,
-      account4: newProtocolFeeRecipientSigner
+      account4: newProtocolFeeRecipientSigner,
     } = await loadFixture(deploy)
     const recipient = await prepaymentContract.getProtocolFeeRecipient()
     expect(recipient).to.be.equal(protocolFeeRecipientSigner.address)
@@ -130,13 +130,13 @@ describe('Prepayment', function () {
     await expect(
       prepaymentContract
         .connect(newProtocolFeeRecipientSigner)
-        .setProtocolFeeRecipient(newProtocolFeeRecipientSigner.address)
+        .setProtocolFeeRecipient(newProtocolFeeRecipientSigner.address),
     ).to.be.rejected
 
     // update protocol fee recipient
     await prepaymentContract.setProtocolFeeRecipient(newProtocolFeeRecipientSigner.address)
     expect(await prepaymentContract.getProtocolFeeRecipient()).to.be.equal(
-      newProtocolFeeRecipientSigner.address
+      newProtocolFeeRecipientSigner.address,
     )
   })
 
@@ -151,7 +151,7 @@ describe('Prepayment', function () {
     const {
       prepaymentContract,
       consumerSigner: accountOwner,
-      account3: nonOwner
+      account3: nonOwner,
     } = await loadFixture(deploy)
 
     const { accId, account } = await createAccount(prepaymentContract, accountOwner)
@@ -167,7 +167,7 @@ describe('Prepayment', function () {
       prepaymentContract,
       accountOwner,
       accId,
-      amount
+      amount,
     )
 
     // Read balance directly from Account contract
@@ -182,7 +182,7 @@ describe('Prepayment', function () {
     // 2. Withdraw $KLAY ////////////////////////////////////////////////////////
     // Only account owner can withdraw
     await expect(
-      prepaymentContract.connect(nonOwner).withdraw(accId, amount)
+      prepaymentContract.connect(nonOwner).withdraw(accId, amount),
     ).to.be.revertedWithCustomError(prepaymentContract, 'MustBeAccountOwner')
 
     // Withdrawing using the account owner
@@ -190,7 +190,7 @@ describe('Prepayment', function () {
       prepaymentContract,
       accountOwner,
       accId,
-      amount
+      amount,
     )
     expect(balanceAfterDeposit).to.be.equal(oldBalanceWithdraw)
     expect(balanceBeforeDeposit).to.be.equal(newBalanceWithdraw)
@@ -207,7 +207,7 @@ describe('Prepayment', function () {
     const accId = 123
     const amount = parseKlay(10)
     await expect(
-      deposit(prepaymentContract, accountOwner, accId, amount)
+      deposit(prepaymentContract, accountOwner, accId, amount),
     ).to.be.revertedWithCustomError(prepaymentContract, 'InvalidAccount')
   })
 
@@ -218,8 +218,8 @@ describe('Prepayment', function () {
     /* const amount = parseKlay(10_001) */
     await expect(
       prepaymentContract.connect(accountOwner).deposit(accId, {
-        value: amount
-      })
+        value: amount,
+      }),
     ).to.be.rejected
   })
 
@@ -229,7 +229,7 @@ describe('Prepayment', function () {
       consumerSigner: accountOwner,
       account3: consumer,
       account4: nonOwner,
-      account5: unusedConsumer
+      account5: unusedConsumer,
     } = await loadFixture(deploy)
 
     const { accId, account } = await createAccount(prepaymentContract, accountOwner)
@@ -240,7 +240,7 @@ describe('Prepayment', function () {
     // 1. Add consumer //////////////////////////////////////////////////////////
     // Consumer can be added only by the account owner
     await expect(
-      prepaymentContract.connect(nonOwner).addConsumer(accId, consumer.address)
+      prepaymentContract.connect(nonOwner).addConsumer(accId, consumer.address),
     ).to.be.revertedWithCustomError(prepaymentContract, 'MustBeAccountOwner')
 
     // Add consumer with correct signer and parameters
@@ -250,7 +250,7 @@ describe('Prepayment', function () {
     expect(txReceiptAddConsumer.events.length).to.be.equal(1)
 
     const accountConsumerAddedEvent = prepaymentContract.interface.parseLog(
-      txReceiptAddConsumer.events[0]
+      txReceiptAddConsumer.events[0],
     )
     expect(accountConsumerAddedEvent.name).to.be.equal('AccountConsumerAdded')
     const { accId: consumerAddedAccId, consumer: consumerAddedConsumer } =
@@ -271,12 +271,12 @@ describe('Prepayment', function () {
     // 2. Remove consumer ///////////////////////////////////////////////////////
     // We cannot remove consumer which is not there
     await expect(
-      prepaymentContract.connect(accountOwner).removeConsumer(accId, unusedConsumer.address)
+      prepaymentContract.connect(accountOwner).removeConsumer(accId, unusedConsumer.address),
     ).to.be.revertedWithCustomError(accountContract, 'InvalidConsumer')
 
     // Consumer can be removed only by the account owner
     await expect(
-      prepaymentContract.connect(nonOwner).removeConsumer(accId, consumer.address)
+      prepaymentContract.connect(nonOwner).removeConsumer(accId, consumer.address),
     ).to.be.revertedWithCustomError(prepaymentContract, 'MustBeAccountOwner')
 
     // Remove consumer with correct signer and paramters
@@ -286,7 +286,7 @@ describe('Prepayment', function () {
     expect(txReceiptRemoveConsumer.events.length).to.be.equal(1)
 
     const accountConsumerRemovedEvent = prepaymentContract.interface.parseLog(
-      txReceiptRemoveConsumer.events[0]
+      txReceiptRemoveConsumer.events[0],
     )
     expect(accountConsumerRemovedEvent.name).to.be.equal('AccountConsumerRemoved')
     const { accId: consumerRemovedAccId, consumer: consumerRemovedConsumer } =
@@ -320,14 +320,14 @@ describe('Prepayment', function () {
 
     // The same coordinator cannot be added more than once
     await expect(
-      prepaymentContract.addCoordinator(coordinator.address)
+      prepaymentContract.addCoordinator(coordinator.address),
     ).to.be.revertedWithCustomError(prepaymentContract, 'CoordinatorExists')
 
     // Remove coordinator ///////////////////////////////////////////////////////
     // Non-existing coordinator cannot be removed
     await expect(prepaymentContract.removeCoordinator(NULL_ADDRESS)).to.be.revertedWithCustomError(
       prepaymentContract,
-      'InvalidCoordinator'
+      'InvalidCoordinator',
     )
 
     // We can remove coordinator that has been previously added
@@ -339,7 +339,7 @@ describe('Prepayment', function () {
     // Check the event information
     expect(txRemoveCoordinator.events.length).to.be.equal(1)
     const removeCoordinatorEvent = prepaymentContract.interface.parseLog(
-      txRemoveCoordinator.events[0]
+      txRemoveCoordinator.events[0],
     )
     expect(removeCoordinatorEvent.name).to.be.equal('CoordinatorRemoved')
     const { coordinator: removeCoordinatorAddress } = removeCoordinatorEvent.args
@@ -350,7 +350,7 @@ describe('Prepayment', function () {
     const {
       consumerSigner: fromConsumer,
       account3: toConsumer,
-      prepaymentContract
+      prepaymentContract,
     } = await loadFixture(deploy)
 
     const { accId, account } = await createAccount(prepaymentContract, fromConsumer)
@@ -365,7 +365,7 @@ describe('Prepayment', function () {
     expect(requestTxReceipt.events.length).to.be.equal(1)
 
     const accountTransferRequestedEvent = prepaymentContract.interface.parseLog(
-      requestTxReceipt.events[0]
+      requestTxReceipt.events[0],
     )
     expect(accountTransferRequestedEvent.name).to.be.equal('AccountOwnerTransferRequested')
     const { from: fromRequested, to: toRequested } = accountTransferRequestedEvent.args
@@ -377,7 +377,7 @@ describe('Prepayment', function () {
 
     // 2.1 Cannot accept with wrong consumer
     await expect(
-      prepaymentContract.connect(fromConsumer).acceptAccountOwnerTransfer(accId)
+      prepaymentContract.connect(fromConsumer).acceptAccountOwnerTransfer(accId),
     ).to.be.revertedWithCustomError(accountContract, 'MustBeRequestedOwner')
 
     // 2. Accept Account Transfer
@@ -401,7 +401,7 @@ describe('Prepayment', function () {
 
     const prepaymentContract = await deployPrepayment(
       protocolFeeRecipientSigner.address,
-      deployerSigner
+      deployerSigner,
     )
 
     const { accId } = await createAccount(prepaymentContract, consumerSigner)
@@ -411,7 +411,7 @@ describe('Prepayment', function () {
     const aboveBalance = initialAmount + parseKlay(1)
     const accountContract = await ethers.getContractFactory('Account')
     await expect(
-      prepaymentContract.connect(consumerSigner).withdraw(accId, aboveBalance)
+      prepaymentContract.connect(consumerSigner).withdraw(accId, aboveBalance),
     ).to.be.revertedWithCustomError(accountContract, 'InsufficientBalance')
   })
 
@@ -420,7 +420,7 @@ describe('Prepayment', function () {
 
     const prepaymentContract = await deployPrepayment(
       protocolFeeRecipientSigner.address,
-      deployerSigner
+      deployerSigner,
     )
 
     const { accId, account } = await createAccount(prepaymentContract, consumerSigner)
@@ -435,7 +435,7 @@ describe('Prepayment', function () {
     // There is a limit (MAX_CONSUMERS) on number of consumers that can be added
     const { address: consumer } = ethers.Wallet.createRandom()
     await expect(
-      prepaymentContract.connect(consumerSigner).addConsumer(accId, consumer)
+      prepaymentContract.connect(consumerSigner).addConsumer(accId, consumer),
     ).to.be.revertedWithCustomError(accountContract, 'TooManyConsumers')
   })
 
@@ -443,29 +443,29 @@ describe('Prepayment', function () {
     const { prepaymentContract, consumerSigner } = await loadFixture(deploy)
 
     await expect(prepaymentContract.connect(consumerSigner).setBurnFeeRatio(5)).to.be.revertedWith(
-      'Ownable: caller is not the owner'
+      'Ownable: caller is not the owner',
     )
 
     await expect(
-      prepaymentContract.connect(consumerSigner).setProtocolFeeRatio(5)
+      prepaymentContract.connect(consumerSigner).setProtocolFeeRatio(5),
     ).to.be.revertedWith('Ownable: caller is not the owner')
 
     await expect(
-      prepaymentContract.connect(consumerSigner).setProtocolFeeRecipient(consumerSigner.address)
+      prepaymentContract.connect(consumerSigner).setProtocolFeeRecipient(consumerSigner.address),
     ).to.be.revertedWith('Ownable: caller is not the owner')
 
     await expect(
-      prepaymentContract.connect(consumerSigner).addCoordinator(consumerSigner.address)
+      prepaymentContract.connect(consumerSigner).addCoordinator(consumerSigner.address),
     ).to.be.revertedWith('Ownable: caller is not the owner')
 
     await expect(
-      prepaymentContract.connect(consumerSigner).removeCoordinator(consumerSigner.address)
+      prepaymentContract.connect(consumerSigner).removeCoordinator(consumerSigner.address),
     ).to.be.revertedWith('Ownable: caller is not the owner')
 
     const { accId } = await createAccount(prepaymentContract, consumerSigner)
     //set fee ratio for account
     await expect(
-      prepaymentContract.connect(consumerSigner).setFeeRatio(accId, 50)
+      prepaymentContract.connect(consumerSigner).setFeeRatio(accId, 50),
     ).to.be.revertedWith('Ownable: caller is not the owner')
 
     //update account detail
@@ -478,14 +478,14 @@ describe('Prepayment', function () {
     await expect(
       prepaymentContract
         .connect(consumerSigner)
-        .updateAccountDetail(accId, startTime, period, requestNumber, subscriptionPrice)
+        .updateAccountDetail(accId, startTime, period, requestNumber, subscriptionPrice),
     ).to.be.revertedWith('Ownable: caller is not the owner')
 
     // create fiat, klay subscription and discount account
     await expect(
       prepaymentContract
         .connect(consumerSigner)
-        .createFiatSubscriptionAccount(startTime, period, requestNumber, consumerSigner.address)
+        .createFiatSubscriptionAccount(startTime, period, requestNumber, consumerSigner.address),
     ).to.be.revertedWith('Ownable: caller is not the owner')
 
     await expect(
@@ -496,14 +496,14 @@ describe('Prepayment', function () {
           period,
           requestNumber,
           subscriptionPrice,
-          consumerSigner.address
-        )
+          consumerSigner.address,
+        ),
     ).to.be.revertedWith('Ownable: caller is not the owner')
 
     await expect(
       prepaymentContract
         .connect(consumerSigner)
-        .createKlayDiscountAccount(feeRatio, consumerSigner.address)
+        .createKlayDiscountAccount(feeRatio, consumerSigner.address),
     ).to.be.revertedWith('Ownable: caller is not the owner')
   })
 
@@ -511,27 +511,29 @@ describe('Prepayment', function () {
     const { prepaymentContract, consumerSigner } = await loadFixture(deploy)
 
     await expect(
-      prepaymentContract.connect(consumerSigner).chargeFee(1, 1_000)
+      prepaymentContract.connect(consumerSigner).chargeFee(1, 1_000),
     ).to.be.revertedWithCustomError(prepaymentContract, 'InvalidCoordinator')
 
     await expect(
-      prepaymentContract.connect(consumerSigner).chargeFeeTemporary(1)
+      prepaymentContract.connect(consumerSigner).chargeFeeTemporary(1),
     ).to.be.revertedWithCustomError(prepaymentContract, 'InvalidCoordinator')
 
     await expect(
-      prepaymentContract.connect(consumerSigner).chargeOperatorFee(1, 1_000, consumerSigner.address)
+      prepaymentContract
+        .connect(consumerSigner)
+        .chargeOperatorFee(1, 1_000, consumerSigner.address),
     ).to.be.revertedWithCustomError(prepaymentContract, 'InvalidCoordinator')
 
     await expect(
-      prepaymentContract.connect(consumerSigner).increaseNonce(1, consumerSigner.address)
+      prepaymentContract.connect(consumerSigner).increaseNonce(1, consumerSigner.address),
     ).to.be.revertedWithCustomError(prepaymentContract, 'InvalidCoordinator')
 
     await expect(
-      prepaymentContract.connect(consumerSigner).increaseSubReqCount(1)
+      prepaymentContract.connect(consumerSigner).increaseSubReqCount(1),
     ).to.be.revertedWithCustomError(prepaymentContract, 'InvalidCoordinator')
 
     await expect(
-      prepaymentContract.connect(consumerSigner).setSubscriptionPaid(1)
+      prepaymentContract.connect(consumerSigner).setSubscriptionPaid(1),
     ).to.be.revertedWithCustomError(prepaymentContract, 'InvalidCoordinator')
   })
 })

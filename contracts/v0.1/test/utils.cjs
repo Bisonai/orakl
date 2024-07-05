@@ -47,7 +47,7 @@ async function createSigners() {
     account5,
     account6,
     account7,
-    account8
+    account8,
   }
 }
 
@@ -57,5 +57,5 @@ module.exports = {
   remove0x,
   median,
   majorityVotingBool,
-  createSigners
+  createSigners,
 }

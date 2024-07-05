@@ -7,7 +7,7 @@ const {
   validateAggregatorDeployConfig,
   validateAggregatorChangeOraclesConfig,
   validateAggregatorRedirectProxyConfig,
-  getFormattedDate
+  getFormattedDate,
 } = require('../../scripts/utils.cjs')
 
 const func = async function (hre) {
@@ -41,10 +41,10 @@ const func = async function (hre) {
           deployConfig.timeout,
           deployConfig.validator,
           deployConfig.decimals,
-          deployConfig.description
+          deployConfig.description,
         ],
         from: deployer,
-        log: true
+        log: true,
       })
       aggregator = await ethers.getContractAt('Aggregator', aggregatorDeployment.address)
     }
@@ -68,7 +68,7 @@ const func = async function (hre) {
           changeOraclesConfig.added,
           changeOraclesConfig.minSubmissionCount,
           changeOraclesConfig.maxSubmissionCount,
-          changeOraclesConfig.restartDelay
+          changeOraclesConfig.restartDelay,
         )
       ).wait()
     }
@@ -108,7 +108,7 @@ const func = async function (hre) {
         expect(confirmedAggregator).to.be.eq(proposedAggregator)
 
         console.log(
-          `Proxy POR address redirected from ${aggregatorAddress} to new ${confirmedAggregator}`
+          `Proxy POR address redirected from ${aggregatorAddress} to new ${confirmedAggregator}`,
         )
       } else if (redirectProxyConfig.status == 'revert') {
         // Revert back to old POR contract address
@@ -120,7 +120,7 @@ const func = async function (hre) {
         expect(revertedAggregator).to.be.eq(aggregatorAddress)
 
         console.log(
-          `Proxy POR address reverted from ${proposedAggregator} to ${revertedAggregator}`
+          `Proxy POR address reverted from ${proposedAggregator} to ${revertedAggregator}`,
         )
       } else {
         console.log('Wrong proxyRedirect method')
@@ -133,7 +133,7 @@ const func = async function (hre) {
         contract: 'AggregatorProxy',
         args: [aggregator.address],
         from: deployer,
-        log: true
+        log: true,
       })
 
       // DataFeedConsumerMock
@@ -141,7 +141,7 @@ const func = async function (hre) {
         await localhostDeployment({
           deploy,
           aggregatorProxyDeployment,
-          name: deployConfig.name
+          name: deployConfig.name,
         })
       }
     }
@@ -160,7 +160,7 @@ async function localhostDeployment(args) {
     contract: 'DataFeedConsumerMock',
     args: [aggregatorProxyDeployment.address],
     from: consumer,
-    log: true
+    log: true,
   })
 }
 

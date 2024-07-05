@@ -4,7 +4,7 @@ const {
   loadMigration,
   updateMigration,
   validateCoordinatorDeployConfig,
-  validateSetConfig
+  validateSetConfig,
 } = require('../../scripts/utils.cjs')
 
 const func = async function (hre) {
@@ -37,12 +37,12 @@ const func = async function (hre) {
         contract: 'RequestResponseCoordinator',
         args: [prepayment.address],
         from: deployer,
-        log: true
+        log: true,
       })
 
       requestResponseCoordinator = await ethers.getContractAt(
         'RequestResponseCoordinator',
-        requestResponseDeployment.address
+        requestResponseDeployment.address,
       )
 
       // RequestResponseConsumerMock
@@ -50,7 +50,7 @@ const func = async function (hre) {
         await localhostDeployment({
           deploy,
           requestResponseCoordinator,
-          prepayment
+          prepayment,
         })
       }
     }
@@ -59,7 +59,7 @@ const func = async function (hre) {
       ? requestResponseCoordinator
       : await ethers.getContractAt(
           'RequestResponseCoordinator',
-          config.requestResponseCoordinatorAddress
+          config.requestResponseCoordinatorAddress,
         )
 
     // Register Oracle //////////////////////////////////////////////////////////
@@ -94,7 +94,7 @@ const func = async function (hre) {
         await requestResponseCoordinator.setConfig(
           setConfig.maxGasLimit,
           setConfig.gasAfterPaymentCalculation,
-          setConfig.feeConfig
+          setConfig.feeConfig,
         )
       ).wait()
     }
@@ -114,7 +114,7 @@ const func = async function (hre) {
       const prepaymentDeployerSigner = await ethers.getContractAt(
         'Prepayment',
         prepayment.address,
-        deployer
+        deployer,
       )
       await (
         await prepaymentDeployerSigner.addCoordinator(requestResponseCoordinatorAddress)
@@ -133,13 +133,13 @@ async function localhostDeployment(args) {
     contract: 'RequestResponseConsumerMock',
     args: [requestResponseCoordinator.address],
     from: consumer,
-    log: true
+    log: true,
   })
 
   const prepaymentConsumerSigner = await ethers.getContractAt(
     'Prepayment',
     prepayment.address,
-    consumer
+    consumer,
   )
 
   // Create account

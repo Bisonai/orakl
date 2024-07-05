@@ -9,7 +9,7 @@ async function deploy() {
   let { account0: deployer } = await hre.getNamedAccounts()
   deployer = await ethers.getSigner(deployer)
   let contract = await ethers.getContractFactory('TestHelperVRFInternals', {
-    signer: deployer.address
+    signer: deployer.address,
   })
   contract = await contract.deploy()
   await contract.deployed()
@@ -43,7 +43,7 @@ describe('VRF underlying algorithms: ', () => {
         test.uPoint.x,
         test.uPoint.y,
         test.vPoint.x,
-        test.vPoint.y
+        test.vPoint.y,
       )
       expect(res).to.be.equal(test.hash)
     })
@@ -68,7 +68,7 @@ describe('VRF internal aux. functions: ', () => {
         test.a2,
         test.scalar2,
         test.b1,
-        test.b2
+        test.b2,
       )
       expect(res[0]).to.be.equal(test.output.x)
       expect(res[1]).to.be.equal(test.output.y)
@@ -83,7 +83,7 @@ describe('VRF internal aux. functions: ', () => {
         test.x,
         test.y,
         test.output.x,
-        test.output.y
+        test.output.y,
       )
       expect(res).to.be.equal(true)
     })
@@ -100,7 +100,7 @@ describe('VRF internal aux. functions: ', () => {
         test.x,
         test.y,
         test.output.x,
-        test.output.y
+        test.output.y,
       )
       expect(res).to.be.equal(true)
     })

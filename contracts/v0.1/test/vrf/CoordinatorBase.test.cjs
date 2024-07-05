@@ -5,7 +5,7 @@ const { deploy: deployVrfConsumerMock } = require('./VRFConsumerMock.utils.cjs')
 const {
   deploy: deployVrfCoordinator,
   setupOracle: setupVrfOracle,
-  parseRandomWordsRequestedTx
+  parseRandomWordsRequestedTx,
 } = require('./VRFCoordinator.utils.cjs')
 const { createAccount, addConsumer, deposit } = require('../non-vrf/Prepayment.utils.cjs')
 const { vrfConfig } = require('./VRFCoordinator.config.cjs')
@@ -19,25 +19,25 @@ async function deploy() {
     account1: consumerSigner,
     account2: vrfOracleSigner,
     account3: protocolFeeRecipientSigner,
-    account4: invalidConsumerSigner
+    account4: invalidConsumerSigner,
   } = await createSigners()
 
   // Prepayment
   const prepaymentContract = await deployPrepayment(
     protocolFeeRecipientSigner.address,
-    deployerSigner
+    deployerSigner,
   )
 
   // VRFCoordinator
   const vrfCoordinatorContract = await deployVrfCoordinator(
     prepaymentContract.address,
-    deployerSigner
+    deployerSigner,
   )
 
   // VRFConsumerMock
   const consumerContract = await deployVrfConsumerMock(
     vrfCoordinatorContract.address,
-    consumerSigner
+    consumerSigner,
   )
 
   return {
@@ -46,7 +46,7 @@ async function deploy() {
     prepaymentContract,
     vrfCoordinatorContract,
     consumerContract,
-    invalidConsumerSigner
+    invalidConsumerSigner,
   }
 }
 
@@ -60,7 +60,7 @@ describe('CoordinatorBase', function () {
 
     const invalidRequestId = 123
     await expect(
-      vrfCoordinatorContract.connect(consumerSigner).cancelRequest(invalidRequestId)
+      vrfCoordinatorContract.connect(consumerSigner).cancelRequest(invalidRequestId),
     ).to.be.revertedWithCustomError(vrfCoordinatorContract, 'NoCorrespondingRequest')
   })
 
@@ -70,7 +70,7 @@ describe('CoordinatorBase', function () {
       vrfCoordinatorContract,
       consumerContract,
       consumerSigner,
-      invalidConsumerSigner
+      invalidConsumerSigner,
     } = await loadFixture(deploy)
 
     // oracle setup
@@ -93,7 +93,7 @@ describe('CoordinatorBase', function () {
 
     // cancel with wrong signer
     await expect(
-      vrfCoordinatorContract.connect(invalidConsumerSigner).cancelRequest(requestId)
+      vrfCoordinatorContract.connect(invalidConsumerSigner).cancelRequest(requestId),
     ).to.be.revertedWithCustomError(vrfCoordinatorContract, 'NotRequestOwner')
 
     // cancel with right signer

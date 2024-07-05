@@ -6,7 +6,7 @@ const {
   deploy: deployCoordinator,
   parseDataRequestedTx,
   DATA_REQUEST_EVENT_ARGS,
-  parseDataRequestFulfilledTx
+  parseDataRequestFulfilledTx,
 } = require('./RequestResponseCoordinator.utils.cjs')
 const { parseKlay } = require('../utils.cjs')
 const { median, majorityVotingBool, createSigners } = require('../utils.cjs')
@@ -18,7 +18,7 @@ const {
   addCoordinator,
   createFiatSubscriptionAccount,
   createKlaySubscriptionAccount,
-  createKlayDiscountAccount
+  createKlayDiscountAccount,
 } = require('./Prepayment.utils.cjs')
 const { AccountType } = require('./Account.utils.cjs')
 
@@ -40,7 +40,7 @@ async function deploy() {
     account5: rrOracle3,
     account6: rrOracle4,
     account7: rrOracle5,
-    account8: protocolFeeRecipient
+    account8: protocolFeeRecipient,
   } = await createSigners()
   const { maxGasLimit, gasAfterPaymentCalculation, feeConfig } = requestResponseConfig()
 
@@ -55,7 +55,7 @@ async function deploy() {
 
   // RequestResponseConsumerMock
   let consumerContract = await ethers.getContractFactory('RequestResponseConsumerMock', {
-    signer: consumerSigner
+    signer: consumerSigner,
   })
   consumerContract = await consumerContract.deploy(coordinatorContract.address)
   await consumerContract.deployed()
@@ -72,7 +72,7 @@ async function deploy() {
 
     prepayment,
     coordinator,
-    consumer
+    consumer,
   }
 }
 
@@ -121,7 +121,7 @@ async function verifyFulfillment(
   requestId,
   responseValue,
   responseFn,
-  fulfillEventName
+  fulfillEventName,
 ) {
   // AccountBalanceDecreased ////////////////////////////////////////////////////
   const prepaymentEvent = prepayment.contract.interface.parseLog(txReceipt.events[0])
@@ -132,7 +132,7 @@ async function verifyFulfillment(
   const { requestId: eventRequestId } = parseDataRequestFulfilledTx(
     coordinator.contract,
     txReceipt,
-    fulfillEventName
+    fulfillEventName,
   )
   expect(await responseFn()).to.be.equal(responseValue)
 }
@@ -145,7 +145,7 @@ async function verifyFulfillmentSubscriptionAccount(
   requestId,
   responseValue,
   responseFn,
-  fulfillEventName
+  fulfillEventName,
 ) {
   // AccountPeriodReqIncreased ////////////////////////////////////////////////////
   const prepaymentEvent = prepayment.contract.interface.parseLog(txReceipt.events[0])
@@ -156,7 +156,7 @@ async function verifyFulfillmentSubscriptionAccount(
   const { requestId: eventRequestId } = parseDataRequestFulfilledTx(
     coordinator.contract,
     txReceipt,
-    fulfillEventName
+    fulfillEventName,
   )
   expect(await responseFn()).to.be.equal(responseValue)
 }
@@ -171,7 +171,7 @@ async function requestAndFulfill(
   isDirectPayment,
   numSubmission,
   dataType,
-  accType = AccountType.KLAY_REGULAR
+  accType = AccountType.KLAY_REGULAR,
 ) {
   const { prepayment, coordinator, consumer } = await loadFixture(deploy)
   const { maxGasLimit: callbackGasLimit } = requestResponseConfig()
@@ -184,7 +184,7 @@ async function requestAndFulfill(
     requestReceipt = await (
       await requestFn(callbackGasLimit, numSubmission, consumer.signer.address, {
         gasLimit,
-        value: parseKlay(1)
+        value: parseKlay(1),
       })
     ).wait()
   } else {
@@ -200,7 +200,7 @@ async function requestAndFulfill(
         period,
         requestNumber,
         prepayment.signer,
-        consumer.signer
+        consumer.signer,
       )
       accId = accountId
     } else if (accType == AccountType.KLAY_SUBSCRIPTION) {
@@ -211,7 +211,7 @@ async function requestAndFulfill(
         requestNumber,
         subscriptionPrice,
         prepayment.signer,
-        consumer.signer
+        consumer.signer,
       )
       accId = accountId
     } else if (accType == AccountType.KLAY_DISCOUNT) {
@@ -220,7 +220,7 @@ async function requestAndFulfill(
         prepayment.contract,
         feeRatio,
         prepayment.signer,
-        consumer.signer
+        consumer.signer,
       )
       accId = accountId
     } else {
@@ -232,7 +232,7 @@ async function requestAndFulfill(
     await deposit(prepayment.contract, consumer.signer, accId, parseKlay(1))
     requestReceipt = await (
       await requestFn(accId, callbackGasLimit, numSubmission, {
-        gasLimit
+        gasLimit,
       })
     ).wait()
   }
@@ -245,7 +245,7 @@ async function requestAndFulfill(
     const { requestId, accId, jobId } = verifyRequestDirectPayment(
       prepayment.contract,
       coordinator.contract,
-      requestReceipt
+      requestReceipt,
     )
     _requestId = requestId
     _accId = accId
@@ -265,7 +265,7 @@ async function requestAndFulfill(
     numSubmission,
     sender: consumer.contract.address,
     isDirectPayment,
-    jobId: _jobId
+    jobId: _jobId,
   }
 
   let fulfillReceipt
@@ -289,7 +289,7 @@ async function requestAndFulfill(
       _requestId,
       responseValue,
       getFulfillValueFn,
-      fulfillEventName
+      fulfillEventName,
     )
   } else {
     await verifyFulfillment(
@@ -300,7 +300,7 @@ async function requestAndFulfill(
       _requestId,
       responseValue,
       getFulfillValueFn,
-      fulfillEventName
+      fulfillEventName,
     )
   }
 }
@@ -314,8 +314,8 @@ describe('Request-Response user contract', function () {
     const numSubmission = 1
     await expect(
       consumer.contract.requestDataUint128(accId, callbackGasLimit, numSubmission, {
-        gasLimit: 500_000
-      })
+        gasLimit: 500_000,
+      }),
     ).to.be.revertedWithCustomError(coordinator.contract, 'InsufficientPayment')
   })
 
@@ -331,7 +331,7 @@ describe('Request-Response user contract', function () {
       'DataRequestFulfilledUint128',
       false,
       numSubmission,
-      'Uint128'
+      'Uint128',
     )
     //fiat subscription account
     await requestAndFulfill(
@@ -344,7 +344,7 @@ describe('Request-Response user contract', function () {
       false,
       numSubmission,
       'Uint128',
-      AccountType.FIAT_SUBSCRIPTION
+      AccountType.FIAT_SUBSCRIPTION,
     )
     //klay subscription account
     await requestAndFulfill(
@@ -357,7 +357,7 @@ describe('Request-Response user contract', function () {
       false,
       numSubmission,
       'Uint128',
-      AccountType.KLAY_SUBSCRIPTION
+      AccountType.KLAY_SUBSCRIPTION,
     )
     //klay discount account
     await requestAndFulfill(
@@ -370,7 +370,7 @@ describe('Request-Response user contract', function () {
       false,
       numSubmission,
       'Uint128',
-      AccountType.KLAY_DISCOUNT
+      AccountType.KLAY_DISCOUNT,
     )
   })
 
@@ -387,13 +387,13 @@ describe('Request-Response user contract', function () {
       'DataRequestFulfilledUint128',
       true,
       numSubmission,
-      'Uint128'
+      'Uint128',
     )
   })
 
   it('Request & Fulfill Int256', async function () {
     const { consumer, rrOracle0, rrOracle1, rrOracle2, rrOracle3, rrOracle4 } = await loadFixture(
-      deploy
+      deploy,
     )
     const numSubmission = 2
 
@@ -406,7 +406,7 @@ describe('Request-Response user contract', function () {
       'DataRequestFulfilledInt256',
       false,
       numSubmission,
-      'Int256'
+      'Int256',
     )
     //fiat subscription account
     await requestAndFulfill(
@@ -419,7 +419,7 @@ describe('Request-Response user contract', function () {
       false,
       numSubmission,
       'Uint128',
-      AccountType.FIAT_SUBSCRIPTION
+      AccountType.FIAT_SUBSCRIPTION,
     )
     //klay subscription account
     await requestAndFulfill(
@@ -432,7 +432,7 @@ describe('Request-Response user contract', function () {
       false,
       numSubmission,
       'Uint128',
-      AccountType.KLAY_SUBSCRIPTION
+      AccountType.KLAY_SUBSCRIPTION,
     )
     //klay discount account
     await requestAndFulfill(
@@ -445,13 +445,13 @@ describe('Request-Response user contract', function () {
       false,
       numSubmission,
       'Uint128',
-      AccountType.KLAY_DISCOUNT
+      AccountType.KLAY_DISCOUNT,
     )
   })
 
   it('Request & Fulfill Int256 Direct Payment', async function () {
     const { consumer, rrOracle0, rrOracle1, rrOracle2, rrOracle3, rrOracle4 } = await loadFixture(
-      deploy
+      deploy,
     )
     const numSubmission = 2
 
@@ -464,7 +464,7 @@ describe('Request-Response user contract', function () {
       'DataRequestFulfilledInt256',
       true,
       numSubmission,
-      'Int256'
+      'Int256',
     )
   })
 
@@ -482,7 +482,7 @@ describe('Request-Response user contract', function () {
       'DataRequestFulfilledBool',
       false,
       numSubmission,
-      'Bool'
+      'Bool',
     )
 
     //fiat subscription account
@@ -496,7 +496,7 @@ describe('Request-Response user contract', function () {
       false,
       numSubmission,
       'Bool',
-      AccountType.FIAT_SUBSCRIPTION
+      AccountType.FIAT_SUBSCRIPTION,
     )
     //klay subscription account
     await requestAndFulfill(
@@ -509,7 +509,7 @@ describe('Request-Response user contract', function () {
       false,
       numSubmission,
       'Bool',
-      AccountType.KLAY_SUBSCRIPTION
+      AccountType.KLAY_SUBSCRIPTION,
     )
     //klay discount account
     await requestAndFulfill(
@@ -522,7 +522,7 @@ describe('Request-Response user contract', function () {
       false,
       numSubmission,
       'Bool',
-      AccountType.KLAY_DISCOUNT
+      AccountType.KLAY_DISCOUNT,
     )
   })
 
@@ -540,7 +540,7 @@ describe('Request-Response user contract', function () {
       'DataRequestFulfilledBool',
       true,
       numSubmission,
-      'Bool'
+      'Bool',
     )
   })
 
@@ -557,7 +557,7 @@ describe('Request-Response user contract', function () {
       'DataRequestFulfilledString',
       false,
       numSubmission,
-      'String'
+      'String',
     )
 
     //fiat subscription account
@@ -571,7 +571,7 @@ describe('Request-Response user contract', function () {
       false,
       numSubmission,
       'String',
-      AccountType.FIAT_SUBSCRIPTION
+      AccountType.FIAT_SUBSCRIPTION,
     )
     //klay subscription account
     await requestAndFulfill(
@@ -584,7 +584,7 @@ describe('Request-Response user contract', function () {
       false,
       numSubmission,
       'String',
-      AccountType.KLAY_SUBSCRIPTION
+      AccountType.KLAY_SUBSCRIPTION,
     )
     //klay discount account
     await requestAndFulfill(
@@ -597,7 +597,7 @@ describe('Request-Response user contract', function () {
       false,
       numSubmission,
       'String',
-      AccountType.KLAY_DISCOUNT
+      AccountType.KLAY_DISCOUNT,
     )
   })
 
@@ -614,7 +614,7 @@ describe('Request-Response user contract', function () {
       'DataRequestFulfilledString',
       true,
       numSubmission,
-      'String'
+      'String',
     )
   })
 
@@ -631,7 +631,7 @@ describe('Request-Response user contract', function () {
       'DataRequestFulfilledBytes32',
       false,
       numSubmission,
-      'Bytes32'
+      'Bytes32',
     )
 
     //fiat subscription account
@@ -645,7 +645,7 @@ describe('Request-Response user contract', function () {
       false,
       numSubmission,
       'Bytes32',
-      AccountType.FIAT_SUBSCRIPTION
+      AccountType.FIAT_SUBSCRIPTION,
     )
     //klay subscription account
     await requestAndFulfill(
@@ -658,7 +658,7 @@ describe('Request-Response user contract', function () {
       false,
       numSubmission,
       'Bytes32',
-      AccountType.KLAY_SUBSCRIPTION
+      AccountType.KLAY_SUBSCRIPTION,
     )
     //klay discount account
     await requestAndFulfill(
@@ -671,7 +671,7 @@ describe('Request-Response user contract', function () {
       false,
       numSubmission,
       'Bytes32',
-      AccountType.KLAY_DISCOUNT
+      AccountType.KLAY_DISCOUNT,
     )
   })
 
@@ -688,7 +688,7 @@ describe('Request-Response user contract', function () {
       'DataRequestFulfilledBytes32',
       true,
       numSubmission,
-      'Bytes32'
+      'Bytes32',
     )
   })
 
@@ -705,7 +705,7 @@ describe('Request-Response user contract', function () {
       'DataRequestFulfilledBytes',
       false,
       numSubmission,
-      'Bytes'
+      'Bytes',
     )
 
     //fiat subscription account
@@ -719,7 +719,7 @@ describe('Request-Response user contract', function () {
       false,
       numSubmission,
       'Bytes',
-      AccountType.FIAT_SUBSCRIPTION
+      AccountType.FIAT_SUBSCRIPTION,
     )
     //klay subscription account
     await requestAndFulfill(
@@ -732,7 +732,7 @@ describe('Request-Response user contract', function () {
       false,
       numSubmission,
       'Bytes',
-      AccountType.KLAY_SUBSCRIPTION
+      AccountType.KLAY_SUBSCRIPTION,
     )
     //klay discount account
     await requestAndFulfill(
@@ -745,7 +745,7 @@ describe('Request-Response user contract', function () {
       false,
       numSubmission,
       'Bytes',
-      AccountType.KLAY_DISCOUNT
+      AccountType.KLAY_DISCOUNT,
     )
   })
 
@@ -761,7 +761,7 @@ describe('Request-Response user contract', function () {
       'DataRequestFulfilledBytes',
       true,
       numSubmission,
-      'Bytes'
+      'Bytes',
     )
   })
 
@@ -788,7 +788,7 @@ describe('Request-Response user contract', function () {
     const txCancelRequest = await (await consumer.contract.cancelRequest(requestId)).wait()
 
     const dataRequestCancelledEvent = coordinator.contract.interface.parseLog(
-      txCancelRequest.events[0]
+      txCancelRequest.events[0],
     )
     expect(dataRequestCancelledEvent.name).to.be.equal('RequestCanceled')
 
@@ -847,7 +847,7 @@ describe('Request-Response user contract', function () {
 
     const { requestId, sender, blockNumber, isDirectPayment, jobId } = parseDataRequestedTx(
       coordinator.contract,
-      requestDataTx
+      requestDataTx,
     )
 
     // The `reqCount` after the request does not change. It gets
@@ -862,7 +862,7 @@ describe('Request-Response user contract', function () {
       numSubmission,
       sender,
       isDirectPayment,
-      jobId
+      jobId,
     }
 
     await coordinator.contract
@@ -886,7 +886,7 @@ describe('Request-Response user contract', function () {
     const { address: oracle } = ethers.Wallet.createRandom()
     await expect(coordinator.contract.registerOracle(oracle)).to.be.revertedWithCustomError(
       coordinator.contract,
-      'TooManyOracles'
+      'TooManyOracles',
     )
   })
 
@@ -907,7 +907,7 @@ describe('Request-Response user contract', function () {
     ).wait()
     const { requestId, sender, blockNumber, isDirectPayment, jobId } = parseDataRequestedTx(
       coordinator.contract,
-      tx
+      tx,
     )
 
     // nonce 1 represents a valid account
@@ -916,7 +916,7 @@ describe('Request-Response user contract', function () {
     expect(
       await coordinator.contract
         .connect(consumer.signer)
-        .pendingRequestExists(consumer.contract.address, accId, nonce)
+        .pendingRequestExists(consumer.contract.address, accId, nonce),
     ).to.be.equal(true)
 
     // After fulfillment, there are no pending requests
@@ -927,7 +927,7 @@ describe('Request-Response user contract', function () {
       numSubmission,
       sender,
       isDirectPayment,
-      jobId
+      jobId,
     }
     const response = 123
     coordinator.contract
@@ -937,7 +937,7 @@ describe('Request-Response user contract', function () {
     expect(
       await coordinator.contract
         .connect(consumer.signer)
-        .pendingRequestExists(consumer.contract.address, accId, nonce)
+        .pendingRequestExists(consumer.contract.address, accId, nonce),
     ).to.be.equal(false)
   })
 
@@ -954,9 +954,9 @@ describe('Request-Response user contract', function () {
         numSubmission,
         consumer.signer.address,
         {
-          value: 0
-        }
-      )
+          value: 0,
+        },
+      ),
     ).to.be.revertedWithCustomError(coordinator.contract, 'InsufficientPayment')
   })
 
@@ -973,7 +973,7 @@ describe('Request-Response user contract', function () {
     // Request
     const numSubmission = 1
     await expect(
-      consumer.contract.requestDataInt256(accId, callbackGasLimit, numSubmission)
+      consumer.contract.requestDataInt256(accId, callbackGasLimit, numSubmission),
     ).to.be.revertedWithCustomError(coordinator.contract, 'InvalidConsumer')
   })
 
@@ -991,7 +991,7 @@ describe('Request-Response user contract', function () {
     const numSubmission = 1
     const callbackGasLimit = maxGasLimit + 1
     await expect(
-      consumer.contract.requestDataInt256(accId, callbackGasLimit, numSubmission)
+      consumer.contract.requestDataInt256(accId, callbackGasLimit, numSubmission),
     ).to.be.revertedWithCustomError(coordinator.contract, 'GasLimitTooBig')
   })
 
@@ -1001,7 +1001,7 @@ describe('Request-Response user contract', function () {
     await coordinator.contract.setConfig(
       maxGasLimit,
       gasAfterPaymentCalculation,
-      Object.values(feeConfig)
+      Object.values(feeConfig),
     )
 
     // Prepare account
@@ -1018,7 +1018,7 @@ describe('Request-Response user contract', function () {
 
     const { requestId, sender, blockNumber, isDirectPayment, jobId } = parseDataRequestedTx(
       coordinator.contract,
-      requestTx
+      requestTx,
     )
 
     const requestCommitment = {
@@ -1028,14 +1028,14 @@ describe('Request-Response user contract', function () {
       numSubmission,
       sender,
       isDirectPayment,
-      jobId
+      jobId,
     }
 
     const response = 123
     await expect(
       coordinator.contract
         .connect(rrOracle0)
-        .fulfillDataRequestInt256(requestId, response, requestCommitment)
+        .fulfillDataRequestInt256(requestId, response, requestCommitment),
     ).to.be.revertedWithCustomError(coordinator.contract, 'UnregisteredOracleFulfillment')
   })
 
@@ -1058,7 +1058,7 @@ describe('Request-Response user contract', function () {
 
     const { requestId, sender, blockNumber, isDirectPayment, jobId } = parseDataRequestedTx(
       coordinator.contract,
-      requestTx
+      requestTx,
     )
 
     const requestCommitment = {
@@ -1068,7 +1068,7 @@ describe('Request-Response user contract', function () {
       numSubmission,
       sender,
       isDirectPayment,
-      jobId
+      jobId,
     }
 
     const response = 123
@@ -1079,7 +1079,7 @@ describe('Request-Response user contract', function () {
     await expect(
       coordinator.contract
         .connect(rrOracle0)
-        .fulfillDataRequestInt256(requestId, response, requestCommitment)
+        .fulfillDataRequestInt256(requestId, response, requestCommitment),
     ).to.be.revertedWithCustomError(coordinator.contract, 'OracleAlreadySubmitted')
   })
 
@@ -1101,7 +1101,7 @@ describe('Request-Response user contract', function () {
 
     const { sender, blockNumber, isDirectPayment, jobId } = parseDataRequestedTx(
       coordinator.contract,
-      requestTx
+      requestTx,
     )
 
     const requestCommitment = {
@@ -1111,7 +1111,7 @@ describe('Request-Response user contract', function () {
       numSubmission,
       sender,
       isDirectPayment,
-      jobId
+      jobId,
     }
 
     const response = 123
@@ -1119,7 +1119,7 @@ describe('Request-Response user contract', function () {
     await expect(
       coordinator.contract
         .connect(rrOracle0)
-        .fulfillDataRequestInt256(wrongRequestId, response, requestCommitment)
+        .fulfillDataRequestInt256(wrongRequestId, response, requestCommitment),
     ).to.be.revertedWithCustomError(coordinator.contract, 'NoCorrespondingRequest')
   })
 
@@ -1141,7 +1141,7 @@ describe('Request-Response user contract', function () {
 
     const { requestId, sender, blockNumber, isDirectPayment, jobId } = parseDataRequestedTx(
       coordinator.contract,
-      requestTx
+      requestTx,
     )
 
     const requestCommitment = {
@@ -1151,20 +1151,20 @@ describe('Request-Response user contract', function () {
       numSubmission: numSubmission + 1, // any information modified in requestCommitment will be detected
       sender,
       isDirectPayment,
-      jobId
+      jobId,
     }
 
     const response = 123
     await expect(
       coordinator.contract
         .connect(rrOracle0)
-        .fulfillDataRequestInt256(requestId, response, requestCommitment)
+        .fulfillDataRequestInt256(requestId, response, requestCommitment),
     ).to.be.revertedWithCustomError(coordinator.contract, 'IncorrectCommitment')
   })
 
   it('ValidateNumSubmission', async function () {
     const { coordinator, consumer, rrOracle0, rrOracle1, rrOracle2, rrOracle3 } = await loadFixture(
-      deploy
+      deploy,
     )
     await setupOracle(coordinator.contract, [rrOracle0, rrOracle1, rrOracle2, rrOracle3])
 
@@ -1173,7 +1173,7 @@ describe('Request-Response user contract', function () {
       const jobId = ethers.utils.id('nonexistant-job')
       const numSubmission = 0
       await expect(
-        coordinator.contract.connect(consumer.signer).validateNumSubmission(jobId, numSubmission)
+        coordinator.contract.connect(consumer.signer).validateNumSubmission(jobId, numSubmission),
       ).to.be.revertedWithCustomError(coordinator.contract, 'InvalidJobId')
     }
 
@@ -1182,7 +1182,7 @@ describe('Request-Response user contract', function () {
       const jobId = ethers.utils.id('bool')
       const numSubmission = 3
       await expect(
-        coordinator.contract.connect(consumer.signer).validateNumSubmission(jobId, numSubmission)
+        coordinator.contract.connect(consumer.signer).validateNumSubmission(jobId, numSubmission),
       ).to.be.revertedWithCustomError(coordinator.contract, 'InvalidNumSubmission')
     }
 
@@ -1191,7 +1191,7 @@ describe('Request-Response user contract', function () {
       const jobId = ethers.utils.id('uint128')
       const numSubmission = 4
       await expect(
-        coordinator.contract.connect(consumer.signer).validateNumSubmission(jobId, numSubmission)
+        coordinator.contract.connect(consumer.signer).validateNumSubmission(jobId, numSubmission),
       ).to.be.revertedWithCustomError(coordinator.contract, 'InvalidNumSubmission')
     }
   })
@@ -1214,7 +1214,7 @@ describe('Request-Response user contract', function () {
 
     const { sender, blockNumber, isDirectPayment, jobId } = parseDataRequestedTx(
       coordinator.contract,
-      requestTx
+      requestTx,
     )
 
     const requestCommitment = {
@@ -1224,7 +1224,7 @@ describe('Request-Response user contract', function () {
       numSubmission,
       sender,
       isDirectPayment,
-      jobId
+      jobId,
     }
 
     const response = 123
@@ -1232,7 +1232,7 @@ describe('Request-Response user contract', function () {
     await expect(
       coordinator.contract
         .connect(rrOracle0)
-        .fulfillDataRequestBytes(wrongRequestId, response, requestCommitment) // Should be fulfillDataRequestInt256
+        .fulfillDataRequestBytes(wrongRequestId, response, requestCommitment), // Should be fulfillDataRequestInt256
     ).to.be.revertedWithCustomError(coordinator.contract, 'IncompatibleJobId')
   })
 })

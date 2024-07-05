@@ -1,18 +1,16 @@
 {
-	"deploy": {
-		"name": "JPY-USD",
-		"timeout": 0,
-		"validator": "0x0000000000000000000000000000000000000000",
-		"decimals": 8,
-		"description": "JPY-USD"
-	},
-	"changeOracles": {
-		"removed": [],
-		"added": [
-			"0xe06715500bdBd5dafeF2415DC75A11bb1380bfb1"
-		],
-		"minSubmissionCount": 1,
-		"maxSubmissionCount": 1,
-		"restartDelay": 0
-	}
+  "deploy": {
+    "name": "JPY-USD",
+    "timeout": 0,
+    "validator": "0x0000000000000000000000000000000000000000",
+    "decimals": 8,
+    "description": "JPY-USD"
+  },
+  "changeOracles": {
+    "removed": [],
+    "added": ["0xe06715500bdBd5dafeF2415DC75A11bb1380bfb1"],
+    "minSubmissionCount": 1,
+    "maxSubmissionCount": 1,
+    "restartDelay": 0
+  }
 }

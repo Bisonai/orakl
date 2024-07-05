@@ -15,7 +15,7 @@ const func = async function (hre) {
       const l2EndpointDeployment = await deploy('L2Endpoint', {
         args: [],
         from: deployer,
-        log: true
+        log: true,
       })
 
       console.log('l2EndpointDeployment:', l2EndpointDeployment)

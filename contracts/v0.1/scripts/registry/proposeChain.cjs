@@ -29,7 +29,7 @@ async function main() {
 
   const tx = await (
     await registry.proposeChain(pChainID, jsonRpc, endpoint, l1Aggregator, l2Aggregator, {
-      value: fee
+      value: fee,
     })
   ).wait()
   console.log('Tx', tx)

@@ -10,7 +10,7 @@ const {
   deploy: deployVrfCoordinator,
   parseRandomWordsRequestedTx,
   parseRequestCanceledTx,
-  computeExactFee
+  computeExactFee,
 } = require('./VRFCoordinator.utils.cjs')
 const { deploy: deployVrfConsumerMock } = require('./VRFConsumerMock.utils.cjs')
 const {
@@ -24,7 +24,7 @@ const {
   createFiatSubscriptionAccount,
   createKlaySubscriptionAccount,
   createKlayDiscountAccount,
-  getAccount
+  getAccount,
 } = require('../non-vrf/Prepayment.utils.cjs')
 const { AccountType } = require('../non-vrf/Account.utils.cjs')
 
@@ -50,7 +50,7 @@ function validateRandomWordsRequestedEvent(
   maxGasLimit,
   numWords,
   sender,
-  isDirectPayment
+  isDirectPayment,
 ) {
   let eventIndex
   if (isDirectPayment) {
@@ -71,7 +71,7 @@ function validateRandomWordsRequestedEvent(
     callbackGasLimit: eCallbackGasLimit,
     numWords: eNumWords,
     sender: eSender,
-    isDirectPayment: eIsDirectPayment
+    isDirectPayment: eIsDirectPayment,
   } = event.args
   expect(eKeyHash).to.be.equal(keyHash)
   if (!isDirectPayment) {
@@ -108,11 +108,11 @@ async function fulfillRandomWords(
   notRegisteredOracleSigner,
   pi,
   rc,
-  isDirectPayment
+  isDirectPayment,
 ) {
   // Random word request cannot be fulfilled by an unregistered oracle
   await expect(
-    coordinator.connect(notRegisteredOracleSigner).fulfillRandomWords(pi, rc, isDirectPayment)
+    coordinator.connect(notRegisteredOracleSigner).fulfillRandomWords(pi, rc, isDirectPayment),
   ).to.be.revertedWithCustomError(coordinator, 'NoSuchProvingKey')
 
   // Registered oracle can submit data back to chain
@@ -122,7 +122,7 @@ async function fulfillRandomWords(
 
   // However even registered oracle cannot fulfill the request more than once
   await expect(
-    coordinator.connect(registeredOracleSigner).fulfillRandomWords(pi, rc, isDirectPayment)
+    coordinator.connect(registeredOracleSigner).fulfillRandomWords(pi, rc, isDirectPayment),
   ).to.be.revertedWithCustomError(coordinator, 'NoCorrespondingRequest')
 
   return tx
@@ -136,7 +136,7 @@ function validateRandomWordsFulfilledEvent(
   accId,
   isDirectPayment,
   accType = AccountType.KLAY_REGULAR,
-  serviceFee = 0
+  serviceFee = 0,
 ) {
   let burnedFeeEventIdx
   let randomWordsFulfilledEventIdx
@@ -164,7 +164,7 @@ function validateRandomWordsFulfilledEvent(
     const {
       accId: dAccId,
       oldBalance: dOldBalance,
-      newBalance: dNewBalance
+      newBalance: dNewBalance,
     } = accountBalanceDecreasedEvent.args
     expect(dAccId).to.be.equal(accId)
     expect(dOldBalance).to.be.above(dNewBalance)
@@ -185,14 +185,14 @@ function validateRandomWordsFulfilledEvent(
 
   // Event: RandomWordsFulfilled
   const randomWordsFulfilledEvent = coordinator.interface.parseLog(
-    tx.events[randomWordsFulfilledEventIdx]
+    tx.events[randomWordsFulfilledEventIdx],
   )
   expect(randomWordsFulfilledEvent.name).to.be.equal('RandomWordsFulfilled')
   const {
     requestId: fRequestId,
     // outputSeed: fOutputSeed,
     payment: fPayment,
-    success: fSuccess
+    success: fSuccess,
   } = randomWordsFulfilledEvent.args
 
   expect(fRequestId).to.be.equal(requestId)
@@ -209,7 +209,7 @@ function validateRandomWordsFulfilledKlaySubEvent(
   prepayment,
   requestId,
   accId,
-  subPrice
+  subPrice,
 ) {
   let burnedFeeEventIdx
   let randomWordsFulfilledEventIdx
@@ -231,7 +231,7 @@ function validateRandomWordsFulfilledKlaySubEvent(
   const {
     accId: dAccId,
     oldBalance: dOldBalance,
-    newBalance: dNewBalance
+    newBalance: dNewBalance,
   } = accountBalanceDecreasedEvent.args
   expect(dAccId).to.be.equal(accId)
   expect(dOldBalance).to.be.above(dNewBalance)
@@ -247,13 +247,13 @@ function validateRandomWordsFulfilledKlaySubEvent(
 
   // Event: RandomWordsFulfilled
   const randomWordsFulfilledEvent = coordinator.interface.parseLog(
-    tx.events[randomWordsFulfilledEventIdx]
+    tx.events[randomWordsFulfilledEventIdx],
   )
   expect(randomWordsFulfilledEvent.name).to.be.equal('RandomWordsFulfilled')
   const {
     requestId: fRequestId,
     payment: fPayment,
-    success: fSuccess
+    success: fSuccess,
   } = randomWordsFulfilledEvent.args
 
   expect(fRequestId).to.be.equal(requestId)
@@ -267,14 +267,14 @@ async function deploy() {
     account1: consumerSigner,
     account2,
     account3,
-    account4: protocolFeeRecipient
+    account4: protocolFeeRecipient,
   } = await createSigners()
 
   // Prepayment
   const prepaymentContract = await deployPrepayment(protocolFeeRecipient.address, deployerSigner)
   const prepayment = {
     contract: prepaymentContract,
-    signer: deployerSigner
+    signer: deployerSigner,
   }
 
   // VRFCoordinator
@@ -282,14 +282,14 @@ async function deploy() {
   expect(await coordinatorContract.typeAndVersion()).to.be.equal('VRFCoordinator v0.1')
   const coordinator = {
     contract: coordinatorContract,
-    signer: deployerSigner
+    signer: deployerSigner,
   }
 
   // VRFConsumerMock
   const consumerContract = await deployVrfConsumerMock(coordinatorContract.address, consumerSigner)
   const consumer = {
     contract: consumerContract,
-    signer: consumerSigner
+    signer: consumerSigner,
   }
 
   return {
@@ -297,7 +297,7 @@ async function deploy() {
     coordinator,
     consumer,
     account2,
-    account3
+    account3,
   }
 }
 
@@ -340,12 +340,12 @@ describe('VRF contract', function () {
     await (await coordinator.contract.registerOracle(oracle1, publicProvingKey1)).wait()
     // Neither oracle or public proving key can be registered twice
     await expect(
-      coordinator.contract.registerOracle(oracle1, publicProvingKey1)
+      coordinator.contract.registerOracle(oracle1, publicProvingKey1),
     ).to.be.revertedWithCustomError(coordinator.contract, 'OracleAlreadyRegistered')
 
     // Oracle cannot be registered twice
     await expect(
-      coordinator.contract.registerOracle(oracle1, publicProvingKey2)
+      coordinator.contract.registerOracle(oracle1, publicProvingKey2),
     ).to.be.revertedWithCustomError(coordinator.contract, 'OracleAlreadyRegistered')
 
     // Public proving key can be registered twice
@@ -379,7 +379,7 @@ describe('VRF contract', function () {
     // Cannot deregister underegistered oracle
     await expect(coordinator.contract.deregisterOracle(oracle)).to.be.revertedWithCustomError(
       coordinator.contract,
-      'NoSuchOracle'
+      'NoSuchOracle',
     )
 
     // Registration
@@ -403,7 +403,7 @@ describe('VRF contract', function () {
     // Cannot deregister the same oracle twice
     await expect(coordinator.contract.deregisterOracle(oracle)).to.be.revertedWithCustomError(
       coordinator.contract,
-      'NoSuchOracle'
+      'NoSuchOracle',
     )
   })
 
@@ -412,7 +412,7 @@ describe('VRF contract', function () {
     const { maxGasLimit: callbackGasLimit } = vrfConfig()
     const { accId } = await createAccount(prepayment.contract, consumer.signer)
     await expect(
-      consumer.contract.requestRandomWords(DUMMY_KEY_HASH, accId, callbackGasLimit, SINGLE_WORD)
+      consumer.contract.requestRandomWords(DUMMY_KEY_HASH, accId, callbackGasLimit, SINGLE_WORD),
     ).to.be.revertedWithCustomError(coordinator.contract, 'InvalidKeyHash')
   })
 
@@ -426,9 +426,9 @@ describe('VRF contract', function () {
         SINGLE_WORD,
         consumer.signer.address,
         {
-          value: parseKlay(1)
-        }
-      )
+          value: parseKlay(1),
+        },
+      ),
     ).to.be.revertedWithCustomError(coordinator.contract, 'InvalidKeyHash')
   })
 
@@ -439,7 +439,7 @@ describe('VRF contract', function () {
     await expect(
       consumer.contract
         .connect(nonOwner)
-        .requestRandomWords(DUMMY_KEY_HASH, accId, callbackGasLimit, SINGLE_WORD)
+        .requestRandomWords(DUMMY_KEY_HASH, accId, callbackGasLimit, SINGLE_WORD),
     ).to.be.revertedWithCustomError(consumer.contract, 'OnlyOwner')
   })
 
@@ -453,7 +453,7 @@ describe('VRF contract', function () {
       account2: oracle,
       account3: unregisteredOracle,
       coordinator,
-      prepayment
+      prepayment,
     } = await loadFixture(deploy)
 
     // Prepare cordinator
@@ -466,7 +466,7 @@ describe('VRF contract', function () {
 
     const { maxGasLimit: callbackGasLimit, keyHash } = vrfConfig()
     await expect(
-      consumer.contract.requestRandomWords(keyHash, accId, callbackGasLimit, SINGLE_WORD)
+      consumer.contract.requestRandomWords(keyHash, accId, callbackGasLimit, SINGLE_WORD),
     ).to.be.revertedWithCustomError(coordinator.contract, 'InsufficientPayment')
 
     // Deposit 2 $KLAY to account with zero balance
@@ -479,7 +479,7 @@ describe('VRF contract', function () {
       SINGLE_WORD,
       callbackGasLimit,
       accId,
-      accType
+      accType,
     )
 
     // After depositing minimum account to account, we are able to
@@ -499,7 +499,7 @@ describe('VRF contract', function () {
       callbackGasLimit,
       numWords,
       sender,
-      isDirectPayment
+      isDirectPayment,
     )
 
     await testCommitmentBeforeFulfillment(coordinator.contract, consumer.signer, requestId)
@@ -510,7 +510,7 @@ describe('VRF contract', function () {
       accId,
       callbackGasLimit,
       sender,
-      numWords
+      numWords,
     )
 
     const txFulfillRandomWords = await fulfillRandomWords(
@@ -519,7 +519,7 @@ describe('VRF contract', function () {
       unregisteredOracle,
       pi,
       rc,
-      isDirectPayment
+      isDirectPayment,
     )
 
     await testCommitmentAfterFulfillment(coordinator.contract, consumer.signer, requestId)
@@ -532,7 +532,7 @@ describe('VRF contract', function () {
       accId,
       isDirectPayment,
       AccountType.KLAY_REGULAR,
-      serviceFee
+      serviceFee,
     )
   })
 
@@ -542,7 +542,7 @@ describe('VRF contract', function () {
       coordinator,
       prepayment,
       account2: oracle,
-      account3: unregisteredOracle
+      account3: unregisteredOracle,
     } = await loadFixture(deploy)
 
     const { maxGasLimit: callbackGasLimit, keyHash } = vrfConfig()
@@ -559,8 +559,8 @@ describe('VRF contract', function () {
         SINGLE_WORD,
         consumer.signer.address,
         {
-          value: parseKlay('1')
-        }
+          value: parseKlay('1'),
+        },
       )
     ).wait()
 
@@ -575,7 +575,7 @@ describe('VRF contract', function () {
       callbackGasLimit,
       numWords,
       sender,
-      isDirectPayment
+      isDirectPayment,
     )
 
     await testCommitmentBeforeFulfillment(coordinator.contract, consumer.signer, requestId)
@@ -586,7 +586,7 @@ describe('VRF contract', function () {
       accId,
       callbackGasLimit,
       sender,
-      numWords
+      numWords,
     )
 
     const txFulfillRandomWords = await fulfillRandomWords(
@@ -595,7 +595,7 @@ describe('VRF contract', function () {
       unregisteredOracle,
       pi,
       rc,
-      isDirectPayment
+      isDirectPayment,
     )
     return
 
@@ -607,7 +607,7 @@ describe('VRF contract', function () {
       prepayment.contract,
       requestId,
       accId,
-      isDirectPayment
+      isDirectPayment,
     )
   })
 
@@ -621,7 +621,7 @@ describe('VRF contract', function () {
       account2: oracle,
       account3: unregisteredOracle,
       coordinator,
-      prepayment
+      prepayment,
     } = await loadFixture(deploy)
 
     // Prepare cordinator
@@ -638,7 +638,7 @@ describe('VRF contract', function () {
       period,
       requestNumber,
       prepayment.signer,
-      consumer.signer
+      consumer.signer,
     )
 
     await addConsumer(prepayment.contract, consumer.signer, accId, consumer.contract.address)
@@ -651,7 +651,7 @@ describe('VRF contract', function () {
       SINGLE_WORD,
       callbackGasLimit,
       accId,
-      accType
+      accType,
     )
 
     // After depositing minimum account to account, we are able to
@@ -671,7 +671,7 @@ describe('VRF contract', function () {
       callbackGasLimit,
       numWords,
       sender,
-      isDirectPayment
+      isDirectPayment,
     )
 
     await testCommitmentBeforeFulfillment(coordinator.contract, consumer.signer, requestId)
@@ -682,7 +682,7 @@ describe('VRF contract', function () {
       accId,
       callbackGasLimit,
       sender,
-      numWords
+      numWords,
     )
 
     const txFulfillRandomWords = await fulfillRandomWords(
@@ -691,7 +691,7 @@ describe('VRF contract', function () {
       unregisteredOracle,
       pi,
       rc,
-      isDirectPayment
+      isDirectPayment,
     )
 
     await testCommitmentAfterFulfillment(coordinator.contract, consumer.signer, requestId)
@@ -704,7 +704,7 @@ describe('VRF contract', function () {
       accId,
       isDirectPayment,
       accType,
-      serviceFee
+      serviceFee,
     )
   })
 
@@ -718,7 +718,7 @@ describe('VRF contract', function () {
       account2: oracle,
       account3: unregisteredOracle,
       coordinator,
-      prepayment
+      prepayment,
     } = await loadFixture(deploy)
 
     // Prepare cordinator
@@ -737,7 +737,7 @@ describe('VRF contract', function () {
       requestNumber,
       subscriptionPrice,
       prepayment.signer,
-      consumer.signer
+      consumer.signer,
     )
 
     await addConsumer(prepayment.contract, consumer.signer, accId, consumer.contract.address)
@@ -750,10 +750,10 @@ describe('VRF contract', function () {
       SINGLE_WORD,
       callbackGasLimit,
       accId,
-      accType
+      accType,
     )
     await expect(
-      consumer.contract.requestRandomWords(keyHash, accId, callbackGasLimit, SINGLE_WORD)
+      consumer.contract.requestRandomWords(keyHash, accId, callbackGasLimit, SINGLE_WORD),
     ).to.be.revertedWithCustomError(coordinator.contract, 'InsufficientPayment')
 
     // Deposit 11 $KLAY to account with zero balance
@@ -775,7 +775,7 @@ describe('VRF contract', function () {
       callbackGasLimit,
       numWords,
       sender,
-      isDirectPayment
+      isDirectPayment,
     )
 
     await testCommitmentBeforeFulfillment(coordinator.contract, consumer.signer, requestId)
@@ -786,7 +786,7 @@ describe('VRF contract', function () {
       accId,
       callbackGasLimit,
       sender,
-      numWords
+      numWords,
     )
 
     const txFulfillRandomWords = await fulfillRandomWords(
@@ -795,7 +795,7 @@ describe('VRF contract', function () {
       unregisteredOracle,
       pi,
       rc,
-      isDirectPayment
+      isDirectPayment,
     )
 
     await testCommitmentAfterFulfillment(coordinator.contract, consumer.signer, requestId)
@@ -805,7 +805,7 @@ describe('VRF contract', function () {
       prepayment.contract,
       requestId,
       accId,
-      serviceFee
+      serviceFee,
     )
   })
 
@@ -819,7 +819,7 @@ describe('VRF contract', function () {
       account2: oracle,
       account3: unregisteredOracle,
       coordinator,
-      prepayment
+      prepayment,
     } = await loadFixture(deploy)
 
     // Prepare cordinator
@@ -832,13 +832,13 @@ describe('VRF contract', function () {
       prepayment.contract,
       feeRatio,
       prepayment.signer,
-      consumer.signer
+      consumer.signer,
     )
 
     await addConsumer(prepayment.contract, consumer.signer, accId, consumer.contract.address)
     const { maxGasLimit: callbackGasLimit, keyHash } = vrfConfig()
     await expect(
-      consumer.contract.requestRandomWords(keyHash, accId, callbackGasLimit, SINGLE_WORD)
+      consumer.contract.requestRandomWords(keyHash, accId, callbackGasLimit, SINGLE_WORD),
     ).to.be.revertedWithCustomError(coordinator.contract, 'InsufficientPayment')
 
     // Deposit 11 $KLAY to account with zero balance
@@ -860,7 +860,7 @@ describe('VRF contract', function () {
       callbackGasLimit,
       numWords,
       sender,
-      isDirectPayment
+      isDirectPayment,
     )
 
     await testCommitmentBeforeFulfillment(coordinator.contract, consumer.signer, requestId)
@@ -871,7 +871,7 @@ describe('VRF contract', function () {
       accId,
       callbackGasLimit,
       sender,
-      numWords
+      numWords,
     )
 
     const txFulfillRandomWords = await fulfillRandomWords(
@@ -880,7 +880,7 @@ describe('VRF contract', function () {
       unregisteredOracle,
       pi,
       rc,
-      isDirectPayment
+      isDirectPayment,
     )
 
     await testCommitmentAfterFulfillment(coordinator.contract, consumer.signer, requestId)
@@ -890,7 +890,7 @@ describe('VRF contract', function () {
       prepayment.contract,
       requestId,
       accId,
-      isDirectPayment
+      isDirectPayment,
     )
   })
 
@@ -913,7 +913,7 @@ describe('VRF contract', function () {
     ).wait()
 
     const requestedRandomWordsEvent = coordinator.contract.interface.parseLog(
-      txRequestRandomWords.events[0]
+      txRequestRandomWords.events[0],
     )
     expect(requestedRandomWordsEvent.name).to.be.equal('RandomWordsRequested')
 
@@ -1003,7 +1003,7 @@ describe('VRF contract', function () {
       callbackGasLimit,
       numWords,
       sender,
-      isDirectPayment
+      isDirectPayment,
     )
 
     const { pi, rc } = await generateVrf(
@@ -1013,7 +1013,7 @@ describe('VRF contract', function () {
       accId,
       callbackGasLimit,
       sender,
-      numWords
+      numWords,
     )
 
     await coordinator.contract.connect(oracle).fulfillRandomWords(pi, rc, isDirectPayment)
@@ -1045,12 +1045,12 @@ describe('VRF contract', function () {
 
     // Cannot withdraw when pending request exists
     await expect(
-      prepayment.contract.connect(consumer.signer).withdraw(accId, amount)
+      prepayment.contract.connect(consumer.signer).withdraw(accId, amount),
     ).to.be.revertedWithCustomError(prepayment.contract, 'PendingRequestExists')
 
     // Cannot cancel account when pending request exists
     await expect(
-      prepayment.contract.connect(consumer.signer).cancelAccount(accId, consumer.signer.address)
+      prepayment.contract.connect(consumer.signer).cancelAccount(accId, consumer.signer.address),
     ).to.be.revertedWithCustomError(prepayment.contract, 'PendingRequestExists')
 
     // Cancel request
@@ -1062,7 +1062,7 @@ describe('VRF contract', function () {
       prepayment.contract,
       consumer.signer,
       accId,
-      amount
+      amount,
     )
     expect(oldBalance).to.be.gt(newBalance)
     expect(newBalance).to.be.equal(0)
@@ -1090,7 +1090,7 @@ describe('VRF contract', function () {
     ).wait()
     const { preSeed, blockHash, blockNumber, sender, numWords } = parseRandomWordsRequestedTx(
       coordinator.contract,
-      txRequest
+      txRequest,
     )
 
     const { pi, rc } = await generateVrf(
@@ -1100,12 +1100,12 @@ describe('VRF contract', function () {
       accId,
       callbackGasLimit,
       sender,
-      numWords
+      numWords,
     )
 
     const isDirectPayment = false
     await expect(
-      coordinator.contract.connect(oracle).fulfillRandomWords(pi, rc, isDirectPayment)
+      coordinator.contract.connect(oracle).fulfillRandomWords(pi, rc, isDirectPayment),
     ).to.be.revertedWithCustomError(coordinator.contract, 'IncorrectCommitment')
   })
 
@@ -1115,7 +1115,7 @@ describe('VRF contract', function () {
       consumer,
       prepayment,
       account2: oracle,
-      account3: fakeConsumer
+      account3: fakeConsumer,
     } = await loadFixture(deploy)
 
     // Prepare coordinator
@@ -1131,7 +1131,7 @@ describe('VRF contract', function () {
     // Request
     const { keyHash, maxGasLimit: callbackGasLimit } = vrfConfig()
     await expect(
-      consumer.contract.requestRandomWords(keyHash, accId, callbackGasLimit, SINGLE_WORD)
+      consumer.contract.requestRandomWords(keyHash, accId, callbackGasLimit, SINGLE_WORD),
     ).to.be.revertedWithCustomError(coordinator.contract, 'InvalidConsumer')
   })
 
@@ -1152,7 +1152,7 @@ describe('VRF contract', function () {
     const { keyHash, maxGasLimit } = vrfConfig()
     const tooBigCallbackGasLimit = maxGasLimit + 1
     await expect(
-      consumer.contract.requestRandomWords(keyHash, accId, tooBigCallbackGasLimit, SINGLE_WORD)
+      consumer.contract.requestRandomWords(keyHash, accId, tooBigCallbackGasLimit, SINGLE_WORD),
     ).to.be.revertedWithCustomError(coordinator.contract, 'GasLimitTooBig')
   })
 
@@ -1173,7 +1173,7 @@ describe('VRF contract', function () {
     const { keyHash, maxGasLimit: callbackGasLimit } = vrfConfig()
     const numWordsOverLimit = (await coordinator.contract.MAX_NUM_WORDS()) + 1
     await expect(
-      consumer.contract.requestRandomWords(keyHash, accId, callbackGasLimit, numWordsOverLimit)
+      consumer.contract.requestRandomWords(keyHash, accId, callbackGasLimit, numWordsOverLimit),
     ).to.be.revertedWithCustomError(coordinator.contract, 'NumWordsTooBig')
   })
 
@@ -1193,7 +1193,7 @@ describe('VRF contract', function () {
       consumer.signer,
       reqCount,
       numSubmission,
-      callbackGasLimit
+      callbackGasLimit,
     )
 
     {
@@ -1208,8 +1208,8 @@ describe('VRF contract', function () {
       SINGLE_WORD,
       consumer.signer.address,
       {
-        value
-      }
+        value,
+      },
     )
 
     {
@@ -1234,7 +1234,7 @@ describe('VRF contract', function () {
       consumer.signer,
       reqCount,
       numSubmission,
-      callbackGasLimit
+      callbackGasLimit,
     )
 
     const balanceBefore = await getBalance(consumer.signer.address)
@@ -1249,8 +1249,8 @@ describe('VRF contract', function () {
           SINGLE_WORD,
           consumer.signer.address,
           {
-            value: parseKlay(1)
-          }
+            value: parseKlay(1),
+          },
         )
     ).wait()
 
@@ -1267,7 +1267,7 @@ describe('VRF contract', function () {
     {
       const balance = await getBalance(consumer.signer.address)
       expect(balanceBefore).to.be.equal(
-        tx.cumulativeGasUsed.mul(tx.effectiveGasPrice).add(exactFee.add(balance))
+        tx.cumulativeGasUsed.mul(tx.effectiveGasPrice).add(exactFee.add(balance)),
       )
     }
   })
@@ -1278,7 +1278,7 @@ describe('VRF contract', function () {
       coordinator,
       prepayment,
       account2: oracle,
-      account3: unregisteredOracle
+      account3: unregisteredOracle,
     } = await loadFixture(deploy)
 
     const { maxGasLimit: callbackGasLimit, keyHash } = vrfConfig()
@@ -1295,8 +1295,8 @@ describe('VRF contract', function () {
         SINGLE_WORD,
         consumer.signer.address,
         {
-          value: parseKlay('1')
-        }
+          value: parseKlay('1'),
+        },
       )
     ).wait()
 
@@ -1315,7 +1315,7 @@ describe('VRF contract', function () {
       callbackGasLimit,
       SINGLE_WORD, // numWords
       consumer.contract.address, // sender
-      true // isDirectPayment
+      true, // isDirectPayment
     )
 
     // Cancel request

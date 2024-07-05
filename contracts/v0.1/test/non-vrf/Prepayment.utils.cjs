@@ -2,7 +2,7 @@ const { expect } = require('chai')
 const { AccountType } = require('./Account.utils.cjs')
 async function deploy(protocolFeeRecipientAddress, signer) {
   let contract = await ethers.getContractFactory('Prepayment', {
-    signer
+    signer,
   })
   contract = await contract.deploy(protocolFeeRecipientAddress)
   await contract.deployed()
@@ -27,7 +27,7 @@ async function createFiatSubscriptionAccount(
   period,
   reqPeriodCount,
   signer,
-  accountOwner
+  accountOwner,
 ) {
   const tx = await (
     await prepayment
@@ -49,7 +49,7 @@ async function createKlaySubscriptionAccount(
   reqPeriodCount,
   subscriptionPrice,
   signer,
-  accountOwner
+  accountOwner,
 ) {
   const tx = await (
     await prepayment
@@ -59,7 +59,7 @@ async function createKlaySubscriptionAccount(
         period,
         reqPeriodCount,
         subscriptionPrice,
-        accountOwner.address
+        accountOwner.address,
       )
   ).wait()
   expect(tx.events.length).to.be.equal(1)
@@ -88,7 +88,7 @@ async function addConsumer(prepayment, signer, accId, consumerAddress) {
 async function deposit(prepayment, signer, accId, value) {
   const tx = await (
     await prepayment.connect(signer).deposit(accId, {
-      value
+      value,
     })
   ).wait()
   expect(tx.events.length).to.be.equal(1)
@@ -141,5 +141,5 @@ module.exports = {
   createFiatSubscriptionAccount,
   createKlaySubscriptionAccount,
   createKlayDiscountAccount,
-  getAccount
+  getAccount,
 }

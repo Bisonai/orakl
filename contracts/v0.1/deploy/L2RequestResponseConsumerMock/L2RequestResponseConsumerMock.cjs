@@ -15,7 +15,7 @@ const func = async function (hre) {
       const l2RequestResponseConsumerMock = await deploy('L2RequestResponseConsumerMock', {
         args: [deployConfig.l2EndpointAddress],
         from: deployer,
-        log: true
+        log: true,
       })
 
       console.log('L2RequestResponseConsumerMock:', l2RequestResponseConsumerMock)

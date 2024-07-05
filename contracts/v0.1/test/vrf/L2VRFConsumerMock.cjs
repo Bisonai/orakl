@@ -12,7 +12,7 @@ async function deploy() {
     account2,
     account3,
     account4,
-    account5
+    account5,
   } = await createSigners()
 
   // L2 endpoint
@@ -22,19 +22,19 @@ async function deploy() {
 
   const endpoint = {
     contract: l2EndpointContract,
-    signer: deployerSigner
+    signer: deployerSigner,
   }
 
   // L2 consumer
   let l2VRFConsumerMock = await ethers.getContractFactory('L2VRFConsumerMock', {
-    signer: deployerSigner
+    signer: deployerSigner,
   })
   l2VRFConsumerMock = await l2VRFConsumerMock.deploy(l2EndpointContract.address)
   await l2VRFConsumerMock.deployed()
 
   const consumer = {
     contract: l2VRFConsumerMock,
-    signer: deployerSigner
+    signer: deployerSigner,
   }
 
   return {
@@ -43,7 +43,7 @@ async function deploy() {
     account2,
     account3,
     account4,
-    account5
+    account5,
   }
 }
 
@@ -62,7 +62,7 @@ describe('Consumer', function () {
 
     const randomWords = [1]
     await expect(
-      endpoint.contract.fulfillRandomWords(requestId, randomWords)
+      endpoint.contract.fulfillRandomWords(requestId, randomWords),
     ).revertedWithCustomError(endpoint.contract, 'InvalidSubmitter')
 
     await (await endpoint.contract.addSubmitter(endpoint.signer.address)).wait()

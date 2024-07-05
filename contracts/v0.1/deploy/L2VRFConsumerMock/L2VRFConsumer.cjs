@@ -16,7 +16,7 @@ const func = async function (hre) {
       const l2VRFConsumerMock = await deploy('L2VRFConsumerMock', {
         args: [deployConfig.l2EndpointAddress],
         from: deployer,
-        log: true
+        log: true,
       })
 
       console.log('L2VRFConsumerMock:', l2VRFConsumerMock)

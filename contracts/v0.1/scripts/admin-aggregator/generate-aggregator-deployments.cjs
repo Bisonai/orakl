@@ -13,11 +13,11 @@ const readArgs = async () => {
   const requiredArgs = ['--pairs', '--chain']
   const options = {
     pairs: {
-      type: 'string'
+      type: 'string',
     },
     chain: {
-      type: 'string'
-    }
+      type: 'string',
+    },
   }
   const { values } = parseArgs({ requiredArgs, options })
   values['pairs'] = JSON.parse(values['pairs'])
@@ -54,7 +54,7 @@ async function main() {
       dataFeed: priceFeed,
       address: wallet.address,
       privateKey: wallet.privateKey,
-      mnemonic: wallet.mnemonic.phrase
+      mnemonic: wallet.mnemonic.phrase,
     }
     walletList.push(account)
 
@@ -74,8 +74,8 @@ async function main() {
       aggregatorSource: `https://config.orakl.network/aggregator/${chain}/${priceFeed.toLowerCase()}.aggregator.json`,
       reporter: {
         walletAddress: wallet.address,
-        walletPrivateKey: wallet.privateKey
-      }
+        walletPrivateKey: wallet.privateKey,
+      },
     })
   }
 

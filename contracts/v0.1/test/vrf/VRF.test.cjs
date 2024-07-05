@@ -9,7 +9,7 @@ async function deploy() {
   let { account0: deployer } = await hre.getNamedAccounts()
   deployer = await ethers.getSigner(deployer)
   let contract = await ethers.getContractFactory('TestHelperVRF', {
-    signer: deployer.address
+    signer: deployer.address,
   })
   contract = await contract.deploy()
   await contract.deployed()
@@ -86,12 +86,12 @@ describe('Auxiliary functions: ', () => {
         params[1][0].eq(test.vComponents.sH.x),
         params[1][1].eq(test.vComponents.sH.y),
         params[1][2].eq(test.vComponents.cGamma.x),
-        params[1][3].eq(test.vComponents.cGamma.y)
+        params[1][3].eq(test.vComponents.cGamma.y),
       ]
 
       expect(
         results.length === test.asserts.length &&
-          results.every((value, index) => value === test.asserts[index])
+          results.every((value, index) => value === test.asserts[index]),
       ).to.be.equal(true)
     })
   }
@@ -147,7 +147,7 @@ describe('Proof verification functions: ', () => {
         proof,
         message,
         [uPointX, uPointY],
-        [vProof1X, vProof1Y, vProof2X, vProof2Y]
+        [vProof1X, vProof1Y, vProof2X, vProof2Y],
       )
       expect(result).to.be.equal(true)
     })
@@ -179,7 +179,7 @@ describe('Proof verification functions: ', () => {
         proof,
         message,
         [uPointX, uPointY],
-        [vProof1X, vProof1Y, vProof2X, vProof2Y]
+        [vProof1X, vProof1Y, vProof2X, vProof2Y],
       )
       expect(result).to.be.equal(false)
     })

@@ -5,7 +5,7 @@ const { aggregatorConfig } = require('./Aggregator.config.cjs')
 const {
   deployAggregatorProxy,
   deployAggregator,
-  deployDataFeedConsumerMock
+  deployDataFeedConsumerMock,
 } = require('./Aggregator.utils.cjs')
 const { createSigners } = require('../utils.cjs')
 
@@ -24,7 +24,7 @@ async function changeOracles(aggregator, removeOracles, addOracles) {
       added,
       minSubmissionCount,
       maxSubmissionCount,
-      restartDelay
+      restartDelay,
     )
   ).wait()
 }
@@ -36,24 +36,24 @@ async function deploy() {
     account2,
     account3,
     account4,
-    account5
+    account5,
   } = await createSigners()
 
   // Aggregator /////////////////////////////////////////////////////////////////
   const aggregatorContract = await deployAggregator(deployerSigner)
   const aggregator = {
     contract: aggregatorContract,
-    signer: deployerSigner
+    signer: deployerSigner,
   }
 
   // AggregatorProxy ////////////////////////////////////////////////////////////
   const aggregatorProxyContract = await deployAggregatorProxy(
     aggregator.contract.address,
-    deployerSigner
+    deployerSigner,
   )
   const aggregatorProxy = {
     contract: aggregatorProxyContract,
-    signer: deployerSigner
+    signer: deployerSigner,
   }
 
   // Read configuration of Aggregator & AggregatorProxy
@@ -64,11 +64,11 @@ async function deploy() {
   // DataFeedConsumerMock ///////////////////////////////////////////////////////
   const consumerContract = await deployDataFeedConsumerMock(
     aggregatorProxy.contract.address,
-    consumerSigner
+    consumerSigner,
   )
   const consumer = {
     contract: consumerContract,
-    signer: consumerSigner
+    signer: consumerSigner,
   }
 
   // L2 endpoint
@@ -78,7 +78,7 @@ async function deploy() {
 
   const endpoint = {
     contract: l2EndpointContract,
-    signer: deployerSigner
+    signer: deployerSigner,
   }
 
   return {
@@ -89,7 +89,7 @@ async function deploy() {
     account2,
     account3,
     account4,
-    account5
+    account5,
   }
 }
 
@@ -119,12 +119,12 @@ describe('L2Endpoint', function () {
     const { aggregator, endpoint } = await loadFixture(deploy)
     await endpoint.contract.addAggregator(aggregator.contract.address)
     await expect(
-      endpoint.contract.addAggregator(aggregator.contract.address)
+      endpoint.contract.addAggregator(aggregator.contract.address),
     ).to.be.revertedWithCustomError(endpoint.contract, 'InvalidAggregator')
 
     await endpoint.contract.addSubmitter(endpoint.signer.address)
     await expect(
-      endpoint.contract.addSubmitter(endpoint.signer.address)
+      endpoint.contract.addSubmitter(endpoint.signer.address),
     ).to.be.revertedWithCustomError(endpoint.contract, 'InvalidSubmitter')
 
     let aggreatorCount = await endpoint.contract.sAggregatorCount()
@@ -135,12 +135,12 @@ describe('L2Endpoint', function () {
 
     await endpoint.contract.removeAggregator(aggregator.contract.address)
     await expect(
-      endpoint.contract.removeAggregator(aggregator.contract.address)
+      endpoint.contract.removeAggregator(aggregator.contract.address),
     ).to.be.revertedWithCustomError(endpoint.contract, 'InvalidAggregator')
 
     await endpoint.contract.removeSubmitter(endpoint.signer.address)
     await expect(
-      endpoint.contract.removeSubmitter(endpoint.signer.address)
+      endpoint.contract.removeSubmitter(endpoint.signer.address),
     ).to.be.revertedWithCustomError(endpoint.contract, 'InvalidSubmitter')
 
     aggreatorCount = await endpoint.contract.sAggregatorCount()
