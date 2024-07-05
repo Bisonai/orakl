@@ -23,7 +23,7 @@
     "build": "yarn clean && tsc",
     "cli": "node --no-warnings --import=specifier-resolution-node/register --experimental-json-modules dist/index.js",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\"",
-    "test": "node --no-warnings --experimental-vm-modules node_modules/.bin/jest --testPathIgnorePatterns mockData.ts --silent"
+    "test": "node --no-warnings --experimental-vm-modules node_modules/.bin/jest --testPathIgnorePatterns mockData.ts"
   },
   "bin": {
     "cli": "dist/index.js"
