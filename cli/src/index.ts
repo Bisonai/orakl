@@ -31,7 +31,7 @@ async function main() {
     args: {},
     handler: () => {
       console.log(`Orakl Network CLI v${process.env.npm_package_version}`)
-    }
+    },
   })
 
   const cli = subcommands({
@@ -48,8 +48,8 @@ async function main() {
       version,
       delegator,
       proxy,
-      datafeed
-    }
+      datafeed,
+    },
   })
 
   run(binary(cli), process.argv)

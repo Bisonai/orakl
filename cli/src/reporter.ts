@@ -6,7 +6,7 @@ import {
   idOption,
   isOraklNetworkApiHealthy,
   isServiceHealthy,
-  serviceOptionalOption
+  serviceOptionalOption,
 } from './utils.js'
 
 import { ORAKL_NETWORK_API_URL, REPORTER_SERVICE_HOST, REPORTER_SERVICE_PORT } from './settings.js'
@@ -27,9 +27,9 @@ export function reporterSub() {
     name: 'list',
     args: {
       chain: chainOptionalOption,
-      service: serviceOptionalOption
+      service: serviceOptionalOption,
     },
-    handler: listHandler(true)
+    handler: listHandler(true),
   })
 
   const insert = command({
@@ -37,34 +37,34 @@ export function reporterSub() {
     args: {
       chain: option({
         type: cmdstring,
-        long: 'chain'
+        long: 'chain',
       }),
       service: option({
         type: cmdstring,
-        long: 'service'
+        long: 'service',
       }),
       address: option({
         type: cmdstring,
-        long: 'address'
+        long: 'address',
       }),
       privateKey: option({
         type: cmdstring,
-        long: 'privateKey'
+        long: 'privateKey',
       }),
       oracleAddress: option({
         type: cmdstring,
-        long: 'oracleAddress'
-      })
+        long: 'oracleAddress',
+      }),
     },
-    handler: insertHandler()
+    handler: insertHandler(),
   })
 
   const remove = command({
     name: 'remove',
     args: {
-      id: idOption
+      id: idOption,
     },
-    handler: removeHandler()
+    handler: removeHandler(),
   })
 
   const active = command({
@@ -73,15 +73,15 @@ export function reporterSub() {
       host: option({
         type: cmdstring,
         long: 'host',
-        defaultValue: () => REPORTER_SERVICE_HOST
+        defaultValue: () => REPORTER_SERVICE_HOST,
       }),
       port: option({
         type: cmdstring,
         long: 'port',
-        defaultValue: () => String(REPORTER_SERVICE_PORT)
-      })
+        defaultValue: () => String(REPORTER_SERVICE_PORT),
+      }),
     },
-    handler: activeHandler()
+    handler: activeHandler(),
   })
 
   const activate = command({
@@ -91,15 +91,15 @@ export function reporterSub() {
       host: option({
         type: cmdstring,
         long: 'host',
-        defaultValue: () => REPORTER_SERVICE_HOST
+        defaultValue: () => REPORTER_SERVICE_HOST,
       }),
       port: option({
         type: cmdstring,
         long: 'port',
-        defaultValue: () => String(REPORTER_SERVICE_PORT)
-      })
+        defaultValue: () => String(REPORTER_SERVICE_PORT),
+      }),
     },
-    handler: activateHandler()
+    handler: activateHandler(),
   })
 
   const deactivate = command({
@@ -109,15 +109,15 @@ export function reporterSub() {
       host: option({
         type: cmdstring,
         long: 'host',
-        defaultValue: () => REPORTER_SERVICE_HOST
+        defaultValue: () => REPORTER_SERVICE_HOST,
       }),
       port: option({
         type: cmdstring,
         long: 'port',
-        defaultValue: () => String(REPORTER_SERVICE_PORT)
-      })
+        defaultValue: () => String(REPORTER_SERVICE_PORT),
+      }),
     },
-    handler: deactivateHandler()
+    handler: deactivateHandler(),
   })
 
   const refresh = command({
@@ -126,20 +126,20 @@ export function reporterSub() {
       host: option({
         type: cmdstring,
         long: 'host',
-        defaultValue: () => REPORTER_SERVICE_HOST
+        defaultValue: () => REPORTER_SERVICE_HOST,
       }),
       port: option({
         type: cmdstring,
         long: 'port',
-        defaultValue: () => String(REPORTER_SERVICE_PORT)
-      })
+        defaultValue: () => String(REPORTER_SERVICE_PORT),
+      }),
     },
-    handler: refreshHandler()
+    handler: refreshHandler(),
   })
 
   return subcommands({
     name: 'reporter',
-    cmds: { list, insert, remove, active, activate, deactivate, refresh }
+    cmds: { list, insert, remove, active, activate, deactivate, refresh },
   })
 }
 
@@ -161,7 +161,7 @@ export function listHandler(print?: boolean) {
           }
 
           const aggregator = aggregatorResult.find(
-            (aggregator) => aggregator.address === reporter.oracleAddress
+            (aggregator) => aggregator.address === reporter.oracleAddress,
           )
           if (aggregator) {
             printResult.push({ ...reporter, name: aggregator.name })
@@ -186,7 +186,7 @@ export function insertHandler() {
     service,
     address,
     privateKey,
-    oracleAddress
+    oracleAddress,
   }: {
     chain: string
     service: string

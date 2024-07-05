@@ -31,7 +31,7 @@ describe('CLI Service', function () {
     await insertHandler()({ name: 'Automation' })
     const msg = await insertHandler()({ name: 'Automation' })
     expect(msg).toEqual(
-      'ERROR: duplicate key value violates unique constraint "services_name_key" (SQLSTATE 23505)'
+      'ERROR: duplicate key value violates unique constraint "services_name_key" (SQLSTATE 23505)',
     )
   })
 

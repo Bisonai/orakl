@@ -32,21 +32,21 @@ export function delegatorSub() {
     args: {
       txData: option({
         type: cmdstring,
-        long: 'txData'
-      })
+        long: 'txData',
+      }),
     },
-    handler: signHandler()
+    handler: signHandler(),
   })
 
   const signList = command({
     name: 'sign',
     args: {},
-    handler: signListHandler()
+    handler: signListHandler(),
   })
   const organizationList = command({
     name: 'organizationList',
     args: {},
-    handler: organizationListHandler()
+    handler: organizationListHandler(),
   })
 
   const organizationInsert = command({
@@ -54,24 +54,24 @@ export function delegatorSub() {
     args: {
       name: option({
         type: cmdstring,
-        long: 'name'
-      })
+        long: 'name',
+      }),
     },
-    handler: organizationInsertHandler()
+    handler: organizationInsertHandler(),
   })
 
   const organizationRemove = command({
     name: 'organizationRemove',
     args: {
-      id: idOption
+      id: idOption,
     },
-    handler: organizationRemoveHandler()
+    handler: organizationRemoveHandler(),
   })
 
   const reporterList = command({
     name: 'reporterList',
     args: {},
-    handler: reporterListHandler()
+    handler: reporterListHandler(),
   })
 
   const reporterInsert = command({
@@ -79,28 +79,28 @@ export function delegatorSub() {
     args: {
       address: option({
         type: cmdstring,
-        long: 'address'
+        long: 'address',
       }),
       organizationId: option({
         type: cmdnumber,
-        long: 'organizationId'
-      })
+        long: 'organizationId',
+      }),
     },
-    handler: reporterInsertHandler()
+    handler: reporterInsertHandler(),
   })
 
   const reporterRemove = command({
     name: 'reporterRemove',
     args: {
-      id: idOption
+      id: idOption,
     },
-    handler: reporterRemoveHandler()
+    handler: reporterRemoveHandler(),
   })
 
   const contractList = command({
     name: 'contractList',
     args: {},
-    handler: contractListHandler()
+    handler: contractListHandler(),
   })
 
   const contractInsert = command({
@@ -108,18 +108,18 @@ export function delegatorSub() {
     args: {
       address: option({
         type: cmdstring,
-        long: 'address'
-      })
+        long: 'address',
+      }),
     },
-    handler: contractInsertHandler()
+    handler: contractInsertHandler(),
   })
 
   const contractRemove = command({
     name: 'contractRemove',
     args: {
-      id: idOption
+      id: idOption,
     },
-    handler: contractRemoveHandler()
+    handler: contractRemoveHandler(),
   })
 
   const contractConnect = command({
@@ -127,14 +127,14 @@ export function delegatorSub() {
     args: {
       contractId: option({
         type: cmdnumber,
-        long: 'contractId'
+        long: 'contractId',
       }),
       reporterId: option({
         type: cmdnumber,
-        long: 'reporterId'
-      })
+        long: 'reporterId',
+      }),
     },
-    handler: contractConnectHandler()
+    handler: contractConnectHandler(),
   })
 
   const contractDisconnect = command({
@@ -142,20 +142,20 @@ export function delegatorSub() {
     args: {
       contractId: option({
         type: cmdnumber,
-        long: 'contractId'
+        long: 'contractId',
       }),
       reporterId: option({
         type: cmdnumber,
-        long: 'reporterId'
-      })
+        long: 'reporterId',
+      }),
     },
-    handler: contractDisconnectHandler()
+    handler: contractDisconnectHandler(),
   })
 
   const functionList = command({
     name: 'functionList',
     args: {},
-    handler: functionListHandler()
+    handler: functionListHandler(),
   })
 
   const functionInsert = command({
@@ -163,22 +163,22 @@ export function delegatorSub() {
     args: {
       name: option({
         type: cmdstring,
-        long: 'name'
+        long: 'name',
       }),
       contractId: option({
         type: cmdnumber,
-        long: 'contractId'
-      })
+        long: 'contractId',
+      }),
     },
-    handler: functionInsertHandler()
+    handler: functionInsertHandler(),
   })
 
   const functionRemove = command({
     name: 'functionRemove',
     args: {
-      id: idOption
+      id: idOption,
     },
-    handler: functionRemoveHandler()
+    handler: functionRemoveHandler(),
   })
 
   return subcommands({
@@ -199,8 +199,8 @@ export function delegatorSub() {
       contractConnect,
       functionList,
       functionInsert,
-      functionRemove
-    }
+      functionRemove,
+    },
   })
 }
 
@@ -278,7 +278,7 @@ export function organizationRemoveHandler() {
     try {
       const endpoint = buildUrl(
         buildUrl(ORAKL_NETWORK_DELEGATOR_URL, `organization`),
-        id.toString()
+        id.toString(),
       )
       const result = (await axios.delete(endpoint)).data
       console.log(result)
@@ -310,7 +310,7 @@ export function reporterListHandler() {
         }
 
         const aggregator = aggregatorResult.find(
-          (aggregator) => aggregator.address === reporter.contract[0]
+          (aggregator) => aggregator.address === reporter.contract[0],
         )
         if (aggregator) {
           printResult.push({ ...reporter, name: aggregator.name })

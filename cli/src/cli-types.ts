@@ -19,7 +19,7 @@ export async function readFileFromSource(source: string) {
 export const ReadFile: Type<string, string> = {
   async from(source) {
     return await readFileFromSource(source)
-  }
+  },
 }
 
 export interface ITransaction {

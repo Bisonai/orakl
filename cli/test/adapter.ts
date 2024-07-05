@@ -34,7 +34,7 @@ describe('CLI Adapter', function () {
     await insertHandler()({ data: ADAPTER_1 })
     const msg = await insertHandler()({ data: ADAPTER_1 })
     expect(msg).toEqual(
-      'ERROR: duplicate key value violates unique constraint "adapters_adapter_hash_key" (SQLSTATE 23505)'
+      'ERROR: duplicate key value violates unique constraint "adapters_adapter_hash_key" (SQLSTATE 23505)',
     )
   })
 

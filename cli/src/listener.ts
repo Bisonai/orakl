@@ -7,7 +7,7 @@ import {
   idOption,
   isOraklNetworkApiHealthy,
   isServiceHealthy,
-  serviceOptionalOption
+  serviceOptionalOption,
 } from './utils.js'
 
 const LISTENER_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'listener')
@@ -25,9 +25,9 @@ export function listenerSub() {
     name: 'list',
     args: {
       chain: chainOptionalOption,
-      service: serviceOptionalOption
+      service: serviceOptionalOption,
     },
-    handler: listHandler(true)
+    handler: listHandler(true),
   })
 
   const insert = command({
@@ -35,30 +35,30 @@ export function listenerSub() {
     args: {
       chain: option({
         type: cmdstring,
-        long: 'chain'
+        long: 'chain',
       }),
       service: option({
         type: cmdstring,
-        long: 'service'
+        long: 'service',
       }),
       address: option({
         type: cmdstring,
-        long: 'address'
+        long: 'address',
       }),
       eventName: option({
         type: cmdstring,
-        long: 'eventName'
-      })
+        long: 'eventName',
+      }),
     },
-    handler: insertHandler()
+    handler: insertHandler(),
   })
 
   const remove = command({
     name: 'remove',
     args: {
-      id: idOption
+      id: idOption,
     },
-    handler: removeHandler()
+    handler: removeHandler(),
   })
 
   const active = command({
@@ -67,15 +67,15 @@ export function listenerSub() {
       host: option({
         type: cmdstring,
         long: 'host',
-        defaultValue: () => LISTENER_SERVICE_HOST
+        defaultValue: () => LISTENER_SERVICE_HOST,
       }),
       port: option({
         type: cmdstring,
         long: 'port',
-        defaultValue: () => String(LISTENER_SERVICE_PORT)
-      })
+        defaultValue: () => String(LISTENER_SERVICE_PORT),
+      }),
     },
-    handler: activeHandler()
+    handler: activeHandler(),
   })
 
   const activate = command({
@@ -85,15 +85,15 @@ export function listenerSub() {
       host: option({
         type: cmdstring,
         long: 'host',
-        defaultValue: () => LISTENER_SERVICE_HOST
+        defaultValue: () => LISTENER_SERVICE_HOST,
       }),
       port: option({
         type: cmdstring,
         long: 'port',
-        defaultValue: () => String(LISTENER_SERVICE_PORT)
-      })
+        defaultValue: () => String(LISTENER_SERVICE_PORT),
+      }),
     },
-    handler: activateHandler()
+    handler: activateHandler(),
   })
 
   const deactivate = command({
@@ -103,20 +103,20 @@ export function listenerSub() {
       host: option({
         type: cmdstring,
         long: 'host',
-        defaultValue: () => LISTENER_SERVICE_HOST
+        defaultValue: () => LISTENER_SERVICE_HOST,
       }),
       port: option({
         type: cmdstring,
         long: 'port',
-        defaultValue: () => String(LISTENER_SERVICE_PORT)
-      })
+        defaultValue: () => String(LISTENER_SERVICE_PORT),
+      }),
     },
-    handler: deactivateHandler()
+    handler: deactivateHandler(),
   })
 
   return subcommands({
     name: 'listener',
-    cmds: { list, insert, remove, active, activate, deactivate }
+    cmds: { list, insert, remove, active, activate, deactivate },
   })
 }
 
@@ -137,7 +137,7 @@ export function listHandler(print?: boolean) {
           }
 
           const aggregator = aggregatorResult.find(
-            (aggregator) => aggregator.address === listener.address
+            (aggregator) => aggregator.address === listener.address,
           )
           if (aggregator) {
             printResult.push({ ...listener, name: aggregator.name })
@@ -161,7 +161,7 @@ export function insertHandler() {
     chain,
     service,
     address,
-    eventName
+    eventName,
   }: {
     chain: string
     service: string

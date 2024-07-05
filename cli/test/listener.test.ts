@@ -2,13 +2,13 @@ import { describe, expect, test } from '@jest/globals'
 import {
   insertHandler as chainInsertHandler,
   listHandler as chainListHandler,
-  removeHandler as chainRemoveHandler
+  removeHandler as chainRemoveHandler,
 } from '../src/chain'
 import { insertHandler, listHandler, removeHandler } from '../src/listener'
 import {
   insertHandler as serviceInsertHandler,
   listHandler as serviceListHandler,
-  removeHandler as serviceRemoveHandler
+  removeHandler as serviceRemoveHandler,
 } from '../src/service'
 
 describe('CLI Listener', function () {
@@ -16,14 +16,14 @@ describe('CLI Listener', function () {
     chain: 'localhost',
     service: 'VRF',
     address: '0x0000000000000000000000000000000000000000',
-    eventName: 'Event'
+    eventName: 'Event',
   }
 
   const LISTENER_1 = {
     chain: 'localhost',
     service: 'VRF',
     address: '0x0000000000000000000000000000000000000001',
-    eventName: 'Event'
+    eventName: 'Event',
   }
 
   let initialListenerId

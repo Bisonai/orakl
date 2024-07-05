@@ -5,27 +5,27 @@ import { ORAKL_NETWORK_API_URL, ORAKL_NETWORK_DELEGATOR_URL } from './settings.j
 
 export const chainOptionalOption = option({
   type: optional(cmdstring),
-  long: 'chain'
+  long: 'chain',
 })
 
 export const serviceOptionalOption = option({
   type: optional(cmdstring),
-  long: 'service'
+  long: 'service',
 })
 
 export const fetcherTypeOptionalOption = option({
   type: optional(cmdnumber),
-  long: 'fetcherType'
+  long: 'fetcherType',
 })
 
 export const proxyOptionalOption = option({
   type: optional(cmdstring),
-  long: 'location'
+  long: 'location',
 })
 
 export const idOption = option({
   type: cmdnumber,
-  long: 'id'
+  long: 'id',
 })
 
 export async function loadFile(source: string) {
@@ -80,7 +80,7 @@ export async function isOraklFetcherHealthy(url: string) {
     }
   } catch (error) {
     console.error(
-      `An error occurred while checking the Orakl Network Fetcher [${url}]: ${error.message}`
+      `An error occurred while checking the Orakl Network Fetcher [${url}]: ${error.message}`,
     )
     return false
   }

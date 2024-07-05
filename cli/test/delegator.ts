@@ -8,7 +8,7 @@ import {
   organizationInsertHandler,
   organizationRemoveHandler,
   reporterInsertHandler,
-  reporterRemoveHandler
+  reporterRemoveHandler,
 } from '../src/delegator'
 
 // const unsignedTx = {
@@ -40,7 +40,7 @@ describe('CLI Delegator', function () {
     //Insert Reporter
     const reporter = await reporterInsertHandler()({
       address: reporterAddress,
-      organizationId: Number(organization.id)
+      organizationId: Number(organization.id),
     })
     expect(reporter.address).toBe(reporterAddress)
     expect(Number(reporter.organizationId)).toBe(Number(organization.id))
@@ -52,14 +52,14 @@ describe('CLI Delegator', function () {
     // Insert Functions
     const functions = await functionInsertHandler()({
       name: functionName,
-      contractId: Number(contract.id)
+      contractId: Number(contract.id),
     })
     expect(functions.name).toBe(functionName)
 
     // Connect contract with reporter
     await contractConnectHandler()({
       contractId: Number(contract.id),
-      reporterId: Number(reporter.id)
+      reporterId: Number(reporter.id),
     })
 
     // Sign Transaction

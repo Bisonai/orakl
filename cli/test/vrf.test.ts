@@ -2,7 +2,7 @@ import { describe, expect, test } from '@jest/globals'
 import {
   insertHandler as chainInsertHandler,
   listHandler as chainListHandler,
-  removeHandler as chainRemoveHandler
+  removeHandler as chainRemoveHandler,
 } from '../src/chain'
 import { insertHandler, listHandler, removeHandler } from '../src/vrf'
 import { VRF_0, VRF_1 } from './mockData'
