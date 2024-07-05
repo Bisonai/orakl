@@ -9,14 +9,14 @@ import {
   pipe,
   pow10Fn,
   REDUCER_MAPPING,
-  roundFn
+  roundFn,
 } from '../src/reducer'
 
 describe('Reducers', function () {
   test('parseFn with array input', function () {
     const obj = {
       RAW: { ETH: { USD: { PRICE: 123 } } },
-      DISPLAY: { ETH: { USD: [Object] } }
+      DISPLAY: { ETH: { USD: [Object] } },
     }
     const fn = parseFn(['RAW', 'ETH', 'USD', 'PRICE'])
     fn(obj)
@@ -26,7 +26,7 @@ describe('Reducers', function () {
   test('parseFn with string input', function () {
     const obj = {
       RAW: { ETH: { USD: { PRICE: 123 } } },
-      DISPLAY: { ETH: { USD: [Object] } }
+      DISPLAY: { ETH: { USD: [Object] } },
     }
     const fn = parseFn('RAW,ETH,USD,PRICE')
     fn(obj)
@@ -56,7 +56,7 @@ describe('Reducers', function () {
     // 10 * 8 / 2 = 40
     const request = [
       { function: 'mul', args: 8 },
-      { function: 'div', args: 2 }
+      { function: 'div', args: 2 },
     ]
     const reducers = buildReducer(REDUCER_MAPPING, request)
     expect(pipe(...reducers)(10)).toBe(40)

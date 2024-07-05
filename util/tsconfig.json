@@ -1,25 +1,25 @@
 {
-    "exclude": ["node_modules", "test"],
-    "include": ["src"],
-    "compilerOptions": {
-      "module": "es2022",
-      "moduleResolution": "node",
-      "target": "es2022",
-      "declaration": true,
-      "removeComments": true,
-      "resolveJsonModule": true,
-      "emitDecoratorMetadata": true,
-      "experimentalDecorators": true,
-      "allowSyntheticDefaultImports": true,
-      "sourceMap": true,
-      "outDir": "dist",
-      "incremental": true,
-      "skipLibCheck": true,
-      "noImplicitAny": false,
-      "strictNullChecks": true,
-      "strictBindCallApply": true,
-      "forceConsistentCasingInFileNames": true,
-      "noFallthroughCasesInSwitch": true,
-      "allowJs": true
-    }
+  "exclude": ["node_modules", "test"],
+  "include": ["src"],
+  "compilerOptions": {
+    "module": "es2022",
+    "moduleResolution": "node",
+    "target": "es2022",
+    "declaration": true,
+    "removeComments": true,
+    "resolveJsonModule": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "allowSyntheticDefaultImports": true,
+    "sourceMap": true,
+    "outDir": "dist",
+    "incremental": true,
+    "skipLibCheck": true,
+    "noImplicitAny": false,
+    "strictNullChecks": true,
+    "strictBindCallApply": true,
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true,
+    "allowJs": true
   }
+}

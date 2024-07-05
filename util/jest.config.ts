@@ -4,15 +4,15 @@ const jestConfig: JestConfigWithTsJest = {
   verbose: true,
   preset: 'ts-jest/presets/default-esm',
   moduleNameMapper: {
-    '^(\\.{1,2}/.*)\\.js$': '$1'
+    '^(\\.{1,2}/.*)\\.js$': '$1',
   },
   transform: {
     '^.+\\.(t|j)s$': [
       'ts-jest',
       {
-        useESM: true
-      }
-    ]
+        useESM: true,
+      },
+    ],
   },
   moduleFileExtensions: ['js', 'json', 'ts'],
   rootDir: '.',
@@ -26,7 +26,7 @@ const jestConfig: JestConfigWithTsJest = {
   testEnvironment: 'node',
   maxConcurrency: 1,
   maxWorkers: 1,
-  bail: true
+  bail: true,
 }
 
 export default jestConfig

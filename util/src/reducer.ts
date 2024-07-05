@@ -8,7 +8,7 @@ export const REDUCER_MAPPING = {
   ROUND: roundFn,
   INDEX: indexFn,
   DIV: divFn,
-  DIVFROM: divFromFn
+  DIVFROM: divFromFn,
 }
 
 /**
