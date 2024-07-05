@@ -82,7 +82,7 @@ jobs:
 
       - name: Run delegator
         working-directory: ./delegator
-        run: go run main.go &
+        run: go run main.go
         env:
           DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/delegator?search_path=public"
           PROVIDER_URL: "https://public-en.kairos.node.kaia.io"
