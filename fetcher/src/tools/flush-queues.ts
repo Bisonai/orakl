@@ -4,8 +4,8 @@ import { FETCHER_QUEUE_NAME } from '../settings'
 export const BULLMQ_CONNECTION = {
   connection: {
     host: 'localhost',
-    port: 6379
-  }
+    port: 6379,
+  },
 }
 
 async function main() {

@@ -37,27 +37,27 @@ export class JobProcessor extends WorkerHost {
       try {
         const { value: lastSubmission } = await fetchDataFeedByAggregatorId({
           aggregatorId,
-          logger: this.logger
+          logger: this.logger,
         })
         let response = await insertMultipleData({ aggregatorId, timestamp, data })
 
         response = await insertAggregateData({
           aggregatorId,
           timestamp,
-          value: aggregate
+          value: aggregate,
         })
 
         const outData: IDeviationData = {
           timestamp: timestamp,
           submission: aggregate,
-          oracleAddress
+          oracleAddress,
         }
         if (
           shouldReport(Number(lastSubmission), aggregate, decimals, threshold, absoluteThreshold)
         ) {
           this.deviationQueue.add('fetcher-submission', outData, {
             removeOnFail: true,
-            removeOnComplete: true
+            removeOnComplete: true,
           })
           this.logger.debug('added deviation queue', oracleAddress)
         }

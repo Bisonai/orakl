@@ -46,10 +46,10 @@ async function fetchRawDataWithProxy(adapter, logger) {
       proxy: {
         protocol: adapter.proxy.protocol,
         host: adapter.proxy.host,
-        port: adapter.proxy.port
-      }
+        port: adapter.proxy.port,
+      },
     },
-    logger
+    logger,
   )
 }
 
@@ -59,9 +59,9 @@ async function fetchRawDataWithoutProxy(adapter, logger) {
     {
       method: adapter.method,
       headers: adapter.headers,
-      timeout: FETCH_TIMEOUT
+      timeout: FETCH_TIMEOUT,
     },
-    logger
+    logger,
   )
 }
 
@@ -106,7 +106,7 @@ export async function fetchData(adapterList, decimals, logger) {
         logger.error(e)
         throw e
       }
-    })
+    }),
   )
 
   return data.flatMap((D) => (D.status == 'fulfilled' ? [D.value] : []))
@@ -122,7 +122,7 @@ function validateAdapter(adapter): IAdapter {
   const requiredProperties = ['id', 'active', 'name', 'jobType', 'decimals', 'feeds']
   // TODO show where is the error
   const hasProperty = requiredProperties.map((p) =>
-    Object.prototype.hasOwnProperty.call(adapter, p)
+    Object.prototype.hasOwnProperty.call(adapter, p),
   )
   const isValid = hasProperty.every((x) => x)
 
@@ -163,7 +163,7 @@ export function extractFeeds(
   absoluteThreshold: number,
   address: string,
   proxies: IProxy[],
-  logger: Logger
+  logger: Logger,
 ) {
   const adapterHash = adapter.adapterHash
   const proxySelector = selectProxyFn(proxies)
@@ -174,7 +174,7 @@ export function extractFeeds(
         proxy = proxySelector(f.definition.url)
       } else {
         const availableProxies = proxies.filter(
-          (item) => item.location && item.location === f.definition.location
+          (item) => item.location && item.location === f.definition.location,
         )
         if (availableProxies.length == 0) {
           throw `no proxies available for location:${f.definition.location}`
@@ -191,7 +191,7 @@ export function extractFeeds(
       id: f.id,
       name: f.name,
       proxy,
-      ...f.definition
+      ...f.definition,
     }
   })
 
@@ -204,8 +204,8 @@ export function extractFeeds(
       threshold,
       absoluteThreshold,
       address,
-      feeds
-    }
+      feeds,
+    },
   }
 }
 
@@ -225,7 +225,7 @@ export function shouldReport(
   submission: number,
   decimals: number,
   threshold: number,
-  absoluteThreshold: number
+  absoluteThreshold: number,
 ): boolean {
   if (latestSubmission && submission) {
     const denominator = Math.pow(10, decimals)
@@ -252,7 +252,7 @@ export async function extractUniswapPrice(adapter, decimals) {
   const datum = sqrtPriceX96ToTokenPrice(
     BigInt(rawData[0]),
     adapter.token0Decimals,
-    adapter.token1Decimals
+    adapter.token1Decimals,
   )
   if (adapter.reciprocal) {
     if (datum === 0) {
@@ -276,7 +276,7 @@ export async function providerByChain(chainId: number) {
 function sqrtPriceX96ToTokenPrice(
   sqrtPriceX96: bigint,
   decimal0: number,
-  decimal1: number
+  decimal1: number,
 ): number {
   return (
     Math.pow(Number(sqrtPriceX96) / Math.pow(2, 96), 2) /

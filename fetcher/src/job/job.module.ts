@@ -11,19 +11,19 @@ import { JobProcessor } from './job.processor'
         name: FETCHER_QUEUE_NAME,
         connection: {
           host: process.env.REDIS_HOST || 'localhost',
-          port: Number(process.env.REDIS_PORT) || 6379
-        }
+          port: Number(process.env.REDIS_PORT) || 6379,
+        },
       },
       {
         name: DEVIATION_QUEUE_NAME,
         connection: {
           host: process.env.REDIS_HOST || 'localhost',
-          port: Number(process.env.REDIS_PORT) || 6379
-        }
-      }
-    )
+          port: Number(process.env.REDIS_PORT) || 6379,
+        },
+      },
+    ),
   ],
   controllers: [JobController],
-  providers: [JobProcessor]
+  providers: [JobProcessor],
 })
 export class JobModule {}
