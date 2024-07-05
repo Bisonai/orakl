@@ -10,6 +10,7 @@ import (
 	"bisonai.com/orakl/node/pkg/admin/aggregator"
 	"bisonai.com/orakl/node/pkg/admin/config"
 	"bisonai.com/orakl/node/pkg/admin/utils"
+	"bisonai.com/orakl/node/pkg/chain/helper"
 	"bisonai.com/orakl/node/pkg/common/keys"
 
 	"bisonai.com/orakl/node/pkg/bus"
@@ -40,6 +41,7 @@ type TestItems struct {
 	topicString string
 	messageBus  *bus.MessageBus
 	tmpData     *TmpData
+	signer      *helper.Signer
 }
 
 func setup(ctx context.Context) (func() error, *TestItems, error) {
@@ -77,6 +79,12 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 		return nil, nil, err
 	}
 	testItems.tmpData = tmpData
+
+	signHelper, err := helper.NewSigner(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	testItems.signer = signHelper
 
 	v1 := admin.Group("/api/v1")
 	aggregator.Routes(v1)

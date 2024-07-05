@@ -6,7 +6,6 @@ import (
 	"math/big"
 	"os"
 	"strings"
-	"time"
 
 	"bisonai.com/orakl/node/pkg/chain/utils"
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
@@ -282,37 +281,4 @@ func (t *ChainHelper) retryOnJsonRpcFailure(ctx context.Context, job func(c util
 		break
 	}
 	return nil
-}
-
-func NewSignHelper(ctx context.Context) (*SignHelper, error) {
-	pk, err := utils.LoadSignerPk(ctx)
-	if err != nil || pk == "" {
-		log.Warn().Msg("failed to load signer pk from pgs")
-	}
-
-	if pk == "" {
-		pk = secrets.GetSecret(SignerPk)
-		if pk == "" {
-			log.Error().Msg("signer pk not set")
-			return nil, errorSentinel.ErrChainSignerPKNotFound
-		}
-		err = utils.StoreSignerPk(ctx, pk)
-		if err != nil {
-			log.Warn().Msg("failed to store pk")
-		}
-	}
-
-	pk = strings.TrimPrefix(pk, "0x")
-	privateKey, err := utils.StringToPk(pk)
-	if err != nil {
-		log.Error().Err(err).Msg("failed to convert pk")
-		return nil, err
-	}
-	return &SignHelper{
-		PK: privateKey,
-	}, nil
-}
-
-func (s *SignHelper) MakeGlobalAggregateProof(val int64, timestamp time.Time, name string) ([]byte, error) {
-	return utils.MakeValueSignature(val, timestamp.Unix(), name, s.PK)
 }
