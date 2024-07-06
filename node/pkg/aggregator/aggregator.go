@@ -17,7 +17,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func NewAggregator(ctx context.Context, h host.Host, ps *pubsub.PubSub, topicString string, config Config, signHelper *helper.Signer) (*Aggregator, error) {
+func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string, config Config, signHelper *helper.Signer) (*Aggregator, error) {
 	if h == nil || ps == nil || topicString == "" {
 		return nil, errorSentinel.ErrAggregatorInvalidInitValue
 	}
