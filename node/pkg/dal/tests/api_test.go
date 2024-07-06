@@ -114,7 +114,6 @@ func TestApiGetLatest(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error converting sample submission data to outgoing data: %v", err)
 	}
-
 	assert.Equal(t, *expected, result)
 }
 
