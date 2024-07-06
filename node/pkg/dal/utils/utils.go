@@ -24,6 +24,7 @@ func APIKeyMiddleware() fiber.Handler {
 		validAPIKey := os.Getenv("API_KEY")
 
 		if apiKey != validAPIKey {
+			log.Warn().Msg("Unauthorized access attempt")
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 				"error": "Unauthorized",
 			})
