@@ -22,15 +22,17 @@ type WebsocketHelper struct {
 	Compression    bool
 	CustomDialFunc *func(context.Context, string, *websocket.DialOptions) (*websocket.Conn, *http.Response, error)
 	CustomReadFunc *func(context.Context, *websocket.Conn) (map[string]interface{}, error)
+	RequestHeaders map[string]string
 }
 
 type ConnectionConfig struct {
-	Endpoint      string
-	Proxy         string
-	Subscriptions []any
-	Compression   bool
-	DialFunc      func(context.Context, string, *websocket.DialOptions) (*websocket.Conn, *http.Response, error)
-	ReadFunc      func(context.Context, *websocket.Conn) (map[string]interface{}, error)
+	Endpoint       string
+	Proxy          string
+	Subscriptions  []any
+	Compression    bool
+	DialFunc       func(context.Context, string, *websocket.DialOptions) (*websocket.Conn, *http.Response, error)
+	ReadFunc       func(context.Context, *websocket.Conn) (map[string]interface{}, error)
+	RequestHeaders map[string]string
 }
 
 type ConnectionOption func(*ConnectionConfig)
@@ -74,6 +76,12 @@ func WithCompressionMode() ConnectionOption {
 	}
 }
 
+func WithRequestHeaders(headers map[string]string) ConnectionOption {
+	return func(c *ConnectionConfig) {
+		c.RequestHeaders = headers
+	}
+}
+
 func NewWebsocketHelper(ctx context.Context, opts ...ConnectionOption) (*WebsocketHelper, error) {
 	config := &ConnectionConfig{}
 	for _, opt := range opts {
@@ -90,10 +98,11 @@ func NewWebsocketHelper(ctx context.Context, opts ...ConnectionOption) (*Websock
 	}
 
 	ws := &WebsocketHelper{
-		Endpoint:      config.Endpoint,
-		Subscriptions: config.Subscriptions,
-		Proxy:         config.Proxy,
-		Compression:   config.Compression,
+		Endpoint:       config.Endpoint,
+		Subscriptions:  config.Subscriptions,
+		Proxy:          config.Proxy,
+		Compression:    config.Compression,
+		RequestHeaders: config.RequestHeaders,
 	}
 
 	if config.DialFunc != nil {
@@ -122,6 +131,12 @@ func (ws *WebsocketHelper) Dial(ctx context.Context) error {
 			HTTPClient: &http.Client{
 				Transport: proxyTransport,
 			},
+		}
+	}
+
+	if len(ws.RequestHeaders) > 0 {
+		for key, value := range ws.RequestHeaders {
+			dialOption.HTTPHeader.Add(key, value)
 		}
 	}
 

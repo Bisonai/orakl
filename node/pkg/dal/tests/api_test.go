@@ -3,6 +3,7 @@ package test
 
 import (
 	"context"
+	"os"
 	"testing"
 	"time"
 
@@ -129,11 +130,17 @@ func TestApiWebsocket(t *testing.T) {
 		}
 	}()
 
+	apiKey := os.Getenv("API_KEY")
+	if apiKey == "" {
+		t.Fatalf("apiKey required")
+	}
+	headers := map[string]string{"X-API-Key": apiKey}
+
 	testItems.Controller.Start(ctx)
 
 	go testItems.App.Listen(":8090")
 
-	conn, err := wss.NewWebsocketHelper(ctx, wss.WithEndpoint("ws://localhost:8090/api/v1/dal/ws"))
+	conn, err := wss.NewWebsocketHelper(ctx, wss.WithEndpoint("ws://localhost:8090/api/v1/dal/ws"), wss.WithRequestHeaders(headers))
 	if err != nil {
 		t.Fatalf("error creating websocket helper: %v", err)
 	}

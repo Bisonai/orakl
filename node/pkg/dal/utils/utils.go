@@ -17,6 +17,22 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+func APIKeyMiddleware() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		apiKey := c.Get("X-API-Key")
+
+		validAPIKey := os.Getenv("API_KEY")
+
+		if apiKey != validAPIKey {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"error": "Unauthorized",
+			})
+		}
+
+		return c.Next()
+	}
+}
+
 func Setup(ctx context.Context) (*fiber.App, error) {
 	_, err := db.GetPool(ctx)
 	if err != nil {
@@ -44,6 +60,7 @@ func Setup(ctx context.Context) (*fiber.App, error) {
 	))
 
 	app.Use(cors.New())
+	app.Use(APIKeyMiddleware())
 	return app, nil
 }
 

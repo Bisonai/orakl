@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"testing"
 	"time"
 
@@ -51,12 +52,18 @@ func rawReq(app *fiber.App, method string, endpoint string, requestBody interfac
 		endpoint,
 		body,
 	)
-
-	req.Header.Set("Content-Type", "application/json")
 	if err != nil {
 		log.Error().Err(err).Msg("failed to create request")
 		return result, err
 	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	apiKey := os.Getenv("API_KEY")
+	if apiKey != "" {
+		req.Header.Set("X-API-Key", apiKey)
+	}
+
 	res, err := app.Test(req, -1)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to call test")
