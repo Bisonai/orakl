@@ -173,13 +173,14 @@ func TestApiWebsocket(t *testing.T) {
 		t.Fatalf("error publishing sample submission data: %v", err)
 	}
 
+	ch := make(chan any)
+	go conn.Read(ctx, ch)
+
 	expected, err := testItems.Collector.IncomingDataToOutgoingData(ctx, *sampleSubmissionData)
 	if err != nil {
 		t.Fatalf("error converting sample submission data to outgoing data: %v", err)
 	}
 
-	ch := make(chan any)
-	go conn.Read(ctx, ch)
 	sample := <-ch
 
 	result, err := wsfcommon.MessageToStruct[common.OutgoingSubmissionData](sample.(map[string]any))
