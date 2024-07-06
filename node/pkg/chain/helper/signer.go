@@ -43,12 +43,11 @@ func WithRenewThreshold(renewThreshold time.Duration) SignerOption {
 }
 
 func getSignerPk(ctx context.Context, config SignerConfig) (string, error) {
-	var pk string
-	var err error
 	if config.pk != "" {
 		return strings.TrimPrefix(config.pk, "0x"), nil
 	}
-	pk, err = utils.LoadSignerPk(ctx)
+
+	pk, err := utils.LoadSignerPk(ctx)
 	if err != nil {
 		log.Warn().Str("Player", "Signer").Err(err).Msg("failed to load signer from pgs")
 	}
