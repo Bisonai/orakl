@@ -135,6 +135,7 @@ func (ws *WebsocketHelper) Dial(ctx context.Context) error {
 	}
 
 	if len(ws.RequestHeaders) > 0 {
+		dialOption.HTTPHeader = http.Header{}
 		for key, value := range ws.RequestHeaders {
 			dialOption.HTTPHeader.Add(key, value)
 		}
