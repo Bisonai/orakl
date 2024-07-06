@@ -569,6 +569,60 @@ func TestNewPk(t *testing.T) {
 	assert.NotEqual(t, nil, addr)
 }
 
+func TestSignerTableSingleEntry(t *testing.T) {
+	ctx := context.Background()
+
+	//cleanup
+	err := db.QueryWithoutResult(ctx, "DELETE FROM signer;", nil)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	mockPk1 := "0xf558f6ef079e7fe096eac4497c1e07af6a867f86411c42aad3757f7768316ceb"
+	mockPk2 := "0x81abf286f673fc51d2b0d6811f760665893838bdc41fa3caca0dd8d83e0ff105"
+
+	result, err := db.QueryRow[utils.Wallet](ctx, "SELECT id, pk FROM signer LIMIT 1;", nil)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+	assert.Equal(t, int64(0), result.ID)
+	assert.Equal(t, "", result.PK)
+
+	err = utils.StoreSignerPk(ctx, mockPk1)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	loadedPk, err := utils.LoadSignerPk(ctx)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+	assert.Equal(t, strings.TrimPrefix(mockPk1, "0x"), strings.TrimPrefix(loadedPk, "0x"))
+
+	err = utils.StoreSignerPk(ctx, mockPk2)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	rowsResult, err := db.QueryRows[utils.Wallet](ctx, "SELECT id, pk FROM signer;", nil)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+	assert.Equal(t, 1, len(rowsResult))
+
+	loadedPk, err = utils.LoadSignerPk(ctx)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+	assert.Equal(t, strings.TrimPrefix(mockPk2, "0x"), strings.TrimPrefix(loadedPk, "0x"))
+
+	//cleanup
+	err = db.QueryWithoutResult(ctx, "DELETE FROM signer;", nil)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+}
+
 func TestSignerRenew(t *testing.T) {
 	ctx := context.Background()
 
@@ -648,6 +702,11 @@ func TestSignerRenew(t *testing.T) {
 	}
 
 	err = chainHelperForCleanup.SubmitRawTx(ctx, removeOracleTx)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	err = db.QueryWithoutResult(ctx, "DELETE FROM signer;", nil)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
