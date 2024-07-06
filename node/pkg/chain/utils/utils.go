@@ -679,7 +679,7 @@ func RecoverSigner(hash []byte, signature []byte) (address common.Address, err e
 }
 
 func LoadSignerPk(ctx context.Context) (string, error) {
-	signer, err := db.QueryRow[Wallet](ctx, "SELECT * FROM signer LIMIT 1;", nil)
+	signer, err := db.QueryRow[Wallet](ctx, "SELECT id, pk FROM signer LIMIT 1;", nil)
 	if err != nil {
 		return "", err
 	}
@@ -702,7 +702,10 @@ func StoreSignerPk(ctx context.Context, pk string) error {
 	if err != nil {
 		return err
 	}
-	return db.QueryWithoutResult(ctx, "INSERT INTO signer (pk) VALUES (@pk)", map[string]any{"pk": encryptedPk})
+	return db.QueryWithoutResult(ctx, `INSERT INTO signer (pk, unique_dummy)
+VALUES (@pk, TRUE)
+ON CONFLICT (unique_dummy)
+DO UPDATE SET pk = EXCLUDED.pk;`, map[string]any{"pk": encryptedPk})
 }
 
 func NewPk(ctx context.Context) (*ecdsa.PrivateKey, string, error) {
