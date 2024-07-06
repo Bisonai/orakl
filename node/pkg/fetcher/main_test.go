@@ -119,6 +119,11 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 }
 
 func insertSampleData(ctx context.Context, testItems *TestItems) ([]config.ConfigModel, []feed.FeedModel, error) {
+	err := db.QueryWithoutResult(ctx, "DELETE FROM configs", nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	var sampleData = []string{`{
     "name": "DAI-USDT",
     "feeds": [
