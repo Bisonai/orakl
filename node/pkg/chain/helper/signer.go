@@ -180,7 +180,13 @@ func (s *Signer) LoadExpiration(ctx context.Context) (*time.Time, error) {
 		log.Error().Str("Player", "Signer").Err(errorSentinel.ErrChainFailedToParseContractResult).Msg("failed to parse contract result")
 		return nil, errorSentinel.ErrChainFailedToParseContractResult
 	}
-	rawTimestamp := values[1].(*big.Int)
+
+	rawTimestamp, ok := values[1].(*big.Int)
+	if !ok {
+		log.Error().Str("Player", "Signer").Err(errorSentinel.ErrChainFailedToParseContractResult).Msg("failed to parse result to bigInt")
+		return nil, errorSentinel.ErrChainFailedToParseContractResult
+	}
+
 	expirationDate := time.Unix(int64(rawTimestamp.Int64()), 0)
 	s.expirationDate = &expirationDate
 	return s.expirationDate, nil
