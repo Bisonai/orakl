@@ -174,7 +174,7 @@ func (c *Collector) IncomingDataToOutgoingData(ctx context.Context, data aggrega
 }
 
 func (c *Collector) trackOracleAdded(ctx context.Context) {
-	var eventTriggered chan any
+	eventTriggered := make(chan any)
 	err := subscribeAddOracleEvent(ctx, c.chainReader, c.submissionProxyContractAddr, eventTriggered)
 	if err != nil {
 		log.Error().Err(err).Str("Player", "DalCollector").Msg("failed to subscribe to oracle added event")
