@@ -3,6 +3,7 @@ package test
 
 import (
 	"context"
+	"os"
 	"testing"
 	"time"
 
@@ -113,7 +114,6 @@ func TestApiGetLatest(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error converting sample submission data to outgoing data: %v", err)
 	}
-
 	assert.Equal(t, *expected, result)
 }
 
@@ -129,11 +129,17 @@ func TestApiWebsocket(t *testing.T) {
 		}
 	}()
 
+	apiKey := os.Getenv("API_KEY")
+	if apiKey == "" {
+		t.Fatalf("apiKey required")
+	}
+	headers := map[string]string{"X-API-Key": apiKey}
+
 	testItems.Controller.Start(ctx)
 
 	go testItems.App.Listen(":8090")
 
-	conn, err := wss.NewWebsocketHelper(ctx, wss.WithEndpoint("ws://localhost:8090/api/v1/dal/ws"))
+	conn, err := wss.NewWebsocketHelper(ctx, wss.WithEndpoint("ws://localhost:8090/api/v1/dal/ws"), wss.WithRequestHeaders(headers))
 	if err != nil {
 		t.Fatalf("error creating websocket helper: %v", err)
 	}
@@ -167,13 +173,14 @@ func TestApiWebsocket(t *testing.T) {
 		t.Fatalf("error publishing sample submission data: %v", err)
 	}
 
+	ch := make(chan any)
+	go conn.Read(ctx, ch)
+
 	expected, err := testItems.Collector.IncomingDataToOutgoingData(ctx, *sampleSubmissionData)
 	if err != nil {
 		t.Fatalf("error converting sample submission data to outgoing data: %v", err)
 	}
 
-	ch := make(chan any)
-	go conn.Read(ctx, ch)
 	sample := <-ch
 
 	result, err := wsfcommon.MessageToStruct[common.OutgoingSubmissionData](sample.(map[string]any))
