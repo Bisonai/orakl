@@ -10,6 +10,7 @@ import (
 
 	"bisonai.com/orakl/node/pkg/db"
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
+	"bisonai.com/orakl/node/pkg/secrets"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -19,7 +20,7 @@ import (
 )
 
 func validator(ctx *fiber.Ctx, s string) (bool, error) {
-	key := os.Getenv("API_KEY")
+	key := secrets.GetSecret("API_KEY")
 	if s == "" {
 		return false, fmt.Errorf("missing api key")
 	}
