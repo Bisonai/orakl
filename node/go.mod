@@ -6,8 +6,9 @@ require (
 	github.com/elazarl/goproxy v0.0.0-20231117061959-7cc037d33fb5
 	github.com/go-playground/validator v9.31.0+incompatible
 	github.com/go-playground/validator/v10 v10.18.0
-	github.com/gofiber/fiber/v2 v2.52.0
-	github.com/google/uuid v1.5.0
+	github.com/gofiber/contrib/websocket v1.3.2
+	github.com/gofiber/fiber/v2 v2.52.5
+	github.com/google/uuid v1.6.0
 	github.com/hashicorp/vault/api v1.12.0
 	github.com/hashicorp/vault/api/auth/kubernetes v0.6.0
 	github.com/jackc/pgx/v5 v5.5.3
@@ -32,7 +33,7 @@ require (
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/VictoriaMetrics/fastcache v1.12.2 // indirect
 	github.com/alecthomas/units v0.0.0-20211218093645-b94a6e3cc137 // indirect
-	github.com/andybalholm/brotli v1.0.5 // indirect
+	github.com/andybalholm/brotli v1.1.0 // indirect
 	github.com/aristanetworks/goarista v0.0.0-20191001182449-186a6201b8ef // indirect
 	github.com/aws/aws-sdk-go v1.34.28 // indirect
 	github.com/benbjohnson/clock v1.3.5 // indirect
@@ -60,6 +61,7 @@ require (
 	github.com/edsrzf/mmap-go v1.0.0 // indirect
 	github.com/elastic/gosigar v0.14.2 // indirect
 	github.com/ethereum/c-kzg-4844 v0.4.0 // indirect
+	github.com/fasthttp/websocket v1.5.8 // indirect
 	github.com/fatih/color v1.16.0 // indirect
 	github.com/fjl/memsize v0.0.2 // indirect
 	github.com/flynn/noise v1.0.0 // indirect
@@ -103,7 +105,7 @@ require (
 	github.com/jbenet/go-temp-err-catcher v0.1.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
-	github.com/klauspost/compress v1.17.2 // indirect
+	github.com/klauspost/compress v1.17.7 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.5 // indirect
 	github.com/koron/go-ssdp v0.0.4 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
@@ -163,6 +165,7 @@ require (
 	github.com/rs/cors v1.7.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/ryanuber/go-glob v1.0.0 // indirect
+	github.com/savsgio/gotils v0.0.0-20240303185622-093b76447511 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/steakknife/bloomfilter v0.0.0-20180922174646-6819c0d2a570 // indirect
 	github.com/steakknife/hamming v0.0.0-20180906055917-c99c65617cd3 // indirect
@@ -171,7 +174,7 @@ require (
 	github.com/tinylib/msgp v1.1.8 // indirect
 	github.com/urfave/cli/v2 v2.25.7 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
-	github.com/valyala/fasthttp v1.51.0 // indirect
+	github.com/valyala/fasthttp v1.52.0 // indirect
 	github.com/valyala/tcplisten v1.0.0 // indirect
 	github.com/wealdtech/go-eth2-wallet-encryptor-keystorev4 v1.4.1 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect

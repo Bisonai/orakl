@@ -25,6 +25,7 @@ on:
           - "node"
           - "boot-api"
           - "sentinel"
+          - "dal"
       image:
         description: "Image Version"
         required: true

@@ -25,6 +25,10 @@ tasks:
     dotenv: [".env"]
     cmds:
       - go run ./cmd/aggregator/main.go
+  dal:
+    dotenv: [".env"]
+    cmds:
+      - go run ./cmd/dal/main.go
 
   script-submission:
     dotenv: [".env"]
@@ -58,6 +62,10 @@ tasks:
     dotenv: [".env"]
     cmds:
       - go run ./script/test_websocketdexfetcher/main.go
+  script-test-dal:
+    dotenv: [".env"]
+    cmds:
+      - go run ./script/test_dal_consumer/main.go
 
   test-db:
     dotenv: [".env"]
@@ -109,6 +117,10 @@ tasks:
     dotenv: [".env"]
     cmds:
       - go test ./pkg/websocketfetcher/tests -v
+  test-dal:
+    dotenv: [".env"]
+    cmds:
+      - go test ./pkg/dal/tests -v
 
   check-api:
     dotenv: [".env"]
