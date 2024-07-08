@@ -9,6 +9,8 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+const ACCUMULATOR_WORKER_COUNT = 3
+
 func NewAccumulator(interval time.Duration) *Accumulator {
 	return &Accumulator{
 		Interval: interval,
@@ -21,16 +23,33 @@ func (a *Accumulator) Run(ctx context.Context) {
 	a.cancel = cancel
 	a.isRunning = true
 
+	// dummy channel to signal accumulator workers to batch insert data to db
+	jobChannel := make(chan struct{}, 100)
+	for i := 0; i < ACCUMULATOR_WORKER_COUNT; i++ {
+		go a.accumulatorWorker(accumulatorCtx, jobChannel)
+	}
+
 	ticker := time.NewTicker(DefaultLocalAggregateInterval)
 	defer ticker.Stop()
 
 	for {
 		select {
+		case <-ticker.C:
+			jobChannel <- struct{}{}
 		case <-ctx.Done():
 			log.Debug().Str("Player", "Fetcher").Msg("fetcher local aggregates channel goroutine stopped")
 			return
-		case <-ticker.C:
-			go a.accumulatorJob(ctx)
+		}
+	}
+}
+
+func (a *Accumulator) accumulatorWorker(ctx context.Context, jobChannel <-chan struct{}) {
+	for {
+		select {
+		case <-jobChannel:
+			a.accumulatorJob(ctx)
+		case <-ctx.Done():
+			return
 		}
 	}
 }
