@@ -46,8 +46,14 @@ loop:
 	for {
 		select {
 		case data := <-a.accumulatorChannel:
-			localAggregatesDataRedis[keys.LocalAggregateKey(data.ConfigID)] = data
 			localAggregatesDataPgsql = append(localAggregatesDataPgsql, []any{data.ConfigID, int64(data.Value), data.Timestamp})
+
+			redisKey := keys.LocalAggregateKey(data.ConfigID)
+			existingData, exists := localAggregatesDataRedis[redisKey]
+			if exists && existingData.(LocalAggregate).Timestamp.After(data.Timestamp) {
+				continue
+			}
+			localAggregatesDataRedis[redisKey] = data
 		default:
 			break loop
 		}
