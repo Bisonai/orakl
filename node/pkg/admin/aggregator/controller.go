@@ -1,6 +1,8 @@
 package aggregator
 
 import (
+	"strconv"
+
 	"bisonai.com/orakl/node/pkg/admin/utils"
 	"bisonai.com/orakl/node/pkg/bus"
 	"github.com/gofiber/fiber/v2"
@@ -83,4 +85,19 @@ func deactivate(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(resp)
+}
+
+func renewSigner(c *fiber.Ctx) error {
+	msg, err := utils.SendMessage(c, bus.AGGREGATOR, bus.RENEW_SIGNER, nil)
+	if err != nil {
+		log.Error().Err(err).Str("Player", "Admin").Msg("failed to send message to reporter")
+		return c.Status(fiber.StatusInternalServerError).SendString("failed to refresh reporter: " + err.Error())
+	}
+	resp := <-msg.Response
+
+	if !resp.Success {
+		log.Error().Str("Player", "Admin").Msg("failed to refresh signer")
+		return c.Status(fiber.StatusInternalServerError).SendString("failed to refresh signer: " + resp.Args["error"].(string))
+	}
+	return c.SendString("s refreshed: " + strconv.FormatBool(resp.Success))
 }

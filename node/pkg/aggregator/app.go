@@ -115,18 +115,19 @@ func (a *App) initializeLoadedAggregators(ctx context.Context, loadedConfigs []C
 		signerOptions = append(signerOptions, helper.WithRenewThreshold(threshold))
 	}
 
-	signHelper, err := helper.NewSigner(ctx, signerOptions...)
+	signer, err := helper.NewSigner(ctx, signerOptions...)
 	if err != nil {
 		return err
 	}
 
+	a.Signer = signer
 	for _, config := range loadedConfigs {
 		if a.Aggregators[config.ID] != nil {
 			continue
 		}
 
 		topicString := config.Name + "-global-aggregator-topic-" + strconv.Itoa(int(config.AggregateInterval))
-		tmpNode, err := NewAggregator(h, ps, topicString, config, signHelper)
+		tmpNode, err := NewAggregator(h, ps, topicString, config, signer)
 		if err != nil {
 			return err
 		}
@@ -240,6 +241,10 @@ func (a *App) subscribe(ctx context.Context) {
 	}()
 }
 
+func (a *App) renewSigner(ctx context.Context) error {
+	return a.Signer.CheckAndUpdateSignerPK(ctx)
+}
+
 func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 	// TODO: Consider refactoring the handleMessage method to improve its structure and readability. Using a switch-case with many cases can be simplified by mapping commands to handler functions.
 
@@ -334,6 +339,14 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 			return
 		}
 		a.startStreamer(ctx)
+		msg.Response <- bus.MessageResponse{Success: true}
+	case bus.RENEW_SIGNER:
+		log.Debug().Str("Player", "Aggregator").Msg("refresh signer msg received")
+		err := a.renewSigner(ctx)
+		if err != nil {
+			bus.HandleMessageError(err, msg, "failed to refresh signer")
+			return
+		}
 		msg.Response <- bus.MessageResponse{Success: true}
 	default:
 		bus.HandleMessageError(errorSentinel.ErrBusUnknownCommand, msg, "aggregator received unknown command")
