@@ -93,6 +93,7 @@ jobs:
           DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/orakl-test?search_path=public"
           REDIS_HOST: "localhost"
           REDIS_PORT: "6379"
+          KAIA_PROVIDER_URL: "https://public-en.kairos.node.kaia.io"
           KAIA_WEBSOCKET_URL: "wss://public-en-baobab.klaytn.net/ws"
           SUBMISSION_PROXY_CONTRACT: "0x35bA1102A4954147272782302856BD8440227B85"
           SIGNER_PK: ${{ secrets.TEST_DELEGATOR_REPORTER_PK}}
