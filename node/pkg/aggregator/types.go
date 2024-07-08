@@ -44,6 +44,7 @@ type App struct {
 	Streamer    *Streamer
 	Host        host.Host
 	Pubsub      *pubsub.PubSub
+	Signer      *helper.Signer
 }
 
 type Config struct {

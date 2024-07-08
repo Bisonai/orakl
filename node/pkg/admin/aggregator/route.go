@@ -12,4 +12,5 @@ func Routes(router fiber.Router) {
 	aggregator.Post("/refresh", refresh)
 	aggregator.Post("/activate/:id", activate)
 	aggregator.Post("/deactivate/:id", deactivate)
+	aggregator.Post("/renew-signer", renewSigner)
 }

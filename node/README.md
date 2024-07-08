@@ -284,6 +284,9 @@ task local:get-wallet
 # remove wallet by id
 task local:remove-wallet ID=10
 
+# renew current signer
+task local:renew-signer
+
 # add fallback JSON-RPC, lower priority value will be referenced first
 task local:add-json-rpc CHAIN_ID=1001 URL="http://test.com" PRIORITY=10
 

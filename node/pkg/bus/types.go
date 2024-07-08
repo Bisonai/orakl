@@ -26,6 +26,8 @@ const (
 	ACTIVATE_AGGREGATOR   = "activate_aggregator"
 	DEACTIVATE_AGGREGATOR = "deactivate_aggregator"
 
+	RENEW_SIGNER = "renew_signer"
+
 	ACTIVATE_REPORTER   = "activate_reporter"
 	DEACTIVATE_REPORTER = "deactivate_reporter"
 	REFRESH_REPORTER    = "refresh_reporter"
