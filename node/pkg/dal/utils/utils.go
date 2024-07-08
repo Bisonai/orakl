@@ -31,6 +31,11 @@ func validator(ctx *fiber.Ctx, s string) (bool, error) {
 	return false, fmt.Errorf("invalid api key")
 }
 
+func authFilter(c *fiber.Ctx) bool {
+	originalURL := strings.ToLower(c.OriginalURL())
+	return originalURL == "/api/v1"
+}
+
 func Setup(ctx context.Context) (*fiber.App, error) {
 	_, err := db.GetPool(ctx)
 	if err != nil {
@@ -52,6 +57,7 @@ func Setup(ctx context.Context) (*fiber.App, error) {
 
 	app.Use(recover.New(
 		recover.Config{
+
 			EnableStackTrace:  true,
 			StackTraceHandler: CustomStackTraceHandler,
 		},
@@ -59,6 +65,7 @@ func Setup(ctx context.Context) (*fiber.App, error) {
 
 	app.Use(cors.New())
 	app.Use(keyauth.New(keyauth.Config{
+		Next:      authFilter,
 		KeyLookup: "header:X-API-Key",
 		Validator: validator,
 	}))
