@@ -282,7 +282,7 @@ func (r *Reporter) SetKaiaHelper(ctx context.Context) error {
 	if r.KaiaHelper != nil {
 		r.KaiaHelper.Close()
 	}
-	kaiaHelper, err := helper.NewChainHelper(ctx)
+	kaiaHelper, err := helper.NewChainHelper(ctx, helper.WithoutAdditionalWallets())
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to create kaia helper")
 		return err
