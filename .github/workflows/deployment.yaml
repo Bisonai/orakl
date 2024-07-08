@@ -60,6 +60,7 @@ on:
           - dal:v0.0.1.20240708.0637.91cf5b3:DAL Update dal key validation
           - dal:v0.0.1.20240708.0717.e921b7a:DAL Update key validation
           - node:v0.0.1.20240708.0832.1a4d08d:OraklNode Define new chainhelp...
+          - dal:v0.0.1.20240708.0944.4aa3dd7:DAL basic implementation to st...
 jobs:
   prepare-taskflow:
     name: Prepare
