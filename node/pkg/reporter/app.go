@@ -47,7 +47,7 @@ func (a *App) setReporters(ctx context.Context, h host.Host, ps *pubsub.PubSub) 
 		return errorSentinel.ErrReporterSubmissionProxyContractNotFound
 	}
 
-	tmpChainHelper, err := helper.NewChainHelper(ctx)
+	tmpChainHelper, err := helper.NewChainHelper(ctx, helper.WithoutAdditionalWallets())
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to create chain helper")
 		return err
