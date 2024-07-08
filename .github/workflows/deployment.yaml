@@ -119,7 +119,7 @@ jobs:
           GH_TOKEN: ${{ secrets.WORKFLOW_PAT }}
       - name: get package version
         id: package
-        run: "# Get the version from the package.json file\nif [[ \"${{ steps.tag.outputs.service }}\" == \"cli\" || \"${{ steps.tag.outputs.service }}\" == \"fetcher\" || \"${{ steps.tag.outputs.service }}\" == \"core\" ]]; then  \necho \"version=$(node -p -e \"require('./\"${{ steps.tag.outputs.service }}\"/package.json').version\")\" >> $GITHUB_OUTPUT\nelse \n  if [[ \"${{ steps.tag.outputs.service }}\" == \"boot-api\" || \"${{ steps.tag.outputs.service }}\" == \"node\" || \"${{ steps.tag.outputs.service }}\" == \"por\" ]]; then    \n    version=$(cat ./node/.version)  \n  else\n    version=$(cat ./${{ steps.tag.outputs.service }}/.version)\n  fi\n  echo \"version=$version\" >> $GITHUB_OUTPUT\nfi\n"
+        run: "# Get the version from the package.json file\nif [[ \"${{ steps.tag.outputs.service }}\" == \"cli\" || \"${{ steps.tag.outputs.service }}\" == \"fetcher\" || \"${{ steps.tag.outputs.service }}\" == \"core\" ]]; then  \necho \"version=$(node -p -e \"require('./\"${{ steps.tag.outputs.service }}\"/package.json').version\")\" >> $GITHUB_OUTPUT\nelse \n  if [[ \"${{ steps.tag.outputs.service }}\" == \"boot-api\" || \"${{ steps.tag.outputs.service }}\" == \"node\" || \"${{ steps.tag.outputs.service }}\" == \"por\" || \"${{ steps.tag.outputs.service }}\" == \"dal\" ]]; then    \n    version=$(cat ./node/.version)  \n  else\n    version=$(cat ./${{ steps.tag.outputs.service }}/.version)\n  fi\n  echo \"version=$version\" >> $GITHUB_OUTPUT\nfi\n"
         env:
           GH_TOKEN: ${{ secrets.WORKFLOW_PAT }}
   build:
