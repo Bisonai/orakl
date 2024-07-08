@@ -144,3 +144,4 @@ The microservices can also be started separately in any arbitrary order by repla
 - **dal** v0.0.1.20240708.0545.54af1c3 <br> *`PR`*: Add dal as an exception in git... <br><br> 
 - **dal** v0.0.1.20240708.0637.91cf5b3 <br> *`PR`*: DAL Update dal key validation <br><br> 
 - **dal** v0.0.1.20240708.0717.e921b7a <br> *`PR`*: DAL Update key validation <br><br> 
+- **node** v0.0.1.20240708.0832.1a4d08d <br> *`PR`*: OraklNode Define new chainhelp... <br><br> 
