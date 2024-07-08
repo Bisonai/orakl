@@ -1,0 +1,45 @@
+{
+  "address": "0xd9dbbb92a6ecb8b8d3e386b8d0ad8284bd816ef1",
+  "updateProxyBulk": [
+    {
+      "feedName": "BTC-KRW",
+      "proxyAddress": "0xaaaaff540b83353d75abc0fed2d6611f5359c8cc"
+    },
+    {
+      "feedName": "ZRO-KRW",
+      "proxyAddress": "0x5f42cb5988e3ac34284bfd30a6566d7cfdefb8fb"
+    },
+    {
+      "feedName": "SOL-KRW",
+      "proxyAddress": "0x32c3b76c2d0f7c1528277b6fcbb6410d55c88084"
+    },
+    {
+      "feedName": "ETH-KRW",
+      "proxyAddress": "0x191fa61918267c9cf22f7dae8aea7bc4c354de43"
+    },
+    {
+      "feedName": "USDT-KRW",
+      "proxyAddress": "0x019054b92fe2714de19da63c49f5ba8fb06432c0"
+    },
+    {
+      "feedName": "XRP-KRW",
+      "proxyAddress": "0xa4d77012ec322ceaba03a3be4e0cf0afdfa8f55a"
+    },
+    {
+      "feedName": "BLAST-KRW",
+      "proxyAddress": "0x64b8f77f85062c3b6bceb33a2456316b3b623fcc"
+    },
+    {
+      "feedName": "ONDO-KRW",
+      "proxyAddress": "0x75f39d986909dd7639ab153f13701c54e51ab7a4"
+    },
+    {
+      "feedName": "WAVES-KRW",
+      "proxyAddress": "0xc367a319b3a87b5006838a9c7f06e99ff2a0f1b8"
+    },
+    {
+      "feedName": "AKT-KRW",
+      "proxyAddress": "0x2e7ad962a41aad55e611bd3940b55b0e44f8b7a8"
+    }
+  ]
+}
