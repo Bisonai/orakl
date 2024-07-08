@@ -13,25 +13,22 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/keyauth"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/rs/zerolog/log"
 )
 
-func APIKeyMiddleware() fiber.Handler {
-	return func(c *fiber.Ctx) error {
-		apiKey := c.Get("X-API-Key")
-
-		validAPIKey := os.Getenv("API_KEY")
-
-		if apiKey != validAPIKey {
-			log.Warn().Msg("Unauthorized access attempt")
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"error": "Unauthorized",
-			})
-		}
-
-		return c.Next()
+func validator(ctx *fiber.Ctx, s string) (bool, error) {
+	key := os.Getenv("API_KEY")
+	if s == "" {
+		return false, fmt.Errorf("missing api key")
 	}
+
+	if s == key {
+		return true, nil
+	}
+
+	return false, fmt.Errorf("invalid api key")
 }
 
 func Setup(ctx context.Context) (*fiber.App, error) {
@@ -61,7 +58,10 @@ func Setup(ctx context.Context) (*fiber.App, error) {
 	))
 
 	app.Use(cors.New())
-	app.Use(APIKeyMiddleware())
+	app.Use(keyauth.New(keyauth.Config{
+		KeyLookup: "header:X-API-Key",
+		Validator: validator,
+	}))
 	return app, nil
 }
 

@@ -11,6 +11,7 @@ import (
 	"bisonai.com/orakl/node/pkg/aggregator"
 	"bisonai.com/orakl/node/pkg/dal/api"
 	"bisonai.com/orakl/node/pkg/dal/common"
+	"bisonai.com/orakl/node/pkg/utils/request"
 	wsfcommon "bisonai.com/orakl/node/pkg/websocketfetcher/common"
 	"bisonai.com/orakl/node/pkg/wss"
 	"github.com/stretchr/testify/assert"
@@ -76,6 +77,29 @@ func TestApiGetLatestAll(t *testing.T) {
 	if len(result) > 0 {
 		assert.Equal(t, *expected, result[0])
 	}
+}
+
+func TestShouldFailWithoutApiKey(t *testing.T) {
+	ctx := context.Background()
+	clean, testItems, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer func() {
+		if cleanupErr := clean(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
+		}
+	}()
+
+	testItems.Controller.Start(ctx)
+	go testItems.App.Listen(":8090")
+	resp, err := request.RequestRaw(request.WithEndpoint("http://localhost:8090/api/v1"))
+
+	if err != nil {
+		t.Fatalf("error getting latest data: %v", err)
+	}
+
+	assert.Equal(t, 401, resp.StatusCode)
 }
 
 func TestApiGetLatest(t *testing.T) {
