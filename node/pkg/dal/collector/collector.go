@@ -32,7 +32,7 @@ type Collector struct {
 	FeedHashes      map[int32][]byte
 	CachedWhitelist []klaytncommon.Address
 
-	Ctx        context.Context
+	IsRunning  bool
 	CancelFunc context.CancelFunc
 
 	chainReader                 *websocketchainreader.ChainReader
@@ -83,14 +83,15 @@ func NewCollector(ctx context.Context, configs []types.Config) (*Collector, erro
 }
 
 func (c *Collector) Start(ctx context.Context) {
-	if c.Ctx != nil {
+	if c.IsRunning {
 		log.Warn().Str("Player", "DalCollector").Msg("Collector already running, skipping start")
 		return
 	}
+	c.IsRunning = true
 
 	ctxWithCancel, cancel := context.WithCancel(ctx)
 	c.CancelFunc = cancel
-	c.Ctx = ctxWithCancel
+	c.IsRunning = true
 
 	c.receive(ctxWithCancel)
 	c.trackOracleAdded(ctxWithCancel)
@@ -99,7 +100,7 @@ func (c *Collector) Start(ctx context.Context) {
 func (c *Collector) Stop() {
 	if c.CancelFunc != nil {
 		c.CancelFunc()
-		c.Ctx = nil
+		c.IsRunning = false
 	}
 }
 

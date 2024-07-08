@@ -24,12 +24,13 @@ func TestCollectorStartAndStop(t *testing.T) {
 
 	collector := testItems.Collector
 	collector.Start(ctx)
-	assert.NotEqual(t, nil, collector.Ctx)
+	assert.True(t, collector.IsRunning)
+
 	assert.Greater(t, len(collector.Symbols), 0)
 	assert.Greater(t, len(collector.Symbols), 0)
 
 	collector.Stop()
-	assert.Equal(t, nil, collector.Ctx)
+	assert.False(t, collector.IsRunning)
 }
 
 func TestCollectorStream(t *testing.T) {

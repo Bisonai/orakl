@@ -28,11 +28,11 @@ func TestApiControllerRun(t *testing.T) {
 		}
 	}()
 
-	assert.Equal(t, nil, testItems.Controller.Collector.Ctx)
+	assert.False(t, testItems.Controller.Collector.IsRunning)
 
 	testItems.Controller.Start(ctx)
 	time.Sleep(10 * time.Millisecond)
-	assert.NotEqual(t, nil, testItems.Controller.Collector.Ctx)
+	assert.True(t, testItems.Controller.Collector.IsRunning)
 }
 
 func TestApiGetLatestAll(t *testing.T) {
