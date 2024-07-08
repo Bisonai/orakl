@@ -95,6 +95,9 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 	testItems.Collector = api.ApiController.Collector
 
 	v1 := app.Group("/api/v1")
+	v1.Get("/", func(c *fiber.Ctx) error {
+		return c.SendString("Orakl Node DAL API")
+	})
 	api.Routes(v1)
 
 	return cleanup(ctx, testItems), testItems, nil
