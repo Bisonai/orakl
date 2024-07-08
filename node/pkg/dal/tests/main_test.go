@@ -33,6 +33,7 @@ func testPublishData(ctx context.Context, submissionData aggregator.SubmissionDa
 }
 
 func generateSampleSubmissionData(configId int32, value int64, timestamp time.Time, round int32, symbol string) (*aggregator.SubmissionData, error) {
+	ctx := context.Background()
 	sampleGlobalAggregate := aggregator.GlobalAggregate{
 		ConfigID:  configId,
 		Value:     value,
@@ -40,7 +41,7 @@ func generateSampleSubmissionData(configId int32, value int64, timestamp time.Ti
 		Round:     round,
 	}
 
-	signHelper, err := helper.NewSignHelper("")
+	signHelper, err := helper.NewSigner(ctx)
 	if err != nil {
 		return nil, err
 	}
