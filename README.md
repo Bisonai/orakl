@@ -141,3 +141,4 @@ The microservices can also be started separately in any arbitrary order by repla
 - **node** v0.0.1.20240704.0933.8e7fd48 <br> *`PR`*: OraklNode Rollback timestamp c... <br><br> 
 - **node** v0.0.1.20240704.1212.0c148b2 <br> *`PR`*: fix accumulator cpu issue <br><br> 
 - **node** v0.0.1.20240708.0418.8cd84d8 <br> *`PR`*: DAL Implement basic api key <br><br> 
+- **dal** v0.0.1.20240708.0545.54af1c3 <br> *`PR`*: Add dal as an exception in git... <br><br> 
