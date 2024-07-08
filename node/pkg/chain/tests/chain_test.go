@@ -2,6 +2,8 @@ package tests
 
 import (
 	"context"
+	"encoding/hex"
+	"fmt"
 	"math/big"
 	"os"
 	"strings"
@@ -13,6 +15,7 @@ import (
 	"bisonai.com/orakl/node/pkg/db"
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
 	"github.com/klaytn/klaytn/blockchain/types"
+	"github.com/klaytn/klaytn/common"
 	"github.com/klaytn/klaytn/crypto"
 	"github.com/stretchr/testify/assert"
 )
@@ -56,7 +59,8 @@ func TestNewKaiaHelper(t *testing.T) {
 }
 
 func TestNewChainHelper(t *testing.T) {
-	_, err := helper.NewSignHelper("")
+	ctx := context.Background()
+	_, err := helper.NewSigner(ctx)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -520,7 +524,8 @@ func TestInsertWalletEmptyDbEnv(t *testing.T) {
 }
 
 func TestMakeGlobalAggregateProof(t *testing.T) {
-	s, err := helper.NewSignHelper("")
+	ctx := context.Background()
+	s, err := helper.NewSigner(ctx)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -540,11 +545,169 @@ func TestMakeGlobalAggregateProof(t *testing.T) {
 		t.Errorf("Unexpected error: %v", err)
 	}
 
-	pk, err := utils.StringToPk(os.Getenv("KAIA_REPORTER_PK"))
+	pk, err := utils.StringToPk(os.Getenv("SIGNER_PK"))
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
 	addrFromEnv := crypto.PubkeyToAddress(pk.PublicKey)
 
 	assert.Equal(t, addrFromEnv.Hex(), addr.Hex())
+}
+
+func TestNewPk(t *testing.T) {
+	pk, pkHex, err := utils.NewPk(context.Background())
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+	assert.NotEqual(t, nil, pk)
+	assert.NotEqual(t, "", pkHex)
+
+	addr, err := utils.StringPkToAddressHex(pkHex)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+	assert.NotEqual(t, nil, addr)
+}
+
+func TestSignerTableSingleEntry(t *testing.T) {
+	ctx := context.Background()
+
+	//cleanup
+	err := db.QueryWithoutResult(ctx, "DELETE FROM signer;", nil)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	mockPk1 := "0xf558f6ef079e7fe096eac4497c1e07af6a867f86411c42aad3757f7768316ceb"
+	mockPk2 := "0x81abf286f673fc51d2b0d6811f760665893838bdc41fa3caca0dd8d83e0ff105"
+
+	result, err := db.QueryRow[utils.Wallet](ctx, "SELECT id, pk FROM signer LIMIT 1;", nil)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+	assert.Equal(t, int64(0), result.ID)
+	assert.Equal(t, "", result.PK)
+
+	err = utils.StoreSignerPk(ctx, mockPk1)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	loadedPk, err := utils.LoadSignerPk(ctx)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+	assert.Equal(t, strings.TrimPrefix(mockPk1, "0x"), strings.TrimPrefix(loadedPk, "0x"))
+
+	err = utils.StoreSignerPk(ctx, mockPk2)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	rowsResult, err := db.QueryRows[utils.Wallet](ctx, "SELECT id, pk FROM signer;", nil)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+	assert.Equal(t, 1, len(rowsResult))
+
+	loadedPk, err = utils.LoadSignerPk(ctx)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+	assert.Equal(t, strings.TrimPrefix(mockPk2, "0x"), strings.TrimPrefix(loadedPk, "0x"))
+
+	//cleanup
+	err = db.QueryWithoutResult(ctx, "DELETE FROM signer;", nil)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+}
+
+func TestSignerRenew(t *testing.T) {
+	ctx := context.Background()
+
+	contractAddr := os.Getenv("SUBMISSION_PROXY_CONTRACT")
+	if contractAddr == "" {
+		t.Skip("Skipping test because SUBMISSION_PROXY_CONTRACT is not set")
+	}
+
+	s, err := helper.NewSigner(ctx)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	expiration, err := s.LoadExpiration(ctx)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	assert.False(t, expiration.IsZero())
+	fmt.Println(expiration)
+
+	renewalRequired := s.IsRenewalRequired()
+	assert.False(t, renewalRequired)
+
+	oldPK := s.PK
+	oldPKBytes := crypto.FromECDSA(oldPK)
+	oldPKHex := hex.EncodeToString(oldPKBytes)
+	oldSignerAddr, err := utils.StringPkToAddressHex(oldPKHex)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	newPK, newPKHex, err := utils.NewPk(ctx)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+	newSignerAddr, err := utils.StringPkToAddressHex(newPKHex)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	err = s.Renew(ctx, newPK, newPKHex)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	newExpiration, err := s.LoadExpiration(ctx)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	assert.False(t, newExpiration.IsZero())
+	assert.Greater(t, newExpiration.Unix(), expiration.Unix())
+
+	//cleanup
+	chainHelperForCleanup, err := helper.NewChainHelper(ctx, helper.WithReporterPk(oldPKHex), helper.WithoutAdditionalWallets())
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	addOracleFunctionSignature := "addOracle(address _oracle) external returns (uint256)"
+	removeOracleFunctionSignature := "function removeOracle(address _oracle) external"
+
+	addOracleTx, err := chainHelperForCleanup.MakeDirectTx(ctx, contractAddr, addOracleFunctionSignature, common.HexToAddress(oldSignerAddr))
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	err = chainHelperForCleanup.SubmitRawTx(ctx, addOracleTx)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	removeOracleTx, err := chainHelperForCleanup.MakeDirectTx(ctx, contractAddr, removeOracleFunctionSignature, common.HexToAddress(newSignerAddr))
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	err = chainHelperForCleanup.SubmitRawTx(ctx, removeOracleTx)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	err = db.QueryWithoutResult(ctx, "DELETE FROM signer;", nil)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
 }

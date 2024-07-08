@@ -3,10 +3,12 @@ package aggregator
 import (
 	"context"
 	"math/rand"
+	"os"
 	"strconv"
 	"time"
 
 	"bisonai.com/orakl/node/pkg/bus"
+	"bisonai.com/orakl/node/pkg/chain/helper"
 	"bisonai.com/orakl/node/pkg/db"
 
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
@@ -78,7 +80,7 @@ func (a *App) setAggregators(ctx context.Context, h host.Host, ps *pubsub.PubSub
 		return err
 	}
 
-	return a.initializeLoadedAggregators(configs, h, ps)
+	return a.initializeLoadedAggregators(ctx, configs, h, ps)
 }
 
 func (a *App) clearAggregators() error {
@@ -98,14 +100,33 @@ func (a *App) clearAggregators() error {
 	return nil
 }
 
-func (a *App) initializeLoadedAggregators(loadedConfigs []Config, h host.Host, ps *pubsub.PubSub) error {
+func (a *App) initializeLoadedAggregators(ctx context.Context, loadedConfigs []Config, h host.Host, ps *pubsub.PubSub) error {
+	signerOptions := []helper.SignerOption{}
+
+	signerRenewIntervalRaw := os.Getenv("SIGNER_RENEW_INTERVAL")
+	duration, err := time.ParseDuration(signerRenewIntervalRaw)
+	if err == nil {
+		signerOptions = append(signerOptions, helper.WithRenewInterval(duration))
+	}
+
+	signerRenewThresholdRaw := os.Getenv("SIGNER_RENEW_THRESHOLD")
+	threshold, err := time.ParseDuration(signerRenewThresholdRaw)
+	if err == nil {
+		signerOptions = append(signerOptions, helper.WithRenewThreshold(threshold))
+	}
+
+	signHelper, err := helper.NewSigner(ctx, signerOptions...)
+	if err != nil {
+		return err
+	}
+
 	for _, config := range loadedConfigs {
 		if a.Aggregators[config.ID] != nil {
 			continue
 		}
 
 		topicString := config.Name + "-global-aggregator-topic-" + strconv.Itoa(int(config.AggregateInterval))
-		tmpNode, err := NewAggregator(h, ps, topicString, config)
+		tmpNode, err := NewAggregator(h, ps, topicString, config, signHelper)
 		if err != nil {
 			return err
 		}

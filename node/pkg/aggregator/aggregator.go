@@ -17,7 +17,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string, config Config) (*Aggregator, error) {
+func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string, config Config, signHelper *helper.Signer) (*Aggregator, error) {
 	if h == nil || ps == nil || topicString == "" {
 		return nil, errorSentinel.ErrAggregatorInvalidInitValue
 	}
@@ -25,12 +25,6 @@ func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string, config Co
 	topic, err := ps.Join(topicString)
 	if err != nil {
 		log.Error().Str("Player", "Aggregator").Err(err).Msg("Failed to join topic")
-		return nil, err
-	}
-
-	signHelper, err := helper.NewSignHelper("")
-	if err != nil {
-		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to create sign helper")
 		return nil, err
 	}
 
@@ -47,7 +41,7 @@ func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string, config Co
 		SyncedTimes:              map[int32]time.Time{},
 		AggregatorMutex:          sync.Mutex{},
 		RoundID:                  1,
-		SignHelper:               signHelper,
+		Signer:                   signHelper,
 	}
 	aggregator.Raft.LeaderJob = aggregator.LeaderJob
 	aggregator.Raft.HandleCustomMessage = aggregator.HandleCustomMessage
@@ -243,7 +237,7 @@ func (n *Aggregator) HandlePriceDataMessage(ctx context.Context, msg raft.Messag
 			Timestamp: n.SyncedTimes[priceDataMessage.RoundID],
 		}
 
-		proof, err := n.SignHelper.MakeGlobalAggregateProof(median, n.SyncedTimes[priceDataMessage.RoundID], n.Name)
+		proof, err := n.Signer.MakeGlobalAggregateProof(median, n.SyncedTimes[priceDataMessage.RoundID], n.Name)
 		if err != nil {
 			log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to make global aggregate proof")
 			return err

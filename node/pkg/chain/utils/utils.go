@@ -677,3 +677,42 @@ func RecoverSigner(hash []byte, signature []byte) (address common.Address, err e
 
 	return address, nil
 }
+
+func LoadSignerPk(ctx context.Context) (string, error) {
+	signer, err := db.QueryRow[Wallet](ctx, LOAD_SIGNER, nil)
+	if err != nil {
+		return "", err
+	}
+
+	if signer.PK == "" {
+		return "", errorSentinel.ErrChainSignerPKNotFound
+	}
+
+	pk, err := encryptor.DecryptText(signer.PK)
+	if err != nil {
+		log.Warn().Err(err).Msg("failed to decrypt pk")
+		return "", err
+	}
+	wallet := strings.TrimPrefix(pk, "0x")
+	return wallet, nil
+}
+
+func StoreSignerPk(ctx context.Context, pk string) error {
+	encryptedPk, err := encryptor.EncryptText(pk)
+	if err != nil {
+		return err
+	}
+	return db.QueryWithoutResult(ctx, STORE_SIGNER, map[string]any{"pk": encryptedPk})
+}
+
+func NewPk(ctx context.Context) (*ecdsa.PrivateKey, string, error) {
+	pk, err := crypto.GenerateKey()
+	if err != nil {
+		return nil, "", err
+	}
+
+	privateKeyBytes := crypto.FromECDSA(pk)
+	privateKeyHex := hex.EncodeToString(privateKeyBytes)
+
+	return pk, privateKeyHex, nil
+}

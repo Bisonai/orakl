@@ -15,6 +15,8 @@ const (
 	DEFAULT_GAS_LIMIT          = uint64(6000000)
 	SELECT_WALLETS_QUERY       = "SELECT * FROM wallets;"
 	SELECT_PROVIDER_URLS_QUERY = "SELECT * FROM provider_urls WHERE chain_id = @chain_id ORDER BY priority;"
+	LOAD_SIGNER                = "SELECT id, pk FROM signer LIMIT 1;"
+	STORE_SIGNER               = "INSERT INTO signer (pk, unique_dummy) VALUES (@pk, TRUE) ON CONFLICT (unique_dummy) DO UPDATE SET pk = EXCLUDED.pk;"
 )
 
 type Wallet struct {
