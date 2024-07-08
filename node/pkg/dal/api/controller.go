@@ -105,9 +105,18 @@ func (c *Controller) castSubmissionData(data *dalcommon.OutgoingSubmissionData, 
 
 func (c *Controller) handleWebsocket(conn *websocket.Conn) {
 	c.register <- conn
+	_ = db.QueryWithoutResult(
+		context.Background(),
+		"INSERT INTO logs (message) VALUES (@message);",
+		map[string]any{"message": "websocket connected from " + conn.IP()})
+
 	defer func() {
 		c.unregister <- conn
 		conn.Close()
+		_ = db.QueryWithoutResult(
+			context.Background(),
+			"INSERT INTO logs (message) VALUES (@message);",
+			map[string]any{"message": "websocket disconnected from " + conn.IP()})
 	}()
 
 	for {
@@ -118,6 +127,11 @@ func (c *Controller) handleWebsocket(conn *websocket.Conn) {
 		}
 
 		if msg.Method == "SUBSCRIBE" {
+			_ = db.QueryWithoutResult(
+				context.Background(),
+				"INSERT INTO logs (message) VALUES (@message);",
+				map[string]any{"message": "websocket subscribed(" + strings.Join(msg.Params, ",") + ") from " + conn.IP()},
+			)
 			if c.clients[conn] == nil {
 				c.clients[conn] = make(map[string]bool)
 			}
@@ -197,6 +211,13 @@ func (c *Controller) getLatestSubmissionDataSingle(ctx context.Context, symbol s
 }
 
 func getLatestFeeds(c *fiber.Ctx) error {
+	defer func() {
+		_ = db.QueryWithoutResult(
+			c.Context(),
+			"INSERT INTO logs (message) VALUES (@message);",
+			map[string]any{"message": "getLatestFeeds called from " + c.IP()})
+	}()
+
 	submissionData, err := ApiController.getLatestSubmissionData(c.Context())
 	if err != nil {
 		return err
@@ -223,6 +244,13 @@ func getLatestFeed(c *fiber.Ctx) error {
 	if !strings.Contains(symbol, "-") {
 		return errors.New("symbol should be in {BASE}-{QUOTE} format")
 	}
+
+	defer func() {
+		_ = db.QueryWithoutResult(
+			c.Context(),
+			"INSERT INTO logs (message) VALUES (@message);",
+			map[string]any{"message": "getLatestFeed(" + symbol + ") called from " + c.IP()})
+	}()
 
 	if !strings.Contains(symbol, "test") {
 		symbol = strings.ToUpper(symbol)
