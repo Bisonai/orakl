@@ -147,3 +147,4 @@ The microservices can also be started separately in any arbitrary order by repla
 - **node** v0.0.1.20240708.0832.1a4d08d <br> *`PR`*: OraklNode Define new chainhelp... <br><br> 
 - **dal** v0.0.1.20240708.0944.4aa3dd7 <br> *`PR`*: DAL basic implementation to st... <br><br> 
 - **node** v0.0.1.20240708.0954.0d869fa <br> *`PR`*: OraklNode Rollback deviation t... <br><br> 
+- **dal** v0.0.1.20240708.1003.920fd73 <br> *`PR`*: OraklNode Rollback deviation t... <br><br> 
