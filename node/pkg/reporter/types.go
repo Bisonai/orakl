@@ -29,7 +29,7 @@ const (
 	GET_REPORTER_CONFIGS = `SELECT name, id, submit_interval, aggregate_interval FROM configs;`
 
 	DEVIATION_INTERVAL           = 2000
-	DEVIATION_THRESHOLD          = 0.01
+	DEVIATION_THRESHOLD          = 0.05
 	DEVIATION_ABSOLUTE_THRESHOLD = 0.1
 	DECIMALS                     = 8
 	GAS_MULTIPLIER               = 0
