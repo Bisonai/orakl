@@ -143,3 +143,4 @@ The microservices can also be started separately in any arbitrary order by repla
 - **node** v0.0.1.20240708.0418.8cd84d8 <br> *`PR`*: DAL Implement basic api key <br><br> 
 - **dal** v0.0.1.20240708.0545.54af1c3 <br> *`PR`*: Add dal as an exception in git... <br><br> 
 - **dal** v0.0.1.20240708.0637.91cf5b3 <br> *`PR`*: DAL Update dal key validation <br><br> 
+- **dal** v0.0.1.20240708.0717.e921b7a <br> *`PR`*: DAL Update key validation <br><br> 
