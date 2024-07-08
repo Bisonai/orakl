@@ -180,6 +180,10 @@ tasks:
     dotenv: [".env"]
     cmds:
       - curl -X GET "http://localhost:$APP_PORT/api/v1/wallet/signer" | jq
+  renew-signer:
+    dotenv: [".env"]
+    cmds:
+      - curl -X POST "http://localhost:$APP_PORT/api/v1/aggregator/renew-signer" | jq
   add-json-rpc:
     dotenv: [".env"]
     cmds:
