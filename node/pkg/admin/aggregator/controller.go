@@ -91,7 +91,7 @@ func renewSigner(c *fiber.Ctx) error {
 	msg, err := utils.SendMessage(c, bus.AGGREGATOR, bus.RENEW_SIGNER, nil)
 	if err != nil {
 		log.Error().Err(err).Str("Player", "Admin").Msg("failed to send message to reporter")
-		return c.Status(fiber.StatusInternalServerError).SendString("failed to refresh reporter: " + err.Error())
+		return c.Status(fiber.StatusInternalServerError).SendString("failed to refresh signer: " + err.Error())
 	}
 	resp := <-msg.Response
 
