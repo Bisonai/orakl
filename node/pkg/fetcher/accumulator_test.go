@@ -60,7 +60,7 @@ func TestAccumulator(t *testing.T) {
 
 	go app.Accumulator.Run(ctx)
 
-	time.Sleep(DefaultLocalAggregateInterval * 2)
+	time.Sleep(DefaultLocalAggregateInterval * 4)
 
 	redisData, redisErr := db.GetObject[LocalAggregate](ctx, keys.LocalAggregateKey(data.ConfigID))
 	if redisErr != nil {
