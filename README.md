@@ -153,3 +153,4 @@ The microservices can also be started separately in any arbitrary order by repla
 - **sentinel** v0.0.1.20240709.0259.02a3c94 <br> *`PR`*: sentinel oversubmission in che... <br><br> 
 - **node** v0.0.1.20240709.0426.36beb1a <br> *`PR`*: OraklNode Remove lint  vet fro... <br><br> 
 - **node** v0.0.1.20240709.0540.1c4a79b <br> *`PR`*: OraklNode Remove lint  vet fro... <br><br> 
+- **dal** v0.0.1.20240709.0802.c7cffb3 <br> *`PR`*: OraklNode Remove unused functi... <br><br> 
