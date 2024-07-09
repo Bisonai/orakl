@@ -33,7 +33,6 @@ const (
 	DEVIATION_THRESHOLD          = 0.05
 	DEVIATION_ABSOLUTE_THRESHOLD = 0.1
 	DECIMALS                     = 8
-	GAS_MULTIPLIER               = 0
 )
 
 type Config struct {

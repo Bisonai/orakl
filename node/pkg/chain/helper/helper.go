@@ -188,10 +188,10 @@ func (t *ChainHelper) MakeDirectTx(ctx context.Context, contractAddressHex strin
 	return result, err
 }
 
-func (t *ChainHelper) MakeFeeDelegatedTx(ctx context.Context, contractAddressHex string, functionString string, gasMultiplier float64, args ...interface{}) (*types.Transaction, error) {
+func (t *ChainHelper) MakeFeeDelegatedTx(ctx context.Context, contractAddressHex string, functionString string, args ...interface{}) (*types.Transaction, error) {
 	var result *types.Transaction
 	job := func(c utils.ClientInterface) error {
-		tmp, err := utils.MakeFeeDelegatedTx(ctx, c, contractAddressHex, t.NextReporter(), functionString, t.chainID, gasMultiplier, args...)
+		tmp, err := utils.MakeFeeDelegatedTx(ctx, c, contractAddressHex, t.NextReporter(), functionString, t.chainID, args...)
 		if err == nil {
 			result = tmp
 		}

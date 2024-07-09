@@ -257,7 +257,7 @@ func (r *Reporter) reportDirect(ctx context.Context, functionString string, args
 
 func (r *Reporter) reportDelegated(ctx context.Context, functionString string, args ...interface{}) error {
 	log.Debug().Str("Player", "Reporter").Msg("reporting delegated")
-	rawTx, err := r.KaiaHelper.MakeFeeDelegatedTx(ctx, r.contractAddress, functionString, GAS_MULTIPLIER, args...)
+	rawTx, err := r.KaiaHelper.MakeFeeDelegatedTx(ctx, r.contractAddress, functionString, args...)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("MakeFeeDelegatedTx")
 		return err

@@ -35,7 +35,7 @@ func testContractFeeDelegatedCall(ctx context.Context, contractAddress string, c
 		log.Error().Err(err).Msg("NewTxHelper")
 		return err
 	}
-	rawTx, err := kaiaHelper.MakeFeeDelegatedTx(ctx, contractAddress, contractFunction, 1.5, args...)
+	rawTx, err := kaiaHelper.MakeFeeDelegatedTx(ctx, contractAddress, contractFunction, args...)
 	if err != nil {
 		log.Error().Err(err).Msg("MakeFeeDelegated")
 		return err

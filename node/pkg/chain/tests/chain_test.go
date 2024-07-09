@@ -195,7 +195,7 @@ func TestMakeFeeDelegatedTx(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		feeDelegatedTx, err := kaiaHelper.MakeFeeDelegatedTx(ctx, test.contractAddress, test.functionString, 0)
+		feeDelegatedTx, err := kaiaHelper.MakeFeeDelegatedTx(ctx, test.contractAddress, test.functionString)
 		if err != nil {
 			assert.ErrorIs(t, err, test.expectedError)
 		}
@@ -215,7 +215,7 @@ func TestTxToHashToTx(t *testing.T) {
 	}
 	defer kaiaHelper.Close()
 
-	rawTx, err := kaiaHelper.MakeFeeDelegatedTx(ctx, "0x93120927379723583c7a0dd2236fcb255e96949f", "increment()", 0)
+	rawTx, err := kaiaHelper.MakeFeeDelegatedTx(ctx, "0x93120927379723583c7a0dd2236fcb255e96949f", "increment()")
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -272,7 +272,7 @@ func TestSubmitRawTxString(t *testing.T) {
 	}
 	defer kaiaHelper.Close()
 
-	rawTx, err := kaiaHelper.MakeFeeDelegatedTx(ctx, "0x93120927379723583c7a0dd2236fcb255e96949f", "increment()", 0)
+	rawTx, err := kaiaHelper.MakeFeeDelegatedTx(ctx, "0x93120927379723583c7a0dd2236fcb255e96949f", "increment()")
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
