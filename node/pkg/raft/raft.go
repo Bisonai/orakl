@@ -10,7 +10,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
-	pool "bisonai.com/orakl/node/pkg/utils/pool"
+	"bisonai.com/orakl/node/pkg/utils/pool"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/host"
 )
@@ -339,7 +339,7 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 				}
 
 			case <-r.LeaderJobTicker.C:
-				p.AddJob(func() {
+				p.AddJob(ctx, func() {
 					defer func() {
 						if r := recover(); r != nil {
 							log.Error().Msgf("recovered from panic in leader job: %v", r)

@@ -6,7 +6,7 @@ import (
 
 	"bisonai.com/orakl/node/pkg/common/keys"
 	"bisonai.com/orakl/node/pkg/db"
-	pool "bisonai.com/orakl/node/pkg/utils/pool"
+	"bisonai.com/orakl/node/pkg/utils/pool"
 	"github.com/rs/zerolog/log"
 )
 
@@ -33,7 +33,7 @@ func (a *Accumulator) Run(ctx context.Context) {
 	for {
 		select {
 		case <-ticker.C:
-			p.AddJob(func() {
+			p.AddJob(ctx, func() {
 				a.accumulatorJob(accumulatorCtx)
 			})
 		case <-ctx.Done():

@@ -33,6 +33,11 @@ func (p *Pool) worker(ctx context.Context) {
 	}
 }
 
-func (p *Pool) AddJob(job func()) {
-	p.jobChannel <- job
+func (p *Pool) AddJob(ctx context.Context, job func()) {
+	select {
+	case p.jobChannel <- job:
+		return
+	case <-ctx.Done():
+		return
+	}
 }
