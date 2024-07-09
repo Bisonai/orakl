@@ -117,7 +117,6 @@ var (
 	ErrChainEmptyChainIdParam                = &CustomError{Service: Others, Code: InvalidInputError, Message: "empty chain id param"}
 	ErrChainEmptyToAddress                   = &CustomError{Service: Others, Code: InvalidInputError, Message: "to address is empty"}
 	ErrChainEmptyGasPrice                    = &CustomError{Service: Others, Code: InvalidInputError, Message: "gas price is empty"}
-	ErrChainGasMultiplierTooHigh             = &CustomError{Service: Others, Code: InvalidInputError, Message: "gas multiplier too high"}
 	ErrChainWebsocketContractAddressNotfound = &CustomError{Service: Others, Code: InvalidInputError, Message: "websocket contract address not found"}
 	ErrChainWebsocketChannelNotfound         = &CustomError{Service: Others, Code: InvalidInputError, Message: "websocket channel not found"}
 	ErrChainEmptyEventNameStringParam        = &CustomError{Service: Others, Code: InvalidInputError, Message: "empty event name string param"}

@@ -246,7 +246,7 @@ func (s *Signer) signerUpdate(ctx context.Context, newAddr common.Address) error
 }
 
 func (s *Signer) delegatedSignerUpdate(ctx context.Context, newAddr common.Address) error {
-	rawTx, err := s.chainHelper.MakeFeeDelegatedTx(ctx, s.submissionProxyContractAddr, UpdateSignerFuncSignature, 0, newAddr)
+	rawTx, err := s.chainHelper.MakeFeeDelegatedTx(ctx, s.submissionProxyContractAddr, UpdateSignerFuncSignature, newAddr)
 	if err != nil {
 		log.Error().Str("Player", "Signer").Err(err).Msg("failed to make fee delegated tx")
 		return err

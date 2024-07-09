@@ -279,11 +279,7 @@ func MakeDirectTx(ctx context.Context, client ClientInterface, contractAddressHe
 	return types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
 }
 
-func MakeFeeDelegatedTx(ctx context.Context, client ClientInterface, contractAddressHex string, reporter string, functionString string, chainID *big.Int, gasMultiplier float64, args ...interface{}) (*types.Transaction, error) {
-	if gasMultiplier > 2.5 {
-		return nil, errorSentinel.ErrChainGasMultiplierTooHigh
-	}
-
+func MakeFeeDelegatedTx(ctx context.Context, client ClientInterface, contractAddressHex string, reporter string, functionString string, chainID *big.Int, args ...interface{}) (*types.Transaction, error) {
 	if client == nil {
 		return nil, errorSentinel.ErrChainEmptyClientParam
 	}
@@ -342,11 +338,6 @@ func MakeFeeDelegatedTx(ctx context.Context, client ClientInterface, contractAdd
 	gasPrice, err := client.SuggestGasPrice(ctx)
 	if err != nil {
 		return nil, err
-	}
-
-	if gasMultiplier > 1.0 {
-		increasedGasInt64 := int64(float64(gasPrice.Int64()) * gasMultiplier)
-		gasPrice = new(big.Int).SetInt64(increasedGasInt64)
 	}
 
 	contractAddress := common.HexToAddress(contractAddressHex)
