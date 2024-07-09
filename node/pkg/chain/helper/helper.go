@@ -105,9 +105,9 @@ func NewChainHelper(ctx context.Context, opts ...ChainHelperOption) (*ChainHelpe
 	wallets := []string{primaryWallet}
 
 	if config.UseAdditionalWallets {
-		loadedWallets, err := utils.GetWallets(ctx)
-		if err != nil {
-			log.Warn().Err(err).Msg("failed to get additional wallets")
+		loadedWallets, getWalletErr := utils.GetWallets(ctx)
+		if getWalletErr != nil {
+			log.Warn().Err(getWalletErr).Msg("failed to get additional wallets")
 		}
 
 		for _, wallet := range loadedWallets {
