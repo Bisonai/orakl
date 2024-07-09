@@ -5,27 +5,27 @@ import (
 	"testing"
 	"time"
 
-	goroutine_pool "bisonai.com/orakl/node/pkg/utils/goroutine-pool"
+	pool "bisonai.com/orakl/node/pkg/utils/pool"
 )
 
 func TestNewPool(t *testing.T) {
-	pool := goroutine_pool.NewPool()
-	if pool == nil {
+	p := pool.NewPool()
+	if p == nil {
 		t.Errorf("NewPool() returned nil")
 	}
 }
 
 func TestJobExecution(t *testing.T) {
-	pool := goroutine_pool.NewPool()
+	p := pool.NewPool()
 	ctx, cancel := context.WithCancel(context.Background())
-	pool.Run(ctx)
+	p.Run(ctx)
 	defer cancel()
 
 	var slice []int
 	var confirm_slice []int
 	for i := 0; i < 10; i++ {
 		confirm_slice = append(confirm_slice, i)
-		pool.AddJob(func() {
+		p.AddJob(func() {
 			slice = append(slice, i)
 		})
 		time.Sleep(100 * time.Millisecond)

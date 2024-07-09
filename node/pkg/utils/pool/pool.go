@@ -1,20 +1,18 @@
-package goroutine_pool
+package pool
 
 import (
 	"context"
 )
 
-type PoolJob func()
-
 type Pool struct {
-	jobChannel chan PoolJob
+	jobChannel chan func()
 }
 
 const POOL_WORKER_COUNT = 3
 
 func NewPool() *Pool {
 	return &Pool{
-		jobChannel: make(chan PoolJob),
+		jobChannel: make(chan func()),
 	}
 }
 
@@ -35,6 +33,6 @@ func (p *Pool) worker(ctx context.Context) {
 	}
 }
 
-func (p *Pool) AddJob(job PoolJob) {
+func (p *Pool) AddJob(job func()) {
 	p.jobChannel <- job
 }

@@ -10,7 +10,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
-	goroutine_pool "bisonai.com/orakl/node/pkg/utils/goroutine-pool"
+	pool "bisonai.com/orakl/node/pkg/utils/pool"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/host"
 )
@@ -318,8 +318,8 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 	r.HeartbeatTicker = time.NewTicker(r.HeartbeatTimeout)
 	r.LeaderJobTicker = time.NewTicker(r.LeaderJobTimeout)
 
-	pool := goroutine_pool.NewPool()
-	pool.Run(ctx)
+	p := pool.NewPool()
+	p.Run(ctx)
 
 	go func() {
 		for {
@@ -338,7 +338,7 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 				}
 
 			case <-r.LeaderJobTicker.C:
-				pool.AddJob(func() {
+				p.AddJob(func() {
 					defer func() {
 						if r := recover(); r != nil {
 							log.Error().Msgf("recovered from panic in leader job: %v", r)

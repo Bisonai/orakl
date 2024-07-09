@@ -6,7 +6,7 @@ import (
 
 	"bisonai.com/orakl/node/pkg/common/keys"
 	"bisonai.com/orakl/node/pkg/db"
-	goroutine_pool "bisonai.com/orakl/node/pkg/utils/goroutine-pool"
+	pool "bisonai.com/orakl/node/pkg/utils/pool"
 	"github.com/rs/zerolog/log"
 )
 
@@ -22,8 +22,8 @@ func (a *Accumulator) Run(ctx context.Context) {
 	a.cancel = cancel
 	a.isRunning = true
 
-	pool := goroutine_pool.NewPool()
-	pool.Run(accumulatorCtx)
+	p := pool.NewPool()
+	p.Run(accumulatorCtx)
 
 	ticker := time.NewTicker(a.Interval)
 	defer ticker.Stop()
@@ -31,7 +31,7 @@ func (a *Accumulator) Run(ctx context.Context) {
 	for {
 		select {
 		case <-ticker.C:
-			pool.AddJob(func() {
+			p.AddJob(func() {
 				a.accumulatorJob(accumulatorCtx)
 			})
 		case <-ctx.Done():
