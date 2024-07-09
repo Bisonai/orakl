@@ -141,7 +141,6 @@ func TestConcurrentJobExecution(t *testing.T) {
 		close(done)
 	}()
 
-	t.Logf("slice length: %d", len(channel))
 	select {
 	case <-done:
 		if len(channel) != jobCount {
