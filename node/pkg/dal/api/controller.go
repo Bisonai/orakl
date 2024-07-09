@@ -210,6 +210,14 @@ func (c *Controller) getLatestSubmissionDataSingle(ctx context.Context, symbol s
 	}, nil
 }
 
+func getSymbols(c *fiber.Ctx) error {
+	result := []string{}
+	for key := range ApiController.configs {
+		result = append(result, key)
+	}
+	return c.JSON(result)
+}
+
 func getLatestFeeds(c *fiber.Ctx) error {
 	defer func() {
 		_ = db.QueryWithoutResult(

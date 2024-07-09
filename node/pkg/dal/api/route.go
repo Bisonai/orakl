@@ -8,6 +8,7 @@ import (
 func Routes(router fiber.Router) {
 	api := router.Group("/dal")
 
+	api.Get("/symbols", getSymbols)
 	api.Get("/latest-data-feeds/all", getLatestFeeds)
 	api.Get("/latest-data-feeds/:symbol", getLatestFeed)
 	api.Get("/ws", websocket.New(ApiController.handleWebsocket))
