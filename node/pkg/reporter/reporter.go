@@ -389,10 +389,7 @@ func (r *Reporter) HandleSubmissionMessage(ctx context.Context, msg raft.Message
 
 func (r *Reporter) splitReport(ctx context.Context, feedHashes [][32]byte, values []*big.Int, timestamps []*big.Int, proofs [][]byte) error {
 	for start := 0; start < len(feedHashes); start += MAX_REPORT_BATCH_SIZE {
-		end := start + MAX_REPORT_BATCH_SIZE
-		if end > len(feedHashes) {
-			end = len(feedHashes)
-		}
+		end := min(start+MAX_REPORT_BATCH_SIZE, len(feedHashes))
 
 		batchFeedHashes := feedHashes[start:end]
 		batchValues := values[start:end]
@@ -405,7 +402,6 @@ func (r *Reporter) splitReport(ctx context.Context, feedHashes [][32]byte, value
 			err = r.reportDirect(ctx, SUBMIT_WITH_PROOFS, batchFeedHashes, batchValues, batchTimestamps, batchProofs)
 			if err != nil {
 				log.Error().Str("Player", "Reporter").Err(err).Msg("splitReport")
-				return err
 			}
 		}
 	}
