@@ -15,6 +15,7 @@ import (
 
 const AlarmOffset = 3
 const VRF_EVENT = "vrf_random_words_fulfilled"
+const MaxFeedSubmissionCount = 2 // 2 times within the specified feed.ExpectedInterval will be considered oversubmission
 
 var EventCheckInterval time.Duration
 var POR_BUFFER = 60 * time.Second
@@ -208,7 +209,7 @@ func countLastMinFeedEvents(ctx context.Context, feed FeedToCheck) (int, error) 
 	type Count struct {
 		Count int `db:"count"`
 	}
-	query := feedLastMinEventQuery(feed.SchemaName)
+	query := feedLastMinEventQuery(feed.SchemaName, feed.ExpectedInterval)
 	count, err := db.QueryRow[Count](ctx, query, nil)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to query last minute event count")
@@ -284,12 +285,11 @@ func handleFeedSubmissionDelay(offset time.Duration, feed *FeedToCheck, msg *str
 }
 
 func handleFeedOverSubmission(count int, feed *FeedToCheck, msg *string) {
-	maxFeedSubmissionCount := int(time.Minute.Milliseconds()/(time.Duration(feed.ExpectedInterval)*time.Millisecond).Milliseconds()) * 2
-	if count >= maxFeedSubmissionCount {
+	if count >= MaxFeedSubmissionCount {
 		log.Warn().Str("feed", feed.FeedName).Msg(fmt.Sprintf("%s submitted %d times in one minute", feed.FeedName, count))
 		feed.OversubmissionCount++
 		if feed.OversubmissionCount > AlarmOffset {
-			*msg += fmt.Sprintf("%s made over %d submissions/minute %d times consecutively\n", feed.FeedName, maxFeedSubmissionCount, AlarmOffset+1)
+			*msg += fmt.Sprintf("%s made %dx more submissions, %d times consecutively\n", feed.FeedName, MaxFeedSubmissionCount, AlarmOffset+1)
 			feed.OversubmissionCount = 0
 		}
 	} else {
