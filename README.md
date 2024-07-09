@@ -150,3 +150,4 @@ The microservices can also be started separately in any arbitrary order by repla
 - **dal** v0.0.1.20240708.1003.920fd73 <br> *`PR`*: OraklNode Rollback deviation t... <br><br> 
 - **dal** v0.0.1.20240708.1019.8328517 <br> *`PR`*: DAL APIKEY from secrets <br><br> 
 - **sentinel** v0.0.1.20240709.0109.fa6cdc8 <br> *`PR`*: Sentinel remove datafeed redis... <br><br> 
+- **sentinel** v0.0.1.20240709.0259.02a3c94 <br> *`PR`*: sentinel oversubmission in che... <br><br> 
