@@ -173,6 +173,17 @@ func GetWallets(ctx context.Context) ([]string, error) {
 }
 
 func InsertWallet(ctx context.Context, pk string) error {
+	existingWallets, err := GetWallets(ctx)
+	if err != nil {
+		return err
+	}
+
+	for _, wallet := range existingWallets {
+		if wallet == pk {
+			return nil
+		}
+	}
+
 	if os.Getenv("DATABASE_URL") == "" {
 		log.Warn().Msg("DATABASE_URL is not set, skipping wallet insert")
 		return nil

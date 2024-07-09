@@ -88,7 +88,11 @@ func NewSigner(ctx context.Context, opts ...SignerOption) (*Signer, error) {
 		return nil, err
 	}
 
-	chainHelper, err := NewChainHelper(ctx, WithReporterPk(pk), WithoutAdditionalWallets())
+	chainHelper, err := NewChainHelper(
+		ctx,
+		WithReporterPk(pk),
+		WithoutAdditionalWallets(),
+		WithoutWalletStore())
 	if err != nil {
 		log.Error().Str("Player", "Signer").Err(err).Msg("failed to set chainHelper for signHelper")
 		return nil, err
@@ -215,7 +219,11 @@ func (s *Signer) Renew(ctx context.Context, newPK *ecdsa.PrivateKey, newPkHex st
 	s.mu.Unlock()
 
 	s.chainHelper.Close()
-	newChainHelper, err := NewChainHelper(ctx, WithReporterPk(newPkHex), WithoutAdditionalWallets())
+	newChainHelper, err := NewChainHelper(
+		ctx,
+		WithReporterPk(newPkHex),
+		WithoutAdditionalWallets(),
+		WithoutWalletStore())
 	if err != nil {
 		log.Error().Str("Player", "Signer").Err(err).Msg("failed to create new chain helper")
 		return err
