@@ -24,7 +24,7 @@ func (a *Accumulator) Run(ctx context.Context) {
 	a.isRunning = true
 
 	// dummy channel to signal accumulator workers to batch insert data to db
-	jobChannel := make(chan struct{}, ACCUMULATOR_WORKER_COUNT*2)
+	jobChannel := make(chan struct{})
 	for i := 0; i < ACCUMULATOR_WORKER_COUNT; i++ {
 		go a.accumulatorWorker(accumulatorCtx, jobChannel)
 	}
