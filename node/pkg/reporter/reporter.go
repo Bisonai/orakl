@@ -47,11 +47,13 @@ func NewReporter(ctx context.Context, opts ...ReporterOption) (*Reporter, error)
 	}
 
 	raft := raft.NewRaftNode(config.Host, config.Ps, topic, MESSAGE_BUFFER, groupInterval)
+	deviationThreshold := GetDeviationThreshold(groupInterval)
 	reporter := &Reporter{
 		Raft:               raft,
 		contractAddress:    config.ContractAddress,
 		SubmissionInterval: groupInterval,
 		CachedWhitelist:    config.CachedWhitelist,
+		deviationThreshold: deviationThreshold,
 	}
 	reporter.SubmissionPairs = make(map[int32]SubmissionPair)
 	for _, sa := range config.Configs {
@@ -313,7 +315,7 @@ func (r *Reporter) deviationJob() error {
 		return nil
 	}
 
-	deviatingAggregates := GetDeviatingAggregates(lastSubmissions, lastAggregates)
+	deviatingAggregates := GetDeviatingAggregates(lastSubmissions, lastAggregates, r.deviationThreshold)
 	if len(deviatingAggregates) == 0 {
 		return nil
 	}

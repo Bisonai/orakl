@@ -5,6 +5,7 @@ import (
 	"context"
 	"math"
 	"math/big"
+	"time"
 
 	"bisonai.com/orakl/node/pkg/chain/helper"
 	chainUtils "bisonai.com/orakl/node/pkg/chain/utils"
@@ -17,7 +18,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func GetDeviatingAggregates(lastSubmitted []GlobalAggregate, newAggregates []GlobalAggregate) []GlobalAggregate {
+func GetDeviatingAggregates(lastSubmitted []GlobalAggregate, newAggregates []GlobalAggregate, threshold float64) []GlobalAggregate {
 	submittedAggregates := make(map[int32]GlobalAggregate)
 	for _, aggregate := range lastSubmitted {
 		submittedAggregates[aggregate.ConfigID] = aggregate
@@ -26,20 +27,20 @@ func GetDeviatingAggregates(lastSubmitted []GlobalAggregate, newAggregates []Glo
 	result := make([]GlobalAggregate, 0, len(newAggregates))
 	for _, newAggregate := range newAggregates {
 		submittedAggregate, ok := submittedAggregates[newAggregate.ConfigID]
-		if !ok || ShouldReportDeviation(submittedAggregate.Value, newAggregate.Value) {
+		if !ok || ShouldReportDeviation(submittedAggregate.Value, newAggregate.Value, threshold) {
 			result = append(result, newAggregate)
 		}
 	}
 	return result
 }
 
-func ShouldReportDeviation(oldValue int64, newValue int64) bool {
+func ShouldReportDeviation(oldValue int64, newValue int64, threshold float64) bool {
 	denominator := math.Pow10(DECIMALS)
 	oldValueInFLoat := float64(oldValue) / denominator
 	newValueInFLoat := float64(newValue) / denominator
 
 	if oldValue != 0 && newValue != 0 {
-		deviationRange := oldValueInFLoat * DEVIATION_THRESHOLD
+		deviationRange := oldValueInFLoat * threshold
 		minimum := oldValueInFLoat - deviationRange
 		maximum := oldValueInFLoat + deviationRange
 		return newValueInFLoat < minimum || newValueInFLoat > maximum
@@ -357,4 +358,15 @@ func UpdateProofs(ctx context.Context, aggregates []GlobalAggregate, proofMap ma
 		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to update proofs")
 	}
 	return err
+}
+
+func GetDeviationThreshold(submissionInterval time.Duration) float64 {
+	if submissionInterval <= 15*time.Second {
+		return MIN_DEVIATION_THRESHOLD
+	} else if submissionInterval >= 60*time.Minute {
+		return MAX_DEVIATION_THRESHOLD
+	} else {
+		submissionIntervalSec := submissionInterval.Seconds()
+		return MIN_DEVIATION_THRESHOLD - ((submissionIntervalSec-MIN_INTERVAL)/(MAX_INTERVAL-MIN_INTERVAL))*(MIN_DEVIATION_THRESHOLD-MAX_DEVIATION_THRESHOLD)
+	}
 }
