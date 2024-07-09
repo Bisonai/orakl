@@ -28,6 +28,7 @@ const (
 
 	GET_REPORTER_CONFIGS = `SELECT name, id, submit_interval, aggregate_interval FROM configs;`
 
+	MAX_REPORT_BATCH_SIZE        = 50
 	DEVIATION_INTERVAL           = 2000
 	DEVIATION_THRESHOLD          = 0.05
 	DEVIATION_ABSOLUTE_THRESHOLD = 0.1
