@@ -61,6 +61,7 @@ func NewChainHelper(ctx context.Context, opts ...ChainHelperOption) (*ChainHelpe
 		BlockchainType:            Kaia,
 		UseAdditionalWallets:      true,
 		UseAdditionalProviderUrls: true,
+		StoreWallet:               true,
 	}
 	for _, opt := range opts {
 		opt(config)
@@ -100,29 +101,27 @@ func NewChainHelper(ctx context.Context, opts ...ChainHelperOption) (*ChainHelpe
 		}
 	}
 
-	wallets := make([]string, 0)
+	primaryWallet := strings.TrimPrefix(config.ReporterPk, "0x")
+	wallets := []string{primaryWallet}
+
 	if config.UseAdditionalWallets {
-		wallets, err = utils.GetWallets(ctx)
+		loadedWallets, err := utils.GetWallets(ctx)
 		if err != nil {
 			log.Warn().Err(err).Msg("failed to get additional wallets")
 		}
-	}
-	if config.ReporterPk != "" {
-		primaryWallet := strings.TrimPrefix(config.ReporterPk, "0x")
-		exists := false
-		for _, wallet := range wallets {
-			if wallet == primaryWallet {
-				exists = true
-				break
-			}
-		}
 
-		if !exists {
-			wallets = append([]string{primaryWallet}, wallets...)
-			err = utils.InsertWallet(ctx, primaryWallet)
-			if err != nil {
-				log.Warn().Err(err).Msg("failed to insert primary wallet")
+		for _, wallet := range loadedWallets {
+			if wallet == primaryWallet {
+				continue
 			}
+			wallets = append(wallets, wallet)
+		}
+	}
+
+	if config.StoreWallet {
+		err = utils.InsertWallet(ctx, primaryWallet)
+		if err != nil {
+			log.Warn().Err(err).Msg("failed to insert primary wallet")
 		}
 	}
 

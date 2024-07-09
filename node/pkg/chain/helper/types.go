@@ -25,6 +25,7 @@ type ChainHelperConfig struct {
 	BlockchainType            BlockchainType
 	UseAdditionalProviderUrls bool
 	UseAdditionalWallets      bool
+	StoreWallet               bool
 }
 
 type ChainHelperOption func(*ChainHelperConfig)
@@ -56,6 +57,12 @@ func WithoutAdditionalProviderUrls() ChainHelperOption {
 func WithoutAdditionalWallets() ChainHelperOption {
 	return func(c *ChainHelperConfig) {
 		c.UseAdditionalWallets = false
+	}
+}
+
+func WithoutWalletStore() ChainHelperOption {
+	return func(c *ChainHelperConfig) {
+		c.StoreWallet = false
 	}
 }
 
