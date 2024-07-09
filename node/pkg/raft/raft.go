@@ -16,6 +16,7 @@ import (
 )
 
 const HEARTBEAT_TIMEOUT = 100 * time.Millisecond
+const POOL_WORKER_COUNT = 3
 
 func NewRaftNode(
 	h host.Host,
@@ -318,7 +319,7 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 	r.HeartbeatTicker = time.NewTicker(r.HeartbeatTimeout)
 	r.LeaderJobTicker = time.NewTicker(r.LeaderJobTimeout)
 
-	p := pool.NewPool()
+	p := pool.NewPool(POOL_WORKER_COUNT)
 	p.Run(ctx)
 
 	go func() {

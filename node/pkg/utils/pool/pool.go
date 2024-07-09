@@ -5,19 +5,19 @@ import (
 )
 
 type Pool struct {
-	jobChannel chan func()
+	jobChannel  chan func()
+	workerCount int
 }
 
-const POOL_WORKER_COUNT = 3
-
-func NewPool() *Pool {
+func NewPool(workerCount int) *Pool {
 	return &Pool{
-		jobChannel: make(chan func()),
+		jobChannel:  make(chan func()),
+		workerCount: workerCount,
 	}
 }
 
 func (p *Pool) Run(ctx context.Context) {
-	for i := 0; i < POOL_WORKER_COUNT; i++ {
+	for i := 0; i < p.workerCount; i++ {
 		go p.worker(ctx)
 	}
 }

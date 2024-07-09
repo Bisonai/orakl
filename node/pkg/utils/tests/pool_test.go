@@ -8,15 +8,17 @@ import (
 	pool "bisonai.com/orakl/node/pkg/utils/pool"
 )
 
+const POOL_WORKER_COUNT = 3
+
 func TestNewPool(t *testing.T) {
-	p := pool.NewPool()
+	p := pool.NewPool(POOL_WORKER_COUNT)
 	if p == nil {
 		t.Errorf("NewPool() returned nil")
 	}
 }
 
 func TestJobExecution(t *testing.T) {
-	p := pool.NewPool()
+	p := pool.NewPool(POOL_WORKER_COUNT)
 	ctx, cancel := context.WithCancel(context.Background())
 	p.Run(ctx)
 	defer cancel()

@@ -10,6 +10,8 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+const POOL_WORKER_COUNT = 3
+
 func NewAccumulator(interval time.Duration) *Accumulator {
 	return &Accumulator{
 		Interval: interval,
@@ -22,7 +24,7 @@ func (a *Accumulator) Run(ctx context.Context) {
 	a.cancel = cancel
 	a.isRunning = true
 
-	p := pool.NewPool()
+	p := pool.NewPool(POOL_WORKER_COUNT)
 	p.Run(accumulatorCtx)
 
 	ticker := time.NewTicker(a.Interval)
