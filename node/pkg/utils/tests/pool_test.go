@@ -118,26 +118,37 @@ func TestAddJobToClosedPool(t *testing.T) {
 }
 
 func TestConcurrentJobExecution(t *testing.T) {
-	p := pool.NewPool(POOL_WORKER_COUNT)
+	p := pool.NewPool(3)
 	ctx, cancel := context.WithCancel(context.Background())
 	p.Run(ctx)
 	defer cancel()
 
-	var slice []int
-	var confirm_slice []int
-	for i := 0; i < 10; i++ {
-		confirm_slice = append(confirm_slice, i)
+	jobCount := 100
+	channel := make(chan int, jobCount)
+	var wg sync.WaitGroup
+	wg.Add(jobCount)
+
+	for i := 0; i < jobCount; i++ {
 		p.AddJob(ctx, func() {
-			slice = append(slice, i)
+			channel <- i
+			wg.Done()
 		})
 	}
 
-	time.Sleep(time.Second)
+	done := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(done)
+	}()
 
-	for i := 0; i < 10; i++ {
-		if slice[i] != confirm_slice[i] {
-			t.Errorf("Job execution failed")
+	t.Logf("slice length: %d", len(channel))
+	select {
+	case <-done:
+		if len(channel) != jobCount {
+			t.Errorf("Expected channel length to be %d, but got %d", jobCount, len(channel))
 		}
+	case <-time.After(time.Second):
+		t.Error("Not all jobs were processed in time")
 	}
 }
 
