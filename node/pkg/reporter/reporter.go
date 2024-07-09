@@ -3,6 +3,7 @@ package reporter
 import (
 	"context"
 	"encoding/json"
+	"math/big"
 	"strconv"
 	"time"
 
@@ -241,12 +242,7 @@ func (r *Reporter) reportWithProofs(ctx context.Context, aggregates []GlobalAggr
 	}
 	log.Debug().Str("Player", "Reporter").Int("proofs", len(proofs)).Msg("contract arguements generated")
 
-	err = r.reportDelegated(ctx, SUBMIT_WITH_PROOFS, feedHashes, values, timestamps, proofs)
-	if err != nil {
-		log.Error().Str("Player", "Reporter").Err(err).Msg("reporting directly")
-		return r.reportDirect(ctx, SUBMIT_WITH_PROOFS, feedHashes, values, timestamps, proofs)
-	}
-	return nil
+	return r.splitReport(ctx, feedHashes, values, timestamps, proofs)
 }
 
 func (r *Reporter) reportDirect(ctx context.Context, functionString string, args ...interface{}) error {
@@ -388,5 +384,26 @@ func (r *Reporter) HandleSubmissionMessage(ctx context.Context, msg raft.Message
 		return err
 	}
 
+	return nil
+}
+
+func (r *Reporter) splitReport(ctx context.Context, feedHashes [][32]byte, values []*big.Int, timestamps []*big.Int, proofs [][]byte) error {
+	for start := 0; start < len(feedHashes); start += MAX_REPORT_BATCH_SIZE {
+		end := min(start+MAX_REPORT_BATCH_SIZE, len(feedHashes))
+
+		batchFeedHashes := feedHashes[start:end]
+		batchValues := values[start:end]
+		batchTimestamps := timestamps[start:end]
+		batchProofs := proofs[start:end]
+
+		err := r.reportDelegated(ctx, SUBMIT_WITH_PROOFS, batchFeedHashes, batchValues, batchTimestamps, batchProofs)
+		if err != nil {
+			log.Error().Str("Player", "Reporter").Err(err).Msg("splitReport")
+			err = r.reportDirect(ctx, SUBMIT_WITH_PROOFS, batchFeedHashes, batchValues, batchTimestamps, batchProofs)
+			if err != nil {
+				log.Error().Str("Player", "Reporter").Err(err).Msg("splitReport")
+			}
+		}
+	}
 	return nil
 }
