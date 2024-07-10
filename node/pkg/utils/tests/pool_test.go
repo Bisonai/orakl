@@ -25,7 +25,7 @@ func TestImmediateJobExecution(t *testing.T) {
 	p.Run(ctx)
 
 	done := make(chan bool)
-	p.AddJob(ctx, func() {
+	p.AddJob(func() {
 		done <- true
 	})
 
@@ -48,7 +48,7 @@ func TestLargeNumberOfJobs(t *testing.T) {
 	wg.Add(jobCount)
 
 	for i := 0; i < jobCount; i++ {
-		p.AddJob(ctx, func() {
+		p.AddJob(func() {
 			wg.Done()
 		})
 	}
@@ -74,7 +74,7 @@ func TestContextCancelDuringJobExecution(t *testing.T) {
 	p.Run(ctx)
 
 	done := make(chan bool)
-	p.AddJob(ctx, func() {
+	p.AddJob(func() {
 		time.Sleep(200 * time.Millisecond)
 		done <- true
 	})
@@ -104,7 +104,7 @@ func TestAddJobToClosedPool(t *testing.T) {
 
 	done := make(chan bool)
 	go func() {
-		p.AddJob(ctx, func() {
+		p.AddJob(func() {
 			done <- true
 		})
 	}()
@@ -129,7 +129,7 @@ func TestConcurrentJobExecution(t *testing.T) {
 	wg.Add(jobCount)
 
 	for i := 0; i < jobCount; i++ {
-		p.AddJob(ctx, func() {
+		p.AddJob(func() {
 			channel <- i
 			wg.Done()
 		})
@@ -163,7 +163,7 @@ func TestWorkerCount(t *testing.T) {
 
 	done := make(chan bool)
 	for i := 0; i < POOL_WORKER_COUNT; i++ {
-		p.AddJob(ctx, func() {
+		p.AddJob(func() {
 			mu.Lock()
 			workerCount++
 			mu.Unlock()

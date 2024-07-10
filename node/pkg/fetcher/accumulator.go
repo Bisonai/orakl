@@ -33,10 +33,14 @@ func (a *Accumulator) Run(ctx context.Context) {
 	for {
 		select {
 		case <-ticker.C:
-			p.AddJob(ctx, func() {
+			p.AddJob(func() {
 				a.accumulatorJob(accumulatorCtx)
 			})
 		case <-ctx.Done():
+			if p.IsRunning {
+				p.Cancel()
+				p.IsRunning = false
+			}
 			log.Debug().Str("Player", "Fetcher").Msg("fetcher local aggregates channel goroutine stopped")
 			return
 		}

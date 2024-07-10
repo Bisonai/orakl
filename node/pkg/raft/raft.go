@@ -331,6 +331,10 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 				log.Debug().Msg("resigning as leader")
 				r.HeartbeatTicker.Stop()
 				r.LeaderJobTicker.Stop()
+				if p.IsRunning {
+					p.Cancel()
+					p.IsRunning = false
+				}
 
 				return
 
@@ -341,7 +345,7 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 				}
 
 			case <-r.LeaderJobTicker.C:
-				p.AddJob(ctx, func() {
+				p.AddJob(func() {
 					defer func() {
 						if r := recover(); r != nil {
 							log.Error().Msgf("recovered from panic in leader job: %v", r)
