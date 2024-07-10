@@ -7,7 +7,6 @@ import (
 type Pool struct {
 	jobChannel  chan func()
 	workerCount int
-	ctx         context.Context
 	Cancel      context.CancelFunc
 	IsRunning   bool
 }
@@ -21,31 +20,28 @@ func NewPool(workerCount int) *Pool {
 
 func (p *Pool) Run(ctx context.Context) {
 	poolCtx, cancel := context.WithCancel(ctx)
-	p.ctx = poolCtx
 	p.Cancel = cancel
 	p.IsRunning = true
 
 	for i := 0; i < p.workerCount; i++ {
-		go p.worker()
+		go p.worker(poolCtx)
 	}
 }
 
-func (p *Pool) worker() {
+func (p *Pool) worker(ctx context.Context) {
 	for {
 		select {
 		case job := <-p.jobChannel:
 			job()
-		case <-p.ctx.Done():
+		case <-ctx.Done():
 			return
 		}
 	}
 }
 
 func (p *Pool) AddJob(job func()) {
-	select {
-	case p.jobChannel <- job:
-		return
-	case <-p.ctx.Done():
+	if !p.IsRunning {
 		return
 	}
+	p.jobChannel <- job
 }
