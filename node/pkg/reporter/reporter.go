@@ -17,8 +17,6 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-const WORKER_COUNT = 1
-
 func NewReporter(ctx context.Context, opts ...ReporterOption) (*Reporter, error) {
 	config := &ReporterConfig{
 		JobType: ReportJob,
@@ -48,7 +46,7 @@ func NewReporter(ctx context.Context, opts ...ReporterOption) (*Reporter, error)
 		return nil, err
 	}
 
-	raft := raft.NewRaftNode(config.Host, config.Ps, topic, MESSAGE_BUFFER, groupInterval, WORKER_COUNT)
+	raft := raft.NewRaftNode(config.Host, config.Ps, topic, MESSAGE_BUFFER, groupInterval)
 	deviationThreshold := GetDeviationThreshold(groupInterval)
 	reporter := &Reporter{
 		Raft:               raft,

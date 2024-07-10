@@ -17,8 +17,6 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-const WORKER_COUNT = 3
-
 func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string, config Config, signHelper *helper.Signer) (*Aggregator, error) {
 	if h == nil || ps == nil || topicString == "" {
 		return nil, errorSentinel.ErrAggregatorInvalidInitValue
@@ -34,7 +32,7 @@ func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string, config Co
 
 	aggregator := Aggregator{
 		Config:                   config,
-		Raft:                     raft.NewRaftNode(h, ps, topic, 100, aggregateInterval, WORKER_COUNT),
+		Raft:                     raft.NewRaftNode(h, ps, topic, 100, aggregateInterval),
 		CollectedPrices:          map[int32][]int64{},
 		CollectedProofs:          map[int32][][]byte{},
 		CollectedAgreements:      map[int32][]bool{},
