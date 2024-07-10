@@ -80,6 +80,7 @@ func TestContextCancelDuringJobExecution(t *testing.T) {
 	})
 
 	cancel()
+	p.IsRunning = false
 
 	select {
 	case <-done:
@@ -95,6 +96,7 @@ func TestAddJobToClosedPool(t *testing.T) {
 	p.Run(ctx)
 
 	cancel()
+	p.IsRunning = false
 
 	defer func() {
 		if r := recover(); r != nil {
