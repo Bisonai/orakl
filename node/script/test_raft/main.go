@@ -11,6 +11,8 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+const WORKER_COUNT = 3
+
 // it assumes that boot node is running in `BOOT_API_URL` or `http://localhost:8089`
 
 func main() {
@@ -44,7 +46,7 @@ func main() {
 	log.Debug().Msg("connected to topic string")
 
 	log.Debug().Msg("creating raft node")
-	node := raft.NewRaftNode(host, ps, topic, 100, 1*time.Second)
+	node := raft.NewRaftNode(host, ps, topic, 100, 1*time.Second, WORKER_COUNT)
 	node.LeaderJob = func() error {
 		log.Debug().Int("subscribers", node.SubscribersCount()).Int("Term", node.GetCurrentTerm()).Msg("Leader job")
 		node.IncreaseTerm()
