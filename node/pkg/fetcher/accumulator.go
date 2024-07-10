@@ -6,11 +6,8 @@ import (
 
 	"bisonai.com/orakl/node/pkg/common/keys"
 	"bisonai.com/orakl/node/pkg/db"
-	"bisonai.com/orakl/node/pkg/utils/pool"
 	"github.com/rs/zerolog/log"
 )
-
-const POOL_WORKER_COUNT = 3
 
 func NewAccumulator(interval time.Duration) *Accumulator {
 	return &Accumulator{
@@ -24,23 +21,14 @@ func (a *Accumulator) Run(ctx context.Context) {
 	a.cancel = cancel
 	a.isRunning = true
 
-	p := pool.NewPool(POOL_WORKER_COUNT)
-	p.Run(accumulatorCtx)
-
 	ticker := time.NewTicker(a.Interval)
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-ticker.C:
-			p.AddJob(func() {
-				a.accumulatorJob(accumulatorCtx)
-			})
+			go a.accumulatorJob(accumulatorCtx)
 		case <-ctx.Done():
-			if p.IsRunning {
-				p.Cancel()
-				p.IsRunning = false
-			}
 			log.Debug().Str("Player", "Fetcher").Msg("fetcher local aggregates channel goroutine stopped")
 			return
 		}
