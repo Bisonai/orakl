@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"os"
 	"testing"
+	"time"
 
 	"bisonai.com/orakl/node/pkg/chain/helper"
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
@@ -499,11 +500,30 @@ func TestShouldReportDeviation(t *testing.T) {
 		t.Fatalf("error setting reporters: %v", err)
 	}
 
-	assert.False(t, ShouldReportDeviation(0, 0))
-	assert.True(t, ShouldReportDeviation(0, 100000000))
-	assert.False(t, ShouldReportDeviation(100000000000, 100100000000))
-	assert.True(t, ShouldReportDeviation(100000000000, 105100000000))
-	assert.False(t, ShouldReportDeviation(100000000000, 0))
+	assert.False(t, ShouldReportDeviation(0, 0, 0.05))
+	assert.True(t, ShouldReportDeviation(0, 100000000, 0.05))
+	assert.False(t, ShouldReportDeviation(100000000000, 100100000000, 0.05))
+	assert.True(t, ShouldReportDeviation(100000000000, 105100000000, 0.05))
+	assert.False(t, ShouldReportDeviation(100000000000, 0, 0.05))
+}
+
+func TestGetDeviationThreshold(t *testing.T) {
+	ctx := context.Background()
+	cleanup, _, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer func() {
+		if cleanupErr := cleanup(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
+		}
+	}()
+
+	assert.Equal(t, 0.05, GetDeviationThreshold(15*time.Second))
+	assert.Equal(t, 0.01, GetDeviationThreshold(60*time.Minute))
+	assert.Equal(t, 0.05, GetDeviationThreshold(1*time.Second))
+	assert.Equal(t, 0.01, GetDeviationThreshold(2*time.Hour))
+	assert.Less(t, GetDeviationThreshold(30*time.Minute), 0.05)
 }
 
 func TestGetDeviatingAggregates(t *testing.T) {
@@ -530,7 +550,7 @@ func TestGetDeviatingAggregates(t *testing.T) {
 		Round:    2,
 	}}
 
-	result := GetDeviatingAggregates(oldAggregates, newAggregates)
+	result := GetDeviatingAggregates(oldAggregates, newAggregates, 0.05)
 	assert.Equal(t, result, newAggregates)
 }
 

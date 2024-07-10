@@ -28,11 +28,16 @@ const (
 
 	GET_REPORTER_CONFIGS = `SELECT name, id, submit_interval, aggregate_interval FROM configs;`
 
-	MAX_REPORT_BATCH_SIZE        = 50
-	DEVIATION_INTERVAL           = 2000
-	DEVIATION_THRESHOLD          = 0.05
+	MAX_REPORT_BATCH_SIZE = 50
+	DEVIATION_INTERVAL    = 2000
+
 	DEVIATION_ABSOLUTE_THRESHOLD = 0.1
 	DECIMALS                     = 8
+
+	MAX_DEVIATION_THRESHOLD = 0.01
+	MIN_DEVIATION_THRESHOLD = 0.05
+	MIN_INTERVAL            = 15
+	MAX_INTERVAL            = 3600
 )
 
 type Config struct {
@@ -122,7 +127,8 @@ type Reporter struct {
 	SubmissionInterval time.Duration
 	CachedWhitelist    []common.Address
 
-	contractAddress string
+	contractAddress    string
+	deviationThreshold float64
 
 	nodeCtx    context.Context
 	nodeCancel context.CancelFunc
