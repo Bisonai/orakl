@@ -16,7 +16,6 @@ import (
 
 // singleton pattern
 // make sure env is loaded from main before calling this
-
 var (
 	initPgxOnce sync.Once
 	pool        *pgxpool.Pool
@@ -56,7 +55,7 @@ func QueryWithoutResult(ctx context.Context, queryString string, args map[string
 		return err
 	}
 
-	rows, err := query(currentPool, queryString, args)
+	rows, err := query(ctx, currentPool, queryString, args)
 	if err != nil {
 		log.Error().Err(err).Msg("Error querying")
 		return err
@@ -73,7 +72,7 @@ func Query(ctx context.Context, queryString string, args map[string]any) (pgx.Ro
 		return nil, err
 	}
 
-	return query(currentPool, queryString, args)
+	return query(ctx, currentPool, queryString, args)
 }
 
 func QueryRow[T any](ctx context.Context, queryString string, args map[string]any) (T, error) {
@@ -84,7 +83,7 @@ func QueryRow[T any](ctx context.Context, queryString string, args map[string]an
 		return t, err
 	}
 
-	return queryRow[T](currentPool, queryString, args)
+	return queryRow[T](ctx, currentPool, queryString, args)
 }
 
 func QueryRows[T any](ctx context.Context, queryString string, args map[string]any) ([]T, error) {
@@ -94,16 +93,16 @@ func QueryRows[T any](ctx context.Context, queryString string, args map[string]a
 		return nil, err
 	}
 
-	return queryRows[T](currentPool, queryString, args)
+	return queryRows[T](ctx, currentPool, queryString, args)
 }
 
-func query(pool *pgxpool.Pool, query string, args map[string]any) (pgx.Rows, error) {
-	return pool.Query(context.Background(), query, pgx.NamedArgs(args))
+func query(ctx context.Context, pool *pgxpool.Pool, query string, args map[string]any) (pgx.Rows, error) {
+	return pool.Query(ctx, query, pgx.NamedArgs(args))
 }
 
-func queryRow[T any](pool *pgxpool.Pool, queryString string, args map[string]any) (T, error) {
+func queryRow[T any](ctx context.Context, pool *pgxpool.Pool, queryString string, args map[string]any) (T, error) {
 	var result T
-	rows, err := query(pool, queryString, args)
+	rows, err := query(ctx, pool, queryString, args)
 	if err != nil {
 		log.Error().Err(err).Str("query", queryString).Msg("Error querying")
 		return result, err
@@ -117,10 +116,10 @@ func queryRow[T any](pool *pgxpool.Pool, queryString string, args map[string]any
 	return result, err
 }
 
-func queryRows[T any](pool *pgxpool.Pool, queryString string, args map[string]any) ([]T, error) {
+func queryRows[T any](ctx context.Context, pool *pgxpool.Pool, queryString string, args map[string]any) ([]T, error) {
 	results := []T{}
 
-	rows, err := query(pool, queryString, args)
+	rows, err := query(ctx, pool, queryString, args)
 	if err != nil {
 		log.Error().Err(err).Str("query", queryString).Msg("Error querying")
 		return results, err
