@@ -14,7 +14,7 @@ import (
 	"bisonai.com/orakl/node/pkg/common/types"
 	"bisonai.com/orakl/node/pkg/dal/api"
 	"bisonai.com/orakl/node/pkg/dal/collector"
-	"bisonai.com/orakl/node/pkg/dal/utils"
+	"bisonai.com/orakl/node/pkg/dal/utils/initializer"
 	"bisonai.com/orakl/node/pkg/db"
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog"
@@ -82,7 +82,7 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 	}
 	testItems.TmpConfig = tmpConfig
 
-	app, err := utils.Setup(ctx)
+	app, err := initializer.Setup(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
