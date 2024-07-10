@@ -6,10 +6,11 @@ import (
 
 	"bisonai.com/orakl/node/pkg/common/keys"
 	"bisonai.com/orakl/node/pkg/db"
+	"bisonai.com/orakl/node/pkg/utils/pool"
 	"github.com/rs/zerolog/log"
 )
 
-const ACCUMULATOR_WORKER_COUNT = 3
+const POOL_WORKER_COUNT = 3
 
 func NewAccumulator(interval time.Duration) *Accumulator {
 	return &Accumulator{
@@ -23,32 +24,24 @@ func (a *Accumulator) Run(ctx context.Context) {
 	a.cancel = cancel
 	a.isRunning = true
 
-	// dummy channel to signal accumulator workers to batch insert data to db
-	jobChannel := make(chan struct{})
-	for i := 0; i < ACCUMULATOR_WORKER_COUNT; i++ {
-		go a.accumulatorWorker(accumulatorCtx, jobChannel)
-	}
+	p := pool.NewPool(POOL_WORKER_COUNT)
+	p.Run(accumulatorCtx)
 
-	ticker := time.NewTicker(DefaultLocalAggregateInterval)
+	ticker := time.NewTicker(a.Interval)
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-ticker.C:
-			jobChannel <- struct{}{}
+			p.AddJob(func() {
+				a.accumulatorJob(accumulatorCtx)
+			})
 		case <-ctx.Done():
+			if p.IsRunning {
+				p.Cancel()
+				p.IsRunning = false
+			}
 			log.Debug().Str("Player", "Fetcher").Msg("fetcher local aggregates channel goroutine stopped")
-			return
-		}
-	}
-}
-
-func (a *Accumulator) accumulatorWorker(ctx context.Context, jobChannel <-chan struct{}) {
-	for {
-		select {
-		case <-jobChannel:
-			a.accumulatorJob(ctx)
-		case <-ctx.Done():
 			return
 		}
 	}

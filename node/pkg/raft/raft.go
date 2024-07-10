@@ -10,6 +10,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
+	"bisonai.com/orakl/node/pkg/utils/pool"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/host"
 )
@@ -22,6 +23,7 @@ func NewRaftNode(
 	topic *pubsub.Topic,
 	messageBuffer int,
 	leaderJobTimeout time.Duration,
+	workers int,
 ) *Raft {
 	r := &Raft{
 		Host:  h,
@@ -40,6 +42,8 @@ func NewRaftNode(
 		HeartbeatTimeout: HEARTBEAT_TIMEOUT,
 
 		LeaderJobTimeout: leaderJobTimeout,
+
+		workers: workers,
 	}
 	return r
 }
@@ -317,6 +321,9 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 	r.HeartbeatTicker = time.NewTicker(r.HeartbeatTimeout)
 	r.LeaderJobTicker = time.NewTicker(r.LeaderJobTimeout)
 
+	p := pool.NewPool(r.workers)
+	p.Run(ctx)
+
 	go func() {
 		for {
 			select {
@@ -324,6 +331,10 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 				log.Debug().Msg("resigning as leader")
 				r.HeartbeatTicker.Stop()
 				r.LeaderJobTicker.Stop()
+				if p.IsRunning {
+					p.Cancel()
+					p.IsRunning = false
+				}
 
 				return
 
@@ -334,7 +345,7 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 				}
 
 			case <-r.LeaderJobTicker.C:
-				go func() {
+				p.AddJob(func() {
 					defer func() {
 						if r := recover(); r != nil {
 							log.Error().Msgf("recovered from panic in leader job: %v", r)
@@ -344,7 +355,7 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 					if err != nil {
 						log.Error().Err(err).Msg("failed to execute leader job")
 					}
-				}()
+				})
 
 			case <-ctx.Done():
 				log.Debug().Msg("context cancelled")

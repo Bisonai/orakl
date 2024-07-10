@@ -67,4 +67,6 @@ type Raft struct {
 	LeaderJobTicker     *time.Ticker
 	HandleCustomMessage func(context.Context, Message) error
 	LeaderJob           func() error
+
+	workers int
 }
