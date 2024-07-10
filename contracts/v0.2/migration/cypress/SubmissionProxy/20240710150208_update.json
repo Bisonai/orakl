@@ -1,0 +1,17 @@
+{
+  "address": "0xbfdb0c7f84b494272278cdad77de21634c395eda",
+  "deployFeed": {
+    "feedNames": [
+      "BTC-KRW",
+      "ZRO-KRW",
+      "SOL-KRW",
+      "ETH-KRW",
+      "USDT-KRW",
+      "XRP-KRW",
+      "BLAST-KRW",
+      "ONDO-KRW",
+      "WAVES-KRW",
+      "AKT-KRW"
+    ]
+  }
+}
