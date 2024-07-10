@@ -94,6 +94,8 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 }
 
 func insertSampleData(ctx context.Context, app *App) (*TmpData, error) {
+	_ = db.QueryWithoutResult(ctx, DeleteConfigs, nil)
+
 	var tmpData = new(TmpData)
 
 	tmpConfig, err := db.QueryRow[Config](ctx, InsertConfigQuery, map[string]any{"name": "test_pair", "fetch_interval": 2000, "aggregate_interval": 5000, "submit_interval": 15000})
