@@ -29,6 +29,7 @@ func validator(ctx *fiber.Ctx, s string) (bool, error) {
 		return true, nil
 	}
 
+	log.Warn().Str("Player", "DAL").Str("input", s).Str("expected", key).Msg("invalid api key")
 	return false, fmt.Errorf("invalid api key")
 }
 
