@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"bisonai.com/orakl/node/pkg/admin/tests"
-	"bisonai.com/orakl/node/pkg/aggregator"
 	"bisonai.com/orakl/node/pkg/dal/api"
 	"bisonai.com/orakl/node/pkg/dal/common"
 	"bisonai.com/orakl/node/pkg/utils/request"
@@ -47,7 +46,6 @@ func TestApiGetLatestAll(t *testing.T) {
 			t.Logf("Cleanup failed: %v", cleanupErr)
 		}
 	}()
-
 	testItems.Controller.Start(ctx)
 
 	sampleSubmissionData, err := generateSampleSubmissionData(
@@ -61,7 +59,12 @@ func TestApiGetLatestAll(t *testing.T) {
 		t.Fatalf("error generating sample submission data: %v", err)
 	}
 
-	aggregator.SetLatestGlobalAggregateAndProof(ctx, testItems.TmpConfig.ID, sampleSubmissionData.GlobalAggregate, sampleSubmissionData.Proof)
+	err = testPublishData(ctx, *sampleSubmissionData)
+	if err != nil {
+		t.Fatalf("error publishing sample submission data: %v", err)
+	}
+
+	time.Sleep(10 * time.Millisecond)
 
 	result, err := tests.GetRequest[[]common.OutgoingSubmissionData](testItems.App, "/api/v1/dal/latest-data-feeds/all", nil)
 	if err != nil {
@@ -100,19 +103,6 @@ func TestShouldFailWithoutApiKey(t *testing.T) {
 
 	assert.Equal(t, 200, resp.StatusCode)
 
-	sampleSubmissionData, err := generateSampleSubmissionData(
-		testItems.TmpConfig.ID,
-		int64(15),
-		time.Now(),
-		1,
-		"test-aggregate",
-	)
-	if err != nil {
-		t.Fatalf("error generating sample submission data: %v", err)
-	}
-
-	aggregator.SetLatestGlobalAggregateAndProof(ctx, testItems.TmpConfig.ID, sampleSubmissionData.GlobalAggregate, sampleSubmissionData.Proof)
-
 	result, err := request.RequestRaw(request.WithEndpoint("http://localhost:8090/api/v1/dal/latest-data-feeds/test-aggregate"))
 
 	if err != nil {
@@ -133,7 +123,6 @@ func TestApiGetLatest(t *testing.T) {
 			t.Logf("Cleanup failed: %v", cleanupErr)
 		}
 	}()
-
 	testItems.Controller.Start(ctx)
 
 	sampleSubmissionData, err := generateSampleSubmissionData(
@@ -147,7 +136,12 @@ func TestApiGetLatest(t *testing.T) {
 		t.Fatalf("error generating sample submission data: %v", err)
 	}
 
-	aggregator.SetLatestGlobalAggregateAndProof(ctx, testItems.TmpConfig.ID, sampleSubmissionData.GlobalAggregate, sampleSubmissionData.Proof)
+	err = testPublishData(ctx, *sampleSubmissionData)
+	if err != nil {
+		t.Fatalf("error publishing sample submission data: %v", err)
+	}
+
+	time.Sleep(10 * time.Millisecond)
 
 	result, err := tests.GetRequest[common.OutgoingSubmissionData](testItems.App, "/api/v1/dal/latest-data-feeds/test-aggregate", nil)
 	if err != nil {
@@ -180,7 +174,6 @@ func TestApiWebsocket(t *testing.T) {
 	headers := map[string]string{"X-API-Key": apiKey}
 
 	testItems.Controller.Start(ctx)
-
 	go testItems.App.Listen(":8090")
 
 	conn, err := wss.NewWebsocketHelper(ctx, wss.WithEndpoint("ws://localhost:8090/api/v1/dal/ws"), wss.WithRequestHeaders(headers))

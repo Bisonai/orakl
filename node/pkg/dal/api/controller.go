@@ -5,8 +5,6 @@ import (
 	"errors"
 	"strings"
 
-	"bisonai.com/orakl/node/pkg/aggregator"
-	"bisonai.com/orakl/node/pkg/common/keys"
 	"bisonai.com/orakl/node/pkg/common/types"
 	"bisonai.com/orakl/node/pkg/dal/collector"
 	dalcommon "bisonai.com/orakl/node/pkg/dal/common"
@@ -146,70 +144,6 @@ func (c *Controller) handleWebsocket(conn *websocket.Conn) {
 	}
 }
 
-func (c *Controller) getLatestSubmissionData(ctx context.Context) ([]aggregator.SubmissionData, error) {
-	globalAggregateKeyList := make([]string, 0, len(c.configs))
-	for _, config := range c.configs {
-		globalAggregateKeyList = append(globalAggregateKeyList, keys.GlobalAggregateKey(config.ID))
-	}
-
-	globalAggregates, err := db.MGetObject[aggregator.GlobalAggregate](ctx, globalAggregateKeyList)
-	if err != nil {
-		return nil, err
-	}
-
-	proofKeyList := make([]string, 0, len(globalAggregates))
-	for _, globalAggregate := range globalAggregates {
-		proofKeyList = append(proofKeyList, keys.ProofKey(globalAggregate.ConfigID, globalAggregate.Round))
-	}
-
-	proofs, err := db.MGetObject[aggregator.Proof](ctx, proofKeyList)
-	if err != nil {
-		return nil, err
-	}
-
-	proofMap := make(map[int32]aggregator.Proof)
-	for _, proof := range proofs {
-		proofMap[proof.ConfigID] = proof
-	}
-
-	result := make([]aggregator.SubmissionData, 0, len(globalAggregates))
-	for _, globalAggregate := range globalAggregates {
-		proof, ok := proofMap[globalAggregate.ConfigID]
-		if !ok {
-			continue
-		}
-
-		result = append(result, aggregator.SubmissionData{
-			GlobalAggregate: globalAggregate,
-			Proof:           proof,
-		})
-	}
-
-	return result, nil
-}
-
-func (c *Controller) getLatestSubmissionDataSingle(ctx context.Context, symbol string) (*aggregator.SubmissionData, error) {
-	config, ok := c.configs[symbol]
-	if !ok {
-		return nil, errors.New("invalid symbol")
-	}
-
-	globalAggregate, err := db.GetObject[aggregator.GlobalAggregate](ctx, keys.GlobalAggregateKey(config.ID))
-	if err != nil {
-		return nil, err
-	}
-
-	proof, err := db.GetObject[aggregator.Proof](ctx, keys.ProofKey(config.ID, globalAggregate.Round))
-	if err != nil {
-		return nil, err
-	}
-
-	return &aggregator.SubmissionData{
-		GlobalAggregate: globalAggregate,
-		Proof:           proof,
-	}, nil
-}
-
 func getSymbols(c *fiber.Ctx) error {
 	result := []string{}
 	for key := range ApiController.configs {
@@ -226,20 +160,7 @@ func getLatestFeeds(c *fiber.Ctx) error {
 			map[string]any{"message": "getLatestFeeds called from " + c.IP()})
 	}()
 
-	submissionData, err := ApiController.getLatestSubmissionData(c.Context())
-	if err != nil {
-		return err
-	}
-
-	result := make([]dalcommon.OutgoingSubmissionData, 0, len(submissionData))
-
-	for _, data := range submissionData {
-		outgoingData, err := ApiController.Collector.IncomingDataToOutgoingData(c.Context(), data)
-		if err != nil {
-			return err
-		}
-		result = append(result, *outgoingData)
-	}
+	result := ApiController.Collector.GetAllLatestData()
 	return c.JSON(result)
 }
 
@@ -264,14 +185,7 @@ func getLatestFeed(c *fiber.Ctx) error {
 		symbol = strings.ToUpper(symbol)
 	}
 
-	submissionData, err := ApiController.getLatestSubmissionDataSingle(c.Context(), symbol)
-	if err != nil {
-		return err
-	}
+	result := ApiController.Collector.GetLatestData(symbol)
 
-	outgoingData, err := ApiController.Collector.IncomingDataToOutgoingData(c.Context(), *submissionData)
-	if err != nil {
-		return err
-	}
-	return c.JSON(outgoingData)
+	return c.JSON(*result)
 }
