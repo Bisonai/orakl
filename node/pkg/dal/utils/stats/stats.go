@@ -38,12 +38,13 @@ type websocketId struct {
 }
 
 func InsertRestCall(ctx context.Context, apiKey string, endpoint string, statusCode int, responseTime time.Duration) error {
-	responseTimeMilli := int(responseTime.Milliseconds())
+
+	responseTimeMicro := responseTime.Microseconds()
 	return db.QueryWithoutResult(ctx, INSERT_REST_CALLS, map[string]any{
 		"api_key":       apiKey,
 		"endpoint":      endpoint,
 		"status_code":   statusCode,
-		"response_time": responseTimeMilli,
+		"response_time": responseTimeMicro,
 	})
 }
 
@@ -72,7 +73,6 @@ func InsertWebsocketSubscription(ctx context.Context, connectionId int32, topic 
 
 func StatsMiddleware(c *fiber.Ctx) error {
 	start := time.Now()
-
 	if err := c.Next(); err != nil {
 		return err
 	}

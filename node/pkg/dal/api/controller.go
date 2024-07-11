@@ -103,7 +103,8 @@ func (c *Controller) castSubmissionData(data *dalcommon.OutgoingSubmissionData, 
 	}
 }
 
-func (c *Controller) handleWebsocket(ctx context.Context, conn *websocket.Conn) {
+func (c *Controller) handleWebsocket(conn *websocket.Conn) {
+	ctx := context.Background()
 	c.register <- conn
 	apiKey := conn.Headers("X-Api-Key")
 	if apiKey == "" {
