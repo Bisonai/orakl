@@ -1,0 +1,85 @@
+{
+    "address": "0xd9dbbb92a6ecb8b8d3e386b8d0ad8284bd816ef1",
+    "updateProxyBulk": [
+        {
+            "feedName": "STX-KRW",
+            "proxyAddress": "0x7096aa19f7633af32dba4e6a777c9ed763435e41"
+        },
+        {
+            "feedName": "SHIB-KRW",
+            "proxyAddress": "0xac0fe7bf154277e59798bbf2d8efd448acd24795"
+        },
+        {
+            "feedName": "WLD-KRW",
+            "proxyAddress": "0x40d10430861c1c85eb4ec766430a156b5c494444"
+        },
+        {
+            "feedName": "ENS-KRW",
+            "proxyAddress": "0xadf30ea71ed91de752fd14418534fc6f346fde57"
+        },
+        {
+            "feedName": "DOGE-KRW",
+            "proxyAddress": "0xd78c81b4f784b3af865a1f57e289a8b048c88458"
+        },
+        {
+            "feedName": "PEPE-KRW",
+            "proxyAddress": "0x2ec01d2f7107aeda5cb53427975a7959a54298c7"
+        },
+        {
+            "feedName": "STG-KRW",
+            "proxyAddress": "0x96427478a2b72e61f140c892e3fc7e20ce89bb5a"
+        },
+        {
+            "feedName": "NEAR-KRW",
+            "proxyAddress": "0x19506f0d348a1003099efa4d0f64d7a598c4c296"
+        },
+        {
+            "feedName": "MBL-KRW",
+            "proxyAddress": "0x8c0e3c0329d35a038d460aae792333b8baab3e3c"
+        },
+        {
+            "feedName": "BLUR-KRW",
+            "proxyAddress": "0x72337627266b1b4c54d8319c4693cc1b8dd66ddc"
+        },
+        {
+            "feedName": "ETC-KRW",
+            "proxyAddress": "0x89e692803923f619eddc37a58a97838362cce935"
+        },
+        {
+            "feedName": "MTL-KRW",
+            "proxyAddress": "0x31ec98009dc410af5a4df40485dd01a14fe6af78"
+        },
+        {
+            "feedName": "SEI-KRW",
+            "proxyAddress": "0x0eedf41d40eed5db3ae6a113398a7e6b6aadbdfd"
+        },
+        {
+            "feedName": "ONG-KRW",
+            "proxyAddress": "0x730ca15c5550c0ce520095b2c286e51fdfc4b301"
+        },
+        {
+            "feedName": "ZK-KRW",
+            "proxyAddress": "0xb0214355455010d193695d4677666d3f4882174e"
+        },
+        {
+            "feedName": "BCH-KRW",
+            "proxyAddress": "0x37849d5d257c0511c69787637d6e748f6c1e4fdc"
+        },
+        {
+            "feedName": "AVAX-KRW",
+            "proxyAddress": "0xf03f27c87638b9b3f2deca2d0f334d152af1303b"
+        },
+        {
+            "feedName": "AUCTION-KRW",
+            "proxyAddress": "0x2a1c56185e237ae35d8193b841645b49ee084d71"
+        },
+        {
+            "feedName": "ASTR-KRW",
+            "proxyAddress": "0x132d357515a7f7854e1cfefb751fdc9c2759db2f"
+        },
+        {
+            "feedName": "GRT-KRW",
+            "proxyAddress": "0x242f49338448ee30942db9461431c33ee8aa6eec"
+        }
+    ]
+}
