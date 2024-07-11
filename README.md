@@ -157,3 +157,4 @@ The microservices can also be started separately in any arbitrary order by repla
 - **dal** v0.0.1.20240710.0242.a84f50c <br> *`PR`*: DAL Add log for debugging <br><br> 
 - **node** v0.0.1.20240710.0520.98648d0 <br> *`PR`*: fix type in SubmissionProxy mi... <br><br> 
 - **node** v0.0.1.20240710.0739.4a70b71 <br> *`PR`*: remove pool integration from a... <br><br> 
+- **dal** v0.0.1.20240711.0359.d657755 <br> *`PR`*: DAL Use separate db <br><br> 
