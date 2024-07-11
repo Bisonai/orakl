@@ -31,6 +31,7 @@ type Collector struct {
 	Symbols         map[int32]string
 	FeedHashes      map[int32][]byte
 	CachedWhitelist []klaytncommon.Address
+	LatestData      sync.Map
 
 	IsRunning  bool
 	CancelFunc context.CancelFunc
@@ -67,6 +68,7 @@ func NewCollector(ctx context.Context, configs []types.Config) (*Collector, erro
 		OutgoingStream:              make(map[int32]chan dalcommon.OutgoingSubmissionData, len(configs)),
 		Symbols:                     make(map[int32]string, len(configs)),
 		FeedHashes:                  make(map[int32][]byte, len(configs)),
+		LatestData:                  sync.Map{},
 		chainReader:                 chainReader,
 		CachedWhitelist:             initialWhitelist,
 		submissionProxyContractAddr: submissionProxyContractAddr,
@@ -95,6 +97,33 @@ func (c *Collector) Start(ctx context.Context) {
 
 	c.receive(ctxWithCancel)
 	c.trackOracleAdded(ctxWithCancel)
+}
+
+func (c *Collector) GetLatestData(symbol string) (*dalcommon.OutgoingSubmissionData, error) {
+	result, ok := c.LatestData.Load(symbol)
+	if !ok {
+		return nil, errors.New("symbol not found")
+	}
+
+	data, ok := result.(*dalcommon.OutgoingSubmissionData)
+	if !ok {
+		return nil, errors.New("symbol not converted")
+	}
+
+	return data, nil
+}
+
+func (c *Collector) GetAllLatestData() []dalcommon.OutgoingSubmissionData {
+	result := make([]dalcommon.OutgoingSubmissionData, 0)
+	c.LatestData.Range(func(key, value interface{}) bool {
+		data, ok := value.(*dalcommon.OutgoingSubmissionData)
+		if !ok {
+			return true
+		}
+		result = append(result, *data)
+		return true
+	})
+	return result
 }
 
 func (c *Collector) Stop() {
@@ -135,7 +164,7 @@ func (c *Collector) processIncomingData(ctx context.Context, data aggregator.Sub
 		log.Error().Err(err).Str("Player", "DalCollector").Msg("failed to convert incoming data to outgoing data")
 		return
 	}
-
+	defer c.LatestData.Store(result.Symbol, result)
 	c.OutgoingStream[data.GlobalAggregate.ConfigID] <- *result
 }
 
