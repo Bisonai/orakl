@@ -4,6 +4,8 @@ package test
 
 import (
 	"context"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"testing"
 	"time"
@@ -26,6 +28,7 @@ type TestItems struct {
 	Controller *api.Controller
 	Collector  *collector.Collector
 	TmpConfig  types.Config
+	MockAdmin  *httptest.Server
 }
 
 func testPublishData(ctx context.Context, submissionData aggregator.SubmissionData) error {
@@ -66,33 +69,35 @@ func generateSampleSubmissionData(configId int32, value int64, timestamp time.Ti
 func setup(ctx context.Context) (func() error, *TestItems, error) {
 	var testItems = new(TestItems)
 
-	err := db.QueryWithoutResult(ctx, "DELETE FROM configs", nil)
-	if err != nil {
-		log.Error().Err(err).Msg("error deleting config")
-		return nil, nil, err
-	}
+	mockAdminServer := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		rw.Write([]byte(`[{
+			"id": 0,
+			"name": "test-aggregate",
+			"fetchInterval": 15000,
+			"aggregateInterval": 15000,
+			"submitInterval": 15000}]`))
+	}))
 
-	tmpConfig, err := db.QueryRow[types.Config](
-		ctx,
-		`INSERT INTO configs (name, fetch_interval, aggregate_interval, submit_interval) VALUES (@name, @fetch_interval, @aggregate_interval, @submit_interval) RETURNING name, id, submit_interval, aggregate_interval, fetch_interval;`,
-		map[string]any{"name": "test-aggregate", "submit_interval": 15000, "fetch_interval": 15000, "aggregate_interval": 15000})
-	if err != nil {
-		log.Error().Err(err).Msg("error inserting config 0")
-		return nil, nil, err
+	testItems.TmpConfig = types.Config{
+		ID:                0,
+		Name:              "test-aggregate",
+		FetchInterval:     15000,
+		AggregateInterval: 15000,
+		SubmitInterval:    15000,
 	}
-	testItems.TmpConfig = tmpConfig
 
 	app, err := utils.Setup(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
 	testItems.App = app
-	err = api.Setup(ctx)
+	err = api.Setup(ctx, mockAdminServer.URL)
 	if err != nil {
 		return nil, nil, err
 	}
 	testItems.Controller = &api.ApiController
 	testItems.Collector = api.ApiController.Collector
+	testItems.MockAdmin = mockAdminServer
 
 	v1 := app.Group("/api/v1")
 	v1.Get("/", func(c *fiber.Ctx) error {
@@ -105,12 +110,7 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 
 func cleanup(ctx context.Context, testItems *TestItems) func() error {
 	return func() error {
-		err := db.QueryWithoutResult(ctx, "DELETE FROM configs", nil)
-		if err != nil {
-			log.Error().Err(err).Msg("error deleting config")
-			return err
-		}
-		err = testItems.App.Shutdown()
+		err := testItems.App.Shutdown()
 		if err != nil {
 			log.Error().Err(err).Msg("error shutting down app")
 			return err
@@ -120,6 +120,7 @@ func cleanup(ctx context.Context, testItems *TestItems) func() error {
 
 		testItems.Controller = nil
 		testItems.Collector = nil
+		testItems.MockAdmin.Close()
 		return nil
 	}
 }

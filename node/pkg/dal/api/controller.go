@@ -11,6 +11,7 @@ import (
 	"bisonai.com/orakl/node/pkg/dal/collector"
 	dalcommon "bisonai.com/orakl/node/pkg/dal/common"
 	"bisonai.com/orakl/node/pkg/db"
+	"bisonai.com/orakl/node/pkg/utils/request"
 	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog/log"
@@ -18,12 +19,9 @@ import (
 
 var ApiController Controller
 
-func Setup(ctx context.Context) error {
-	configs, err := db.QueryRows[types.Config](ctx, "SELECT * FROM configs", nil)
-	if err != nil {
-		log.Error().Err(err).Msg("failed to get configs")
-		return err
-	}
+func Setup(ctx context.Context, adminEndpoint string) error {
+	configs, err := request.Request[[]types.Config](request.WithEndpoint(adminEndpoint + "/config"))
+
 	configMap := make(map[string]types.Config)
 	for _, config := range configs {
 		configMap[config.Name] = config
