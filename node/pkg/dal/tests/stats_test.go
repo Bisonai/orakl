@@ -40,14 +40,14 @@ func TestInsertRestCall(t *testing.T) {
 	ctx := context.Background()
 	_ = db.QueryWithoutResult(ctx, "DELETE FROM rest_calls", nil)
 
-	err := stats.InsertRestCall(ctx, "test", "test", 200, 10*time.Millisecond)
+	err := stats.InsertRestCall(ctx, "testApiKey", "test", 200, 10*time.Millisecond)
 	assert.NoError(t, err)
 
 	result, err := db.QueryRows[RestCall](ctx, "SELECT * FROM rest_calls", nil)
 	assert.NoError(t, err)
 	assert.Greater(t, len(result), 0)
 
-	assert.Equal(t, "test", result[0].ApiKey)
+	assert.Equal(t, "testApiKey", result[0].ApiKey)
 	err = db.QueryWithoutResult(ctx, "DELETE FROM rest_calls", nil)
 	assert.NoError(t, err)
 }
@@ -56,14 +56,15 @@ func TestInsertWebsocketConnection(t *testing.T) {
 	ctx := context.Background()
 	_ = db.QueryWithoutResult(ctx, "DELETE FROM websocket_connections", nil)
 
-	id, err := stats.InsertWebsocketConnection(ctx, "test")
+	id, err := stats.InsertWebsocketConnection(ctx, "testApiKey")
 	assert.NoError(t, err)
 	assert.Greater(t, id, int32(0))
 
 	result, err := db.QueryRows[WebsocketConnection](ctx, "SELECT * FROM websocket_connections", nil)
 	assert.NoError(t, err)
 	assert.Greater(t, len(result), 0)
-	assert.Equal(t, "test", result[0].ApiKey)
+
+	assert.Equal(t, "testApiKey", result[0].ApiKey)
 	err = db.QueryWithoutResult(ctx, "DELETE FROM websocket_connections", nil)
 	assert.NoError(t, err)
 }
@@ -71,7 +72,7 @@ func TestInsertWebsocketConnection(t *testing.T) {
 func TestUpdateWebsocketConnection(t *testing.T) {
 	ctx := context.Background()
 	_ = db.QueryWithoutResult(ctx, "DELETE FROM websocket_connections", nil)
-	id, err := stats.InsertWebsocketConnection(ctx, "test")
+	id, err := stats.InsertWebsocketConnection(ctx, "testApiKey")
 	assert.NoError(t, err)
 	assert.Greater(t, id, int32(0))
 
@@ -81,7 +82,7 @@ func TestUpdateWebsocketConnection(t *testing.T) {
 	result, err := db.QueryRows[WebsocketConnection](ctx, "SELECT * FROM websocket_connections", nil)
 	assert.NoError(t, err)
 	assert.Greater(t, len(result), 0)
-	assert.Equal(t, "test", result[0].ApiKey)
+	assert.Equal(t, "testApiKey", result[0].ApiKey)
 	assert.NotEqual(t, 0, result[0].Duration)
 	err = db.QueryWithoutResult(ctx, "DELETE FROM websocket_connections", nil)
 	assert.NoError(t, err)
@@ -91,7 +92,7 @@ func TestWebsocketSubcription(t *testing.T) {
 	ctx := context.Background()
 	_ = db.QueryWithoutResult(ctx, "DELETE FROM websocket_subscriptions", nil)
 	_ = db.QueryWithoutResult(ctx, "DELETE FROM websocket_connections", nil)
-	id, err := stats.InsertWebsocketConnection(ctx, "test")
+	id, err := stats.InsertWebsocketConnection(ctx, "testApiKey")
 	assert.NoError(t, err)
 	assert.Greater(t, id, int32(0))
 
