@@ -19,7 +19,9 @@ func Run(ctx context.Context) error {
 		log.Error().Err(err).Msg("Failed to setup DAL API server")
 		return err
 	}
-	defer app.Shutdown()
+	defer func() {
+		_ = app.Shutdown()
+	}()
 
 	adminEndpoint := os.Getenv("ORAKL_NODE_ADMIN_URL")
 	if adminEndpoint == "" {

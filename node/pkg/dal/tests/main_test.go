@@ -1,5 +1,4 @@
 //nolint:all
-
 package test
 
 import (
