@@ -8,7 +8,7 @@ import (
 	"bisonai.com/orakl/node/pkg/common/types"
 	"bisonai.com/orakl/node/pkg/dal/collector"
 	dalcommon "bisonai.com/orakl/node/pkg/dal/common"
-	"bisonai.com/orakl/node/pkg/db"
+	"bisonai.com/orakl/node/pkg/dal/utils/stats"
 	"bisonai.com/orakl/node/pkg/utils/request"
 	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
@@ -103,20 +103,30 @@ func (c *Controller) castSubmissionData(data *dalcommon.OutgoingSubmissionData, 
 	}
 }
 
-func (c *Controller) handleWebsocket(conn *websocket.Conn) {
+func (c *Controller) handleWebsocket(ctx context.Context, conn *websocket.Conn) {
 	c.register <- conn
-	_ = db.QueryWithoutResult(
-		context.Background(),
-		"INSERT INTO logs (message) VALUES (@message);",
-		map[string]any{"message": "websocket connected from " + conn.IP()})
+	apiKey := conn.Headers("X-Api-Key")
+	if apiKey == "" {
+		log.Error().Msg("X-Api-Key header not found")
+		return
+	}
+
+	id, err := stats.InsertWebsocketConnection(ctx, apiKey)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to insert websocket connection")
+		return
+	}
+	log.Info().Int32("id", id).Msg("inserted websocket connection")
 
 	defer func() {
 		c.unregister <- conn
 		conn.Close()
-		_ = db.QueryWithoutResult(
-			context.Background(),
-			"INSERT INTO logs (message) VALUES (@message);",
-			map[string]any{"message": "websocket disconnected from " + conn.IP()})
+		err := stats.UpdateWebsocketConnection(ctx, id)
+		if err != nil {
+			log.Error().Err(err).Msg("failed to update websocket connection")
+			return
+		}
+		log.Info().Int32("id", id).Msg("updated websocket connection")
 	}()
 
 	for {
@@ -127,15 +137,15 @@ func (c *Controller) handleWebsocket(conn *websocket.Conn) {
 		}
 
 		if msg.Method == "SUBSCRIBE" {
-			_ = db.QueryWithoutResult(
-				context.Background(),
-				"INSERT INTO logs (message) VALUES (@message);",
-				map[string]any{"message": "websocket subscribed(" + strings.Join(msg.Params, ",") + ") from " + conn.IP()},
-			)
+
 			if c.clients[conn] == nil {
 				c.clients[conn] = make(map[string]bool)
 			}
 			for _, param := range msg.Params {
+				err = stats.InsertWebsocketSubscription(ctx, id, param)
+				if err != nil {
+					log.Error().Err(err).Msg("failed to insert websocket subscription")
+				}
 				symbol := strings.TrimPrefix(param, "submission@")
 				if _, ok := c.configs[symbol]; !ok {
 					continue
@@ -155,13 +165,6 @@ func getSymbols(c *fiber.Ctx) error {
 }
 
 func getLatestFeeds(c *fiber.Ctx) error {
-	defer func() {
-		_ = db.QueryWithoutResult(
-			c.Context(),
-			"INSERT INTO logs (message) VALUES (@message);",
-			map[string]any{"message": "getLatestFeeds called from " + c.IP()})
-	}()
-
 	result := ApiController.Collector.GetAllLatestData()
 	return c.JSON(result)
 }
@@ -175,13 +178,6 @@ func getLatestFeed(c *fiber.Ctx) error {
 	if !strings.Contains(symbol, "-") {
 		return errors.New("symbol should be in {BASE}-{QUOTE} format")
 	}
-
-	defer func() {
-		_ = db.QueryWithoutResult(
-			c.Context(),
-			"INSERT INTO logs (message) VALUES (@message);",
-			map[string]any{"message": "getLatestFeed(" + symbol + ") called from " + c.IP()})
-	}()
 
 	if !strings.Contains(symbol, "test") {
 		symbol = strings.ToUpper(symbol)

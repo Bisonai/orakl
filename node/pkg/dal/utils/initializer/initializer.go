@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"bisonai.com/orakl/node/pkg/dal/utils/keycache"
+	"bisonai.com/orakl/node/pkg/dal/utils/stats"
 	"bisonai.com/orakl/node/pkg/db"
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
 
@@ -58,6 +59,8 @@ func Setup(ctx context.Context) (*fiber.App, error) {
 		KeyLookup: "header:X-API-Key",
 		Validator: validator,
 	}))
+
+	app.Use(stats.StatsMiddleware)
 	return app, nil
 }
 

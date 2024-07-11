@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"bisonai.com/orakl/node/pkg/db"
+	"github.com/gofiber/fiber/v2"
+	"github.com/rs/zerolog/log"
 )
 
 const (
@@ -66,4 +68,31 @@ func InsertWebsocketSubscription(ctx context.Context, connectionId int32, topic 
 		"connection_id": connectionId,
 		"topic":         topic,
 	})
+}
+
+func StatsMiddleware(c *fiber.Ctx) error {
+	start := time.Now()
+
+	if err := c.Next(); err != nil {
+		return err
+	}
+	duration := time.Since(start)
+	headers := c.GetReqHeaders()
+	apiKeyRaw, ok := headers["X-Api-Key"]
+	if !ok {
+		log.Warn().Msg("X-Api-Key header not found")
+		return nil
+	}
+	apiKey := apiKeyRaw[0]
+	if apiKey == "" {
+		log.Warn().Msg("X-Api-Key header is empty")
+		return nil
+	}
+
+	endpoint := c.Path()
+	statusCode := c.Response().StatusCode()
+	if err := InsertRestCall(c.Context(), apiKey, endpoint, statusCode, duration); err != nil {
+		log.Error().Err(err).Msg("failed to insert rest call")
+	}
+	return nil
 }
