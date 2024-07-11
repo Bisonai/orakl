@@ -19,6 +19,10 @@ var ApiController Controller
 
 func Setup(ctx context.Context, adminEndpoint string) error {
 	configs, err := request.Request[[]types.Config](request.WithEndpoint(adminEndpoint + "/config"))
+	if err != nil {
+		log.Error().Err(err).Msg("failed to get configs")
+		return err
+	}
 
 	configMap := make(map[string]types.Config)
 	for _, config := range configs {
