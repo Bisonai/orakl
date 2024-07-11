@@ -20,7 +20,7 @@ const (
 	`
 	UPDATE_WEBSOCKET_CONNECTIONS = `
 		UPDATE websocket_connections
-		SET connection_end = NOW(), duration = NOW() - connection_start
+		SET connection_end = NOW(), duration = EXTRACT(EPOCH FROM (NOW() - timestamp)) * 1000
 		WHERE id = @id;
 	`
 
@@ -36,11 +36,12 @@ type websocketId struct {
 }
 
 func InsertRestCall(ctx context.Context, apiKey string, endpoint string, statusCode int, responseTime time.Duration) error {
+	responseTimeMilli := int(responseTime.Milliseconds())
 	return db.QueryWithoutResult(ctx, INSERT_REST_CALLS, map[string]any{
 		"api_key":       apiKey,
 		"endpoint":      endpoint,
 		"status_code":   statusCode,
-		"response_time": responseTime,
+		"response_time": responseTimeMilli,
 	})
 }
 

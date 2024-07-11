@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS websocket_connections (
     api_key TEXT NOT NULL,
     timestamp TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     connection_end TIMESTAMPTZ,
-    duration INTERVAL
+    duration INT
 );
 
 CREATE TABLE IF NOT EXISTS websocket_subscriptions (
