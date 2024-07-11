@@ -2,6 +2,7 @@ package dal
 
 import (
 	"context"
+	"errors"
 	"os"
 
 	"bisonai.com/orakl/node/pkg/dal/api"
@@ -18,8 +19,16 @@ func Run(ctx context.Context) error {
 		log.Error().Err(err).Msg("Failed to setup DAL API server")
 		return err
 	}
+	defer func() {
+		_ = app.Shutdown()
+	}()
 
-	err = api.Setup(ctx)
+	adminEndpoint := os.Getenv("ORAKL_NODE_ADMIN_URL")
+	if adminEndpoint == "" {
+		return errors.New("ORAKL_NODE_ADMIN_URL is not set")
+	}
+
+	err = api.Setup(ctx, adminEndpoint)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to setup DAL API server")
 		return err
