@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"bisonai.com/orakl/node/pkg/dal/api"
-	"bisonai.com/orakl/node/pkg/dal/utils"
+	"bisonai.com/orakl/node/pkg/dal/utils/initializer"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog/log"
@@ -14,7 +14,7 @@ import (
 
 func Run(ctx context.Context) error {
 	log.Debug().Msg("Starting DAL API server")
-	app, err := utils.Setup(ctx)
+	app, err := initializer.Setup(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to setup DAL API server")
 		return err

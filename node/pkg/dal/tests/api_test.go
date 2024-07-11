@@ -3,11 +3,9 @@ package test
 
 import (
 	"context"
-	"os"
 	"testing"
 	"time"
 
-	"bisonai.com/orakl/node/pkg/admin/tests"
 	"bisonai.com/orakl/node/pkg/dal/api"
 	"bisonai.com/orakl/node/pkg/dal/common"
 	"bisonai.com/orakl/node/pkg/utils/request"
@@ -47,6 +45,7 @@ func TestApiGetLatestAll(t *testing.T) {
 		}
 	}()
 	testItems.Controller.Start(ctx)
+	go testItems.App.Listen(":8090")
 
 	sampleSubmissionData, err := generateSampleSubmissionData(
 		testItems.TmpConfig.ID,
@@ -65,12 +64,10 @@ func TestApiGetLatestAll(t *testing.T) {
 	}
 
 	time.Sleep(10 * time.Millisecond)
-
-	result, err := tests.GetRequest[[]common.OutgoingSubmissionData](testItems.App, "/api/v1/dal/latest-data-feeds/all", nil)
+	result, err := request.Request[[]common.OutgoingSubmissionData](request.WithEndpoint("http://localhost:8090/api/v1/dal/latest-data-feeds/all"), request.WithHeaders(map[string]string{"X-API-Key": testItems.ApiKey}))
 	if err != nil {
 		t.Fatalf("error getting latest data: %v", err)
 	}
-
 	expected, err := testItems.Collector.IncomingDataToOutgoingData(ctx, *sampleSubmissionData)
 	if err != nil {
 		t.Fatalf("error converting sample submission data to outgoing data: %v", err)
@@ -124,6 +121,7 @@ func TestApiGetLatest(t *testing.T) {
 		}
 	}()
 	testItems.Controller.Start(ctx)
+	go testItems.App.Listen(":8090")
 
 	sampleSubmissionData, err := generateSampleSubmissionData(
 		testItems.TmpConfig.ID,
@@ -143,11 +141,10 @@ func TestApiGetLatest(t *testing.T) {
 
 	time.Sleep(10 * time.Millisecond)
 
-	result, err := tests.GetRequest[common.OutgoingSubmissionData](testItems.App, "/api/v1/dal/latest-data-feeds/test-aggregate", nil)
+	result, err := request.Request[common.OutgoingSubmissionData](request.WithEndpoint("http://localhost:8090/api/v1/dal/latest-data-feeds/test-aggregate"), request.WithHeaders(map[string]string{"X-API-Key": testItems.ApiKey}))
 	if err != nil {
 		t.Fatalf("error getting latest data: %v", err)
 	}
-
 	expected, err := testItems.Collector.IncomingDataToOutgoingData(ctx, *sampleSubmissionData)
 	if err != nil {
 		t.Fatalf("error converting sample submission data to outgoing data: %v", err)
@@ -167,11 +164,7 @@ func TestApiWebsocket(t *testing.T) {
 		}
 	}()
 
-	apiKey := os.Getenv("API_KEY")
-	if apiKey == "" {
-		t.Fatalf("apiKey required")
-	}
-	headers := map[string]string{"X-API-Key": apiKey}
+	headers := map[string]string{"X-API-Key": testItems.ApiKey}
 
 	testItems.Controller.Start(ctx)
 	go testItems.App.Listen(":8090")

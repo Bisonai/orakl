@@ -15,7 +15,7 @@ import (
 	"bisonai.com/orakl/node/pkg/common/types"
 	"bisonai.com/orakl/node/pkg/dal/api"
 	"bisonai.com/orakl/node/pkg/dal/collector"
-	"bisonai.com/orakl/node/pkg/dal/utils"
+	"bisonai.com/orakl/node/pkg/dal/utils/initializer"
 	"bisonai.com/orakl/node/pkg/db"
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog"
@@ -28,6 +28,7 @@ type TestItems struct {
 	Collector  *collector.Collector
 	TmpConfig  types.Config
 	MockAdmin  *httptest.Server
+	ApiKey     string
 }
 
 func testPublishData(ctx context.Context, submissionData aggregator.SubmissionData) error {
@@ -35,6 +36,8 @@ func testPublishData(ctx context.Context, submissionData aggregator.SubmissionDa
 }
 
 func generateSampleSubmissionData(configId int32, value int64, timestamp time.Time, round int32, symbol string) (*aggregator.SubmissionData, error) {
+	tmpSignerPK := os.Getenv("SIGNER_PK")
+
 	ctx := context.Background()
 	sampleGlobalAggregate := aggregator.GlobalAggregate{
 		ConfigID:  configId,
@@ -43,7 +46,7 @@ func generateSampleSubmissionData(configId int32, value int64, timestamp time.Ti
 		Round:     round,
 	}
 
-	signHelper, err := helper.NewSigner(ctx)
+	signHelper, err := helper.NewSigner(ctx, helper.WithSignerPk(tmpSignerPK))
 	if err != nil {
 		return nil, err
 	}
@@ -85,7 +88,7 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 		SubmitInterval:    15000,
 	}
 
-	app, err := utils.Setup(ctx)
+	app, err := initializer.Setup(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -97,6 +100,9 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 	testItems.Controller = &api.ApiController
 	testItems.Collector = api.ApiController.Collector
 	testItems.MockAdmin = mockAdminServer
+
+	testItems.ApiKey = "testApiKey"
+	_ = db.QueryWithoutResult(ctx, "INSERT INTO keys (key) VALUES (@key);", map[string]any{"key": testItems.ApiKey})
 
 	v1 := app.Group("/api/v1")
 	v1.Get("/", func(c *fiber.Ctx) error {
@@ -116,10 +122,10 @@ func cleanup(ctx context.Context, testItems *TestItems) func() error {
 		}
 
 		testItems.Collector.Stop()
-
 		testItems.Controller = nil
 		testItems.Collector = nil
 		testItems.MockAdmin.Close()
+		_ = db.QueryWithoutResult(ctx, "DELETE FROM keys", nil)
 		return nil
 	}
 }

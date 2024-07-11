@@ -1,4 +1,4 @@
-package utils
+package initializer
 
 import (
 	"context"
@@ -7,38 +7,26 @@ import (
 	"os"
 	"runtime/debug"
 	"strings"
+	"time"
 
+	"bisonai.com/orakl/node/pkg/dal/utils/keycache"
 	"bisonai.com/orakl/node/pkg/db"
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
-	"bisonai.com/orakl/node/pkg/secrets"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/keyauth"
 	"github.com/gofiber/fiber/v2/middleware/recover"
+	"github.com/jackc/pgx/v5"
 	"github.com/rs/zerolog/log"
 )
 
-func validator(ctx *fiber.Ctx, s string) (bool, error) {
-	key := secrets.GetSecret("API_KEY")
-	if s == "" {
-		return false, fmt.Errorf("missing api key")
-	}
-
-	if s == key {
-		return true, nil
-	}
-
-	log.Warn().Str("Player", "DAL").Str("input", s).Str("expected", key).Msg("invalid api key")
-	return false, fmt.Errorf("invalid api key")
-}
-
-func authFilter(c *fiber.Ctx) bool {
-	originalURL := strings.ToLower(c.OriginalURL())
-	return originalURL == "/api/v1"
-}
+var keyCache *keycache.KeyCache
 
 func Setup(ctx context.Context) (*fiber.App, error) {
+	keyCache = keycache.NewAPIKeyCache(1 * time.Hour)
+	keyCache.CleanupLoop(10 * time.Minute)
+
 	_, err := db.GetPool(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("error getting pgs conn in Setup")
@@ -59,7 +47,6 @@ func Setup(ctx context.Context) (*fiber.App, error) {
 
 	app.Use(recover.New(
 		recover.Config{
-
 			EnableStackTrace:  true,
 			StackTraceHandler: CustomStackTraceHandler,
 		},
@@ -121,4 +108,35 @@ func CustomStackTraceHandler(_ *fiber.Ctx, e interface{}) {
 		Msgf("panic: %v", e)
 
 	_, _ = os.Stderr.WriteString(fmt.Sprintf("%s\n", debug.Stack())) //nolint:errcheck // This will never fail
+}
+
+func authFilter(c *fiber.Ctx) bool {
+	originalURL := strings.ToLower(c.OriginalURL())
+	return originalURL == "/api/v1"
+}
+
+func validator(c *fiber.Ctx, s string) (bool, error) {
+	if s == "" {
+		return false, fmt.Errorf("missing api key")
+	}
+
+	if keyCache.Get(s) {
+		return true, nil
+	}
+
+	if validateApiKeyFromDB(c.Context(), s) {
+		keyCache.Set(s)
+		return true, nil
+	}
+
+	return false, fmt.Errorf("invalid api key")
+}
+
+func validateApiKeyFromDB(ctx context.Context, apiKey string) bool {
+	err := db.QueryWithoutResult(ctx, "SELECT 1 FROM keys WHERE key = @key", map[string]any{"key": apiKey})
+	if err != nil && err == pgx.ErrNoRows {
+		log.Error().Err(err).Msg("error validating api key")
+		return false
+	}
+	return true
 }
