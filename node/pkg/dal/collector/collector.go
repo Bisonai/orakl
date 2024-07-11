@@ -31,7 +31,7 @@ type Collector struct {
 	Symbols         map[int32]string
 	FeedHashes      map[int32][]byte
 	CachedWhitelist []klaytncommon.Address
-	LatestData      map[string]*dalcommon.OutgoingSubmissionData
+	LatestData      sync.Map
 
 	IsRunning  bool
 	CancelFunc context.CancelFunc
@@ -68,7 +68,7 @@ func NewCollector(ctx context.Context, configs []types.Config) (*Collector, erro
 		OutgoingStream:              make(map[int32]chan dalcommon.OutgoingSubmissionData, len(configs)),
 		Symbols:                     make(map[int32]string, len(configs)),
 		FeedHashes:                  make(map[int32][]byte, len(configs)),
-		LatestData:                  make(map[string]*dalcommon.OutgoingSubmissionData),
+		LatestData:                  sync.Map{},
 		chainReader:                 chainReader,
 		CachedWhitelist:             initialWhitelist,
 		submissionProxyContractAddr: submissionProxyContractAddr,
@@ -99,21 +99,30 @@ func (c *Collector) Start(ctx context.Context) {
 	c.trackOracleAdded(ctxWithCancel)
 }
 
-func (c *Collector) GetLatestData(symbol string) *dalcommon.OutgoingSubmissionData {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-	return c.LatestData[symbol]
+func (c *Collector) GetLatestData(symbol string) (*dalcommon.OutgoingSubmissionData, error) {
+	result, ok := c.LatestData.Load(symbol)
+	if !ok {
+		return nil, errors.New("symbol not found")
+	}
+
+	data, ok := result.(*dalcommon.OutgoingSubmissionData)
+	if !ok {
+		return nil, errors.New("symbol not converted")
+	}
+
+	return data, nil
 }
 
 func (c *Collector) GetAllLatestData() []dalcommon.OutgoingSubmissionData {
-	index := 0
-	c.mu.RLock()
-	result := make([]dalcommon.OutgoingSubmissionData, len(c.LatestData))
-	for _, value := range c.LatestData {
-		result[index] = *value
-		index++
-	}
-	c.mu.RUnlock()
+	result := make([]dalcommon.OutgoingSubmissionData, 0)
+	c.LatestData.Range(func(key, value interface{}) bool {
+		data, ok := value.(*dalcommon.OutgoingSubmissionData)
+		if !ok {
+			return true
+		}
+		result = append(result, *data)
+		return true
+	})
 	return result
 }
 
@@ -219,7 +228,5 @@ func (c *Collector) trackOracleAdded(ctx context.Context) {
 }
 
 func (c *Collector) storeLatest(data *dalcommon.OutgoingSubmissionData) {
-	c.mu.Lock()
-	c.LatestData[data.Symbol] = data
-	c.mu.Unlock()
+	c.LatestData.Store(data.Symbol, data)
 }

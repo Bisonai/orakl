@@ -185,7 +185,10 @@ func getLatestFeed(c *fiber.Ctx) error {
 		symbol = strings.ToUpper(symbol)
 	}
 
-	result := ApiController.Collector.GetLatestData(symbol)
+	result, err := ApiController.Collector.GetLatestData(symbol)
+	if err != nil {
+		return err
+	}
 
 	return c.JSON(*result)
 }
