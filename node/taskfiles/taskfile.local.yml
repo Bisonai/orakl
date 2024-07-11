@@ -120,7 +120,7 @@ tasks:
   test-dal:
     dotenv: [".env"]
     cmds:
-      - go test -p ./pkg/dal/tests -v
+      - go test -p 1 ./pkg/dal/tests -v
 
   check-api:
     dotenv: [".env"]
