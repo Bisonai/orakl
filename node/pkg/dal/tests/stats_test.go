@@ -38,6 +38,8 @@ type WebsocketSubscription struct {
 
 func TestInsertRestCall(t *testing.T) {
 	ctx := context.Background()
+	_ = db.QueryWithoutResult(ctx, "DELETE FROM rest_calls", nil)
+
 	err := stats.InsertRestCall(ctx, "test", "test", 200, 10*time.Millisecond)
 	assert.NoError(t, err)
 
@@ -52,6 +54,8 @@ func TestInsertRestCall(t *testing.T) {
 
 func TestInsertWebsocketConnection(t *testing.T) {
 	ctx := context.Background()
+	_ = db.QueryWithoutResult(ctx, "DELETE FROM websocket_connections", nil)
+
 	id, err := stats.InsertWebsocketConnection(ctx, "test")
 	assert.NoError(t, err)
 	assert.Greater(t, id, int32(0))
@@ -66,6 +70,7 @@ func TestInsertWebsocketConnection(t *testing.T) {
 
 func TestUpdateWebsocketConnection(t *testing.T) {
 	ctx := context.Background()
+	_ = db.QueryWithoutResult(ctx, "DELETE FROM websocket_connections", nil)
 	id, err := stats.InsertWebsocketConnection(ctx, "test")
 	assert.NoError(t, err)
 	assert.Greater(t, id, int32(0))
@@ -84,6 +89,8 @@ func TestUpdateWebsocketConnection(t *testing.T) {
 
 func TestWebsocketSubcription(t *testing.T) {
 	ctx := context.Background()
+	_ = db.QueryWithoutResult(ctx, "DELETE FROM websocket_subscriptions", nil)
+	_ = db.QueryWithoutResult(ctx, "DELETE FROM websocket_connections", nil)
 	id, err := stats.InsertWebsocketConnection(ctx, "test")
 	assert.NoError(t, err)
 	assert.Greater(t, id, int32(0))
