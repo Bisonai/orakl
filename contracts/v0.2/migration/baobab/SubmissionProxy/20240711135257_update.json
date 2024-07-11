@@ -1,0 +1,27 @@
+{
+  "address": "0xde8fb45ff8e330ccf8e5cc0913ee0143b2a0ebdb",
+  "deployFeed": {
+    "feedNames": [
+      "STX-KRW",
+      "SHIB-KRW",
+      "WLD-KRW",
+      "ENS-KRW",
+      "DOGE-KRW",
+      "PEPE-KRW",
+      "STG-KRW",
+      "NEAR-KRW",
+      "MBL-KRW",
+      "BLUR-KRW",
+      "ETC-KRW",
+      "MTL-KRW",
+      "SEI-KRW",
+      "ONG-KRW",
+      "ZK-KRW",
+      "BCH-KRW",
+      "AVAX-KRW",
+      "AUCTION-KRW",
+      "ASTR-KRW",
+      "GRT-KRW"
+    ]
+  }
+}
