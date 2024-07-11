@@ -164,7 +164,7 @@ func (c *Collector) processIncomingData(ctx context.Context, data aggregator.Sub
 		log.Error().Err(err).Str("Player", "DalCollector").Msg("failed to convert incoming data to outgoing data")
 		return
 	}
-	defer c.storeLatest(result)
+	defer c.LatestData.Store(result.Symbol, result)
 	c.OutgoingStream[data.GlobalAggregate.ConfigID] <- *result
 }
 
@@ -225,8 +225,4 @@ func (c *Collector) trackOracleAdded(ctx context.Context) {
 			}
 		}
 	}()
-}
-
-func (c *Collector) storeLatest(data *dalcommon.OutgoingSubmissionData) {
-	c.LatestData.Store(data.Symbol, data)
 }
