@@ -34,6 +34,30 @@ func ExtractExpirationFromContract(ctx context.Context, jsonrpc string, submissi
 	return &expirationDate, nil
 }
 
+func GetSignerAddresses(ctx context.Context, jsonrpc string, submissionProxy string) ([]string, error) {
+	klaytnClient, err := client.Dial(jsonrpc)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to connect to Klaytn client")
+		return nil, err
+	}
+	defer klaytnClient.Close()
+
+	rawData, err := ReadContract(ctx, *klaytnClient, "function getAllOracles() public view returns (address[] memory)", submissionProxy)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to read contract")
+		return nil, err
+	}
+
+	hexData := rawData.([]interface{})
+	hexAddress := hexData[0].([]common.Address)
+	addresses := make([]string, len(hexAddress))
+	for i, address := range hexAddress {
+		addresses[i] = address.Hex()
+	}
+
+	return addresses, nil
+}
+
 func ReadContract(ctx context.Context, client client.Client, functionString string, contractAddress string, args ...interface{}) (interface{}, error) {
 	log.Info().Msg("Preparing to read contract")
 	functionName, inputs, outputs, err := ParseMethodSignature(functionString)
@@ -65,6 +89,7 @@ func ReadContract(ctx context.Context, client client.Client, functionString stri
 	}
 
 	output, err := abi.Unpack(functionName, result)
+
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to unpack result")
 		return nil, err
