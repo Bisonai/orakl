@@ -143,15 +143,15 @@ func (c *Controller) handleWebsocket(conn *websocket.Conn) {
 				c.clients[conn] = make(map[string]bool)
 			}
 			for _, param := range msg.Params {
-				err = stats.InsertWebsocketSubscription(ctx, id, param)
-				if err != nil {
-					log.Error().Err(err).Msg("failed to insert websocket subscription")
-				}
 				symbol := strings.TrimPrefix(param, "submission@")
 				if _, ok := c.configs[symbol]; !ok {
 					continue
 				}
 				c.clients[conn][symbol] = true
+				err = stats.InsertWebsocketSubscription(ctx, id, param)
+				if err != nil {
+					log.Error().Err(err).Msg("failed to insert websocket subscription")
+				}
 			}
 		}
 	}
