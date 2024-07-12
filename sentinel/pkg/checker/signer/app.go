@@ -21,12 +21,14 @@ var signerCheckInterval time.Duration
 var jsonRpcUrl string
 var submissionProxyContractAddr string
 
+const DEFAULT_SIGNER_CHECK_INTERVAL_HOUR = 24
+
 func setUp(ctx context.Context) error {
 	var err error
 	signerCheckInterval, err = time.ParseDuration(os.Getenv("SIGNER_CHECK_INTERVAL"))
 	if err != nil {
-		signerCheckInterval = 24 * time.Hour
-		log.Error().Err(err).Msg("Using default signer check interval of 6 hours")
+		signerCheckInterval = DEFAULT_SIGNER_CHECK_INTERVAL_HOUR * time.Hour
+		log.Error().Err(err).Msgf("Using default signer check interval of %s hours", DEFAULT_SIGNER_CHECK_INTERVAL_HOUR)
 	}
 
 	jsonRpcUrl = os.Getenv("JSON_RPC_URL")
