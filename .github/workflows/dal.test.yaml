@@ -57,7 +57,7 @@ jobs:
       - name: Migrate up
         run: |
           cd ./node
-          migrate -database "postgresql://postgres:postgres@localhost:5432/orakl-test?search_path=public&sslmode=disable" -verbose -path ./migrations/node up
+          migrate -database "postgresql://postgres:postgres@localhost:5432/orakl-test?search_path=public&sslmode=disable" -verbose -path ./migrations/dal up
 
       - name: Install dependencies
         run: |
