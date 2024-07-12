@@ -75,7 +75,7 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 		log.Debug().Str("Player", "Libp2pHelper").Msg("get peer count msg received")
 		peerCount := len(a.Host.Network().Peers())
 		msg.Response <- bus.MessageResponse{Success: true, Args: map[string]any{"Count": peerCount}}
-	case bus.SYNC:
+	case bus.LIBP2P_SYNC:
 		log.Debug().Str("Player", "Libp2pHelper").Msg("libp2p sync msg received")
 		err := setup.ConnectThroughBootApi(ctx, a.Host)
 		if err != nil {

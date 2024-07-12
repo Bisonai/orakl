@@ -34,5 +34,5 @@ const (
 	REFRESH_REPORTER    = "refresh_reporter"
 
 	GET_PEER_COUNT = "get_peer_count"
-	SYNC           = "sync"
+	LIBP2P_SYNC    = "libp2p_sync"
 )

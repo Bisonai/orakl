@@ -38,7 +38,7 @@ func TestSync(t *testing.T) {
 	defer cleanup()
 
 	channel := testItems.mb.Subscribe(bus.LIBP2P)
-	waitForMessage(t, channel, bus.ADMIN, bus.LIBP2P, bus.SYNC)
+	waitForMessage(t, channel, bus.ADMIN, bus.LIBP2P, bus.LIBP2P_SYNC)
 
 	result, err := RawPostRequest(testItems.app, "/api/v1/host/sync", nil)
 	if err != nil {
