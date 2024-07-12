@@ -1,0 +1,1 @@
+ALTER TABLE keys ADD COLUMN IF NOT EXISTS description TEXT;
