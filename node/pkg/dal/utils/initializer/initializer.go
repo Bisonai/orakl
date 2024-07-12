@@ -18,11 +18,14 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/keyauth"
 	"github.com/gofiber/fiber/v2/middleware/recover"
-	"github.com/jackc/pgx/v5"
 	"github.com/rs/zerolog/log"
 )
 
 var keyCache *keycache.KeyCache
+
+type DBKeyResult struct {
+	Exist bool `db:"exists"`
+}
 
 func Setup(ctx context.Context) (*fiber.App, error) {
 	keyCache = keycache.NewAPIKeyCache(1 * time.Hour)
@@ -136,10 +139,6 @@ func validator(c *fiber.Ctx, s string) (bool, error) {
 }
 
 func validateApiKeyFromDB(ctx context.Context, apiKey string) bool {
-	err := db.QueryWithoutResult(ctx, "SELECT 1 FROM keys WHERE key = @key", map[string]any{"key": apiKey})
-	if err != nil && err == pgx.ErrNoRows {
-		log.Error().Err(err).Msg("error validating api key")
-		return false
-	}
-	return true
+	res, err := db.QueryRow[DBKeyResult](ctx, "SELECT true as exists FROM keys WHERE key = @key", map[string]any{"key": apiKey})
+	return res.Exist && err == nil
 }
