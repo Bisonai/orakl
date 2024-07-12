@@ -9,6 +9,7 @@ import (
 	"bisonai.com/orakl/node/pkg/admin/config"
 	"bisonai.com/orakl/node/pkg/admin/feed"
 	"bisonai.com/orakl/node/pkg/admin/fetcher"
+	"bisonai.com/orakl/node/pkg/admin/host"
 	"bisonai.com/orakl/node/pkg/admin/providerUrl"
 	"bisonai.com/orakl/node/pkg/admin/proxy"
 	"bisonai.com/orakl/node/pkg/admin/reporter"
@@ -67,6 +68,7 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 	reporter.Routes(v1)
 	providerUrl.Routes(v1)
 	config.Routes(v1)
+	host.Routes(v1)
 	return adminCleanup(testItems), testItems, nil
 }
 
