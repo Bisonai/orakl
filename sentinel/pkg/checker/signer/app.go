@@ -83,7 +83,7 @@ func check(ctx context.Context) error {
 		log.Info().Msgf("Signer: %s, Expiration: %s", signerAddress, (*exp).String())
 		if err != nil || exp == nil {
 			log.Error().Err(err).Msg(fmt.Sprintf("Failed to extract expiration for signer: %s", signerAddress))
-			alarmMessage += fmt.Sprintf("Failed to extract expiration for signer: %s\n", signerAddress)
+			alarmMessage += fmt.Sprintf("Failed to extract expiration for signer %s with following error: %v\n", signerAddress, err)
 			continue
 		}
 		if (*exp).Before(time.Now()) {
