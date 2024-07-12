@@ -56,6 +56,17 @@ func ConnectThroughBootApi(ctx context.Context, h host.Host) error {
 			continue
 		}
 
+		alreadyConnected := false
+		for _, p := range h.Network().Peers() {
+			if info.ID == p {
+				alreadyConnected = true
+				break
+			}
+		}
+		if alreadyConnected {
+			continue
+		}
+
 		err = retrier.Retry(func() error {
 			return h.Connect(ctx, *info)
 		}, 5, 1*time.Second, 5*time.Second)

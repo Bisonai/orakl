@@ -10,6 +10,7 @@ const (
 	FETCHER    = "fetcher"
 	AGGREGATOR = "aggregator"
 	REPORTER   = "reporter"
+	LIBP2P     = "libp2p"
 
 	// Modular Monolith pkg commands, please follow {verb}_{noun} pattern for both variable name and value
 	START_FETCHER_APP   = "start_fetcher_app"
@@ -31,4 +32,7 @@ const (
 	ACTIVATE_REPORTER   = "activate_reporter"
 	DEACTIVATE_REPORTER = "deactivate_reporter"
 	REFRESH_REPORTER    = "refresh_reporter"
+
+	GET_PEER_COUNT = "get_peer_count"
+	SYNC           = "sync"
 )
