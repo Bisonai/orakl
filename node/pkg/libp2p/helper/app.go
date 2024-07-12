@@ -29,9 +29,7 @@ func New(bus *bus.MessageBus, h host.Host) *App {
 func (a *App) Run(ctx context.Context) error {
 	defer a.subscribe(ctx)
 
-	sub, err := a.Host.EventBus().Subscribe([]interface{}{
-		new(event.EvtPeerConnectednessChanged),
-	})
+	sub, err := a.Host.EventBus().Subscribe(new(event.EvtPeerConnectednessChanged))
 	if err != nil {
 		return fmt.Errorf("event subscription failed: %w", err)
 	}
@@ -103,7 +101,8 @@ func (a *App) subscribeLibp2pEvent(ctx context.Context, sub event.Subscription) 
 }
 
 func (a *App) handleEvent(ctx context.Context, e interface{}) {
-	if evt, ok := e.(event.EvtPeerConnectednessChanged); ok && evt.Connectedness == network.NotConnected {
+	evt := e.(event.EvtPeerConnectednessChanged)
+	if evt.Connectedness == network.NotConnected {
 		for i := 1; i < 4; i++ {
 			// do not attempt immediate resync, but give some time
 			time.Sleep(time.Duration(i) * time.Minute)
