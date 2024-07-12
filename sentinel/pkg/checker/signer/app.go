@@ -86,8 +86,11 @@ func check(ctx context.Context) error {
 			alarmMessage += fmt.Sprintf("Failed to extract expiration for signer %s with following error: %v\n", signerAddress, err)
 			continue
 		}
-		if (*exp).Before(time.Now()) {
-			alarmMessage += fmt.Sprintf("Signer %s has expired. Expiry date: %s\n", signerAddress, exp.String())
+
+		expiryDate := *exp
+		now := time.Now()
+		if now.Before(expiryDate) && now.Add(6*24*time.Hour).After(expiryDate) {
+			alarmMessage += fmt.Sprintf("Auto signer renewal didn't work as expected for wallet %s. Expiry date: %s\n", signerAddress, exp.String())
 		}
 	}
 	if alarmMessage != "" {
