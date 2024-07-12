@@ -1,0 +1,2 @@
+ALTER TABLE peers DROP CONSTRAINT IF EXISTS unique_url;
+ALTER TABLE peers ADD CONSTRAINT unique_url UNIQUE (url);
