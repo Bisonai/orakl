@@ -52,7 +52,12 @@ func Start(ctx context.Context) error {
 	log.Info().Msg("Starting signer expiration checker")
 	checkTicker := time.NewTicker(signerCheckInterval)
 	defer checkTicker.Stop()
-	check(ctx)
+
+	err = check(ctx)
+	if err != nil {
+		return err
+	}
+
 	for range checkTicker.C {
 		err = check(ctx)
 		if err != nil {
@@ -85,7 +90,6 @@ func check(ctx context.Context) error {
 	}
 	if alarmMessage != "" {
 		alert.SlackAlert(alarmMessage)
-		alarmMessage = ""
 	}
 
 	return nil
