@@ -5,11 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"strings"
 	"time"
 
 	"bisonai.com/orakl/sentinel/pkg/alert"
-	"bisonai.com/orakl/sentinel/pkg/request"
 	"github.com/rs/zerolog/log"
 )
 
@@ -20,71 +18,33 @@ type RegisteredSigner struct {
 }
 
 var signerCheckInterval time.Duration
-var signers []RegisteredSigner
-
-const ExpirationWarningThreshold = 7 * 24 * time.Hour
+var jsonRpcUrl string
+var submissionProxyContractAddr string
 
 func setUp(ctx context.Context) error {
 	var err error
 	signerCheckInterval, err = time.ParseDuration(os.Getenv("SIGNER_CHECK_INTERVAL"))
 	if err != nil {
-		signerCheckInterval = 6 * time.Hour
+		signerCheckInterval = 24 * time.Hour
 		log.Error().Err(err).Msg("Using default signer check interval of 6 hours")
 	}
 
-	nodeAdminUrl := os.Getenv("ORAKL_NODE_ADMIN_URL")
-	if nodeAdminUrl == "" {
-		return errors.New("ORAKL_NODE_ADMIN_URL not found")
-	}
-
-	signerAddr, err := request.Request[string](request.WithEndpoint(nodeAdminUrl + "/wallet/signer"))
-	if err != nil {
-		return err
-	}
-
-	signers = append(signers,
-		RegisteredSigner{
-			Name:    "main",
-			Address: signerAddr,
-		},
-	)
-
-	if signerStr := os.Getenv("SIGNER"); signerStr != "" {
-		addrs := strings.Split(strings.TrimSpace(signerStr), ",")
-		for _, addr := range addrs {
-			signers = append(signers,
-				RegisteredSigner{
-					Name:    "sub",
-					Address: addr,
-				},
-			)
-		}
-	}
-
-	jsonRpcUrl := os.Getenv("JSON_RPC_URL")
+	jsonRpcUrl = os.Getenv("JSON_RPC_URL")
 	if jsonRpcUrl == "" {
 		return errors.New("JSON_RPC_URL not found")
 	}
 
-	submissionProxyContractAddr := os.Getenv("SUBMISSION_PROXY_CONTRACT")
+	submissionProxyContractAddr = os.Getenv("SUBMISSION_PROXY_CONTRACT")
 	if submissionProxyContractAddr == "" {
 		return errors.New("SUBMISSION_PROXY_CONTRACT not found")
 	}
 
-	for i, signer := range signers {
-		exp, err := ExtractExpirationFromContract(ctx, jsonRpcUrl, submissionProxyContractAddr, signer.Address)
-		if err != nil {
-			log.Error().Err(err).Msg(fmt.Sprintf("Failed to extract expiration for signer: %s", signer.Address))
-			continue
-		}
-
-		signers[i].Exp = *exp
-	}
 	return nil
 }
 
 func Start(ctx context.Context) error {
-	err := setUp(ctx)
+	var err error
+	err = setUp(ctx)
 	if err != nil {
 		return err
 	}
@@ -94,17 +54,39 @@ func Start(ctx context.Context) error {
 	defer checkTicker.Stop()
 	check(ctx)
 	for range checkTicker.C {
-		check(ctx)
+		err = check(ctx)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
-func check(ctx context.Context) {
-	for _, signer := range signers {
-		log.Debug().Str("expiration", signer.Exp.String()).Msg("Checking signer expiration")
-		if time.Until(signer.Exp) < ExpirationWarningThreshold {
-			remainingTime := time.Until(signer.Exp)
-			alert.SlackAlert(fmt.Sprintf("Signer %s(%s) expires in: %s", signer.Name, signer.Address, remainingTime.String()))
+func check(ctx context.Context) error {
+	alarmMessage := ""
+	signerAddresses, err := GetSignerAddresses(ctx, jsonRpcUrl, submissionProxyContractAddr)
+	log.Info().Msgf("Signer addresses: %v", signerAddresses)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to get signer addresses")
+		return err
+	}
+
+	for _, signerAddress := range signerAddresses {
+		exp, err := ExtractExpirationFromContract(ctx, jsonRpcUrl, submissionProxyContractAddr, signerAddress)
+		log.Info().Msgf("Signer: %s, Expiration: %s", signerAddress, (*exp).String())
+		if err != nil || exp == nil {
+			log.Error().Err(err).Msg(fmt.Sprintf("Failed to extract expiration for signer: %s", signerAddress))
+			alarmMessage += fmt.Sprintf("Failed to extract expiration for signer: %s\n", signerAddress)
+			continue
+		}
+		if (*exp).Before(time.Now()) {
+			alarmMessage += fmt.Sprintf("Signer %s has expired. Expiry date: %s\n", signerAddress, exp.String())
 		}
 	}
+	if alarmMessage != "" {
+		alert.SlackAlert(alarmMessage)
+		alarmMessage = ""
+	}
+
+	return nil
 }
