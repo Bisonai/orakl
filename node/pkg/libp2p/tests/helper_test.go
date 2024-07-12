@@ -37,10 +37,6 @@ func TestAppRunAndStop(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failed to run: %v", err)
 	}
-	assert.True(t, libp2pHelper.IsRunning)
-
-	libp2pHelper.Stop()
-	assert.False(t, libp2pHelper.IsRunning)
 }
 
 func TestAppGetPeerCount(t *testing.T) {

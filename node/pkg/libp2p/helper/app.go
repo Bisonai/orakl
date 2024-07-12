@@ -17,9 +17,6 @@ import (
 type App struct {
 	Host host.Host
 	Bus  *bus.MessageBus
-
-	IsRunning bool
-	cancel    context.CancelFunc
 }
 
 func New(bus *bus.MessageBus, h host.Host) *App {
@@ -30,14 +27,6 @@ func New(bus *bus.MessageBus, h host.Host) *App {
 }
 
 func (a *App) Run(ctx context.Context) error {
-	if a.IsRunning {
-		return nil
-	}
-
-	a.IsRunning = true
-	ctx, cancel := context.WithCancel(ctx)
-	a.cancel = cancel
-
 	defer a.subscribe(ctx)
 
 	sub, err := a.Host.EventBus().Subscribe([]interface{}{
@@ -49,14 +38,6 @@ func (a *App) Run(ctx context.Context) error {
 
 	a.subscribeLibp2pEvent(ctx, sub)
 	return nil
-}
-
-func (a *App) Stop() {
-	if !a.IsRunning {
-		return
-	}
-	a.IsRunning = false
-	a.cancel()
 }
 
 func (a *App) subscribe(ctx context.Context) {
