@@ -160,3 +160,4 @@ The microservices can also be started separately in any arbitrary order by repla
 - **dal** v0.0.1.20240711.0359.d657755 <br> *`PR`*: DAL Use separate db <br><br> 
 - **dal** v0.0.1.20240712.0249.40a95d7 <br> *`PR`*: Add new option to deployment s... <br><br> 
 - **dal** v0.0.1.20240712.0440.f9d9bd8 <br> *`PR`*: DAL Add description column to ... <br><br> 
+- **node** v0.0.1.20240712.0451.9550617 <br> *`PR`*: DAL Add description column to ... <br><br> 
