@@ -66,6 +66,10 @@ tasks:
     dotenv: [".env"]
     cmds:
       - go run ./script/test_dal_consumer/main.go
+  script-test-single-fetch:
+    dotenv: [".env"]
+    cmds:
+      - go run ./script/test_single_fetch/main.go
 
   test-db:
     dotenv: [".env"]

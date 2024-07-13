@@ -3,6 +3,7 @@ package reducer
 import (
 	"math"
 	"strconv"
+	"strings"
 
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
 )
@@ -21,6 +22,7 @@ func Reduce(raw interface{}, reducers []Reducer) (float64, error) {
 			return 0, err
 		}
 	}
+
 	result, ok := raw.(float64)
 	if !ok {
 		return 0, errorSentinel.ErrReducerCastToFloatFail
@@ -131,6 +133,7 @@ func tryParseFloat(raw interface{}) (float64, error) {
 	}
 	s, ok := raw.(string)
 	if ok {
+		s = strings.ReplaceAll(s, ",", "")
 		f, err := strconv.ParseFloat(s, 64)
 		if err == nil {
 			return f, nil
