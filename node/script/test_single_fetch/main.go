@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 
 	"bisonai.com/orakl/node/pkg/utils/reducer"
-	"bisonai.com/orakl/sentinel/pkg/request"
+	"bisonai.com/orakl/node/pkg/utils/request"
 	"github.com/rs/zerolog/log"
 )
 
