@@ -164,6 +164,7 @@ func (c *Collector) processIncomingData(ctx context.Context, data aggregator.Sub
 		log.Error().Err(err).Str("Player", "DalCollector").Msg("failed to convert incoming data to outgoing data")
 		return
 	}
+
 	defer c.LatestData.Store(result.Symbol, result)
 	c.OutgoingStream[data.GlobalAggregate.ConfigID] <- *result
 }

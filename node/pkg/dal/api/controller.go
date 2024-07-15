@@ -128,7 +128,7 @@ func HandleWebsocket(conn *websocket.Conn) {
 	defer func() {
 		c.unregister <- conn
 		conn.Close()
-		err := stats.UpdateWebsocketConnection(*ctx, id)
+		err = stats.UpdateWebsocketConnection(*ctx, id)
 		if err != nil {
 			log.Error().Err(err).Msg("failed to update websocket connection")
 			return
@@ -138,7 +138,7 @@ func HandleWebsocket(conn *websocket.Conn) {
 
 	for {
 		var msg Subscription
-		if err := conn.ReadJSON(&msg); err != nil {
+		if err = conn.ReadJSON(&msg); err != nil {
 			log.Error().Err(err).Msg("failed to read message")
 			return
 		}
