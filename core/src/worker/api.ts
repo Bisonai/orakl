@@ -3,94 +3,13 @@ import { URL } from 'node:url'
 import { Logger } from 'pino'
 import { OraklError, OraklErrorCode } from '../errors'
 import { ORAKL_NETWORK_API_URL } from '../settings'
-import { IAggregate, IAggregateById, IAggregator, IErrorMsgData, IL2AggregatorPair } from '../types'
+import { IAggregator, IErrorMsgData, IL2AggregatorPair } from '../types'
 import { buildUrl } from '../utils'
 
 export const AGGREGATE_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'aggregate')
 export const AGGREGATOR_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'aggregator')
 export const ERROR_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'error')
 export const L2_AGGREGATOR_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'l2aggregator')
-
-/**
- * Fetch aggregate data from `Orakl Network API` data feed endpoint
- * given aggregator ID.
- *
- * @param {string} aggregator hash
- * @param {Logger} logger
- * @return {IAggregate} metadata about the latest aggregate
- * @exception {FailedToGetAggregate}
- */
-export async function fetchDataFeed({
-  aggregatorHash,
-  logger,
-}: {
-  aggregatorHash: string
-  logger: Logger
-}): Promise<IAggregate> {
-  try {
-    const url = buildUrl(AGGREGATE_ENDPOINT, `${aggregatorHash}/latest`)
-    return (await axios.get(url))?.data
-  } catch (e) {
-    logger.error(e)
-    throw new OraklError(OraklErrorCode.FailedToGetAggregate)
-  }
-}
-
-export async function fetchDataFeedByAggregatorId({
-  aggregatorId,
-  logger,
-}: {
-  aggregatorId: string
-  logger: Logger
-}): Promise<IAggregateById> {
-  try {
-    const url = buildUrl(AGGREGATE_ENDPOINT, `id/${aggregatorId}/latest`)
-    return (await axios.get(url))?.data
-  } catch (e) {
-    logger.error(e)
-    throw new OraklError(OraklErrorCode.FailedToGetAggregate)
-  }
-}
-
-/**
- * Get single `Aggregator` given aggregator address.
- *
- * @param {string} oracle address
- * @param {Logger} logger
- * @return {Aggregator}
- * @exception {FailedToGetAggregator}
- */
-export async function getAggregatorGivenAddress({
-  oracleAddress,
-  logger,
-}: {
-  oracleAddress: string
-  logger: Logger
-}): Promise<IAggregator> {
-  const url = new URL(AGGREGATOR_ENDPOINT)
-  url.searchParams.append('address', oracleAddress)
-
-  let response = []
-  try {
-    response = (await axios.get(url.toString()))?.data
-  } catch (e) {
-    logger.error(e)
-    throw new OraklError(OraklErrorCode.FailedToGetAggregator)
-  }
-
-  if (response.length == 1) {
-    logger.debug(response)
-    return response[0]
-  } else if (response.length == 0) {
-    const msg = 'No aggregator found'
-    logger.error(msg)
-    throw new OraklError(OraklErrorCode.FailedToGetAggregator, msg)
-  } else {
-    const msg = `Expected one aggregator, received ${response.length}`
-    logger.error(msg)
-    throw new OraklError(OraklErrorCode.FailedToGetAggregator, msg)
-  }
-}
 
 /**
  * Get all `Aggregator`s on given `chain`. The data are fetched from
