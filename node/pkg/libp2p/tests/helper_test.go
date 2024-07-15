@@ -8,6 +8,7 @@ import (
 	"bisonai.com/orakl/node/pkg/bus"
 	"bisonai.com/orakl/node/pkg/libp2p/helper"
 	"bisonai.com/orakl/node/pkg/libp2p/setup"
+	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -71,4 +72,53 @@ func TestAppGetPeerCount(t *testing.T) {
 	res := <-msg.Response
 	assert.True(t, res.Success)
 	assert.Equal(t, 0, res.Args["Count"].(int))
+
+	h2, err := setup.NewHost(ctx)
+	if err != nil {
+		t.Errorf("Failed to make host: %v", err)
+	}
+	defer h2.Close()
+	err = h.Connect(ctx, peer.AddrInfo{ID: h2.ID(), Addrs: h2.Addrs()})
+	if err != nil {
+		t.Errorf("Failed to connect: %v", err)
+	}
+
+	err = mb.Publish(msg)
+	if err != nil {
+		t.Errorf("Failed to publish msg: %v", err)
+	}
+
+	res = <-msg.Response
+	assert.True(t, res.Success)
+	assert.Equal(t, 1, res.Args["Count"].(int))
+}
+
+func TestReconnectTriggerAfterDisconnection(t *testing.T) {
+	t.Skip()
+	ctx := context.Background()
+	h, err := setup.NewHost(context.Background())
+	if err != nil {
+		t.Errorf("Failed to make host: %v", err)
+	}
+	defer h.Close()
+	mb := bus.New(10)
+
+	libp2pHelper := helper.New(mb, h)
+	err = libp2pHelper.Run(ctx)
+	if err != nil {
+		t.Errorf("Failed to run: %v", err)
+	}
+
+	h2, err := setup.NewHost(ctx)
+	if err != nil {
+		t.Errorf("Failed to make host: %v", err)
+	}
+	defer h2.Close()
+	err = h.Connect(ctx, peer.AddrInfo{ID: h2.ID(), Addrs: h2.Addrs()})
+	if err != nil {
+		t.Errorf("Failed to connect: %v", err)
+	}
+
+	h2.Close()
+
 }

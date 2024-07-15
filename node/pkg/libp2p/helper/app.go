@@ -101,6 +101,7 @@ func (a *App) subscribeLibp2pEvent(ctx context.Context, sub event.Subscription) 
 }
 
 func (a *App) handleEvent(ctx context.Context, e interface{}) {
+	log.Info().Str("Player", "Libp2pHelper").Msg("Disconnect event catched, triggering resync")
 	evt := e.(event.EvtPeerConnectednessChanged)
 	if evt.Connectedness == network.NotConnected {
 		for i := 1; i < 4; i++ {
