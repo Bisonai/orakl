@@ -2,10 +2,10 @@ package peer
 
 import (
 	"bisonai.com/orakl/node/pkg/db"
-	libp2pSetup "bisonai.com/orakl/node/pkg/libp2p/setup"
 	libp2pUtils "bisonai.com/orakl/node/pkg/libp2p/utils"
 	"github.com/go-playground/validator"
 	"github.com/gofiber/fiber/v2"
+	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/rs/zerolog/log"
 )
 
@@ -31,19 +31,13 @@ func sync(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).SendString("Failed to validate request")
 	}
 
-	h, err := libp2pSetup.NewHost(c.Context(), libp2pSetup.WithHolePunch(), libp2pSetup.WithPort(0))
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to make host")
-		return c.Status(fiber.StatusInternalServerError).SendString("Failed to make host")
+	h, ok := c.Locals("host").(*host.Host)
+	if !ok {
+		log.Error().Msg("Failed to get host")
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to get host")
 	}
-	defer func() {
-		closeErr := h.Close()
-		if closeErr != nil {
-			log.Error().Err(closeErr).Msg("Failed to close host")
-		}
-	}()
 
-	isAlive, err := libp2pUtils.IsHostAlive(c.Context(), h, payload.Url)
+	isAlive, err := libp2pUtils.IsHostAlive(c.Context(), *h, payload.Url)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to check peer")
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to check peer")
