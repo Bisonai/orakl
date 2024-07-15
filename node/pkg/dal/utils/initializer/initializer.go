@@ -7,8 +7,8 @@ import (
 	"os"
 	"runtime/debug"
 	"strings"
-	"time"
 
+	"bisonai.com/orakl/node/pkg/dal/api"
 	"bisonai.com/orakl/node/pkg/dal/utils/keycache"
 	"bisonai.com/orakl/node/pkg/dal/utils/stats"
 	"bisonai.com/orakl/node/pkg/db"
@@ -21,15 +21,16 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-var keyCache *keycache.KeyCache
-
 type DBKeyResult struct {
 	Exist bool `db:"exists"`
 }
 
-func Setup(ctx context.Context) (*fiber.App, error) {
-	keyCache = keycache.NewAPIKeyCache(1 * time.Hour)
-	keyCache.CleanupLoop(10 * time.Minute)
+func Setup(ctx context.Context, apiController *api.Controller, keyCache *keycache.KeyCache) (*fiber.App, error) {
+	if apiController == nil || keyCache == nil {
+		return nil, errors.New("api controller and key cache cannot be nil")
+	}
+	apiController.Start(ctx)
+	log.Info().Msg("api controller started")
 
 	_, err := db.GetPool(ctx)
 	if err != nil {
@@ -45,7 +46,7 @@ func Setup(ctx context.Context) (*fiber.App, error) {
 
 	app := fiber.New(fiber.Config{
 		AppName:           "Data Availability Layer API 0.1.0",
-		EnablePrintRoutes: true,
+		EnablePrintRoutes: false,
 		ErrorHandler:      CustomErrorHandler,
 	})
 
@@ -56,6 +57,13 @@ func Setup(ctx context.Context) (*fiber.App, error) {
 		},
 	))
 
+	app.Use(func(c *fiber.Ctx) error {
+		c.Locals("apiController", apiController)
+		c.Locals("keyCache", keyCache)
+		c.Locals("context", &ctx)
+		return c.Next()
+	})
+
 	app.Use(cors.New())
 	app.Use(keyauth.New(keyauth.Config{
 		Next:      authFilter,
@@ -64,6 +72,7 @@ func Setup(ctx context.Context) (*fiber.App, error) {
 	}))
 
 	app.Use(stats.StatsMiddleware)
+
 	return app, nil
 }
 
@@ -124,6 +133,11 @@ func authFilter(c *fiber.Ctx) bool {
 func validator(c *fiber.Ctx, s string) (bool, error) {
 	if s == "" {
 		return false, fmt.Errorf("missing api key")
+	}
+
+	keyCache, ok := c.Locals("keyCache").(*keycache.KeyCache)
+	if !ok {
+		return false, fmt.Errorf("key cache not found")
 	}
 
 	if keyCache.Get(s) {

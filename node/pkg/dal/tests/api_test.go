@@ -26,9 +26,6 @@ func TestApiControllerRun(t *testing.T) {
 		}
 	}()
 
-	assert.False(t, testItems.Controller.Collector.IsRunning)
-
-	testItems.Controller.Start(ctx)
 	time.Sleep(10 * time.Millisecond)
 	assert.True(t, testItems.Controller.Collector.IsRunning)
 }
@@ -44,7 +41,7 @@ func TestApiGetLatestAll(t *testing.T) {
 			t.Logf("Cleanup failed: %v", cleanupErr)
 		}
 	}()
-	testItems.Controller.Start(ctx)
+
 	go testItems.App.Listen(":8090")
 
 	sampleSubmissionData, err := generateSampleSubmissionData(
@@ -68,7 +65,7 @@ func TestApiGetLatestAll(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error getting latest data: %v", err)
 	}
-	expected, err := testItems.Collector.IncomingDataToOutgoingData(ctx, *sampleSubmissionData)
+	expected, err := testItems.Controller.Collector.IncomingDataToOutgoingData(ctx, *sampleSubmissionData)
 	if err != nil {
 		t.Fatalf("error converting sample submission data to outgoing data: %v", err)
 	}
@@ -91,7 +88,6 @@ func TestShouldFailWithoutApiKey(t *testing.T) {
 		}
 	}()
 
-	testItems.Controller.Start(ctx)
 	go testItems.App.Listen(":8090")
 	resp, err := request.RequestRaw(request.WithEndpoint("http://localhost:8090/api/v1"))
 	if err != nil {
@@ -120,7 +116,6 @@ func TestApiGetLatest(t *testing.T) {
 			t.Logf("Cleanup failed: %v", cleanupErr)
 		}
 	}()
-	testItems.Controller.Start(ctx)
 	go testItems.App.Listen(":8090")
 
 	sampleSubmissionData, err := generateSampleSubmissionData(
@@ -145,7 +140,7 @@ func TestApiGetLatest(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error getting latest data: %v", err)
 	}
-	expected, err := testItems.Collector.IncomingDataToOutgoingData(ctx, *sampleSubmissionData)
+	expected, err := testItems.Controller.Collector.IncomingDataToOutgoingData(ctx, *sampleSubmissionData)
 	if err != nil {
 		t.Fatalf("error converting sample submission data to outgoing data: %v", err)
 	}
@@ -166,7 +161,6 @@ func TestApiWebsocket(t *testing.T) {
 
 	headers := map[string]string{"X-API-Key": testItems.ApiKey}
 
-	testItems.Controller.Start(ctx)
 	go testItems.App.Listen(":8090")
 
 	conn, err := wss.NewWebsocketHelper(ctx, wss.WithEndpoint("ws://localhost:8090/api/v1/dal/ws"), wss.WithRequestHeaders(headers))
@@ -206,7 +200,7 @@ func TestApiWebsocket(t *testing.T) {
 	ch := make(chan any)
 	go conn.Read(ctx, ch)
 
-	expected, err := testItems.Collector.IncomingDataToOutgoingData(ctx, *sampleSubmissionData)
+	expected, err := testItems.Controller.Collector.IncomingDataToOutgoingData(ctx, *sampleSubmissionData)
 	if err != nil {
 		t.Fatalf("error converting sample submission data to outgoing data: %v", err)
 	}

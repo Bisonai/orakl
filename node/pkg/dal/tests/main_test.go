@@ -14,8 +14,8 @@ import (
 	"bisonai.com/orakl/node/pkg/common/keys"
 	"bisonai.com/orakl/node/pkg/common/types"
 	"bisonai.com/orakl/node/pkg/dal/api"
-	"bisonai.com/orakl/node/pkg/dal/collector"
 	"bisonai.com/orakl/node/pkg/dal/utils/initializer"
+	"bisonai.com/orakl/node/pkg/dal/utils/keycache"
 	"bisonai.com/orakl/node/pkg/db"
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog"
@@ -25,7 +25,6 @@ import (
 type TestItems struct {
 	App        *fiber.App
 	Controller *api.Controller
-	Collector  *collector.Collector
 	TmpConfig  types.Config
 	MockAdmin  *httptest.Server
 	ApiKey     string
@@ -71,9 +70,16 @@ func generateSampleSubmissionData(configId int32, value int64, timestamp time.Ti
 func setup(ctx context.Context) (func() error, *TestItems, error) {
 	var testItems = new(TestItems)
 
+	testItems.ApiKey = "testApiKey"
+	err := db.QueryWithoutResult(ctx, "INSERT INTO keys (key) VALUES (@newkey);", map[string]any{"newkey": "testApiKey"})
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to insert key in db")
+		return nil, nil, err
+	}
+
 	mockAdminServer := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		rw.Write([]byte(`[{
-			"id": 0,
+			"id": 13,
 			"name": "test-aggregate",
 			"fetchInterval": 15000,
 			"aggregateInterval": 15000,
@@ -81,28 +87,30 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 	}))
 
 	testItems.TmpConfig = types.Config{
-		ID:                0,
+		ID:                13,
 		Name:              "test-aggregate",
 		FetchInterval:     15000,
 		AggregateInterval: 15000,
 		SubmitInterval:    15000,
 	}
 
-	app, err := initializer.Setup(ctx)
+	keyCache := keycache.NewAPIKeyCache(1 * time.Hour)
+	keyCache.CleanupLoop(10 * time.Minute)
+
+	apiController, err := api.Setup(ctx, mockAdminServer.URL)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to setup DAL API server")
+		return nil, nil, err
+	}
+
+	app, err := initializer.Setup(ctx, apiController, keyCache)
 	if err != nil {
 		return nil, nil, err
 	}
 	testItems.App = app
-	err = api.Setup(ctx, mockAdminServer.URL)
-	if err != nil {
-		return nil, nil, err
-	}
-	testItems.Controller = &api.ApiController
-	testItems.Collector = api.ApiController.Collector
-	testItems.MockAdmin = mockAdminServer
 
-	testItems.ApiKey = "testApiKey"
-	_ = db.QueryWithoutResult(ctx, "INSERT INTO keys (key) VALUES (@key);", map[string]any{"key": testItems.ApiKey})
+	testItems.Controller = apiController
+	testItems.MockAdmin = mockAdminServer
 
 	v1 := app.Group("/api/v1")
 	v1.Get("/", func(c *fiber.Ctx) error {
@@ -121,9 +129,9 @@ func cleanup(ctx context.Context, testItems *TestItems) func() error {
 			return err
 		}
 
-		testItems.Collector.Stop()
+		testItems.Controller.Collector.Stop()
 		testItems.Controller = nil
-		testItems.Collector = nil
+
 		testItems.MockAdmin.Close()
 		_ = db.QueryWithoutResult(ctx, "DELETE FROM keys", nil)
 		return nil
