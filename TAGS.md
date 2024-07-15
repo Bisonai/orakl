@@ -45,3 +45,5 @@
 - **node** v0.0.1.20240712.0451.9550617 <br> _`PR`_: DAL Add description column to ... <br><br>
 - **sentinel** v0.0.1.20240712.0745.072c71b <br> _`PR`_: update sentinel signer expiry ... <br><br>
 - **sentinel** v0.0.1.20240712.1116.3b29b6c <br> _`PR`_: update sentinel signer expiry ... <br><br>
+- **sentinel** v0.0.1.20240715.0443.6e850cb <br> _`PR`_: fix oversubmission query times... <br><br>
+- **node** v0.0.1.20240715.0528.483b568 <br> _`PR`_: fix oversubmission query times... <br><br>
