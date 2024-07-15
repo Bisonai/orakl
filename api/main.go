@@ -4,14 +4,9 @@ import (
 	_ "embed"
 	"log"
 
-	"bisonai.com/orakl/api/adapter"
-	"bisonai.com/orakl/api/aggregate"
-	"bisonai.com/orakl/api/aggregator"
 	"bisonai.com/orakl/api/apierr"
 	"bisonai.com/orakl/api/blocks"
 	"bisonai.com/orakl/api/chain"
-	"bisonai.com/orakl/api/data"
-	"bisonai.com/orakl/api/feed"
 	"bisonai.com/orakl/api/listener"
 	"bisonai.com/orakl/api/proxy"
 	"bisonai.com/orakl/api/reporter"
@@ -69,13 +64,8 @@ func SetRouter(_router fiber.Router) {
 		return c.SendString("Orakl Network API")
 	})
 
-	adapter.Routes(_router)
-	aggregate.Routes(_router)
-	aggregator.Routes(_router)
 	apierr.Routes(_router)
 	chain.Routes(_router)
-	data.Routes(_router)
-	feed.Routes(_router)
 	listener.Routes(_router)
 	proxy.Routes(_router)
 	reporter.Routes(_router)
