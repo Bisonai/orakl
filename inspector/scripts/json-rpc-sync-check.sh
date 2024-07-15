@@ -5,7 +5,7 @@
 readonly OUR_KAIROS_JSON_RPC="http://100.93.31.29:8551"
 readonly OUR_KAIA_JSON_RPC="http://100.75.43.49:8551"
 
-readonly PUBLIC_KAIROS_JSON_RPC="https://public-en.kairos.node.kaia.io"
+readonly PUBLIC_KAIROS_JSON_RPC="https://public-en-kairos.node.kaia.io"
 readonly PUBLIC_KAIA_JSON_RPC="https://public-en-cypress.klaytn.net"
 
 check_klay_sync_baobab() {
@@ -78,7 +78,7 @@ get_our_klay_block() {
 		   --data '{"jsonrpc":"2.0","method":"klay_blockNumber","params":[],"id":1}' \
            -s \
 		   $our_json_rpc)
-    
+
     exit_code=$?
 
     if [ $exit_code -ne 0 ]; then

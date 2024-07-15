@@ -39,7 +39,7 @@ const config: HardhatUserConfig = {
       gasPrice: 250_000_000_000,
     },
     baobab: {
-      url: process.env.PROVIDER || "https://public-en.kairos.node.kaia.io",
+      url: process.env.PROVIDER || "https://public-en-kairos.node.kaia.io",
       chainId: 1001,
       ...commonConfig,
       gasPrice: 250_000_000_000,

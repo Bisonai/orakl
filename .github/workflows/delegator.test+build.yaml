@@ -69,6 +69,6 @@ jobs:
           go test ./tests -v
         env:
           DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/orakl-test?search_path=public"
-          PROVIDER_URL: "https://public-en.kairos.node.kaia.io"
+          PROVIDER_URL: "https://public-en-kairos.node.kaia.io"
           TEST_DELEGATOR_REPORTER_PK: ${{ secrets.TEST_DELEGATOR_REPORTER_PK}}
           DELEGATOR_FEEPAYER_PK: ${{ secrets.DELEGATOR_FEEPAYER_PK}}

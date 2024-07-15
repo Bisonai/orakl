@@ -6,7 +6,7 @@ import { State } from '../src/reporter/state'
 describe('nonce-manager', () => {
   const PROVIDER_URL = process.env.GITHUB_ACTIONS
     ? 'https://public-en-cypress.klaytn.net'
-    : 'https://public-en.kairos.node.kaia.io'
+    : 'https://public-en-kairos.node.kaia.io'
   const redisClient: RedisClientType = createClient({ url: '' })
   const ORACLE_ADDRESS = '0x0E4E90de7701B72df6F21343F51C833F7d2d3CFb'
   const REPORTER = {
