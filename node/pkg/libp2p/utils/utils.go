@@ -61,11 +61,6 @@ func IsHostAlive(ctx context.Context, h host.Host, addr string) (bool, error) {
 		return false, errorSentinel.ErrLibP2pFailToConnectPeer
 	}
 
-	err = h.Network().ClosePeer(info.ID)
-	if err != nil {
-		return false, err
-	}
-
 	return true, nil
 }
 
