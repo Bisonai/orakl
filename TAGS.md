@@ -47,3 +47,4 @@
 - **sentinel** v0.0.1.20240712.1116.3b29b6c <br> _`PR`_: update sentinel signer expiry ... <br><br>
 - **sentinel** v0.0.1.20240715.0443.6e850cb <br> _`PR`_: fix oversubmission query times... <br><br>
 - **node** v0.0.1.20240715.0528.483b568 <br> _`PR`_: fix oversubmission query times... <br><br>
+- **node** v0.0.1.20240715.0716.fa898e4 <br> *`PR`*: Update auto tag doc generation <br><br> 
