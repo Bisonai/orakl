@@ -69,9 +69,9 @@ func feedEventQuery(schemaName string) string {
 	return fmt.Sprintf(`SELECT time FROM %s.feed_feed_updated ORDER BY time DESC LIMIT 1;`, schemaName)
 }
 
-func feedLastMinEventQuery(schemaName string, interval int) string {
+func feedLastIntervalEventQuery(schemaName string, interval int) string {
 	intervalInSeconds := interval / 1000
-	return fmt.Sprintf(`SELECT COUNT(*) FROM %s.feed_feed_updated WHERE time >= NOW() - INTERVAL '%d seconds';`, schemaName, intervalInSeconds)
+	return fmt.Sprintf(`SELECT COUNT(*) FROM %s.feed_feed_updated WHERE time >= EXTRACT(EPOCH FROM NOW()) - %d;`, schemaName, intervalInSeconds)
 }
 
 func aggregatorEventQuery(schemaName string) string {
