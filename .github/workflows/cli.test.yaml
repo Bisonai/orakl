@@ -85,7 +85,7 @@ jobs:
         run: go run main.go &
         env:
           DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/delegator?search_path=public"
-          PROVIDER_URL: "https://public-en.kairos.node.kaia.io"
+          PROVIDER_URL: "https://public-en-kairos.node.kaia.io"
           APP_PORT: "3002"
 
       - name: Run api

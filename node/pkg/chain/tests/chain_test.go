@@ -29,7 +29,7 @@ func TestNewKaiaHelper(t *testing.T) {
 
 	err := db.QueryWithoutResult(ctx, InsertProviderUrlQuery, map[string]any{
 		"chain_id": 1001,
-		"url":      "https://public-en.kairos.node.kaia.io",
+		"url":      "https://public-en-kairos.node.kaia.io",
 		"priority": 1,
 	})
 	if err != nil {
@@ -38,7 +38,7 @@ func TestNewKaiaHelper(t *testing.T) {
 	}
 	err = db.QueryWithoutResult(ctx, InsertProviderUrlQuery, map[string]any{
 		"chain_id": 1001,
-		"url":      "https://public-en.kairos.node.kaia.io",
+		"url":      "https://public-en-kairos.node.kaia.io",
 		"priority": 2,
 	})
 	if err != nil {

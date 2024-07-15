@@ -78,7 +78,7 @@ jobs:
           ENCRYPT_PASSWORD: "anything"
           KAIA_WEBSOCKET_URL: "wss://public-en-cypress.klaytn.net/ws"
           ETH_WEBSOCKET_URL: "wss://ethereum-rpc.publicnode.com"
-          KAIA_PROVIDER_URL: "https://public-en.kairos.node.kaia.io"
+          KAIA_PROVIDER_URL: "https://public-en-kairos.node.kaia.io"
           KAIA_REPORTER_PK: ${{ secrets.TEST_DELEGATOR_REPORTER_PK}}
           ETH_PROVIDER_URL: "https://ethereum-sepolia.g.allthatnode.com/full/evm"
           ETH_REPORTER_PK: ${{ secrets.TEST_DELEGATOR_REPORTER_PK}}

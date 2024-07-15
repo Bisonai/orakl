@@ -79,7 +79,7 @@ describe('Reporter', function () {
       // 0 $KLAY in Account
       // address: '0x9bf123A486DD67d5B2B859c74BFa3035c99b9243'
       privateKey: '0xaa8707622845b72c76b7b9f329b154140441eda385ca39e3cdc66d2bee5f98e0',
-      providerUrl: 'https://public-en.kairos.node.kaia.io',
+      providerUrl: 'https://public-en-kairos.node.kaia.io',
     })
     const nonce = Number(await wallet.caver.rpc.klay.getTransactionCount(wallet.address))
 
@@ -100,7 +100,7 @@ describe('Reporter', function () {
 describe('Filter invalid reporters inside of State', function () {
   const PROVIDER_URL = process.env.GITHUB_ACTIONS
     ? 'https://public-en-cypress.klaytn.net'
-    : 'https://public-en.kairos.node.kaia.io'
+    : 'https://public-en-kairos.node.kaia.io'
   const redisClient: RedisClientType = createClient({ url: '' })
 
   const VALID_REPORTER = {
