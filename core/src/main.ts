@@ -2,7 +2,6 @@ import { parseArgs } from 'node:util'
 import { buildLogger } from './logger'
 import { hookConsoleError } from './utils'
 
-import { buildListener as buildDataFeedListener } from './listener/data-feed'
 import { buildListener as buildL2DataFeedListener } from './listener/data-feed-L2'
 import { buildListener as buildRequestResponseListener } from './listener/request-response'
 import { buildListener as buildRequestResponseL2FulfillListener } from './listener/request-response-L2-fulfill'
@@ -12,7 +11,6 @@ import { buildListener as buildVrfListener } from './listener/vrf'
 import { buildListener as buildVrfL2FulfillListener } from './listener/vrf-L2-fulfill'
 import { buildListener as buildVrfL2RequestListener } from './listener/vrf-L2-request'
 
-import { worker as dataFeedWorker } from './worker/data-feed'
 import { worker as l2DataFeedWorker } from './worker/data-feed-L2'
 import { worker as requestResponseWorker } from './worker/request-response'
 import { worker as l2RequestResponseFulfillWorker } from './worker/request-response-L2-fulfill'
@@ -27,7 +25,6 @@ import { OraklError, OraklErrorCode } from './errors'
 import { launchHealthCheck } from './health-check'
 import { getListeners } from './listener/api'
 import { postprocessListeners } from './listener/utils'
-import { buildReporter as buildDataFeedReporter } from './reporter/data-feed'
 import { buildReporter as buildL2DataFeedReporter } from './reporter/data-feed-L2'
 import { buildReporter as buildRequestResponseReporter } from './reporter/request-response'
 import { buildReporter as buildL2RequestResponseFulfillReporter } from './reporter/request-response-L2-fulfill'
@@ -39,7 +36,6 @@ import { buildReporter as buildL2VrfRequestReporter } from './reporter/vrf-L2-re
 import { CHAIN, REDIS_HOST, REDIS_PORT } from './settings'
 
 const LISTENERS: IListeners = {
-  DATA_FEED: buildDataFeedListener,
   VRF: buildVrfListener,
   REQUEST_RESPONSE: buildRequestResponseListener,
   DATA_FEED_L2: buildL2DataFeedListener,
@@ -50,7 +46,6 @@ const LISTENERS: IListeners = {
 }
 
 const WORKERS: IWorkers = {
-  DATA_FEED: dataFeedWorker,
   VRF: vrfWorker,
   REQUEST_RESPONSE: requestResponseWorker,
   DATA_FEED_L2: l2DataFeedWorker,
@@ -61,7 +56,6 @@ const WORKERS: IWorkers = {
 }
 
 const REPORTERS: IReporters = {
-  DATA_FEED: buildDataFeedReporter,
   VRF: buildVrfReporter,
   REQUEST_RESPONSE: buildRequestResponseReporter,
   DATA_FEED_L2: buildL2DataFeedReporter,
