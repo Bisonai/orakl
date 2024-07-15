@@ -103,7 +103,13 @@ func TestRefresh(t *testing.T) {
 
 	assert.Equal(t, res.Url, url, "expected to have the same url")
 
-	err = boot.RefreshJob(ctx)
+	bootHost, err := libp2pSetup.NewHost(ctx)
+	if err != nil {
+		t.Fatalf("error making host: %v", err)
+	}
+	defer bootHost.Close()
+
+	err = boot.RefreshJob(ctx, bootHost)
 	if err != nil {
 		t.Fatalf("error refreshing peers: %v", err)
 	}
@@ -117,7 +123,7 @@ func TestRefresh(t *testing.T) {
 
 	h.Close()
 
-	err = boot.RefreshJob(ctx)
+	err = boot.RefreshJob(ctx, bootHost)
 	if err != nil {
 		t.Fatalf("error refreshing peers: %v", err)
 	}
