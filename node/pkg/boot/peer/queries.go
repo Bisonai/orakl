@@ -1,7 +1,7 @@
 package peer
 
 const (
-	InsertPeer = `INSERT INTO peers (url) VALUES (@url) RETURNING *;`
+	InsertPeer = `INSERT INTO peers (url) VALUES (@url) ON CONFLICT (url) DO NOTHING RETURNING *;`
 
 	GetPeer = `SELECT * FROM peers;`
 

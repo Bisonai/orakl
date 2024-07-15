@@ -187,7 +187,7 @@ tasks:
   renew-signer:
     dotenv: [".env"]
     cmds:
-      - curl -X POST "http://localhost:$APP_PORT/api/v1/aggregator/renew-signer" | jq
+      - curl -X POST "http://localhost:$APP_PORT/api/v1/aggregator/renew-signer"
   add-json-rpc:
     dotenv: [".env"]
     cmds:
@@ -205,6 +205,14 @@ tasks:
     dotenv: [".env"]
     cmds:
       - curl -X GET "http://localhost:$APP_PORT/api/v1/provider-url" | jq
+  get-peer-count:
+    dotenv: [".env"]
+    cmds:
+      - curl -X GET "http://localhost:$APP_PORT/api/v1/host/peercount" | jq
+  sync-libp2p:
+    dotenv: [".env"]
+    cmds:
+      - curl -X POST "http://localhost:$APP_PORT/api/v1/host/sync"
   test:
     cmds:
       - task: test-db

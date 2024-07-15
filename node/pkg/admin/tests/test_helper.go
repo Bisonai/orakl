@@ -158,3 +158,18 @@ func waitForMessage(t *testing.T, channel <-chan bus.Message, from, to, command 
 		}
 	}()
 }
+
+func waitForMessageWithResponse(t *testing.T, channel <-chan bus.Message, from, to, command string, resp map[string]any) {
+	go func() {
+		select {
+		case msg := <-channel:
+			if msg.From != from || msg.To != to || msg.Content.Command != command {
+				t.Errorf("unexpected message: %v", msg)
+			}
+			msg.Response <- bus.MessageResponse{Success: true, Args: resp}
+		case <-time.After(5 * time.Second):
+			t.Errorf("no message received on channel")
+		}
+	}()
+
+}

@@ -11,6 +11,7 @@ import (
 	"bisonai.com/orakl/node/pkg/aggregator"
 	"bisonai.com/orakl/node/pkg/bus"
 	"bisonai.com/orakl/node/pkg/fetcher"
+	"bisonai.com/orakl/node/pkg/libp2p/helper"
 	libp2pSetup "bisonai.com/orakl/node/pkg/libp2p/setup"
 	"bisonai.com/orakl/node/pkg/reporter"
 	"bisonai.com/orakl/node/pkg/utils/retrier"
@@ -80,7 +81,6 @@ func main() {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-
 		a := aggregator.New(mb, host, ps)
 		aggregatorErr := a.Run(ctx)
 		if aggregatorErr != nil {
@@ -93,7 +93,6 @@ func main() {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-
 		r := reporter.New(mb, host, ps)
 		reporterErr := r.Run(ctx)
 		if reporterErr != nil {
@@ -102,6 +101,18 @@ func main() {
 		}
 	}()
 	log.Info().Msg("Reporter started")
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		helperApp := helper.New(mb, host)
+		libp2pHelperErr := helperApp.Run(ctx)
+		if libp2pHelperErr != nil {
+			log.Error().Err(libp2pHelperErr).Msg("Failed to start libp2p helper")
+			os.Exit(1)
+		}
+	}()
+	log.Info().Msg("libp2p helper started")
 
 	wg.Wait()
 }

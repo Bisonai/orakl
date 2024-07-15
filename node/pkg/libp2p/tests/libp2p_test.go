@@ -10,7 +10,7 @@ import (
 )
 
 func TestMakeHost(t *testing.T) {
-	h, err := setup.NewHost(context.Background(), setup.WithHolePunch())
+	h, err := setup.NewHost(context.Background())
 	if err != nil {
 		t.Errorf("Failed to make host: %v", err)
 	}
@@ -18,7 +18,7 @@ func TestMakeHost(t *testing.T) {
 }
 
 func TestMakePubsub(t *testing.T) {
-	h, err := setup.NewHost(context.Background(), setup.WithHolePunch())
+	h, err := setup.NewHost(context.Background())
 	if err != nil {
 		t.Fatalf("Failed to make host: %v", err)
 	}
@@ -31,7 +31,7 @@ func TestMakePubsub(t *testing.T) {
 }
 
 func TestGetHostAddress(t *testing.T) {
-	h, err := setup.NewHost(context.Background(), setup.WithHolePunch())
+	h, err := setup.NewHost(context.Background())
 	if err != nil {
 		t.Fatalf("Failed to make host: %v", err)
 	}
@@ -43,7 +43,7 @@ func TestGetHostAddress(t *testing.T) {
 }
 
 func TestReplaceIp(t *testing.T) {
-	h, err := setup.NewHost(context.Background(), setup.WithHolePunch())
+	h, err := setup.NewHost(context.Background())
 	if err != nil {
 		t.Fatalf("Failed to make host: %v", err)
 	}

@@ -9,6 +9,7 @@ import (
 	"bisonai.com/orakl/node/pkg/admin/config"
 	"bisonai.com/orakl/node/pkg/admin/feed"
 	"bisonai.com/orakl/node/pkg/admin/fetcher"
+	"bisonai.com/orakl/node/pkg/admin/host"
 	"bisonai.com/orakl/node/pkg/admin/providerUrl"
 	"bisonai.com/orakl/node/pkg/admin/proxy"
 	"bisonai.com/orakl/node/pkg/admin/reporter"
@@ -44,6 +45,7 @@ func Run(bus *bus.MessageBus) error {
 	wallet.Routes(v1)
 	providerUrl.Routes(v1)
 	config.Routes(v1)
+	host.Routes(v1)
 
 	port := os.Getenv("APP_PORT")
 	if port == "" {
