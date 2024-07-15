@@ -83,6 +83,9 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 			return
 		}
 		msg.Response <- bus.MessageResponse{Success: true}
+	default:
+		bus.HandleMessageError(errorSentinel.ErrBusUnknownCommand, msg, "libp2p helper received unknown command")
+		return
 	}
 }
 
