@@ -128,7 +128,7 @@ func checkFeeds(ctx context.Context, FeedsToCheck []FeedToCheck) {
 			log.Error().Err(err).Str("feed", feed.FeedName).Msg("Failed to check feed")
 		}
 
-		count, err := countLastMinFeedEvents(ctx, feed)
+		count, err := countLastIntervalFeedEvents(ctx, feed)
 		if err == nil {
 			handleFeedOverSubmission(count, &FeedsToCheck[i], &msg)
 		} else {
@@ -205,11 +205,11 @@ func timeSinceLastFeedEvent(ctx context.Context, feed FeedToCheck) (time.Duratio
 	return time.Since(lastEventTime), nil
 }
 
-func countLastMinFeedEvents(ctx context.Context, feed FeedToCheck) (int, error) {
+func countLastIntervalFeedEvents(ctx context.Context, feed FeedToCheck) (int, error) {
 	type Count struct {
 		Count int `db:"count"`
 	}
-	query := feedLastMinEventQuery(feed.SchemaName, feed.ExpectedInterval)
+	query := feedLastIntervalEventQuery(feed.SchemaName, feed.ExpectedInterval)
 	count, err := db.QueryRow[Count](ctx, query, nil)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to query last minute event count")
@@ -286,7 +286,7 @@ func handleFeedSubmissionDelay(offset time.Duration, feed *FeedToCheck, msg *str
 
 func handleFeedOverSubmission(count int, feed *FeedToCheck, msg *string) {
 	if count >= MaxFeedSubmissionCount {
-		log.Warn().Str("feed", feed.FeedName).Msg(fmt.Sprintf("%s submitted %d times in one minute", feed.FeedName, count))
+		log.Warn().Str("feed", feed.FeedName).Msg(fmt.Sprintf("%s submitted %d times in %d seconds", feed.FeedName, count, feed.ExpectedInterval/1000))
 		feed.OversubmissionCount++
 		if feed.OversubmissionCount > AlarmOffset {
 			*msg += fmt.Sprintf("%s made %dx more submissions, %d times consecutively\n", feed.FeedName, MaxFeedSubmissionCount, AlarmOffset+1)
