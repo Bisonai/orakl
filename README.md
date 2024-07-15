@@ -116,52 +116,6 @@ To start core microservices (listener, worker, reporter) as a singleton service 
 
 The microservices can also be started separately in any arbitrary order by replacing `core` in the above commands with either `listener`, `worker`, or `reporter`
 
-## Image tag release (do not write under this section)
+## Image tags
 
-- **node** v0.0.1.20240624.0427.15e4017 <br> _`PR`_: OraklNode Websocket dex fetche... <br><br>
-- **node** v0.0.1.20240624.0527.8a67f20 <br> _`PR`_: OraklNode Update fetcher init <br><br>
-- **sentinel** v0.0.1.20240624.0545.3e49d01 <br> _`PR`_: OraklNode Update fetcher init <br><br>
-- **sentinel** v0.0.1.20240624.0757.8096587 <br> _`PR`_: send service is up slack messa... <br><br>
-- **node** v0.0.1.20240624.0815.2b2ed32 <br> _`PR`_: OraklNode Update proxy request <br><br>
-- **node** v0.0.1.20240624.0824.a6ca4ab <br> _`PR`_: OraklNode Index out of bound p... <br><br>
-- **node** v0.0.1.20240624.2328.3517cf5 <br> _`PR`_: OraklNode Execute local aggreg... <br><br>
-- **node** v0.0.1.20240624.2359.c658e51 <br> _`PR`_: OraklNode Reduce intervals <br><br>
-- **sentinel** v0.0.1.20240625.0255.5673f9d <br> _`PR`_: Sentinel Add external signers ... <br><br>
-- **node** v0.0.1.20240626.0736.d9a8df4 <br> _`PR`_: OraklNode Rollback klayswap ba... <br><br>
-- **node** v0.0.1.20240626.0926.c3f91cb <br> _`PR`_: OraklNode Update sync <br><br>
-- **node** v0.0.1.20240627.0431.bac3940 <br> _`PR`_: OraklNode Update klayswap to u... <br><br>
-- **sentinel** v0.0.1.20240628.0621.ac5b604 <br> *`PR`*: Update dispatch deploy workflo... <br><br> 
-- **sentinel** v0.0.1.20240628.0920.7fb4ffa <br> *`PR`*: Sentinel Update request packag... <br><br> 
-- **node** v0.0.1.20240701.0129.82bd4e0 <br> *`PR`*: OraklNode Remove unused column... <br><br> 
-- **node** v0.0.1.20240701.0528.b6b6a7e <br> *`PR`*: OraklNode Remove unused column... <br><br> 
-- **node** v0.0.1.20240701.0602.97ca5e2 <br> *`PR`*: OraklNode PubSub based GlobalA... <br><br> 
-- **node** v0.0.1.20240701.0650.4eaa326 <br> *`PR`*: OraklNode Reduce default lates... <br><br> 
-- **node** v0.0.1.20240703.0658.ffead85 <br> *`PR`*: OraklNode Set fixed deviation ... <br><br> 
-- **node** v0.0.1.20240704.0800.32673c4 <br> *`PR`*: OraklNode Bulk insert local ag... <br><br> 
-- **node** v0.0.1.20240704.0933.8e7fd48 <br> *`PR`*: OraklNode Rollback timestamp c... <br><br> 
-- **node** v0.0.1.20240704.1212.0c148b2 <br> *`PR`*: fix accumulator cpu issue <br><br> 
-- **node** v0.0.1.20240708.0418.8cd84d8 <br> *`PR`*: DAL Implement basic api key <br><br> 
-- **dal** v0.0.1.20240708.0545.54af1c3 <br> *`PR`*: Add dal as an exception in git... <br><br> 
-- **dal** v0.0.1.20240708.0637.91cf5b3 <br> *`PR`*: DAL Update dal key validation <br><br> 
-- **dal** v0.0.1.20240708.0717.e921b7a <br> *`PR`*: DAL Update key validation <br><br> 
-- **node** v0.0.1.20240708.0832.1a4d08d <br> *`PR`*: OraklNode Define new chainhelp... <br><br> 
-- **dal** v0.0.1.20240708.0944.4aa3dd7 <br> *`PR`*: DAL basic implementation to st... <br><br> 
-- **node** v0.0.1.20240708.0954.0d869fa <br> *`PR`*: OraklNode Rollback deviation t... <br><br> 
-- **dal** v0.0.1.20240708.1003.920fd73 <br> *`PR`*: OraklNode Rollback deviation t... <br><br> 
-- **dal** v0.0.1.20240708.1019.8328517 <br> *`PR`*: DAL APIKEY from secrets <br><br> 
-- **sentinel** v0.0.1.20240709.0109.fa6cdc8 <br> *`PR`*: Sentinel remove datafeed redis... <br><br> 
-- **sentinel** v0.0.1.20240709.0259.02a3c94 <br> *`PR`*: sentinel oversubmission in che... <br><br> 
-- **node** v0.0.1.20240709.0426.36beb1a <br> *`PR`*: OraklNode Remove lint  vet fro... <br><br> 
-- **node** v0.0.1.20240709.0540.1c4a79b <br> *`PR`*: OraklNode Remove lint  vet fro... <br><br> 
-- **dal** v0.0.1.20240709.0802.c7cffb3 <br> *`PR`*: OraklNode Remove unused functi... <br><br> 
-- **dal** v0.0.1.20240710.0242.a84f50c <br> *`PR`*: DAL Add log for debugging <br><br> 
-- **node** v0.0.1.20240710.0520.98648d0 <br> *`PR`*: fix type in SubmissionProxy mi... <br><br> 
-- **node** v0.0.1.20240710.0739.4a70b71 <br> *`PR`*: remove pool integration from a... <br><br> 
-- **dal** v0.0.1.20240711.0359.d657755 <br> *`PR`*: DAL Use separate db <br><br> 
-- **dal** v0.0.1.20240712.0249.40a95d7 <br> *`PR`*: Add new option to deployment s... <br><br> 
-- **dal** v0.0.1.20240712.0440.f9d9bd8 <br> *`PR`*: DAL Add description column to ... <br><br> 
-- **node** v0.0.1.20240712.0451.9550617 <br> *`PR`*: DAL Add description column to ... <br><br> 
-- **sentinel** v0.0.1.20240712.0745.072c71b <br> *`PR`*: update sentinel signer expiry ... <br><br> 
-- **sentinel** v0.0.1.20240712.1116.3b29b6c <br> *`PR`*: update sentinel signer expiry ... <br><br> 
-- **sentinel** v0.0.1.20240715.0443.6e850cb <br> *`PR`*: fix oversubmission query times... <br><br> 
-- **node** v0.0.1.20240715.0528.483b568 <br> *`PR`*: fix oversubmission query times... <br><br> 
+[image tag release](./TAGS.md)

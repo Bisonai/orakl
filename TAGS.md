@@ -1,0 +1,47 @@
+## Image tag release (do not write under this section)
+
+- **node** v0.0.1.20240624.0427.15e4017 <br> _`PR`_: OraklNode Websocket dex fetche... <br><br>
+- **node** v0.0.1.20240624.0527.8a67f20 <br> _`PR`_: OraklNode Update fetcher init <br><br>
+- **sentinel** v0.0.1.20240624.0545.3e49d01 <br> _`PR`_: OraklNode Update fetcher init <br><br>
+- **sentinel** v0.0.1.20240624.0757.8096587 <br> _`PR`_: send service is up slack messa... <br><br>
+- **node** v0.0.1.20240624.0815.2b2ed32 <br> _`PR`_: OraklNode Update proxy request <br><br>
+- **node** v0.0.1.20240624.0824.a6ca4ab <br> _`PR`_: OraklNode Index out of bound p... <br><br>
+- **node** v0.0.1.20240624.2328.3517cf5 <br> _`PR`_: OraklNode Execute local aggreg... <br><br>
+- **node** v0.0.1.20240624.2359.c658e51 <br> _`PR`_: OraklNode Reduce intervals <br><br>
+- **sentinel** v0.0.1.20240625.0255.5673f9d <br> _`PR`_: Sentinel Add external signers ... <br><br>
+- **node** v0.0.1.20240626.0736.d9a8df4 <br> _`PR`_: OraklNode Rollback klayswap ba... <br><br>
+- **node** v0.0.1.20240626.0926.c3f91cb <br> _`PR`_: OraklNode Update sync <br><br>
+- **node** v0.0.1.20240627.0431.bac3940 <br> _`PR`_: OraklNode Update klayswap to u... <br><br>
+- **sentinel** v0.0.1.20240628.0621.ac5b604 <br> _`PR`_: Update dispatch deploy workflo... <br><br>
+- **sentinel** v0.0.1.20240628.0920.7fb4ffa <br> _`PR`_: Sentinel Update request packag... <br><br>
+- **node** v0.0.1.20240701.0129.82bd4e0 <br> _`PR`_: OraklNode Remove unused column... <br><br>
+- **node** v0.0.1.20240701.0528.b6b6a7e <br> _`PR`_: OraklNode Remove unused column... <br><br>
+- **node** v0.0.1.20240701.0602.97ca5e2 <br> _`PR`_: OraklNode PubSub based GlobalA... <br><br>
+- **node** v0.0.1.20240701.0650.4eaa326 <br> _`PR`_: OraklNode Reduce default lates... <br><br>
+- **node** v0.0.1.20240703.0658.ffead85 <br> _`PR`_: OraklNode Set fixed deviation ... <br><br>
+- **node** v0.0.1.20240704.0800.32673c4 <br> _`PR`_: OraklNode Bulk insert local ag... <br><br>
+- **node** v0.0.1.20240704.0933.8e7fd48 <br> _`PR`_: OraklNode Rollback timestamp c... <br><br>
+- **node** v0.0.1.20240704.1212.0c148b2 <br> _`PR`_: fix accumulator cpu issue <br><br>
+- **node** v0.0.1.20240708.0418.8cd84d8 <br> _`PR`_: DAL Implement basic api key <br><br>
+- **dal** v0.0.1.20240708.0545.54af1c3 <br> _`PR`_: Add dal as an exception in git... <br><br>
+- **dal** v0.0.1.20240708.0637.91cf5b3 <br> _`PR`_: DAL Update dal key validation <br><br>
+- **dal** v0.0.1.20240708.0717.e921b7a <br> _`PR`_: DAL Update key validation <br><br>
+- **node** v0.0.1.20240708.0832.1a4d08d <br> _`PR`_: OraklNode Define new chainhelp... <br><br>
+- **dal** v0.0.1.20240708.0944.4aa3dd7 <br> _`PR`_: DAL basic implementation to st... <br><br>
+- **node** v0.0.1.20240708.0954.0d869fa <br> _`PR`_: OraklNode Rollback deviation t... <br><br>
+- **dal** v0.0.1.20240708.1003.920fd73 <br> _`PR`_: OraklNode Rollback deviation t... <br><br>
+- **dal** v0.0.1.20240708.1019.8328517 <br> _`PR`_: DAL APIKEY from secrets <br><br>
+- **sentinel** v0.0.1.20240709.0109.fa6cdc8 <br> _`PR`_: Sentinel remove datafeed redis... <br><br>
+- **sentinel** v0.0.1.20240709.0259.02a3c94 <br> _`PR`_: sentinel oversubmission in che... <br><br>
+- **node** v0.0.1.20240709.0426.36beb1a <br> _`PR`_: OraklNode Remove lint vet fro... <br><br>
+- **node** v0.0.1.20240709.0540.1c4a79b <br> _`PR`_: OraklNode Remove lint vet fro... <br><br>
+- **dal** v0.0.1.20240709.0802.c7cffb3 <br> _`PR`_: OraklNode Remove unused functi... <br><br>
+- **dal** v0.0.1.20240710.0242.a84f50c <br> _`PR`_: DAL Add log for debugging <br><br>
+- **node** v0.0.1.20240710.0520.98648d0 <br> _`PR`_: fix type in SubmissionProxy mi... <br><br>
+- **node** v0.0.1.20240710.0739.4a70b71 <br> _`PR`_: remove pool integration from a... <br><br>
+- **dal** v0.0.1.20240711.0359.d657755 <br> _`PR`_: DAL Use separate db <br><br>
+- **dal** v0.0.1.20240712.0249.40a95d7 <br> _`PR`_: Add new option to deployment s... <br><br>
+- **dal** v0.0.1.20240712.0440.f9d9bd8 <br> _`PR`_: DAL Add description column to ... <br><br>
+- **node** v0.0.1.20240712.0451.9550617 <br> _`PR`_: DAL Add description column to ... <br><br>
+- **sentinel** v0.0.1.20240712.0745.072c71b <br> _`PR`_: update sentinel signer expiry ... <br><br>
+- **sentinel** v0.0.1.20240712.1116.3b29b6c <br> _`PR`_: update sentinel signer expiry ... <br><br>
