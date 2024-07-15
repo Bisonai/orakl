@@ -22,11 +22,23 @@ const REFRESH_INTERVAL = 10 * time.Second
 
 func Run(ctx context.Context) error {
 	log.Debug().Msg("Starting boot server")
+
+	h, err := libp2pSetup.NewHost(ctx)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to make host")
+		return err
+	}
+
 	app, err := utils.Setup(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to setup boot server")
 		return err
 	}
+
+	app.Use(func(c *fiber.Ctx) error {
+		c.Locals("host", &h)
+		return c.Next()
+	})
 
 	v1 := app.Group("/api/v1")
 	v1.Get("/", func(c *fiber.Ctx) error {
@@ -38,12 +50,6 @@ func Run(ctx context.Context) error {
 	port := os.Getenv("BOOT_API_PORT")
 	if port == "" {
 		port = "8089"
-	}
-
-	h, err := libp2pSetup.NewHost(ctx)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to make host")
-		return err
 	}
 
 	refreshTicker := time.NewTicker(REFRESH_INTERVAL)
