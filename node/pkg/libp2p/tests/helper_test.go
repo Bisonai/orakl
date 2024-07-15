@@ -21,7 +21,10 @@ func TestNewApp(t *testing.T) {
 
 	mb := bus.New(10)
 
-	_ = helper.New(mb, h)
+	app := helper.New(mb, h)
+	assert.NotNil(t, app)
+	assert.Equal(t, mb, app.Bus)
+	assert.Equal(t, h, app.Host)
 }
 
 func TestAppRunAndStop(t *testing.T) {
@@ -34,6 +37,7 @@ func TestAppRunAndStop(t *testing.T) {
 	mb := bus.New(10)
 
 	libp2pHelper := helper.New(mb, h)
+	assert.NotNil(t, libp2pHelper)
 	err = libp2pHelper.Run(ctx)
 	if err != nil {
 		t.Errorf("Failed to run: %v", err)
@@ -54,6 +58,7 @@ func TestAppGetPeerCount(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failed to run: %v", err)
 	}
+	assert.NotNil(t, libp2pHelper)
 
 	msg := bus.Message{
 		From: bus.ADMIN,
