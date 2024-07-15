@@ -31,12 +31,11 @@ func sync(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).SendString("Failed to validate request")
 	}
 
-	rawHost, ok := c.Locals("host").(*host.Host)
+	h, ok := c.Locals("host").(host.Host)
 	if !ok {
 		log.Error().Msg("Failed to get host")
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to get host")
 	}
-	h := *rawHost
 
 	defer func() {
 		closeErr := h.Close()

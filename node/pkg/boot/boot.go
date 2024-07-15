@@ -36,7 +36,7 @@ func Run(ctx context.Context) error {
 	}
 
 	app.Use(func(c *fiber.Ctx) error {
-		c.Locals("host", &h)
+		c.Locals("host", h)
 		return c.Next()
 	})
 
