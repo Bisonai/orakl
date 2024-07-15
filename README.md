@@ -164,3 +164,4 @@ The microservices can also be started separately in any arbitrary order by repla
 - **sentinel** v0.0.1.20240712.0745.072c71b <br> *`PR`*: update sentinel signer expiry ... <br><br> 
 - **sentinel** v0.0.1.20240712.1116.3b29b6c <br> *`PR`*: update sentinel signer expiry ... <br><br> 
 - **sentinel** v0.0.1.20240715.0443.6e850cb <br> *`PR`*: fix oversubmission query times... <br><br> 
+- **node** v0.0.1.20240715.0528.483b568 <br> *`PR`*: fix oversubmission query times... <br><br> 
