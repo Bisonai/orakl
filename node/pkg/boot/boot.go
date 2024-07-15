@@ -29,22 +29,16 @@ func Run(ctx context.Context) error {
 		return err
 	}
 
-	app, err := utils.Setup(ctx)
+	app, err := utils.Setup(ctx, &h)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to setup boot server")
 		return err
 	}
 
-	app.Use(func(c *fiber.Ctx) error {
-		c.Locals("host", h)
-		return c.Next()
-	})
-
 	v1 := app.Group("/api/v1")
 	v1.Get("/", func(c *fiber.Ctx) error {
 		return c.SendString("Orakl Node Boot API")
 	})
-
 	peer.Routes(v1)
 
 	port := os.Getenv("BOOT_API_PORT")

@@ -31,20 +31,13 @@ func sync(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).SendString("Failed to validate request")
 	}
 
-	h, ok := c.Locals("host").(host.Host)
+	h, ok := c.Locals("host").(*host.Host)
 	if !ok {
 		log.Error().Msg("Failed to get host")
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to get host")
 	}
 
-	defer func() {
-		closeErr := h.Close()
-		if closeErr != nil {
-			log.Error().Err(closeErr).Msg("Failed to close host")
-		}
-	}()
-
-	isAlive, err := libp2pUtils.IsHostAlive(c.Context(), h, payload.Url)
+	isAlive, err := libp2pUtils.IsHostAlive(c.Context(), *h, payload.Url)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to check peer")
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to check peer")

@@ -13,10 +13,11 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/recover"
+	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/rs/zerolog/log"
 )
 
-func Setup(ctx context.Context) (*fiber.App, error) {
+func Setup(ctx context.Context, h *host.Host) (*fiber.App, error) {
 	_, err := db.GetPool(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("error getting db pool")
@@ -37,6 +38,11 @@ func Setup(ctx context.Context) (*fiber.App, error) {
 	))
 
 	app.Use(cors.New())
+	app.Use(func(c *fiber.Ctx) error {
+
+		c.Locals("host", h)
+		return c.Next()
+	})
 	return app, nil
 
 }

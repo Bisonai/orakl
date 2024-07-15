@@ -8,12 +8,15 @@ import (
 	"bisonai.com/orakl/node/pkg/boot/peer"
 	"bisonai.com/orakl/node/pkg/boot/utils"
 	"bisonai.com/orakl/node/pkg/db"
+	libp2pSetup "bisonai.com/orakl/node/pkg/libp2p/setup"
 	"github.com/gofiber/fiber/v2"
+	"github.com/libp2p/go-libp2p/core/host"
 )
 
 type TestItems struct {
 	app     *fiber.App
 	tmpData *TmpData
+	host    host.Host
 }
 
 type TmpData struct {
@@ -23,7 +26,13 @@ type TmpData struct {
 func setup(ctx context.Context) (func() error, *TestItems, error) {
 	var testItems = new(TestItems)
 
-	app, err := utils.Setup(ctx)
+	bootHost, err := libp2pSetup.NewHost(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	testItems.host = bootHost
+
+	app, err := utils.Setup(ctx, &bootHost)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -61,6 +70,7 @@ func bootCleanup(testItems *TestItems) func() error {
 		if err != nil {
 			return err
 		}
+		testItems.host.Close()
 
 		return db.QueryWithoutResult(context.Background(), peer.DeletePeerById, map[string]any{"id": testItems.tmpData.peer.ID})
 	}
