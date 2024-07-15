@@ -55,6 +55,7 @@ on:
           - sentinel:v0.0.1.20240715.0443.6e850cb:fix oversubmission query times...
           - node:v0.0.1.20240715.0528.483b568:fix oversubmission query times...
           - node:v0.0.1.20240715.0716.fa898e4:Update auto tag doc generation
+          - boot-api:v0.0.1.20240715.0740.ee80d13:Update auto tag doc generation
 jobs:
   prepare-taskflow:
     name: Prepare
