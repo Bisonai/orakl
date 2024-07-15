@@ -94,13 +94,13 @@ func (a *App) subscribeLibp2pEvent(ctx context.Context, sub event.Subscription) 
 				sub.Close()
 				return
 			case e := <-sub.Out():
-				a.handleEvent(ctx, e)
+				a.handleDisconnectEvent(ctx, e)
 			}
 		}
 	}()
 }
 
-func (a *App) handleEvent(ctx context.Context, e interface{}) {
+func (a *App) handleDisconnectEvent(ctx context.Context, e interface{}) {
 	log.Info().Str("Player", "Libp2pHelper").Msg("Disconnect event catched, triggering resync")
 	evt := e.(event.EvtPeerConnectednessChanged)
 	if evt.Connectedness == network.NotConnected {
