@@ -117,11 +117,11 @@ func Start(ctx context.Context) error {
 
 func groupFeedsByInterval(FeedsToCheck []FeedToCheck) map[int][]FeedToCheck {
 	result := make(map[int][]FeedToCheck)
-	for i, feed := range FeedsToCheck {
+	for _, feed := range FeedsToCheck {
 		if result[feed.ExpectedInterval] == nil {
 			result[feed.ExpectedInterval] = make([]FeedToCheck, 0)
 		}
-		result[feed.ExpectedInterval] = append(result[feed.ExpectedInterval], FeedsToCheck[i])
+		result[feed.ExpectedInterval] = append(result[feed.ExpectedInterval], feed)
 	}
 	return result
 }
