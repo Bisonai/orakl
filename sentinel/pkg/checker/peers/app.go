@@ -66,12 +66,12 @@ func Start() error {
 }
 
 func checkPeerCounts() (int, error) {
-	oraklApiUrl := os.Getenv("ORAKL_API_URL")
-	if oraklApiUrl == "" {
-		return 0, errors.New("ORAKL_API_URL not found")
+	oraklNodeAdminUrl := os.Getenv("ORAKL_NODE_ADMIN_URL")
+	if oraklNodeAdminUrl == "" {
+		return 0, errors.New("ORAKL_NODE_ADMIN_URL not found")
 	}
 
-	resp, err := request.Request[peerCountResponse](request.WithEndpoint(oraklApiUrl+peerCountEndpoint), request.WithTimeout(10*time.Second))
+	resp, err := request.Request[peerCountResponse](request.WithEndpoint(oraklNodeAdminUrl+peerCountEndpoint), request.WithTimeout(10*time.Second))
 	if err != nil {
 		return 0, err
 	}
