@@ -177,7 +177,7 @@ func getSymbols(c *fiber.Ctx) error {
 	return c.JSON(result)
 }
 
-func getLatestFeeds(c *fiber.Ctx) error {
+func getAllLatestFeeds(c *fiber.Ctx) error {
 	controller, ok := c.Locals("apiController").(*Controller)
 	if !ok {
 		return errors.New("api controller not found")
@@ -187,7 +187,7 @@ func getLatestFeeds(c *fiber.Ctx) error {
 	return c.JSON(result)
 }
 
-func getLatestMultipleFeeds(c *fiber.Ctx) error {
+func getLatestFeeds(c *fiber.Ctx) error {
 	controller, ok := c.Locals("apiController").(*Controller)
 	if !ok {
 		return errors.New("api controller not found")
@@ -204,6 +204,10 @@ func getLatestMultipleFeeds(c *fiber.Ctx) error {
 	for i, symbol := range symbols {
 		if !strings.Contains(symbol, "-") {
 			return fmt.Errorf("wrong symbol format: %s, symbol should be in {BASE}-{QUOTE} format", symbol)
+		}
+
+		if symbol == "" {
+			continue
 		}
 
 		if !strings.Contains(symbol, "test") {
