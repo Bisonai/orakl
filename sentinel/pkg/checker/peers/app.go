@@ -12,6 +12,7 @@ import (
 )
 
 var peerCount int
+var failCount int
 var peerCheckInterval time.Duration
 
 const (
@@ -36,6 +37,7 @@ func setUp() error {
 		return err
 	}
 	peerCount = initialCount
+	failCount = 0
 
 	return nil
 }
@@ -54,8 +56,14 @@ func Start() error {
 		newPeerCount, err := checkPeerCounts()
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to check peer count")
+			failCount++
+			if failCount > 10 {
+				alert.SlackAlert(fmt.Sprintf("failed to check peer count %d times. Check orakl Sentinel logs", failCount))
+				failCount = 0
+			}
 			continue
 		}
+		failCount = 0
 
 		if newPeerCount != peerCount {
 			alarm(newPeerCount, peerCount)
