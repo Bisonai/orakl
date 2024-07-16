@@ -106,31 +106,56 @@ func Start(ctx context.Context) error {
 	ticker := time.NewTicker(EventCheckInterval)
 	defer ticker.Stop()
 
+	groupedFeeds := groupFeedsByInterval(checkList.Feeds)
+	checkGroupedFeeds(ctx, groupedFeeds)
+
 	for range ticker.C {
-		check(ctx, checkList)
+		checkPorAndVrf(ctx, checkList)
 	}
 	return nil
 }
 
-func check(ctx context.Context, checkList *CheckList) {
-	checkFeeds(ctx, checkList.Feeds)
-	checkPors(ctx, checkList.Por)
-	checkVRF(ctx, checkList.VRF)
+func groupFeedsByInterval(FeedsToCheck []FeedToCheck) map[int][]FeedToCheck {
+	result := make(map[int][]FeedToCheck)
+	for i, feed := range FeedsToCheck {
+		if result[feed.ExpectedInterval] == nil {
+			result[feed.ExpectedInterval] = make([]FeedToCheck, 0)
+		}
+		result[feed.ExpectedInterval] = append(result[feed.ExpectedInterval], FeedsToCheck[i])
+	}
+	return result
 }
 
-func checkFeeds(ctx context.Context, FeedsToCheck []FeedToCheck) {
+func checkGroupedFeeds(ctx context.Context, feedsByInterval map[int][]FeedToCheck) {
+	for interval, feeds := range feedsByInterval {
+		ticker := time.NewTicker(time.Duration(interval) * time.Millisecond)
+		go func(feeds []FeedToCheck) {
+			defer ticker.Stop()
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case <-ticker.C:
+					checkFeeds(ctx, feeds)
+				}
+			}
+		}(feeds)
+	}
+}
+
+func checkFeeds(ctx context.Context, feedsToCheck []FeedToCheck) {
 	msg := ""
-	for i, feed := range FeedsToCheck {
+	for i, feed := range feedsToCheck {
 		offset, err := timeSinceLastFeedEvent(ctx, feed)
 		if err == nil {
-			handleFeedSubmissionDelay(offset, &FeedsToCheck[i], &msg)
+			handleFeedSubmissionDelay(offset, &feedsToCheck[i], &msg)
 		} else {
 			log.Error().Err(err).Str("feed", feed.FeedName).Msg("Failed to check feed")
 		}
 
 		count, err := countLastIntervalFeedEvents(ctx, feed)
 		if err == nil {
-			handleFeedOverSubmission(count, &FeedsToCheck[i], &msg)
+			handleFeedOverSubmission(count, &feedsToCheck[i], &msg)
 		} else {
 			log.Error().Err(err).Str("feed", feed.FeedName).Msg("Failed to count last minute feed events")
 		}
@@ -138,6 +163,11 @@ func checkFeeds(ctx context.Context, FeedsToCheck []FeedToCheck) {
 	if msg != "" {
 		alert.SlackAlert(msg)
 	}
+}
+
+func checkPorAndVrf(ctx context.Context, checkList *CheckList) {
+	checkPors(ctx, checkList.Por)
+	checkVRF(ctx, checkList.VRF)
 }
 
 func checkPors(ctx context.Context, PegPorToCheck FeedToCheck) {
