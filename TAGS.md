@@ -53,3 +53,4 @@
 - **boot-api** v0.0.1.20240716.0831.b209fc6 <br> *`PR`*: Sentinel Group feed checks by ... <br><br> 
 - **sentinel** v0.0.1.20240716.0840.291dccb <br> *`PR`*: Sentinel Group feed checks by ... <br><br> 
 - **sentinel** v0.0.1.20240716.0851.ac68b4d <br> *`PR`*: Add logs for peer checks <br><br> 
+- **node** v0.0.1.20240716.1308.a16e0b7 <br> *`PR`*: OraklNode Hotfix filter out in... <br><br> 
