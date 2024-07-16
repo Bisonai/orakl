@@ -41,6 +41,9 @@ func SetLatestGlobalAggregateAndProof(ctx context.Context, configId int32, globa
 }
 
 func PublishGlobalAggregateAndProof(ctx context.Context, globalAggregate GlobalAggregate, proof Proof) error {
+	if globalAggregate.Value == 0 || globalAggregate.Timestamp.IsZero() {
+		return nil
+	}
 	data := SubmissionData{
 		GlobalAggregate: globalAggregate,
 		Proof:           proof,
