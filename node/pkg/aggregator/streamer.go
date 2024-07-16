@@ -178,6 +178,9 @@ func (s *Streamer) receiveEach(ctx context.Context, configId int32) {
 		case <-ctx.Done():
 			return
 		case data := <-s.ReceiveChannels[configId]:
+			if data.GlobalAggregate.Value == 0 || data.GlobalAggregate.Timestamp.IsZero() {
+				continue
+			}
 			go s.updateLatestDataJob(ctx, configId, data)
 			s.Buffer <- data
 		}
