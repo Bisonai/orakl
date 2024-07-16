@@ -10,6 +10,6 @@ func Routes(router fiber.Router) {
 
 	api.Get("/symbols", getSymbols)
 	api.Get("/latest-data-feeds/all", getLatestFeeds)
-	api.Get("/latest-data-feeds/:symbol", getLatestFeed)
+	api.Get("/latest-data-feeds/:symbols", getLatestMultipleFeeds)
 	api.Get("/ws", websocket.New(HandleWebsocket))
 }
