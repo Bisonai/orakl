@@ -54,6 +54,7 @@ func Start() error {
 		newPeerCount, err := checkPeerCounts()
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to check peer count")
+			continue
 		}
 
 		if newPeerCount != peerCount {
