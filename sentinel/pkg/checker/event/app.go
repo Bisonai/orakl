@@ -146,7 +146,7 @@ func checkGroupedFeeds(ctx context.Context, feedsByInterval map[int][]FeedToChec
 func checkFeeds(ctx context.Context, feedsToCheck []FeedToCheck) {
 	msg := ""
 	for i := range feedsToCheck {
-		msg = checkEachFeed(ctx, &feedsToCheck[i])
+		msg += checkEachFeed(ctx, &feedsToCheck[i])
 	}
 	if msg != "" {
 		alert.SlackAlert(msg)
