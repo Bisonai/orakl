@@ -50,3 +50,4 @@
 - **node** v0.0.1.20240715.0716.fa898e4 <br> *`PR`*: Update auto tag doc generation <br><br> 
 - **boot-api** v0.0.1.20240715.0740.ee80d13 <br> *`PR`*: Update auto tag doc generation <br><br> 
 - **boot-api** v0.0.1.20240715.0937.9b09599 <br> *`PR`*: BootAPI Keep boot host alive <br><br> 
+- **boot-api** v0.0.1.20240716.0831.b209fc6 <br> *`PR`*: Sentinel Group feed checks by ... <br><br> 
