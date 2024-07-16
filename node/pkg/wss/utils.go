@@ -23,6 +23,7 @@ type WebsocketHelper struct {
 	CustomDialFunc *func(context.Context, string, *websocket.DialOptions) (*websocket.Conn, *http.Response, error)
 	CustomReadFunc *func(context.Context, *websocket.Conn) (map[string]interface{}, error)
 	RequestHeaders map[string]string
+	ReadLimit      int64
 }
 
 type ConnectionConfig struct {
@@ -33,6 +34,7 @@ type ConnectionConfig struct {
 	DialFunc       func(context.Context, string, *websocket.DialOptions) (*websocket.Conn, *http.Response, error)
 	ReadFunc       func(context.Context, *websocket.Conn) (map[string]interface{}, error)
 	RequestHeaders map[string]string
+	ReadLimit      int64
 }
 
 type ConnectionOption func(*ConnectionConfig)
@@ -82,6 +84,12 @@ func WithRequestHeaders(headers map[string]string) ConnectionOption {
 	}
 }
 
+func WithReadLimit(readLimit int64) ConnectionOption {
+	return func(c *ConnectionConfig) {
+		c.ReadLimit = readLimit
+	}
+}
+
 func NewWebsocketHelper(ctx context.Context, opts ...ConnectionOption) (*WebsocketHelper, error) {
 	config := &ConnectionConfig{}
 	for _, opt := range opts {
@@ -111,6 +119,10 @@ func NewWebsocketHelper(ctx context.Context, opts ...ConnectionOption) (*Websock
 
 	if config.ReadFunc != nil {
 		ws.CustomReadFunc = &config.ReadFunc
+	}
+
+	if config.ReadLimit > 0 {
+		ws.ReadLimit = config.ReadLimit
 	}
 
 	return ws, nil
@@ -154,6 +166,11 @@ func (ws *WebsocketHelper) Dial(ctx context.Context) error {
 		log.Error().Err(err).Str("endpoint", ws.Endpoint).Msg("error opening websocket connection")
 		return err
 	}
+
+	if ws.ReadLimit > 0 {
+		conn.SetReadLimit(ws.ReadLimit)
+	}
+
 	ws.Conn = conn
 	return nil
 }
