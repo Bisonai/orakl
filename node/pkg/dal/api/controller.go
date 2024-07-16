@@ -15,13 +15,11 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-var ApiController Controller
-
-func Setup(ctx context.Context, adminEndpoint string) error {
+func Setup(ctx context.Context, adminEndpoint string) (*Controller, error) {
 	configs, err := request.Request[[]types.Config](request.WithEndpoint(adminEndpoint + "/config"))
 	if err != nil {
 		log.Error().Err(err).Msg("failed to get configs")
-		return err
+		return nil, err
 	}
 
 	configMap := make(map[string]types.Config)
@@ -31,11 +29,11 @@ func Setup(ctx context.Context, adminEndpoint string) error {
 	collector, err := collector.NewCollector(ctx, configs)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to create collector")
-		return err
+		return nil, err
 	}
 
-	ApiController = *NewController(configMap, collector)
-	return nil
+	ApiController := NewController(configMap, collector)
+	return ApiController, nil
 }
 
 func NewController(configs map[string]types.Config, internalCollector *collector.Collector) *Controller {
@@ -52,6 +50,7 @@ func NewController(configs map[string]types.Config, internalCollector *collector
 
 func (c *Controller) Start(ctx context.Context) {
 	go c.Collector.Start(ctx)
+	log.Info().Msg("api collector started")
 	go func() {
 		for {
 			select {
@@ -103,12 +102,23 @@ func (c *Controller) castSubmissionData(data *dalcommon.OutgoingSubmissionData, 
 	}
 }
 
-func (c *Controller) handleWebsocket(conn *websocket.Conn) {
-	ctx := context.Background()
+func HandleWebsocket(conn *websocket.Conn) {
+	c, ok := conn.Locals("apiController").(*Controller)
+	if !ok {
+		log.Error().Msg("api controller not found")
+		return
+	}
+
+	ctx, ok := conn.Locals("context").(*context.Context)
+	if !ok {
+		log.Error().Msg("ctx not found")
+		return
+	}
+
 	c.register <- conn
 	apiKey := conn.Headers("X-Api-Key")
 
-	id, err := stats.InsertWebsocketConnection(ctx, apiKey)
+	id, err := stats.InsertWebsocketConnection(*ctx, apiKey)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to insert websocket connection")
 		return
@@ -118,7 +128,7 @@ func (c *Controller) handleWebsocket(conn *websocket.Conn) {
 	defer func() {
 		c.unregister <- conn
 		conn.Close()
-		err := stats.UpdateWebsocketConnection(ctx, id)
+		err = stats.UpdateWebsocketConnection(*ctx, id)
 		if err != nil {
 			log.Error().Err(err).Msg("failed to update websocket connection")
 			return
@@ -128,7 +138,7 @@ func (c *Controller) handleWebsocket(conn *websocket.Conn) {
 
 	for {
 		var msg Subscription
-		if err := conn.ReadJSON(&msg); err != nil {
+		if err = conn.ReadJSON(&msg); err != nil {
 			log.Error().Err(err).Msg("failed to read message")
 			return
 		}
@@ -144,7 +154,7 @@ func (c *Controller) handleWebsocket(conn *websocket.Conn) {
 					continue
 				}
 				c.clients[conn][symbol] = true
-				err = stats.InsertWebsocketSubscription(ctx, id, param)
+				err = stats.InsertWebsocketSubscription(*ctx, id, param)
 				if err != nil {
 					log.Error().Err(err).Msg("failed to insert websocket subscription")
 				}
@@ -154,19 +164,34 @@ func (c *Controller) handleWebsocket(conn *websocket.Conn) {
 }
 
 func getSymbols(c *fiber.Ctx) error {
+	controller, ok := c.Locals("apiController").(*Controller)
+	if !ok {
+		return errors.New("api controller not found")
+	}
+
 	result := []string{}
-	for key := range ApiController.configs {
+	for key := range controller.configs {
 		result = append(result, key)
 	}
 	return c.JSON(result)
 }
 
 func getLatestFeeds(c *fiber.Ctx) error {
-	result := ApiController.Collector.GetAllLatestData()
+	controller, ok := c.Locals("apiController").(*Controller)
+	if !ok {
+		return errors.New("api controller not found")
+	}
+
+	result := controller.Collector.GetAllLatestData()
 	return c.JSON(result)
 }
 
 func getLatestFeed(c *fiber.Ctx) error {
+	controller, ok := c.Locals("apiController").(*Controller)
+	if !ok {
+		return errors.New("api controller not found")
+	}
+
 	symbol := c.Params("symbol")
 
 	if symbol == "" {
@@ -180,7 +205,7 @@ func getLatestFeed(c *fiber.Ctx) error {
 		symbol = strings.ToUpper(symbol)
 	}
 
-	result, err := ApiController.Collector.GetLatestData(symbol)
+	result, err := controller.Collector.GetLatestData(symbol)
 	if err != nil {
 		return err
 	}
