@@ -58,6 +58,7 @@ on:
           - boot-api:v0.0.1.20240715.0740.ee80d13:Update auto tag doc generation
           - boot-api:v0.0.1.20240715.0937.9b09599:BootAPI Keep boot host alive
           - boot-api:v0.0.1.20240716.0831.b209fc6:Sentinel Group feed checks by ...
+          - sentinel:v0.0.1.20240716.0840.291dccb:Sentinel Group feed checks by ...
 jobs:
   prepare-taskflow:
     name: Prepare
