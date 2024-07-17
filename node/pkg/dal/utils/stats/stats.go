@@ -80,7 +80,9 @@ func StatsMiddleware(c *fiber.Ctx) error {
 	headers := c.GetReqHeaders()
 	apiKeyRaw, ok := headers["X-Api-Key"]
 	if !ok {
-		log.Warn().Msg("X-Api-Key header not found")
+		log.Warn().Str("ip", c.IP()).
+			Str("method", c.Method()).
+			Str("path", c.Path()).Msg("X-Api-Key header not found")
 		return nil
 	}
 	apiKey := apiKeyRaw[0]
