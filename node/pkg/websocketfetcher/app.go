@@ -23,6 +23,7 @@ import (
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/crypto"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/gateio"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/gemini"
+	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/gopax"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/huobi"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/korbit"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/kraken"
@@ -119,6 +120,7 @@ func (a *App) Init(ctx context.Context, opts ...AppOption) error {
 		"bingx":    bingx.New,
 		"bitmart":  bitmart.New,
 		"xt":       xt.New,
+		"gopax":    gopax.New,
 	}
 
 	dexFactories := map[string]func(...common.DexFetcherOption) common.FetcherInterface{
