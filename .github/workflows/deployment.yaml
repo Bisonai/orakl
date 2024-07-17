@@ -15,12 +15,10 @@ on:
         type: choice
         options:
           - "cli"
-          - "aggregator"
           - "vrf"
           - "api"
           - "request-response"
           - "delegator"
-          - "fetcher"
           - "por"
           - "node"
           - "boot-api"
@@ -124,12 +122,12 @@ jobs:
       - uses: actions/checkout@master
       - name: get time tag
         id: tag
-        run: "# Get the date and git hash\necho \"date=$(date +'%Y%m%d.%H%M')\" >> $GITHUB_OUTPUT\necho \"git_hash=$(git rev-parse --short HEAD)\" >> $GITHUB_OUTPUT\nservice=\"${{ github.event.inputs.application }}\"\n# Set the service name\nif [[ \"$service\" == \"vrf\" || \"$service\" == \"request-response\" || \"$service\" == \"aggregator\" ]]; then\n  service=\"core\"\nfi            \n# Set the ecr url\necho \"service=$service\" >> $GITHUB_OUTPUT\necho \"ecr_url=public.ecr.aws/bisonai/orakl-${service}\" >> $GITHUB_OUTPUT\n# end of the script\n"
+        run: "# Get the date and git hash\necho \"date=$(date +'%Y%m%d.%H%M')\" >> $GITHUB_OUTPUT\necho \"git_hash=$(git rev-parse --short HEAD)\" >> $GITHUB_OUTPUT\nservice=\"${{ github.event.inputs.application }}\"\n# Set the service name\nif [[ \"$service\" == \"vrf\" || \"$service\" == \"request-response\" ]]; then\n  service=\"core\"\nfi            \n# Set the ecr url\necho \"service=$service\" >> $GITHUB_OUTPUT\necho \"ecr_url=public.ecr.aws/bisonai/orakl-${service}\" >> $GITHUB_OUTPUT\n# end of the script\n"
         env:
           GH_TOKEN: ${{ secrets.WORKFLOW_PAT }}
       - name: get package version
         id: package
-        run: "# Get the version from the package.json file\nif [[ \"${{ steps.tag.outputs.service }}\" == \"cli\" || \"${{ steps.tag.outputs.service }}\" == \"fetcher\" || \"${{ steps.tag.outputs.service }}\" == \"core\" ]]; then  \necho \"version=$(node -p -e \"require('./\"${{ steps.tag.outputs.service }}\"/package.json').version\")\" >> $GITHUB_OUTPUT\nelse \n  if [[ \"${{ steps.tag.outputs.service }}\" == \"boot-api\" || \"${{ steps.tag.outputs.service }}\" == \"node\" || \"${{ steps.tag.outputs.service }}\" == \"por\" || \"${{ steps.tag.outputs.service }}\" == \"dal\" ]]; then    \n    version=$(cat ./node/.version)  \n  else\n    version=$(cat ./${{ steps.tag.outputs.service }}/.version)\n  fi\n  echo \"version=$version\" >> $GITHUB_OUTPUT\nfi\n"
+        run: "# Get the version from the package.json file\nif [[ \"${{ steps.tag.outputs.service }}\" == \"cli\" || \"${{ steps.tag.outputs.service }}\" == \"core\" ]]; then  \necho \"version=$(node -p -e \"require('./\"${{ steps.tag.outputs.service }}\"/package.json').version\")\" >> $GITHUB_OUTPUT\nelse \n  if [[ \"${{ steps.tag.outputs.service }}\" == \"boot-api\" || \"${{ steps.tag.outputs.service }}\" == \"node\" || \"${{ steps.tag.outputs.service }}\" == \"por\" || \"${{ steps.tag.outputs.service }}\" == \"dal\" ]]; then    \n    version=$(cat ./node/.version)  \n  else\n    version=$(cat ./${{ steps.tag.outputs.service }}/.version)\n  fi\n  echo \"version=$version\" >> $GITHUB_OUTPUT\nfi\n"
         env:
           GH_TOKEN: ${{ secrets.WORKFLOW_PAT }}
   build:
