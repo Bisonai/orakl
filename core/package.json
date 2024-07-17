@@ -71,7 +71,6 @@
   },
   "dependencies": {
     "@bisonai/orakl-contracts": "*",
-    "@bisonai/orakl-util": "*",
     "@bisonai/orakl-vrf": "*",
     "@ethersproject/experimental": "^5.7.0",
     "@slack/webhook": "^6.1.0",
