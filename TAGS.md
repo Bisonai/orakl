@@ -55,3 +55,4 @@
 - **sentinel** v0.0.1.20240716.0851.ac68b4d <br> *`PR`*: Add logs for peer checks <br><br> 
 - **node** v0.0.1.20240716.1308.a16e0b7 <br> *`PR`*: OraklNode Hotfix filter out in... <br><br> 
 - **sentinel** v0.0.1.20240717.0112.b9db8f2 <br> *`PR`*: Sentinel Remove deprecated res... <br><br> 
+- **dal** v0.0.1.20240717.0230.301dcf3 <br> *`PR`*: Sentinel Remove deprecated res... <br><br> 
