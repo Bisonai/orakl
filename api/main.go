@@ -37,11 +37,9 @@ func main() {
 	}
 
 	postgres := appConfig.Postgres
-	redis := appConfig.Redis
 	app := appConfig.App
 
 	defer postgres.Close()
-	defer redis.Close()
 
 	v1 := app.Group("/api/v1")
 	SetRouter(v1)

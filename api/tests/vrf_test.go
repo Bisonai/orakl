@@ -1,11 +1,12 @@
 package tests
 
 import (
+	"fmt"
+	"testing"
+
 	"bisonai.com/orakl/api/chain"
 	"bisonai.com/orakl/api/utils"
 	"bisonai.com/orakl/api/vrf"
-	"fmt"
-	"testing"
 
 	"github.com/joho/godotenv"
 	"github.com/stretchr/testify/assert"
@@ -39,11 +40,9 @@ func TestVrf(t *testing.T) {
 	appConfig, _ := utils.Setup()
 
 	pgxClient := appConfig.Postgres
-	redisClient := appConfig.Redis
 	app := appConfig.App
 
 	defer pgxClient.Close()
-	defer redisClient.Close()
 	v1 := app.Group("/api/v1")
 	vrf.Routes(v1)
 	chain.Routes(v1)
