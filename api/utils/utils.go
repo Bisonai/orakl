@@ -161,7 +161,7 @@ func EncryptText(textToEncrypt string) (string, error) {
 	password := config["ENCRYPT_PASSWORD"].(string)
 	// Generate a random 16-byte IV
 	iv := make([]byte, 16)
-	if _, err := rand.Read(iv); err != nil {
+	if _, err = rand.Read(iv); err != nil {
 		return "", err
 	}
 
