@@ -5,7 +5,6 @@ import { launchHealthCheck } from '../health-check'
 import { buildLogger } from '../logger'
 import { REDIS_HOST, REDIS_PORT } from '../settings'
 import { hookConsoleError } from '../utils'
-import { buildReporter as buildDataFeedReporter } from './data-feed'
 import { buildReporter as buildL2DataFeedReporter } from './data-feed-L2'
 import { buildReporter as buildRequestResponseReporter } from './request-response'
 import { buildReporter as buildL2RequestResponseFulfillReporter } from './request-response-L2-fulfill'
@@ -16,7 +15,6 @@ import { buildReporter as buildL2VrfFulfillReporter } from './vrf-L2-fulfill'
 import { buildReporter as buildL2VrfRequestReporter } from './vrf-L2-request'
 
 const REPORTERS: IReporters = {
-  DATA_FEED: buildDataFeedReporter,
   VRF: buildVrfReporter,
   REQUEST_RESPONSE: buildRequestResponseReporter,
   DATA_FEED_L2: buildL2DataFeedReporter,

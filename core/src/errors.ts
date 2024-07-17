@@ -19,8 +19,6 @@ export enum OraklErrorCode {
   IndexOutOfBoundaries,
   InvalidAdapter,
   InvalidAggregator,
-  InvalidDataFeed,
-  InvalidDataFeedFormat,
   InvalidDecodedMesssageLength,
   InvalidListenerConfig,
   InvalidOperator,

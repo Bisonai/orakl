@@ -174,12 +174,6 @@ export interface IL2EndpointListenerWorker {
   sender: string
 }
 
-export interface IDataFeedListenerWorker {
-  oracleAddress: string
-  roundId: number
-  workerSource: string
-}
-
 export interface IDataFeedListenerWorkerL2 {
   oracleAddress: string
   roundId: number
