@@ -1,17 +1,5 @@
 [
   {
-    "name": "orakl-aggregator-listener",
-    "url": "http://orakl-aggregator-listener.orakl.svc.cluster.local:8080/health"
-  },
-  {
-    "name": "orakl-aggregator-reporter",
-    "url": "http://orakl-aggregator-reporter.orakl.svc.cluster.local:8080/"
-  },
-  {
-    "name": "orakl-aggregator-worker",
-    "url": "http://orakl-aggregator-worker.orakl.svc.cluster.local:8080/"
-  },
-  {
     "name": "orakl-api",
     "url": "http://orakl-api.orakl.svc.cluster.local:3030/api/v1/"
   },
@@ -22,10 +10,6 @@
   {
     "name": "orakl-delegator",
     "url": "http://orakl-delegator.orakl.svc.cluster.local:80/api/v1/"
-  },
-  {
-    "name": "orakl-fetcher",
-    "url": "http://orakl-fetcher.orakl.svc.cluster.local:4040/api/v1"
   },
   {
     "name": "orakl-por",
@@ -42,14 +26,6 @@
   {
     "name": "orakl-vrf-core",
     "url": "http://orakl-vrf-core.orakl.svc.cluster.local:8080/"
-  },
-  {
-    "name": "redis-data-feed-master",
-    "url": "redis://redis-data-feed-master.redis.svc.cluster.local:6379"
-  },
-  {
-    "name": "redis-fetcher-master",
-    "url": "redis://redis-fetcher-master.redis.svc.cluster.local:6379"
   },
   {
     "name": "redis-node-master",
