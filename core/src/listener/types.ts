@@ -2,7 +2,6 @@ import { ethers } from 'ethers'
 import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
 import {
-  IDataFeedListenerWorkerL2,
   IL2EndpointListenerWorker,
   IL2RequestResponseFulfillListenerWorker,
   IL2RequestResponseListenerWorker,
@@ -47,7 +46,6 @@ export type ProcessEventOutputType = {
   jobData:
     | IRequestResponseListenerWorker
     | IVrfListenerWorker
-    | IDataFeedListenerWorkerL2
     | IL2VrfFulfillListenerWorker
     | IL2EndpointListenerWorker
     | IL2RequestResponseListenerWorker

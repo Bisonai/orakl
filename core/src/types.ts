@@ -174,13 +174,6 @@ export interface IL2EndpointListenerWorker {
   sender: string
 }
 
-export interface IDataFeedListenerWorkerL2 {
-  oracleAddress: string
-  roundId: number
-  answer: number
-  workerSource: string
-}
-
 export interface IL2VrfFulfillListenerWorker {
   callbackAddress: string
   callbackGasLimit: number
@@ -321,64 +314,6 @@ export interface IReporterConfig {
   service: string
 }
 
-// Data Feed
-interface IHeader {
-  'Content-Type': string
-}
-
-interface IReducer {
-  function: string
-  args: string[]
-}
-
-export interface IFeedDefinition {
-  url: string
-  method: string
-  headers: IHeader[]
-  reducers: IReducer[]
-}
-
-export interface IFeed {
-  id: bigint
-  adapterId: bigint
-  name: string
-  definition: IFeedDefinition
-}
-
-export interface IAdapter {
-  id: bigint
-  adapterHash: string
-  name: string
-  decimals: number
-  feeds: IFeed[]
-}
-
-export interface IAggregator {
-  id: string
-  aggregatorHash: string
-  active: boolean
-  name: string
-  address: string
-  heartbeat: number
-  threshold: number
-  absoluteThreshold: number
-  adapterId: bigint
-  chainId: bigint
-  adapter?: IAdapter
-}
-
-export interface IAggregate {
-  id: bigint
-  timestamp: string
-  value: bigint
-  aggregatorId: string
-}
-
-export interface IAggregateById {
-  timestamp: string
-  value: bigint
-}
-
 export interface ITransactionParameters {
   payload: string
   gasLimit: number | string
@@ -449,12 +384,6 @@ export interface IRequestResponseTransactionParameters {
   isDirectPayment: boolean
   response: any // eslint-disable-line @typescript-eslint/no-explicit-any
 }
-
-export interface IDataFeedTransactionParameters {
-  roundId: number
-  submission: bigint
-}
-
 export interface MockQueue {
   add: any // eslint-disable-line @typescript-eslint/no-explicit-any
   process: any // eslint-disable-line @typescript-eslint/no-explicit-any

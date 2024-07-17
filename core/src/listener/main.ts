@@ -7,7 +7,6 @@ import { buildLogger } from '../logger'
 import { CHAIN, REDIS_HOST, REDIS_PORT } from '../settings'
 import { hookConsoleError } from '../utils'
 import { getListeners } from './api'
-import { buildListener as buildL2DataFeedListener } from './data-feed-L2'
 import { buildListener as buildRequestResponseListener } from './request-response'
 import { buildListener as buildRequestResponseL2FulfillListener } from './request-response-L2-fulfill'
 import { buildListener as buildRequestResponseL2RequestListener } from './request-response-L2-request'
@@ -20,7 +19,6 @@ import { buildListener as buildVrfL2RequestListener } from './vrf-L2-request'
 const LISTENERS: IListeners = {
   VRF: buildVrfListener,
   REQUEST_RESPONSE: buildRequestResponseListener,
-  DATA_FEED_L2: buildL2DataFeedListener,
   VRF_L2_REQUEST: buildVrfL2RequestListener,
   VRF_L2_FULFILL: buildVrfL2FulfillListener,
   REQUEST_RESPONSE_L2_REQUEST: buildRequestResponseL2RequestListener,

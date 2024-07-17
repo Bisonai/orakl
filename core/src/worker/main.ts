@@ -5,7 +5,6 @@ import { launchHealthCheck } from '../health-check'
 import { buildLogger } from '../logger'
 import { REDIS_HOST, REDIS_PORT } from '../settings'
 import { hookConsoleError } from '../utils'
-import { worker as l2DataFeedWorker } from './data-feed-L2'
 import { worker as requestResponseWorker } from './request-response'
 import { worker as l2RequestResponseFulfillWorker } from './request-response-L2-fulfill'
 import { worker as l2RequestResponseRequestWorker } from './request-response-L2-request'
@@ -17,7 +16,6 @@ import { worker as l2VrfRequestWorker } from './vrf-L2-request'
 const WORKERS: IWorkers = {
   VRF: vrfWorker,
   REQUEST_RESPONSE: requestResponseWorker,
-  DATA_FEED_L2: l2DataFeedWorker,
   VRF_L2_REQUEST: l2VrfRequestWorker,
   VRF_L2_FULFILL: l2VrfFulfillWorker,
   REQUEST_RESPONSE_L2_REQUEST: l2RequestResponseRequestWorker,
