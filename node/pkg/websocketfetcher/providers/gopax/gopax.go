@@ -77,7 +77,8 @@ func (f *GopaxFetcher) handleMessage(ctx context.Context, message map[string]any
 				if err.Error() == "feed not found" {
 					continue
 				}
-				return err
+				log.Error().Err(err).Str("Player", "Gopax").Msg("error in gopax.handleMessage, failed to convert ticker to feed data")
+				continue
 			}
 			f.FeedDataBuffer <- *feedData
 		}
