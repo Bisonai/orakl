@@ -60,3 +60,4 @@
 - **dal** v0.0.1.20240717.0409.0f36d29 <br> *`PR`*: allow free pass for health che... <br><br> 
 - **node** v0.0.1.20240717.0605.5ed1c01 <br> *`PR`*: Rollback utils <br><br> 
 - **api** v0.0.1.20240717.0835.d1cde6f <br> *`PR`*: Remove aggregator and fetcher ... <br><br> 
+- **api** v0.0.1.20240717.0848.f15e4a1 <br> *`PR`*: API Remove unused redis refere... <br><br> 
