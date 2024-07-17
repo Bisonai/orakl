@@ -3,6 +3,7 @@ package gopax
 import "encoding/json"
 
 const URL = "wss://wsapi.gopax.co.kr"
+const IncreasedReadLimit = 327690 // x10 more readlimit to take initial response
 
 type Subscription struct {
 	Name   string      `json:"n"`
