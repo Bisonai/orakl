@@ -64,6 +64,7 @@ on:
           - dal:v0.0.1.20240717.0302.8b595e7:add ctx logs to dal middleware
           - dal:v0.0.1.20240717.0409.0f36d29:allow free pass for health che...
           - node:v0.0.1.20240717.0605.5ed1c01:Rollback utils
+          - api:v0.0.1.20240717.0835.d1cde6f:Remove aggregator and fetcher ...
 jobs:
   prepare-taskflow:
     name: Prepare
