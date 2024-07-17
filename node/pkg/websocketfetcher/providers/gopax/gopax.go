@@ -34,7 +34,7 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 		wss.WithEndpoint(URL),
 		wss.WithSubscriptions(subscription),
 		wss.WithProxyUrl(config.Proxy),
-		wss.WithReadLimit(327690),
+		wss.WithReadLimit(IncreasedReadLimit),
 		wss.WithCustomReadFunc(fetcher.customReadFunc),
 	)
 	if err != nil {
