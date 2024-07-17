@@ -75,7 +75,7 @@ func (f *GopaxFetcher) handleMessage(ctx context.Context, message map[string]any
 			feedData, err := TickerToFeedData(ticker, f.FeedMap)
 			if err != nil {
 				if err.Error() == "feed not found" {
-					return nil
+					continue
 				}
 				return err
 			}
