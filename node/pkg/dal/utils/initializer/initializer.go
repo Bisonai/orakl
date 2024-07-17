@@ -46,7 +46,7 @@ func Setup(ctx context.Context, apiController *api.Controller, keyCache *keycach
 
 	app := fiber.New(fiber.Config{
 		AppName:           "Data Availability Layer API 0.1.0",
-		EnablePrintRoutes: false,
+		EnablePrintRoutes: true,
 		ErrorHandler:      CustomErrorHandler,
 	})
 

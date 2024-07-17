@@ -136,7 +136,7 @@ func TestApiGetLatest(t *testing.T) {
 
 	time.Sleep(10 * time.Millisecond)
 
-	result, err := request.Request[common.OutgoingSubmissionData](request.WithEndpoint("http://localhost:8090/api/v1/dal/latest-data-feeds/test-aggregate"), request.WithHeaders(map[string]string{"X-API-Key": testItems.ApiKey}))
+	result, err := request.Request[[]common.OutgoingSubmissionData](request.WithEndpoint("http://localhost:8090/api/v1/dal/latest-data-feeds/test-aggregate"), request.WithHeaders(map[string]string{"X-API-Key": testItems.ApiKey}))
 	if err != nil {
 		t.Fatalf("error getting latest data: %v", err)
 	}
@@ -144,7 +144,7 @@ func TestApiGetLatest(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error converting sample submission data to outgoing data: %v", err)
 	}
-	assert.Equal(t, *expected, result)
+	assert.Equal(t, *expected, result[0])
 }
 
 func TestApiWebsocket(t *testing.T) {

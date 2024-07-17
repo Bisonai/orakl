@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 
 	"bisonai.com/orakl/node/pkg/common/types"
@@ -176,7 +177,7 @@ func getSymbols(c *fiber.Ctx) error {
 	return c.JSON(result)
 }
 
-func getLatestFeeds(c *fiber.Ctx) error {
+func getAllLatestFeeds(c *fiber.Ctx) error {
 	controller, ok := c.Locals("apiController").(*Controller)
 	if !ok {
 		return errors.New("api controller not found")
@@ -186,29 +187,40 @@ func getLatestFeeds(c *fiber.Ctx) error {
 	return c.JSON(result)
 }
 
-func getLatestFeed(c *fiber.Ctx) error {
+func getLatestFeeds(c *fiber.Ctx) error {
 	controller, ok := c.Locals("apiController").(*Controller)
 	if !ok {
 		return errors.New("api controller not found")
 	}
 
-	symbol := c.Params("symbol")
+	symbolsStr := c.Params("symbols")
 
-	if symbol == "" {
+	if symbolsStr == "" {
 		return errors.New("invalid symbol: empty symbol")
 	}
-	if !strings.Contains(symbol, "-") {
-		return errors.New("symbol should be in {BASE}-{QUOTE} format")
+
+	symbols := strings.Split(symbolsStr, ",")
+	results := make([]*dalcommon.OutgoingSubmissionData, len(symbols))
+	for i, symbol := range symbols {
+		if !strings.Contains(symbol, "-") {
+			return fmt.Errorf("wrong symbol format: %s, symbol should be in {BASE}-{QUOTE} format", symbol)
+		}
+
+		if symbol == "" {
+			continue
+		}
+
+		if !strings.Contains(symbol, "test") {
+			symbol = strings.ToUpper(symbol)
+		}
+
+		result, err := controller.Collector.GetLatestData(symbol)
+		if err != nil {
+			return err
+		}
+
+		results[i] = result
 	}
 
-	if !strings.Contains(symbol, "test") {
-		symbol = strings.ToUpper(symbol)
-	}
-
-	result, err := controller.Collector.GetLatestData(symbol)
-	if err != nil {
-		return err
-	}
-
-	return c.JSON(*result)
+	return c.JSON(results)
 }
