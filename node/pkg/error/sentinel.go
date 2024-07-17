@@ -149,6 +149,7 @@ var (
 	ErrFetcherNoMatchingChainID           = &CustomError{Service: Fetcher, Code: InvalidInputError, Message: "No matching chain ID"}
 	ErrFetcherFailedToGetDexResultSlice   = &CustomError{Service: Fetcher, Code: InternalError, Message: "Failed to get dex result slice"}
 	ErrFetcherFailedBigIntConvert         = &CustomError{Service: Fetcher, Code: InternalError, Message: "Failed to convert to fetched data to big.Int"}
+	ErrFetcherFeedNotFound                = &CustomError{Service: Fetcher, Code: InvalidInputError, Message: "Feed not found"}
 
 	ErrLibP2pEmptyNonLocalAddress = &CustomError{Service: Others, Code: InternalError, Message: "Host has no non-local addresses"}
 	ErrLibP2pAddressSplitFail     = &CustomError{Service: Others, Code: InternalError, Message: "Failed to split address"}
