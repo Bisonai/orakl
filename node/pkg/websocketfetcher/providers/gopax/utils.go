@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"bisonai.com/orakl/node/pkg/websocketfetcher/common"
+	"github.com/rs/zerolog/log"
 )
 
 func InitialResponseToFeedData(initialData InitialResponse, feedMap map[string]int32) []*common.FeedData {
@@ -12,6 +13,9 @@ func InitialResponseToFeedData(initialData InitialResponse, feedMap map[string]i
 	for _, data := range initialData.Data {
 		feedData, err := TickerToFeedData(data, feedMap)
 		if err != nil {
+			if err.Error() != "feed not found" {
+				log.Warn().Str("Player", "Gopax").Err(err).Msg("error in TickerToFeedData")
+			}
 			continue
 		}
 
