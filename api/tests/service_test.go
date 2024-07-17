@@ -1,10 +1,11 @@
 package tests
 
 import (
-	"bisonai.com/orakl/api/service"
-	"bisonai.com/orakl/api/utils"
 	"fmt"
 	"testing"
+
+	"bisonai.com/orakl/api/service"
+	"bisonai.com/orakl/api/utils"
 
 	"github.com/joho/godotenv"
 	"github.com/stretchr/testify/assert"
@@ -22,11 +23,9 @@ func TestService(t *testing.T) {
 	appConfig, _ := utils.Setup()
 
 	pgxClient := appConfig.Postgres
-	redisClient := appConfig.Redis
 	app := appConfig.App
 
 	defer pgxClient.Close()
-	defer redisClient.Close()
 	v1 := app.Group("/api/v1")
 	service.Routes(v1)
 

@@ -22,12 +22,10 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/redis/go-redis/v9"
 )
 
 type AppConfig struct {
 	Postgres *pgxpool.Pool
-	Redis    *redis.Conn
 	App      *fiber.App
 }
 
@@ -48,33 +46,6 @@ func GetPgx(c *fiber.Ctx) (*pgxpool.Pool, error) {
 	} else {
 		return con, nil
 	}
-}
-
-func GetRdb(c *fiber.Ctx) (redis.Conn, error) {
-	con, ok := c.Locals("rdb").(redis.Conn)
-	if !ok {
-		return con, errors.New("failed to get rdbConn")
-	} else {
-		return con, nil
-	}
-}
-
-func SetRedis(c *fiber.Ctx, key string, value string) error {
-	redisConn, err := GetRdb(c)
-	if err != nil {
-		return err
-	}
-
-	return redisConn.Set(c.Context(), key, value, 0).Err()
-}
-
-func GetRedis(c *fiber.Ctx, key string) (string, error) {
-	redisConn, err := GetRdb(c)
-	if err != nil {
-		return "", err
-	}
-
-	return redisConn.Get(c.Context(), key).Result()
 }
 
 func RawQueryWithoutReturn(c *fiber.Ctx, query string, args map[string]any) error {
@@ -149,14 +120,6 @@ func Setup(options ...string) (AppConfig, error) {
 	if pgxError != nil {
 		return appConfig, pgxError
 	}
-	// redis connect
-	rdb := redis.NewClient(&redis.Options{
-		Addr: config["REDIS_HOST"].(string) + ":" + config["REDIS_PORT"].(string),
-	}).Conn()
-	_, rdbErr := rdb.Ping(context.Background()).Result()
-	if rdbErr != nil {
-		return appConfig, rdbErr
-	}
 
 	testing, err := strconv.ParseBool(config["TEST_MODE"].(string))
 	if err != nil {
@@ -178,7 +141,6 @@ func Setup(options ...string) (AppConfig, error) {
 	app.Use(cors.New())
 
 	app.Use(func(c *fiber.Ctx) error {
-		c.Locals("rdb", *rdb)
 		c.Locals("pgxConn", pgxPool)
 		c.Locals("testing", testing)
 		return c.Next()
@@ -186,7 +148,6 @@ func Setup(options ...string) (AppConfig, error) {
 
 	appConfig = AppConfig{
 		Postgres: pgxPool,
-		Redis:    rdb,
 		App:      app,
 	}
 	return appConfig, nil

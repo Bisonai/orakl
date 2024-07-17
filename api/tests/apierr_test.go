@@ -3,10 +3,11 @@ package tests
 import (
 	"fmt"
 
-	"bisonai.com/orakl/api/apierr"
-	"bisonai.com/orakl/api/utils"
 	"testing"
 	"time"
+
+	"bisonai.com/orakl/api/apierr"
+	"bisonai.com/orakl/api/utils"
 
 	"github.com/joho/godotenv"
 	"github.com/stretchr/testify/assert"
@@ -38,11 +39,9 @@ func TestApiErr(t *testing.T) {
 	appConfig, _ := utils.Setup()
 
 	pgxClient := appConfig.Postgres
-	redisClient := appConfig.Redis
 	app := appConfig.App
 
 	defer pgxClient.Close()
-	defer redisClient.Close()
 	v1 := app.Group("/api/v1")
 	apierr.Routes(v1)
 
