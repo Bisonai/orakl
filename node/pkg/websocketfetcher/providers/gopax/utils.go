@@ -1,8 +1,10 @@
 package gopax
 
 import (
-	"fmt"
+	"errors"
 	"time"
+
+	errorSentinel "bisonai.com/orakl/node/pkg/error"
 
 	"bisonai.com/orakl/node/pkg/websocketfetcher/common"
 	"github.com/rs/zerolog/log"
@@ -13,7 +15,7 @@ func InitialResponseToFeedData(initialData InitialResponse, feedMap map[string]i
 	for _, data := range initialData.Data {
 		feedData, err := TickerToFeedData(data, feedMap)
 		if err != nil {
-			if err.Error() != "feed not found" {
+			if !errors.Is(err, errorSentinel.ErrFetcherFeedNotFound) {
 				log.Warn().Str("Player", "Gopax").Err(err).Msg("error in TickerToFeedData")
 			}
 			continue
@@ -30,7 +32,7 @@ func TickerToFeedData(ticker Ticker, feedMap map[string]int32) (*common.FeedData
 
 	id, exists := feedMap[ticker.Name]
 	if !exists {
-		return feedData, fmt.Errorf("feed not found")
+		return feedData, errorSentinel.ErrFetcherFeedNotFound
 	}
 	feedData.FeedID = id
 	timestamp := time.UnixMilli(ticker.Timestamp)
