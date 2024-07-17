@@ -77,6 +77,11 @@ func StatsMiddleware(c *fiber.Ctx) error {
 		return err
 	}
 	duration := time.Since(start)
+
+	if c.Path() == "/api/v1" {
+		return nil
+	}
+
 	headers := c.GetReqHeaders()
 	apiKeyRaw, ok := headers["X-Api-Key"]
 	if !ok {
