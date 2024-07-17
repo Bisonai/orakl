@@ -57,3 +57,4 @@
 - **sentinel** v0.0.1.20240717.0112.b9db8f2 <br> *`PR`*: Sentinel Remove deprecated res... <br><br> 
 - **dal** v0.0.1.20240717.0230.301dcf3 <br> *`PR`*: Sentinel Remove deprecated res... <br><br> 
 - **dal** v0.0.1.20240717.0302.8b595e7 <br> *`PR`*: add ctx logs to dal middleware <br><br> 
+- **dal** v0.0.1.20240717.0409.0f36d29 <br> *`PR`*: allow free pass for health che... <br><br> 
