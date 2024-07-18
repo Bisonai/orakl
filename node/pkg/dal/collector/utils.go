@@ -8,8 +8,8 @@ import (
 
 	"bisonai.com/orakl/node/pkg/chain/websocketchainreader"
 
-	chainUtils "bisonai.com/orakl/node/pkg/chain/utils"
-	errorSentinel "bisonai.com/orakl/node/pkg/error"
+	chainutils "bisonai.com/orakl/node/pkg/chain/utils"
+	errorsentinel "bisonai.com/orakl/node/pkg/error"
 	"github.com/klaytn/klaytn/blockchain/types"
 	klaytncommon "github.com/klaytn/klaytn/common"
 	"github.com/rs/zerolog/log"
@@ -46,12 +46,12 @@ func subscribeAddOracleEvent(ctx context.Context, chainReader *websocketchainrea
 		return err
 	}
 
-	eventName, input, _, eventParseErr := chainUtils.ParseMethodSignature(OracleAdded)
+	eventName, input, _, eventParseErr := chainutils.ParseMethodSignature(OracleAdded)
 	if eventParseErr != nil {
 		return eventParseErr
 	}
 
-	oracleAddedEventABI, err := chainUtils.GenerateEventABI(eventName, input)
+	oracleAddedEventABI, err := chainutils.GenerateEventABI(eventName, input)
 	if err != nil {
 		return err
 	}
@@ -80,7 +80,7 @@ func subscribeAddOracleEvent(ctx context.Context, chainReader *websocketchainrea
 
 func orderProof(ctx context.Context, proof []byte, value int64, timestamp time.Time, symbol string, cachedWhitelist []klaytncommon.Address) ([]byte, error) {
 	proof = RemoveDuplicateProof(proof)
-	hash := chainUtils.Value2HashForSign(value, timestamp.Unix(), symbol)
+	hash := chainutils.Value2HashForSign(value, timestamp.Unix(), symbol)
 	proofChunks, err := SplitProofToChunk(proof)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to split proof to chunks in orderProof")
@@ -124,11 +124,11 @@ func RemoveDuplicateProof(proof []byte) []byte {
 
 func SplitProofToChunk(proof []byte) ([][]byte, error) {
 	if len(proof) == 0 {
-		return nil, errorSentinel.ErrDalEmptyProofParam
+		return nil, errorsentinel.ErrDalEmptyProofParam
 	}
 
 	if len(proof)%65 != 0 {
-		return nil, errorSentinel.ErrDalInvalidProofLength
+		return nil, errorsentinel.ErrDalInvalidProofLength
 	}
 
 	proofs := make([][]byte, 0, len(proof)/65)
@@ -142,7 +142,7 @@ func SplitProofToChunk(proof []byte) ([][]byte, error) {
 func GetSignerListFromProofs(hash []byte, proofChunks [][]byte) ([]klaytncommon.Address, error) {
 	signers := []klaytncommon.Address{}
 	for _, p := range proofChunks {
-		signer, err := chainUtils.RecoverSigner(hash, p)
+		signer, err := chainutils.RecoverSigner(hash, p)
 		if err != nil {
 			return nil, err
 		}
@@ -156,7 +156,7 @@ func CheckForNonWhitelistedSigners(signers []klaytncommon.Address, whitelist []k
 	for _, signer := range signers {
 		if !isWhitelisted(signer, whitelist) {
 			log.Error().Str("Player", "DAL").Str("signer", signer.Hex()).Msg("non-whitelisted signer")
-			return errorSentinel.ErrDalSignerNotWhitelisted
+			return errorsentinel.ErrDalSignerNotWhitelisted
 		}
 	}
 	return nil
@@ -190,7 +190,7 @@ func OrderProof(signerMap map[klaytncommon.Address][]byte, whitelist []klaytncom
 
 	if len(tmpProofs) == 0 {
 		log.Error().Str("Player", "DAL").Msg("no valid proofs")
-		return nil, errorSentinel.ErrDalEmptyValidProofs
+		return nil, errorsentinel.ErrDalEmptyValidProofs
 	}
 
 	return bytes.Join(tmpProofs, nil), nil
