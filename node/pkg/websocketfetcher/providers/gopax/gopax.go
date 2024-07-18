@@ -104,7 +104,8 @@ func (f *GopaxFetcher) customReadFunc(ctx context.Context, conn *websocket.Conn)
 
 	if strings.HasPrefix(rawResponse, "\"primus::ping::") {
 		log.Debug().Str("Player", "Gopax").Msg("received pong")
-		f.Ws.RawWrite(ctx, "\"primus::pong::"+rawResponse[15:])
+		_ = f.Ws.RawWrite(ctx, "\"primus::pong::"+rawResponse[15:])
+
 		return nil, nil
 	}
 
