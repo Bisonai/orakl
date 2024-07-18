@@ -1,14 +1,15 @@
 package collector
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"time"
 
-	chainutils "bisonai.com/orakl/node/pkg/chain/utils"
 	"bisonai.com/orakl/node/pkg/chain/websocketchainreader"
-	"bisonai.com/orakl/node/pkg/reporter"
 
+	chainutils "bisonai.com/orakl/node/pkg/chain/utils"
+	errorsentinel "bisonai.com/orakl/node/pkg/error"
 	"github.com/klaytn/klaytn/blockchain/types"
 	klaytncommon "github.com/klaytn/klaytn/common"
 	"github.com/rs/zerolog/log"
@@ -78,28 +79,121 @@ func subscribeAddOracleEvent(ctx context.Context, chainReader *websocketchainrea
 }
 
 func orderProof(ctx context.Context, proof []byte, value int64, timestamp time.Time, symbol string, cachedWhitelist []klaytncommon.Address) ([]byte, error) {
-	proof = reporter.RemoveDuplicateProof(proof)
+	proof = RemoveDuplicateProof(proof)
 	hash := chainutils.Value2HashForSign(value, timestamp.Unix(), symbol)
-	proofChunks, err := reporter.SplitProofToChunk(proof)
+	proofChunks, err := SplitProofToChunk(proof)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to split proof to chunks in orderProof")
 		return nil, err
 	}
 
-	signers, err := reporter.GetSignerListFromProofs(hash, proofChunks)
+	signers, err := GetSignerListFromProofs(hash, proofChunks)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to get signer list from proofs in orderProof")
 		return nil, err
 	}
 
-	err = reporter.CheckForNonWhitelistedSigners(signers, cachedWhitelist)
+	err = CheckForNonWhitelistedSigners(signers, cachedWhitelist)
 	if err != nil {
 		log.Error().Err(err).Msg("non-whitelisted signers found in orderProof")
 		return nil, err
 	}
 
-	signerMap := reporter.GetSignerMap(signers, proofChunks)
-	return reporter.OrderProof(signerMap, cachedWhitelist)
+	signerMap := GetSignerMap(signers, proofChunks)
+	return OrderProof(signerMap, cachedWhitelist)
+}
+
+func RemoveDuplicateProof(proof []byte) []byte {
+	proofs, err := SplitProofToChunk(proof)
+	if err != nil {
+		return []byte{}
+	}
+
+	uniqueProofs := make(map[string][]byte)
+	for _, p := range proofs {
+		uniqueProofs[string(p)] = p
+	}
+
+	result := make([][]byte, 0, len(uniqueProofs)*65)
+	for _, p := range uniqueProofs {
+		result = append(result, p)
+	}
+
+	return bytes.Join(result, nil)
+}
+
+func SplitProofToChunk(proof []byte) ([][]byte, error) {
+	if len(proof) == 0 {
+		return nil, errorsentinel.ErrDalEmptyProofParam
+	}
+
+	if len(proof)%65 != 0 {
+		return nil, errorsentinel.ErrDalInvalidProofLength
+	}
+
+	proofs := make([][]byte, 0, len(proof)/65)
+	for i := 0; i < len(proof); i += 65 {
+		proofs = append(proofs, proof[i:i+65])
+	}
+
+	return proofs, nil
+}
+
+func GetSignerListFromProofs(hash []byte, proofChunks [][]byte) ([]klaytncommon.Address, error) {
+	signers := []klaytncommon.Address{}
+	for _, p := range proofChunks {
+		signer, err := chainutils.RecoverSigner(hash, p)
+		if err != nil {
+			return nil, err
+		}
+		signers = append(signers, signer)
+	}
+
+	return signers, nil
+}
+
+func CheckForNonWhitelistedSigners(signers []klaytncommon.Address, whitelist []klaytncommon.Address) error {
+	for _, signer := range signers {
+		if !isWhitelisted(signer, whitelist) {
+			log.Error().Str("Player", "DAL").Str("signer", signer.Hex()).Msg("non-whitelisted signer")
+			return errorsentinel.ErrDalSignerNotWhitelisted
+		}
+	}
+	return nil
+}
+
+func isWhitelisted(signer klaytncommon.Address, whitelist []klaytncommon.Address) bool {
+	for _, w := range whitelist {
+		if w == signer {
+			return true
+		}
+	}
+	return false
+}
+
+func GetSignerMap(signers []klaytncommon.Address, proofChunks [][]byte) map[klaytncommon.Address][]byte {
+	signerMap := make(map[klaytncommon.Address][]byte)
+	for i, signer := range signers {
+		signerMap[signer] = proofChunks[i]
+	}
+	return signerMap
+}
+
+func OrderProof(signerMap map[klaytncommon.Address][]byte, whitelist []klaytncommon.Address) ([]byte, error) {
+	tmpProofs := make([][]byte, 0, len(whitelist))
+	for _, signer := range whitelist {
+		tmpProof, ok := signerMap[signer]
+		if ok {
+			tmpProofs = append(tmpProofs, tmpProof)
+		}
+	}
+
+	if len(tmpProofs) == 0 {
+		log.Error().Str("Player", "DAL").Msg("no valid proofs")
+		return nil, errorsentinel.ErrDalEmptyValidProofs
+	}
+
+	return bytes.Join(tmpProofs, nil), nil
 }
 
 func formatBytesToHex(bytes []byte) string {
