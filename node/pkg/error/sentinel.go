@@ -13,6 +13,7 @@ const (
 	BootAPI
 	Admin
 	Por
+	Dal
 	Others
 )
 
@@ -194,6 +195,11 @@ var (
 	ErrReporterStart                            = &CustomError{Service: Reporter, Code: InternalError, Message: "Failed to start reporters"}
 	ErrReporterStop                             = &CustomError{Service: Reporter, Code: InternalError, Message: "Failed to stop reporters"}
 	ErrReporterValidateAggregateTimestampValues = &CustomError{Service: Reporter, Code: InternalError, Message: "Failed to validate aggregate timestamp values"}
+
+	ErrDalEmptyProofParam      = &CustomError{Service: Dal, Code: InvalidInputError, Message: "Empty proof param"}
+	ErrDalInvalidProofLength   = &CustomError{Service: Dal, Code: InvalidInputError, Message: "Invalid proof length"}
+	ErrDalSignerNotWhitelisted = &CustomError{Service: Dal, Code: InternalError, Message: "Signer not whitelisted"}
+	ErrDalEmptyValidProofs     = &CustomError{Service: Dal, Code: InternalError, Message: "Empty valid proofs"}
 
 	ErrReducerCastToFloatFail          = &CustomError{Service: Others, Code: InternalError, Message: "Failed to cast to float"}
 	ErrReducerIndexCastToInterfaceFail = &CustomError{Service: Others, Code: InternalError, Message: "Failed to cast to interface from INDEX"}
