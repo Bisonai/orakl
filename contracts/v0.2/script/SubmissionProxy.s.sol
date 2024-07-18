@@ -84,6 +84,15 @@ contract DeploySubmissionProxy is Script {
         return submissionProxy;
     }
 
+    function useExistingFeedRouter(string memory json) internal view returns (FeedRouter) {
+        bytes memory feedRouterAddressRaw = json.parseRaw(".feedRouter.address");
+        address feedRouterAddress = abi.decode(feedRouterAddressRaw, (address));
+        FeedRouter feedRouter = FeedRouter(feedRouterAddress);
+        console.log("(Use existing FeedRouter)", address(feedRouter));
+        return feedRouter;
+
+    }
+
     function setMaxSubmission(SubmissionProxy submissionProxy, string memory json) internal {
         if (!vm.keyExists(json, ".setMaxSubmission")) {
             return;
@@ -221,12 +230,19 @@ contract DeploySubmissionProxy is Script {
         submissionProxy.updateFeedBulk(feedHashes, feedAddresses);
         console.log("(Feeds Updated)");
 
-        if (!vm.keyExists(json, ".deployFeedRouter")) {
+        if (!vm.keyExists(json, ".feedRouter")) {
             return;
         }
 
-        FeedRouter feedRouter = new FeedRouter();
-        console.log("(FeedRouter Deployed)", address(feedRouter));
+        FeedRouter feedRouter;
+        if (vm.keyExists(json, ".feedRouter.address")) {
+            feedRouter = useExistingFeedRouter(json);
+            console.log("(Use existing FeedRouter)", address(feedRouter));
+        }else {
+            feedRouter = new FeedRouter();
+            console.log("(FeedRouter Deployed)", address(feedRouter));
+        }
+
         config.storeAddress("FeedRouter", address(feedRouter));
         feedRouter.updateProxyBulk(feedNames, proxyAddresses);
         console.log("(Proxies Updated)");
