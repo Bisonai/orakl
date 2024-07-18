@@ -104,11 +104,8 @@ func (f *GopaxFetcher) customReadFunc(ctx context.Context, conn *websocket.Conn)
 
 	if strings.HasPrefix(rawResponse, "\"primus::ping::") {
 		log.Debug().Str("Player", "Gopax").Msg("received pong")
-		rawWriteErr := f.Ws.RawWrite(ctx, "\"primus::pong::"+rawResponse[15:])
-		if rawWriteErr != nil {
-			log.Error().Str("Player", "Gopax").Err(rawWriteErr).Msg("error in gopax.customReadFunc, failed to write pong")
-			return nil, rawWriteErr
-		}
+		_ = f.Ws.RawWrite(ctx, "\"primus::pong::"+rawResponse[15:])
+
 		return nil, nil
 	}
 
