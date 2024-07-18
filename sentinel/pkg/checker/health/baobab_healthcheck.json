@@ -9,7 +9,7 @@
   },
   {
     "name": "orakl-dal",
-    "url": "http://orakl-dal.orakl.svc.cluster.local:8090/api/v1"
+    "url": "http://orakl-dal.orakl.svc.cluster.local:80/api/v1"
   },
   {
     "name": "orakl-delegator",
