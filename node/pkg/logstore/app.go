@@ -44,23 +44,31 @@ func (l *LogStore) Run(ctx context.Context) {
 			l.logEntries = append(l.logEntries, entry)
 		case <-ticker.C:
 			if len(l.logEntries) > 0 {
-				l.processBatch(ctx)
+				err := l.processBatch(ctx)
+				if err != nil {
+					log.Error().Err(err).Msg("Error processing log batch")
+				}
 			}
 		}
 	}
 }
 
-func (l *LogStore) processBatch(ctx context.Context) {
+func (l *LogStore) processBatch(ctx context.Context) error {
 	defer func() {
 		l.logEntries = make([][]byte, 0)
 	}()
 
 	if len(l.logEntries) == 0 {
-		return
+		return nil
 	}
 
+	return bulkCopyLogEntries(ctx, l.logEntries)
+}
+
+func bulkCopyLogEntries(ctx context.Context, entries [][]byte) error {
 	bulkCopyEntries := [][]any{}
-	for _, entry := range l.logEntries {
+
+	for _, entry := range entries {
 		var event map[string]interface{}
 		if err := json.Unmarshal(entry, &event); err != nil {
 			log.Error().Err(err).Msg("Error unmarshaling log entry")
@@ -73,18 +81,21 @@ func (l *LogStore) processBatch(ctx context.Context) {
 			continue
 		}
 
-		if res == nil {
+		if res[1].(zerolog.Level) < zerolog.ErrorLevel {
+			log.Debug().Msg("Skipping log entry")
 			continue
 		}
 
 		bulkCopyEntries = append(bulkCopyEntries, res)
 	}
+
 	if len(bulkCopyEntries) > 0 {
 		_, err := db.BulkCopy(ctx, "zerologs", []string{"timestamp", "level", "message", "fields"}, bulkCopyEntries)
 		if err != nil {
-			log.Error().Err(err).Msg("Error bulk copying log entries")
+			return err
 		}
 	}
+	return nil
 }
 
 func extractLogEntry(event map[string]interface{}) ([]any, error) {
@@ -96,9 +107,9 @@ func extractLogEntry(event map[string]interface{}) ([]any, error) {
 		return nil, err
 	}
 
-	if level < zerolog.ErrorLevel {
-		return nil, nil
-	}
+	// if level < zerolog.ErrorLevel {
+	// 	return nil, nil
+	// }
 
 	delete(event, "time")
 	delete(event, "level")

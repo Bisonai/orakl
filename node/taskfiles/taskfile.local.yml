@@ -125,6 +125,10 @@ tasks:
     dotenv: [".env"]
     cmds:
       - go test ./pkg/dal/tests -v
+  test-logstore:
+    dotenv: [".env"]
+    cmds:
+      - go test ./pkg/logstore -v
 
   check-api:
     dotenv: [".env"]
