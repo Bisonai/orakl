@@ -30,8 +30,7 @@ func TestNew(t *testing.T) {
 			opts: nil,
 			want: &App{
 				StoreInterval: DefaultLogStoreInterval,
-				logChannel:    make(chan map[string]any, 1000),
-				logEntries:    []map[string]any{},
+				buffer:        make(chan map[string]any, 1000),
 			},
 		},
 		{
@@ -39,8 +38,7 @@ func TestNew(t *testing.T) {
 			opts: []AppOption{WithBuffer(500)},
 			want: &App{
 				StoreInterval: DefaultLogStoreInterval,
-				logChannel:    make(chan map[string]any, 500),
-				logEntries:    []map[string]any{},
+				buffer:        make(chan map[string]any, 500),
 			},
 		},
 		{
@@ -48,8 +46,7 @@ func TestNew(t *testing.T) {
 			opts: []AppOption{WithStoreInterval(time.Second)},
 			want: &App{
 				StoreInterval: time.Second,
-				logChannel:    make(chan map[string]any, 1000),
-				logEntries:    []map[string]any{},
+				buffer:        make(chan map[string]any, 1000),
 			},
 		},
 	}
@@ -79,28 +76,11 @@ func TestLogStoreWrite(t *testing.T) {
 			if (err != nil) != tt.wantErr {
 				t.Errorf("LogStore.Write() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			res := <-l.logChannel
+			res := <-l.buffer
 
 			assert.Equal(t, map[string]any{"test": "test"}, res)
 		})
 	}
-}
-
-func TestLograklRun(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-	lograkl := New()
-	go lograkl.Run(ctx)
-	time.Sleep(time.Millisecond * 200)
-	assert.Equal(t, 0, len(lograkl.logEntries))
-
-	ctx, cancel = context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-	lograkl = New()
-	lograkl.logChannel <- map[string]any{"test": "test"}
-	go lograkl.Run(ctx)
-	time.Sleep(time.Millisecond * 200)
-	assert.Equal(t, 1, len(lograkl.logEntries))
 }
 
 func TestBulkCopyLogEntries(t *testing.T) {
@@ -132,10 +112,7 @@ func TestBulkCopyLogEntries(t *testing.T) {
 		},
 	}
 
-	lograkl := New()
-	lograkl.logEntries = []map[string]any{events[0], events[1]}
-
-	err := lograkl.bulkCopyLogEntries(ctx)
+	err := bulkCopyLogEntries(ctx, []map[string]any{events[0], events[1]})
 	assert.NoError(t, err)
 
 	result, err := db.QueryRows[LogEntry](ctx, "SELECT level, message, fields, timestamp FROM zerologs", nil)

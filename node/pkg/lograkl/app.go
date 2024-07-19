@@ -22,13 +22,12 @@ func New(options ...AppOption) *App {
 	}
 	return &App{
 		StoreInterval: c.StoreInterval,
-		logChannel:    make(chan map[string]any, c.Buffer),
-		logEntries:    []map[string]any{},
+		buffer:        make(chan map[string]any, c.Buffer),
 	}
 }
 
 func (a *App) Write(p []byte) (n int, err error) {
-	a.logChannel <- byte2Entry(p)
+	a.buffer <- byte2Entry(p)
 	return len(p), nil
 }
 
@@ -39,21 +38,14 @@ func (a *App) Run(ctx context.Context) {
 	defer ticker.Stop()
 	for {
 		select {
-		case entry, ok := <-a.logChannel:
-			if !ok {
-				a.processBatch(ctx)
-				return
-			}
-			a.logEntries = append(a.logEntries, entry)
-		case <-ticker.C:
-			if len(a.logEntries) > 0 {
-				err := a.processBatch(ctx)
-				if err != nil {
-					log.Error().Err(err).Msg("Error processing log batch")
-				}
-			}
 		case <-ctx.Done():
 			return
+		case <-ticker.C:
+			err := a.processBatch(ctx)
+			if err != nil {
+				log.Err(err).Msg("log batch process failure")
+			}
+
 		}
 	}
 }
@@ -80,23 +72,30 @@ func (a *App) setLogWriter() {
 }
 
 func (a *App) processBatch(ctx context.Context) error {
-	if len(a.logEntries) == 0 {
+	select {
+	case <-ctx.Done():
+		return nil
+	case entry := <-a.buffer:
+		batch := []map[string]any{entry}
+	loop:
+		for {
+			select {
+			case entry := <-a.buffer:
+				batch = append(batch, entry)
+			default:
+				break loop
+			}
+		}
+		return bulkCopyLogEntries(ctx, batch)
+	default:
 		return nil
 	}
-
-	err := a.bulkCopyLogEntries(ctx)
-	if err != nil {
-		return err
-	}
-
-	a.logEntries = []map[string]any{}
-	return nil
 }
 
-func (a *App) bulkCopyLogEntries(ctx context.Context) error {
+func bulkCopyLogEntries(ctx context.Context, logEntries []map[string]any) error {
 	bulkCopyEntries := [][]any{}
 
-	for _, entry := range a.logEntries {
+	for _, entry := range logEntries {
 		res, err := extractDbEntry(entry)
 		if err != nil {
 			log.Error().Err(err).Msg("Error extracting log entry")

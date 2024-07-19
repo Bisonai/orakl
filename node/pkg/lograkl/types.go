@@ -8,8 +8,7 @@ const DefaultLogStoreInterval = 5 * time.Second
 
 type App struct {
 	StoreInterval time.Duration
-	logChannel    chan map[string]any
-	logEntries    []map[string]any
+	buffer        chan map[string]any
 }
 
 type AppConfig struct {
