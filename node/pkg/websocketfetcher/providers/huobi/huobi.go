@@ -58,6 +58,15 @@ func (f *HuobiFetcher) handleMessage(ctx context.Context, message map[string]any
 			return err
 		}
 	} else {
+		if _, exists := message["subbed"]; exists {
+			f.checkSubResponse(message)
+			return nil
+		}
+
+		if _, exists := message["tick"]; !exists {
+			return nil
+		}
+
 		response, err := common.MessageToStruct[Response](message)
 		if err != nil {
 			log.Error().Str("Player", "Huobi").Err(err).Msg("error in huobi.handleMessage, failed to parse response")
@@ -70,6 +79,20 @@ func (f *HuobiFetcher) handleMessage(ctx context.Context, message map[string]any
 		}
 
 		f.FeedDataBuffer <- *feedData
+	}
+
+	return nil
+}
+
+func (f *HuobiFetcher) checkSubResponse(message map[string]any) error {
+	subResponse, err := common.MessageToStruct[SubResponse](message)
+	if err != nil {
+		log.Error().Str("Player", "Huobi").Err(err).Msg("error in huobi.checkSubResponse, failed to parse sub response")
+		return err
+	}
+	log.Debug().Str("Player", "Huobi").Any("SubResponse", subResponse).Msg("sub response received")
+	if subResponse.Status != "ok" {
+		log.Error().Str("Player", "Huobi").Str("Status", subResponse.Status).Msg("error in huobi.checkSubResponse, sub response status is not ok")
 	}
 
 	return nil
