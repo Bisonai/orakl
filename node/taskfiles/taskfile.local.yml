@@ -125,10 +125,10 @@ tasks:
     dotenv: [".env"]
     cmds:
       - go test ./pkg/dal/tests -v
-  test-logstore:
+  test-lograkl:
     dotenv: [".env"]
     cmds:
-      - go test ./pkg/logstore -v
+      - go test ./pkg/lograkl -v
 
   check-api:
     dotenv: [".env"]
@@ -230,3 +230,4 @@ tasks:
       - task: test-chain
       - task: test-wss
       - task: test-websocketfetcher
+      - task: test-lograkl

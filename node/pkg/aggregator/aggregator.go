@@ -224,6 +224,11 @@ func (n *Aggregator) HandlePriceDataMessage(ctx context.Context, msg raft.Messag
 		defer delete(n.SyncedTimes, priceDataMessage.RoundID)
 		filteredCollectedPrices := FilterNegative(n.CollectedPrices[priceDataMessage.RoundID])
 
+		if len(filteredCollectedPrices) == 0 {
+			log.Warn().Str("Player", "Aggregator").Int32("roundId", priceDataMessage.RoundID).Msg("no prices collected")
+			return nil
+		}
+
 		median, err := calculator.GetInt64Med(filteredCollectedPrices)
 		if err != nil {
 			log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to get median")

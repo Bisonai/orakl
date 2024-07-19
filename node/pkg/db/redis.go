@@ -293,7 +293,6 @@ func GetObject[T any](ctx context.Context, key string) (T, error) {
 	var t T
 	data, err := Get(ctx, key)
 	if err != nil {
-		log.Error().Err(err).Msg("Error getting object")
 		return t, err
 	}
 	err = json.Unmarshal([]byte(data), &t)

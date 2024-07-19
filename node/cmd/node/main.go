@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"os"
-	"strings"
 	"sync"
 	"time"
 
@@ -13,20 +12,18 @@ import (
 	"bisonai.com/orakl/node/pkg/fetcher"
 	"bisonai.com/orakl/node/pkg/libp2p/helper"
 	libp2pSetup "bisonai.com/orakl/node/pkg/libp2p/setup"
+	"bisonai.com/orakl/node/pkg/lograkl"
 	"bisonai.com/orakl/node/pkg/reporter"
 	"bisonai.com/orakl/node/pkg/utils/retrier"
-	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
 func main() {
-	logLevel := os.Getenv("LOG_LEVEL")
-	if logLevel == "" {
-		logLevel = "info"
-	}
-	zerolog.SetGlobalLevel(getLogLevel(logLevel))
-
 	ctx := context.Background()
+
+	lograkl := lograkl.New()
+	go lograkl.Run(ctx)
+
 	mb := bus.New(10)
 	var wg sync.WaitGroup
 
@@ -115,23 +112,4 @@ func main() {
 	log.Info().Msg("libp2p helper started")
 
 	wg.Wait()
-}
-
-func getLogLevel(input string) zerolog.Level {
-	switch strings.ToLower(input) {
-	case "debug":
-		return zerolog.DebugLevel
-	case "info":
-		return zerolog.InfoLevel
-	case "warn":
-		return zerolog.WarnLevel
-	case "error":
-		return zerolog.ErrorLevel
-	case "fatal":
-		return zerolog.FatalLevel
-	case "panic":
-		return zerolog.PanicLevel
-	default:
-		return zerolog.InfoLevel
-	}
 }

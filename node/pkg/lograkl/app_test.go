@@ -1,5 +1,5 @@
 //nolint:all
-package logstore
+package lograkl
 
 import (
 	"context"
@@ -22,34 +22,34 @@ type LogEntry struct {
 func TestNew(t *testing.T) {
 	tests := []struct {
 		name string
-		opts []LogStoreOption
-		want *LogStore
+		opts []AppOption
+		want *App
 	}{
 		{
 			name: "default",
 			opts: nil,
-			want: &LogStore{
+			want: &App{
 				StoreInterval: DefaultLogStoreInterval,
-				logChannel:    make(chan []byte, 1000),
-				logEntries:    make([][]byte, 0),
+				logChannel:    make(chan map[string]any, 1000),
+				logEntries:    []map[string]any{},
 			},
 		},
 		{
 			name: "custom buffer",
-			opts: []LogStoreOption{WithBuffer(500)},
-			want: &LogStore{
+			opts: []AppOption{WithBuffer(500)},
+			want: &App{
 				StoreInterval: DefaultLogStoreInterval,
-				logChannel:    make(chan []byte, 500),
-				logEntries:    make([][]byte, 0),
+				logChannel:    make(chan map[string]any, 500),
+				logEntries:    []map[string]any{},
 			},
 		},
 		{
 			name: "custom interval",
-			opts: []LogStoreOption{WithStoreInterval(time.Second)},
-			want: &LogStore{
+			opts: []AppOption{WithStoreInterval(time.Second)},
+			want: &App{
 				StoreInterval: time.Second,
-				logChannel:    make(chan []byte, 1000),
-				logEntries:    make([][]byte, 0),
+				logChannel:    make(chan map[string]any, 1000),
+				logEntries:    []map[string]any{},
 			},
 		},
 	}
@@ -69,7 +69,7 @@ func TestLogStoreWrite(t *testing.T) {
 	}{
 		{
 			name: "write log",
-			log:  []byte("test"),
+			log:  []byte("{\"test\": \"test\"}"),
 		},
 	}
 	for _, tt := range tests {
@@ -81,36 +81,46 @@ func TestLogStoreWrite(t *testing.T) {
 			}
 			res := <-l.logChannel
 
-			assert.Equal(t, tt.log, res)
+			assert.Equal(t, map[string]any{"test": "test"}, res)
 		})
 	}
 }
 
-func TestLogStore_Run(t *testing.T) {
-	// Test case 1: test with empty log channel
+func TestLograklRun(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	logStore := New()
-	go logStore.Run(ctx)
-	time.Sleep(time.Millisecond * 200) // wait for the logStore to finish running
-	assert.Equal(t, 0, len(logStore.logEntries))
+	lograkl := New()
+	go lograkl.Run(ctx)
+	time.Sleep(time.Millisecond * 200)
+	assert.Equal(t, 0, len(lograkl.logEntries))
 
-	// Test case 2: test with log entries in log channel
 	ctx, cancel = context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	logStore = New()
-	logStore.logChannel <- []byte(`{"test": "test"}`)
-	go logStore.Run(ctx)
-	time.Sleep(time.Millisecond * 200) // wait for the logStore to finish running
-	assert.Equal(t, 1, len(logStore.logEntries))
+	lograkl = New()
+	lograkl.logChannel <- map[string]any{"test": "test"}
+	go lograkl.Run(ctx)
+	time.Sleep(time.Millisecond * 200)
+	assert.Equal(t, 1, len(lograkl.logEntries))
 }
 
 func TestBulkCopyLogEntries(t *testing.T) {
 	ctx := context.Background()
 
-	entries := [][]byte{
-		[]byte(`{"time": 1234567890, "level": "error", "message": "test message", "field1": "test field 1", "field2": 123}`),
-		[]byte(`{"time": 9876543210, "level": "info", "message": "another test message", "field3": "test field 3", "field4": 456}`),
+	events := []map[string]any{
+		{
+			"time":    1234567890.0,
+			"level":   "error",
+			"message": "test message",
+			"field1":  "test field 1",
+			"field2":  123,
+		},
+		{
+			"time":    9876543210.0,
+			"level":   "info",
+			"message": "another test message",
+			"field3":  "test field 3",
+			"field4":  456,
+		},
 	}
 
 	expected := []LogEntry{
@@ -122,7 +132,10 @@ func TestBulkCopyLogEntries(t *testing.T) {
 		},
 	}
 
-	err := bulkCopyLogEntries(ctx, entries)
+	lograkl := New()
+	lograkl.logEntries = []map[string]any{events[0], events[1]}
+
+	err := lograkl.bulkCopyLogEntries(ctx)
 	assert.NoError(t, err)
 
 	result, err := db.QueryRows[LogEntry](ctx, "SELECT level, message, fields, timestamp FROM zerologs", nil)
@@ -151,7 +164,7 @@ func TestExtractLogEntry(t *testing.T) {
 		json.RawMessage(`{"field1":"test field 1","field2":123}`),
 	}
 
-	actual, err := extractLogEntry(event)
+	actual, err := extractDbEntry(event)
 
 	assert.NoError(t, err)
 	assert.Equal(t, expected, actual)
