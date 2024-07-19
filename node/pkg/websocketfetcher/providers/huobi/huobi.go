@@ -58,6 +58,10 @@ func (f *HuobiFetcher) handleMessage(ctx context.Context, message map[string]any
 			return err
 		}
 	} else {
+		if _, exists := message["tick"]; !exists {
+			return nil
+		}
+
 		response, err := common.MessageToStruct[Response](message)
 		if err != nil {
 			log.Error().Str("Player", "Huobi").Err(err).Msg("error in huobi.handleMessage, failed to parse response")
