@@ -5,6 +5,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	"github.com/klaytn/klaytn/common"
@@ -84,7 +85,7 @@ func TestLoadWalletFromDelegator(t *testing.T) {
 
 func TestGetBalance(t *testing.T) {
 	ctx := context.Background()
-	err := setClient("https://klaytn-baobab.g.allthatnode.com/full/evm")
+	err := setClient(os.Getenv("JSON_RPC_URL"))
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
