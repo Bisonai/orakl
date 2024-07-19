@@ -113,6 +113,9 @@ func Start(ctx context.Context) error {
 func loadEnvs() {
 	SubmitterAlarmAmount = 25
 	DelegatorAlarmAmount = 10000
+	if os.Getenv("CHAIN") == "cypress" {
+		DelegatorAlarmAmount = 50000
+	}
 	BalanceCheckInterval = 60 * time.Second
 	BalanceAlarmInterval = 30 * time.Minute
 
