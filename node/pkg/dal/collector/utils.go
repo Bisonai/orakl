@@ -79,32 +79,32 @@ func subscribeAddOracleEvent(ctx context.Context, chainReader *websocketchainrea
 }
 
 func orderProof(ctx context.Context, proof []byte, value int64, timestamp time.Time, symbol string, cachedWhitelist []klaytncommon.Address) ([]byte, error) {
-	proof = RemoveDuplicateProof(proof)
+	proof = removeDuplicateProof(proof)
 	hash := chainutils.Value2HashForSign(value, timestamp.Unix(), symbol)
-	proofChunks, err := SplitProofToChunk(proof)
+	proofChunks, err := splitProofToChunk(proof)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to split proof to chunks in orderProof")
 		return nil, err
 	}
 
-	signers, err := GetSignerListFromProofs(hash, proofChunks)
+	signers, err := getSignerListFromProofs(hash, proofChunks)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to get signer list from proofs in orderProof")
 		return nil, err
 	}
 
-	err = CheckForNonWhitelistedSigners(signers, cachedWhitelist)
+	err = checkForNonWhitelistedSigners(signers, cachedWhitelist)
 	if err != nil {
 		log.Error().Err(err).Msg("non-whitelisted signers found in orderProof")
 		return nil, err
 	}
 
-	signerMap := GetSignerMap(signers, proofChunks)
-	return OrderProof(signerMap, cachedWhitelist)
+	signerMap := getSignerMap(signers, proofChunks)
+	return validateProof(signerMap, cachedWhitelist)
 }
 
-func RemoveDuplicateProof(proof []byte) []byte {
-	proofs, err := SplitProofToChunk(proof)
+func removeDuplicateProof(proof []byte) []byte {
+	proofs, err := splitProofToChunk(proof)
 	if err != nil {
 		return []byte{}
 	}
@@ -122,7 +122,7 @@ func RemoveDuplicateProof(proof []byte) []byte {
 	return bytes.Join(result, nil)
 }
 
-func SplitProofToChunk(proof []byte) ([][]byte, error) {
+func splitProofToChunk(proof []byte) ([][]byte, error) {
 	if len(proof) == 0 {
 		return nil, errorsentinel.ErrDalEmptyProofParam
 	}
@@ -139,7 +139,7 @@ func SplitProofToChunk(proof []byte) ([][]byte, error) {
 	return proofs, nil
 }
 
-func GetSignerListFromProofs(hash []byte, proofChunks [][]byte) ([]klaytncommon.Address, error) {
+func getSignerListFromProofs(hash []byte, proofChunks [][]byte) ([]klaytncommon.Address, error) {
 	signers := []klaytncommon.Address{}
 	for _, p := range proofChunks {
 		signer, err := chainutils.RecoverSigner(hash, p)
@@ -152,7 +152,7 @@ func GetSignerListFromProofs(hash []byte, proofChunks [][]byte) ([]klaytncommon.
 	return signers, nil
 }
 
-func CheckForNonWhitelistedSigners(signers []klaytncommon.Address, whitelist []klaytncommon.Address) error {
+func checkForNonWhitelistedSigners(signers []klaytncommon.Address, whitelist []klaytncommon.Address) error {
 	for _, signer := range signers {
 		if !isWhitelisted(signer, whitelist) {
 			log.Error().Str("Player", "DAL").Str("signer", signer.Hex()).Msg("non-whitelisted signer")
@@ -171,7 +171,7 @@ func isWhitelisted(signer klaytncommon.Address, whitelist []klaytncommon.Address
 	return false
 }
 
-func GetSignerMap(signers []klaytncommon.Address, proofChunks [][]byte) map[klaytncommon.Address][]byte {
+func getSignerMap(signers []klaytncommon.Address, proofChunks [][]byte) map[klaytncommon.Address][]byte {
 	signerMap := make(map[klaytncommon.Address][]byte)
 	for i, signer := range signers {
 		signerMap[signer] = proofChunks[i]
@@ -179,7 +179,7 @@ func GetSignerMap(signers []klaytncommon.Address, proofChunks [][]byte) map[klay
 	return signerMap
 }
 
-func OrderProof(signerMap map[klaytncommon.Address][]byte, whitelist []klaytncommon.Address) ([]byte, error) {
+func validateProof(signerMap map[klaytncommon.Address][]byte, whitelist []klaytncommon.Address) ([]byte, error) {
 	tmpProofs := make([][]byte, 0, len(whitelist))
 	for _, signer := range whitelist {
 		tmpProof, ok := signerMap[signer]
