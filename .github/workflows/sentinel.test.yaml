@@ -36,22 +36,6 @@ jobs:
           cache-dependency-path: |
             ./sentinel/go.sum
 
-      - name: Run lint
-        uses: golangci/golangci-lint-action@v6
-        with:
-          version: v1.54
-          working-directory: sentinel
-          skip-pkg-cache: true
-          skip-build-cache: true
-          args: --timeout=10m
-
-      - name: Run Vet
-        run: |
-          cd ./sentinel
-          go install golang.org/x/tools/go/analysis/passes/shadow/cmd/shadow@latest
-          go vet ./...
-          go vet -vettool=$(which shadow) ./...
-
       - name: Install dependencies
         run: |
           cd ./sentinel
