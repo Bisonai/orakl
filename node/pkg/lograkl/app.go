@@ -58,20 +58,6 @@ func (a *App) Run(ctx context.Context) {
 	}
 }
 
-func (a *App) processBatch(ctx context.Context) error {
-	if len(a.logEntries) == 0 {
-		return nil
-	}
-
-	err := a.bulkCopyLogEntries(ctx)
-	if err != nil {
-		return err
-	}
-
-	a.logEntries = []map[string]any{}
-	return nil
-}
-
 func (a *App) setup() {
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 	a.setLogLevel()
@@ -93,13 +79,18 @@ func (a *App) setLogWriter() {
 	log.Logger = logger
 }
 
-func byte2Entry(b []byte) map[string]any {
-	var entry map[string]interface{}
-	if err := json.Unmarshal(b, &entry); err != nil {
-		log.Error().Err(err).Bytes("raw_entry", b).Msg("Error unmarshaling log entry")
+func (a *App) processBatch(ctx context.Context) error {
+	if len(a.logEntries) == 0 {
 		return nil
 	}
-	return entry
+
+	err := a.bulkCopyLogEntries(ctx)
+	if err != nil {
+		return err
+	}
+
+	a.logEntries = []map[string]any{}
+	return nil
 }
 
 func (a *App) bulkCopyLogEntries(ctx context.Context) error {
@@ -148,6 +139,15 @@ func extractDbEntry(entry map[string]interface{}) ([]any, error) {
 	}
 	fields := json.RawMessage(jsonData)
 	return []any{timestamp, level, message, fields}, nil
+}
+
+func byte2Entry(b []byte) map[string]any {
+	var entry map[string]interface{}
+	if err := json.Unmarshal(b, &entry); err != nil {
+		log.Error().Err(err).Bytes("raw_entry", b).Msg("Error unmarshaling log entry")
+		return nil
+	}
+	return entry
 }
 
 func getLogLevel(input string) zerolog.Level {
