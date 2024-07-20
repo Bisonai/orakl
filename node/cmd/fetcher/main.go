@@ -7,15 +7,15 @@ import (
 	"bisonai.com/orakl/node/pkg/admin"
 	"bisonai.com/orakl/node/pkg/bus"
 	"bisonai.com/orakl/node/pkg/fetcher"
-	"bisonai.com/orakl/node/pkg/lograkl"
+	"bisonai.com/orakl/node/pkg/zeropglog"
 	"github.com/rs/zerolog/log"
 )
 
 func main() {
 	ctx := context.Background()
 
-	lograkl := lograkl.New()
-	go lograkl.Run(ctx)
+	zeropglog := zeropglog.New()
+	go zeropglog.Run(ctx)
 
 	mb := bus.New(10)
 	var wg sync.WaitGroup

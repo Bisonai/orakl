@@ -1,4 +1,4 @@
-package lograkl
+package zeropglog
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"bisonai.com/orakl/node/pkg/db"
+	errorsentinel "bisonai.com/orakl/node/pkg/error"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
@@ -15,7 +16,7 @@ import (
 func New(options ...AppOption) *App {
 	c := &AppConfig{
 		StoreInterval: DefaultLogStoreInterval,
-		Buffer:        1000,
+		Buffer:        DefaultBufferSize,
 	}
 	for _, option := range options {
 		option(c)
@@ -27,7 +28,11 @@ func New(options ...AppOption) *App {
 }
 
 func (a *App) Write(p []byte) (n int, err error) {
-	a.buffer <- byte2Entry(p)
+	res, err := byte2Entry(p)
+	if err != nil {
+		return 0, err
+	}
+	a.buffer <- res
 	return len(p), nil
 }
 
@@ -102,7 +107,7 @@ func bulkCopyLogEntries(ctx context.Context, logEntries []map[string]any) error 
 			continue
 		}
 
-		if res[1].(zerolog.Level) < zerolog.ErrorLevel {
+		if res[1].(zerolog.Level) < zerolog.WarnLevel {
 			log.Debug().Msg("Skipping low level log entry")
 			continue
 		}
@@ -120,9 +125,23 @@ func bulkCopyLogEntries(ctx context.Context, logEntries []map[string]any) error 
 }
 
 func extractDbEntry(entry map[string]interface{}) ([]any, error) {
-	timestamp := time.Unix(int64(entry["time"].(float64)), 0)
-	message := entry["message"].(string)
-	levelStr := entry["level"].(string)
+	timeVal, ok := entry["time"]
+	if !ok {
+		return nil, errorsentinel.ErrLogTimestampNotExist
+	}
+	messageVal, ok := entry["message"]
+	if !ok {
+		return nil, errorsentinel.ErrLogMsgNotExist
+	}
+	levelStrVal, ok := entry["level"]
+	if !ok {
+		return nil, errorsentinel.ErrLogLvlNotExist
+	}
+
+	timestamp := time.Unix(int64(timeVal.(float64)), 0)
+	message := messageVal.(string)
+	levelStr := levelStrVal.(string)
+
 	level, err := zerolog.ParseLevel(levelStr)
 	if err != nil {
 		return nil, err
@@ -140,13 +159,13 @@ func extractDbEntry(entry map[string]interface{}) ([]any, error) {
 	return []any{timestamp, level, message, fields}, nil
 }
 
-func byte2Entry(b []byte) map[string]any {
+func byte2Entry(b []byte) (map[string]any, error) {
 	var entry map[string]interface{}
 	if err := json.Unmarshal(b, &entry); err != nil {
 		log.Error().Err(err).Bytes("raw_entry", b).Msg("Error unmarshaling log entry")
-		return nil
+		return nil, err
 	}
-	return entry
+	return entry, nil
 }
 
 func getLogLevel(input string) zerolog.Level {

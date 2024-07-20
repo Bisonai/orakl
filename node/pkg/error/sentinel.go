@@ -209,4 +209,8 @@ var (
 	ErrRequestInvalidMethod            = &CustomError{Service: Others, Code: InvalidInputError, Message: "Invalid method"}
 	ErrCalculatorEmptyArr              = &CustomError{Service: Others, Code: InternalError, Message: "Empty array"}
 	ErrReducerIndexOutOfBounds         = &CustomError{Service: Others, Code: InvalidInputError, Message: "Index out of bounds"}
+
+	ErrLogTimestampNotExist = &CustomError{Service: Others, Code: InvalidInputError, Message: "Log timestamp not exist"}
+	ErrLogMsgNotExist       = &CustomError{Service: Others, Code: InvalidInputError, Message: "Log message not exist"}
+	ErrLogLvlNotExist       = &CustomError{Service: Others, Code: InvalidInputError, Message: "Log level not exist"}
 )
