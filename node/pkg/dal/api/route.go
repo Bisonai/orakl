@@ -6,7 +6,7 @@ import (
 )
 
 func Routes(router fiber.Router) {
-	api := router.Group("/dal")
+	api := router.Group("")
 
 	api.Get("/symbols", getSymbols)
 	api.Get("/latest-data-feeds/all", getAllLatestFeeds)
