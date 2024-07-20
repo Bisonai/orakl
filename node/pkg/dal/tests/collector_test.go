@@ -56,7 +56,7 @@ func TestCollectorStream(t *testing.T) {
 	assert.True(t, collector.IsRunning)
 
 	headers := map[string]string{"X-API-Key": testItems.ApiKey}
-	conn, err := wss.NewWebsocketHelper(ctx, wss.WithEndpoint("ws://localhost:8090/api/v1/dal/ws"), wss.WithRequestHeaders(headers))
+	conn, err := wss.NewWebsocketHelper(ctx, wss.WithEndpoint("ws://localhost:8090/ws"), wss.WithRequestHeaders(headers))
 	if err != nil {
 		t.Fatalf("error creating websocket helper: %v", err)
 	}
