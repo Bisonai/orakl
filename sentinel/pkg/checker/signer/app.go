@@ -72,7 +72,7 @@ func Start(ctx context.Context) error {
 func check(ctx context.Context) error {
 	alarmMessage := ""
 	signerAddresses, err := GetSignerAddresses(ctx, jsonRpcUrl, submissionProxyContractAddr)
-	log.Info().Msgf("Signer addresses: %v", signerAddresses)
+	log.Debug().Msgf("Signer addresses: %v", signerAddresses)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to get signer addresses")
 		return err
@@ -80,7 +80,7 @@ func check(ctx context.Context) error {
 
 	for _, signerAddress := range signerAddresses {
 		exp, err := ExtractExpirationFromContract(ctx, jsonRpcUrl, submissionProxyContractAddr, signerAddress)
-		log.Info().Msgf("Signer: %s, Expiration: %s", signerAddress, (*exp).String())
+		log.Debug().Msgf("Signer: %s, Expiration: %s", signerAddress, (*exp).String())
 		if err != nil || exp == nil {
 			log.Error().Err(err).Msg(fmt.Sprintf("Failed to extract expiration for signer: %s", signerAddress))
 			alarmMessage += fmt.Sprintf("Failed to extract expiration for signer %s with following error: %v\n", signerAddress, err)
