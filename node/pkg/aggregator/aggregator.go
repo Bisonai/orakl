@@ -225,7 +225,7 @@ func (n *Aggregator) HandlePriceDataMessage(ctx context.Context, msg raft.Messag
 		filteredCollectedPrices := FilterNegative(n.CollectedPrices[priceDataMessage.RoundID])
 
 		if len(filteredCollectedPrices) == 0 {
-			log.Warn().Str("Player", "Aggregator").Int32("roundId", priceDataMessage.RoundID).Msg("no prices collected")
+			log.Warn().Str("Player", "Aggregator").Str("Name", n.Name).Int32("roundId", priceDataMessage.RoundID).Msg("no prices collected")
 			return nil
 		}
 

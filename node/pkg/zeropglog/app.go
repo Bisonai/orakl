@@ -14,6 +14,8 @@ import (
 )
 
 func New(options ...AppOption) *App {
+	consoleWriter := zerolog.ConsoleWriter{Out: os.Stdout}
+
 	c := &AppConfig{
 		StoreInterval: DefaultLogStoreInterval,
 		Buffer:        DefaultBufferSize,
@@ -24,10 +26,19 @@ func New(options ...AppOption) *App {
 	return &App{
 		StoreInterval: c.StoreInterval,
 		buffer:        make(chan map[string]any, c.Buffer),
+		consoleWriter: consoleWriter,
 	}
 }
 
 func (a *App) Write(p []byte) (n int, err error) {
+	if len(p) == 0 {
+		return 0, nil
+	}
+
+	_, err = a.consoleWriter.Write(p)
+	if err != nil {
+		return 0, err
+	}
 
 	res, err := byte2Entry(p)
 	if err != nil {
@@ -78,9 +89,7 @@ func (a *App) setLogLevel() {
 }
 
 func (a *App) setLogWriter() {
-	consoleWriter := zerolog.ConsoleWriter{Out: os.Stdout}
-	multiWriter := zerolog.MultiLevelWriter(consoleWriter, a)
-	logger := zerolog.New(multiWriter).With().Timestamp().Logger()
+	logger := zerolog.New(a).With().Timestamp().Logger()
 	log.Logger = logger
 }
 

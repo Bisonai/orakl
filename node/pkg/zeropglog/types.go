@@ -15,6 +15,7 @@ const (
 type App struct {
 	StoreInterval time.Duration
 	buffer        chan map[string]any
+	consoleWriter zerolog.ConsoleWriter
 }
 
 type AppConfig struct {
