@@ -10,22 +10,18 @@ import (
 	"bisonai.com/orakl/node/pkg/db"
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
 	"github.com/klaytn/klaytn/common"
-	pubsub "github.com/libp2p/go-libp2p-pubsub"
-	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/rs/zerolog/log"
 )
 
-func New(bus *bus.MessageBus, h host.Host, ps *pubsub.PubSub) *App {
+func New(bus *bus.MessageBus) *App {
 	return &App{
 		Reporters: []*Reporter{},
 		Bus:       bus,
-		Host:      h,
-		Pubsub:    ps,
 	}
 }
 
 func (a *App) Run(ctx context.Context) error {
-	err := a.setReporters(ctx, a.Host, a.Pubsub)
+	err := a.setReporters(ctx)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to set reporters")
 		return err
@@ -35,7 +31,7 @@ func (a *App) Run(ctx context.Context) error {
 	return a.startReporters(ctx)
 }
 
-func (a *App) setReporters(ctx context.Context, h host.Host, ps *pubsub.PubSub) error {
+func (a *App) setReporters(ctx context.Context) error {
 	err := a.clearReporters()
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to clear reporters")
@@ -70,8 +66,6 @@ func (a *App) setReporters(ctx context.Context, h host.Host, ps *pubsub.PubSub) 
 	for groupInterval, configs := range groupedConfigs {
 		reporter, errNewReporter := NewReporter(
 			ctx,
-			WithHost(h),
-			WithPubsub(ps),
 			WithConfigs(configs),
 			WithInterval(groupInterval),
 			WithContractAddress(contractAddress),
@@ -90,8 +84,6 @@ func (a *App) setReporters(ctx context.Context, h host.Host, ps *pubsub.PubSub) 
 
 	deviationReporter, errNewDeviationReporter := NewReporter(
 		ctx,
-		WithHost(h),
-		WithPubsub(ps),
 		WithConfigs(configs),
 		WithInterval(DEVIATION_INTERVAL),
 		WithContractAddress(contractAddress),
@@ -226,7 +218,7 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 			return
 		}
 
-		err = a.setReporters(ctx, a.Host, a.Pubsub)
+		err = a.setReporters(ctx)
 		if err != nil {
 			bus.HandleMessageError(err, msg, "failed to set reporters")
 			return

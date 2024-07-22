@@ -11,8 +11,6 @@ import (
 	"bisonai.com/orakl/node/pkg/common/types"
 	"bisonai.com/orakl/node/pkg/raft"
 	"github.com/klaytn/klaytn/common"
-	pubsub "github.com/libp2p/go-libp2p-pubsub"
-	"github.com/libp2p/go-libp2p/core/host"
 )
 
 const (
@@ -55,8 +53,6 @@ type SubmissionPair struct {
 type App struct {
 	Reporters []*Reporter
 	Bus       *bus.MessageBus
-	Host      host.Host
-	Pubsub    *pubsub.PubSub
 }
 
 type JobType int
@@ -67,8 +63,6 @@ const (
 )
 
 type ReporterConfig struct {
-	Host            host.Host
-	Ps              *pubsub.PubSub
 	Configs         []Config
 	Interval        int
 	ContractAddress string
@@ -77,18 +71,6 @@ type ReporterConfig struct {
 }
 
 type ReporterOption func(*ReporterConfig)
-
-func WithHost(h host.Host) ReporterOption {
-	return func(c *ReporterConfig) {
-		c.Host = h
-	}
-}
-
-func WithPubsub(ps *pubsub.PubSub) ReporterOption {
-	return func(c *ReporterConfig) {
-		c.Ps = ps
-	}
-}
 
 func WithConfigs(configs []Config) ReporterOption {
 	return func(c *ReporterConfig) {
@@ -121,7 +103,6 @@ func WithJobType(jobType JobType) ReporterOption {
 }
 
 type Reporter struct {
-	Raft               *raft.Raft
 	KaiaHelper         *helper.ChainHelper
 	SubmissionPairs    map[int32]SubmissionPair
 	SubmissionInterval time.Duration

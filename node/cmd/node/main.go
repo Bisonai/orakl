@@ -90,7 +90,7 @@ func main() {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		r := reporter.New(mb, host, ps)
+		r := reporter.New(mb)
 		reporterErr := r.Run(ctx)
 		if reporterErr != nil {
 			log.Error().Err(reporterErr).Msg("Failed to start reporter")
