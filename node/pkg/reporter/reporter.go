@@ -57,7 +57,7 @@ func NewReporter(ctx context.Context, opts ...ReporterOption) (*Reporter, error)
 
 func (r *Reporter) Run(ctx context.Context) {
 	log.Info().Msgf("Reporter ticker starting with interval: %v", r.SubmissionInterval)
-	ticker := time.NewTicker(r.SubmissionInterval)
+	ticker := time.NewTicker(3 * time.Second)
 
 	for {
 		select {

@@ -41,6 +41,17 @@ func (a *App) setReporters(ctx context.Context) error {
 		chain = "baobab"
 	}
 
+	dalApiKey := os.Getenv("API_KEY")
+	if dalApiKey == "" {
+		return errorSentinel.ErrReporterDalApiKeyNotFound
+	}
+
+	chain := os.Getenv("CHAIN")
+	if chain == "" {
+		log.Warn().Str("Player", "Reporter").Msg("chain not set, defaulting to baobab")
+		chain = "baobab"
+	}
+
 	contractAddress := os.Getenv("SUBMISSION_PROXY_CONTRACT")
 	if contractAddress == "" {
 		return errorSentinel.ErrReporterSubmissionProxyContractNotFound
