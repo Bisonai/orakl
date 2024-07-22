@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"os"
-	"strings"
 	"sync"
 	"time"
 
@@ -13,18 +12,16 @@ import (
 	"bisonai.com/orakl/node/pkg/fetcher"
 	libp2pSetup "bisonai.com/orakl/node/pkg/libp2p/setup"
 	"bisonai.com/orakl/node/pkg/utils/retrier"
-	"github.com/rs/zerolog"
+	"bisonai.com/orakl/node/pkg/zeropglog"
 	"github.com/rs/zerolog/log"
 )
 
 func main() {
-	logLevel := os.Getenv("LOG_LEVEL")
-	if logLevel == "" {
-		logLevel = "info"
-	}
-	zerolog.SetGlobalLevel(getLogLevel(logLevel))
-
 	ctx := context.Background()
+
+	zeropglog := zeropglog.New()
+	go zeropglog.Run(ctx)
+
 	mb := bus.New(10)
 	var wg sync.WaitGroup
 
@@ -94,24 +91,4 @@ func main() {
 	log.Info().Msg("Aggregator started")
 
 	wg.Wait()
-}
-
-func getLogLevel(input string) zerolog.Level {
-	switch strings.ToLower(input) {
-	case "debug":
-		return zerolog.DebugLevel
-	case "info":
-		return zerolog.InfoLevel
-	case "warn":
-		return zerolog.WarnLevel
-	case "error":
-		return zerolog.ErrorLevel
-	case "fatal":
-		return zerolog.FatalLevel
-	case "panic":
-		return zerolog.PanicLevel
-	default:
-		log.Warn().Msg("Unrecognized log level, defaulting to InfoLevel")
-		return zerolog.InfoLevel
-	}
 }
