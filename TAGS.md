@@ -67,3 +67,4 @@
 - **sentinel** v0.0.1.20240722.0436.aef4892 <br> *`PR`*: downgrade some info logs to de... <br><br> 
 - **sentinel** v0.0.1.20240722.0508.94de629 <br> *`PR`*: Sentinel Update sentinel dal a... <br><br> 
 - **node** v0.0.1.20240722.0528.ea7bf6b <br> *`PR`*: Sentinel Update sentinel dal a... <br><br> 
+- **dal** v0.0.1.20240722.0657.d3a3573 <br> *`PR`*: allow trailing comma in data r... <br><br> 
