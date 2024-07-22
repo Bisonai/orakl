@@ -187,7 +187,7 @@ func (t *ChainHelper) MakeDirectTx(ctx context.Context, contractAddressHex strin
 		return err
 	}
 	t.mu.Lock()
-	t.mu.Unlock()
+	defer t.mu.Unlock()
 	err := t.retryOnJsonRpcFailure(ctx, job)
 	return result, err
 }
@@ -202,7 +202,7 @@ func (t *ChainHelper) MakeFeeDelegatedTx(ctx context.Context, contractAddressHex
 		return err
 	}
 	t.mu.Lock()
-	t.mu.Unlock()
+	defer t.mu.Unlock()
 	err := t.retryOnJsonRpcFailure(ctx, job)
 	return result, err
 }
