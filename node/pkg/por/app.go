@@ -74,7 +74,6 @@ func New(ctx context.Context) (*App, error) {
 		helper.WithReporterPk(porReporterPk),
 		helper.WithProviderUrl(providerUrl),
 		helper.WithoutAdditionalProviderUrls(),
-		helper.WithoutAdditionalWallets(),
 	)
 	if err != nil {
 		return nil, err

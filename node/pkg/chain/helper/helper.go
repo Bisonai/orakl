@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"bisonai.com/orakl/node/pkg/chain/utils"
@@ -13,6 +14,7 @@ import (
 	"bisonai.com/orakl/node/pkg/secrets"
 	"bisonai.com/orakl/node/pkg/utils/request"
 	"github.com/klaytn/klaytn/blockchain/types"
+
 	"github.com/klaytn/klaytn/common"
 	"github.com/klaytn/klaytn/crypto"
 	"github.com/rs/zerolog/log"
@@ -60,9 +62,7 @@ func setProviderAndReporter(config *ChainHelperConfig, blockchainType Blockchain
 func NewChainHelper(ctx context.Context, opts ...ChainHelperOption) (*ChainHelper, error) {
 	config := &ChainHelperConfig{
 		BlockchainType:            Kaia,
-		UseAdditionalWallets:      true,
 		UseAdditionalProviderUrls: true,
-		StoreWallet:               true,
 	}
 	for _, opt := range opts {
 		opt(config)
@@ -102,28 +102,10 @@ func NewChainHelper(ctx context.Context, opts ...ChainHelperOption) (*ChainHelpe
 		}
 	}
 
-	primaryWallet := strings.TrimPrefix(config.ReporterPk, "0x")
-	wallets := []string{primaryWallet}
-
-	if config.UseAdditionalWallets {
-		loadedWallets, getWalletErr := utils.GetWallets(ctx)
-		if getWalletErr != nil {
-			log.Warn().Err(getWalletErr).Msg("failed to get additional wallets")
-		}
-
-		for _, wallet := range loadedWallets {
-			if wallet == primaryWallet {
-				continue
-			}
-			wallets = append(wallets, wallet)
-		}
-	}
-
-	if config.StoreWallet {
-		err = utils.InsertWallet(ctx, primaryWallet)
-		if err != nil {
-			log.Warn().Err(err).Msg("failed to insert primary wallet")
-		}
+	walletPk := strings.TrimPrefix(config.ReporterPk, "0x")
+	nonce, err := utils.GetNonceFromPk(ctx, walletPk, primaryClient)
+	if err != nil {
+		return nil, err
 	}
 
 	delegatorUrl := os.Getenv(EnvDelegatorUrl)
@@ -133,9 +115,11 @@ func NewChainHelper(ctx context.Context, opts ...ChainHelperOption) (*ChainHelpe
 
 	return &ChainHelper{
 		clients:      clients,
-		wallets:      wallets,
+		wallet:       walletPk,
 		chainID:      chainID,
 		delegatorUrl: delegatorUrl,
+		nonce:        nonce,
+		mu:           sync.Mutex{},
 	}, nil
 }
 
@@ -167,38 +151,33 @@ func (t *ChainHelper) GetSignedFromDelegator(tx *types.Transaction) (*types.Tran
 	return utils.HashToTx(*result.SignedRawTx)
 }
 
-func (t *ChainHelper) NextReporter() string {
-	if len(t.wallets) == 0 {
-		return ""
-	}
-	reporter := t.wallets[t.lastUsedWalletIndex]
-	t.lastUsedWalletIndex = (t.lastUsedWalletIndex + 1) % len(t.wallets)
-	return reporter
-}
-
 func (t *ChainHelper) MakeDirectTx(ctx context.Context, contractAddressHex string, functionString string, args ...interface{}) (*types.Transaction, error) {
 	var result *types.Transaction
+	nonce := t.getNonce()
+	defer t.increaseNonce()
 	job := func(c utils.ClientInterface) error {
-		tmp, err := utils.MakeDirectTx(ctx, c, contractAddressHex, t.NextReporter(), functionString, t.chainID, args...)
+		tmp, err := utils.MakeDirectTx(ctx, c, contractAddressHex, t.wallet, functionString, t.chainID, nonce, args...)
 		if err == nil {
 			result = tmp
 		}
 		return err
 	}
-	err := t.retryOnJsonRpcFailure(ctx, job)
+	err := t.retryOnNonceFailure(ctx, job)
 	return result, err
 }
 
 func (t *ChainHelper) MakeFeeDelegatedTx(ctx context.Context, contractAddressHex string, functionString string, args ...interface{}) (*types.Transaction, error) {
 	var result *types.Transaction
+	nonce := t.getNonce()
+	defer t.increaseNonce()
 	job := func(c utils.ClientInterface) error {
-		tmp, err := utils.MakeFeeDelegatedTx(ctx, c, contractAddressHex, t.NextReporter(), functionString, t.chainID, args...)
+		tmp, err := utils.MakeFeeDelegatedTx(ctx, c, contractAddressHex, t.wallet, functionString, t.chainID, nonce, args...)
 		if err == nil {
 			result = tmp
 		}
 		return err
 	}
-	err := t.retryOnJsonRpcFailure(ctx, job)
+	err := t.retryOnNonceFailure(ctx, job)
 	return result, err
 }
 
@@ -206,14 +185,14 @@ func (t *ChainHelper) SubmitRawTx(ctx context.Context, tx *types.Transaction) er
 	job := func(c utils.ClientInterface) error {
 		return utils.SubmitRawTx(ctx, c, tx)
 	}
-	return t.retryOnJsonRpcFailure(ctx, job)
+	return t.retryOnNonceFailure(ctx, job)
 }
 
 func (t *ChainHelper) SubmitRawTxString(ctx context.Context, rawTx string) error {
 	job := func(c utils.ClientInterface) error {
 		return utils.SubmitRawTxString(ctx, c, rawTx)
 	}
-	return t.retryOnJsonRpcFailure(ctx, job)
+	return t.retryOnNonceFailure(ctx, job)
 }
 
 // SignTxByFeePayer: used for testing purpose
@@ -246,7 +225,7 @@ func (t *ChainHelper) PublicAddress() (common.Address, error) {
 	// should get the public address of next reporter yet not move the index
 	result := common.Address{}
 
-	reporterPrivateKey := t.wallets[t.lastUsedWalletIndex]
+	reporterPrivateKey := t.wallet
 	privateKey, err := crypto.HexToECDSA(reporterPrivateKey)
 	if err != nil {
 		return result, err
@@ -281,4 +260,49 @@ func (t *ChainHelper) retryOnJsonRpcFailure(ctx context.Context, job func(c util
 		break
 	}
 	return nil
+}
+
+func (t *ChainHelper) retryOnNonceFailure(ctx context.Context, job func(c utils.ClientInterface) error) error {
+	for {
+		err := t.retryOnJsonRpcFailure(ctx, job)
+		if err != nil {
+			if utils.IsNonceError(err) {
+				if err := t.updateNonce(ctx); err != nil {
+					return err
+				}
+				continue
+			}
+			return err
+		}
+		break
+	}
+	return nil
+}
+
+// updateNonce updates the nonce using the provided wallet and clients.
+func (t *ChainHelper) updateNonce(ctx context.Context) error {
+	newNonce, err := utils.GetNonceFromPk(ctx, t.wallet, t.clients[0])
+	if err != nil {
+		return err
+	}
+	t.setNonce(newNonce)
+	return nil
+}
+
+func (t *ChainHelper) getNonce() uint64 {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return t.nonce
+}
+
+func (t *ChainHelper) increaseNonce() {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.nonce++
+}
+
+func (t *ChainHelper) setNonce(newNonce uint64) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.nonce = newNonce
 }

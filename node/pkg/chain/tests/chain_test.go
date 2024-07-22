@@ -98,20 +98,6 @@ func TestNewEthHelper(t *testing.T) {
 	}
 }
 
-func TestNextReporter(t *testing.T) {
-	ctx := context.Background()
-	kaiaHelper, err := helper.NewChainHelper(ctx)
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-	defer kaiaHelper.Close()
-
-	reporter := kaiaHelper.NextReporter()
-	if reporter == "" {
-		t.Errorf("Unexpected reporter: %v", reporter)
-	}
-}
-
 func TestMakeDirectTx(t *testing.T) {
 	ctx := context.Background()
 	kaiaHelper, err := helper.NewChainHelper(ctx)
@@ -678,7 +664,7 @@ func TestSignerRenew(t *testing.T) {
 	assert.Greater(t, newExpiration.Unix(), expiration.Unix())
 
 	//cleanup
-	chainHelperForCleanup, err := helper.NewChainHelper(ctx, helper.WithReporterPk(oldPKHex), helper.WithoutAdditionalWallets())
+	chainHelperForCleanup, err := helper.NewChainHelper(ctx, helper.WithReporterPk(oldPKHex))
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
