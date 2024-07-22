@@ -202,12 +202,12 @@ func getLatestFeeds(c *fiber.Ctx) error {
 	symbols := strings.Split(symbolsStr, ",")
 	results := make([]*dalcommon.OutgoingSubmissionData, len(symbols))
 	for i, symbol := range symbols {
-		if !strings.Contains(symbol, "-") {
-			return fmt.Errorf("wrong symbol format: %s, symbol should be in {BASE}-{QUOTE} format", symbol)
-		}
-
 		if symbol == "" {
 			continue
+		}
+
+		if !strings.Contains(symbol, "-") {
+			return fmt.Errorf("wrong symbol format: %s, symbol should be in {BASE}-{QUOTE} format", symbol)
 		}
 
 		if !strings.Contains(symbol, "test") {
