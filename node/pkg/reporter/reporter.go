@@ -4,14 +4,16 @@ import (
 	"context"
 	"math/big"
 	"strconv"
+	"sync"
 	"time"
 
-	"bisonai.com/orakl/node/pkg/chain/helper"
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
 	"bisonai.com/orakl/node/pkg/utils/request"
 
 	"github.com/rs/zerolog/log"
 )
+
+var mu sync.Mutex
 
 func NewReporter(ctx context.Context, opts ...ReporterOption) (*Reporter, error) {
 	config := &ReporterConfig{
@@ -55,7 +57,7 @@ func NewReporter(ctx context.Context, opts ...ReporterOption) (*Reporter, error)
 
 func (r *Reporter) Run(ctx context.Context) {
 	log.Info().Msgf("Reporter ticker starting with interval: %v", r.SubmissionInterval)
-	ticker := time.NewTicker(3 * time.Second)
+	ticker := time.NewTicker(r.SubmissionInterval)
 
 	for {
 		select {
@@ -127,6 +129,9 @@ func (r *Reporter) report(ctx context.Context) error {
 }
 
 func (r *Reporter) reportDirect(ctx context.Context, functionString string, args ...interface{}) error {
+	mu.Lock()
+	defer mu.Unlock()
+
 	rawTx, err := r.KaiaHelper.MakeDirectTx(ctx, r.contractAddress, functionString, args...)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("MakeDirectTx")
@@ -137,6 +142,9 @@ func (r *Reporter) reportDirect(ctx context.Context, functionString string, args
 }
 
 func (r *Reporter) reportDelegated(ctx context.Context, functionString string, args ...interface{}) error {
+	mu.Lock()
+	defer mu.Unlock()
+
 	log.Debug().Str("Player", "Reporter").Msg("reporting delegated")
 	rawTx, err := r.KaiaHelper.MakeFeeDelegatedTx(ctx, r.contractAddress, functionString, args...)
 	if err != nil {
@@ -214,16 +222,3 @@ func (r *Reporter) reportDelegated(ctx context.Context, functionString string, a
 // 	log.Info().Int("deviations", len(deviatingAggregates)).Str("Player", "Reporter").Dur("duration", time.Since(start)).Msg("reporting deviation done")
 // 	return nil
 // }
-
-func (r *Reporter) SetKaiaHelper(ctx context.Context) error {
-	if r.KaiaHelper != nil {
-		r.KaiaHelper.Close()
-	}
-	kaiaHelper, err := helper.NewChainHelper(ctx)
-	if err != nil {
-		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to create kaia helper")
-		return err
-	}
-	r.KaiaHelper = kaiaHelper
-	return nil
-}

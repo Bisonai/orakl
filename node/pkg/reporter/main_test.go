@@ -118,7 +118,7 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 
 	testItems.admin = admin
 
-	app := New(mb)
+	app := New()
 	testItems.app = app
 
 	tmpData, err := insertSampleData(ctx)
@@ -156,10 +156,10 @@ func reporterCleanup(ctx context.Context, admin *fiber.App, app *App) func() err
 			return err
 		}
 
-		err = app.stopReporters()
-		if err != nil {
-			return err
-		}
+		// err = app.stopReporters()
+		// if err != nil {
+		// 	return err
+		// }
 		return nil
 	}
 }

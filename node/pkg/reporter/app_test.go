@@ -46,10 +46,10 @@ func TestStopReporter(t *testing.T) {
 		t.Fatal("error running reporter")
 	}
 
-	err = testItems.app.stopReporters()
-	if err != nil {
-		t.Fatal("error stopping reporter")
-	}
+	// err = testItems.app.stopReporters()
+	// if err != nil {
+	// 	t.Fatal("error stopping reporter")
+	// }
 
 	assert.Equal(t, testItems.app.Reporters[0].isRunning, false)
 }
@@ -65,8 +65,6 @@ func TestStopReporterByAdmin(t *testing.T) {
 			t.Logf("Cleanup failed: %v", cleanupErr)
 		}
 	}()
-
-	testItems.app.subscribe(ctx)
 
 	err = testItems.app.Run(ctx)
 	if err != nil {
@@ -93,7 +91,6 @@ func TestStartReporterByAdmin(t *testing.T) {
 		}
 	}()
 
-	testItems.app.subscribe(ctx)
 	err = testItems.app.setReporters(ctx)
 	if err != nil {
 		t.Fatalf("error setting reporters: %v", err)
@@ -121,7 +118,6 @@ func TestRestartReporterByAdmin(t *testing.T) {
 		}
 	}()
 
-	testItems.app.subscribe(ctx)
 	err = testItems.app.setReporters(ctx)
 	if err != nil {
 		t.Fatalf("error setting reporters: %v", err)

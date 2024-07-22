@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"bisonai.com/orakl/node/pkg/bus"
 	"bisonai.com/orakl/node/pkg/chain/helper"
 	"bisonai.com/orakl/node/pkg/common/types"
 	dalcommon "bisonai.com/orakl/node/pkg/dal/common"
@@ -52,8 +51,8 @@ type SubmissionPair struct {
 }
 
 type App struct {
-	Reporters []*Reporter
-	Bus       *bus.MessageBus
+	Reporters   []*Reporter
+	chainHelper *helper.ChainHelper
 }
 
 type JobType int

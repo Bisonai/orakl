@@ -2,53 +2,37 @@ package main
 
 import (
 	"context"
-	"sync"
+	"os"
+	"os/signal"
+	"syscall"
 
-	"bisonai.com/orakl/node/pkg/admin"
-	"bisonai.com/orakl/node/pkg/bus"
 	"bisonai.com/orakl/node/pkg/reporter"
 	"bisonai.com/orakl/node/pkg/zeropglog"
 	"github.com/rs/zerolog/log"
 )
 
 func main() {
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 
 	zeropglog := zeropglog.New()
 	go zeropglog.Run(ctx)
 
-	var wg sync.WaitGroup
-	mb := bus.New(10)
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		adminErr := admin.Run(mb)
-		if adminErr != nil {
-			log.Error().Err(adminErr).Msg("Failed to start admin server")
-			return
-		}
-	}()
-	log.Info().Msg("Admin started")
-
-	err := admin.SyncOraklConfig(ctx)
+	r := reporter.New()
+	err := r.Run(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to sync orakl config")
+		log.Error().Err(err).Msg("Failed to start reporter")
+		cancel()
 		return
 	}
-	log.Info().Msg("Orakl config synced")
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		r := reporter.New(mb)
-		err := r.Run(ctx)
-		if err != nil {
-			log.Error().Err(err).Msg("Failed to start reporter")
-			return
-		}
-	}()
-	log.Info().Msg("Reporter started")
+	<-sigChan
+	log.Info().Msg("Reporter termination signal received")
 
-	wg.Wait()
+	cancel()
+
+	log.Info().Msg("Reporter service has stopped")
 }
