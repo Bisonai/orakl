@@ -9,9 +9,19 @@ import (
 
 	"bisonai.com/orakl/node/pkg/db"
 	errorsentinel "bisonai.com/orakl/node/pkg/error"
+	"bisonai.com/orakl/node/pkg/utils/cbor"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
+
+type CustomConsoleWriter struct {
+	ConsoleWriter zerolog.ConsoleWriter
+}
+
+func (c CustomConsoleWriter) Write(p []byte) (n int, err error) {
+	p = cbor.DecodeIfBinaryToBytes(p)
+	return c.ConsoleWriter.Write(p)
+}
 
 func New(options ...AppOption) *App {
 	c := &AppConfig{
@@ -78,8 +88,14 @@ func (a *App) setLogLevel() {
 }
 
 func (a *App) setLogWriter() {
-	consoleWriter := zerolog.ConsoleWriter{Out: os.Stdout}
-	multiWriter := zerolog.MultiLevelWriter(consoleWriter, a)
+	consoleWriter := zerolog.ConsoleWriter{
+		Out: os.Stdout,
+	}
+	customConsoleWriter := CustomConsoleWriter{
+		ConsoleWriter: consoleWriter,
+	}
+
+	multiWriter := zerolog.MultiLevelWriter(customConsoleWriter, a)
 	logger := zerolog.New(multiWriter).With().Timestamp().Logger()
 	log.Logger = logger
 }
