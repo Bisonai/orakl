@@ -76,8 +76,7 @@ func (r *Reporter) report(ctx context.Context) error {
 	for _, submissionPair := range r.SubmissionPairs {
 		pairs += submissionPair.Name + ","
 	}
-	submissionData, err := request.Request[[]SubmissionData](request.WithEndpoint(r.DalEndpoint+"/latest-data-feeds/"+pairs), request.WithTimeout(5*time.Second), request.WithHeaders(map[string]string{"X-API-Key": r.DalApiKey, "Content-Type": "application/json"}))
-	log.Info().Str("Player", "Reporter").Msg("-------got submission data---------")
+	submissionData, err := request.Request[[]SubmissionData](request.WithEndpoint(r.DalEndpoint+"/latest-data-feeds/"+pairs), request.WithTimeout(10*time.Second), request.WithHeaders(map[string]string{"X-API-Key": r.DalApiKey, "Content-Type": "application/json"}))
 
 	if err != nil {
 		return err
@@ -107,23 +106,23 @@ func (r *Reporter) report(ctx context.Context) error {
 		proofs = append(proofs, data.Proof)
 	}
 
-	// for start := 0; start < len(submissionData); start += MAX_REPORT_BATCH_SIZE {
-	// 	end := min(start+MAX_REPORT_BATCH_SIZE, len(submissionData))
+	for start := 0; start < len(submissionData); start += MAX_REPORT_BATCH_SIZE {
+		end := min(start+MAX_REPORT_BATCH_SIZE, len(submissionData))
 
-	// 	batchFeedHashes := feedHashes[start:end]
-	// 	batchValues := values[start:end]
-	// 	batchTimestamps := timestamps[start:end]
-	// 	batchProofs := proofs[start:end]
+		batchFeedHashes := feedHashes[start:end]
+		batchValues := values[start:end]
+		batchTimestamps := timestamps[start:end]
+		batchProofs := proofs[start:end]
 
-	// 	err := r.reportDelegated(ctx, SUBMIT_WITH_PROOFS, batchFeedHashes, batchValues, batchTimestamps, batchProofs)
-	// 	if err != nil {
-	// 		log.Error().Str("Player", "Reporter").Err(err).Msg("report")
-	// 		err = r.reportDirect(ctx, SUBMIT_WITH_PROOFS, batchFeedHashes, batchValues, batchTimestamps, batchProofs)
-	// 		if err != nil {
-	// 			log.Error().Str("Player", "Reporter").Err(err).Msg("report")
-	// 		}
-	// 	}
-	// }
+		err := r.reportDelegated(ctx, SUBMIT_WITH_PROOFS, batchFeedHashes, batchValues, batchTimestamps, batchProofs)
+		if err != nil {
+			log.Error().Str("Player", "Reporter").Err(err).Msg("report")
+			err = r.reportDirect(ctx, SUBMIT_WITH_PROOFS, batchFeedHashes, batchValues, batchTimestamps, batchProofs)
+			if err != nil {
+				log.Error().Str("Player", "Reporter").Err(err).Msg("report")
+			}
+		}
+	}
 	return nil
 }
 
