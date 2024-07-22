@@ -62,3 +62,4 @@
 - **api** v0.0.1.20240717.0835.d1cde6f <br> *`PR`*: Remove aggregator and fetcher ... <br><br> 
 - **api** v0.0.1.20240717.0848.f15e4a1 <br> *`PR`*: API Remove unused redis refere... <br><br> 
 - **sentinel** v0.0.1.20240718.0315.c7556ec <br> *`PR`*: SentinelUpdate dal port for he... <br><br> 
+- **dal** v0.0.1.20240722.0145.98e63ea <br> *`PR`*: DAL Simplify api endpoint <br><br> 
