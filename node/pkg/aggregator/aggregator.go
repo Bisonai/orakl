@@ -219,7 +219,7 @@ func (n *Aggregator) HandlePriceDataMessage(ctx context.Context, msg raft.Messag
 
 	n.CollectedPrices[priceDataMessage.RoundID] = append(n.CollectedPrices[priceDataMessage.RoundID], priceDataMessage.PriceData)
 	if len(n.CollectedPrices[priceDataMessage.RoundID]) >= n.Raft.SubscribersCount()+1 {
-		log.Info().Str("Player", "Aggregator").Any("collected prices", n.CollectedPrices[priceDataMessage.RoundID]).Int32("roundId", priceDataMessage.RoundID).Msg("collected prices")
+		log.Debug().Str("Player", "Aggregator").Str("Name", n.Name).Any("collected prices", n.CollectedPrices[priceDataMessage.RoundID]).Int32("roundId", priceDataMessage.RoundID).Msg("collected prices")
 		defer delete(n.CollectedPrices, priceDataMessage.RoundID)
 		defer delete(n.SyncedTimes, priceDataMessage.RoundID)
 		filteredCollectedPrices := FilterNegative(n.CollectedPrices[priceDataMessage.RoundID])
@@ -229,7 +229,7 @@ func (n *Aggregator) HandlePriceDataMessage(ctx context.Context, msg raft.Messag
 			log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to get median")
 			return err
 		}
-		log.Info().Str("Player", "Aggregator").Str("Name", n.Name).Any("filtered collected prices", filteredCollectedPrices).Int32("roundId", priceDataMessage.RoundID).Int64("global_aggregate", median).Msg("global aggregated")
+		log.Debug().Str("Player", "Aggregator").Str("Name", n.Name).Any("filtered collected prices", filteredCollectedPrices).Int32("roundId", priceDataMessage.RoundID).Int64("global_aggregate", median).Msg("global aggregated")
 		n.PreparedGlobalAggregates[priceDataMessage.RoundID] = GlobalAggregate{
 			ConfigID:  n.ID,
 			Value:     median,

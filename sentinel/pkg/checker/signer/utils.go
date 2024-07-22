@@ -59,7 +59,7 @@ func GetSignerAddresses(ctx context.Context, jsonrpc string, submissionProxy str
 }
 
 func ReadContract(ctx context.Context, client client.Client, functionString string, contractAddress string, args ...interface{}) (interface{}, error) {
-	log.Info().Msg("Preparing to read contract")
+	log.Debug().Msg("Preparing to read contract")
 	functionName, inputs, outputs, err := ParseMethodSignature(functionString)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to parse method signature")

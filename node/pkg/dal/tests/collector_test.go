@@ -85,12 +85,12 @@ func TestCollectorStream(t *testing.T) {
 		t.Fatalf("error generating sample submission data: %v", err)
 	}
 
-	log.Info().Msg("Publishing data")
+	log.Debug().Msg("Publishing data")
 	err = testPublishData(ctx, *sampleSubmissionData)
 	if err != nil {
 		t.Fatalf("error publishing data: %v", err)
 	}
-	log.Info().Int32("configId", sampleSubmissionData.GlobalAggregate.ConfigID).Msg("Published data")
+	log.Debug().Int32("configId", sampleSubmissionData.GlobalAggregate.ConfigID).Msg("Published data")
 
 	ch := make(chan any)
 	go conn.Read(ctx, ch)

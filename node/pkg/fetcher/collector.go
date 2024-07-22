@@ -94,7 +94,7 @@ func (c *Collector) processVolumeWeightedFeeds(ctx context.Context, feeds []Feed
 		log.Error().Err(err).Str("Player", "Collector").Msg("error in calculateMedian in collector")
 		return err
 	}
-	log.Info().Str("Player", "Collector").Msg(fmt.Sprintf("VWAP: %f Median: %f", vwap, median))
+	log.Debug().Str("Player", "Collector").Msg(fmt.Sprintf("VWAP: %f Median: %f", vwap, median))
 	aggregated := calculateAggregatedPrice(vwap, median)
 	return c.streamLocalAggregate(ctx, aggregated)
 }
