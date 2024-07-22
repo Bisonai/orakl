@@ -195,6 +195,7 @@ var (
 	ErrReporterStart                            = &CustomError{Service: Reporter, Code: InternalError, Message: "Failed to start reporters"}
 	ErrReporterStop                             = &CustomError{Service: Reporter, Code: InternalError, Message: "Failed to stop reporters"}
 	ErrReporterValidateAggregateTimestampValues = &CustomError{Service: Reporter, Code: InternalError, Message: "Failed to validate aggregate timestamp values"}
+	ErrReporterDalApiKeyNotFound                = &CustomError{Service: Reporter, Code: InternalError, Message: "DAL API key not found in reporter"}
 
 	ErrDalEmptyProofParam      = &CustomError{Service: Dal, Code: InvalidInputError, Message: "Empty proof param"}
 	ErrDalInvalidProofLength   = &CustomError{Service: Dal, Code: InvalidInputError, Message: "Invalid proof length"}

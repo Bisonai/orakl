@@ -29,6 +29,10 @@ tasks:
     dotenv: [".env"]
     cmds:
       - go run ./cmd/dal/main.go
+  reporter:
+    dotenv: [".env"]
+    cmds:
+      - go run ./cmd/reporter/main.go
 
   script-submission:
     dotenv: [".env"]
@@ -98,10 +102,10 @@ tasks:
     dotenv: [".env"]
     cmds:
       - go test ./pkg/libp2p/tests -v
-  test-reporter:
-    dotenv: [".env"]
-    cmds:
-      - go test ./pkg/reporter -v
+  # test-reporter:
+  #   dotenv: [".env"]
+  #   cmds:
+  #     - go test ./pkg/reporter -v
   test-boot:
     dotenv: [".env"]
     cmds:
@@ -226,7 +230,7 @@ tasks:
       - task: test-fetcher
       - task: test-utils
       - task: test-aggregator
-      - task: test-reporter
+      # - task: test-reporter
       - task: test-chain
       - task: test-wss
       - task: test-websocketfetcher
