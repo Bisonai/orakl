@@ -86,41 +86,35 @@ func ProofsToMap(proofs []Proof) map[int32][]byte {
 	return m
 }
 
-func MakeContractArgsWithProofs(aggregates []GlobalAggregate, submissionPairs map[int32]SubmissionPair, proofMap map[int32][]byte) ([][32]byte, []*big.Int, []*big.Int, [][]byte, error) {
+func MakeContractArgsWithProofs(aggregates []GlobalAggregate, submissionPairs map[int32]SubmissionPair) ([][32]byte, []*big.Int, []*big.Int, error) {
 	if len(aggregates) == 0 {
-		return nil, nil, nil, nil, errorSentinel.ErrReporterEmptyAggregatesParam
+		return nil, nil, nil, errorSentinel.ErrReporterEmptyAggregatesParam
 	}
 
 	if len(submissionPairs) == 0 {
-		return nil, nil, nil, nil, errorSentinel.ErrReporterEmptySubmissionPairsParam
-	}
-
-	if len(proofMap) == 0 {
-		return nil, nil, nil, nil, errorSentinel.ErrReporterEmptyProofParam
+		return nil, nil, nil, errorSentinel.ErrReporterEmptySubmissionPairsParam
 	}
 
 	feedHash := make([][32]byte, len(aggregates))
 	values := make([]*big.Int, len(aggregates))
 	timestamps := make([]*big.Int, len(aggregates))
-	proofs := make([][]byte, len(aggregates))
 
 	for i, agg := range aggregates {
 		if agg.ConfigID == 0 || agg.Value < 0 {
 			log.Error().Str("Player", "Reporter").Int32("configId", agg.ConfigID).Int64("value", agg.Value).Msg("skipping invalid aggregate")
-			return nil, nil, nil, nil, errorSentinel.ErrReporterInvalidAggregateFound
+			return nil, nil, nil, errorSentinel.ErrReporterInvalidAggregateFound
 		}
 
 		name := submissionPairs[agg.ConfigID].Name
 		copy(feedHash[i][:], crypto.Keccak256([]byte(name)))
 		values[i] = big.NewInt(agg.Value)
 		timestamps[i] = big.NewInt(agg.Timestamp.Unix())
-		proofs[i] = proofMap[agg.ConfigID]
 	}
 
-	if len(feedHash) == 0 || len(values) == 0 || len(proofs) == 0 || len(timestamps) == 0 {
-		return nil, nil, nil, nil, errorSentinel.ErrReporterEmptyValidAggregates
+	if len(feedHash) == 0 || len(values) == 0 || len(timestamps) == 0 {
+		return nil, nil, nil, errorSentinel.ErrReporterEmptyValidAggregates
 	}
-	return feedHash, values, timestamps, proofs, nil
+	return feedHash, values, timestamps, nil
 }
 
 func FilterInvalidAggregates(aggregates []GlobalAggregate, submissionPairs map[int32]SubmissionPair) []GlobalAggregate {
@@ -250,23 +244,6 @@ func isWhitelisted(signer common.Address, whitelist []common.Address) bool {
 		}
 	}
 	return false
-}
-
-func OrderProof(signerMap map[common.Address][]byte, whitelist []common.Address) ([]byte, error) {
-	tmpProofs := make([][]byte, 0, len(whitelist))
-	for _, signer := range whitelist {
-		tmpProof, ok := signerMap[signer]
-		if ok {
-			tmpProofs = append(tmpProofs, tmpProof)
-		}
-	}
-
-	if len(tmpProofs) == 0 {
-		log.Error().Str("Player", "Reporter").Msg("no valid proofs")
-		return nil, errorSentinel.ErrReporterEmptyValidProofs
-	}
-
-	return bytes.Join(tmpProofs, nil), nil
 }
 
 func GetSignerMap(signers []common.Address, proofChunks [][]byte) map[common.Address][]byte {
