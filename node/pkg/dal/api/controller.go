@@ -200,8 +200,8 @@ func getLatestFeeds(c *fiber.Ctx) error {
 	}
 
 	symbols := strings.Split(symbolsStr, ",")
-	results := make([]*dalcommon.OutgoingSubmissionData, len(symbols))
-	for i, symbol := range symbols {
+	results := []*dalcommon.OutgoingSubmissionData{}
+	for _, symbol := range symbols {
 		if symbol == "" {
 			continue
 		}
@@ -219,7 +219,7 @@ func getLatestFeeds(c *fiber.Ctx) error {
 			return err
 		}
 
-		results[i] = result
+		results = append(results, result)
 	}
 
 	return c.JSON(results)
