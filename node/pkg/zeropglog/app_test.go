@@ -31,7 +31,7 @@ func TestNew(t *testing.T) {
 			opts: nil,
 			want: &App{
 				StoreInterval: DefaultLogStoreInterval,
-				buffer:        make(chan map[string]any, 1000),
+				buffer:        make(chan map[string]any, DefaultBufferSize),
 			},
 		},
 		{
@@ -47,7 +47,7 @@ func TestNew(t *testing.T) {
 			opts: []AppOption{WithStoreInterval(time.Second)},
 			want: &App{
 				StoreInterval: time.Second,
-				buffer:        make(chan map[string]any, 1000),
+				buffer:        make(chan map[string]any, DefaultBufferSize),
 			},
 		},
 		{
@@ -55,7 +55,7 @@ func TestNew(t *testing.T) {
 			opts: []AppOption{WithBuffer(-1)},
 			want: &App{
 				StoreInterval: DefaultLogStoreInterval,
-				buffer:        make(chan map[string]any, 1000), // Should fallback to default
+				buffer:        make(chan map[string]any, DefaultBufferSize), // Should fallback to default
 			},
 		},
 	}

@@ -2,11 +2,14 @@ package zeropglog
 
 import (
 	"time"
+
+	"github.com/rs/zerolog"
 )
 
 const (
 	DefaultLogStoreInterval = 10 * time.Second
 	DefaultBufferSize       = 3000
+	MinimalLogStoreLevel    = zerolog.WarnLevel
 )
 
 type App struct {

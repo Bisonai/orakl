@@ -101,14 +101,23 @@ func bulkCopyLogEntries(ctx context.Context, logEntries []map[string]any) error 
 	bulkCopyEntries := [][]any{}
 
 	for _, entry := range logEntries {
-		res, err := extractDbEntry(entry)
-		if err != nil {
-			log.Error().Err(err).Msg("Error extracting log entry")
+		levelStr, ok := entry["level"].(string)
+		if !ok {
 			continue
 		}
 
-		if res[1].(zerolog.Level) < zerolog.WarnLevel {
-			log.Debug().Msg("Skipping low level log entry")
+		lv, err := zerolog.ParseLevel(levelStr)
+		if err != nil {
+			continue
+		}
+
+		if lv < MinimalLogStoreLevel {
+			continue
+		}
+
+		res, err := extractDbEntry(entry)
+		if err != nil {
+			log.Error().Err(err).Msg("Error extracting log entry")
 			continue
 		}
 
