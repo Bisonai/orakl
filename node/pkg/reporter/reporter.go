@@ -50,6 +50,7 @@ func NewReporter(ctx context.Context, opts ...ReporterOption) (*Reporter, error)
 }
 
 func (r *Reporter) Run(ctx context.Context) {
+	log.Info().Msgf("Reporter ticker starting with interval: %v", r.SubmissionInterval)
 	ticker := time.NewTicker(r.SubmissionInterval)
 
 	for {
@@ -69,6 +70,7 @@ func (r *Reporter) Run(ctx context.Context) {
 func (r *Reporter) report(ctx context.Context) error {
 	log.Info().Str("Player", "Reporter").Msgf("submission pairs: %v", r.SubmissionPairs)
 	// fetch data from dal and report
+
 	// for start := 0; start < len(feedHashes); start += MAX_REPORT_BATCH_SIZE {
 	// 	end := min(start+MAX_REPORT_BATCH_SIZE, len(feedHashes))
 

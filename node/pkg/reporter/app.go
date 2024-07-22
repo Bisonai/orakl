@@ -82,19 +82,19 @@ func (a *App) setReporters(ctx context.Context) error {
 		return errorSentinel.ErrReporterNotFound
 	}
 
-	deviationReporter, errNewDeviationReporter := NewReporter(
-		ctx,
-		WithConfigs(configs),
-		WithInterval(DEVIATION_INTERVAL),
-		WithContractAddress(contractAddress),
-		WithCachedWhitelist(cachedWhitelist),
-		WithJobType(DeviationJob),
-	)
-	if errNewDeviationReporter != nil {
-		log.Error().Str("Player", "Reporter").Err(errNewDeviationReporter).Msg("failed to set deviation reporter")
-		return errNewDeviationReporter
-	}
-	a.Reporters = append(a.Reporters, deviationReporter)
+	// deviationReporter, errNewDeviationReporter := NewReporter(
+	// 	ctx,
+	// 	WithConfigs(configs),
+	// 	WithInterval(DEVIATION_INTERVAL),
+	// 	WithContractAddress(contractAddress),
+	// 	WithCachedWhitelist(cachedWhitelist),
+	// 	WithJobType(DeviationJob),
+	// )
+	// if errNewDeviationReporter != nil {
+	// 	log.Error().Str("Player", "Reporter").Err(errNewDeviationReporter).Msg("failed to set deviation reporter")
+	// 	return errNewDeviationReporter
+	// }
+	// a.Reporters = append(a.Reporters, deviationReporter)
 
 	log.Info().Str("Player", "Reporter").Msgf("%d reporters set", len(a.Reporters))
 	return nil

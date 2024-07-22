@@ -4,7 +4,9 @@ import (
 	"context"
 	"os"
 	"strings"
+	"sync"
 
+	"bisonai.com/orakl/node/pkg/admin"
 	"bisonai.com/orakl/node/pkg/bus"
 	"bisonai.com/orakl/node/pkg/reporter"
 	"github.com/rs/zerolog"
@@ -19,13 +21,40 @@ func main() {
 	zerolog.SetGlobalLevel(getLogLevel(logLevel))
 
 	ctx := context.Background()
+	var wg sync.WaitGroup
 	mb := bus.New(10)
-	r := reporter.New(mb)
-	err := r.Run(ctx)
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		adminErr := admin.Run(mb)
+		if adminErr != nil {
+			log.Error().Err(adminErr).Msg("Failed to start admin server")
+			return
+		}
+	}()
+	log.Info().Msg("Admin started")
+
+	err := admin.SyncOraklConfig(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to start reporter")
-		os.Exit(1)
+		log.Error().Err(err).Msg("Failed to sync orakl config")
+		return
 	}
+	log.Info().Msg("Orakl config synced")
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		r := reporter.New(mb)
+		err := r.Run(ctx)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to start reporter")
+			return
+		}
+	}()
+	log.Info().Msg("Reporter started")
+
+	wg.Wait()
 }
 
 func getLogLevel(input string) zerolog.Level {
