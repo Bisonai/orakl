@@ -65,3 +65,4 @@
 - **dal** v0.0.1.20240722.0145.98e63ea <br> *`PR`*: DAL Simplify api endpoint <br><br> 
 - **sentinel** v0.0.1.20240722.0150.c79d9e5 <br> *`PR`*: DAL Simplify api endpoint <br><br> 
 - **sentinel** v0.0.1.20240722.0436.aef4892 <br> *`PR`*: downgrade some info logs to de... <br><br> 
+- **sentinel** v0.0.1.20240722.0508.94de629 <br> *`PR`*: Sentinel Update sentinel dal a... <br><br> 
