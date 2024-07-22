@@ -15,7 +15,8 @@ import (
 
 const (
 	DefaultDalCheckInterval = 10 * time.Second
-	DelayOffset             = 2 * time.Second
+	DelayOffset             = 5 * time.Second
+	AlarmOffset             = 3
 )
 
 type OutgoingSubmissionData struct {
@@ -48,8 +49,10 @@ func Start() error {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
+	alarmCount := map[string]int{}
+
 	for range ticker.C {
-		err := checkDal(endpoint, key)
+		err := checkDal(endpoint, key, alarmCount)
 		if err != nil {
 			log.Error().Str("Player", "DalChecker").Err(err).Msg("error in checkDal")
 		}
@@ -57,13 +60,16 @@ func Start() error {
 	return nil
 }
 
-func checkDal(endpoint string, key string) error {
+func checkDal(endpoint string, key string, alarmCount map[string]int) error {
 	msg := ""
 
+	now := time.Now()
 	resp, err := request.Request[[]OutgoingSubmissionData](
 		request.WithEndpoint(endpoint+"/latest-data-feeds/all"),
 		request.WithHeaders(map[string]string{"X-API-Key": key}),
 	)
+	networkDelay := time.Since(now)
+
 	if err != nil {
 		return err
 	}
@@ -77,11 +83,19 @@ func checkDal(endpoint string, key string) error {
 
 		timestamp := time.Unix(rawTimestamp, 0)
 		offset := time.Since(timestamp)
-		log.Debug().Str("Player", "DalChecker").Str("symbol", data.Symbol).Time("timestamp", timestamp).Dur("offset", offset).Msg("DAL price check")
+		log.Debug().Str("Player", "DalChecker").Dur("network delay", networkDelay).Str("symbol", data.Symbol).Time("timestamp", timestamp).Dur("offset", offset).Msg("DAL price check")
 
-		if offset > DelayOffset {
-			msg += fmt.Sprintf("(DAL) %s price update delayed by %s\n", data.Symbol, offset)
+		if offset > DelayOffset+networkDelay {
+			alarmCount[data.Symbol]++
+
+			if alarmCount[data.Symbol] > AlarmOffset {
+				msg += fmt.Sprintf("(DAL) %s price update delayed by %s\n", data.Symbol, offset)
+				alarmCount[data.Symbol] = 0
+			}
+		} else {
+			alarmCount[data.Symbol] = 0
 		}
+
 	}
 
 	if msg != "" {
