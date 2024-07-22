@@ -6,7 +6,7 @@ import (
 
 const (
 	DefaultLogStoreInterval = 10 * time.Second
-	DefaultBufferSize       = 1000
+	DefaultBufferSize       = 3000
 )
 
 type App struct {
