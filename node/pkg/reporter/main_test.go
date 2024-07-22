@@ -15,7 +15,6 @@ import (
 	"bisonai.com/orakl/node/pkg/chain/helper"
 	"bisonai.com/orakl/node/pkg/common/keys"
 	"bisonai.com/orakl/node/pkg/db"
-	libp2pSetup "bisonai.com/orakl/node/pkg/libp2p/setup"
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -119,17 +118,7 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 
 	testItems.admin = admin
 
-	h, err := libp2pSetup.NewHost(ctx, libp2pSetup.WithHolePunch())
-	if err != nil {
-		return nil, nil, err
-	}
-
-	ps, err := libp2pSetup.MakePubsub(ctx, h)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	app := New(mb, h, ps)
+	app := New(mb)
 	testItems.app = app
 
 	tmpData, err := insertSampleData(ctx)
@@ -171,7 +160,7 @@ func reporterCleanup(ctx context.Context, admin *fiber.App, app *App) func() err
 		if err != nil {
 			return err
 		}
-		return app.Host.Close()
+		return nil
 	}
 }
 
