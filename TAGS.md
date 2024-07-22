@@ -69,3 +69,4 @@
 - **node** v0.0.1.20240722.0528.ea7bf6b <br> *`PR`*: Sentinel Update sentinel dal a... <br><br> 
 - **dal** v0.0.1.20240722.0657.d3a3573 <br> *`PR`*: allow trailing comma in data r... <br><br> 
 - **node** v0.0.1.20240722.0706.f1a55cf <br> *`PR`*: allow trailing comma in data r... <br><br> 
+- **dal** v0.0.1.20240722.0817.38afd9c <br> *`PR`*: fix empty data return issue in... <br><br> 
