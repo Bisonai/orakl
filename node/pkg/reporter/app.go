@@ -2,6 +2,7 @@ package reporter
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"time"
 
@@ -38,6 +39,17 @@ func (a *App) setReporters(ctx context.Context) error {
 		return err
 	}
 
+	dalApiKey := os.Getenv("API_KEY")
+	if dalApiKey == "" {
+		return errorSentinel.ErrReporterDalApiKeyNotFound
+	}
+
+	chain := os.Getenv("CHAIN")
+	if chain == "" {
+		log.Warn().Str("Player", "Reporter").Msg("chain not set, defaulting to baobab")
+		chain = "baobab"
+	}
+
 	contractAddress := os.Getenv("SUBMISSION_PROXY_CONTRACT")
 	if contractAddress == "" {
 		return errorSentinel.ErrReporterSubmissionProxyContractNotFound
@@ -70,6 +82,8 @@ func (a *App) setReporters(ctx context.Context) error {
 			WithInterval(groupInterval),
 			WithContractAddress(contractAddress),
 			WithCachedWhitelist(cachedWhitelist),
+			WithDalEndpoint(fmt.Sprintf("https://dal.%s.orakl.network", chain)),
+			WithDalApiKey(dalApiKey),
 		)
 		if errNewReporter != nil {
 			log.Error().Str("Player", "Reporter").Err(errNewReporter).Msg("failed to set reporter")

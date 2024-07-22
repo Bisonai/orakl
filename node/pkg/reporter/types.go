@@ -9,6 +9,7 @@ import (
 	"bisonai.com/orakl/node/pkg/bus"
 	"bisonai.com/orakl/node/pkg/chain/helper"
 	"bisonai.com/orakl/node/pkg/common/types"
+	dalcommon "bisonai.com/orakl/node/pkg/dal/common"
 	"bisonai.com/orakl/node/pkg/raft"
 	"github.com/klaytn/klaytn/common"
 )
@@ -68,6 +69,8 @@ type ReporterConfig struct {
 	ContractAddress string
 	CachedWhitelist []common.Address
 	JobType         JobType
+	DalEndpoint     string
+	DalApiKey       string
 }
 
 type ReporterOption func(*ReporterConfig)
@@ -102,11 +105,26 @@ func WithJobType(jobType JobType) ReporterOption {
 	}
 }
 
+func WithDalEndpoint(endpoint string) ReporterOption {
+	return func(c *ReporterConfig) {
+		c.DalEndpoint = endpoint
+	}
+}
+
+func WithDalApiKey(apiKey string) ReporterOption {
+	return func(c *ReporterConfig) {
+		c.DalApiKey = apiKey
+	}
+}
+
 type Reporter struct {
 	KaiaHelper         *helper.ChainHelper
 	SubmissionPairs    map[int32]SubmissionPair
 	SubmissionInterval time.Duration
 	CachedWhitelist    []common.Address
+
+	DalEndpoint string
+	DalApiKey   string
 
 	contractAddress    string
 	deviationThreshold float64
@@ -119,6 +137,8 @@ type Reporter struct {
 type GlobalAggregate types.GlobalAggregate
 
 type Proof types.Proof
+
+type SubmissionData dalcommon.OutgoingSubmissionData
 
 type SubmissionMessage struct {
 	Submissions []GlobalAggregate `json:"submissions"`

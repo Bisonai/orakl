@@ -2,11 +2,13 @@ package reporter
 
 import (
 	"context"
+	"math/big"
 	"strconv"
 	"time"
 
 	"bisonai.com/orakl/node/pkg/chain/helper"
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
+	"bisonai.com/orakl/node/pkg/utils/request"
 
 	"github.com/rs/zerolog/log"
 )
@@ -40,6 +42,8 @@ func NewReporter(ctx context.Context, opts ...ReporterOption) (*Reporter, error)
 		SubmissionInterval: groupInterval,
 		CachedWhitelist:    config.CachedWhitelist,
 		deviationThreshold: deviationThreshold,
+		DalEndpoint:        config.DalEndpoint,
+		DalApiKey:          config.DalApiKey,
 	}
 	reporter.SubmissionPairs = make(map[int32]SubmissionPair)
 	for _, sa := range config.Configs {
@@ -51,7 +55,7 @@ func NewReporter(ctx context.Context, opts ...ReporterOption) (*Reporter, error)
 
 func (r *Reporter) Run(ctx context.Context) {
 	log.Info().Msgf("Reporter ticker starting with interval: %v", r.SubmissionInterval)
-	ticker := time.NewTicker(r.SubmissionInterval)
+	ticker := time.NewTicker(3 * time.Second)
 
 	for {
 		select {
@@ -68,11 +72,43 @@ func (r *Reporter) Run(ctx context.Context) {
 }
 
 func (r *Reporter) report(ctx context.Context) error {
-	log.Info().Str("Player", "Reporter").Msgf("submission pairs: %v", r.SubmissionPairs)
-	// fetch data from dal and report
+	pairs := ""
+	for _, submissionPair := range r.SubmissionPairs {
+		pairs += submissionPair.Name + ","
+	}
+	submissionData, err := request.Request[[]SubmissionData](request.WithEndpoint(r.DalEndpoint+"/latest-data-feeds/"+pairs), request.WithTimeout(5*time.Second), request.WithHeaders(map[string]string{"X-API-Key": r.DalApiKey, "Content-Type": "application/json"}))
+	log.Info().Str("Player", "Reporter").Msg("-------got submission data---------")
 
-	// for start := 0; start < len(feedHashes); start += MAX_REPORT_BATCH_SIZE {
-	// 	end := min(start+MAX_REPORT_BATCH_SIZE, len(feedHashes))
+	if err != nil {
+		return err
+	}
+
+	var feedHashes [][32]byte
+	var values []*big.Int
+	var timestamps []*big.Int
+	var proofs [][]byte
+
+	for _, data := range submissionData {
+		intValue, valueErr := strconv.ParseInt(data.Value, 10, 64)
+		if valueErr != nil {
+			log.Error().Str("Player", "Reporter").Err(valueErr).Msgf("failed to parse value in data: %v", data.Symbol)
+			continue
+		}
+
+		timestampValue, timestampErr := strconv.ParseInt(data.AggregateTime, 10, 64)
+		if timestampErr != nil {
+			log.Error().Str("Player", "Reporter").Err(timestampErr).Msgf("failed to parse timestamp in data: %v", data)
+			continue
+		}
+
+		feedHashes = append(feedHashes, data.FeedHash)
+		values = append(values, big.NewInt(intValue))
+		timestamps = append(timestamps, big.NewInt(timestampValue))
+		proofs = append(proofs, data.Proof)
+	}
+
+	// for start := 0; start < len(submissionData); start += MAX_REPORT_BATCH_SIZE {
+	// 	end := min(start+MAX_REPORT_BATCH_SIZE, len(submissionData))
 
 	// 	batchFeedHashes := feedHashes[start:end]
 	// 	batchValues := values[start:end]
@@ -81,44 +117,44 @@ func (r *Reporter) report(ctx context.Context) error {
 
 	// 	err := r.reportDelegated(ctx, SUBMIT_WITH_PROOFS, batchFeedHashes, batchValues, batchTimestamps, batchProofs)
 	// 	if err != nil {
-	// 		log.Error().Str("Player", "Reporter").Err(err).Msg("splitReport")
+	// 		log.Error().Str("Player", "Reporter").Err(err).Msg("report")
 	// 		err = r.reportDirect(ctx, SUBMIT_WITH_PROOFS, batchFeedHashes, batchValues, batchTimestamps, batchProofs)
 	// 		if err != nil {
-	// 			log.Error().Str("Player", "Reporter").Err(err).Msg("splitReport")
+	// 			log.Error().Str("Player", "Reporter").Err(err).Msg("report")
 	// 		}
 	// 	}
 	// }
 	return nil
 }
 
-// func (r *Reporter) reportDirect(ctx context.Context, functionString string, args ...interface{}) error {
-// 	rawTx, err := r.KaiaHelper.MakeDirectTx(ctx, r.contractAddress, functionString, args...)
-// 	if err != nil {
-// 		log.Error().Str("Player", "Reporter").Err(err).Msg("MakeDirectTx")
-// 		return err
-// 	}
+func (r *Reporter) reportDirect(ctx context.Context, functionString string, args ...interface{}) error {
+	rawTx, err := r.KaiaHelper.MakeDirectTx(ctx, r.contractAddress, functionString, args...)
+	if err != nil {
+		log.Error().Str("Player", "Reporter").Err(err).Msg("MakeDirectTx")
+		return err
+	}
 
-// 	return r.KaiaHelper.SubmitRawTx(ctx, rawTx)
-// }
+	return r.KaiaHelper.SubmitRawTx(ctx, rawTx)
+}
 
-// func (r *Reporter) reportDelegated(ctx context.Context, functionString string, args ...interface{}) error {
-// 	log.Debug().Str("Player", "Reporter").Msg("reporting delegated")
-// 	rawTx, err := r.KaiaHelper.MakeFeeDelegatedTx(ctx, r.contractAddress, functionString, args...)
-// 	if err != nil {
-// 		log.Error().Str("Player", "Reporter").Err(err).Msg("MakeFeeDelegatedTx")
-// 		return err
-// 	}
+func (r *Reporter) reportDelegated(ctx context.Context, functionString string, args ...interface{}) error {
+	log.Debug().Str("Player", "Reporter").Msg("reporting delegated")
+	rawTx, err := r.KaiaHelper.MakeFeeDelegatedTx(ctx, r.contractAddress, functionString, args...)
+	if err != nil {
+		log.Error().Str("Player", "Reporter").Err(err).Msg("MakeFeeDelegatedTx")
+		return err
+	}
 
-// 	log.Debug().Str("Player", "Reporter").Str("RawTx", rawTx.String()).Msg("delegated raw tx generated")
-// 	signedTx, err := r.KaiaHelper.GetSignedFromDelegator(rawTx)
-// 	if err != nil {
-// 		log.Error().Str("Player", "Reporter").Err(err).Msg("GetSignedFromDelegator")
-// 		return err
-// 	}
-// 	log.Debug().Str("Player", "Reporter").Str("signedTx", signedTx.String()).Msg("signed tx generated, submitting raw tx")
+	log.Debug().Str("Player", "Reporter").Str("RawTx", rawTx.String()).Msg("delegated raw tx generated")
+	signedTx, err := r.KaiaHelper.GetSignedFromDelegator(rawTx)
+	if err != nil {
+		log.Error().Str("Player", "Reporter").Err(err).Msg("GetSignedFromDelegator")
+		return err
+	}
+	log.Debug().Str("Player", "Reporter").Str("signedTx", signedTx.String()).Msg("signed tx generated, submitting raw tx")
 
-// 	return r.KaiaHelper.SubmitRawTx(ctx, signedTx)
-// }
+	return r.KaiaHelper.SubmitRawTx(ctx, signedTx)
+}
 
 // func (r *Reporter) deviationJob() error {
 // 	start := time.Now()
