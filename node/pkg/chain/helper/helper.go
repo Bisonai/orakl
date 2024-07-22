@@ -249,25 +249,28 @@ func (t *ChainHelper) PublicAddressString() (string, error) {
 }
 
 func (t *ChainHelper) retryOnJsonRpcFailure(ctx context.Context, job func(c utils.ClientInterface) error) error {
+	var err error
 	for _, client := range t.clients {
-		err := job(client)
+		err = job(client)
 		if err != nil {
 			if utils.ShouldRetryWithSwitchedJsonRPC(err) {
 				continue
 			}
 			return err
 		}
-		break
+		return nil
 	}
-	return nil
+	return err
 }
 
 func (t *ChainHelper) retryOnNonceFailure(ctx context.Context, job func(c utils.ClientInterface) error) error {
-	for {
-		err := t.retryOnJsonRpcFailure(ctx, job)
+	var err error
+	maxRetries := 3
+	for retries := 0; retries < maxRetries; retries++ {
+		err = t.retryOnJsonRpcFailure(ctx, job)
 		if err != nil {
 			if utils.IsNonceError(err) {
-				if err := t.updateNonce(ctx); err != nil {
+				if err = t.updateNonce(ctx); err != nil {
 					return err
 				}
 				continue
@@ -276,7 +279,7 @@ func (t *ChainHelper) retryOnNonceFailure(ctx context.Context, job func(c utils.
 		}
 		break
 	}
-	return nil
+	return err
 }
 
 // updateNonce updates the nonce using the provided wallet and clients.
