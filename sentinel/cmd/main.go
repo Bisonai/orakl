@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"bisonai.com/orakl/sentinel/pkg/checker/balance"
+	"bisonai.com/orakl/sentinel/pkg/checker/dal"
 	"bisonai.com/orakl/sentinel/pkg/checker/event"
 	"bisonai.com/orakl/sentinel/pkg/checker/health"
 	"bisonai.com/orakl/sentinel/pkg/checker/peers"
@@ -105,6 +106,18 @@ func main() {
 	}()
 
 	log.Info().Msg("peers checker started")
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		err := dal.Start()
+		if err != nil {
+			log.Error().Err(err).Msg("error starting dal checker")
+			os.Exit(1)
+		}
+	}()
+
+	log.Info().Msg("dal checker started")
 
 	wg.Wait()
 }
