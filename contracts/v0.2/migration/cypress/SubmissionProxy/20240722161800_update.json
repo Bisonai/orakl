@@ -1,0 +1,50 @@
+{
+  "address": "0xbfdb0c7f84b494272278cdad77de21634c395eda",
+  "deployFeed": {
+    "feedNames": [
+      "USDT-USD",
+      "ARB-KRW",
+      "WEMIX-KRW",
+      "STPT-KRW",
+      "TRX-KRW",
+      "PYTH-KRW",
+      "ADA-KRW",
+      "ZETA-KRW",
+      "LINK-KRW",
+      "BONK-KRW",
+      "SNT-KRW",
+      "FET-KRW",
+      "GAS-KRW",
+      "BTG-KRW",
+      "MLK-KRW",
+      "IMX-KRW",
+      "MED-KRW",
+      "CHZ-KRW",
+      "CTC-KRW",
+      "MATIC-KRW",
+      "BTT-KRW",
+      "FLOW-KRW",
+      "SUI-KRW",
+      "EOS-KRW",
+      "KNC-KRW",
+      "GLM-KRW",
+      "AAVE-KRW",
+      "BSV-KRW",
+      "SAND-KRW",
+      "XEC-KRW",
+      "HPO-KRW",
+      "APT-KRW",
+      "DOT-KRW",
+      "STRK-KRW",
+      "AXS-KRW",
+      "MINA-KRW",
+      "XLM-KRW",
+      "HBAR-KRW",
+      "KLAY-KRW",
+      "IQ-KRW"
+    ]
+  },
+  "feedRouter": {
+    "address": "0x653078f0d3a230416a59aa6486466470db0190a2"
+  }
+}
