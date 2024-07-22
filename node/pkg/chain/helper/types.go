@@ -17,6 +17,8 @@ type ChainHelper struct {
 	chainID             *big.Int
 	delegatorUrl        string
 	lastUsedWalletIndex int
+
+	mu sync.Mutex
 }
 
 type ChainHelperConfig struct {

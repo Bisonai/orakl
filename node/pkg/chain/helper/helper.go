@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"os"
 	"strings"
+	"sync"
 
 	"bisonai.com/orakl/node/pkg/chain/utils"
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
@@ -135,6 +136,7 @@ func NewChainHelper(ctx context.Context, opts ...ChainHelperOption) (*ChainHelpe
 		wallets:      wallets,
 		chainID:      chainID,
 		delegatorUrl: delegatorUrl,
+		mu:           sync.Mutex{},
 	}, nil
 }
 
@@ -184,6 +186,8 @@ func (t *ChainHelper) MakeDirectTx(ctx context.Context, contractAddressHex strin
 		}
 		return err
 	}
+	t.mu.Lock()
+	t.mu.Unlock()
 	err := t.retryOnJsonRpcFailure(ctx, job)
 	return result, err
 }
@@ -197,6 +201,8 @@ func (t *ChainHelper) MakeFeeDelegatedTx(ctx context.Context, contractAddressHex
 		}
 		return err
 	}
+	t.mu.Lock()
+	t.mu.Unlock()
 	err := t.retryOnJsonRpcFailure(ctx, job)
 	return result, err
 }
