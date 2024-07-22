@@ -29,13 +29,6 @@ func NewReporter(ctx context.Context, opts ...ReporterOption) (*Reporter, error)
 		return nil, errorSentinel.ErrReporterEmptyConfigs
 	}
 
-	topicString := TOPIC_STRING + "-"
-	if config.JobType == DeviationJob {
-		topicString += "deviation"
-	} else {
-		topicString += strconv.Itoa(config.Interval)
-	}
-
 	groupInterval := time.Duration(config.Interval) * time.Millisecond
 
 	deviationThreshold := GetDeviationThreshold(groupInterval)
