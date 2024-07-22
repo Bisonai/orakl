@@ -13,7 +13,10 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-const DefaultDalCheckInterval = 10 * time.Second
+const (
+	DefaultDalCheckInterval = 10 * time.Second
+	DelayOffset             = 2 * time.Second
+)
 
 type OutgoingSubmissionData struct {
 	Symbol        string   `json:"symbol"`
@@ -40,7 +43,7 @@ func Start() error {
 		return errors.New("DAL_API_KEY not found")
 	}
 
-	endpoint := fmt.Sprintf("https://dal.%s.orakl.network/api/v1", chain)
+	endpoint := fmt.Sprintf("https://dal.%s.orakl.network", chain)
 
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
@@ -58,7 +61,7 @@ func checkDal(endpoint string, key string) error {
 	msg := ""
 
 	resp, err := request.Request[[]OutgoingSubmissionData](
-		request.WithEndpoint(endpoint+"/dal/latest-data-feeds/all"),
+		request.WithEndpoint(endpoint+"/latest-data-feeds/all"),
 		request.WithHeaders(map[string]string{"X-API-Key": key}),
 	)
 	if err != nil {
@@ -76,7 +79,7 @@ func checkDal(endpoint string, key string) error {
 		offset := time.Since(timestamp)
 		log.Debug().Str("Player", "DalChecker").Str("symbol", data.Symbol).Time("timestamp", timestamp).Dur("offset", offset).Msg("DAL price check")
 
-		if offset > 5*time.Second {
+		if offset > DelayOffset {
 			msg += fmt.Sprintf("(DAL) %s price update delayed by %s\n", data.Symbol, offset)
 		}
 	}
