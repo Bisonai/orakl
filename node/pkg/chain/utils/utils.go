@@ -154,50 +154,6 @@ func GenerateEventABI(eventName string, inputs string) (*abi.ABI, error) {
 	return &parsedABI, nil
 }
 
-func GetWallets(ctx context.Context) ([]string, error) {
-	reporterModels, err := db.QueryRows[Wallet](ctx, SELECT_WALLETS_QUERY, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	wallets := make([]string, len(reporterModels))
-	for i, reporter := range reporterModels {
-		pk, err := encryptor.DecryptText(reporter.PK)
-		if err != nil {
-			log.Warn().Err(err).Msg("failed to decrypt pk")
-			continue
-		}
-		wallet := strings.TrimPrefix(pk, "0x")
-		wallets[i] = wallet
-	}
-
-	return wallets, nil
-}
-
-func InsertWallet(ctx context.Context, pk string) error {
-	existingWallets, err := GetWallets(ctx)
-	if err != nil {
-		return err
-	}
-
-	for _, wallet := range existingWallets {
-		if wallet == pk {
-			return nil
-		}
-	}
-
-	if os.Getenv("DATABASE_URL") == "" {
-		log.Warn().Msg("DATABASE_URL is not set, skipping wallet insert")
-		return nil
-	}
-	encryptedPk, err := encryptor.EncryptText(pk)
-	if err != nil {
-		return err
-	}
-
-	return db.QueryWithoutResult(ctx, "INSERT INTO wallets (pk) VALUES (@pk)", map[string]any{"pk": encryptedPk})
-}
-
 func GetChainID(ctx context.Context, client ClientInterface) (*big.Int, error) {
 	return client.NetworkID(ctx)
 }
