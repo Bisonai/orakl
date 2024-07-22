@@ -28,8 +28,16 @@ func New(options ...AppOption) *App {
 }
 
 func (a *App) Write(p []byte) (n int, err error) {
+
 	res, err := byte2Entry(p)
 	if err != nil {
+		return 0, err
+	}
+	if len(res) == 0 {
+		return 0, errorsentinel.ErrLogEmptyLogByte
+	}
+
+	if !isLogLevelValid(res) {
 		return 0, err
 	}
 	a.buffer <- res
@@ -97,24 +105,27 @@ func (a *App) processBatch(ctx context.Context) error {
 	}
 }
 
+func isLogLevelValid(entry map[string]any) bool {
+	levelStr, ok := entry["level"].(string)
+	if !ok {
+		return false
+	}
+
+	lv, err := zerolog.ParseLevel(levelStr)
+	if err != nil {
+		return false
+	}
+
+	if lv < MinimalLogStoreLevel {
+		return false
+	}
+	return true
+}
+
 func bulkCopyLogEntries(ctx context.Context, logEntries []map[string]any) error {
 	bulkCopyEntries := [][]any{}
 
 	for _, entry := range logEntries {
-		levelStr, ok := entry["level"].(string)
-		if !ok {
-			continue
-		}
-
-		lv, err := zerolog.ParseLevel(levelStr)
-		if err != nil {
-			continue
-		}
-
-		if lv < MinimalLogStoreLevel {
-			continue
-		}
-
 		res, err := extractDbEntry(entry)
 		if err != nil {
 			log.Error().Err(err).Msg("Error extracting log entry")

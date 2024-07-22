@@ -78,7 +78,7 @@ func TestZeropglogWrite(t *testing.T) {
 	}{
 		{
 			name: "write log",
-			log:  []byte("{\"test\": \"test\"}"),
+			log:  []byte("{\"test\": \"test\", \"level\": \"error\"}"),
 		},
 		{
 			name:    "invalid json",
@@ -86,12 +86,13 @@ func TestZeropglogWrite(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "empty log",
-			log:  []byte("{}"),
+			name:    "empty log",
+			log:     []byte("{}"),
+			wantErr: true,
 		},
 		{
 			name: "large log",
-			log:  []byte("{\"test\": \"" + strings.Repeat("test", 10000) + "\"}"),
+			log:  []byte("{\"test\": \"" + strings.Repeat("test", 10000) + "\", \"level\": \"error\"}"),
 		},
 	}
 	for _, tt := range tests {
@@ -142,9 +143,21 @@ func TestBulkCopyLogEntries(t *testing.T) {
 			Fields:    json.RawMessage(`{"field1": "test field 1", "field2": 123}`),
 			TimeStamp: time.Unix(1234567890, 0),
 		},
+		{
+			Level:     zerolog.InfoLevel,
+			Message:   "another test message",
+			Fields:    json.RawMessage(`{"field3": "test field 3", "field4": 456}`),
+			TimeStamp: time.Unix(9876543210, 0),
+		},
+		{
+			Level:     zerolog.DebugLevel,
+			Message:   "debug message",
+			Fields:    json.RawMessage(`{"field5": "test field 5"}`),
+			TimeStamp: time.Unix(1111111111, 0),
+		},
 	}
 
-	err := bulkCopyLogEntries(ctx, []map[string]any{events[0], events[1]})
+	err := bulkCopyLogEntries(ctx, events)
 	assert.NoError(t, err)
 
 	result, err := db.QueryRows[LogEntry](ctx, "SELECT level, message, fields, timestamp FROM zerologs", nil)

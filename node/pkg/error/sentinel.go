@@ -213,4 +213,5 @@ var (
 	ErrLogTimestampNotExist = &CustomError{Service: Others, Code: InvalidInputError, Message: "Log timestamp not exist"}
 	ErrLogMsgNotExist       = &CustomError{Service: Others, Code: InvalidInputError, Message: "Log message not exist"}
 	ErrLogLvlNotExist       = &CustomError{Service: Others, Code: InvalidInputError, Message: "Log level not exist"}
+	ErrLogEmptyLogByte      = &CustomError{Service: Others, Code: InvalidInputError, Message: "Empty log byte"}
 )
