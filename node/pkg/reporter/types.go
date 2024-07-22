@@ -6,13 +6,11 @@ import (
 	"strings"
 	"time"
 
-	"bisonai.com/orakl/node/pkg/bus"
 	"bisonai.com/orakl/node/pkg/chain/helper"
 	"bisonai.com/orakl/node/pkg/common/types"
+	dalcommon "bisonai.com/orakl/node/pkg/dal/common"
 	"bisonai.com/orakl/node/pkg/raft"
 	"github.com/klaytn/klaytn/common"
-	pubsub "github.com/libp2p/go-libp2p-pubsub"
-	"github.com/libp2p/go-libp2p/core/host"
 )
 
 const (
@@ -53,10 +51,8 @@ type SubmissionPair struct {
 }
 
 type App struct {
-	Reporters []*Reporter
-	Bus       *bus.MessageBus
-	Host      host.Host
-	Pubsub    *pubsub.PubSub
+	Reporters   []*Reporter
+	chainHelper *helper.ChainHelper
 }
 
 type JobType int
@@ -67,28 +63,16 @@ const (
 )
 
 type ReporterConfig struct {
-	Host            host.Host
-	Ps              *pubsub.PubSub
 	Configs         []Config
 	Interval        int
 	ContractAddress string
 	CachedWhitelist []common.Address
 	JobType         JobType
+	DalEndpoint     string
+	DalApiKey       string
 }
 
 type ReporterOption func(*ReporterConfig)
-
-func WithHost(h host.Host) ReporterOption {
-	return func(c *ReporterConfig) {
-		c.Host = h
-	}
-}
-
-func WithPubsub(ps *pubsub.PubSub) ReporterOption {
-	return func(c *ReporterConfig) {
-		c.Ps = ps
-	}
-}
 
 func WithConfigs(configs []Config) ReporterOption {
 	return func(c *ReporterConfig) {
@@ -120,12 +104,26 @@ func WithJobType(jobType JobType) ReporterOption {
 	}
 }
 
+func WithDalEndpoint(endpoint string) ReporterOption {
+	return func(c *ReporterConfig) {
+		c.DalEndpoint = endpoint
+	}
+}
+
+func WithDalApiKey(apiKey string) ReporterOption {
+	return func(c *ReporterConfig) {
+		c.DalApiKey = apiKey
+	}
+}
+
 type Reporter struct {
-	Raft               *raft.Raft
 	KaiaHelper         *helper.ChainHelper
 	SubmissionPairs    map[int32]SubmissionPair
 	SubmissionInterval time.Duration
 	CachedWhitelist    []common.Address
+
+	DalEndpoint string
+	DalApiKey   string
 
 	contractAddress    string
 	deviationThreshold float64
@@ -138,6 +136,8 @@ type Reporter struct {
 type GlobalAggregate types.GlobalAggregate
 
 type Proof types.Proof
+
+type SubmissionData dalcommon.OutgoingSubmissionData
 
 type SubmissionMessage struct {
 	Submissions []GlobalAggregate `json:"submissions"`

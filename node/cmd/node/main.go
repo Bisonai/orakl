@@ -12,7 +12,6 @@ import (
 	"bisonai.com/orakl/node/pkg/fetcher"
 	"bisonai.com/orakl/node/pkg/libp2p/helper"
 	libp2pSetup "bisonai.com/orakl/node/pkg/libp2p/setup"
-	"bisonai.com/orakl/node/pkg/reporter"
 	"bisonai.com/orakl/node/pkg/utils/retrier"
 	"bisonai.com/orakl/node/pkg/zeropglog"
 	"github.com/rs/zerolog/log"
@@ -86,18 +85,6 @@ func main() {
 		}
 	}()
 	log.Info().Msg("Aggregator started")
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		r := reporter.New(mb, host, ps)
-		reporterErr := r.Run(ctx)
-		if reporterErr != nil {
-			log.Error().Err(reporterErr).Msg("Failed to start reporter")
-			os.Exit(1)
-		}
-	}()
-	log.Info().Msg("Reporter started")
 
 	wg.Add(1)
 	go func() {
