@@ -112,7 +112,7 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 	testItems.Controller = apiController
 	testItems.MockAdmin = mockAdminServer
 
-	v1 := app.Group("/api/v1")
+	v1 := app.Group("")
 	v1.Get("/", func(c *fiber.Ctx) error {
 		return c.SendString("Orakl Node DAL API")
 	})

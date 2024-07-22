@@ -127,7 +127,7 @@ func CustomStackTraceHandler(_ *fiber.Ctx, e interface{}) {
 
 func authFilter(c *fiber.Ctx) bool {
 	originalURL := strings.ToLower(c.OriginalURL())
-	return originalURL == "/api/v1"
+	return originalURL == "/"
 }
 
 func validator(c *fiber.Ctx, s string) (bool, error) {

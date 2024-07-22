@@ -78,7 +78,7 @@ func StatsMiddleware(c *fiber.Ctx) error {
 	}
 	duration := time.Since(start)
 
-	if c.Path() == "/api/v1" {
+	if c.Path() == "/" {
 		return nil
 	}
 

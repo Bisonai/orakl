@@ -8,6 +8,10 @@
     "url": "http://orakl-boot-api.orakl.svc.cluster.local:5050/api/v1/"
   },
   {
+    "name": "orakl-dal",
+    "url": "http://orakl-dal.orakl.svc.cluster.local:80/"
+  },
+  {
     "name": "orakl-delegator",
     "url": "http://orakl-delegator.orakl.svc.cluster.local:80/api/v1/"
   },

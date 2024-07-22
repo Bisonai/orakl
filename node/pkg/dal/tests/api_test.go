@@ -61,7 +61,7 @@ func TestApiGetLatestAll(t *testing.T) {
 	}
 
 	time.Sleep(10 * time.Millisecond)
-	result, err := request.Request[[]common.OutgoingSubmissionData](request.WithEndpoint("http://localhost:8090/api/v1/dal/latest-data-feeds/all"), request.WithHeaders(map[string]string{"X-API-Key": testItems.ApiKey}))
+	result, err := request.Request[[]common.OutgoingSubmissionData](request.WithEndpoint("http://localhost:8090/latest-data-feeds/all"), request.WithHeaders(map[string]string{"X-API-Key": testItems.ApiKey}))
 	if err != nil {
 		t.Fatalf("error getting latest data: %v", err)
 	}
@@ -89,14 +89,14 @@ func TestShouldFailWithoutApiKey(t *testing.T) {
 	}()
 
 	go testItems.App.Listen(":8090")
-	resp, err := request.RequestRaw(request.WithEndpoint("http://localhost:8090/api/v1"))
+	resp, err := request.RequestRaw(request.WithEndpoint("http://localhost:8090/"))
 	if err != nil {
 		t.Fatalf("error getting latest data: %v", err)
 	}
 
 	assert.Equal(t, 200, resp.StatusCode)
 
-	result, err := request.RequestRaw(request.WithEndpoint("http://localhost:8090/api/v1/dal/latest-data-feeds/test-aggregate"))
+	result, err := request.RequestRaw(request.WithEndpoint("http://localhost:8090/latest-data-feeds/test-aggregate"))
 
 	if err != nil {
 		t.Fatalf("error getting latest data: %v", err)
@@ -136,7 +136,7 @@ func TestApiGetLatest(t *testing.T) {
 
 	time.Sleep(10 * time.Millisecond)
 
-	result, err := request.Request[[]common.OutgoingSubmissionData](request.WithEndpoint("http://localhost:8090/api/v1/dal/latest-data-feeds/test-aggregate"), request.WithHeaders(map[string]string{"X-API-Key": testItems.ApiKey}))
+	result, err := request.Request[[]common.OutgoingSubmissionData](request.WithEndpoint("http://localhost:8090/latest-data-feeds/test-aggregate"), request.WithHeaders(map[string]string{"X-API-Key": testItems.ApiKey}))
 	if err != nil {
 		t.Fatalf("error getting latest data: %v", err)
 	}
@@ -163,7 +163,7 @@ func TestApiWebsocket(t *testing.T) {
 
 	go testItems.App.Listen(":8090")
 
-	conn, err := wss.NewWebsocketHelper(ctx, wss.WithEndpoint("ws://localhost:8090/api/v1/dal/ws"), wss.WithRequestHeaders(headers))
+	conn, err := wss.NewWebsocketHelper(ctx, wss.WithEndpoint("ws://localhost:8090/ws"), wss.WithRequestHeaders(headers))
 	if err != nil {
 		t.Fatalf("error creating websocket helper: %v", err)
 	}
