@@ -97,21 +97,17 @@ func (c *Controller) broadcastDataForSymbol(symbol string) {
 
 // pass by pointer to reduce memory copy time
 func (c *Controller) castSubmissionData(data *dalcommon.OutgoingSubmissionData, symbol *string) {
-	c.mu.RLock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	for conn := range c.clients {
 		if _, ok := c.clients[conn][*symbol]; ok {
 			if err := conn.WriteJSON(*data); err != nil {
 				log.Error().Err(err).Msg("failed to write message")
-				c.mu.RUnlock()
-				c.mu.Lock()
 				delete(c.clients, conn)
 				conn.Close()
-				c.mu.Unlock()
-				c.mu.RLock()
 			}
 		}
 	}
-	c.mu.RUnlock()
 }
 
 func HandleWebsocket(conn *websocket.Conn) {
