@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"time"
 
-	"bisonai.com/orakl/node/pkg/chain/helper"
 	chainUtils "bisonai.com/orakl/node/pkg/chain/utils"
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
 
@@ -54,6 +53,7 @@ func NewReporter(ctx context.Context, opts ...ReporterOption) (*Reporter, error)
 		SubmissionInterval: groupInterval,
 		CachedWhitelist:    config.CachedWhitelist,
 		deviationThreshold: deviationThreshold,
+		KaiaHelper:         config.KaiaHelper,
 	}
 	reporter.SubmissionPairs = make(map[int32]SubmissionPair)
 	for _, sa := range config.Configs {
@@ -274,19 +274,6 @@ func (r *Reporter) reportDelegated(ctx context.Context, functionString string, a
 	log.Debug().Str("Player", "Reporter").Str("signedTx", signedTx.String()).Msg("signed tx generated, submitting raw tx")
 
 	return r.KaiaHelper.SubmitRawTx(ctx, signedTx)
-}
-
-func (r *Reporter) SetKaiaHelper(ctx context.Context) error {
-	if r.KaiaHelper != nil {
-		r.KaiaHelper.Close()
-	}
-	kaiaHelper, err := helper.NewChainHelper(ctx)
-	if err != nil {
-		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to create kaia helper")
-		return err
-	}
-	r.KaiaHelper = kaiaHelper
-	return nil
 }
 
 func (r *Reporter) deviationJob() error {
