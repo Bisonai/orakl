@@ -195,7 +195,6 @@ func onlySign(c *fiber.Ctx) error {
 }
 
 func insertV2(c *fiber.Ctx) error {
-
 	payload := new(SignInsertPayload)
 	if err := c.BodyParser(payload); err != nil {
 		return err
