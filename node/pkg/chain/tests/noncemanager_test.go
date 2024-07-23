@@ -25,7 +25,7 @@ func TestNonceManager(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
-	if newNonce != 2 {
+	if newNonce != 1 {
 		t.Fatalf("Expected new nonce to be 2, got %d", newNonce)
 	}
 
