@@ -110,19 +110,14 @@ func (r *Reporter) report(ctx context.Context) error {
 		batchTimestamps := timestamps[start:end]
 		batchProofs := proofs[start:end]
 
-		err := r.reportDirect(ctx, SUBMIT_WITH_PROOFS, batchFeedHashes, batchValues, batchTimestamps, batchProofs)
+		err := r.reportDelegated(ctx, SUBMIT_WITH_PROOFS, batchFeedHashes, batchValues, batchTimestamps, batchProofs)
 		if err != nil {
+			err = r.reportDirect(ctx, SUBMIT_WITH_PROOFS, batchFeedHashes, batchValues, batchTimestamps, batchProofs)
+			if err != nil {
+				log.Error().Str("Player", "Reporter").Err(err).Msg("report")
+			}
 			log.Error().Str("Player", "Reporter").Err(err).Msg("report")
 		}
-
-		// err := r.reportDelegated(ctx, SUBMIT_WITH_PROOFS, batchFeedHashes, batchValues, batchTimestamps, batchProofs)
-		// if err != nil {
-		// 	err = r.reportDirect(ctx, SUBMIT_WITH_PROOFS, batchFeedHashes, batchValues, batchTimestamps, batchProofs)
-		// 	if err != nil {
-		// 		log.Error().Str("Player", "Reporter").Err(err).Msg("report")
-		// 	}
-		// 	log.Error().Str("Player", "Reporter").Err(err).Msg("report")
-		// }
 	}
 	return nil
 }
