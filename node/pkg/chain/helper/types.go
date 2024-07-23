@@ -12,13 +12,11 @@ import (
 )
 
 type ChainHelper struct {
-	clients      []utils.ClientInterface
-	chainID      *big.Int
-	delegatorUrl string
-	nonce        uint64
-	wallet       string
-
-	mu sync.Mutex
+	clients             []utils.ClientInterface
+	wallets             []string
+	chainID             *big.Int
+	delegatorUrl        string
+	lastUsedWalletIndex int
 }
 
 type ChainHelperConfig struct {
@@ -26,6 +24,8 @@ type ChainHelperConfig struct {
 	ReporterPk                string
 	BlockchainType            BlockchainType
 	UseAdditionalProviderUrls bool
+	UseAdditionalWallets      bool
+	StoreWallet               bool
 }
 
 type ChainHelperOption func(*ChainHelperConfig)
@@ -51,6 +51,18 @@ func WithBlockchainType(t BlockchainType) ChainHelperOption {
 func WithoutAdditionalProviderUrls() ChainHelperOption {
 	return func(c *ChainHelperConfig) {
 		c.UseAdditionalProviderUrls = false
+	}
+}
+
+func WithoutAdditionalWallets() ChainHelperOption {
+	return func(c *ChainHelperConfig) {
+		c.UseAdditionalWallets = false
+	}
+}
+
+func WithoutWalletStore() ChainHelperOption {
+	return func(c *ChainHelperConfig) {
+		c.StoreWallet = false
 	}
 }
 

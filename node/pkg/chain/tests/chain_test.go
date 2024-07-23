@@ -98,6 +98,20 @@ func TestNewEthHelper(t *testing.T) {
 	}
 }
 
+func TestNextReporter(t *testing.T) {
+	ctx := context.Background()
+	kaiaHelper, err := helper.NewChainHelper(ctx)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+	defer kaiaHelper.Close()
+
+	reporter := kaiaHelper.NextReporter()
+	if reporter == "" {
+		t.Errorf("Unexpected reporter: %v", reporter)
+	}
+}
+
 func TestMakeDirectTx(t *testing.T) {
 	ctx := context.Background()
 	kaiaHelper, err := helper.NewChainHelper(ctx)
@@ -247,6 +261,32 @@ func TestGenerateViewABI(t *testing.T) {
 	assert.Equal(t, "slot0", abi.Methods["slot0"].Name)
 
 	assert.NotEqual(t, abi, nil)
+}
+
+func TestSubmitRawTxString(t *testing.T) {
+	// testing based on baobab testnet
+	ctx := context.Background()
+	kaiaHelper, err := helper.NewChainHelper(ctx)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+	defer kaiaHelper.Close()
+
+	rawTx, err := kaiaHelper.MakeFeeDelegatedTx(ctx, "0x93120927379723583c7a0dd2236fcb255e96949f", "increment()")
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	signedTx, err := kaiaHelper.SignTxByFeePayer(ctx, rawTx)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	rawTxString := utils.TxToHash(signedTx)
+	err = kaiaHelper.SubmitRawTxString(ctx, rawTxString)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
 }
 
 func TestReadContract(t *testing.T) {
@@ -438,6 +478,51 @@ func TestMakeAbiFuncAttribute(t *testing.T) {
 	}
 }
 
+func TestGetWallets(t *testing.T) {
+	ctx := context.Background()
+	testPk := "cbebf778dd0a62952e6caa9d51eefc6ec9242c1111e7b7e1165485a2041cab2b"
+
+	err := utils.InsertWallet(ctx, testPk)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+	defer func() {
+		err = db.QueryWithoutResult(ctx, "DELETE FROM wallets;", nil)
+		if err != nil {
+			t.Errorf("Unexpected error: %v", err)
+		}
+	}()
+
+	wallets, err := utils.GetWallets(ctx)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	assert.Contains(t, wallets, testPk)
+}
+
+func TestInsertWalletEmptyDbEnv(t *testing.T) {
+	ctx := context.Background()
+	err := os.Setenv("DATABASE_URL", "")
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	testPk := "cbebf778dd0a62952e6caa9d51eefc6ec9242c1111e7b7e1165485a2041cab2b"
+
+	err = utils.InsertWallet(ctx, testPk)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	wallets, err := utils.GetWallets(ctx)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	assert.NotContains(t, wallets, testPk)
+}
+
 func TestMakeGlobalAggregateProof(t *testing.T) {
 	ctx := context.Background()
 	s, err := helper.NewSigner(ctx)
@@ -593,7 +678,7 @@ func TestSignerRenew(t *testing.T) {
 	assert.Greater(t, newExpiration.Unix(), expiration.Unix())
 
 	//cleanup
-	chainHelperForCleanup, err := helper.NewChainHelper(ctx, helper.WithReporterPk(oldPKHex))
+	chainHelperForCleanup, err := helper.NewChainHelper(ctx, helper.WithReporterPk(oldPKHex), helper.WithoutAdditionalWallets())
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -601,15 +686,25 @@ func TestSignerRenew(t *testing.T) {
 	addOracleFunctionSignature := "addOracle(address _oracle) external returns (uint256)"
 	removeOracleFunctionSignature := "function removeOracle(address _oracle) external"
 
-	txGeneratorForAddOracle := func() (*types.Transaction, error) {
-		return chainHelperForCleanup.MakeDirectTx(ctx, contractAddr, addOracleFunctionSignature, common.HexToAddress(oldSignerAddr))
+	addOracleTx, err := chainHelperForCleanup.MakeDirectTx(ctx, contractAddr, addOracleFunctionSignature, common.HexToAddress(oldSignerAddr))
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
 	}
-	chainHelperForCleanup.SubmitWithNonceFailureRetry(ctx, txGeneratorForAddOracle)
 
-	txGeneratorForRemoveOracle := func() (*types.Transaction, error) {
-		return chainHelperForCleanup.MakeDirectTx(ctx, contractAddr, removeOracleFunctionSignature, common.HexToAddress(newSignerAddr))
+	err = chainHelperForCleanup.SubmitRawTx(ctx, addOracleTx)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
 	}
-	chainHelperForCleanup.SubmitWithNonceFailureRetry(ctx, txGeneratorForRemoveOracle)
+
+	removeOracleTx, err := chainHelperForCleanup.MakeDirectTx(ctx, contractAddr, removeOracleFunctionSignature, common.HexToAddress(newSignerAddr))
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	err = chainHelperForCleanup.SubmitRawTx(ctx, removeOracleTx)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
 
 	err = db.QueryWithoutResult(ctx, "DELETE FROM signer;", nil)
 	if err != nil {

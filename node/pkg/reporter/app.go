@@ -47,13 +47,14 @@ func (a *App) setReporters(ctx context.Context, h host.Host, ps *pubsub.PubSub) 
 		return errorSentinel.ErrReporterSubmissionProxyContractNotFound
 	}
 
-	kaiaHelper, err := helper.NewChainHelper(ctx)
+	tmpChainHelper, err := helper.NewChainHelper(ctx)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to create chain helper")
 		return err
 	}
+	defer tmpChainHelper.Close()
 
-	cachedWhitelist, err := ReadOnchainWhitelist(ctx, kaiaHelper, contractAddress, GET_ONCHAIN_WHITELIST)
+	cachedWhitelist, err := ReadOnchainWhitelist(ctx, tmpChainHelper, contractAddress, GET_ONCHAIN_WHITELIST)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to get whitelist, starting with empty whitelist")
 		cachedWhitelist = []common.Address{}
@@ -75,7 +76,6 @@ func (a *App) setReporters(ctx context.Context, h host.Host, ps *pubsub.PubSub) 
 			WithInterval(groupInterval),
 			WithContractAddress(contractAddress),
 			WithCachedWhitelist(cachedWhitelist),
-			WithKaiaHelper(kaiaHelper),
 		)
 		if errNewReporter != nil {
 			log.Error().Str("Player", "Reporter").Err(errNewReporter).Msg("failed to set reporter")
@@ -97,7 +97,6 @@ func (a *App) setReporters(ctx context.Context, h host.Host, ps *pubsub.PubSub) 
 		WithContractAddress(contractAddress),
 		WithCachedWhitelist(cachedWhitelist),
 		WithJobType(DeviationJob),
-		WithKaiaHelper(kaiaHelper),
 	)
 	if errNewDeviationReporter != nil {
 		log.Error().Str("Player", "Reporter").Err(errNewDeviationReporter).Msg("failed to set deviation reporter")
@@ -255,6 +254,12 @@ func startReporter(ctx context.Context, reporter *Reporter) error {
 	if reporter.isRunning {
 		log.Debug().Str("Player", "Reporter").Msg("reporter already running")
 		return errorSentinel.ErrReporterAlreadyRunning
+	}
+
+	err := reporter.SetKaiaHelper(ctx)
+	if err != nil {
+		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to set kaia helper")
+		return err
 	}
 
 	nodeCtx, cancel := context.WithCancel(ctx)

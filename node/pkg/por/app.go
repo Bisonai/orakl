@@ -16,7 +16,6 @@ import (
 	"bisonai.com/orakl/node/pkg/secrets"
 	"bisonai.com/orakl/node/pkg/utils/request"
 	"bisonai.com/orakl/node/pkg/utils/retrier"
-	"github.com/klaytn/klaytn/blockchain/types"
 	"github.com/rs/zerolog/log"
 )
 
@@ -75,6 +74,7 @@ func New(ctx context.Context) (*App, error) {
 		helper.WithReporterPk(porReporterPk),
 		helper.WithProviderUrl(providerUrl),
 		helper.WithoutAdditionalProviderUrls(),
+		helper.WithoutAdditionalWallets(),
 	)
 	if err != nil {
 		return nil, err
@@ -210,11 +210,18 @@ func (a *App) report(ctx context.Context, submissionValue float64, latestRoundId
 
 	latestRoundIdParam := new(big.Int).SetUint64(uint64(latestRoundId))
 
-	txGenerator := func() (*types.Transaction, error) {
-		return a.KaiaHelper.MakeDirectTx(ctx, a.ContractAddress, SUBMIT_FUNCTION_STRING, latestRoundIdParam, submissionValueParam)
+	tx, err := a.KaiaHelper.MakeDirectTx(ctx, a.ContractAddress, SUBMIT_FUNCTION_STRING, latestRoundIdParam, submissionValueParam)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to make direct tx")
+		return err
 	}
 
-	return a.KaiaHelper.SubmitWithNonceFailureRetry(ctx, txGenerator)
+	err = a.KaiaHelper.SubmitRawTx(ctx, tx)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to submit raw tx")
+		return err
+	}
+	return nil
 }
 
 func (a *App) DeviationCheck(oldValue float64, newValue float64) bool {
