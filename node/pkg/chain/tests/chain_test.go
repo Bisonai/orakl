@@ -249,32 +249,6 @@ func TestGenerateViewABI(t *testing.T) {
 	assert.NotEqual(t, abi, nil)
 }
 
-func TestSubmitRawTxString(t *testing.T) {
-	// testing based on baobab testnet
-	ctx := context.Background()
-	kaiaHelper, err := helper.NewChainHelper(ctx)
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-	defer kaiaHelper.Close()
-
-	rawTx, err := kaiaHelper.MakeFeeDelegatedTx(ctx, "0x93120927379723583c7a0dd2236fcb255e96949f", "increment()")
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-
-	signedTx, err := kaiaHelper.SignTxByFeePayer(ctx, rawTx)
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-
-	rawTxString := utils.TxToHash(signedTx)
-	err = kaiaHelper.SubmitRawTxString(ctx, rawTxString)
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-}
-
 func TestReadContract(t *testing.T) {
 	// testing based on baobab testnet
 	ctx := context.Background()
@@ -627,25 +601,15 @@ func TestSignerRenew(t *testing.T) {
 	addOracleFunctionSignature := "addOracle(address _oracle) external returns (uint256)"
 	removeOracleFunctionSignature := "function removeOracle(address _oracle) external"
 
-	addOracleTx, err := chainHelperForCleanup.MakeDirectTx(ctx, contractAddr, addOracleFunctionSignature, common.HexToAddress(oldSignerAddr))
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
+	txGeneratorForAddOracle := func() (*types.Transaction, error) {
+		return chainHelperForCleanup.MakeDirectTx(ctx, contractAddr, addOracleFunctionSignature, common.HexToAddress(oldSignerAddr))
 	}
+	chainHelperForCleanup.SubmitWithNonceFailureRetry(ctx, txGeneratorForAddOracle)
 
-	err = chainHelperForCleanup.SubmitRawTx(ctx, addOracleTx)
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
+	txGeneratorForRemoveOracle := func() (*types.Transaction, error) {
+		return chainHelperForCleanup.MakeDirectTx(ctx, contractAddr, removeOracleFunctionSignature, common.HexToAddress(newSignerAddr))
 	}
-
-	removeOracleTx, err := chainHelperForCleanup.MakeDirectTx(ctx, contractAddr, removeOracleFunctionSignature, common.HexToAddress(newSignerAddr))
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-
-	err = chainHelperForCleanup.SubmitRawTx(ctx, removeOracleTx)
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
+	chainHelperForCleanup.SubmitWithNonceFailureRetry(ctx, txGeneratorForRemoveOracle)
 
 	err = db.QueryWithoutResult(ctx, "DELETE FROM signer;", nil)
 	if err != nil {

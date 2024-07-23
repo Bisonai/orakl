@@ -184,13 +184,6 @@ func (t *ChainHelper) SubmitRawTx(ctx context.Context, tx *types.Transaction) er
 	return t.retryOnJsonRpcFailure(ctx, job)
 }
 
-func (t *ChainHelper) SubmitRawTxString(ctx context.Context, rawTx string) error {
-	job := func(c utils.ClientInterface) error {
-		return utils.SubmitRawTxString(ctx, c, rawTx)
-	}
-	return t.retryOnJsonRpcFailure(ctx, job)
-}
-
 func (t *ChainHelper) SubmitWithNonceFailureRetry(
 	ctx context.Context,
 	txGenerator func() (*types.Transaction, error),
