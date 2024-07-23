@@ -566,7 +566,9 @@ func IsJsonRpcFailureError(errorCode int) bool {
 }
 
 func IsNonceError(err error) bool {
-	if errors.Is(err, blockchain.ErrNonceTooLow) || errors.Is(err, blockchain.ErrNonceTooHigh) || errors.Is(err, blockchain.ErrAlreadyNonceExistInPool) {
+	if errors.Is(err, blockchain.ErrNonceTooLow) ||
+		errors.Is(err, blockchain.ErrNonceTooHigh) ||
+		errors.Is(err, blockchain.ErrAlreadyNonceExistInPool) {
 		return true
 	}
 	return false
