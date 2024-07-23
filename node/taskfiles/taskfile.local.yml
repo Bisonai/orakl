@@ -167,23 +167,6 @@ tasks:
     dotenv: [".env"]
     cmds:
       - curl -X GET "http://localhost:$APP_PORT/api/v1/proxy"| jq
-  add-wallet:
-    dotenv: [".env"]
-    cmds:
-      - |
-        curl -X POST "http://localhost:$APP_PORT/api/v1/wallet" \
-        -H "Content-Type: application/json" \
-        -d '{"pk": "{{.PK}}"}'| jq
-  remove-wallet:
-    dotenv: [".env"]
-    cmds:
-      - |
-        curl -X DELETE "http://localhost:$APP_PORT/api/v1/wallet/{{.ID}}" \
-        -H "Content-Type: application/json" | jq
-  get-wallet:
-    dotenv: [".env"]
-    cmds:
-      - curl -X GET "http://localhost:$APP_PORT/api/v1/wallet" | jq
   get-signer:
     dotenv: [".env"]
     cmds:

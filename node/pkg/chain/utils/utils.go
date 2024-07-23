@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math/big"
 	"os"
@@ -18,6 +19,7 @@ import (
 	"github.com/klaytn/klaytn"
 	"github.com/klaytn/klaytn/accounts/abi"
 	"github.com/klaytn/klaytn/accounts/abi/bind"
+	"github.com/klaytn/klaytn/blockchain"
 	"github.com/klaytn/klaytn/blockchain/types"
 	"github.com/klaytn/klaytn/common"
 	"github.com/klaytn/klaytn/crypto"
@@ -152,55 +154,11 @@ func GenerateEventABI(eventName string, inputs string) (*abi.ABI, error) {
 	return &parsedABI, nil
 }
 
-func GetWallets(ctx context.Context) ([]string, error) {
-	reporterModels, err := db.QueryRows[Wallet](ctx, SELECT_WALLETS_QUERY, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	wallets := make([]string, len(reporterModels))
-	for i, reporter := range reporterModels {
-		pk, err := encryptor.DecryptText(reporter.PK)
-		if err != nil {
-			log.Warn().Err(err).Msg("failed to decrypt pk")
-			continue
-		}
-		wallet := strings.TrimPrefix(pk, "0x")
-		wallets[i] = wallet
-	}
-
-	return wallets, nil
-}
-
-func InsertWallet(ctx context.Context, pk string) error {
-	existingWallets, err := GetWallets(ctx)
-	if err != nil {
-		return err
-	}
-
-	for _, wallet := range existingWallets {
-		if wallet == pk {
-			return nil
-		}
-	}
-
-	if os.Getenv("DATABASE_URL") == "" {
-		log.Warn().Msg("DATABASE_URL is not set, skipping wallet insert")
-		return nil
-	}
-	encryptedPk, err := encryptor.EncryptText(pk)
-	if err != nil {
-		return err
-	}
-
-	return db.QueryWithoutResult(ctx, "INSERT INTO wallets (pk) VALUES (@pk)", map[string]any{"pk": encryptedPk})
-}
-
 func GetChainID(ctx context.Context, client ClientInterface) (*big.Int, error) {
 	return client.NetworkID(ctx)
 }
 
-func MakeDirectTx(ctx context.Context, client ClientInterface, contractAddressHex string, reporter string, functionString string, chainID *big.Int, args ...interface{}) (*types.Transaction, error) {
+func MakeDirectTx(ctx context.Context, client ClientInterface, contractAddressHex string, reporter string, functionString string, chainID *big.Int, nonce uint64, args ...interface{}) (*types.Transaction, error) {
 	if client == nil {
 		return nil, errorSentinel.ErrChainEmptyClientParam
 	}
@@ -243,18 +201,6 @@ func MakeDirectTx(ctx context.Context, client ClientInterface, contractAddressHe
 		return nil, err
 	}
 
-	publicKey := privateKey.Public()
-	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
-	if !ok {
-		return nil, errorSentinel.ErrChainPubKeyToECDSAFail
-	}
-
-	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
-	nonce, err := client.PendingNonceAt(ctx, fromAddress)
-	if err != nil {
-		return nil, err
-	}
-
 	gasPrice, err := client.SuggestGasPrice(ctx)
 	if err != nil {
 		return nil, err
@@ -279,7 +225,7 @@ func MakeDirectTx(ctx context.Context, client ClientInterface, contractAddressHe
 	return types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
 }
 
-func MakeFeeDelegatedTx(ctx context.Context, client ClientInterface, contractAddressHex string, reporter string, functionString string, chainID *big.Int, args ...interface{}) (*types.Transaction, error) {
+func MakeFeeDelegatedTx(ctx context.Context, client ClientInterface, contractAddressHex string, reporter string, functionString string, chainID *big.Int, nonce uint64, args ...interface{}) (*types.Transaction, error) {
 	if client == nil {
 		return nil, errorSentinel.ErrChainEmptyClientParam
 	}
@@ -330,10 +276,6 @@ func MakeFeeDelegatedTx(ctx context.Context, client ClientInterface, contractAdd
 	}
 
 	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
-	nonce, err := client.PendingNonceAt(ctx, fromAddress)
-	if err != nil {
-		return nil, err
-	}
 
 	gasPrice, err := client.SuggestGasPrice(ctx)
 	if err != nil {
@@ -371,6 +313,22 @@ func MakeFeeDelegatedTx(ctx context.Context, client ClientInterface, contractAdd
 	}
 
 	return types.SignTx(unsigned, types.NewEIP155Signer(chainID), privateKey)
+}
+
+func GetNonceFromPk(ctx context.Context, pkString string, client ClientInterface) (uint64, error) {
+	privateKey, err := crypto.HexToECDSA(pkString)
+	if err != nil {
+		return 0, nil
+	}
+
+	publicKey := privateKey.Public()
+	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
+	if !ok {
+		return 0, errorSentinel.ErrChainPubKeyToECDSAFail
+	}
+
+	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
+	return client.PendingNonceAt(ctx, fromAddress)
 }
 
 func SignTxByFeePayer(ctx context.Context, tx *types.Transaction, chainID *big.Int) (*types.Transaction, error) {
@@ -602,6 +560,15 @@ func IsJsonRpcFailureError(errorCode int) bool {
 		return true
 	}
 	if errorCode <= -32000 && errorCode >= -32099 {
+		return true
+	}
+	return false
+}
+
+func IsNonceError(err error) bool {
+	if errors.Is(err, blockchain.ErrNonceTooLow) ||
+		errors.Is(err, blockchain.ErrNonceTooHigh) ||
+		errors.Is(err, blockchain.ErrAlreadyNonceExistInPool) {
 		return true
 	}
 	return false
