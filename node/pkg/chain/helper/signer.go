@@ -11,6 +11,7 @@ import (
 	"bisonai.com/orakl/node/pkg/chain/utils"
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
 	"bisonai.com/orakl/node/pkg/secrets"
+	"github.com/klaytn/klaytn/blockchain/types"
 	"github.com/klaytn/klaytn/common"
 	"github.com/klaytn/klaytn/crypto"
 	"github.com/rs/zerolog/log"
@@ -210,6 +211,7 @@ func (s *Signer) Renew(ctx context.Context, newPK *ecdsa.PrivateKey, newPkHex st
 		log.Error().Str("Player", "Signer").Err(err).Msg("failed to update signer")
 		return err
 	}
+
 	log.Debug().Str("Player", "Signer").Msg("signer renewed from the contract")
 
 	s.mu.Lock()
@@ -242,24 +244,22 @@ func (s *Signer) signerUpdate(ctx context.Context, newAddr common.Address) error
 }
 
 func (s *Signer) delegatedSignerUpdate(ctx context.Context, newAddr common.Address) error {
-	rawTx, err := s.chainHelper.MakeFeeDelegatedTx(ctx, s.submissionProxyContractAddr, UpdateSignerFuncSignature, newAddr)
-	if err != nil {
-		log.Error().Str("Player", "Signer").Err(err).Msg("failed to make fee delegated tx")
-		return err
+	txGenerator := func() (*types.Transaction, error) {
+		rawTx, err := s.chainHelper.MakeFeeDelegatedTx(ctx, s.submissionProxyContractAddr, UpdateSignerFuncSignature, newAddr)
+		if err != nil {
+			log.Error().Str("Player", "Signer").Err(err).Msg("failed to make fee delegated tx")
+			return nil, err
+		}
+		return s.chainHelper.GetSignedFromDelegator(rawTx)
 	}
-	signedTx, err := s.chainHelper.GetSignedFromDelegator(rawTx)
-	if err != nil {
-		log.Error().Str("Player", "Signer").Err(err).Msg("failed to sign tx")
-		return err
-	}
-	return s.chainHelper.SubmitRawTx(ctx, signedTx)
+
+	return s.chainHelper.SubmitWithNonceFailureRetry(ctx, txGenerator)
 }
 
 func (s *Signer) directSignerUpdate(ctx context.Context, newAddr common.Address) error {
-	rawTx, err := s.chainHelper.MakeDirectTx(ctx, s.submissionProxyContractAddr, UpdateSignerFuncSignature, newAddr)
-	if err != nil {
-		log.Error().Str("Player", "Signer").Err(err).Msg("failed to make direct tx")
-		return err
+	txGenerator := func() (*types.Transaction, error) {
+		return s.chainHelper.MakeDirectTx(ctx, s.submissionProxyContractAddr, UpdateSignerFuncSignature, newAddr)
 	}
-	return s.chainHelper.SubmitRawTx(ctx, rawTx)
+
+	return s.chainHelper.SubmitWithNonceFailureRetry(ctx, txGenerator)
 }

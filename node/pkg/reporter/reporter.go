@@ -13,6 +13,7 @@ import (
 	"bisonai.com/orakl/node/pkg/raft"
 	"bisonai.com/orakl/node/pkg/utils/retrier"
 
+	"github.com/klaytn/klaytn/blockchain/types"
 	"github.com/rs/zerolog/log"
 )
 
@@ -248,13 +249,10 @@ func (r *Reporter) reportWithProofs(ctx context.Context, aggregates []GlobalAggr
 }
 
 func (r *Reporter) reportDirect(ctx context.Context, functionString string, args ...interface{}) error {
-	rawTx, err := r.KaiaHelper.MakeDirectTx(ctx, r.contractAddress, functionString, args...)
-	if err != nil {
-		log.Error().Str("Player", "Reporter").Err(err).Msg("MakeDirectTx")
-		return err
+	txGenerator := func() (*types.Transaction, error) {
+		return r.KaiaHelper.MakeDirectTx(ctx, r.contractAddress, functionString, args...)
 	}
-
-	return r.KaiaHelper.SubmitRawTx(ctx, rawTx)
+	return r.KaiaHelper.SubmitWithNonceFailureRetry(ctx, txGenerator)
 }
 
 func (r *Reporter) reportDelegated(ctx context.Context, functionString string, args ...interface{}) error {
@@ -273,7 +271,25 @@ func (r *Reporter) reportDelegated(ctx context.Context, functionString string, a
 	}
 	log.Debug().Str("Player", "Reporter").Str("signedTx", signedTx.String()).Msg("signed tx generated, submitting raw tx")
 
-	return r.KaiaHelper.SubmitRawTx(ctx, signedTx)
+	txGenerator := func() (*types.Transaction, error) {
+		log.Debug().Str("Player", "Reporter").Msg("reporting delegated")
+		rawTx, err := r.KaiaHelper.MakeFeeDelegatedTx(ctx, r.contractAddress, functionString, args...)
+		if err != nil {
+			log.Error().Str("Player", "Reporter").Err(err).Msg("MakeFeeDelegatedTx")
+			return nil, err
+		}
+
+		log.Debug().Str("Player", "Reporter").Str("RawTx", rawTx.String()).Msg("delegated raw tx generated")
+		signedTx, err := r.KaiaHelper.GetSignedFromDelegator(rawTx)
+		if err != nil {
+			log.Error().Str("Player", "Reporter").Err(err).Msg("GetSignedFromDelegator")
+			return nil, err
+		}
+
+		return signedTx, nil
+	}
+
+	return r.KaiaHelper.SubmitWithNonceFailureRetry(ctx, txGenerator)
 }
 
 func (r *Reporter) deviationJob() error {

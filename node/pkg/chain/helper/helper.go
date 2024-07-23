@@ -153,31 +153,27 @@ func (t *ChainHelper) GetSignedFromDelegator(tx *types.Transaction) (*types.Tran
 
 func (t *ChainHelper) MakeDirectTx(ctx context.Context, contractAddressHex string, functionString string, args ...interface{}) (*types.Transaction, error) {
 	var result *types.Transaction
-	nonce := t.getNonce()
-	defer t.increaseNonce()
 	job := func(c utils.ClientInterface) error {
-		tmp, err := utils.MakeDirectTx(ctx, c, contractAddressHex, t.wallet, functionString, t.chainID, nonce, args...)
+		tmp, err := utils.MakeDirectTx(ctx, c, contractAddressHex, t.wallet, functionString, t.chainID, t.getNonceIncrement(), args...)
 		if err == nil {
 			result = tmp
 		}
 		return err
 	}
-	err := t.retryOnNonceFailure(ctx, job)
+	err := t.retryOnJsonRpcFailure(ctx, job)
 	return result, err
 }
 
 func (t *ChainHelper) MakeFeeDelegatedTx(ctx context.Context, contractAddressHex string, functionString string, args ...interface{}) (*types.Transaction, error) {
 	var result *types.Transaction
-	nonce := t.getNonce()
-	defer t.increaseNonce()
 	job := func(c utils.ClientInterface) error {
-		tmp, err := utils.MakeFeeDelegatedTx(ctx, c, contractAddressHex, t.wallet, functionString, t.chainID, nonce, args...)
+		tmp, err := utils.MakeFeeDelegatedTx(ctx, c, contractAddressHex, t.wallet, functionString, t.chainID, t.getNonceIncrement(), args...)
 		if err == nil {
 			result = tmp
 		}
 		return err
 	}
-	err := t.retryOnNonceFailure(ctx, job)
+	err := t.retryOnJsonRpcFailure(ctx, job)
 	return result, err
 }
 
@@ -185,12 +181,26 @@ func (t *ChainHelper) SubmitRawTx(ctx context.Context, tx *types.Transaction) er
 	job := func(c utils.ClientInterface) error {
 		return utils.SubmitRawTx(ctx, c, tx)
 	}
-	return t.retryOnNonceFailure(ctx, job)
+	return t.retryOnJsonRpcFailure(ctx, job)
 }
 
 func (t *ChainHelper) SubmitRawTxString(ctx context.Context, rawTx string) error {
 	job := func(c utils.ClientInterface) error {
 		return utils.SubmitRawTxString(ctx, c, rawTx)
+	}
+	return t.retryOnJsonRpcFailure(ctx, job)
+}
+
+func (t *ChainHelper) SubmitWithNonceFailureRetry(
+	ctx context.Context,
+	txGenerator func() (*types.Transaction, error),
+) error {
+	job := func(c utils.ClientInterface) error {
+		tx, err := txGenerator()
+		if err != nil {
+			return err
+		}
+		return utils.SubmitRawTx(ctx, c, tx)
 	}
 	return t.retryOnNonceFailure(ctx, job)
 }
@@ -270,9 +280,6 @@ func (t *ChainHelper) retryOnNonceFailure(ctx context.Context, job func(c utils.
 		err = t.retryOnJsonRpcFailure(ctx, job)
 		if err != nil {
 			if utils.IsNonceError(err) {
-				if err = t.updateNonce(ctx); err != nil {
-					return err
-				}
 				continue
 			}
 			return err
@@ -282,30 +289,11 @@ func (t *ChainHelper) retryOnNonceFailure(ctx context.Context, job func(c utils.
 	return err
 }
 
-// updateNonce updates the nonce using the provided wallet and clients.
-func (t *ChainHelper) updateNonce(ctx context.Context) error {
-	newNonce, err := utils.GetNonceFromPk(ctx, t.wallet, t.clients[0])
-	if err != nil {
-		return err
-	}
-	t.setNonce(newNonce)
-	return nil
-}
-
-func (t *ChainHelper) getNonce() uint64 {
+func (t *ChainHelper) getNonceIncrement() uint64 {
 	t.mu.Lock()
-	defer t.mu.Unlock()
+	defer func() {
+		t.nonce++
+		t.mu.Unlock()
+	}()
 	return t.nonce
-}
-
-func (t *ChainHelper) increaseNonce() {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-	t.nonce++
-}
-
-func (t *ChainHelper) setNonce(newNonce uint64) {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-	t.nonce = newNonce
 }
