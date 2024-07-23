@@ -94,6 +94,8 @@ func (c *Controller) broadcastDataForSymbol(symbol string) {
 func (c *Controller) castSubmissionData(data *dalcommon.OutgoingSubmissionData, symbol *string) {
 	for conn := range c.clients {
 		if _, ok := c.clients[conn][*symbol]; ok {
+			c.mu.Lock()
+			defer c.mu.Unlock()
 			if err := conn.WriteJSON(*data); err != nil {
 				log.Error().Err(err).Msg("failed to write message")
 				delete(c.clients, conn)
