@@ -62,3 +62,9 @@ func (m *NonceManager) GetNonce(address string) (uint64, error) {
 	}
 	return result, nil
 }
+
+// ResetInstance is used for testing purposes to reset the singleton instance
+func ResetInstance() {
+	Manager = nil
+	once = sync.Once{}
+}

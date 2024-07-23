@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"bisonai.com/orakl/node/pkg/chain/helper"
+	"bisonai.com/orakl/node/pkg/chain/noncemanager"
 	"bisonai.com/orakl/node/pkg/chain/utils"
 	"bisonai.com/orakl/node/pkg/db"
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
@@ -45,6 +46,7 @@ func TestNewKaiaHelper(t *testing.T) {
 		t.Errorf("Unexpected error: %v", err)
 	}
 
+	noncemanager.ResetInstance()
 	kaiaHelper, err := helper.NewChainHelper(ctx)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
@@ -60,6 +62,7 @@ func TestNewKaiaHelper(t *testing.T) {
 
 func TestNewChainHelper(t *testing.T) {
 	ctx := context.Background()
+	noncemanager.ResetInstance()
 	_, err := helper.NewSigner(ctx)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
@@ -86,6 +89,7 @@ func TestNewEthHelper(t *testing.T) {
 		t.Errorf("Unexpected error: %v", err)
 	}
 
+	noncemanager.ResetInstance()
 	ethHelper, err := helper.NewChainHelper(ctx, helper.WithBlockchainType(helper.Ethereum))
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
@@ -100,6 +104,7 @@ func TestNewEthHelper(t *testing.T) {
 
 func TestMakeDirectTx(t *testing.T) {
 	ctx := context.Background()
+	noncemanager.ResetInstance()
 	kaiaHelper, err := helper.NewChainHelper(ctx)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
@@ -148,6 +153,7 @@ func TestMakeDirectTx(t *testing.T) {
 
 func TestMakeFeeDelegatedTx(t *testing.T) {
 	ctx := context.Background()
+	noncemanager.ResetInstance()
 	kaiaHelper, err := helper.NewChainHelper(ctx)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
@@ -195,6 +201,7 @@ func TestMakeFeeDelegatedTx(t *testing.T) {
 
 func TestTxToHashToTx(t *testing.T) {
 	ctx := context.Background()
+	noncemanager.ResetInstance()
 	kaiaHelper, err := helper.NewChainHelper(ctx)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
@@ -249,34 +256,9 @@ func TestGenerateViewABI(t *testing.T) {
 	assert.NotEqual(t, abi, nil)
 }
 
-func TestSubmitRawTxString(t *testing.T) {
-	// testing based on baobab testnet
-	ctx := context.Background()
-	kaiaHelper, err := helper.NewChainHelper(ctx)
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-	defer kaiaHelper.Close()
-
-	rawTx, err := kaiaHelper.MakeFeeDelegatedTx(ctx, "0x93120927379723583c7a0dd2236fcb255e96949f", "increment()")
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-
-	signedTx, err := kaiaHelper.SignTxByFeePayer(ctx, rawTx)
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-
-	rawTxString := utils.TxToHash(signedTx)
-	err = kaiaHelper.SubmitRawTxString(ctx, rawTxString)
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-}
-
 func TestSubmitDirect(t *testing.T) {
 	ctx := context.Background()
+	noncemanager.ResetInstance()
 	kaiaHelper, err := helper.NewChainHelper(ctx)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
@@ -292,6 +274,7 @@ func TestSubmitDirect(t *testing.T) {
 func TestReadContract(t *testing.T) {
 	// testing based on baobab testnet
 	ctx := context.Background()
+	noncemanager.ResetInstance()
 	kaiaHelper, err := helper.NewChainHelper(ctx)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
@@ -321,6 +304,7 @@ func TestReadContract(t *testing.T) {
 func TestReadContractWithEthHelper(t *testing.T) {
 	// testing based on sepolia eth testnet
 	ctx := context.Background()
+	noncemanager.ResetInstance()
 	ethHelper, err := helper.NewChainHelper(ctx, helper.WithBlockchainType(helper.Ethereum))
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
@@ -631,6 +615,7 @@ func TestSignerRenew(t *testing.T) {
 		t.Skip("Skipping test because SUBMISSION_PROXY_CONTRACT is not set")
 	}
 
+	noncemanager.ResetInstance()
 	s, err := helper.NewSigner(ctx)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)

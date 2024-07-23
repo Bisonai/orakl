@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	DEFAULT_MINE_WAIT_TIME     = 10 * time.Second
+	DEFAULT_MINE_WAIT_TIME     = 20 * time.Second
 	DEFAULT_GAS_LIMIT          = uint64(6000000)
 	SELECT_WALLETS_QUERY       = "SELECT * FROM wallets;"
 	SELECT_PROVIDER_URLS_QUERY = "SELECT * FROM provider_urls WHERE chain_id = @chain_id ORDER BY priority;"

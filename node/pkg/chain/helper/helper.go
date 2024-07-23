@@ -222,13 +222,6 @@ func (t *ChainHelper) SubmitRawTx(ctx context.Context, tx *types.Transaction) er
 	return t.retryOnJsonRpcFailure(ctx, job)
 }
 
-func (t *ChainHelper) SubmitRawTxString(ctx context.Context, rawTx string) error {
-	job := func(c utils.ClientInterface) error {
-		return utils.SubmitRawTxString(ctx, c, rawTx)
-	}
-	return t.retryOnJsonRpcFailure(ctx, job)
-}
-
 // SignTxByFeePayer: used for testing purpose
 func (t *ChainHelper) SignTxByFeePayer(ctx context.Context, tx *types.Transaction) (*types.Transaction, error) {
 	return utils.SignTxByFeePayer(ctx, tx, t.chainID)
