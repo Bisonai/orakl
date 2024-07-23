@@ -74,3 +74,4 @@
 - **node** v0.0.1.20240723.0539.d618b6b <br> *`PR`*: OraklNode Increase delegator t... <br><br> 
 - **node** v0.0.1.20240723.0546.3736b1f <br> *`PR`*: Revert OraklNode Implement man... <br><br> 
 - **dal** v0.0.1.20240723.0713.3684c42 <br> *`PR`*: Potential fix for concurrent w... <br><br> 
+- **dal** v0.0.1.20240723.0950.f26c52f <br> *`PR`*: DAL hotfix mutex implementatio... <br><br> 
