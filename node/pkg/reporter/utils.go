@@ -10,6 +10,7 @@ import (
 	"bisonai.com/orakl/node/pkg/common/keys"
 	"bisonai.com/orakl/node/pkg/db"
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
+	"bisonai.com/orakl/node/pkg/wss"
 
 	"github.com/klaytn/klaytn/common"
 	"github.com/klaytn/klaytn/crypto"
@@ -149,4 +150,23 @@ func GetDeviationThreshold(submissionInterval time.Duration) float64 {
 		submissionIntervalSec := submissionInterval.Seconds()
 		return MIN_DEVIATION_THRESHOLD - ((submissionIntervalSec-MIN_INTERVAL)/(MAX_INTERVAL-MIN_INTERVAL))*(MIN_DEVIATION_THRESHOLD-MAX_DEVIATION_THRESHOLD)
 	}
+}
+
+func SetupDalWsHelper(ctx context.Context, configs []Config, endpoint string, apiKey string) (*wss.WebsocketHelper, error) {
+	subscription := Subscription{
+		Method: "SUBSCRIBE",
+		Params: []string{},
+	}
+
+	for _, configs := range configs {
+		subscription.Params = append(subscription.Params, "submission@"+configs.Name)
+	}
+
+	wsHelper, wsHelperErr := wss.NewWebsocketHelper(ctx, wss.WithEndpoint(endpoint), wss.WithSubscriptions([]interface{}{subscription}), wss.WithRequestHeaders(map[string]string{"X-API-Key": apiKey}))
+	if wsHelperErr != nil {
+		log.Error().Str("Player", "Reporter").Err(wsHelperErr).Msg("failed to create websocket helper")
+		return nil, wsHelperErr
+	}
+	return wsHelper, nil
+
 }
