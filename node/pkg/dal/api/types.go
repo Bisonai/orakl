@@ -1,6 +1,8 @@
 package api
 
 import (
+	"sync"
+
 	"bisonai.com/orakl/node/pkg/common/types"
 	"bisonai.com/orakl/node/pkg/dal/collector"
 	dalcommon "bisonai.com/orakl/node/pkg/dal/common"
@@ -20,4 +22,6 @@ type Controller struct {
 	register   chan *websocket.Conn
 	unregister chan *websocket.Conn
 	broadcast  map[string]chan dalcommon.OutgoingSubmissionData
+
+	mu sync.RWMutex
 }
