@@ -32,7 +32,7 @@ Off-chain aggregator performs the following steps to regularly submit data into 
 
 <figure><img src="./Node.drawio.svg" alt=""><figcaption><p>Set of `Admin`, `fetcher`, `aggregator`, and `reporter` runs in a single Orakl Node</p></figcaption></figure>
 
-<figure><img src="./DAL.drawio.svg" alt=""><figcaption><p>Data Availability Layer for both pull & push pattern</p></figcaption></figure>
+<figure><img src="./DAL.drawio.svg" alt=""><figcaption><p>Data Availability Layer</p></figcaption></figure>
 
 ## Project Structure
 
@@ -61,6 +61,7 @@ Check the source code inside `./pkg` for details:
 - **Por**: Package to run a separate service for POR.
 - **wss**: Helper package for websocket implementation
 - **websocketfetcher**: Fetcher app based on websocket
+- **dal**: Data Availability Layer API
 
 ### Main Elements
 
