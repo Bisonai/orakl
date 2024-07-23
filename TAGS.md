@@ -72,3 +72,4 @@
 - **dal** v0.0.1.20240722.0817.38afd9c <br> *`PR`*: fix empty data return issue in... <br><br> 
 - **node** v0.0.1.20240723.0522.5225c8e <br> *`PR`*: OraklNode Increase delegator t... <br><br> 
 - **node** v0.0.1.20240723.0539.d618b6b <br> *`PR`*: OraklNode Increase delegator t... <br><br> 
+- **node** v0.0.1.20240723.0546.3736b1f <br> *`PR`*: Revert OraklNode Implement man... <br><br> 
