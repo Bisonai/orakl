@@ -60,9 +60,7 @@ func setProviderAndReporter(config *ChainHelperConfig, blockchainType Blockchain
 func NewChainHelper(ctx context.Context, opts ...ChainHelperOption) (*ChainHelper, error) {
 	config := &ChainHelperConfig{
 		BlockchainType:            Kaia,
-		UseAdditionalWallets:      true,
 		UseAdditionalProviderUrls: true,
-		StoreWallet:               true,
 	}
 	for _, opt := range opts {
 		opt(config)
@@ -102,29 +100,7 @@ func NewChainHelper(ctx context.Context, opts ...ChainHelperOption) (*ChainHelpe
 		}
 	}
 
-	primaryWallet := strings.TrimPrefix(config.ReporterPk, "0x")
-	wallets := []string{primaryWallet}
-
-	if config.UseAdditionalWallets {
-		loadedWallets, getWalletErr := utils.GetWallets(ctx)
-		if getWalletErr != nil {
-			log.Warn().Err(getWalletErr).Msg("failed to get additional wallets")
-		}
-
-		for _, wallet := range loadedWallets {
-			if wallet == primaryWallet {
-				continue
-			}
-			wallets = append(wallets, wallet)
-		}
-	}
-
-	if config.StoreWallet {
-		err = utils.InsertWallet(ctx, primaryWallet)
-		if err != nil {
-			log.Warn().Err(err).Msg("failed to insert primary wallet")
-		}
-	}
+	wallet := strings.TrimPrefix(config.ReporterPk, "0x")
 
 	delegatorUrl := os.Getenv(EnvDelegatorUrl)
 	if delegatorUrl == "" {
@@ -133,7 +109,7 @@ func NewChainHelper(ctx context.Context, opts ...ChainHelperOption) (*ChainHelpe
 
 	return &ChainHelper{
 		clients:      clients,
-		wallets:      wallets,
+		wallet:       wallet,
 		chainID:      chainID,
 		delegatorUrl: delegatorUrl,
 	}, nil
@@ -155,7 +131,7 @@ func (t *ChainHelper) GetSignedFromDelegator(tx *types.Transaction) (*types.Tran
 		return nil, err
 	}
 
-	result, err := request.Request[signedTx](request.WithEndpoint(t.delegatorUrl+DelegatorEndpoint), request.WithMethod("POST"), request.WithBody(payload), request.WithTimeout(5*time.Second))
+	result, err := request.Request[signedTx](request.WithEndpoint(t.delegatorUrl+DelegatorEndpoint), request.WithMethod("POST"), request.WithBody(payload), request.WithTimeout(10*time.Second))
 	if err != nil {
 		log.Error().Err(err).Msg("failed to request sign from delegator")
 		return nil, err
@@ -167,19 +143,10 @@ func (t *ChainHelper) GetSignedFromDelegator(tx *types.Transaction) (*types.Tran
 	return utils.HashToTx(*result.SignedRawTx)
 }
 
-func (t *ChainHelper) NextReporter() string {
-	if len(t.wallets) == 0 {
-		return ""
-	}
-	reporter := t.wallets[t.lastUsedWalletIndex]
-	t.lastUsedWalletIndex = (t.lastUsedWalletIndex + 1) % len(t.wallets)
-	return reporter
-}
-
 func (t *ChainHelper) MakeDirectTx(ctx context.Context, contractAddressHex string, functionString string, args ...interface{}) (*types.Transaction, error) {
 	var result *types.Transaction
 	job := func(c utils.ClientInterface) error {
-		tmp, err := utils.MakeDirectTx(ctx, c, contractAddressHex, t.NextReporter(), functionString, t.chainID, args...)
+		tmp, err := utils.MakeDirectTx(ctx, c, contractAddressHex, t.wallet, functionString, t.chainID, args...)
 		if err == nil {
 			result = tmp
 		}
@@ -192,7 +159,7 @@ func (t *ChainHelper) MakeDirectTx(ctx context.Context, contractAddressHex strin
 func (t *ChainHelper) MakeFeeDelegatedTx(ctx context.Context, contractAddressHex string, functionString string, args ...interface{}) (*types.Transaction, error) {
 	var result *types.Transaction
 	job := func(c utils.ClientInterface) error {
-		tmp, err := utils.MakeFeeDelegatedTx(ctx, c, contractAddressHex, t.NextReporter(), functionString, t.chainID, args...)
+		tmp, err := utils.MakeFeeDelegatedTx(ctx, c, contractAddressHex, t.wallet, functionString, t.chainID, args...)
 		if err == nil {
 			result = tmp
 		}
@@ -246,7 +213,7 @@ func (t *ChainHelper) PublicAddress() (common.Address, error) {
 	// should get the public address of next reporter yet not move the index
 	result := common.Address{}
 
-	reporterPrivateKey := t.wallets[t.lastUsedWalletIndex]
+	reporterPrivateKey := t.wallet
 	privateKey, err := crypto.HexToECDSA(reporterPrivateKey)
 	if err != nil {
 		return result, err
