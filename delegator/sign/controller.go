@@ -292,6 +292,7 @@ func validateTransaction(c *fiber.Ctx, tx *SignModel) error {
 func validateContractAddress(c *fiber.Ctx, address string) error {
 	validContracts := c.Locals("validContracts").(*map[string]any)
 	if _, ok := (*validContracts)[address]; ok {
+		log.Info().Str("address", address).Msg("contract approved through cache")
 		return nil
 	} else {
 		contract, err := utils.QueryRow[ContractModel](c, GetContractByAddress, map[string]any{"address": address})
