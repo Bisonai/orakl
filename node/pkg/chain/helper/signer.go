@@ -11,7 +11,6 @@ import (
 	"bisonai.com/orakl/node/pkg/chain/utils"
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
 	"bisonai.com/orakl/node/pkg/secrets"
-	"github.com/klaytn/klaytn/blockchain/types"
 	"github.com/klaytn/klaytn/common"
 	"github.com/klaytn/klaytn/crypto"
 	"github.com/rs/zerolog/log"
@@ -91,7 +90,9 @@ func NewSigner(ctx context.Context, opts ...SignerOption) (*Signer, error) {
 
 	chainHelper, err := NewChainHelper(
 		ctx,
-		WithReporterPk(pk))
+		WithReporterPk(pk),
+		WithoutAdditionalWallets(),
+		WithoutWalletStore())
 	if err != nil {
 		log.Error().Str("Player", "Signer").Err(err).Msg("failed to set chainHelper for signHelper")
 		return nil, err
@@ -211,7 +212,6 @@ func (s *Signer) Renew(ctx context.Context, newPK *ecdsa.PrivateKey, newPkHex st
 		log.Error().Str("Player", "Signer").Err(err).Msg("failed to update signer")
 		return err
 	}
-
 	log.Debug().Str("Player", "Signer").Msg("signer renewed from the contract")
 
 	s.mu.Lock()
@@ -221,7 +221,9 @@ func (s *Signer) Renew(ctx context.Context, newPK *ecdsa.PrivateKey, newPkHex st
 	s.chainHelper.Close()
 	newChainHelper, err := NewChainHelper(
 		ctx,
-		WithReporterPk(newPkHex))
+		WithReporterPk(newPkHex),
+		WithoutAdditionalWallets(),
+		WithoutWalletStore())
 	if err != nil {
 		log.Error().Str("Player", "Signer").Err(err).Msg("failed to create new chain helper")
 		return err
@@ -244,22 +246,24 @@ func (s *Signer) signerUpdate(ctx context.Context, newAddr common.Address) error
 }
 
 func (s *Signer) delegatedSignerUpdate(ctx context.Context, newAddr common.Address) error {
-	txGenerator := func() (*types.Transaction, error) {
-		rawTx, err := s.chainHelper.MakeFeeDelegatedTx(ctx, s.submissionProxyContractAddr, UpdateSignerFuncSignature, newAddr)
-		if err != nil {
-			log.Error().Str("Player", "Signer").Err(err).Msg("failed to make fee delegated tx")
-			return nil, err
-		}
-		return s.chainHelper.GetSignedFromDelegator(rawTx)
+	rawTx, err := s.chainHelper.MakeFeeDelegatedTx(ctx, s.submissionProxyContractAddr, UpdateSignerFuncSignature, newAddr)
+	if err != nil {
+		log.Error().Str("Player", "Signer").Err(err).Msg("failed to make fee delegated tx")
+		return err
 	}
-
-	return s.chainHelper.SubmitWithNonceFailureRetry(ctx, txGenerator)
+	signedTx, err := s.chainHelper.GetSignedFromDelegator(rawTx)
+	if err != nil {
+		log.Error().Str("Player", "Signer").Err(err).Msg("failed to sign tx")
+		return err
+	}
+	return s.chainHelper.SubmitRawTx(ctx, signedTx)
 }
 
 func (s *Signer) directSignerUpdate(ctx context.Context, newAddr common.Address) error {
-	txGenerator := func() (*types.Transaction, error) {
-		return s.chainHelper.MakeDirectTx(ctx, s.submissionProxyContractAddr, UpdateSignerFuncSignature, newAddr)
+	rawTx, err := s.chainHelper.MakeDirectTx(ctx, s.submissionProxyContractAddr, UpdateSignerFuncSignature, newAddr)
+	if err != nil {
+		log.Error().Str("Player", "Signer").Err(err).Msg("failed to make direct tx")
+		return err
 	}
-
-	return s.chainHelper.SubmitWithNonceFailureRetry(ctx, txGenerator)
+	return s.chainHelper.SubmitRawTx(ctx, rawTx)
 }

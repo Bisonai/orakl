@@ -74,7 +74,6 @@ type ReporterConfig struct {
 	ContractAddress string
 	CachedWhitelist []common.Address
 	JobType         JobType
-	KaiaHelper      *helper.ChainHelper
 }
 
 type ReporterOption func(*ReporterConfig)
@@ -118,12 +117,6 @@ func WithCachedWhitelist(whitelist []common.Address) ReporterOption {
 func WithJobType(jobType JobType) ReporterOption {
 	return func(c *ReporterConfig) {
 		c.JobType = jobType
-	}
-}
-
-func WithKaiaHelper(h *helper.ChainHelper) ReporterOption {
-	return func(c *ReporterConfig) {
-		c.KaiaHelper = h
 	}
 }
 
