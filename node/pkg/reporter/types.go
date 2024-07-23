@@ -161,12 +161,3 @@ func makeGetLatestGlobalAggregatesQuery(configIds []int32) string {
 
 	return q
 }
-
-func makeGetProofsQuery(aggregates []GlobalAggregate) string {
-	placeHolders := make([]string, len(aggregates))
-	for i, agg := range aggregates {
-		placeHolders[i] = fmt.Sprintf("('%d', %d)", agg.ConfigID, agg.Round)
-	}
-
-	return fmt.Sprintf("SELECT config_id, round, proof FROM proofs WHERE (config_id, round) IN (%s);", strings.Join(placeHolders, ","))
-}
