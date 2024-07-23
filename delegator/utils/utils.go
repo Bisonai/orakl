@@ -139,11 +139,11 @@ func CustomStackTraceHandler(_ *fiber.Ctx, e interface{}) {
 }
 
 func GetFeePayer(c *fiber.Ctx) (string, error) {
-	feePayer, ok := c.Locals("feePayer").(string)
+	payer, ok := c.Locals("feePayer").(string)
 	if !ok {
-		return feePayer, errors.New("failed to get feePayer")
+		return payer, errors.New("failed to get feePayer")
 	} else {
-		return feePayer, nil
+		return payer, nil
 	}
 }
 

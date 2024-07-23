@@ -207,7 +207,7 @@ func insertV2(c *fiber.Ctx) error {
 	}
 
 	validate := validator.New()
-	if err := validate.Struct(payload); err != nil {
+	if err = validate.Struct(payload); err != nil {
 		return err
 	}
 
@@ -219,7 +219,7 @@ func insertV2(c *fiber.Ctx) error {
 		return err
 	}
 
-	err = validateContractAddressV2(c, strings.ToLower(payload.To))
+	err = validateContractAddress(c, strings.ToLower(payload.To))
 	if err != nil {
 		return err
 	}
@@ -290,19 +290,7 @@ func validateTransaction(c *fiber.Ctx, tx *SignModel) error {
 	}
 }
 
-func validateContractAddress(c *fiber.Ctx, tx *SignModel) error {
-	contract, err := utils.QueryRow[ContractModel](c, GetContractByAddress, map[string]any{"address": tx.To})
-	if err != nil {
-		return err
-	}
-	if contract.ContractId != nil {
-		return nil
-	} else {
-		return fmt.Errorf("not approved contract address")
-	}
-}
-
-func validateContractAddressV2(c *fiber.Ctx, address string) error {
+func validateContractAddress(c *fiber.Ctx, address string) error {
 	validContracts := c.Locals("validContracts").(*map[string]any)
 	if _, ok := (*validContracts)[address]; ok {
 		return nil
