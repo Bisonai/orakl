@@ -280,6 +280,7 @@ func (t *ChainHelper) retryOnJsonRpcFailure(ctx context.Context, job func(c util
 		err := job(client)
 		if err != nil {
 			if utils.ShouldRetryWithSwitchedJsonRPC(err) {
+				log.Error().Err(err).Msg("Error on retrying on JsonRpcFailure")
 				continue
 			}
 			return err
@@ -296,6 +297,7 @@ func (t *ChainHelper) retryOnNonceFailure(ctx context.Context, job func(c utils.
 		err = t.retryOnJsonRpcFailure(ctx, job)
 		if err != nil {
 			if utils.IsNonceError(err) || utils.IsNonceAlreadyInPool(err) {
+				log.Error().Err(err).Msg("Error on retrying on NonceFailure")
 				continue
 			}
 			return err
