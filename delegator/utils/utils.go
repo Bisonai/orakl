@@ -69,6 +69,7 @@ func Setup(options ...string) (AppConfig, error) {
 	app.Use(func(c *fiber.Ctx) error {
 		c.Locals("feePayer", feePayer)
 		c.Locals("pgxConn", pgxPool)
+		c.Locals("validContracts", new(map[string]any))
 		return c.Next()
 	})
 

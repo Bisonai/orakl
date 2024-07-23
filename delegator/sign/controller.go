@@ -195,6 +195,7 @@ func onlySign(c *fiber.Ctx) error {
 }
 
 func insertV2(c *fiber.Ctx) error {
+
 	payload := new(SignInsertPayload)
 	if err := c.BodyParser(payload); err != nil {
 		return err
@@ -213,13 +214,12 @@ func insertV2(c *fiber.Ctx) error {
 	payload.Timestamp = &utils.CustomDateTime{Time: time.Now()}
 	payload.From = strings.ToLower(payload.From)
 	payload.To = strings.ToLower(payload.To)
-
 	tx, err := insertTransaction(c, payload)
 	if err != nil {
 		return err
 	}
 
-	err = validateContractAddress(c, tx)
+	err = validateContractAddressV2(c, strings.ToLower(payload.To))
 	if err != nil {
 		return err
 	}
@@ -229,17 +229,20 @@ func insertV2(c *fiber.Ctx) error {
 		return err
 	}
 
-	succeed := true
 	rawTxHash := TxToHash(signedTransaction)
-	tx.Succeed = &succeed
-	tx.SignedRawTx = &rawTxHash
 
-	result, err := updateTransaction(c, tx)
-	if err != nil {
-		return err
-	}
+	defer func() {
+		succeed := true
+		tx.Succeed = &succeed
+		tx.SignedRawTx = &rawTxHash
 
-	return c.JSON(result)
+		_, err := updateTransaction(c, tx)
+		if err != nil {
+			log.Error().Err(err).Msg("failed to update transaction")
+		}
+	}()
+
+	return c.JSON(SignModel{SignedRawTx: &rawTxHash})
 }
 
 func get(c *fiber.Ctx) error {
@@ -296,6 +299,21 @@ func validateContractAddress(c *fiber.Ctx, tx *SignModel) error {
 		return nil
 	} else {
 		return fmt.Errorf("not approved contract address")
+	}
+}
+
+func validateContractAddressV2(c *fiber.Ctx, address string) error {
+	validContracts := c.Locals("validContracts").(*map[string]any)
+	if _, ok := (*validContracts)[address]; ok {
+		return nil
+	} else {
+		contract, err := utils.QueryRow[ContractModel](c, GetContractByAddress, map[string]any{"address": address})
+		if err == nil && contract.ContractId != nil {
+			(*validContracts)[address] = struct{}{}
+			return nil
+		} else {
+			return fmt.Errorf("not approved contract address")
+		}
 	}
 }
 
