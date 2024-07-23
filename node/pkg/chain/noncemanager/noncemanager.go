@@ -32,8 +32,7 @@ func (m *NonceManager) GetNonceAndIncrement(address string) (uint64, error) {
 		return 0, fmt.Errorf("nonce not found")
 	}
 
-	nonce++
-	m.nonces[address] = nonce
+	m.nonces[address] = nonce + 1
 	return nonce, nil
 }
 
