@@ -56,10 +56,14 @@ func (c *Controller) Start(ctx context.Context) {
 		for {
 			select {
 			case conn := <-c.register:
+				c.mu.Lock()
 				c.clients[conn] = make(map[string]bool)
+				c.mu.Unlock()
 			case conn := <-c.unregister:
+				c.mu.Lock()
 				delete(c.clients, conn)
 				conn.Close()
+				c.mu.Unlock()
 			}
 		}
 	}()
@@ -86,23 +90,28 @@ func (c *Controller) configIdToSymbol(id int32) string {
 
 func (c *Controller) broadcastDataForSymbol(symbol string) {
 	for data := range c.broadcast[symbol] {
+
 		go c.castSubmissionData(&data, &symbol)
 	}
 }
 
 // pass by pointer to reduce memory copy time
 func (c *Controller) castSubmissionData(data *dalcommon.OutgoingSubmissionData, symbol *string) {
+	c.mu.RLock()
 	for conn := range c.clients {
 		if _, ok := c.clients[conn][*symbol]; ok {
-			c.mu.Lock()
-			defer c.mu.Unlock()
 			if err := conn.WriteJSON(*data); err != nil {
 				log.Error().Err(err).Msg("failed to write message")
+				c.mu.RUnlock()
+				c.mu.Lock()
 				delete(c.clients, conn)
 				conn.Close()
+				c.mu.Unlock()
+				c.mu.RLock()
 			}
 		}
 	}
+	c.mu.RUnlock()
 }
 
 func HandleWebsocket(conn *websocket.Conn) {
@@ -147,7 +156,7 @@ func HandleWebsocket(conn *websocket.Conn) {
 		}
 
 		if msg.Method == "SUBSCRIBE" {
-
+			c.mu.Lock()
 			if c.clients[conn] == nil {
 				c.clients[conn] = make(map[string]bool)
 			}
@@ -162,6 +171,7 @@ func HandleWebsocket(conn *websocket.Conn) {
 					log.Error().Err(err).Msg("failed to insert websocket subscription")
 				}
 			}
+			c.mu.Unlock()
 		}
 	}
 }
