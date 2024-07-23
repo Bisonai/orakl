@@ -10,10 +10,27 @@ type NonceManager struct {
 	nonces map[string]uint64
 }
 
-func New() *NonceManager {
-	return &NonceManager{
-		nonces: make(map[string]uint64),
-	}
+var (
+	Manager *NonceManager
+	once    sync.Once
+)
+
+func Get() *NonceManager {
+	once.Do(func() {
+		Manager = &NonceManager{
+			nonces: make(map[string]uint64),
+			mu:     sync.RWMutex{},
+		}
+	})
+	return Manager
+}
+
+func Set(address string, nonce uint64) {
+	Get().SetNonce(address, nonce)
+}
+
+func GetAndIncrement(address string) (uint64, error) {
+	return Get().GetNonceAndIncrement(address)
 }
 
 func (m *NonceManager) SetNonce(address string, nonce uint64) {

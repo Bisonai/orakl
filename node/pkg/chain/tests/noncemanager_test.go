@@ -9,7 +9,7 @@ import (
 )
 
 func TestNonceManager(t *testing.T) {
-	nm := noncemanager.New()
+	nm := noncemanager.Get()
 	address := "0x123"
 
 	nm.SetNonce(address, 1)

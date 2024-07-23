@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"bisonai.com/orakl/node/pkg/chain/noncemanager"
 	"bisonai.com/orakl/node/pkg/chain/utils"
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
 	"bisonai.com/orakl/node/pkg/secrets"
@@ -101,6 +102,11 @@ func NewChainHelper(ctx context.Context, opts ...ChainHelperOption) (*ChainHelpe
 	}
 
 	wallet := strings.TrimPrefix(config.ReporterPk, "0x")
+	nonce, err := utils.GetNonceFromPk(ctx, wallet, primaryClient)
+	if err != nil {
+		return nil, err
+	}
+	noncemanager.Set(wallet, nonce)
 
 	delegatorUrl := os.Getenv(EnvDelegatorUrl)
 	if delegatorUrl == "" {
@@ -143,29 +149,69 @@ func (t *ChainHelper) GetSignedFromDelegator(tx *types.Transaction) (*types.Tran
 	return utils.HashToTx(*result.SignedRawTx)
 }
 
+func (t *ChainHelper) SubmitDirect(ctx context.Context, contractAddress string, functionString string, args ...interface{}) error {
+	tx, err := t.MakeDirectTx(ctx, contractAddress, functionString, args...)
+	if err != nil {
+		return err
+	}
+
+	job := func(c utils.ClientInterface) error {
+		return utils.SubmitRawTx(ctx, c, tx)
+	}
+
+	return t.retryOnNonceFailure(ctx, job)
+}
+
+func (t *ChainHelper) SubmitDelegated(ctx context.Context, contractAddress string, functionString string, args ...interface{}) error {
+	tx, err := t.MakeFeeDelegatedTx(ctx, contractAddress, functionString, args...)
+	if err != nil {
+		return err
+	}
+
+	tx, err = t.GetSignedFromDelegator(tx)
+	if err != nil {
+		return err
+	}
+
+	job := func(c utils.ClientInterface) error {
+		return utils.SubmitRawTx(ctx, c, tx)
+	}
+
+	return t.retryOnNonceFailure(ctx, job)
+}
+
 func (t *ChainHelper) MakeDirectTx(ctx context.Context, contractAddressHex string, functionString string, args ...interface{}) (*types.Transaction, error) {
 	var result *types.Transaction
+	nonce, err := noncemanager.GetAndIncrement(t.wallet)
+	if err != nil {
+		return nil, err
+	}
+
 	job := func(c utils.ClientInterface) error {
-		tmp, err := utils.MakeDirectTx(ctx, c, contractAddressHex, t.wallet, functionString, t.chainID, args...)
+		tmp, err := utils.MakeDirectTx(ctx, c, contractAddressHex, t.wallet, functionString, t.chainID, nonce, args...)
 		if err == nil {
 			result = tmp
 		}
 		return err
 	}
-	err := t.retryOnJsonRpcFailure(ctx, job)
+	err = t.retryOnJsonRpcFailure(ctx, job)
 	return result, err
 }
 
 func (t *ChainHelper) MakeFeeDelegatedTx(ctx context.Context, contractAddressHex string, functionString string, args ...interface{}) (*types.Transaction, error) {
 	var result *types.Transaction
+	nonce, err := noncemanager.GetAndIncrement(t.wallet)
+	if err != nil {
+		return nil, err
+	}
 	job := func(c utils.ClientInterface) error {
-		tmp, err := utils.MakeFeeDelegatedTx(ctx, c, contractAddressHex, t.wallet, functionString, t.chainID, args...)
+		tmp, err := utils.MakeFeeDelegatedTx(ctx, c, contractAddressHex, t.wallet, functionString, t.chainID, nonce, args...)
 		if err == nil {
 			result = tmp
 		}
 		return err
 	}
-	err := t.retryOnJsonRpcFailure(ctx, job)
+	err = t.retryOnJsonRpcFailure(ctx, job)
 	return result, err
 }
 
@@ -248,4 +294,20 @@ func (t *ChainHelper) retryOnJsonRpcFailure(ctx context.Context, job func(c util
 		break
 	}
 	return nil
+}
+
+func (t *ChainHelper) retryOnNonceFailure(ctx context.Context, job func(c utils.ClientInterface) error) error {
+	var err error
+	maxRetries := 3
+	for retries := 0; retries < maxRetries; retries++ {
+		err = t.retryOnJsonRpcFailure(ctx, job)
+		if err != nil {
+			if utils.IsNonceError(err) {
+				continue
+			}
+			return err
+		}
+		break
+	}
+	return err
 }
