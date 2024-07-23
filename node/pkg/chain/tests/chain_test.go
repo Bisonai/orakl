@@ -275,6 +275,20 @@ func TestSubmitRawTxString(t *testing.T) {
 	}
 }
 
+func TestSubmitDirect(t *testing.T) {
+	ctx := context.Background()
+	kaiaHelper, err := helper.NewChainHelper(ctx)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+	defer kaiaHelper.Close()
+
+	err = kaiaHelper.SubmitDirect(ctx, "0x93120927379723583c7a0dd2236fcb255e96949f", "increment()")
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+}
+
 func TestReadContract(t *testing.T) {
 	// testing based on baobab testnet
 	ctx := context.Background()
