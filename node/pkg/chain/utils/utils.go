@@ -729,3 +729,7 @@ func IsNonceError(err error) bool {
 	}
 	return false
 }
+
+func IsNonceAlreadyInPool(err error) bool {
+	return err.Error() == "there is another tx which has the same nonce in the tx pool"
+}

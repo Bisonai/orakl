@@ -150,12 +150,12 @@ func (t *ChainHelper) GetSignedFromDelegator(tx *types.Transaction) (*types.Tran
 }
 
 func (t *ChainHelper) SubmitDirect(ctx context.Context, contractAddress string, functionString string, args ...interface{}) error {
-	tx, err := t.MakeDirectTx(ctx, contractAddress, functionString, args...)
-	if err != nil {
-		return err
-	}
-
 	job := func(c utils.ClientInterface) error {
+		tx, err := t.MakeDirectTx(ctx, contractAddress, functionString, args...)
+		if err != nil {
+			return err
+		}
+
 		return utils.SubmitRawTx(ctx, c, tx)
 	}
 
@@ -163,17 +163,17 @@ func (t *ChainHelper) SubmitDirect(ctx context.Context, contractAddress string, 
 }
 
 func (t *ChainHelper) SubmitDelegated(ctx context.Context, contractAddress string, functionString string, args ...interface{}) error {
-	tx, err := t.MakeFeeDelegatedTx(ctx, contractAddress, functionString, args...)
-	if err != nil {
-		return err
-	}
-
-	tx, err = t.GetSignedFromDelegator(tx)
-	if err != nil {
-		return err
-	}
-
 	job := func(c utils.ClientInterface) error {
+		tx, err := t.MakeFeeDelegatedTx(ctx, contractAddress, functionString, args...)
+		if err != nil {
+			return err
+		}
+
+		tx, err = t.GetSignedFromDelegator(tx)
+		if err != nil {
+			return err
+		}
+
 		return utils.SubmitRawTx(ctx, c, tx)
 	}
 
@@ -295,7 +295,7 @@ func (t *ChainHelper) retryOnNonceFailure(ctx context.Context, job func(c utils.
 	for retries := 0; retries < maxRetries; retries++ {
 		err = t.retryOnJsonRpcFailure(ctx, job)
 		if err != nil {
-			if utils.IsNonceError(err) {
+			if utils.IsNonceError(err) || utils.IsNonceAlreadyInPool(err) {
 				continue
 			}
 			return err
