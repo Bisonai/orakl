@@ -139,7 +139,7 @@ func (t *ChainHelper) GetSignedFromDelegator(tx *types.Transaction) (*types.Tran
 		return nil, err
 	}
 
-	result, err := request.Request[signedTx](request.WithEndpoint(t.delegatorUrl+DelegatorEndpoint), request.WithMethod("POST"), request.WithBody(payload), request.WithTimeout(5*time.Second))
+	result, err := request.Request[signedTx](request.WithEndpoint(t.delegatorUrl+DelegatorEndpoint), request.WithMethod("POST"), request.WithBody(payload), request.WithTimeout(10*time.Second))
 	if err != nil {
 		log.Error().Err(err).Msg("failed to request sign from delegator")
 		return nil, err
