@@ -184,13 +184,6 @@ func (t *ChainHelper) MakeFeeDelegatedTx(ctx context.Context, contractAddressHex
 	return result, err
 }
 
-func (t *ChainHelper) SubmitRawTx(ctx context.Context, tx *types.Transaction) error {
-	job := func(c utils.ClientInterface) error {
-		return utils.SubmitRawTx(ctx, c, tx)
-	}
-	return t.retryOnJsonRpcFailure(ctx, job)
-}
-
 // SignTxByFeePayer: used for testing purpose
 func (t *ChainHelper) SignTxByFeePayer(ctx context.Context, tx *types.Transaction) (*types.Transaction, error) {
 	return utils.SignTxByFeePayer(ctx, tx, t.chainID)
