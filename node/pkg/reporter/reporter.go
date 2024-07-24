@@ -49,8 +49,7 @@ func NewReporter(ctx context.Context, opts ...ReporterOption) (*Reporter, error)
 
 func (r *Reporter) Run(ctx context.Context) {
 	log.Info().Msgf("Reporter ticker starting with interval: %v", r.SubmissionInterval)
-	// ticker := time.NewTicker(r.SubmissionInterval)
-	ticker := time.NewTicker(3 * time.Second)
+	ticker := time.NewTicker(r.SubmissionInterval)
 
 	for {
 		select {
@@ -74,28 +73,16 @@ func (r *Reporter) report(ctx context.Context) error {
 
 	for _, pair := range r.SubmissionPairs {
 		if value, ok := r.LatestData.Load(pair.Name); ok {
-			data, ok := value.(SubmissionData)
-			if !ok {
-				log.Error().Str("Player", "Reporter").Msgf("failed to convert latest data to submission data for symbol %s", pair.Name)
-				continue
-			}
-			intValue, valueErr := strconv.ParseInt(data.Value, 10, 64)
-			if valueErr != nil {
-				log.Error().Str("Player", "Reporter").Err(valueErr).Msgf("failed to parse value for symbol: %s", pair.Name)
+			submissionData, err := processDalWsRawData(value)
+			if err != nil {
+				log.Error().Str("Player", "Reporter").Err(err).Msg("failed to process dal ws raw data")
 				continue
 			}
 
-			timestampValue, timestampErr := strconv.ParseInt(data.AggregateTime, 10, 64)
-			if timestampErr != nil {
-				log.Error().Str("Player", "Reporter").Err(timestampErr).Msgf("failed to parse timestamp for symbol: %s", pair.Name)
-				continue
-			}
-
-			feedHashes = append(feedHashes, data.FeedHash)
-			values = append(values, big.NewInt(intValue))
-			timestamps = append(timestamps, big.NewInt(timestampValue))
-			proofs = append(proofs, data.Proof)
-
+			feedHashes = append(feedHashes, submissionData.feedHash)
+			values = append(values, big.NewInt(submissionData.value))
+			timestamps = append(timestamps, big.NewInt(submissionData.aggregateTime))
+			proofs = append(proofs, submissionData.proof)
 		} else {
 			log.Error().Str("Player", "Reporter").Msgf("latest data for pair %s not found", pair.Name)
 		}
@@ -155,6 +142,59 @@ func (r *Reporter) reportDelegated(ctx context.Context, functionString string, a
 	log.Debug().Str("Player", "Reporter").Str("signedTx", signedTx.String()).Msg("signed tx generated, submitting raw tx")
 
 	return r.KaiaHelper.SubmitRawTx(ctx, signedTx)
+}
+
+func processDalWsRawData(data any) (SubmissionData, error) {
+	mapData, mapDataOk := data.(map[string]interface{})
+	if !mapDataOk {
+		return SubmissionData{}, errorSentinel.ErrReporterDalWsDataProcessingFailed
+	}
+	submissionData := SubmissionData{}
+
+	intValue, valueErr := strconv.ParseInt(mapData["value"].(string), 10, 64)
+	if valueErr != nil {
+		log.Error().Str("Player", "Reporter").Err(valueErr).Msg("failed to parse value")
+		return SubmissionData{}, errorSentinel.ErrReporterDalWsDataProcessingFailed
+	}
+	submissionData.value = intValue
+
+	timestampValue, timestampErr := strconv.ParseInt(mapData["aggregateTime"].(string), 10, 64)
+	if timestampErr != nil {
+		log.Error().Str("Player", "Reporter").Err(timestampErr).Msg("failed to parse timestamp")
+		return SubmissionData{}, errorSentinel.ErrReporterDalWsDataProcessingFailed
+	}
+	submissionData.aggregateTime = timestampValue
+
+	var feedHash [32]byte
+	interfaceFeedHash, interfaceFeedHashOk := mapData["feedHash"].([]interface{})
+	if !interfaceFeedHashOk {
+		log.Error().Str("Player", "Reporter").Msg("failed to convert feed hash to interface")
+		return SubmissionData{}, errorSentinel.ErrReporterDalWsDataProcessingFailed
+
+	}
+	if len(interfaceFeedHash) == 32 {
+		for i, v := range interfaceFeedHash {
+			floatVal, ok := v.(float64)
+			if !ok {
+				log.Error().Str("Player", "Reporter").Msg("failed to convert feed hash value to float")
+				return SubmissionData{}, errorSentinel.ErrReporterDalWsDataProcessingFailed
+			}
+			feedHash[i] = byte(floatVal)
+		}
+	} else {
+		log.Error().Str("Player", "Reporter").Msg("failed to convert feed hash to byte, length not 32")
+		return SubmissionData{}, errorSentinel.ErrReporterDalWsDataProcessingFailed
+	}
+	submissionData.feedHash = feedHash
+
+	proof, ok := mapData["proof"].(string)
+	if !ok {
+		log.Error().Str("Player", "Reporter").Msg("failed to convert proof to string")
+		return SubmissionData{}, errorSentinel.ErrReporterDalWsDataProcessingFailed
+	}
+	submissionData.proof = []byte(proof)
+
+	return submissionData, nil
 }
 
 // func (r *Reporter) deviationJob() error {

@@ -9,7 +9,6 @@ import (
 
 	"bisonai.com/orakl/node/pkg/chain/helper"
 	"bisonai.com/orakl/node/pkg/common/types"
-	dalcommon "bisonai.com/orakl/node/pkg/dal/common"
 	"bisonai.com/orakl/node/pkg/raft"
 	"bisonai.com/orakl/node/pkg/wss"
 	"github.com/klaytn/klaytn/common"
@@ -134,7 +133,12 @@ type GlobalAggregate types.GlobalAggregate
 
 type Proof types.Proof
 
-type SubmissionData dalcommon.OutgoingSubmissionData
+type SubmissionData struct {
+	value         int64
+	aggregateTime int64
+	proof         []byte
+	feedHash      [32]byte
+}
 
 type SubmissionMessage struct {
 	Submissions []GlobalAggregate `json:"submissions"`
