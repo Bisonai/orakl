@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"os"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -268,6 +269,42 @@ func TestSubmitDirect(t *testing.T) {
 	err = kaiaHelper.SubmitDirect(ctx, "0x93120927379723583c7a0dd2236fcb255e96949f", "increment()")
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
+	}
+}
+
+func TestSubmitDirectConcurrent(t *testing.T) {
+	ctx := context.Background()
+	noncemanager.ResetInstance()
+	kaiaHelper, err := helper.NewChainHelper(ctx)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+	defer kaiaHelper.Close()
+
+	const numCalls = 3
+
+	var wg sync.WaitGroup
+	wg.Add(numCalls)
+
+	errCh := make(chan error, numCalls)
+
+	submitTx := func() {
+		defer wg.Done()
+		err := kaiaHelper.SubmitDirect(ctx, "0x93120927379723583c7a0dd2236fcb255e96949f", "increment()")
+		errCh <- err
+	}
+
+	for i := 0; i < numCalls; i++ {
+		go submitTx()
+	}
+
+	wg.Wait()
+	close(errCh)
+
+	for err := range errCh {
+		if err != nil {
+			t.Errorf("Unexpected error: %v", err)
+		}
 	}
 }
 
