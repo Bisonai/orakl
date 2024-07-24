@@ -10,10 +10,27 @@ type NonceManager struct {
 	nonces map[string]uint64
 }
 
-func New() *NonceManager {
-	return &NonceManager{
-		nonces: make(map[string]uint64),
-	}
+var (
+	Manager *NonceManager
+	once    sync.Once
+)
+
+func Get() *NonceManager {
+	once.Do(func() {
+		Manager = &NonceManager{
+			nonces: make(map[string]uint64),
+			mu:     sync.RWMutex{},
+		}
+	})
+	return Manager
+}
+
+func Set(address string, nonce uint64) {
+	Get().SetNonce(address, nonce)
+}
+
+func GetAndIncrementNonce(address string) (uint64, error) {
+	return Get().GetAndIncrementNonce(address)
 }
 
 func (m *NonceManager) SetNonce(address string, nonce uint64) {
@@ -23,7 +40,7 @@ func (m *NonceManager) SetNonce(address string, nonce uint64) {
 	m.nonces[address] = nonce
 }
 
-func (m *NonceManager) GetNonceAndIncrement(address string) (uint64, error) {
+func (m *NonceManager) GetAndIncrementNonce(address string) (uint64, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -44,4 +61,10 @@ func (m *NonceManager) GetNonce(address string) (uint64, error) {
 		return 0, fmt.Errorf("nonce not found")
 	}
 	return result, nil
+}
+
+// ResetInstance is used for testing purposes to reset the singleton instance
+func ResetInstance() {
+	Manager = nil
+	once = sync.Once{}
 }

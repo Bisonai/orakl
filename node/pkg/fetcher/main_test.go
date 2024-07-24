@@ -16,6 +16,7 @@ import (
 	"bisonai.com/orakl/node/pkg/admin/tests"
 	"bisonai.com/orakl/node/pkg/admin/utils"
 	"bisonai.com/orakl/node/pkg/bus"
+	"bisonai.com/orakl/node/pkg/common/keys"
 	"bisonai.com/orakl/node/pkg/db"
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog"
@@ -259,6 +260,21 @@ func cleanup(ctx context.Context, testItems *TestItems) func() error {
 		if err != nil {
 			return err
 		}
+
+		for _, eachFeed := range testItems.insertedFeeds {
+			err = db.Del(ctx, keys.LatestFeedDataKey(*eachFeed.ID))
+			if err != nil {
+				return err
+			}
+		}
+
+		for _, eachConfig := range testItems.insertedConfigs {
+			err = db.Del(ctx, keys.LocalAggregateKey(eachConfig.ID))
+			if err != nil {
+				return err
+			}
+		}
+
 		err = testItems.app.stopAllFetchers(ctx)
 		if err != nil {
 			return err
@@ -273,7 +289,7 @@ func cleanup(ctx context.Context, testItems *TestItems) func() error {
 }
 
 func TestMain(m *testing.M) {
-	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	zerolog.SetGlobalLevel(zerolog.ErrorLevel)
 	// setup
 	code := m.Run()
 

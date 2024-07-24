@@ -3,7 +3,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"math/big"
 	"time"
 
@@ -18,15 +17,7 @@ func testContractDirectCall(ctx context.Context, contractAddress string, contrac
 		return err
 	}
 
-	rawTx, err := kaiaHelper.MakeDirectTx(ctx, contractAddress, contractFunction, args...)
-	if err != nil {
-		log.Error().Err(err).Msg("MakeDirect")
-		return err
-	}
-
-	fmt.Println(rawTx.GasPrice().String())
-
-	return kaiaHelper.SubmitRawTx(ctx, rawTx)
+	return kaiaHelper.SubmitDirect(ctx, contractAddress, contractFunction, args...)
 }
 
 func testContractFeeDelegatedCall(ctx context.Context, contractAddress string, contractFunction string, args ...interface{}) error {
@@ -35,19 +26,8 @@ func testContractFeeDelegatedCall(ctx context.Context, contractAddress string, c
 		log.Error().Err(err).Msg("NewTxHelper")
 		return err
 	}
-	rawTx, err := kaiaHelper.MakeFeeDelegatedTx(ctx, contractAddress, contractFunction, args...)
-	if err != nil {
-		log.Error().Err(err).Msg("MakeFeeDelegated")
-		return err
-	}
 
-	signedTx, err := kaiaHelper.SignTxByFeePayer(ctx, rawTx)
-	if err != nil {
-		log.Error().Err(err).Msg("SignTxByFeePayer")
-		return err
-	}
-
-	return kaiaHelper.SubmitRawTx(ctx, signedTx)
+	return kaiaHelper.SubmitDelegated(ctx, contractAddress, contractFunction, args...)
 }
 
 func main() {

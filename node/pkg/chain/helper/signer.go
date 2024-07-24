@@ -242,24 +242,9 @@ func (s *Signer) signerUpdate(ctx context.Context, newAddr common.Address) error
 }
 
 func (s *Signer) delegatedSignerUpdate(ctx context.Context, newAddr common.Address) error {
-	rawTx, err := s.chainHelper.MakeFeeDelegatedTx(ctx, s.submissionProxyContractAddr, UpdateSignerFuncSignature, newAddr)
-	if err != nil {
-		log.Error().Str("Player", "Signer").Err(err).Msg("failed to make fee delegated tx")
-		return err
-	}
-	signedTx, err := s.chainHelper.GetSignedFromDelegator(rawTx)
-	if err != nil {
-		log.Error().Str("Player", "Signer").Err(err).Msg("failed to sign tx")
-		return err
-	}
-	return s.chainHelper.SubmitRawTx(ctx, signedTx)
+	return s.chainHelper.SubmitDelegated(ctx, s.submissionProxyContractAddr, UpdateSignerFuncSignature, newAddr)
 }
 
 func (s *Signer) directSignerUpdate(ctx context.Context, newAddr common.Address) error {
-	rawTx, err := s.chainHelper.MakeDirectTx(ctx, s.submissionProxyContractAddr, UpdateSignerFuncSignature, newAddr)
-	if err != nil {
-		log.Error().Str("Player", "Signer").Err(err).Msg("failed to make direct tx")
-		return err
-	}
-	return s.chainHelper.SubmitRawTx(ctx, rawTx)
+	return s.chainHelper.SubmitDirect(ctx, s.submissionProxyContractAddr, UpdateSignerFuncSignature, newAddr)
 }

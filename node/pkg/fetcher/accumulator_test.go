@@ -56,7 +56,7 @@ func TestAccumulator(t *testing.T) {
 	}
 
 	data := <-localAggregatesChannel
-	assert.Equal(t, float64(data.Value), DUMMY_FEED_VALUE)
+	assert.Equal(t, DUMMY_FEED_VALUE, float64(data.Value))
 
 	go app.Accumulator.Run(ctx)
 
@@ -66,7 +66,7 @@ func TestAccumulator(t *testing.T) {
 	if redisErr != nil {
 		t.Fatalf("error getting local aggregate from redis: %v", redisErr)
 	}
-	assert.Equal(t, float64(redisData.Value), DUMMY_FEED_VALUE)
+	assert.Equal(t, DUMMY_FEED_VALUE, float64(redisData.Value))
 
 	pgsqlData, pgsqlErr := db.QueryRow[LocalAggregate](ctx, "SELECT * FROM local_aggregates WHERE config_id = @config_id", map[string]any{
 		"config_id": data.ConfigID,
