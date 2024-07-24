@@ -90,9 +90,7 @@ func NewSigner(ctx context.Context, opts ...SignerOption) (*Signer, error) {
 
 	chainHelper, err := NewChainHelper(
 		ctx,
-		WithReporterPk(pk),
-		WithoutAdditionalWallets(),
-		WithoutWalletStore())
+		WithReporterPk(pk))
 	if err != nil {
 		log.Error().Str("Player", "Signer").Err(err).Msg("failed to set chainHelper for signHelper")
 		return nil, err
@@ -221,9 +219,7 @@ func (s *Signer) Renew(ctx context.Context, newPK *ecdsa.PrivateKey, newPkHex st
 	s.chainHelper.Close()
 	newChainHelper, err := NewChainHelper(
 		ctx,
-		WithReporterPk(newPkHex),
-		WithoutAdditionalWallets(),
-		WithoutWalletStore())
+		WithReporterPk(newPkHex))
 	if err != nil {
 		log.Error().Str("Player", "Signer").Err(err).Msg("failed to create new chain helper")
 		return err
@@ -246,24 +242,9 @@ func (s *Signer) signerUpdate(ctx context.Context, newAddr common.Address) error
 }
 
 func (s *Signer) delegatedSignerUpdate(ctx context.Context, newAddr common.Address) error {
-	rawTx, err := s.chainHelper.MakeFeeDelegatedTx(ctx, s.submissionProxyContractAddr, UpdateSignerFuncSignature, newAddr)
-	if err != nil {
-		log.Error().Str("Player", "Signer").Err(err).Msg("failed to make fee delegated tx")
-		return err
-	}
-	signedTx, err := s.chainHelper.GetSignedFromDelegator(rawTx)
-	if err != nil {
-		log.Error().Str("Player", "Signer").Err(err).Msg("failed to sign tx")
-		return err
-	}
-	return s.chainHelper.SubmitRawTx(ctx, signedTx)
+	return s.chainHelper.SubmitDelegated(ctx, s.submissionProxyContractAddr, UpdateSignerFuncSignature, newAddr)
 }
 
 func (s *Signer) directSignerUpdate(ctx context.Context, newAddr common.Address) error {
-	rawTx, err := s.chainHelper.MakeDirectTx(ctx, s.submissionProxyContractAddr, UpdateSignerFuncSignature, newAddr)
-	if err != nil {
-		log.Error().Str("Player", "Signer").Err(err).Msg("failed to make direct tx")
-		return err
-	}
-	return s.chainHelper.SubmitRawTx(ctx, rawTx)
+	return s.chainHelper.SubmitDirect(ctx, s.submissionProxyContractAddr, UpdateSignerFuncSignature, newAddr)
 }
