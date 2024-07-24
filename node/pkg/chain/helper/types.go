@@ -106,6 +106,7 @@ const (
 	EthProviderUrl  = "ETH_PROVIDER_URL"
 	EthReporterPk   = "ETH_REPORTER_PK"
 
+	DelegatorTimeout            = 10 * time.Second
 	DefaultSignerRenewInterval  = 12 * time.Hour
 	DefaultSignerRenewThreshold = 7 * 24 * time.Hour
 	SignerDetailFuncSignature   = "whitelist(address) returns ((uint256, uint256))"
