@@ -149,37 +149,6 @@ func (t *ChainHelper) GetSignedFromDelegator(tx *types.Transaction) (*types.Tran
 	return utils.HashToTx(*result.SignedRawTx)
 }
 
-func (t *ChainHelper) SubmitDirect(ctx context.Context, contractAddress string, functionString string, args ...interface{}) error {
-	job := func(c utils.ClientInterface) error {
-		tx, err := t.MakeDirectTx(ctx, contractAddress, functionString, args...)
-		if err != nil {
-			return err
-		}
-
-		return utils.SubmitRawTx(ctx, c, tx)
-	}
-
-	return t.retryOnNonceFailure(ctx, job)
-}
-
-func (t *ChainHelper) SubmitDelegated(ctx context.Context, contractAddress string, functionString string, args ...interface{}) error {
-	job := func(c utils.ClientInterface) error {
-		tx, err := t.MakeFeeDelegatedTx(ctx, contractAddress, functionString, args...)
-		if err != nil {
-			return err
-		}
-
-		tx, err = t.GetSignedFromDelegator(tx)
-		if err != nil {
-			return err
-		}
-
-		return utils.SubmitRawTx(ctx, c, tx)
-	}
-
-	return t.retryOnNonceFailure(ctx, job)
-}
-
 func (t *ChainHelper) MakeDirectTx(ctx context.Context, contractAddressHex string, functionString string, args ...interface{}) (*types.Transaction, error) {
 	var result *types.Transaction
 	nonce, err := noncemanager.GetAndIncrement(t.wallet)
@@ -273,6 +242,73 @@ func (t *ChainHelper) PublicAddressString() (string, error) {
 	}
 
 	return address.Hex(), nil
+}
+
+func (t *ChainHelper) SubmitDirect(ctx context.Context, contractAddress string, functionString string, args ...interface{}) error {
+	tx, err := t.MakeDirectTx(ctx, contractAddress, functionString, args...)
+	if err != nil {
+		return err
+	}
+
+	for _, client := range t.clients {
+		err := utils.SubmitRawTx(ctx, client, tx)
+		if err != nil {
+			if utils.ShouldRetryWithSwitchedJsonRPC(err) {
+				log.Error().Err(err).Msg("Error on retrying on JsonRpcFailure")
+				continue
+			}
+
+			if utils.IsNonceError(err) || utils.IsNonceAlreadyInPool(err) {
+				log.Error().Err(err).Msg("Error on retrying on NonceFailure")
+				tx, err = t.MakeDirectTx(ctx, contractAddress, functionString, args...)
+				if err != nil {
+					return err
+				}
+				continue
+			}
+			return err
+		}
+		break
+	}
+
+	return nil
+}
+
+func (t *ChainHelper) SubmitDelegated(ctx context.Context, contractAddress string, functionString string, args ...interface{}) error {
+	tx, err := t.MakeFeeDelegatedTx(ctx, contractAddress, functionString, args...)
+	if err != nil {
+		return err
+	}
+
+	tx, err = t.GetSignedFromDelegator(tx)
+	if err != nil {
+		return err
+	}
+
+	for _, client := range t.clients {
+		err := utils.SubmitRawTx(ctx, client, tx)
+		if err != nil {
+			if utils.ShouldRetryWithSwitchedJsonRPC(err) {
+				log.Error().Err(err).Msg("Error on retrying on JsonRpcFailure")
+				continue
+			}
+			if utils.IsNonceError(err) || utils.IsNonceAlreadyInPool(err) {
+				log.Error().Err(err).Msg("Error on retrying on NonceFailure")
+				tx, err = t.MakeFeeDelegatedTx(ctx, contractAddress, functionString, args...)
+				if err != nil {
+					return err
+				}
+				tx, err = t.GetSignedFromDelegator(tx)
+				if err != nil {
+					return err
+				}
+				continue
+			}
+			return err
+		}
+		break
+	}
+	return nil
 }
 
 func (t *ChainHelper) retryOnJsonRpcFailure(ctx context.Context, job func(c utils.ClientInterface) error) error {
