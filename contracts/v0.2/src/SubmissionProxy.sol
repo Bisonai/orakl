@@ -62,6 +62,11 @@ contract SubmissionProxy is Ownable {
     error InvalidFeed();
     error ZeroAddressGiven();
 
+    error AnswerTooOld();
+    error InvalidProof();
+    error FeedHashNotFound();
+    error InvalidFeedHash();
+
     modifier onlyOracle() {
         if (!isWhitelisted(msg.sender)) {
             revert OnlyOracle();
@@ -381,6 +386,52 @@ contract SubmissionProxy is Ownable {
             if (keccak256(abi.encodePacked(feeds[_feedHashes[i]].name())) != _feedHashes[i]) {
                 // feedHash not matching with registered feed -> do not submit!
                 continue;
+            }
+
+            bytes32 message_ = keccak256(abi.encodePacked(_answers[i], _timestamps[i], _feedHashes[i]));
+            if (validateProof(_feedHashes[i], message_, proofs_)) {
+                feeds[_feedHashes[i]].submit(_answers[i]);
+                lastSubmissionTimes[_feedHashes[i]] = _timestamps[i];
+            }
+        }
+    }
+
+    function submitStrict(
+        bytes32[] calldata _feedHashes,
+        int256[] calldata _answers,
+        uint256[] calldata _timestamps,
+        bytes[] calldata _proofs
+    ) external {
+        if (
+            _feedHashes.length != _answers.length || _answers.length != _proofs.length
+                || _proofs.length != _timestamps.length || _feedHashes.length > maxSubmission
+        ) {
+            revert InvalidSubmissionLength();
+        }
+
+        uint256 feedsLength_ = _feedHashes.length;
+        for (uint256 i = 0; i < feedsLength_; i++) {
+            if (
+                _timestamps[i] <= block.timestamp - dataFreshness
+                    || lastSubmissionTimes[_feedHashes[i]] >= _timestamps[i]
+            ) {
+                revert AnswerTooOld();
+            }
+
+            (bytes[] memory proofs_, bool success_) = splitProofs(_proofs[i]);
+            if (!success_) {
+                // splitting proofs failed -> do not submit!
+                revert InvalidProof();
+            }
+
+            if (address(feeds[_feedHashes[i]]) == address(0)) {
+                // feedHash not registered -> do not submit!
+                revert FeedHashNotFound();
+            }
+
+            if (keccak256(abi.encodePacked(feeds[_feedHashes[i]].name())) != _feedHashes[i]) {
+                // feedHash not matching with registered feed -> do not submit!
+                revert InvalidFeedHash();
             }
 
             bytes32 message_ = keccak256(abi.encodePacked(_answers[i], _timestamps[i], _feedHashes[i]));
