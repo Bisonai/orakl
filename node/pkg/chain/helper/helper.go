@@ -325,20 +325,3 @@ func (t *ChainHelper) retryOnJsonRpcFailure(ctx context.Context, job func(c util
 	}
 	return nil
 }
-
-func (t *ChainHelper) retryOnNonceFailure(ctx context.Context, job func(c utils.ClientInterface) error) error {
-	var err error
-	maxRetries := 3
-	for retries := 0; retries < maxRetries; retries++ {
-		err = t.retryOnJsonRpcFailure(ctx, job)
-		if err != nil {
-			if utils.IsNonceError(err) || utils.IsNonceAlreadyInPool(err) {
-				log.Error().Err(err).Msg("Error on retrying on NonceFailure")
-				continue
-			}
-			return err
-		}
-		break
-	}
-	return err
-}
