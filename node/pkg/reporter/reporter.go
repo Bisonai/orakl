@@ -374,9 +374,9 @@ func (r *Reporter) splitReport(ctx context.Context, feedHashes [][32]byte, value
 		err := r.KaiaHelper.SubmitDelegatedFallbackDirect(ctx, r.contractAddress, SUBMIT_WITH_PROOFS, batchFeedHashes, batchValues, batchTimestamps, batchProofs)
 		if err != nil {
 			log.Error().Str("Player", "Reporter").Err(err).Msg("splitReport")
+			errs = append(errs, err)
 		}
 
-		errs = append(errs, err)
 	}
 
 	if len(errs) > 0 {
@@ -388,6 +388,10 @@ func (r *Reporter) splitReport(ctx context.Context, feedHashes [][32]byte, value
 func mergeErrors(errs []error) error {
 	if len(errs) == 0 {
 		return nil
+	}
+
+	if len(errs) == 1 {
+		return errs[0]
 	}
 	var errMsg string
 	for _, err := range errs {
