@@ -111,7 +111,6 @@ func TestInsert(t *testing.T) {
 	defer appConfig.App.Shutdown()
 
 	// phase 0: test insert
-
 	_mockTx, err := makeMockTransaction()
 	if err != nil {
 		t.Fatal(err)
@@ -121,14 +120,14 @@ func TestInsert(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	readResultBefore, err := utils.GetRequest[[]sign.SignModel](appConfig.App, "/api/v1/sign", nil)
+	readResultBefore, err := utils.GetRequest[[]sign.SignModel](appConfig.App, "/api/v1/sign/v2", nil)
 	assert.Nil(t, err)
 
-	insertResult, err := utils.PostRequest[sign.SignModel](appConfig.App, "/api/v1/sign", _mockPayload)
+	insertResult, err := utils.PostRequest[sign.SignModel](appConfig.App, "/api/v1/sign/v2", _mockPayload)
 	assert.Nil(t, err)
 	assert.Equal(t, insertResult.Nonce, _mockPayload.Nonce)
 
-	readResultAfter, err := utils.GetRequest[[]sign.SignModel](appConfig.App, "/api/v1/sign", nil)
+	readResultAfter, err := utils.GetRequest[[]sign.SignModel](appConfig.App, "/api/v1/sign/v2", nil)
 	assert.Nil(t, err)
 
 	assert.Greaterf(t, len(readResultAfter), len(readResultBefore), "expected to have more transactions after insertion")

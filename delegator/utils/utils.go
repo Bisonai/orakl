@@ -10,6 +10,7 @@ import (
 	"runtime/debug"
 	"strconv"
 	"strings"
+	"sync"
 
 	"bisonai.com/orakl/delegator/secrets"
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
@@ -69,6 +70,7 @@ func Setup(options ...string) (AppConfig, error) {
 	app.Use(func(c *fiber.Ctx) error {
 		c.Locals("feePayer", feePayer)
 		c.Locals("pgxConn", pgxPool)
+		c.Locals("validContracts", new(sync.Map))
 		return c.Next()
 	})
 
@@ -138,11 +140,11 @@ func CustomStackTraceHandler(_ *fiber.Ctx, e interface{}) {
 }
 
 func GetFeePayer(c *fiber.Ctx) (string, error) {
-	feePayer, ok := c.Locals("feePayer").(string)
+	payer, ok := c.Locals("feePayer").(string)
 	if !ok {
-		return feePayer, errors.New("failed to get feePayer")
+		return payer, errors.New("failed to get feePayer")
 	} else {
-		return feePayer, nil
+		return payer, nil
 	}
 }
 

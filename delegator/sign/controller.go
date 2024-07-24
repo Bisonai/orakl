@@ -8,6 +8,7 @@ import (
 	"math/big"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"bisonai.com/orakl/delegator/utils"
@@ -202,11 +203,11 @@ func insertV2(c *fiber.Ctx) error {
 
 	transaction, err := HashToTx(payload.RawTx)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	validate := validator.New()
-	if err := validate.Struct(payload); err != nil {
+	if err = validate.Struct(payload); err != nil {
 		return err
 	}
 
@@ -214,12 +215,21 @@ func insertV2(c *fiber.Ctx) error {
 	payload.From = strings.ToLower(payload.From)
 	payload.To = strings.ToLower(payload.To)
 
-	tx, err := insertTransaction(c, payload)
-	if err != nil {
-		return err
-	}
+	txChan := make(chan *SignModel, 1)
+	errChan := make(chan error, 1)
+	defer close(txChan)
+	defer close(errChan)
+	var wg sync.WaitGroup
 
-	err = validateContractAddress(c, tx)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		tx, err := insertTransaction(c, payload)
+		errChan <- err
+		txChan <- tx
+	}()
+
+	err = validateContractAddress(c, strings.ToLower(payload.To))
 	if err != nil {
 		return err
 	}
@@ -229,17 +239,29 @@ func insertV2(c *fiber.Ctx) error {
 		return err
 	}
 
-	succeed := true
 	rawTxHash := TxToHash(signedTransaction)
-	tx.Succeed = &succeed
-	tx.SignedRawTx = &rawTxHash
-
-	result, err := updateTransaction(c, tx)
-	if err != nil {
+	wg.Wait()
+	if err = <-errChan; err != nil {
 		return err
 	}
 
-	return c.JSON(result)
+	tx := <-txChan
+	if tx == nil {
+		return fmt.Errorf("failed to insert transaction")
+	}
+
+	defer func() {
+		succeed := true
+		tx.Succeed = &succeed
+		tx.SignedRawTx = &rawTxHash
+
+		_, err := updateTransaction(c, tx)
+		if err != nil {
+			log.Error().Err(err).Msg("failed to update transaction")
+		}
+	}()
+
+	return c.JSON(SignModel{SignedRawTx: &rawTxHash})
 }
 
 func get(c *fiber.Ctx) error {
@@ -287,15 +309,19 @@ func validateTransaction(c *fiber.Ctx, tx *SignModel) error {
 	}
 }
 
-func validateContractAddress(c *fiber.Ctx, tx *SignModel) error {
-	contract, err := utils.QueryRow[ContractModel](c, GetContractByAddress, map[string]any{"address": tx.To})
-	if err != nil {
-		return err
-	}
-	if contract.ContractId != nil {
+func validateContractAddress(c *fiber.Ctx, address string) error {
+	validContracts := c.Locals("validContracts").(*sync.Map)
+	if _, ok := validContracts.Load(address); ok {
+		log.Info().Str("address", address).Msg("contract approved through cache")
 		return nil
 	} else {
-		return fmt.Errorf("not approved contract address")
+		contract, err := utils.QueryRow[ContractModel](c, GetContractByAddress, map[string]any{"address": address})
+		if err == nil && contract.ContractId != nil {
+			validContracts.Store(address, struct{}{})
+			return nil
+		} else {
+			return fmt.Errorf("not approved contract address")
+		}
 	}
 }
 
