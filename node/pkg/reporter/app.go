@@ -2,7 +2,6 @@ package reporter
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"time"
 
@@ -35,10 +34,9 @@ func (a *App) setReporters(ctx context.Context) error {
 		return errorSentinel.ErrReporterDalApiKeyNotFound
 	}
 
-	chain := os.Getenv("CHAIN")
-	if chain == "" {
-		log.Warn().Str("Player", "Reporter").Msg("chain not set, defaulting to baobab")
-		chain = "baobab"
+	dalWsEndpoint := os.Getenv("DAL_WS_URL")
+	if dalWsEndpoint == "" {
+		dalWsEndpoint = "ws://orakl-dal.orakl.svc.cluster.local/ws"
 	}
 
 	contractAddress := os.Getenv("SUBMISSION_PROXY_CONTRACT")
@@ -46,6 +44,7 @@ func (a *App) setReporters(ctx context.Context) error {
 		return errorSentinel.ErrReporterSubmissionProxyContractNotFound
 	}
 
+	// TODO: probably can assign the chainHelper to app here and not reuse it in startReporters instead of closing
 	tmpChainHelper, err := helper.NewChainHelper(ctx)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to create chain helper")
@@ -65,6 +64,12 @@ func (a *App) setReporters(ctx context.Context) error {
 		return err
 	}
 
+	dalWsHelper, dalWsHelperErr := SetupDalWsHelper(ctx, configs, dalWsEndpoint, dalApiKey)
+	if dalWsHelperErr != nil {
+		return dalWsHelperErr
+	}
+	a.WsHelper = dalWsHelper
+
 	groupedConfigs := groupConfigsBySubmitIntervals(configs)
 	for groupInterval, configs := range groupedConfigs {
 		reporter, errNewReporter := NewReporter(
@@ -73,13 +78,12 @@ func (a *App) setReporters(ctx context.Context) error {
 			WithInterval(groupInterval),
 			WithContractAddress(contractAddress),
 			WithCachedWhitelist(cachedWhitelist),
-			WithDalEndpoint(fmt.Sprintf("https://dal.%s.orakl.network", chain)),
-			WithDalApiKey(dalApiKey),
 		)
 		if errNewReporter != nil {
 			log.Error().Str("Player", "Reporter").Err(errNewReporter).Msg("failed to set reporter")
 			return errNewReporter
 		}
+		reporter.LatestData = &a.LatestData
 		a.Reporters = append(a.Reporters, reporter)
 	}
 	if len(a.Reporters) == 0 {
@@ -108,6 +112,8 @@ func (a *App) setReporters(ctx context.Context) error {
 func (a *App) startReporters(ctx context.Context) error {
 	var errs []string
 
+	go a.WsHelper.Run(ctx, a.handleWsMessage)
+
 	chainHelper, chainHelperErr := helper.NewChainHelper(ctx)
 	if chainHelperErr != nil {
 		return chainHelperErr
@@ -127,15 +133,6 @@ func (a *App) startReporters(ctx context.Context) error {
 	}
 
 	return nil
-}
-
-func (a *App) GetReporterWithInterval(interval int) (*Reporter, error) {
-	for _, reporter := range a.Reporters {
-		if reporter.SubmissionInterval == time.Duration(interval)*time.Millisecond {
-			return reporter, nil
-		}
-	}
-	return nil, errorSentinel.ErrReporterNotFound
 }
 
 func (a *App) startReporter(ctx context.Context, reporter *Reporter) error {
@@ -174,4 +171,18 @@ func groupConfigsBySubmitIntervals(reporterConfigs []Config) map[int][]Config {
 		grouped[interval] = append(grouped[interval], sa)
 	}
 	return grouped
+}
+
+func (a *App) handleWsMessage(ctx context.Context, data map[string]interface{}) error {
+	a.LatestData.Store(data["symbol"], data)
+	return nil
+}
+
+func (a *App) GetReporterWithInterval(interval int) (*Reporter, error) {
+	for _, reporter := range a.Reporters {
+		if reporter.SubmissionInterval == time.Duration(interval)*time.Millisecond {
+			return reporter, nil
+		}
+	}
+	return nil, errorSentinel.ErrReporterNotFound
 }
