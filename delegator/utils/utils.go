@@ -10,6 +10,7 @@ import (
 	"runtime/debug"
 	"strconv"
 	"strings"
+	"sync"
 
 	"bisonai.com/orakl/delegator/secrets"
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
@@ -69,7 +70,7 @@ func Setup(options ...string) (AppConfig, error) {
 	app.Use(func(c *fiber.Ctx) error {
 		c.Locals("feePayer", feePayer)
 		c.Locals("pgxConn", pgxPool)
-		c.Locals("validContracts", new(map[string]any))
+		c.Locals("validContracts", new(sync.Map))
 		return c.Next()
 	})
 

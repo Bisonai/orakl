@@ -217,6 +217,8 @@ func insertV2(c *fiber.Ctx) error {
 
 	txChan := make(chan *SignModel, 1)
 	errChan := make(chan error, 1)
+	defer close(txChan)
+	defer close(errChan)
 	var wg sync.WaitGroup
 
 	wg.Add(1)
@@ -308,14 +310,14 @@ func validateTransaction(c *fiber.Ctx, tx *SignModel) error {
 }
 
 func validateContractAddress(c *fiber.Ctx, address string) error {
-	validContracts := c.Locals("validContracts").(*map[string]any)
-	if _, ok := (*validContracts)[address]; ok {
+	validContracts := c.Locals("validContracts").(*sync.Map)
+	if _, ok := validContracts.Load(address); ok {
 		log.Info().Str("address", address).Msg("contract approved through cache")
 		return nil
 	} else {
 		contract, err := utils.QueryRow[ContractModel](c, GetContractByAddress, map[string]any{"address": address})
 		if err == nil && contract.ContractId != nil {
-			(*validContracts)[address] = struct{}{}
+			validContracts.Store(address, struct{}{})
 			return nil
 		} else {
 			return fmt.Errorf("not approved contract address")
