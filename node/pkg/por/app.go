@@ -74,7 +74,6 @@ func New(ctx context.Context) (*App, error) {
 		helper.WithReporterPk(porReporterPk),
 		helper.WithProviderUrl(providerUrl),
 		helper.WithoutAdditionalProviderUrls(),
-		helper.WithoutAdditionalWallets(),
 	)
 	if err != nil {
 		return nil, err
@@ -210,18 +209,7 @@ func (a *App) report(ctx context.Context, submissionValue float64, latestRoundId
 
 	latestRoundIdParam := new(big.Int).SetUint64(uint64(latestRoundId))
 
-	tx, err := a.KaiaHelper.MakeDirectTx(ctx, a.ContractAddress, SUBMIT_FUNCTION_STRING, latestRoundIdParam, submissionValueParam)
-	if err != nil {
-		log.Error().Err(err).Msg("failed to make direct tx")
-		return err
-	}
-
-	err = a.KaiaHelper.SubmitRawTx(ctx, tx)
-	if err != nil {
-		log.Error().Err(err).Msg("failed to submit raw tx")
-		return err
-	}
-	return nil
+	return a.KaiaHelper.SubmitDirect(ctx, a.ContractAddress, SUBMIT_FUNCTION_STRING, latestRoundIdParam, submissionValueParam)
 }
 
 func (a *App) DeviationCheck(oldValue float64, newValue float64) bool {

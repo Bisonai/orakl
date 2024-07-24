@@ -248,32 +248,12 @@ func (r *Reporter) reportWithProofs(ctx context.Context, aggregates []GlobalAggr
 }
 
 func (r *Reporter) reportDirect(ctx context.Context, functionString string, args ...interface{}) error {
-	rawTx, err := r.KaiaHelper.MakeDirectTx(ctx, r.contractAddress, functionString, args...)
-	if err != nil {
-		log.Error().Str("Player", "Reporter").Err(err).Msg("MakeDirectTx")
-		return err
-	}
-
-	return r.KaiaHelper.SubmitRawTx(ctx, rawTx)
+	return r.KaiaHelper.SubmitDirect(ctx, r.contractAddress, functionString, args...)
 }
 
 func (r *Reporter) reportDelegated(ctx context.Context, functionString string, args ...interface{}) error {
 	log.Debug().Str("Player", "Reporter").Msg("reporting delegated")
-	rawTx, err := r.KaiaHelper.MakeFeeDelegatedTx(ctx, r.contractAddress, functionString, args...)
-	if err != nil {
-		log.Error().Str("Player", "Reporter").Err(err).Msg("MakeFeeDelegatedTx")
-		return err
-	}
-
-	log.Debug().Str("Player", "Reporter").Str("RawTx", rawTx.String()).Msg("delegated raw tx generated")
-	signedTx, err := r.KaiaHelper.GetSignedFromDelegator(rawTx)
-	if err != nil {
-		log.Error().Str("Player", "Reporter").Err(err).Msg("GetSignedFromDelegator")
-		return err
-	}
-	log.Debug().Str("Player", "Reporter").Str("signedTx", signedTx.String()).Msg("signed tx generated, submitting raw tx")
-
-	return r.KaiaHelper.SubmitRawTx(ctx, signedTx)
+	return r.KaiaHelper.SubmitDelegated(ctx, r.contractAddress, functionString, args...)
 }
 
 func (r *Reporter) SetKaiaHelper(ctx context.Context) error {

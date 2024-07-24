@@ -57,23 +57,9 @@ func main() {
 	timestamps := []*big.Int{&submissionTime}
 	proofs := [][]byte{result.Proof}
 
-	rawTx, err := kaiaHelper.MakeDirectTx(ctx, contractAddr, SUBMIT_WITH_PROOFS, feedHashes, values, timestamps, proofs)
+	err = kaiaHelper.SubmitDirect(ctx, contractAddr, SUBMIT_WITH_PROOFS, feedHashes, values, timestamps, proofs)
 	if err != nil {
 		log.Error().Err(err).Msg("MakeDirect")
 		panic(err)
 	}
-
-	log.Debug().Any("feedHashes", feedHashes).Msg("feedHashes")
-	log.Debug().Any("values", values).Msg("values")
-	log.Debug().Any("timestamps", timestamps).Msg("timestamps")
-	log.Debug().Any("proofs", proofs).Msg("proofs")
-
-	log.Debug().Any("tx", rawTx).Msg("tx")
-
-	err = kaiaHelper.SubmitRawTx(ctx, rawTx)
-	if err != nil {
-		log.Error().Err(err).Msg("SubmitRawTx")
-		panic(err)
-	}
-
 }
