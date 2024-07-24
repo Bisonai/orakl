@@ -8,6 +8,7 @@ import (
 	"math/big"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"bisonai.com/orakl/delegator/utils"
@@ -202,7 +203,7 @@ func insertV2(c *fiber.Ctx) error {
 
 	transaction, err := HashToTx(payload.RawTx)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	validate := validator.New()
@@ -213,10 +214,18 @@ func insertV2(c *fiber.Ctx) error {
 	payload.Timestamp = &utils.CustomDateTime{Time: time.Now()}
 	payload.From = strings.ToLower(payload.From)
 	payload.To = strings.ToLower(payload.To)
-	tx, err := insertTransaction(c, payload)
-	if err != nil {
-		return err
-	}
+
+	txChan := make(chan *SignModel, 1)
+	errChan := make(chan error, 1)
+	var wg sync.WaitGroup
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		tx, err := insertTransaction(c, payload)
+		errChan <- err
+		txChan <- tx
+	}()
 
 	err = validateContractAddress(c, strings.ToLower(payload.To))
 	if err != nil {
@@ -229,6 +238,15 @@ func insertV2(c *fiber.Ctx) error {
 	}
 
 	rawTxHash := TxToHash(signedTransaction)
+	wg.Wait()
+	if err = <-errChan; err != nil {
+		return err
+	}
+
+	tx := <-txChan
+	if tx == nil {
+		return fmt.Errorf("failed to insert transaction")
+	}
 
 	defer func() {
 		succeed := true
