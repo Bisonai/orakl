@@ -152,13 +152,9 @@ func (t *ChainHelper) GetSignedFromDelegator(tx *types.Transaction) (*types.Tran
 	return utils.HashToTx(*result.SignedRawTx)
 }
 
-func (t *ChainHelper) MakeDirectTx(ctx context.Context, contractAddressHex string, functionString string, args ...interface{}) (*types.Transaction, error) {
+func (t *ChainHelper) MakeDirectTx(ctx context.Context, contractAddressHex string, functionString string, nonce uint64, args ...interface{}) (*types.Transaction, error) {
 	var result *types.Transaction
-	nonce, err := noncemanager.GetAndIncrementNonce(t.wallet)
-	if err != nil {
-		return nil, err
-	}
-
+	var err error
 	job := func(c utils.ClientInterface) error {
 		tmp, err := utils.MakeDirectTx(ctx, c, contractAddressHex, t.wallet, functionString, t.chainID, nonce, args...)
 		if err == nil {
@@ -170,12 +166,9 @@ func (t *ChainHelper) MakeDirectTx(ctx context.Context, contractAddressHex strin
 	return result, err
 }
 
-func (t *ChainHelper) MakeFeeDelegatedTx(ctx context.Context, contractAddressHex string, functionString string, args ...interface{}) (*types.Transaction, error) {
+func (t *ChainHelper) MakeFeeDelegatedTx(ctx context.Context, contractAddressHex string, functionString string, nonce uint64, args ...interface{}) (*types.Transaction, error) {
 	var result *types.Transaction
-	nonce, err := noncemanager.GetAndIncrementNonce(t.wallet)
-	if err != nil {
-		return nil, err
-	}
+	var err error
 	job := func(c utils.ClientInterface) error {
 		tmp, err := utils.MakeFeeDelegatedTx(ctx, c, contractAddressHex, t.wallet, functionString, t.chainID, nonce, args...)
 		if err == nil {
@@ -240,108 +233,83 @@ func (t *ChainHelper) PublicAddressString() (string, error) {
 	return address.Hex(), nil
 }
 
-func (t *ChainHelper) SubmitDirect(ctx context.Context, contractAddress string, functionString string, args ...interface{}) error {
+func (t *ChainHelper) SubmitDelegatedFallbackDirect(ctx context.Context, contractAddress string, functionString string, args ...interface{}) error {
 	var err error
 	var tx *types.Transaction
-	tx, err = t.MakeDirectTx(ctx, contractAddress, functionString, args...)
+
+	maxRetrial := 3
+	clientIndex := 0
+
+	nonce, err := noncemanager.GetAndIncrementNonce(t.wallet)
 	if err != nil {
 		return err
 	}
 
-	for _, client := range t.clients {
-		err := t.retrySubmitDirect(ctx, client, tx, contractAddress, functionString, args...)
-		if err == nil {
-			return nil
-		}
-		if utils.ShouldRetryWithSwitchedJsonRPC(err) {
-			continue // switch to next client
-		}
-		return err
-	}
-	return err
-}
-
-func (t *ChainHelper) retrySubmitDirect(ctx context.Context, client utils.ClientInterface, tx *types.Transaction, contractAddress, functionString string, args ...interface{}) error {
-	var err error
-	for i := 0; i < 3; i++ {
-		err = utils.SubmitRawTx(ctx, client, tx)
-		if err == nil {
-			return nil
-		}
-
-		if utils.ShouldRetryWithSwitchedJsonRPC(err) {
-			log.Error().Err(err).Msg("Error on retrying on JsonRpcFailure")
-			return err
-		}
-
-		if utils.IsNonceError(err) || utils.IsNonceAlreadyInPool(err) {
-			log.Error().Err(err).Msg("Error on retrying on NonceFailure")
-			tx, err = t.MakeDirectTx(ctx, contractAddress, functionString, args...)
+	for i := 0; i < maxRetrial; i++ {
+		if t.delegatorUrl != "" {
+			tx, err = utils.MakeFeeDelegatedTx(ctx, t.clients[clientIndex], contractAddress, t.wallet, functionString, t.chainID, nonce, args...)
 			if err != nil {
-				return err
+				if utils.ShouldRetryWithSwitchedJsonRPC(err) {
+					clientIndex = (clientIndex + 1) % len(t.clients)
+					continue
+				} else {
+					return err
+				}
 			}
-			continue // retry with the same client
-		}
 
-		return err
-	}
-	return err
-}
-
-func (t *ChainHelper) SubmitDelegated(ctx context.Context, contractAddress string, functionString string, args ...interface{}) error {
-	var tx *types.Transaction
-	var err error
-	tx, err = t.MakeFeeDelegatedTx(ctx, contractAddress, functionString, args...)
-	if err != nil {
-		return err
-	}
-
-	tx, err = t.GetSignedFromDelegator(tx)
-	if err != nil {
-		return err
-	}
-
-	for _, client := range t.clients {
-		err := t.retrySubmitDelegated(ctx, client, tx, contractAddress, functionString, args...)
-		if err == nil {
-			return nil
-		}
-		if utils.ShouldRetryWithSwitchedJsonRPC(err) {
-			continue // Switch to the next client
-		}
-		return err
-	}
-	return err
-}
-
-func (t *ChainHelper) retrySubmitDelegated(ctx context.Context, client utils.ClientInterface, tx *types.Transaction, contractAddress, functionString string, args ...interface{}) error {
-	var err error
-	for i := 0; i < 3; i++ {
-		err = utils.SubmitRawTx(ctx, client, tx)
-		if err == nil {
-			return nil
-		}
-
-		if utils.ShouldRetryWithSwitchedJsonRPC(err) {
-			log.Error().Err(err).Msg("Error on retrying on JsonRpcFailure")
-			return err
-		}
-
-		if utils.IsNonceError(err) || utils.IsNonceAlreadyInPool(err) {
-			log.Error().Err(err).Msg("Error on retrying on NonceFailure")
-			tx, err = t.MakeFeeDelegatedTx(ctx, contractAddress, functionString, args...)
-			if err != nil {
-				return err
-			}
 			tx, err = t.GetSignedFromDelegator(tx)
 			if err != nil {
+				continue
+			}
+
+			err = utils.SubmitRawTx(ctx, t.clients[clientIndex], tx)
+			if err != nil {
+				if utils.ShouldRetryWithSwitchedJsonRPC(err) {
+					clientIndex = (clientIndex + 1) % len(t.clients)
+					continue
+				} else if utils.IsNonceError(err) || utils.IsNonceAlreadyInPool(err) {
+					nonce, err = noncemanager.GetAndIncrementNonce(t.wallet)
+					if err != nil {
+						return err
+					}
+					continue
+				} else {
+					return err
+				}
+			}
+			return nil
+		}
+	}
+
+	for i := 0; i < maxRetrial; i++ {
+		tx, err = utils.MakeDirectTx(ctx, t.clients[clientIndex], contractAddress, t.wallet, functionString, t.chainID, nonce, args...)
+		if err != nil {
+			if utils.ShouldRetryWithSwitchedJsonRPC(err) {
+				clientIndex = (clientIndex + 1) % len(t.clients)
+				continue
+			} else {
 				return err
 			}
-			continue // retry with the same client
 		}
 
-		return err
+		err = utils.SubmitRawTx(ctx, t.clients[clientIndex], tx)
+		if err != nil {
+			if utils.ShouldRetryWithSwitchedJsonRPC(err) {
+				clientIndex = (clientIndex + 1) % len(t.clients)
+				continue
+			} else if utils.IsNonceError(err) || utils.IsNonceAlreadyInPool(err) {
+				nonce, err = noncemanager.GetAndIncrementNonce(t.wallet)
+				if err != nil {
+					return err
+				}
+				continue
+			} else {
+				return err
+			}
+		}
+		return nil
 	}
+
 	return err
 }
 

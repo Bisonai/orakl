@@ -3,6 +3,7 @@ package reporter
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"math/big"
 	"strconv"
 	"time"
@@ -247,15 +248,6 @@ func (r *Reporter) reportWithProofs(ctx context.Context, aggregates []GlobalAggr
 	return r.splitReport(ctx, feedHashes, values, timestamps, proofs)
 }
 
-func (r *Reporter) reportDirect(ctx context.Context, functionString string, args ...interface{}) error {
-	return r.KaiaHelper.SubmitDirect(ctx, r.contractAddress, functionString, args...)
-}
-
-func (r *Reporter) reportDelegated(ctx context.Context, functionString string, args ...interface{}) error {
-	log.Debug().Str("Player", "Reporter").Msg("reporting delegated")
-	return r.KaiaHelper.SubmitDelegated(ctx, r.contractAddress, functionString, args...)
-}
-
 func (r *Reporter) SetKaiaHelper(ctx context.Context) error {
 	if r.KaiaHelper != nil {
 		r.KaiaHelper.Close()
@@ -370,6 +362,7 @@ func (r *Reporter) HandleSubmissionMessage(ctx context.Context, msg raft.Message
 }
 
 func (r *Reporter) splitReport(ctx context.Context, feedHashes [][32]byte, values []*big.Int, timestamps []*big.Int, proofs [][]byte) error {
+	errs := []error{}
 	for start := 0; start < len(feedHashes); start += MAX_REPORT_BATCH_SIZE {
 		end := min(start+MAX_REPORT_BATCH_SIZE, len(feedHashes))
 
@@ -378,14 +371,29 @@ func (r *Reporter) splitReport(ctx context.Context, feedHashes [][32]byte, value
 		batchTimestamps := timestamps[start:end]
 		batchProofs := proofs[start:end]
 
-		err := r.reportDelegated(ctx, SUBMIT_WITH_PROOFS, batchFeedHashes, batchValues, batchTimestamps, batchProofs)
+		err := r.KaiaHelper.SubmitDelegatedFallbackDirect(ctx, r.contractAddress, SUBMIT_WITH_PROOFS, batchFeedHashes, batchValues, batchTimestamps, batchProofs)
 		if err != nil {
 			log.Error().Str("Player", "Reporter").Err(err).Msg("splitReport")
-			err = r.reportDirect(ctx, SUBMIT_WITH_PROOFS, batchFeedHashes, batchValues, batchTimestamps, batchProofs)
-			if err != nil {
-				log.Error().Str("Player", "Reporter").Err(err).Msg("splitReport")
-			}
 		}
+
+		errs = append(errs, err)
+	}
+
+	if len(errs) > 0 {
+		return mergeErrors(errs)
 	}
 	return nil
+}
+
+func mergeErrors(errs []error) error {
+	if len(errs) == 0 {
+		return nil
+	}
+	var errMsg string
+	for _, err := range errs {
+		if err != nil {
+			errMsg += err.Error() + "; "
+		}
+	}
+	return errors.New(errMsg)
 }

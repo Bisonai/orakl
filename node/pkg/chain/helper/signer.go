@@ -235,16 +235,6 @@ func (s *Signer) Renew(ctx context.Context, newPK *ecdsa.PrivateKey, newPkHex st
 }
 
 func (s *Signer) signerUpdate(ctx context.Context, newAddr common.Address) error {
-	if s.chainHelper.delegatorUrl != "" {
-		return s.delegatedSignerUpdate(ctx, newAddr)
-	}
-	return s.directSignerUpdate(ctx, newAddr)
-}
+	return s.chainHelper.SubmitDelegatedFallbackDirect(ctx, s.submissionProxyContractAddr, UpdateSignerFuncSignature, newAddr)
 
-func (s *Signer) delegatedSignerUpdate(ctx context.Context, newAddr common.Address) error {
-	return s.chainHelper.SubmitDelegated(ctx, s.submissionProxyContractAddr, UpdateSignerFuncSignature, newAddr)
-}
-
-func (s *Signer) directSignerUpdate(ctx context.Context, newAddr common.Address) error {
-	return s.chainHelper.SubmitDirect(ctx, s.submissionProxyContractAddr, UpdateSignerFuncSignature, newAddr)
 }

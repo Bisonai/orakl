@@ -209,7 +209,7 @@ func (a *App) report(ctx context.Context, submissionValue float64, latestRoundId
 
 	latestRoundIdParam := new(big.Int).SetUint64(uint64(latestRoundId))
 
-	return a.KaiaHelper.SubmitDirect(ctx, a.ContractAddress, SUBMIT_FUNCTION_STRING, latestRoundIdParam, submissionValueParam)
+	return a.KaiaHelper.SubmitDelegatedFallbackDirect(ctx, a.ContractAddress, SUBMIT_FUNCTION_STRING, latestRoundIdParam, submissionValueParam)
 }
 
 func (a *App) DeviationCheck(oldValue float64, newValue float64) bool {

@@ -10,16 +10,6 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func testContractDirectCall(ctx context.Context, contractAddress string, contractFunction string, args ...interface{}) error {
-	kaiaHelper, err := helper.NewChainHelper(ctx)
-	if err != nil {
-		log.Error().Err(err).Msg("NewTxHelper")
-		return err
-	}
-
-	return kaiaHelper.SubmitDirect(ctx, contractAddress, contractFunction, args...)
-}
-
 func testContractFeeDelegatedCall(ctx context.Context, contractAddress string, contractFunction string, args ...interface{}) error {
 	kaiaHelper, err := helper.NewChainHelper(ctx)
 	if err != nil {
@@ -27,7 +17,7 @@ func testContractFeeDelegatedCall(ctx context.Context, contractAddress string, c
 		return err
 	}
 
-	return kaiaHelper.SubmitDelegated(ctx, contractAddress, contractFunction, args...)
+	return kaiaHelper.SubmitDelegatedFallbackDirect(ctx, contractAddress, contractFunction, args...)
 }
 
 func main() {

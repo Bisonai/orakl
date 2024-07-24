@@ -57,7 +57,7 @@ func main() {
 	timestamps := []*big.Int{&submissionTime}
 	proofs := [][]byte{result.Proof}
 
-	err = kaiaHelper.SubmitDirect(ctx, contractAddr, SUBMIT_WITH_PROOFS, feedHashes, values, timestamps, proofs)
+	err = kaiaHelper.SubmitDelegatedFallbackDirect(ctx, contractAddr, SUBMIT_WITH_PROOFS, feedHashes, values, timestamps, proofs)
 	if err != nil {
 		log.Error().Err(err).Msg("MakeDirect")
 		panic(err)
