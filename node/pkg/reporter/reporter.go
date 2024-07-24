@@ -51,6 +51,7 @@ func NewReporter(ctx context.Context, opts ...ReporterOption) (*Reporter, error)
 func (r *Reporter) Run(ctx context.Context) {
 	log.Info().Msgf("Reporter ticker starting with interval: %v", r.SubmissionInterval)
 	ticker := time.NewTicker(r.SubmissionInterval)
+	// ticker := time.NewTicker(3 * time.Second)
 
 	for {
 		select {
@@ -58,10 +59,12 @@ func (r *Reporter) Run(ctx context.Context) {
 			log.Debug().Str("Player", "Reporter").Msg("context done, stopping reporter")
 			return
 		case <-ticker.C:
-			err := r.report(ctx)
-			if err != nil {
-				log.Error().Str("Player", "Reporter").Err(err).Msg("reporting failed")
-			}
+			go func() {
+				err := r.report(ctx)
+				if err != nil {
+					log.Error().Str("Player", "Reporter").Err(err).Msg("reporting failed")
+				}
+			}()
 		}
 	}
 }
@@ -72,26 +75,51 @@ func (r *Reporter) report(ctx context.Context) error {
 	var timestamps []*big.Int
 	var proofs [][]byte
 
-	for _, pair := range r.SubmissionPairs {
-		if value, ok := r.LatestData.Load(pair.Name); ok {
-			submissionData, err := processDalWsRawData(value)
-			if err != nil {
-				log.Error().Str("Player", "Reporter").Err(err).Msg("failed to process dal ws raw data")
-				continue
-			}
+	feedHashesChan := make(chan [32]byte, len(r.SubmissionPairs))
+	valuesChan := make(chan *big.Int, len(r.SubmissionPairs))
+	timestampsChan := make(chan *big.Int, len(r.SubmissionPairs))
+	proofsChan := make(chan []byte, len(r.SubmissionPairs))
 
-			feedHashes = append(feedHashes, submissionData.FeedHash)
-			values = append(values, big.NewInt(submissionData.Value))
-			timestamps = append(timestamps, big.NewInt(submissionData.AggregateTime))
-			proofs = append(proofs, submissionData.Proof)
-		} else {
-			log.Error().Str("Player", "Reporter").Msgf("latest data for pair %s not found", pair.Name)
-		}
+	wg := sync.WaitGroup{}
+
+	for _, pair := range r.SubmissionPairs {
+		wg.Add(1)
+		go func(pair SubmissionPair) {
+			defer wg.Done()
+			if value, ok := r.LatestData.Load(pair.Name); ok {
+				submissionData, err := processDalWsRawData(value)
+				if err != nil {
+					log.Error().Str("Player", "Reporter").Err(err).Msg("failed to process dal ws raw data")
+					return
+				}
+
+				feedHashesChan <- submissionData.FeedHash
+				valuesChan <- big.NewInt(submissionData.Value)
+				timestampsChan <- big.NewInt(submissionData.AggregateTime)
+				proofsChan <- submissionData.Proof
+			} else {
+				log.Error().Str("Player", "Reporter").Msgf("latest data for pair %s not found", pair.Name)
+			}
+		}(pair)
+	}
+
+	wg.Wait()
+
+	close(feedHashesChan)
+	close(valuesChan)
+	close(timestampsChan)
+	close(proofsChan)
+
+	for feedHash := range feedHashesChan {
+		feedHashes = append(feedHashes, feedHash)
+		values = append(values, <-valuesChan)
+		timestamps = append(timestamps, <-timestampsChan)
+		proofs = append(proofs, <-proofsChan)
 	}
 
 	dataLen := len(feedHashes)
 	for start := 0; start < dataLen; start += MAX_REPORT_BATCH_SIZE {
-		end := min(start+MAX_REPORT_BATCH_SIZE, dataLen)
+		end := min(start+MAX_REPORT_BATCH_SIZE, dataLen-1)
 
 		batchFeedHashes := feedHashes[start:end]
 		batchValues := values[start:end]
