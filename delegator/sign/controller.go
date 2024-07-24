@@ -211,24 +211,6 @@ func insertV2(c *fiber.Ctx) error {
 		return err
 	}
 
-	payload.Timestamp = &utils.CustomDateTime{Time: time.Now()}
-	payload.From = strings.ToLower(payload.From)
-	payload.To = strings.ToLower(payload.To)
-
-	txChan := make(chan *SignModel, 1)
-	errChan := make(chan error, 1)
-	defer close(txChan)
-	defer close(errChan)
-	var wg sync.WaitGroup
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		tx, err := insertTransaction(c, payload)
-		errChan <- err
-		txChan <- tx
-	}()
-
 	err = validateContractAddress(c, strings.ToLower(payload.To))
 	if err != nil {
 		return err
@@ -239,29 +221,23 @@ func insertV2(c *fiber.Ctx) error {
 		return err
 	}
 
-	rawTxHash := TxToHash(signedTransaction)
-	wg.Wait()
-	if err = <-errChan; err != nil {
-		return err
-	}
-
-	tx := <-txChan
-	if tx == nil {
-		return fmt.Errorf("failed to insert transaction")
-	}
+	signedRawTxHash := TxToHash(signedTransaction)
 
 	defer func() {
 		succeed := true
-		tx.Succeed = &succeed
-		tx.SignedRawTx = &rawTxHash
+		payload.Timestamp = &utils.CustomDateTime{Time: time.Now()}
+		payload.From = strings.ToLower(payload.From)
+		payload.To = strings.ToLower(payload.To)
+		payload.Succeed = &succeed
+		payload.SignedRawTx = &signedRawTxHash
 
-		_, err := updateTransaction(c, tx)
+		_, err := insertTransaction(c, payload)
 		if err != nil {
-			log.Error().Err(err).Msg("failed to update transaction")
+			log.Error().Err(err).Msg("failed to insert transaction")
 		}
 	}()
 
-	return c.JSON(SignModel{SignedRawTx: &rawTxHash})
+	return c.JSON(SignModel{SignedRawTx: &signedRawTxHash})
 }
 
 func get(c *fiber.Ctx) error {
