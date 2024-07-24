@@ -112,10 +112,6 @@ func (a *App) setReporters(ctx context.Context) error {
 func (a *App) startReporters(ctx context.Context) error {
 	var errs []string
 
-	dialErr := a.WsHelper.Dial(ctx)
-	if dialErr != nil {
-		return dialErr
-	}
 	go a.WsHelper.Run(ctx, a.handleWsMessage)
 
 	chainHelper, chainHelperErr := helper.NewChainHelper(ctx)
