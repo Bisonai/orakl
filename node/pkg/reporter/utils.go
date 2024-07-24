@@ -162,7 +162,12 @@ func SetupDalWsHelper(ctx context.Context, configs []Config, endpoint string, ap
 		subscription.Params = append(subscription.Params, "submission@"+configs.Name)
 	}
 
-	wsHelper, wsHelperErr := wss.NewWebsocketHelper(ctx, wss.WithEndpoint(endpoint), wss.WithSubscriptions([]interface{}{subscription}), wss.WithRequestHeaders(map[string]string{"X-API-Key": apiKey}))
+	wsHelper, wsHelperErr := wss.NewWebsocketHelper(
+		ctx,
+		wss.WithEndpoint(endpoint),
+		wss.WithSubscriptions([]interface{}{subscription}),
+		wss.WithRequestHeaders(map[string]string{"X-API-Key": apiKey}),
+	)
 	if wsHelperErr != nil {
 		log.Error().Str("Player", "Reporter").Err(wsHelperErr).Msg("failed to create websocket helper")
 		return nil, wsHelperErr

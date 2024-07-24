@@ -54,24 +54,6 @@ func WithProxyUrl(proxyUrl string) ConnectionOption {
 	}
 }
 
-// [
-//
-//	    "submission@BTC-USDT",
-//	    "submission@ETH-USDT"
-//	]
-
-// type Subscription struct {
-// 	Method string   `json:"method"`
-// 	Params []string `json:"params"`
-// }
-
-// sub := Subscription{
-// 	Method: "SUBSCRIBE",
-// 	Params: []string{"submission@BTC-USDT", "submission@ETH-USDT"},
-// }
-
-// WithSubscriptions([]any{sub})
-
 func WithSubscriptions(subscriptions []any) ConnectionOption {
 	return func(c *ConnectionConfig) {
 		c.Subscriptions = subscriptions

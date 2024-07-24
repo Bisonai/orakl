@@ -2,6 +2,7 @@ package reporter
 
 import (
 	"context"
+	"encoding/json"
 	"math/big"
 	"strconv"
 	"sync"
@@ -79,10 +80,10 @@ func (r *Reporter) report(ctx context.Context) error {
 				continue
 			}
 
-			feedHashes = append(feedHashes, submissionData.feedHash)
-			values = append(values, big.NewInt(submissionData.value))
-			timestamps = append(timestamps, big.NewInt(submissionData.aggregateTime))
-			proofs = append(proofs, submissionData.proof)
+			feedHashes = append(feedHashes, submissionData.FeedHash)
+			values = append(values, big.NewInt(submissionData.Value))
+			timestamps = append(timestamps, big.NewInt(submissionData.AggregateTime))
+			proofs = append(proofs, submissionData.Proof)
 		} else {
 			log.Error().Str("Player", "Reporter").Msgf("latest data for pair %s not found", pair.Name)
 		}
@@ -145,54 +146,38 @@ func (r *Reporter) reportDelegated(ctx context.Context, functionString string, a
 }
 
 func processDalWsRawData(data any) (SubmissionData, error) {
-	mapData, mapDataOk := data.(map[string]interface{})
-	if !mapDataOk {
+	rawSubmissionData := RawSubmissionData{}
+
+	jsonMarshalData, jsonMarshalDataErr := json.Marshal(data)
+	if jsonMarshalDataErr != nil {
+		log.Error().Str("Player", "Reporter").Err(jsonMarshalDataErr).Msg("failed to marshal data")
 		return SubmissionData{}, errorSentinel.ErrReporterDalWsDataProcessingFailed
 	}
-	submissionData := SubmissionData{}
 
-	intValue, valueErr := strconv.ParseInt(mapData["value"].(string), 10, 64)
+	jsonUnmarshalDataErr := json.Unmarshal(jsonMarshalData, &rawSubmissionData)
+	if jsonUnmarshalDataErr != nil {
+		log.Error().Str("Player", "Reporter").Err(jsonUnmarshalDataErr).Msg("failed to unmarshal data")
+		return SubmissionData{}, errorSentinel.ErrReporterDalWsDataProcessingFailed
+	}
+
+	submissionData := SubmissionData{
+		FeedHash: rawSubmissionData.FeedHash,
+		Proof:    rawSubmissionData.Proof,
+	}
+
+	value, valueErr := strconv.ParseInt(rawSubmissionData.Value, 10, 64)
 	if valueErr != nil {
 		log.Error().Str("Player", "Reporter").Err(valueErr).Msg("failed to parse value")
 		return SubmissionData{}, errorSentinel.ErrReporterDalWsDataProcessingFailed
 	}
-	submissionData.value = intValue
+	submissionData.Value = value
 
-	timestampValue, timestampErr := strconv.ParseInt(mapData["aggregateTime"].(string), 10, 64)
+	timestampValue, timestampErr := strconv.ParseInt(rawSubmissionData.AggregateTime, 10, 64)
 	if timestampErr != nil {
 		log.Error().Str("Player", "Reporter").Err(timestampErr).Msg("failed to parse timestamp")
 		return SubmissionData{}, errorSentinel.ErrReporterDalWsDataProcessingFailed
 	}
-	submissionData.aggregateTime = timestampValue
-
-	var feedHash [32]byte
-	interfaceFeedHash, interfaceFeedHashOk := mapData["feedHash"].([]interface{})
-	if !interfaceFeedHashOk {
-		log.Error().Str("Player", "Reporter").Msg("failed to convert feed hash to interface")
-		return SubmissionData{}, errorSentinel.ErrReporterDalWsDataProcessingFailed
-
-	}
-	if len(interfaceFeedHash) == 32 {
-		for i, v := range interfaceFeedHash {
-			floatVal, ok := v.(float64)
-			if !ok {
-				log.Error().Str("Player", "Reporter").Msg("failed to convert feed hash value to float")
-				return SubmissionData{}, errorSentinel.ErrReporterDalWsDataProcessingFailed
-			}
-			feedHash[i] = byte(floatVal)
-		}
-	} else {
-		log.Error().Str("Player", "Reporter").Msg("failed to convert feed hash to byte, length not 32")
-		return SubmissionData{}, errorSentinel.ErrReporterDalWsDataProcessingFailed
-	}
-	submissionData.feedHash = feedHash
-
-	proof, ok := mapData["proof"].(string)
-	if !ok {
-		log.Error().Str("Player", "Reporter").Msg("failed to convert proof to string")
-		return SubmissionData{}, errorSentinel.ErrReporterDalWsDataProcessingFailed
-	}
-	submissionData.proof = []byte(proof)
+	submissionData.AggregateTime = timestampValue
 
 	return submissionData, nil
 }

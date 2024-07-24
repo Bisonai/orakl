@@ -32,7 +32,6 @@ func main() {
 	<-sigChan
 	log.Info().Msg("Reporter termination signal received")
 
-	r.WsHelper.Close()
 	cancel()
 
 	log.Info().Msg("Reporter service has stopped")

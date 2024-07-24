@@ -133,11 +133,17 @@ type GlobalAggregate types.GlobalAggregate
 
 type Proof types.Proof
 
+type RawSubmissionData struct {
+	Value         string   `json:"value"`
+	AggregateTime string   `json:"aggregateTime"`
+	Proof         []byte   `json:"proof"`
+	FeedHash      [32]byte `json:"feedHash"`
+}
 type SubmissionData struct {
-	value         int64
-	aggregateTime int64
-	proof         []byte
-	feedHash      [32]byte
+	Value         int64    `json:"value"`
+	AggregateTime int64    `json:"aggregateTime"`
+	Proof         []byte   `json:"proof"`
+	FeedHash      [32]byte `json:"feedHash"`
 }
 
 type SubmissionMessage struct {
