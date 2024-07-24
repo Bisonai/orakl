@@ -10,7 +10,6 @@ import (
 	"time"
 
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
-	"bisonai.com/orakl/node/pkg/utils/request"
 
 	"github.com/rs/zerolog/log"
 )
@@ -31,24 +30,17 @@ func NewReporter(ctx context.Context, opts ...ReporterOption) (*Reporter, error)
 		return nil, errorSentinel.ErrReporterEmptyConfigs
 	}
 
-	topicString := TOPIC_STRING + "-"
-	if config.JobType == DeviationJob {
-		topicString += "deviation"
-	} else {
-		topicString += strconv.Itoa(config.Interval)
-	}
-
 	groupInterval := time.Duration(config.Interval) * time.Millisecond
 
 	deviationThreshold := GetDeviationThreshold(groupInterval)
+
 	reporter := &Reporter{
 		contractAddress:    config.ContractAddress,
 		SubmissionInterval: groupInterval,
 		CachedWhitelist:    config.CachedWhitelist,
 		deviationThreshold: deviationThreshold,
-		DalEndpoint:        config.DalEndpoint,
-		DalApiKey:          config.DalApiKey,
 	}
+
 	reporter.SubmissionPairs = make(map[int32]SubmissionPair)
 	for _, sa := range config.Configs {
 		reporter.SubmissionPairs[sa.ID] = SubmissionPair{LastSubmission: 0, Name: sa.Name}
@@ -67,51 +59,67 @@ func (r *Reporter) Run(ctx context.Context) {
 			log.Debug().Str("Player", "Reporter").Msg("context done, stopping reporter")
 			return
 		case <-ticker.C:
-			err := r.report(ctx)
-			if err != nil {
-				log.Error().Str("Player", "Reporter").Err(err).Msg("reporting failed")
-			}
+			go func() {
+				err := r.report(ctx)
+				if err != nil {
+					log.Error().Str("Player", "Reporter").Err(err).Msg("reporting failed")
+				}
+			}()
 		}
 	}
 }
 
 func (r *Reporter) report(ctx context.Context) error {
-	pairs := ""
-	for _, submissionPair := range r.SubmissionPairs {
-		pairs += submissionPair.Name + ","
-	}
-	submissionData, err := request.Request[[]SubmissionData](request.WithEndpoint(r.DalEndpoint+"/latest-data-feeds/"+pairs), request.WithTimeout(10*time.Second), request.WithHeaders(map[string]string{"X-API-Key": r.DalApiKey, "Content-Type": "application/json"}))
-
-	if err != nil {
-		return err
-	}
-
 	var feedHashes [][32]byte
 	var values []*big.Int
 	var timestamps []*big.Int
 	var proofs [][]byte
 
-	for _, data := range submissionData {
-		intValue, valueErr := strconv.ParseInt(data.Value, 10, 64)
-		if valueErr != nil {
-			log.Error().Str("Player", "Reporter").Err(valueErr).Msgf("failed to parse value in data: %v", data.Symbol)
-			continue
-		}
+	feedHashesChan := make(chan [32]byte, len(r.SubmissionPairs))
+	valuesChan := make(chan *big.Int, len(r.SubmissionPairs))
+	timestampsChan := make(chan *big.Int, len(r.SubmissionPairs))
+	proofsChan := make(chan []byte, len(r.SubmissionPairs))
 
-		timestampValue, timestampErr := strconv.ParseInt(data.AggregateTime, 10, 64)
-		if timestampErr != nil {
-			log.Error().Str("Player", "Reporter").Err(timestampErr).Msgf("failed to parse timestamp in data: %v", data)
-			continue
-		}
+	wg := sync.WaitGroup{}
 
-		feedHashes = append(feedHashes, data.FeedHash)
-		values = append(values, big.NewInt(intValue))
-		timestamps = append(timestamps, big.NewInt(timestampValue))
-		proofs = append(proofs, data.Proof)
+	for _, pair := range r.SubmissionPairs {
+		wg.Add(1)
+		go func(pair SubmissionPair) {
+			defer wg.Done()
+			if value, ok := r.LatestData.Load(pair.Name); ok {
+				submissionData, err := processDalWsRawData(value)
+				if err != nil {
+					log.Error().Str("Player", "Reporter").Err(err).Msg("failed to process dal ws raw data")
+					return
+				}
+
+				feedHashesChan <- submissionData.FeedHash
+				valuesChan <- big.NewInt(submissionData.Value)
+				timestampsChan <- big.NewInt(submissionData.AggregateTime)
+				proofsChan <- submissionData.Proof
+			} else {
+				log.Error().Str("Player", "Reporter").Msgf("latest data for pair %s not found", pair.Name)
+			}
+		}(pair)
 	}
 
-	for start := 0; start < len(submissionData); start += MAX_REPORT_BATCH_SIZE {
-		end := min(start+MAX_REPORT_BATCH_SIZE, len(submissionData))
+	wg.Wait()
+
+	close(timestampsChan)
+	close(valuesChan)
+	close(feedHashesChan)
+	close(proofsChan)
+
+	for feedHash := range feedHashesChan {
+		feedHashes = append(feedHashes, feedHash)
+		values = append(values, <-valuesChan)
+		timestamps = append(timestamps, <-timestampsChan)
+		proofs = append(proofs, <-proofsChan)
+	}
+
+	dataLen := len(feedHashes)
+	for start := 0; start < dataLen; start += MAX_REPORT_BATCH_SIZE {
+		end := min(start+MAX_REPORT_BATCH_SIZE, dataLen-1)
 
 		batchFeedHashes := feedHashes[start:end]
 		batchValues := values[start:end]
@@ -120,11 +128,11 @@ func (r *Reporter) report(ctx context.Context) error {
 
 		err := r.reportDelegated(ctx, SUBMIT_WITH_PROOFS, batchFeedHashes, batchValues, batchTimestamps, batchProofs)
 		if err != nil {
-			log.Error().Str("Player", "Reporter").Err(err).Msg("report")
 			err = r.reportDirect(ctx, SUBMIT_WITH_PROOFS, batchFeedHashes, batchValues, batchTimestamps, batchProofs)
 			if err != nil {
 				log.Error().Str("Player", "Reporter").Err(err).Msg("report")
 			}
+			log.Error().Str("Player", "Reporter").Err(err).Msg("report")
 		}
 	}
 	return nil

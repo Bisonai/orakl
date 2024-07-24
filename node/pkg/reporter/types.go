@@ -4,12 +4,13 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"bisonai.com/orakl/node/pkg/chain/helper"
 	"bisonai.com/orakl/node/pkg/common/types"
-	dalcommon "bisonai.com/orakl/node/pkg/dal/common"
 	"bisonai.com/orakl/node/pkg/raft"
+	"bisonai.com/orakl/node/pkg/wss"
 	"github.com/klaytn/klaytn/common"
 )
 
@@ -53,6 +54,9 @@ type SubmissionPair struct {
 type App struct {
 	Reporters   []*Reporter
 	chainHelper *helper.ChainHelper
+
+	WsHelper   *wss.WebsocketHelper
+	LatestData sync.Map
 }
 
 type JobType int
@@ -68,11 +72,16 @@ type ReporterConfig struct {
 	ContractAddress string
 	CachedWhitelist []common.Address
 	JobType         JobType
-	DalEndpoint     string
 	DalApiKey       string
+	DalWsEndpoint   string
 }
 
 type ReporterOption func(*ReporterConfig)
+
+type Subscription struct {
+	Method string   `json:"method"`
+	Params []string `json:"params"`
+}
 
 func WithConfigs(configs []Config) ReporterOption {
 	return func(c *ReporterConfig) {
@@ -104,26 +113,11 @@ func WithJobType(jobType JobType) ReporterOption {
 	}
 }
 
-func WithDalEndpoint(endpoint string) ReporterOption {
-	return func(c *ReporterConfig) {
-		c.DalEndpoint = endpoint
-	}
-}
-
-func WithDalApiKey(apiKey string) ReporterOption {
-	return func(c *ReporterConfig) {
-		c.DalApiKey = apiKey
-	}
-}
-
 type Reporter struct {
 	KaiaHelper         *helper.ChainHelper
 	SubmissionPairs    map[int32]SubmissionPair
 	SubmissionInterval time.Duration
 	CachedWhitelist    []common.Address
-
-	DalEndpoint string
-	DalApiKey   string
 
 	contractAddress    string
 	deviationThreshold float64
@@ -131,13 +125,26 @@ type Reporter struct {
 	nodeCtx    context.Context
 	nodeCancel context.CancelFunc
 	isRunning  bool
+
+	LatestData *sync.Map
 }
 
 type GlobalAggregate types.GlobalAggregate
 
 type Proof types.Proof
 
-type SubmissionData dalcommon.OutgoingSubmissionData
+type RawSubmissionData struct {
+	Value         string   `json:"value"`
+	AggregateTime string   `json:"aggregateTime"`
+	Proof         []byte   `json:"proof"`
+	FeedHash      [32]byte `json:"feedHash"`
+}
+type SubmissionData struct {
+	Value         int64    `json:"value"`
+	AggregateTime int64    `json:"aggregateTime"`
+	Proof         []byte   `json:"proof"`
+	FeedHash      [32]byte `json:"feedHash"`
+}
 
 type SubmissionMessage struct {
 	Submissions []GlobalAggregate `json:"submissions"`
