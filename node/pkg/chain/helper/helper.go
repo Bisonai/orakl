@@ -259,8 +259,9 @@ func (t *ChainHelper) SubmitDirect(ctx context.Context, contractAddress string, 
 }
 
 func (t *ChainHelper) retrySubmitDirect(ctx context.Context, client utils.ClientInterface, tx *types.Transaction, contractAddress, functionString string, args ...interface{}) error {
-	for {
-		err := utils.SubmitRawTx(ctx, client, tx)
+	var err error
+	for i := 0; i < 3; i++ {
+		err = utils.SubmitRawTx(ctx, client, tx)
 		if err == nil {
 			return nil
 		}
@@ -281,6 +282,7 @@ func (t *ChainHelper) retrySubmitDirect(ctx context.Context, client utils.Client
 
 		return err
 	}
+	return err
 }
 
 func (t *ChainHelper) SubmitDelegated(ctx context.Context, contractAddress string, functionString string, args ...interface{}) error {
@@ -310,8 +312,9 @@ func (t *ChainHelper) SubmitDelegated(ctx context.Context, contractAddress strin
 }
 
 func (t *ChainHelper) retrySubmitDelegated(ctx context.Context, client utils.ClientInterface, tx *types.Transaction, contractAddress, functionString string, args ...interface{}) error {
-	for {
-		err := utils.SubmitRawTx(ctx, client, tx)
+	var err error
+	for i := 0; i < 3; i++ {
+		err = utils.SubmitRawTx(ctx, client, tx)
 		if err == nil {
 			return nil
 		}
@@ -336,6 +339,7 @@ func (t *ChainHelper) retrySubmitDelegated(ctx context.Context, client utils.Cli
 
 		return err
 	}
+	return err
 }
 
 func (t *ChainHelper) retryOnJsonRpcFailure(ctx context.Context, job func(c utils.ClientInterface) error) error {
