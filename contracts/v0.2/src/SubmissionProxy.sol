@@ -411,34 +411,40 @@ contract SubmissionProxy is Ownable {
 
         uint256 feedsLength_ = _feedHashes.length;
         for (uint256 i = 0; i < feedsLength_; i++) {
-            if (
-                _timestamps[i] <= block.timestamp - dataFreshness
-                    || lastSubmissionTimes[_feedHashes[i]] >= _timestamps[i]
-            ) {
-                revert AnswerTooOld();
-            }
+            submitSingle(_feedHashes[i], _answers[i], _timestamps[i], _proofs[i]);
+        }
+    }
 
-            (bytes[] memory proofs_, bool success_) = splitProofs(_proofs[i]);
-            if (!success_) {
-                // splitting proofs failed -> do not submit!
-                revert InvalidProof();
-            }
+    function submitSingle(
+        bytes32 _feedHash,
+        int256 _answer,
+        uint256 _timestamp,
+        bytes calldata _proof
+    ) public {
+        if (_timestamp <= block.timestamp - dataFreshness || lastSubmissionTimes[_feedHash] >= _timestamp) {
+            revert AnswerTooOld();
+        }
 
-            if (address(feeds[_feedHashes[i]]) == address(0)) {
-                // feedHash not registered -> do not submit!
-                revert FeedHashNotFound();
-            }
+        (bytes[] memory proofs_, bool success_) = splitProofs(_proof);
+        if (!success_) {
+            // splitting proofs failed -> do not submit!
+            revert InvalidProof();
+        }
 
-            if (keccak256(abi.encodePacked(feeds[_feedHashes[i]].name())) != _feedHashes[i]) {
-                // feedHash not matching with registered feed -> do not submit!
-                revert InvalidFeedHash();
-            }
+        if (address(feeds[_feedHash]) == address(0)) {
+            // feedHash not registered -> do not submit!
+            revert FeedHashNotFound();
+        }
 
-            bytes32 message_ = keccak256(abi.encodePacked(_answers[i], _timestamps[i], _feedHashes[i]));
-            if (validateProof(_feedHashes[i], message_, proofs_)) {
-                feeds[_feedHashes[i]].submit(_answers[i]);
-                lastSubmissionTimes[_feedHashes[i]] = _timestamps[i];
-            }
+        if (keccak256(abi.encodePacked(feeds[_feedHash].name())) != _feedHash) {
+            // feedHash not matching with registered feed -> do not submit!
+            revert InvalidFeedHash();
+        }
+
+        bytes32 message_ = keccak256(abi.encodePacked(_answer, _timestamp, _feedHash));
+        if (validateProof(_feedHash, message_, proofs_)) {
+            feeds[_feedHash].submit(_answer);
+            lastSubmissionTimes[_feedHash] = _timestamp;
         }
     }
 
