@@ -238,37 +238,55 @@ func (t *ChainHelper) PublicAddressString() (string, error) {
 }
 
 func (t *ChainHelper) SubmitDirect(ctx context.Context, contractAddress string, functionString string, args ...interface{}) error {
-	tx, err := t.MakeDirectTx(ctx, contractAddress, functionString, args...)
+	var err error
+	var tx *types.Transaction
+	tx, err = t.MakeDirectTx(ctx, contractAddress, functionString, args...)
 	if err != nil {
 		return err
 	}
 
 	for _, client := range t.clients {
-		err := utils.SubmitRawTx(ctx, client, tx)
-		if err != nil {
-			if utils.ShouldRetryWithSwitchedJsonRPC(err) {
-				log.Error().Err(err).Msg("Error on retrying on JsonRpcFailure")
-				continue
-			}
+		err := t.retrySubmitDirect(ctx, client, tx, contractAddress, functionString, args...)
+		if err == nil {
+			return nil
+		}
+		if utils.ShouldRetryWithSwitchedJsonRPC(err) {
+			continue // switch to next client
+		}
+		return err
+	}
+	return err
+}
 
-			if utils.IsNonceError(err) || utils.IsNonceAlreadyInPool(err) {
-				log.Error().Err(err).Msg("Error on retrying on NonceFailure")
-				tx, err = t.MakeDirectTx(ctx, contractAddress, functionString, args...)
-				if err != nil {
-					return err
-				}
-				continue
-			}
+func (t *ChainHelper) retrySubmitDirect(ctx context.Context, client utils.ClientInterface, tx *types.Transaction, contractAddress, functionString string, args ...interface{}) error {
+	for {
+		err := utils.SubmitRawTx(ctx, client, tx)
+		if err == nil {
+			return nil
+		}
+
+		if utils.ShouldRetryWithSwitchedJsonRPC(err) {
+			log.Error().Err(err).Msg("Error on retrying on JsonRpcFailure")
 			return err
 		}
-		break
-	}
 
-	return nil
+		if utils.IsNonceError(err) || utils.IsNonceAlreadyInPool(err) {
+			log.Error().Err(err).Msg("Error on retrying on NonceFailure")
+			tx, err = t.MakeDirectTx(ctx, contractAddress, functionString, args...)
+			if err != nil {
+				return err
+			}
+			continue // retry with the same client
+		}
+
+		return err
+	}
 }
 
 func (t *ChainHelper) SubmitDelegated(ctx context.Context, contractAddress string, functionString string, args ...interface{}) error {
-	tx, err := t.MakeFeeDelegatedTx(ctx, contractAddress, functionString, args...)
+	var tx *types.Transaction
+	var err error
+	tx, err = t.MakeFeeDelegatedTx(ctx, contractAddress, functionString, args...)
 	if err != nil {
 		return err
 	}
@@ -279,29 +297,45 @@ func (t *ChainHelper) SubmitDelegated(ctx context.Context, contractAddress strin
 	}
 
 	for _, client := range t.clients {
+		err := t.retrySubmitDelegated(ctx, client, tx, contractAddress, functionString, args...)
+		if err == nil {
+			return nil
+		}
+		if utils.ShouldRetryWithSwitchedJsonRPC(err) {
+			continue // Switch to the next client
+		}
+		return err
+	}
+	return err
+}
+
+func (t *ChainHelper) retrySubmitDelegated(ctx context.Context, client utils.ClientInterface, tx *types.Transaction, contractAddress, functionString string, args ...interface{}) error {
+	for {
 		err := utils.SubmitRawTx(ctx, client, tx)
-		if err != nil {
-			if utils.ShouldRetryWithSwitchedJsonRPC(err) {
-				log.Error().Err(err).Msg("Error on retrying on JsonRpcFailure")
-				continue
-			}
-			if utils.IsNonceError(err) || utils.IsNonceAlreadyInPool(err) {
-				log.Error().Err(err).Msg("Error on retrying on NonceFailure")
-				tx, err = t.MakeFeeDelegatedTx(ctx, contractAddress, functionString, args...)
-				if err != nil {
-					return err
-				}
-				tx, err = t.GetSignedFromDelegator(tx)
-				if err != nil {
-					return err
-				}
-				continue
-			}
+		if err == nil {
+			return nil
+		}
+
+		if utils.ShouldRetryWithSwitchedJsonRPC(err) {
+			log.Error().Err(err).Msg("Error on retrying on JsonRpcFailure")
 			return err
 		}
-		break
+
+		if utils.IsNonceError(err) || utils.IsNonceAlreadyInPool(err) {
+			log.Error().Err(err).Msg("Error on retrying on NonceFailure")
+			tx, err = t.MakeFeeDelegatedTx(ctx, contractAddress, functionString, args...)
+			if err != nil {
+				return err
+			}
+			tx, err = t.GetSignedFromDelegator(tx)
+			if err != nil {
+				return err
+			}
+			continue // retry with the same client
+		}
+
+		return err
 	}
-	return nil
 }
 
 func (t *ChainHelper) retryOnJsonRpcFailure(ctx context.Context, job func(c utils.ClientInterface) error) error {
