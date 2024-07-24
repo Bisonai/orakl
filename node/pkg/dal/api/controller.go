@@ -232,3 +232,64 @@ func getLatestFeeds(c *fiber.Ctx) error {
 
 	return c.JSON(results)
 }
+
+func getLatestFeedsBulk(c *fiber.Ctx) error {
+	controller, ok := c.Locals("apiController").(*Controller)
+	if !ok {
+		return errors.New("api controller not found")
+	}
+
+	symbolsStr := c.Params("symbols")
+
+	if symbolsStr == "" {
+		return errors.New("invalid symbol: empty symbol")
+	}
+
+	symbols := strings.Split(symbolsStr, ",")
+	bulk := BulkResponse{}
+	for _, symbol := range symbols {
+		if symbol == "" {
+			continue
+		}
+
+		if !strings.Contains(symbol, "-") {
+			return fmt.Errorf("wrong symbol format: %s, symbol should be in {BASE}-{QUOTE} format", symbol)
+		}
+
+		if !strings.Contains(symbol, "test") {
+			symbol = strings.ToUpper(symbol)
+		}
+
+		result, err := controller.Collector.GetLatestData(symbol)
+		if err != nil {
+			return err
+		}
+
+		bulk.Symbols = append(bulk.Symbols, result.Symbol)
+		bulk.Values = append(bulk.Values, result.Value)
+		bulk.AggregateTimes = append(bulk.AggregateTimes, result.AggregateTime)
+		bulk.Proofs = append(bulk.Proofs, result.Proof)
+		bulk.FeedHashes = append(bulk.FeedHashes, result.FeedHash)
+		bulk.Decimals = append(bulk.Decimals, result.Decimals)
+	}
+	return c.JSON(bulk)
+}
+
+func getAllLatestFeedsBulk(c *fiber.Ctx) error {
+	controller, ok := c.Locals("apiController").(*Controller)
+	if !ok {
+		return errors.New("api controller not found")
+	}
+
+	result := controller.Collector.GetAllLatestData()
+	bulk := BulkResponse{}
+	for _, data := range result {
+		bulk.Symbols = append(bulk.Symbols, data.Symbol)
+		bulk.Values = append(bulk.Values, data.Value)
+		bulk.AggregateTimes = append(bulk.AggregateTimes, data.AggregateTime)
+		bulk.Proofs = append(bulk.Proofs, data.Proof)
+		bulk.FeedHashes = append(bulk.FeedHashes, data.FeedHash)
+		bulk.Decimals = append(bulk.Decimals, data.Decimals)
+	}
+	return c.JSON(bulk)
+}
