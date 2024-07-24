@@ -151,7 +151,7 @@ func (t *ChainHelper) GetSignedFromDelegator(tx *types.Transaction) (*types.Tran
 
 func (t *ChainHelper) MakeDirectTx(ctx context.Context, contractAddressHex string, functionString string, args ...interface{}) (*types.Transaction, error) {
 	var result *types.Transaction
-	nonce, err := noncemanager.GetAndIncrement(t.wallet)
+	nonce, err := noncemanager.GetAndIncrementNonce(t.wallet)
 	if err != nil {
 		return nil, err
 	}
@@ -169,7 +169,7 @@ func (t *ChainHelper) MakeDirectTx(ctx context.Context, contractAddressHex strin
 
 func (t *ChainHelper) MakeFeeDelegatedTx(ctx context.Context, contractAddressHex string, functionString string, args ...interface{}) (*types.Transaction, error) {
 	var result *types.Transaction
-	nonce, err := noncemanager.GetAndIncrement(t.wallet)
+	nonce, err := noncemanager.GetAndIncrementNonce(t.wallet)
 	if err != nil {
 		return nil, err
 	}

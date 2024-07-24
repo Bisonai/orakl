@@ -21,12 +21,12 @@ func TestNonceManager(t *testing.T) {
 		t.Fatalf("Expected nonce to be 1, got %d", nonce)
 	}
 
-	newNonce, err := nm.GetNonceAndIncrement(address)
+	newNonce, err := nm.GetAndIncrementNonce(address)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
 	if newNonce != 1 {
-		t.Fatalf("Expected new nonce to be 2, got %d", newNonce)
+		t.Fatalf("Expected new nonce to be 1, got %d", newNonce)
 	}
 
 	nonce, err = nm.GetNonce(address)
@@ -38,7 +38,7 @@ func TestNonceManager(t *testing.T) {
 	}
 
 	newAddress := "0x456"
-	_, err = nm.GetNonceAndIncrement(newAddress)
+	_, err = nm.GetAndIncrementNonce(newAddress)
 	if err == nil {
 		t.Fatalf("Expected error, got nil")
 	}
@@ -49,7 +49,7 @@ func TestNonceManager(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			nm.GetNonceAndIncrement(address)
+			nm.GetAndIncrementNonce(address)
 		}()
 	}
 	wg.Wait()

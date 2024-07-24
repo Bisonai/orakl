@@ -29,8 +29,8 @@ func Set(address string, nonce uint64) {
 	Get().SetNonce(address, nonce)
 }
 
-func GetAndIncrement(address string) (uint64, error) {
-	return Get().GetNonceAndIncrement(address)
+func GetAndIncrementNonce(address string) (uint64, error) {
+	return Get().GetAndIncrementNonce(address)
 }
 
 func (m *NonceManager) SetNonce(address string, nonce uint64) {
@@ -40,7 +40,7 @@ func (m *NonceManager) SetNonce(address string, nonce uint64) {
 	m.nonces[address] = nonce
 }
 
-func (m *NonceManager) GetNonceAndIncrement(address string) (uint64, error) {
+func (m *NonceManager) GetAndIncrementNonce(address string) (uint64, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
