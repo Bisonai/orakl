@@ -230,7 +230,7 @@ tasks:
       - task: test-fetcher
       - task: test-utils
       - task: test-aggregator
-      # - task: test-reporter
+      - task: test-reporter
       - task: test-chain
       - task: test-wss
       - task: test-websocketfetcher
