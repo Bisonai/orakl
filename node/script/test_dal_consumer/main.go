@@ -9,6 +9,7 @@ import (
 	"bisonai.com/orakl/node/pkg/chain/helper"
 	"bisonai.com/orakl/node/pkg/dal/common"
 	"bisonai.com/orakl/node/pkg/utils/request"
+	klaytncommon "github.com/klaytn/klaytn/common"
 	"github.com/rs/zerolog/log"
 )
 
@@ -19,7 +20,7 @@ const (
 
 func main() {
 	ctx := context.Background()
-	url := fmt.Sprintf("http://localhost:8090/api/v1/dal/latest-data-feeds/%s", SINGLE_PAIR)
+	url := fmt.Sprintf("http://localhost:8090/latest-data-feeds/%s", SINGLE_PAIR)
 	contractAddr := os.Getenv("SUBMISSION_PROXY_CONTRACT")
 	if contractAddr == "" {
 		log.Error().Msg("Missing SUBMISSION_PROXY_CONTRACT")
@@ -32,11 +33,13 @@ func main() {
 		panic(err)
 	}
 
-	result, err := request.Request[common.OutgoingSubmissionData](request.WithEndpoint(url))
+	results, err := request.Request[[]common.OutgoingSubmissionData](request.WithEndpoint(url), request.WithHeaders(map[string]string{"X-API-Key": "testkey"}))
 	if err != nil {
 		log.Error().Err(err).Str("Player", "TestConsumer").Msg("failed to get data feed")
 		panic(err)
 	}
+
+	result := results[0]
 
 	var submissionVal big.Int
 	_, success := submissionVal.SetString(result.Value, 10)
@@ -52,13 +55,14 @@ func main() {
 		panic("failed to convert string to big int")
 	}
 
-	var feedHash [32]byte
-	copy(feedHash[:], result.FeedHash)
+	feedHashBytes := klaytncommon.Hex2Bytes(result.FeedHash)
+	feedHash := [32]byte{}
+	copy(feedHash[:], feedHashBytes)
 
 	feedHashes := [][32]byte{feedHash}
 	values := []*big.Int{&submissionVal}
 	timestamps := []*big.Int{&submissionTime}
-	proofs := [][]byte{result.Proof}
+	proofs := [][]byte{klaytncommon.Hex2Bytes(result.Proof)}
 
 	err = kaiaHelper.SubmitDelegatedFallbackDirect(ctx, contractAddr, SUBMIT_WITH_PROOFS, feedHashes, values, timestamps, proofs)
 	if err != nil {

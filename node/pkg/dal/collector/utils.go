@@ -101,3 +101,7 @@ func orderProof(ctx context.Context, proof []byte, value int64, timestamp time.T
 	signerMap := reporter.GetSignerMap(signers, proofChunks)
 	return reporter.OrderProof(signerMap, cachedWhitelist)
 }
+
+func formatBytesToHex(bytes []byte) string {
+	return klaytncommon.Bytes2Hex(bytes)
+}

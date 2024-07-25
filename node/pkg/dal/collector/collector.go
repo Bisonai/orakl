@@ -196,8 +196,8 @@ func (c *Collector) IncomingDataToOutgoingData(ctx context.Context, data aggrega
 		Symbol:        c.Symbols[data.GlobalAggregate.ConfigID],
 		Value:         strconv.FormatInt(data.GlobalAggregate.Value, 10),
 		AggregateTime: strconv.FormatInt(data.GlobalAggregate.Timestamp.Unix(), 10),
-		Proof:         orderedProof,
-		FeedHash:      c.FeedHashes[data.GlobalAggregate.ConfigID],
+		Proof:         formatBytesToHex(orderedProof),
+		FeedHash:      formatBytesToHex(c.FeedHashes[data.GlobalAggregate.ConfigID]),
 		Decimals:      DefaultDecimals,
 	}, nil
 }
