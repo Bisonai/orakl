@@ -1,7 +1,7 @@
 {
   "baobab": {
     "FeedRouter": "0xd9dbbb92a6ecb8b8d3e386b8d0ad8284bd816ef1",
-    "SubmissionProxy": "0xde8fb45ff8e330ccf8e5cc0913ee0143b2a0ebdb"
+    "SubmissionProxy": "0x3f4acd79aa15b439495d4d3c25bfba1d86b98d46"
   },
   "cypress": {
     "FeedRouter": "0x653078f0d3a230416a59aa6486466470db0190a2",
