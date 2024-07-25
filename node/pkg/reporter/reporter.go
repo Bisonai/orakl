@@ -2,10 +2,8 @@ package reporter
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"math/big"
-	"strconv"
 	"sync"
 	"time"
 
@@ -37,11 +35,23 @@ func NewReporter(ctx context.Context, opts ...ReporterOption) (*Reporter, error)
 		SubmissionInterval: groupInterval,
 		CachedWhitelist:    config.CachedWhitelist,
 		deviationThreshold: deviationThreshold,
+		KaiaHelper:         config.KaiaHelper,
+		LatestData:         config.LatestData,
 	}
 
 	reporter.SubmissionPairs = make(map[int32]SubmissionPair)
 	for _, sa := range config.Configs {
 		reporter.SubmissionPairs[sa.ID] = SubmissionPair{LastSubmission: 0, Name: sa.Name}
+	}
+
+	if config.JobType == ReportJob {
+		reporter.Job = func() error {
+			return reporter.report(ctx, reporter.SubmissionPairs)
+		}
+	} else {
+		reporter.Job = func() error {
+			return reporter.deviationJob(ctx)
+		}
 	}
 
 	return reporter, nil
@@ -58,47 +68,46 @@ func (r *Reporter) Run(ctx context.Context) {
 			return
 		case <-ticker.C:
 			go func() {
-				err := r.report(ctx)
+				err := r.Job()
 				if err != nil {
-					log.Error().Str("Player", "Reporter").Err(err).Msg("reporting failed")
+					log.Error().Str("Player", "Reporter").Err(err).Msg("ReporterJob")
 				}
 			}()
 		}
 	}
 }
 
-func (r *Reporter) report(ctx context.Context) error {
+func (r *Reporter) report(ctx context.Context, submissionPairs map[int32]SubmissionPair) error {
 	var feedHashes [][32]byte
 	var values []*big.Int
 	var timestamps []*big.Int
 	var proofs [][]byte
+	var configIds []int32
 
-	feedHashesChan := make(chan [32]byte, len(r.SubmissionPairs))
-	valuesChan := make(chan *big.Int, len(r.SubmissionPairs))
-	timestampsChan := make(chan *big.Int, len(r.SubmissionPairs))
-	proofsChan := make(chan []byte, len(r.SubmissionPairs))
+	feedHashesChan := make(chan [32]byte, len(submissionPairs))
+	valuesChan := make(chan *big.Int, len(submissionPairs))
+	timestampsChan := make(chan *big.Int, len(submissionPairs))
+	proofsChan := make(chan []byte, len(submissionPairs))
+	configIdChan := make(chan int32, len(submissionPairs))
 
 	wg := sync.WaitGroup{}
 
-	for _, pair := range r.SubmissionPairs {
+	for id, pair := range submissionPairs {
 		wg.Add(1)
-		go func(pair SubmissionPair) {
+		go func(id int32, pair SubmissionPair) {
 			defer wg.Done()
-			if value, ok := r.LatestData.Load(pair.Name); ok {
-				submissionData, err := processDalWsRawData(value)
-				if err != nil {
-					log.Error().Str("Player", "Reporter").Err(err).Msg("failed to process dal ws raw data")
-					return
-				}
-
-				feedHashesChan <- submissionData.FeedHash
-				valuesChan <- big.NewInt(submissionData.Value)
-				timestampsChan <- big.NewInt(submissionData.AggregateTime)
-				proofsChan <- submissionData.Proof
-			} else {
+			submissionData, ok := GetLatestData(r.LatestData, pair.Name)
+			if !ok {
 				log.Error().Str("Player", "Reporter").Msgf("latest data for pair %s not found", pair.Name)
+				return
 			}
-		}(pair)
+
+			feedHashesChan <- submissionData.FeedHash
+			valuesChan <- big.NewInt(submissionData.Value)
+			timestampsChan <- big.NewInt(submissionData.AggregateTime)
+			proofsChan <- submissionData.Proof
+			configIdChan <- id
+		}(id, pair)
 	}
 
 	wg.Wait()
@@ -107,12 +116,14 @@ func (r *Reporter) report(ctx context.Context) error {
 	close(valuesChan)
 	close(feedHashesChan)
 	close(proofsChan)
+	close(configIdChan)
 
 	for feedHash := range feedHashesChan {
 		feedHashes = append(feedHashes, feedHash)
 		values = append(values, <-valuesChan)
 		timestamps = append(timestamps, <-timestampsChan)
 		proofs = append(proofs, <-proofsChan)
+		configIds = append(configIds, <-configIdChan)
 	}
 
 	errs := []error{}
@@ -131,47 +142,37 @@ func (r *Reporter) report(ctx context.Context) error {
 			errs = append(errs, err)
 		}
 	}
+
+	// assumption: values[i] will always correspond to configIds[i] (theoretically doesn't have to be the case)
+	for i, configId := range configIds {
+		pair := r.SubmissionPairs[configId]
+		pair.LastSubmission = values[i].Int64()
+		r.SubmissionPairs[configId] = pair
+	}
+
 	if len(errs) > 0 {
 		return mergeErrors(errs)
 	}
+
+	log.Debug().Str("Player", "Reporter").Msgf("reporting done for reporter with interval: %v", r.SubmissionInterval)
+
 	return nil
 }
 
-func processDalWsRawData(data any) (SubmissionData, error) {
-	rawSubmissionData := RawSubmissionData{}
-
-	jsonMarshalData, jsonMarshalDataErr := json.Marshal(data)
-	if jsonMarshalDataErr != nil {
-		log.Error().Str("Player", "Reporter").Err(jsonMarshalDataErr).Msg("failed to marshal data")
-		return SubmissionData{}, errorSentinel.ErrReporterDalWsDataProcessingFailed
+func (r *Reporter) deviationJob(ctx context.Context) error {
+	deviatingAggregates := GetDeviatingAggregates(r.SubmissionPairs, r.LatestData, r.deviationThreshold)
+	if len(deviatingAggregates) == 0 {
+		log.Debug().Str("Player", "Reporter").Msg("no deviating aggregates found")
+		return nil
 	}
+	log.Debug().Str("Player", "Reporter").Msgf("deviating aggregates found: %v", deviatingAggregates)
 
-	jsonUnmarshalDataErr := json.Unmarshal(jsonMarshalData, &rawSubmissionData)
-	if jsonUnmarshalDataErr != nil {
-		log.Error().Str("Player", "Reporter").Err(jsonUnmarshalDataErr).Msg("failed to unmarshal data")
-		return SubmissionData{}, errorSentinel.ErrReporterDalWsDataProcessingFailed
+	err := r.report(ctx, deviatingAggregates)
+	if err != nil {
+		log.Error().Str("Player", "Reporter").Err(err).Msg("DeviationReport")
+		return err
 	}
-
-	submissionData := SubmissionData{
-		FeedHash: rawSubmissionData.FeedHash,
-		Proof:    rawSubmissionData.Proof,
-	}
-
-	value, valueErr := strconv.ParseInt(rawSubmissionData.Value, 10, 64)
-	if valueErr != nil {
-		log.Error().Str("Player", "Reporter").Err(valueErr).Msg("failed to parse value")
-		return SubmissionData{}, errorSentinel.ErrReporterDalWsDataProcessingFailed
-	}
-	submissionData.Value = value
-
-	timestampValue, timestampErr := strconv.ParseInt(rawSubmissionData.AggregateTime, 10, 64)
-	if timestampErr != nil {
-		log.Error().Str("Player", "Reporter").Err(timestampErr).Msg("failed to parse timestamp")
-		return SubmissionData{}, errorSentinel.ErrReporterDalWsDataProcessingFailed
-	}
-	submissionData.AggregateTime = timestampValue
-
-	return submissionData, nil
+	return nil
 }
 
 func mergeErrors(errs []error) error {

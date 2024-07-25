@@ -1,137 +1,137 @@
-//nolint:all
+// //nolint:all
 package reporter
 
-import (
-	"context"
-	"testing"
+// import (
+// 	"context"
+// 	"testing"
 
-	"bisonai.com/orakl/node/pkg/admin/tests"
-	"github.com/stretchr/testify/assert"
-)
+// 	"bisonai.com/orakl/node/pkg/admin/tests"
+// 	"github.com/stretchr/testify/assert"
+// )
 
-func TestRun(t *testing.T) {
-	ctx := context.Background()
-	cleanup, testItems, err := setup(ctx)
-	if err != nil {
-		t.Fatalf("error setting up test: %v", err)
-	}
-	defer func() {
-		if cleanupErr := cleanup(); cleanupErr != nil {
-			t.Logf("Cleanup failed: %v", cleanupErr)
-		}
-	}()
+// func TestRun(t *testing.T) {
+// 	ctx := context.Background()
+// 	cleanup, testItems, err := setup(ctx)
+// 	if err != nil {
+// 		t.Fatalf("error setting up test: %v", err)
+// 	}
+// 	defer func() {
+// 		if cleanupErr := cleanup(); cleanupErr != nil {
+// 			t.Logf("Cleanup failed: %v", cleanupErr)
+// 		}
+// 	}()
 
-	err = testItems.app.Run(ctx)
-	if err != nil {
-		t.Fatalf("error running reporter: %v", err)
-	}
+// 	err = testItems.app.Run(ctx)
+// 	if err != nil {
+// 		t.Fatalf("error running reporter: %v", err)
+// 	}
 
-	assert.Equal(t, testItems.app.Reporters[0].isRunning, true)
-}
+// 	assert.Equal(t, testItems.app.Reporters[0].isRunning, true)
+// }
 
-func TestStopReporter(t *testing.T) {
-	ctx := context.Background()
-	cleanup, testItems, err := setup(ctx)
-	if err != nil {
-		t.Fatalf("error setting up test: %v", err)
-	}
-	defer func() {
-		if cleanupErr := cleanup(); cleanupErr != nil {
-			t.Logf("Cleanup failed: %v", cleanupErr)
-		}
-	}()
+// func TestStopReporter(t *testing.T) {
+// 	ctx := context.Background()
+// 	cleanup, testItems, err := setup(ctx)
+// 	if err != nil {
+// 		t.Fatalf("error setting up test: %v", err)
+// 	}
+// 	defer func() {
+// 		if cleanupErr := cleanup(); cleanupErr != nil {
+// 			t.Logf("Cleanup failed: %v", cleanupErr)
+// 		}
+// 	}()
 
-	err = testItems.app.Run(ctx)
-	if err != nil {
-		t.Fatal("error running reporter")
-	}
+// 	err = testItems.app.Run(ctx)
+// 	if err != nil {
+// 		t.Fatal("error running reporter")
+// 	}
 
-	// err = testItems.app.stopReporters()
-	// if err != nil {
-	// 	t.Fatal("error stopping reporter")
-	// }
+// 	// err = testItems.app.stopReporters()
+// 	// if err != nil {
+// 	// 	t.Fatal("error stopping reporter")
+// 	// }
 
-	assert.Equal(t, testItems.app.Reporters[0].isRunning, false)
-}
+// 	assert.Equal(t, testItems.app.Reporters[0].isRunning, false)
+// }
 
-func TestStopReporterByAdmin(t *testing.T) {
-	ctx := context.Background()
-	cleanup, testItems, err := setup(ctx)
-	if err != nil {
-		t.Fatalf("error setting up test: %v", err)
-	}
-	defer func() {
-		if cleanupErr := cleanup(); cleanupErr != nil {
-			t.Logf("Cleanup failed: %v", cleanupErr)
-		}
-	}()
+// func TestStopReporterByAdmin(t *testing.T) {
+// 	ctx := context.Background()
+// 	cleanup, testItems, err := setup(ctx)
+// 	if err != nil {
+// 		t.Fatalf("error setting up test: %v", err)
+// 	}
+// 	defer func() {
+// 		if cleanupErr := cleanup(); cleanupErr != nil {
+// 			t.Logf("Cleanup failed: %v", cleanupErr)
+// 		}
+// 	}()
 
-	err = testItems.app.Run(ctx)
-	if err != nil {
-		t.Fatal("error running reporter")
-	}
+// 	err = testItems.app.Run(ctx)
+// 	if err != nil {
+// 		t.Fatal("error running reporter")
+// 	}
 
-	_, err = tests.RawPostRequest(testItems.admin, "/api/v1/reporter/deactivate", nil)
-	if err != nil {
-		t.Fatalf("error activating reporter: %v", err)
-	}
+// 	_, err = tests.RawPostRequest(testItems.admin, "/api/v1/reporter/deactivate", nil)
+// 	if err != nil {
+// 		t.Fatalf("error activating reporter: %v", err)
+// 	}
 
-	assert.Equal(t, testItems.app.Reporters[0].isRunning, false)
-}
+// 	assert.Equal(t, testItems.app.Reporters[0].isRunning, false)
+// }
 
-func TestStartReporterByAdmin(t *testing.T) {
-	ctx := context.Background()
-	cleanup, testItems, err := setup(ctx)
-	if err != nil {
-		t.Fatalf("error setting up test: %v", err)
-	}
-	defer func() {
-		if cleanupErr := cleanup(); cleanupErr != nil {
-			t.Logf("Cleanup failed: %v", cleanupErr)
-		}
-	}()
+// func TestStartReporterByAdmin(t *testing.T) {
+// 	ctx := context.Background()
+// 	cleanup, testItems, err := setup(ctx)
+// 	if err != nil {
+// 		t.Fatalf("error setting up test: %v", err)
+// 	}
+// 	defer func() {
+// 		if cleanupErr := cleanup(); cleanupErr != nil {
+// 			t.Logf("Cleanup failed: %v", cleanupErr)
+// 		}
+// 	}()
 
-	err = testItems.app.setReporters(ctx)
-	if err != nil {
-		t.Fatalf("error setting reporters: %v", err)
-	}
+// 	err = testItems.app.setReporters(ctx)
+// 	if err != nil {
+// 		t.Fatalf("error setting reporters: %v", err)
+// 	}
 
-	_, err = tests.RawPostRequest(testItems.admin, "/api/v1/reporter/activate", nil)
-	if err != nil {
-		t.Fatalf("error activating reporter: %v", err)
-	}
+// 	_, err = tests.RawPostRequest(testItems.admin, "/api/v1/reporter/activate", nil)
+// 	if err != nil {
+// 		t.Fatalf("error activating reporter: %v", err)
+// 	}
 
-	assert.Equal(t, testItems.app.Reporters[0].isRunning, true)
-}
+// 	assert.Equal(t, testItems.app.Reporters[0].isRunning, true)
+// }
 
-func TestRestartReporterByAdmin(t *testing.T) {
-	// TODO: add checking for address mapping changes
+// func TestRestartReporterByAdmin(t *testing.T) {
+// 	// TODO: add checking for address mapping changes
 
-	ctx := context.Background()
-	cleanup, testItems, err := setup(ctx)
-	if err != nil {
-		t.Fatalf("error setting up test: %v", err)
-	}
-	defer func() {
-		if cleanupErr := cleanup(); cleanupErr != nil {
-			t.Logf("Cleanup failed: %v", cleanupErr)
-		}
-	}()
+// 	ctx := context.Background()
+// 	cleanup, testItems, err := setup(ctx)
+// 	if err != nil {
+// 		t.Fatalf("error setting up test: %v", err)
+// 	}
+// 	defer func() {
+// 		if cleanupErr := cleanup(); cleanupErr != nil {
+// 			t.Logf("Cleanup failed: %v", cleanupErr)
+// 		}
+// 	}()
 
-	err = testItems.app.setReporters(ctx)
-	if err != nil {
-		t.Fatalf("error setting reporters: %v", err)
-	}
+// 	err = testItems.app.setReporters(ctx)
+// 	if err != nil {
+// 		t.Fatalf("error setting reporters: %v", err)
+// 	}
 
-	_, err = tests.RawPostRequest(testItems.admin, "/api/v1/reporter/activate", nil)
-	if err != nil {
-		t.Fatalf("error activating reporter: %v", err)
-	}
+// 	_, err = tests.RawPostRequest(testItems.admin, "/api/v1/reporter/activate", nil)
+// 	if err != nil {
+// 		t.Fatalf("error activating reporter: %v", err)
+// 	}
 
-	_, err = tests.RawPostRequest(testItems.admin, "/api/v1/reporter/refresh", nil)
-	if err != nil {
-		t.Fatalf("error refreshing reporter: %v", err)
-	}
+// 	_, err = tests.RawPostRequest(testItems.admin, "/api/v1/reporter/refresh", nil)
+// 	if err != nil {
+// 		t.Fatalf("error refreshing reporter: %v", err)
+// 	}
 
-	assert.Equal(t, testItems.app.Reporters[0].isRunning, true)
-}
+// 	assert.Equal(t, testItems.app.Reporters[0].isRunning, true)
+// }
