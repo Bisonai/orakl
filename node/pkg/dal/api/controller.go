@@ -233,7 +233,7 @@ func getLatestFeeds(c *fiber.Ctx) error {
 	return c.JSON(results)
 }
 
-func getLatestFeedsBulk(c *fiber.Ctx) error {
+func getLatestFeedsTransposed(c *fiber.Ctx) error {
 	controller, ok := c.Locals("apiController").(*Controller)
 	if !ok {
 		return errors.New("api controller not found")
@@ -275,7 +275,7 @@ func getLatestFeedsBulk(c *fiber.Ctx) error {
 	return c.JSON(bulk)
 }
 
-func getAllLatestFeedsBulk(c *fiber.Ctx) error {
+func getAllLatestFeedsTransposed(c *fiber.Ctx) error {
 	controller, ok := c.Locals("apiController").(*Controller)
 	if !ok {
 		return errors.New("api controller not found")
