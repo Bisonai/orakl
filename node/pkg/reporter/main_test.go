@@ -54,16 +54,6 @@ func setup(ctx context.Context) error {
 	return nil
 }
 
-func reporterCleanup(ctx context.Context) error {
-	err := db.QueryWithoutResult(ctx, "DELETE FROM configs;", nil)
-	if err != nil {
-		return err
-	}
-	db.ClosePool()
-
-	return nil
-}
-
 func TestMain(m *testing.M) {
 	ctx := context.Background()
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
@@ -75,9 +65,6 @@ func TestMain(m *testing.M) {
 
 	code := m.Run()
 
-	err = reporterCleanup(ctx)
-	if err != nil {
-		log.Error().Err(err).Msg("error cleaning up test")
-	}
+	db.ClosePool()
 	os.Exit(code)
 }
