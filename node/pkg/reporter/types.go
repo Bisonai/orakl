@@ -138,8 +138,8 @@ type Proof types.Proof
 type RawSubmissionData struct {
 	Value         string `json:"value"`
 	AggregateTime string `json:"aggregateTime"`
-	Proof         []byte `json:"proof"`
-	FeedHash      []byte `json:"feedHash"`
+	Proof         string `json:"proof"`
+	FeedHash      string `json:"feedHash"`
 }
 type SubmissionData struct {
 	Value         int64    `json:"value"`

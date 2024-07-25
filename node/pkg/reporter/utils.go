@@ -13,6 +13,7 @@ import (
 	"bisonai.com/orakl/node/pkg/wss"
 
 	"github.com/klaytn/klaytn/common"
+	klaytncommon "github.com/klaytn/klaytn/common"
 	"github.com/rs/zerolog/log"
 )
 
@@ -127,11 +128,12 @@ func ProcessDalWsRawData(data any) (SubmissionData, error) {
 		return SubmissionData{}, errorSentinel.ErrReporterDalWsDataProcessingFailed
 	}
 
-	var feedHash [32]byte
-	copy(feedHash[:], rawSubmissionData.FeedHash)
+	feedHashBytes := klaytncommon.Hex2Bytes(rawSubmissionData.FeedHash)
+	feedHash := [32]byte{}
+	copy(feedHash[:], feedHashBytes)
 	submissionData := SubmissionData{
 		FeedHash: feedHash,
-		Proof:    rawSubmissionData.Proof,
+		Proof:    klaytncommon.Hex2Bytes(rawSubmissionData.Proof),
 	}
 
 	value, valueErr := strconv.ParseInt(rawSubmissionData.Value, 10, 64)
