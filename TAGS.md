@@ -79,3 +79,4 @@
 - **node** v0.0.1.20240725.0309.d5a2c89 <br> *`PR`*: DAL Minor update <br><br> 
 - **delegator** v0.0.1.20240725.0310.d5a2c89 <br> *`PR`*: DAL Minor update <br><br> 
 - **delegator** v0.0.1.20240725.0348.bb6b5ab <br> *`PR`*: Delegator Fix grafana not visu... <br><br> 
+- **dal** v0.0.1.20240725.0608.3c62dcb <br> *`PR`*: Return hexstring for bytes typ... <br><br> 
