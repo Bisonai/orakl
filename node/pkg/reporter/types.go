@@ -52,7 +52,7 @@ type App struct {
 	Reporters []*Reporter
 
 	WsHelper   *wss.WebsocketHelper
-	LatestData sync.Map
+	LatestData *sync.Map
 }
 
 type JobType int

@@ -3,6 +3,7 @@ package reporter
 import (
 	"context"
 	"os"
+	"sync"
 
 	"bisonai.com/orakl/node/pkg/chain/helper"
 	"bisonai.com/orakl/node/pkg/db"
@@ -18,6 +19,7 @@ func New() *App {
 }
 
 func (a *App) Run(ctx context.Context) error {
+	a.LatestData = &sync.Map{}
 	err := a.setReporters(ctx)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to set reporters")
@@ -78,7 +80,7 @@ func (a *App) setReporters(ctx context.Context) error {
 			WithContractAddress(contractAddress),
 			WithCachedWhitelist(cachedWhitelist),
 			WithKaiaHelper(chainHelper),
-			WithLatestData(&a.LatestData),
+			WithLatestData(a.LatestData),
 		)
 		if errNewReporter != nil {
 			log.Error().Str("Player", "Reporter").Err(errNewReporter).Msg("failed to set reporter")
@@ -99,7 +101,7 @@ func (a *App) setReporters(ctx context.Context) error {
 		WithCachedWhitelist(cachedWhitelist),
 		WithJobType(DeviationJob),
 		WithKaiaHelper(chainHelper),
-		WithLatestData(&a.LatestData),
+		WithLatestData(a.LatestData),
 	)
 	if errNewDeviationReporter != nil {
 		log.Error().Str("Player", "Reporter").Err(errNewDeviationReporter).Msg("failed to set deviation reporter")
