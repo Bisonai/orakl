@@ -35,12 +35,23 @@ func NewReporter(ctx context.Context, opts ...ReporterOption) (*Reporter, error)
 		SubmissionInterval: groupInterval,
 		CachedWhitelist:    config.CachedWhitelist,
 		deviationThreshold: deviationThreshold,
-		JobType:            config.JobType,
+		KaiaHelper:         config.KaiaHelper,
+		LatestData:         config.LatestData,
 	}
 
 	reporter.SubmissionPairs = make(map[int32]SubmissionPair)
 	for _, sa := range config.Configs {
 		reporter.SubmissionPairs[sa.ID] = SubmissionPair{LastSubmission: 0, Name: sa.Name}
+	}
+
+	if config.JobType == ReportJob {
+		reporter.Job = func() error {
+			return reporter.report(ctx, reporter.SubmissionPairs)
+		}
+	} else {
+		reporter.Job = func() error {
+			return reporter.deviationJob(ctx)
+		}
 	}
 
 	return reporter, nil
@@ -56,21 +67,12 @@ func (r *Reporter) Run(ctx context.Context) {
 			log.Debug().Str("Player", "Reporter").Msg("context done, stopping reporter")
 			return
 		case <-ticker.C:
-			if r.JobType == ReportJob {
-				go func() {
-					err := r.report(ctx, r.SubmissionPairs)
-					if err != nil {
-						log.Error().Str("Player", "Reporter").Err(err).Msg("reporting failed")
-					}
-				}()
-			} else {
-				go func() {
-					err := r.deviationJob(ctx)
-					if err != nil {
-						log.Error().Str("Player", "Reporter").Err(err).Msg("deviation job failed")
-					}
-				}()
-			}
+			go func() {
+				err := r.Job()
+				if err != nil {
+					log.Error().Str("Player", "Reporter").Err(err).Msg("ReporterJob")
+				}
+			}()
 		}
 	}
 }
@@ -94,21 +96,17 @@ func (r *Reporter) report(ctx context.Context, submissionPairs map[int32]Submiss
 		wg.Add(1)
 		go func(id int32, pair SubmissionPair) {
 			defer wg.Done()
-			if value, ok := r.LatestData.Load(pair.Name); ok {
-				submissionData, submissionDataOk := value.(SubmissionData)
-				if !submissionDataOk {
-					log.Error().Str("Player", "Reporter").Msg("latest data not found")
-					return
-				}
-
-				feedHashesChan <- submissionData.FeedHash
-				valuesChan <- big.NewInt(submissionData.Value)
-				timestampsChan <- big.NewInt(submissionData.AggregateTime)
-				proofsChan <- submissionData.Proof
-				configIdChan <- id
-			} else {
+			submissionData, ok := GetLatestData(r.LatestData, pair.Name)
+			if !ok {
 				log.Error().Str("Player", "Reporter").Msgf("latest data for pair %s not found", pair.Name)
+				return
 			}
+
+			feedHashesChan <- submissionData.FeedHash
+			valuesChan <- big.NewInt(submissionData.Value)
+			timestampsChan <- big.NewInt(submissionData.AggregateTime)
+			proofsChan <- submissionData.Proof
+			configIdChan <- id
 		}(id, pair)
 	}
 

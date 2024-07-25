@@ -1,7 +1,6 @@
 package reporter
 
 import (
-	"context"
 	"sync"
 	"time"
 
@@ -50,8 +49,7 @@ type SubmissionPair struct {
 }
 
 type App struct {
-	Reporters   []*Reporter
-	chainHelper *helper.ChainHelper
+	Reporters []*Reporter
 
 	WsHelper   *wss.WebsocketHelper
 	LatestData sync.Map
@@ -72,6 +70,8 @@ type ReporterConfig struct {
 	JobType         JobType
 	DalApiKey       string
 	DalWsEndpoint   string
+	KaiaHelper      *helper.ChainHelper
+	LatestData      *sync.Map
 }
 
 type ReporterOption func(*ReporterConfig)
@@ -111,6 +111,18 @@ func WithJobType(jobType JobType) ReporterOption {
 	}
 }
 
+func WithKaiaHelper(chainHelper *helper.ChainHelper) ReporterOption {
+	return func(c *ReporterConfig) {
+		c.KaiaHelper = chainHelper
+	}
+}
+
+func WithLatestData(latestData *sync.Map) ReporterOption {
+	return func(c *ReporterConfig) {
+		c.LatestData = latestData
+	}
+}
+
 type Reporter struct {
 	KaiaHelper         *helper.ChainHelper
 	SubmissionPairs    map[int32]SubmissionPair
@@ -120,13 +132,8 @@ type Reporter struct {
 	contractAddress    string
 	deviationThreshold float64
 
-	nodeCtx    context.Context
-	nodeCancel context.CancelFunc
-	isRunning  bool
-
 	LatestData *sync.Map // map[symbol]SubmissionData
-
-	JobType JobType
+	Job        func() error
 }
 
 type GlobalAggregate types.GlobalAggregate

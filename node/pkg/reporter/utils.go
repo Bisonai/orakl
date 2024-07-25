@@ -3,6 +3,7 @@ package reporter
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"math"
 	"strconv"
 	"strings"
@@ -20,24 +21,29 @@ import (
 func GetDeviatingAggregates(submissionPairs map[int32]SubmissionPair, latestData *sync.Map, threshold float64) map[int32]SubmissionPair {
 	deviatingSubmissionPairs := make(map[int32]SubmissionPair)
 	for configID, submissionPair := range submissionPairs {
-		rawLatestData, ok := latestData.Load(submissionPair.Name)
+		latestData, ok := GetLatestData(latestData, submissionPair.Name)
 		if !ok {
-			log.Warn().Str("Player", "Reporter").Msg("latest data not found during deviation check")
 			continue
 		}
-		latestData, latestDataOk := rawLatestData.(SubmissionData)
-		if !latestDataOk {
-			log.Error().Str("Player", "Reporter").Msg("latest data type assertion failed during deviation check")
-			continue
-		}
-
-		shouldReport := ShouldReportDeviation(submissionPair.LastSubmission, latestData.Value, threshold)
-
-		if shouldReport {
+		if shouldReport := ShouldReportDeviation(submissionPair.LastSubmission, latestData.Value, threshold); shouldReport {
 			deviatingSubmissionPairs[configID] = submissionPair
 		}
 	}
 	return deviatingSubmissionPairs
+}
+
+func GetLatestData(latestData *sync.Map, name string) (SubmissionData, bool) {
+	rawLatestData, ok := latestData.Load(name)
+	if !ok {
+		log.Debug().Str("Player", "Reporter").Msg("latest data not found during deviation check")
+		return SubmissionData{}, false
+	}
+	convertedLatestData, latestDataOk := rawLatestData.(SubmissionData)
+	if !latestDataOk {
+		log.Error().Str("Player", "Reporter").Msg("latest data type assertion failed during deviation check")
+		return SubmissionData{}, false
+	}
+	return convertedLatestData, true
 }
 
 func ShouldReportDeviation(oldValue int64, newValue int64, threshold float64) bool {
@@ -118,13 +124,13 @@ func ProcessDalWsRawData(data any) (SubmissionData, error) {
 
 	jsonMarshalData, jsonMarshalDataErr := json.Marshal(data)
 	if jsonMarshalDataErr != nil {
-		log.Error().Str("Player", "Reporter").Err(jsonMarshalDataErr).Msg("failed to marshal data")
+		log.Error().Str("Player", "Reporter").Err(jsonMarshalDataErr).Msg("failed to marshal data: " + fmt.Sprintf("%v", data))
 		return SubmissionData{}, errorSentinel.ErrReporterDalWsDataProcessingFailed
 	}
 
 	jsonUnmarshalDataErr := json.Unmarshal(jsonMarshalData, &rawSubmissionData)
 	if jsonUnmarshalDataErr != nil {
-		log.Error().Str("Player", "Reporter").Err(jsonUnmarshalDataErr).Msg("failed to unmarshal data")
+		log.Error().Str("Player", "Reporter").Err(jsonUnmarshalDataErr).Msg("failed to unmarshal data: " + string(jsonMarshalData))
 		return SubmissionData{}, errorSentinel.ErrReporterDalWsDataProcessingFailed
 	}
 
@@ -138,14 +144,14 @@ func ProcessDalWsRawData(data any) (SubmissionData, error) {
 
 	value, valueErr := strconv.ParseInt(rawSubmissionData.Value, 10, 64)
 	if valueErr != nil {
-		log.Error().Str("Player", "Reporter").Err(valueErr).Msg("failed to parse value")
+		log.Error().Str("Player", "Reporter").Err(valueErr).Msg("failed to parse value: " + rawSubmissionData.Value)
 		return SubmissionData{}, errorSentinel.ErrReporterDalWsDataProcessingFailed
 	}
 	submissionData.Value = value
 
 	timestampValue, timestampErr := strconv.ParseInt(rawSubmissionData.AggregateTime, 10, 64)
 	if timestampErr != nil {
-		log.Error().Str("Player", "Reporter").Err(timestampErr).Msg("failed to parse timestamp")
+		log.Error().Str("Player", "Reporter").Err(timestampErr).Msg("failed to parse timestamp: " + rawSubmissionData.AggregateTime)
 		return SubmissionData{}, errorSentinel.ErrReporterDalWsDataProcessingFailed
 	}
 	submissionData.AggregateTime = timestampValue
