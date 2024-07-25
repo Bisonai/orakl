@@ -5,6 +5,6 @@
   },
   "cypress": {
     "FeedRouter": "0x653078f0d3a230416a59aa6486466470db0190a2",
-    "SubmissionProxy": "0xbfdb0c7f84b494272278cdad77de21634c395eda"
+    "SubmissionProxy": "0x07ec1e04353d0368ab9c6165dac2a0be51cfb1fe"
   }
 }
