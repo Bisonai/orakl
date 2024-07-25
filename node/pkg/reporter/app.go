@@ -14,12 +14,12 @@ import (
 
 func New() *App {
 	return &App{
-		Reporters: []*Reporter{},
+		Reporters:  []*Reporter{},
+		LatestData: &sync.Map{},
 	}
 }
 
 func (a *App) Run(ctx context.Context) error {
-	a.LatestData = &sync.Map{}
 	err := a.setReporters(ctx)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to set reporters")
@@ -59,7 +59,7 @@ func (a *App) setReporters(ctx context.Context) error {
 		cachedWhitelist = []common.Address{}
 	}
 
-	configs, err := a.getConfigs(ctx)
+	configs, err := getConfigs(ctx)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to get reporter configs")
 		return err
@@ -121,7 +121,7 @@ func (a *App) startReporters(ctx context.Context) {
 	}
 }
 
-func (a *App) getConfigs(ctx context.Context) ([]Config, error) {
+func getConfigs(ctx context.Context) ([]Config, error) {
 	reporterConfigs, err := db.QueryRows[Config](ctx, GET_REPORTER_CONFIGS, nil)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to load reporter configs")

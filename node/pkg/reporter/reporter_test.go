@@ -1,20 +1,6 @@
 //nolint:all
 package reporter
 
-// import (
-// 	"context"
-// 	"math/big"
-// 	"os"
-// 	"testing"
-// 	"time"
-
-// 	"bisonai.com/orakl/node/pkg/chain/helper"
-// 	errorSentinel "bisonai.com/orakl/node/pkg/error"
-// 	"bisonai.com/orakl/node/pkg/raft"
-// 	"github.com/klaytn/klaytn/crypto"
-// 	"github.com/stretchr/testify/assert"
-// )
-
 // func TestNewReporter(t *testing.T) {
 // 	ctx := context.Background()
 // 	cleanup, testItems, err := setup(ctx)
@@ -52,348 +38,17 @@ package reporter
 // 	for groupInterval, pairs := range groupedSubmissionPairs {
 // 		_, err := NewReporter(
 // 			ctx,
-// 			WithHost(testItems.app.Host),
-// 			WithPubsub(testItems.app.Pubsub),
 // 			WithConfigs(pairs),
 // 			WithInterval(groupInterval),
 // 			WithContractAddress(contractAddress),
 // 			WithCachedWhitelist(whitelist),
+// 			WithKaiaHelper(tmpHelper),
+// 			WithLatestData(testItems.app.LatestData),
 // 		)
 // 		if err != nil {
 // 			t.Fatalf("error creating new reporter: %v", err)
 // 		}
 // 	}
-// }
-
-// func TestLeaderJob(t *testing.T) {
-// 	ctx := context.Background()
-// 	cleanup, testItems, err := setup(ctx)
-// 	if err != nil {
-// 		t.Fatalf("error setting up test: %v", err)
-// 	}
-// 	defer func() {
-// 		if cleanupErr := cleanup(); cleanupErr != nil {
-// 			t.Logf("Cleanup failed: %v", cleanupErr)
-// 		}
-// 	}()
-// 	err = testItems.app.setReporters(ctx, testItems.app.Host, testItems.app.Pubsub)
-// 	if err != nil {
-// 		t.Fatalf("error setting reporters: %v", err)
-// 	}
-
-// 	reporter, err := testItems.app.GetReporterWithInterval(TestInterval)
-// 	if err != nil {
-// 		t.Fatalf("error getting reporter: %v", err)
-// 	}
-
-// 	reporter.SetKaiaHelper(ctx)
-// 	err = reporter.leaderJob()
-// 	if err != nil {
-// 		t.Fatal("error running leader job")
-// 	}
-// }
-
-// func TestResignLeader(t *testing.T) {
-// 	ctx := context.Background()
-// 	cleanup, testItems, err := setup(ctx)
-// 	if err != nil {
-// 		t.Fatalf("error setting up test: %v", err)
-// 	}
-// 	defer func() {
-// 		if cleanupErr := cleanup(); cleanupErr != nil {
-// 			t.Logf("Cleanup failed: %v", cleanupErr)
-// 		}
-// 	}()
-// 	err = testItems.app.setReporters(ctx, testItems.app.Host, testItems.app.Pubsub)
-// 	if err != nil {
-// 		t.Fatalf("error setting reporters: %v", err)
-// 	}
-// 	reporter, err := testItems.app.GetReporterWithInterval(TestInterval)
-// 	if err != nil {
-// 		t.Fatalf("error getting reporter: %v", err)
-// 	}
-// 	reporter.resignLeader()
-// 	assert.Equal(t, reporter.Raft.GetRole(), raft.Follower)
-// }
-
-// func TestHandleCustomMessage(t *testing.T) {
-// 	ctx := context.Background()
-// 	cleanup, testItems, err := setup(ctx)
-// 	if err != nil {
-// 		t.Fatalf("error setting up test: %v", err)
-// 	}
-// 	defer func() {
-// 		if cleanupErr := cleanup(); cleanupErr != nil {
-// 			t.Logf("Cleanup failed: %v", cleanupErr)
-// 		}
-// 	}()
-// 	err = testItems.app.setReporters(ctx, testItems.app.Host, testItems.app.Pubsub)
-// 	if err != nil {
-// 		t.Fatalf("error setting reporters: %v", err)
-// 	}
-// 	reporter, err := testItems.app.GetReporterWithInterval(TestInterval)
-// 	if err != nil {
-// 		t.Fatalf("error getting reporter: %v", err)
-// 	}
-
-// 	err = reporter.handleCustomMessage(ctx, raft.Message{})
-// 	assert.ErrorIs(t, err, errorSentinel.ErrReporterUnknownMessageType)
-
-// }
-
-// func TestGetLatestGlobalAggregates(t *testing.T) {
-// 	ctx := context.Background()
-// 	cleanup, testItems, err := setup(ctx)
-// 	if err != nil {
-// 		t.Fatalf("error setting up test: %v", err)
-// 	}
-// 	defer func() {
-// 		if cleanupErr := cleanup(); cleanupErr != nil {
-// 			t.Logf("Cleanup failed: %v", cleanupErr)
-// 		}
-// 	}()
-// 	err = testItems.app.setReporters(ctx, testItems.app.Host, testItems.app.Pubsub)
-// 	if err != nil {
-// 		t.Fatalf("error setting reporters: %v", err)
-// 	}
-
-// 	reporter, err := testItems.app.GetReporterWithInterval(TestInterval)
-// 	if err != nil {
-// 		t.Fatalf("error getting reporter: %v", err)
-// 	}
-// 	result, err := GetLatestGlobalAggregates(ctx, reporter.SubmissionPairs)
-// 	if err != nil {
-// 		t.Fatal("error getting latest global aggregates")
-// 	}
-
-// 	assert.Equal(t, result[0].ConfigID, testItems.tmpData.globalAggregate.ConfigID)
-// 	assert.Equal(t, result[0].Value, testItems.tmpData.globalAggregate.Value)
-// }
-
-// func TestFilterInvalidAggregates(t *testing.T) {
-// 	ctx := context.Background()
-// 	cleanup, testItems, err := setup(ctx)
-// 	if err != nil {
-// 		t.Fatalf("error setting up test: %v", err)
-// 	}
-// 	defer func() {
-// 		if cleanupErr := cleanup(); cleanupErr != nil {
-// 			t.Logf("Cleanup failed: %v", cleanupErr)
-// 		}
-// 	}()
-// 	err = testItems.app.setReporters(ctx, testItems.app.Host, testItems.app.Pubsub)
-// 	if err != nil {
-// 		t.Fatalf("error setting reporters: %v", err)
-// 	}
-
-// 	reporter, err := testItems.app.GetReporterWithInterval(TestInterval)
-// 	if err != nil {
-// 		t.Fatalf("error getting reporter: %v", err)
-// 	}
-
-// 	aggregates := []GlobalAggregate{{
-// 		ConfigID: testItems.tmpData.config.ID,
-// 		Value:    15,
-// 		Round:    1,
-// 	}}
-// 	result := FilterInvalidAggregates(aggregates, reporter.SubmissionPairs)
-// 	assert.Equal(t, result, aggregates)
-
-// 	reporter.SubmissionPairs = map[int32]SubmissionPair{testItems.tmpData.config.ID: {LastSubmission: 1, Name: "test-aggregate"}}
-// 	result = FilterInvalidAggregates(aggregates, reporter.SubmissionPairs)
-// 	assert.Equal(t, result, []GlobalAggregate{})
-// }
-
-// func TestIsAggValid(t *testing.T) {
-// 	ctx := context.Background()
-// 	cleanup, testItems, err := setup(ctx)
-// 	if err != nil {
-// 		t.Fatalf("error setting up test: %v", err)
-// 	}
-// 	defer func() {
-// 		if cleanupErr := cleanup(); cleanupErr != nil {
-// 			t.Logf("Cleanup failed: %v", cleanupErr)
-// 		}
-// 	}()
-// 	err = testItems.app.setReporters(ctx, testItems.app.Host, testItems.app.Pubsub)
-// 	if err != nil {
-// 		t.Fatalf("error setting reporters: %v", err)
-// 	}
-
-// 	reporter, err := testItems.app.GetReporterWithInterval(TestInterval)
-// 	if err != nil {
-// 		t.Fatalf("error getting reporter: %v", err)
-// 	}
-
-// 	agg := GlobalAggregate{
-// 		ConfigID: testItems.tmpData.config.ID,
-// 		Value:    15,
-// 		Round:    1,
-// 	}
-// 	result := IsAggValid(agg, reporter.SubmissionPairs)
-// 	assert.Equal(t, result, true)
-
-// 	reporter.SubmissionPairs = map[int32]SubmissionPair{testItems.tmpData.config.ID: {LastSubmission: 1, Name: "test-aggregate"}}
-// 	result = IsAggValid(agg, reporter.SubmissionPairs)
-// 	assert.Equal(t, result, false)
-// }
-
-// func TestMakeContractArgs(t *testing.T) {
-// 	ctx := context.Background()
-// 	cleanup, testItems, err := setup(ctx)
-// 	if err != nil {
-// 		t.Fatalf("error setting up test: %v", err)
-// 	}
-// 	defer func() {
-// 		if cleanupErr := cleanup(); cleanupErr != nil {
-// 			t.Logf("Cleanup failed: %v", cleanupErr)
-// 		}
-// 	}()
-// 	err = testItems.app.setReporters(ctx, testItems.app.Host, testItems.app.Pubsub)
-// 	if err != nil {
-// 		t.Fatalf("error setting reporters: %v", err)
-// 	}
-
-// 	reporter, err := testItems.app.GetReporterWithInterval(TestInterval)
-// 	if err != nil {
-// 		t.Fatalf("error getting reporter: %v", err)
-// 	}
-
-// 	agg := GlobalAggregate{
-// 		ConfigID:  testItems.tmpData.config.ID,
-// 		Value:     15,
-// 		Round:     1,
-// 		Timestamp: testItems.tmpData.proofTime,
-// 	}
-
-// 	rawProofs, err := GetProofsRdb(ctx, []GlobalAggregate{agg})
-// 	if err != nil {
-// 		t.Fatal("error getting proofs")
-// 	}
-
-// 	proofMap := ProofsToMap(rawProofs)
-
-// 	feedHashes, values, timestamps, proofs, err := MakeContractArgsWithProofs([]GlobalAggregate{agg}, reporter.SubmissionPairs, proofMap)
-// 	if err != nil {
-// 		t.Fatal("error making contract args")
-// 	}
-// 	assert.Equal(t, [32]byte(crypto.Keccak256([]byte(reporter.SubmissionPairs[agg.ConfigID].Name))), feedHashes[0])
-// 	assert.Equal(t, big.NewInt(15), values[0])
-
-// 	proofArr := make([][]byte, len(proofs))
-// 	for i, p := range rawProofs {
-// 		proofArr[i] = p.Proof
-// 	}
-
-// 	assert.EqualValues(t, proofs, proofArr)
-// 	assert.Equal(t, testItems.tmpData.proofTime.Unix(), timestamps[0].Int64())
-
-// }
-
-// func TestGetLatestGlobalAggregatesRdb(t *testing.T) {
-// 	ctx := context.Background()
-// 	cleanup, testItems, err := setup(ctx)
-// 	if err != nil {
-// 		t.Fatalf("error setting up test: %v", err)
-// 	}
-// 	defer func() {
-// 		if cleanupErr := cleanup(); cleanupErr != nil {
-// 			t.Logf("Cleanup failed: %v", cleanupErr)
-// 		}
-// 	}()
-
-// 	err = testItems.app.setReporters(ctx, testItems.app.Host, testItems.app.Pubsub)
-// 	if err != nil {
-// 		t.Fatalf("error setting reporters: %v", err)
-// 	}
-// 	reporter, err := testItems.app.GetReporterWithInterval(TestInterval)
-// 	if err != nil {
-// 		t.Fatalf("error getting reporter: %v", err)
-// 	}
-
-// 	result, err := GetLatestGlobalAggregatesRdb(ctx, reporter.SubmissionPairs)
-// 	if err != nil {
-// 		t.Fatal("error getting latest global aggregates from rdb")
-// 	}
-
-// 	assert.Equal(t, result[0].ConfigID, testItems.tmpData.globalAggregate.ConfigID)
-// 	assert.Equal(t, result[0].Value, testItems.tmpData.globalAggregate.Value)
-// }
-
-// func TestGetLatestGlobalAggregatesPgsql(t *testing.T) {
-// 	ctx := context.Background()
-// 	cleanup, testItems, err := setup(ctx)
-// 	if err != nil {
-// 		t.Fatalf("error setting up test: %v", err)
-// 	}
-// 	defer func() {
-// 		if cleanupErr := cleanup(); cleanupErr != nil {
-// 			t.Logf("Cleanup failed: %v", cleanupErr)
-// 		}
-// 	}()
-
-// 	err = testItems.app.setReporters(ctx, testItems.app.Host, testItems.app.Pubsub)
-// 	if err != nil {
-// 		t.Fatalf("error setting reporters: %v", err)
-// 	}
-
-// 	reporter, err := testItems.app.GetReporterWithInterval(TestInterval)
-// 	if err != nil {
-// 		t.Fatalf("error getting reporter: %v", err)
-// 	}
-
-// 	result, err := GetLatestGlobalAggregatesPgsql(ctx, reporter.SubmissionPairs)
-// 	if err != nil {
-// 		t.Fatal("error getting latest global aggregates from pgs")
-// 	}
-
-// 	assert.Equal(t, result[0].ConfigID, testItems.tmpData.globalAggregate.ConfigID)
-// 	assert.Equal(t, result[0].Value, testItems.tmpData.globalAggregate.Value)
-// }
-
-// func TestGetProofsRdb(t *testing.T) {
-// 	ctx := context.Background()
-// 	cleanup, testItems, err := setup(ctx)
-// 	if err != nil {
-// 		t.Fatalf("error setting up test: %v", err)
-// 	}
-// 	defer func() {
-// 		if cleanupErr := cleanup(); cleanupErr != nil {
-// 			t.Logf("Cleanup failed: %v", cleanupErr)
-// 		}
-// 	}()
-
-// 	err = testItems.app.setReporters(ctx, testItems.app.Host, testItems.app.Pubsub)
-// 	if err != nil {
-// 		t.Fatalf("error setting reporters: %v", err)
-// 	}
-
-// 	agg := testItems.tmpData.globalAggregate
-// 	result, err := GetProofsRdb(ctx, []GlobalAggregate{agg})
-// 	if err != nil {
-// 		t.Fatal("error getting proofs from rdb")
-// 	}
-// 	assert.EqualValues(t, testItems.tmpData.proofBytes, result[0].Proof)
-// }
-
-// func TestGetProofsPgsql(t *testing.T) {
-// 	ctx := context.Background()
-// 	cleanup, testItems, err := setup(ctx)
-// 	if err != nil {
-// 		t.Fatalf("error setting up test: %v", err)
-// 	}
-// 	defer func() {
-// 		if cleanupErr := cleanup(); cleanupErr != nil {
-// 			t.Logf("Cleanup failed: %v", cleanupErr)
-// 		}
-// 	}()
-
-// 	agg := testItems.tmpData.globalAggregate
-// 	result, err := GetProofsPgsql(ctx, []GlobalAggregate{agg})
-// 	if err != nil {
-// 		t.Fatal("error getting proofs from pgsql")
-// 	}
-// 	assert.EqualValues(t, testItems.tmpData.proofBytes, result[0].Proof)
 // }
 
 // func TestNewDeviationReporter(t *testing.T) {
@@ -430,13 +85,13 @@ package reporter
 // 	}
 // 	_, err = NewReporter(
 // 		ctx,
-// 		WithHost(testItems.app.Host),
-// 		WithPubsub(testItems.app.Pubsub),
 // 		WithConfigs(submissionPairs),
 // 		WithInterval(5000),
 // 		WithContractAddress(contractAddress),
 // 		WithCachedWhitelist(whitelist),
 // 		WithJobType(DeviationJob),
+// 		WithKaiaHelper(tmpHelper),
+// 		WithLatestData(testItems.app.LatestData),
 // 	)
 // 	if err != nil {
 // 		t.Fatalf("error creating new deviation reporter: %v", err)

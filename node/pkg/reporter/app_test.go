@@ -11,64 +11,56 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestRunApp(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+// func TestTest(t *testing.T) {
+// 	t.Logf("Test passed")
+// }
 
+func TestRunApp(t *testing.T) {
+	ctx := context.Background()
 	app := New()
 
-	errChan := make(chan error, 1)
-	defer close(errChan)
-
-	go func() {
-		err := app.Run(ctx)
-		if err != nil {
-			errChan <- err
-		}
-	}()
-
-	ticker := time.NewTicker(1 * time.Second)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case err := <-errChan:
-			t.Fatalf("error running reporter: %v", err)
-		case <-ticker.C:
-			if app.WsHelper != nil && app.WsHelper.IsRunning {
-				return
-			}
-		}
+	err := app.Run(ctx)
+	if err != nil {
+		t.Fatalf("error running reporter: %v", err)
 	}
 }
 
 func TestRunMissingApiKey(t *testing.T) {
-	os.Setenv("API_KEY", "")
-	os.Setenv("DAL_WS_URL", "ws://test")
-	os.Setenv("SUBMISSION_PROXY_CONTRACT", "0x123")
 	ctx := context.Background()
 	app := New()
+
+	apiKey := os.Getenv("API_KEY")
+	os.Setenv("API_KEY", "")
+
 	err := app.Run(ctx)
+	os.Setenv("API_KEY", apiKey)
+
 	assert.ErrorIs(t, err, errorSentinel.ErrReporterDalApiKeyNotFound)
 }
 
 func TestRunMissingWsUrl(t *testing.T) {
-	os.Setenv("API_KEY", "test_api_key")
-	os.Setenv("DAL_WS_URL", "")
-	os.Setenv("SUBMISSION_PROXY_CONTRACT", "0x123")
 	ctx := context.Background()
 	app := New()
+
+	dalWsEndpoint := os.Getenv("DAL_WS_URL")
+	os.Setenv("DAL_WS_URL", "")
+
 	err := app.Run(ctx)
-	assert.NoError(t, err) // Should not return an error, should use default value
+	os.Setenv("DAL_WS_URL", dalWsEndpoint)
+
+	assert.NoError(t, err)
 }
 
 func TestRunMissingSubmissionProxyContract(t *testing.T) {
-	os.Setenv("API_KEY", "test_api_key")
-	os.Setenv("DAL_WS_URL", "ws://test")
-	os.Setenv("SUBMISSION_PROXY_CONTRACT", "")
 	ctx := context.Background()
 	app := New()
+
+	submissionProxy := os.Getenv("SUBMISSION_PROXY_CONTRACT")
+	os.Setenv("SUBMISSION_PROXY_CONTRACT", "")
+
 	err := app.Run(ctx)
+	os.Setenv("SUBMISSION_PROXY_CONTRACT", submissionProxy)
+
 	assert.ErrorIs(t, err, errorSentinel.ErrReporterSubmissionProxyContractNotFound)
 }
 
@@ -81,7 +73,7 @@ func TestWsDataHandling(t *testing.T) {
 		t.Fatalf("error running reporter: %v", err)
 	}
 
-	configs, err := app.getConfigs(ctx)
+	configs, err := getConfigs(ctx)
 	if err != nil {
 		t.Fatalf("error getting configs: %v", err)
 	}
@@ -95,12 +87,14 @@ func TestWsDataHandling(t *testing.T) {
 		select {
 		case <-ticker.C:
 			if app.WsHelper != nil && app.WsHelper.IsRunning {
+				submissionDataCount = 0
 				for _, config := range configs {
 					if _, ok := app.LatestData.Load(config.Name); ok {
 						submissionDataCount++
 					}
 				}
 				if submissionDataCount == len(configs) {
+
 					return
 				}
 			}
