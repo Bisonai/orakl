@@ -27,10 +27,10 @@ type Controller struct {
 }
 
 type BulkResponse struct {
-	Symbols        []string   `json:"symbols"`
-	Values         []string   `json:"values"`
-	AggregateTimes []string   `json:"aggregateTimes"`
-	Proofs         [][]byte   `json:"proofs"`
-	FeedHashes     [][32]byte `json:"feedHashes"`
-	Decimals       []string   `json:"decimals"`
+	Symbols        []string `json:"symbols"`
+	Values         []string `json:"values"`
+	AggregateTimes []string `json:"aggregateTimes"`
+	Proofs         []string `json:"proofs"`
+	FeedHashes     []string `json:"feedHashes"`
+	Decimals       []string `json:"decimals"`
 }
