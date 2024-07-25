@@ -208,7 +208,7 @@ func getLatestFeeds(c *fiber.Ctx) error {
 	}
 
 	symbols := strings.Split(symbolsStr, ",")
-	results := []*dalcommon.OutgoingSubmissionData{}
+	results := make([]*dalcommon.OutgoingSubmissionData, 0, len(symbols))
 	for _, symbol := range symbols {
 		if symbol == "" {
 			continue
