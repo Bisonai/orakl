@@ -14,8 +14,6 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-var mu sync.Mutex
-
 func NewReporter(ctx context.Context, opts ...ReporterOption) (*Reporter, error) {
 	config := &ReporterConfig{
 		JobType: ReportJob,
@@ -117,261 +115,10 @@ func (r *Reporter) report(ctx context.Context) error {
 		proofs = append(proofs, <-proofsChan)
 	}
 
+	errs := []error{}
 	dataLen := len(feedHashes)
 	for start := 0; start < dataLen; start += MAX_REPORT_BATCH_SIZE {
 		end := min(start+MAX_REPORT_BATCH_SIZE, dataLen-1)
-
-		batchFeedHashes := feedHashes[start:end]
-		batchValues := values[start:end]
-		batchTimestamps := timestamps[start:end]
-		batchProofs := proofs[start:end]
-
-		err := r.reportDelegated(ctx, SUBMIT_WITH_PROOFS, batchFeedHashes, batchValues, batchTimestamps, batchProofs)
-		if err != nil {
-			err = r.reportDirect(ctx, SUBMIT_WITH_PROOFS, batchFeedHashes, batchValues, batchTimestamps, batchProofs)
-			if err != nil {
-				log.Error().Str("Player", "Reporter").Err(err).Msg("report")
-			}
-			log.Error().Str("Player", "Reporter").Err(err).Msg("report")
-		}
-	}
-	return nil
-}
-
-func (r *Reporter) report(ctx context.Context, aggregates []GlobalAggregate) error {
-
-	log.Debug().Str("Player", "Reporter").Int("aggregates", len(aggregates)).Msg("reporting")
-
-	if !ValidateAggregateTimestampValues(aggregates) {
-		log.Error().Str("Player", "Reporter").Msg("ValidateAggregateTimestampValues, zero timestamp exists")
-		return errorSentinel.ErrReporterValidateAggregateTimestampValues
-	}
-
-	proofMap, err := GetProofsAsMap(ctx, aggregates)
-	if err != nil {
-		log.Error().Str("Player", "Reporter").Err(err).Msg("submit without proofs")
-		return err
-	}
-	log.Debug().Str("Player", "Reporter").Int("proofs", len(proofMap)).Msg("proof map generated")
-
-	orderedProofMap, err := r.orderProofs(ctx, proofMap, aggregates)
-	if err != nil {
-		log.Error().Str("Player", "Reporter").Err(err).Msg("orderProofs")
-		return err
-	}
-
-	log.Debug().Str("Player", "Reporter").Int("orderedProofs", len(orderedProofMap)).Msg("ordered proof map generated")
-
-	err = UpdateProofs(ctx, aggregates, orderedProofMap)
-	if err != nil {
-		log.Error().Str("Player", "Reporter").Err(err).Msg("updateProofs")
-		return err
-	}
-	log.Debug().Str("Player", "Reporter").Msg("proofs updated to db, reporting with proofs")
-	return r.reportWithProofs(ctx, aggregates, orderedProofMap)
-}
-
-func (r *Reporter) orderProof(ctx context.Context, proof []byte, aggregate GlobalAggregate) ([]byte, error) {
-	proof = RemoveDuplicateProof(proof)
-	hash := chainUtils.Value2HashForSign(aggregate.Value, aggregate.Timestamp.Unix(), r.SubmissionPairs[aggregate.ConfigID].Name)
-	proofChunks, err := SplitProofToChunk(proof)
-	if err != nil {
-		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to split proof")
-		return nil, err
-	}
-
-	signers, err := GetSignerListFromProofs(hash, proofChunks)
-	if err != nil {
-		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to get signers from proof")
-		return nil, err
-	}
-
-	err = CheckForNonWhitelistedSigners(signers, r.CachedWhitelist)
-	if err != nil {
-		log.Warn().Str("Player", "Reporter").Err(err).Msg("non-whitelisted signers in proof, reloading whitelist")
-		reloadedWhitelist, contractReadErr := ReadOnchainWhitelist(ctx, r.KaiaHelper, r.contractAddress, GET_ONCHAIN_WHITELIST)
-		if contractReadErr != nil {
-			log.Error().Str("Player", "Reporter").Err(contractReadErr).Msg("failed to reload whitelist")
-			return nil, contractReadErr
-		}
-		r.CachedWhitelist = reloadedWhitelist
-	}
-
-	signerMap := GetSignerMap(signers, proofChunks)
-	orderedProof, err := OrderProof(signerMap, r.CachedWhitelist)
-	if err != nil {
-		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to order proof")
-		return nil, err
-	}
-	return orderedProof, nil
-}
-
-func (r *Reporter) orderProofs(ctx context.Context, proofMap map[int32][]byte, aggregates []GlobalAggregate) (map[int32][]byte, error) {
-	orderedProofMap := make(map[int32][]byte)
-	for _, agg := range aggregates {
-		proof, ok := proofMap[agg.ConfigID]
-		if !ok {
-			log.Error().Str("Player", "Reporter").Msg("proof not found")
-			return nil, errorSentinel.ErrReporterProofNotFound
-		}
-
-		orderedProof, err := r.orderProof(ctx, proof, agg)
-		if err != nil {
-			log.Error().Str("Player", "Reporter").Err(err).Msg("orderProof")
-			return nil, err
-		}
-
-		orderedProofMap[agg.ConfigID] = orderedProof
-	}
-
-	return orderedProofMap, nil
-}
-
-func (r *Reporter) resignLeader() {
-	r.Raft.ResignLeader()
-}
-
-func (r *Reporter) handleCustomMessage(ctx context.Context, msg raft.Message) error {
-	switch msg.Type {
-	case SubmissionMsg:
-		return r.HandleSubmissionMessage(ctx, msg)
-	default:
-		return errorSentinel.ErrReporterUnknownMessageType
-	}
-}
-
-func (r *Reporter) reportWithProofs(ctx context.Context, aggregates []GlobalAggregate, proofMap map[int32][]byte) error {
-	if r.KaiaHelper == nil {
-		return errorSentinel.ErrReporterKaiaHelperNotFound
-	}
-	log.Debug().Str("Player", "Reporter").Int("aggregates", len(aggregates)).Msg("reporting with proofs")
-
-	feedHashes, values, timestamps, proofs, err := MakeContractArgsWithProofs(aggregates, r.SubmissionPairs, proofMap)
-	if err != nil {
-		log.Error().Str("Player", "Reporter").Err(err).Msg("makeContractArgsWithProofs")
-		return err
-	}
-	log.Debug().Str("Player", "Reporter").Int("proofs", len(proofs)).Msg("contract arguements generated")
-
-	return r.splitReport(ctx, feedHashes, values, timestamps, proofs)
-}
-
-func (r *Reporter) SetKaiaHelper(ctx context.Context) error {
-	if r.KaiaHelper != nil {
-		r.KaiaHelper.Close()
-	}
-	kaiaHelper, err := helper.NewChainHelper(ctx)
-	if err != nil {
-		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to create kaia helper")
-		return err
-	}
-	r.KaiaHelper = kaiaHelper
-	return nil
-}
-
-// 	lastSubmissions, err := GetLastSubmission(ctx, r.SubmissionPairs)
-// 	if err != nil {
-// 		log.Error().Str("Player", "Reporter").Err(err).Msg("getLastSubmission")
-// 		return err
-// 	}
-// 	if len(lastSubmissions) == 0 {
-// 		log.Warn().Str("Player", "Reporter").Msg("no last submissions")
-// 		return nil
-// 	}
-
-// 	lastAggregates, err := GetLatestGlobalAggregates(ctx, r.SubmissionPairs)
-// 	if err != nil {
-// 		log.Error().Str("Player", "Reporter").Err(err).Msg("getLatestGlobalAggregates")
-// 		return err
-// 	}
-// 	if len(lastAggregates) == 0 {
-// 		log.Warn().Str("Player", "Reporter").Msg("no last aggregates")
-// 		return nil
-// 	}
-
-// 	deviatingAggregates := GetDeviatingAggregates(lastSubmissions, lastAggregates, r.deviationThreshold)
-// 	if len(deviatingAggregates) == 0 {
-// 		return nil
-// 	}
-
-// 	reportJob := func() error {
-// 		err = r.report(ctx, deviatingAggregates)
-// 		if err != nil {
-// 			log.Error().Str("Player", "Reporter").Err(err).Msg("DeviationReport")
-// 			return err
-// 		}
-// 		return nil
-// 	}
-
-// 	err = retrier.Retry(
-// 		reportJob,
-// 		MAX_RETRY,
-// 		INITIAL_FAILURE_TIMEOUT,
-// 		MAX_RETRY_DELAY,
-// 	)
-// 	if err != nil {
-// 		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to report deviation, resigning from leader")
-// 		return errorSentinel.ErrReporterDeviationReportFail
-// 	}
-
-// 	for _, agg := range deviatingAggregates {
-// 		pair := r.SubmissionPairs[agg.ConfigID]
-// 		pair.LastSubmission = agg.Round
-// 		r.SubmissionPairs[agg.ConfigID] = pair
-// 	}
-
-	err = r.PublishSubmissionMessage(deviatingAggregates)
-	if err != nil {
-		log.Error().Str("Player", "Reporter").Err(err).Msg("PublishSubmissionMessage")
-		return err
-	}
-
-	for _, agg := range deviatingAggregates {
-		pair := r.SubmissionPairs[agg.ConfigID]
-		pair.LastSubmission = agg.Round
-		r.SubmissionPairs[agg.ConfigID] = pair
-	}
-
-	log.Info().Int("deviations", len(deviatingAggregates)).Str("Player", "Reporter").Dur("duration", time.Since(start)).Msg("reporting deviation done")
-	return nil
-}
-
-func (r *Reporter) PublishSubmissionMessage(submissions []GlobalAggregate) error {
-	submissionMessage := SubmissionMessage{Submissions: submissions}
-	marshalledSubmissionMessage, err := json.Marshal(submissionMessage)
-	if err != nil {
-		return err
-	}
-
-	message := raft.Message{
-		Type:     SubmissionMsg,
-		SentFrom: r.Raft.GetHostId(),
-		Data:     json.RawMessage(marshalledSubmissionMessage),
-	}
-
-	return r.Raft.PublishMessage(message)
-}
-
-func (r *Reporter) HandleSubmissionMessage(ctx context.Context, msg raft.Message) error {
-	var submissionMessage SubmissionMessage
-	err := json.Unmarshal(msg.Data, &submissionMessage)
-	if err != nil {
-		return err
-	}
-
-	err = StoreLastSubmission(ctx, submissionMessage.Submissions)
-	if err != nil {
-		log.Error().Str("Player", "Reporter").Err(err).Msg("storeLastSubmission")
-		return err
-	}
-
-	return nil
-}
-
-func (r *Reporter) splitReport(ctx context.Context, feedHashes [][32]byte, values []*big.Int, timestamps []*big.Int, proofs [][]byte) error {
-	errs := []error{}
-	for start := 0; start < len(feedHashes); start += MAX_REPORT_BATCH_SIZE {
-		end := min(start+MAX_REPORT_BATCH_SIZE, len(feedHashes))
 
 		batchFeedHashes := feedHashes[start:end]
 		batchValues := values[start:end]
@@ -383,13 +130,48 @@ func (r *Reporter) splitReport(ctx context.Context, feedHashes [][32]byte, value
 			log.Error().Str("Player", "Reporter").Err(err).Msg("splitReport")
 			errs = append(errs, err)
 		}
-
 	}
-
 	if len(errs) > 0 {
 		return mergeErrors(errs)
 	}
 	return nil
+}
+
+func processDalWsRawData(data any) (SubmissionData, error) {
+	rawSubmissionData := RawSubmissionData{}
+
+	jsonMarshalData, jsonMarshalDataErr := json.Marshal(data)
+	if jsonMarshalDataErr != nil {
+		log.Error().Str("Player", "Reporter").Err(jsonMarshalDataErr).Msg("failed to marshal data")
+		return SubmissionData{}, errorSentinel.ErrReporterDalWsDataProcessingFailed
+	}
+
+	jsonUnmarshalDataErr := json.Unmarshal(jsonMarshalData, &rawSubmissionData)
+	if jsonUnmarshalDataErr != nil {
+		log.Error().Str("Player", "Reporter").Err(jsonUnmarshalDataErr).Msg("failed to unmarshal data")
+		return SubmissionData{}, errorSentinel.ErrReporterDalWsDataProcessingFailed
+	}
+
+	submissionData := SubmissionData{
+		FeedHash: rawSubmissionData.FeedHash,
+		Proof:    rawSubmissionData.Proof,
+	}
+
+	value, valueErr := strconv.ParseInt(rawSubmissionData.Value, 10, 64)
+	if valueErr != nil {
+		log.Error().Str("Player", "Reporter").Err(valueErr).Msg("failed to parse value")
+		return SubmissionData{}, errorSentinel.ErrReporterDalWsDataProcessingFailed
+	}
+	submissionData.Value = value
+
+	timestampValue, timestampErr := strconv.ParseInt(rawSubmissionData.AggregateTime, 10, 64)
+	if timestampErr != nil {
+		log.Error().Str("Player", "Reporter").Err(timestampErr).Msg("failed to parse timestamp")
+		return SubmissionData{}, errorSentinel.ErrReporterDalWsDataProcessingFailed
+	}
+	submissionData.AggregateTime = timestampValue
+
+	return submissionData, nil
 }
 
 func mergeErrors(errs []error) error {
