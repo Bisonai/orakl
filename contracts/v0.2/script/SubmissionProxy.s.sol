@@ -90,7 +90,6 @@ contract DeploySubmissionProxy is Script {
         FeedRouter feedRouter = FeedRouter(feedRouterAddress);
         console.log("(Use existing FeedRouter)", address(feedRouter));
         return feedRouter;
-
     }
 
     function setMaxSubmission(SubmissionProxy submissionProxy, string memory json) internal {
@@ -238,7 +237,7 @@ contract DeploySubmissionProxy is Script {
         if (vm.keyExists(json, ".feedRouter.address")) {
             feedRouter = useExistingFeedRouter(json);
             console.log("(Use existing FeedRouter)", address(feedRouter));
-        }else {
+        } else {
             feedRouter = new FeedRouter();
             console.log("(FeedRouter Deployed)", address(feedRouter));
         }

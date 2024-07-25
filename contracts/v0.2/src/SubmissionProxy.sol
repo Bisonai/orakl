@@ -61,8 +61,8 @@ contract SubmissionProxy is Ownable {
     error InvalidSignatureLength();
     error InvalidFeed();
     error ZeroAddressGiven();
-
     error AnswerTooOld();
+    error InvalidProofFormat();
     error InvalidProof();
     error FeedHashNotFound();
     error InvalidFeedHash();
@@ -415,12 +415,7 @@ contract SubmissionProxy is Ownable {
         }
     }
 
-    function submitSingle(
-        bytes32 _feedHash,
-        int256 _answer,
-        uint256 _timestamp,
-        bytes calldata _proof
-    ) public {
+    function submitSingle(bytes32 _feedHash, int256 _answer, uint256 _timestamp, bytes calldata _proof) public {
         if (_timestamp <= block.timestamp - dataFreshness || lastSubmissionTimes[_feedHash] >= _timestamp) {
             revert AnswerTooOld();
         }
@@ -428,7 +423,7 @@ contract SubmissionProxy is Ownable {
         (bytes[] memory proofs_, bool success_) = splitProofs(_proof);
         if (!success_) {
             // splitting proofs failed -> do not submit!
-            revert InvalidProof();
+            revert InvalidProofFormat();
         }
 
         if (address(feeds[_feedHash]) == address(0)) {
@@ -445,6 +440,8 @@ contract SubmissionProxy is Ownable {
         if (validateProof(_feedHash, message_, proofs_)) {
             feeds[_feedHash].submit(_answer);
             lastSubmissionTimes[_feedHash] = _timestamp;
+        } else {
+            revert InvalidProof();
         }
     }
 
