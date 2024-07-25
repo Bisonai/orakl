@@ -102,6 +102,7 @@ func (a *App) setReporters(ctx context.Context) error {
 		log.Error().Str("Player", "Reporter").Err(errNewDeviationReporter).Msg("failed to set deviation reporter")
 		return errNewDeviationReporter
 	}
+	deviationReporter.LatestData = &a.LatestData
 	a.Reporters = append(a.Reporters, deviationReporter)
 
 	log.Info().Str("Player", "Reporter").Msgf("%d reporters set", len(a.Reporters))
@@ -167,7 +168,12 @@ func groupConfigsBySubmitIntervals(reporterConfigs []Config) map[int][]Config {
 }
 
 func (a *App) handleWsMessage(ctx context.Context, data map[string]interface{}) error {
-	a.LatestData.Store(data["symbol"], data)
+	submissionData, err := ProcessDalWsRawData(data)
+	if err != nil {
+		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to process dal ws raw data")
+		return err
+	}
+	a.LatestData.Store(data["symbol"], submissionData)
 	return nil
 }
 

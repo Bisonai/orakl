@@ -2,10 +2,8 @@ package reporter
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"math/big"
-	"strconv"
 	"sync"
 	"time"
 
@@ -98,9 +96,9 @@ func (r *Reporter) report(ctx context.Context, submissionPairs map[int32]Submiss
 		go func(id int32, pair SubmissionPair) {
 			defer wg.Done()
 			if value, ok := r.LatestData.Load(pair.Name); ok {
-				submissionData, err := processDalWsRawData(value)
-				if err != nil {
-					log.Error().Str("Player", "Reporter").Err(err).Msg("failed to process dal ws raw data")
+				submissionData, submissionDataOk := value.(SubmissionData)
+				if !submissionDataOk {
+					log.Error().Str("Player", "Reporter").Msg("latest data not found")
 					return
 				}
 
@@ -158,17 +156,19 @@ func (r *Reporter) report(ctx context.Context, submissionPairs map[int32]Submiss
 	if len(errs) > 0 {
 		return mergeErrors(errs)
 	}
+
+	log.Debug().Str("Player", "Reporter").Msgf("reporting done for reporter with interval: %v", r.SubmissionInterval)
+
 	return nil
 }
 
 func (r *Reporter) deviationJob(ctx context.Context) error {
 	deviatingAggregates := GetDeviatingAggregates(r.SubmissionPairs, r.LatestData, r.deviationThreshold)
 	if len(deviatingAggregates) == 0 {
-		log.Info().Msg("no deviating aggregates found")
+		log.Debug().Str("Player", "Reporter").Msg("no deviating aggregates found")
 		return nil
 	}
-
-	log.Info().Msgf("deviating aggregates found: %v", deviatingAggregates)
+	log.Debug().Str("Player", "Reporter").Msgf("deviating aggregates found: %v", deviatingAggregates)
 
 	reportJob := func() error {
 		err := r.report(ctx, deviatingAggregates)
@@ -190,52 +190,7 @@ func (r *Reporter) deviationJob(ctx context.Context) error {
 		return errorSentinel.ErrReporterDeviationReportFail
 	}
 
-	for configId, agg := range deviatingAggregates {
-		pair := r.SubmissionPairs[configId]
-		pair.LastSubmission = agg.LastSubmission
-		r.SubmissionPairs[configId] = pair
-	}
-
 	return nil
-}
-
-func processDalWsRawData(data any) (SubmissionData, error) {
-	rawSubmissionData := RawSubmissionData{}
-
-	jsonMarshalData, jsonMarshalDataErr := json.Marshal(data)
-	if jsonMarshalDataErr != nil {
-		log.Error().Str("Player", "Reporter").Err(jsonMarshalDataErr).Msg("failed to marshal data")
-		return SubmissionData{}, errorSentinel.ErrReporterDalWsDataProcessingFailed
-	}
-
-	jsonUnmarshalDataErr := json.Unmarshal(jsonMarshalData, &rawSubmissionData)
-	if jsonUnmarshalDataErr != nil {
-		log.Error().Str("Player", "Reporter").Err(jsonUnmarshalDataErr).Msg("failed to unmarshal data")
-		return SubmissionData{}, errorSentinel.ErrReporterDalWsDataProcessingFailed
-	}
-
-	var feedHash [32]byte
-	copy(feedHash[:], rawSubmissionData.FeedHash)
-	submissionData := SubmissionData{
-		FeedHash: feedHash,
-		Proof:    rawSubmissionData.Proof,
-	}
-
-	value, valueErr := strconv.ParseInt(rawSubmissionData.Value, 10, 64)
-	if valueErr != nil {
-		log.Error().Str("Player", "Reporter").Err(valueErr).Msg("failed to parse value")
-		return SubmissionData{}, errorSentinel.ErrReporterDalWsDataProcessingFailed
-	}
-	submissionData.Value = value
-
-	timestampValue, timestampErr := strconv.ParseInt(rawSubmissionData.AggregateTime, 10, 64)
-	if timestampErr != nil {
-		log.Error().Str("Player", "Reporter").Err(timestampErr).Msg("failed to parse timestamp")
-		return SubmissionData{}, errorSentinel.ErrReporterDalWsDataProcessingFailed
-	}
-	submissionData.AggregateTime = timestampValue
-
-	return submissionData, nil
 }
 
 func mergeErrors(errs []error) error {

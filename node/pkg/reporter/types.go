@@ -126,7 +126,7 @@ type Reporter struct {
 	nodeCancel context.CancelFunc
 	isRunning  bool
 
-	LatestData *sync.Map
+	LatestData *sync.Map // map[symbol]SubmissionData
 
 	JobType JobType
 }
