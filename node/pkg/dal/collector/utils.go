@@ -103,5 +103,5 @@ func orderProof(ctx context.Context, proof []byte, value int64, timestamp time.T
 }
 
 func formatBytesToHex(bytes []byte) string {
-	return klaytncommon.Bytes2Hex(bytes)
+	return "0x" + klaytncommon.Bytes2Hex(bytes)
 }

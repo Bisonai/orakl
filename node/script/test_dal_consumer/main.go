@@ -40,6 +40,7 @@ func main() {
 	}
 
 	result := results[0]
+	log.Info().Any("result", result).Msg("got data feed")
 
 	var submissionVal big.Int
 	_, success := submissionVal.SetString(result.Value, 10)
