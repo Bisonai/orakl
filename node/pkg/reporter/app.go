@@ -3,7 +3,6 @@ package reporter
 import (
 	"context"
 	"os"
-	"time"
 
 	"bisonai.com/orakl/node/pkg/chain/helper"
 	"bisonai.com/orakl/node/pkg/db"
@@ -58,7 +57,7 @@ func (a *App) setReporters(ctx context.Context) error {
 		cachedWhitelist = []common.Address{}
 	}
 
-	configs, err := getConfigs(ctx)
+	configs, err := a.getConfigs(ctx)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to get reporter configs")
 		return err
@@ -120,7 +119,7 @@ func (a *App) startReporters(ctx context.Context) {
 	}
 }
 
-func getConfigs(ctx context.Context) ([]Config, error) {
+func (a *App) getConfigs(ctx context.Context) ([]Config, error) {
 	reporterConfigs, err := db.QueryRows[Config](ctx, GET_REPORTER_CONFIGS, nil)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to load reporter configs")
@@ -149,13 +148,4 @@ func (a *App) handleWsMessage(ctx context.Context, data map[string]interface{}) 
 	}
 	a.LatestData.Store(data["symbol"], submissionData)
 	return nil
-}
-
-func (a *App) GetReporterWithInterval(interval int) (*Reporter, error) {
-	for _, reporter := range a.Reporters {
-		if reporter.SubmissionInterval == time.Duration(interval)*time.Millisecond {
-			return reporter, nil
-		}
-	}
-	return nil, errorSentinel.ErrReporterNotFound
 }

@@ -1,137 +1,113 @@
 // //nolint:all
 package reporter
 
-// import (
-// 	"context"
-// 	"testing"
+import (
+	"context"
+	"os"
+	"testing"
+	"time"
 
-// 	"bisonai.com/orakl/node/pkg/admin/tests"
-// 	"github.com/stretchr/testify/assert"
-// )
+	errorSentinel "bisonai.com/orakl/node/pkg/error"
+	"github.com/stretchr/testify/assert"
+)
 
-// func TestRun(t *testing.T) {
-// 	ctx := context.Background()
-// 	cleanup, testItems, err := setup(ctx)
-// 	if err != nil {
-// 		t.Fatalf("error setting up test: %v", err)
-// 	}
-// 	defer func() {
-// 		if cleanupErr := cleanup(); cleanupErr != nil {
-// 			t.Logf("Cleanup failed: %v", cleanupErr)
-// 		}
-// 	}()
+func TestRunApp(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-// 	err = testItems.app.Run(ctx)
-// 	if err != nil {
-// 		t.Fatalf("error running reporter: %v", err)
-// 	}
+	app := New()
 
-// 	assert.Equal(t, testItems.app.Reporters[0].isRunning, true)
-// }
+	errChan := make(chan error, 1)
+	defer close(errChan)
 
-// func TestStopReporter(t *testing.T) {
-// 	ctx := context.Background()
-// 	cleanup, testItems, err := setup(ctx)
-// 	if err != nil {
-// 		t.Fatalf("error setting up test: %v", err)
-// 	}
-// 	defer func() {
-// 		if cleanupErr := cleanup(); cleanupErr != nil {
-// 			t.Logf("Cleanup failed: %v", cleanupErr)
-// 		}
-// 	}()
+	go func() {
+		err := app.Run(ctx)
+		if err != nil {
+			errChan <- err
+		}
+	}()
 
-// 	err = testItems.app.Run(ctx)
-// 	if err != nil {
-// 		t.Fatal("error running reporter")
-// 	}
+	ticker := time.NewTicker(1 * time.Second)
+	defer ticker.Stop()
 
-// 	// err = testItems.app.stopReporters()
-// 	// if err != nil {
-// 	// 	t.Fatal("error stopping reporter")
-// 	// }
+	for {
+		select {
+		case err := <-errChan:
+			t.Fatalf("error running reporter: %v", err)
+		case <-ticker.C:
+			if app.WsHelper != nil && app.WsHelper.IsRunning {
+				return
+			}
+		}
+	}
+}
 
-// 	assert.Equal(t, testItems.app.Reporters[0].isRunning, false)
-// }
+func TestRunMissingApiKey(t *testing.T) {
+	os.Setenv("API_KEY", "")
+	os.Setenv("DAL_WS_URL", "ws://test")
+	os.Setenv("SUBMISSION_PROXY_CONTRACT", "0x123")
+	ctx := context.Background()
+	app := New()
+	err := app.Run(ctx)
+	assert.ErrorIs(t, err, errorSentinel.ErrReporterDalApiKeyNotFound)
+}
 
-// func TestStopReporterByAdmin(t *testing.T) {
-// 	ctx := context.Background()
-// 	cleanup, testItems, err := setup(ctx)
-// 	if err != nil {
-// 		t.Fatalf("error setting up test: %v", err)
-// 	}
-// 	defer func() {
-// 		if cleanupErr := cleanup(); cleanupErr != nil {
-// 			t.Logf("Cleanup failed: %v", cleanupErr)
-// 		}
-// 	}()
+func TestRunMissingWsUrl(t *testing.T) {
+	os.Setenv("API_KEY", "test_api_key")
+	os.Setenv("DAL_WS_URL", "")
+	os.Setenv("SUBMISSION_PROXY_CONTRACT", "0x123")
+	ctx := context.Background()
+	app := New()
+	err := app.Run(ctx)
+	assert.NoError(t, err) // Should not return an error, should use default value
+}
 
-// 	err = testItems.app.Run(ctx)
-// 	if err != nil {
-// 		t.Fatal("error running reporter")
-// 	}
+func TestRunMissingSubmissionProxyContract(t *testing.T) {
+	os.Setenv("API_KEY", "test_api_key")
+	os.Setenv("DAL_WS_URL", "ws://test")
+	os.Setenv("SUBMISSION_PROXY_CONTRACT", "")
+	ctx := context.Background()
+	app := New()
+	err := app.Run(ctx)
+	assert.ErrorIs(t, err, errorSentinel.ErrReporterSubmissionProxyContractNotFound)
+}
 
-// 	_, err = tests.RawPostRequest(testItems.admin, "/api/v1/reporter/deactivate", nil)
-// 	if err != nil {
-// 		t.Fatalf("error activating reporter: %v", err)
-// 	}
+func TestWsDataHandling(t *testing.T) {
+	ctx := context.Background()
+	app := New()
 
-// 	assert.Equal(t, testItems.app.Reporters[0].isRunning, false)
-// }
+	err := app.Run(ctx)
+	if err != nil {
+		t.Fatalf("error running reporter: %v", err)
+	}
 
-// func TestStartReporterByAdmin(t *testing.T) {
-// 	ctx := context.Background()
-// 	cleanup, testItems, err := setup(ctx)
-// 	if err != nil {
-// 		t.Fatalf("error setting up test: %v", err)
-// 	}
-// 	defer func() {
-// 		if cleanupErr := cleanup(); cleanupErr != nil {
-// 			t.Logf("Cleanup failed: %v", cleanupErr)
-// 		}
-// 	}()
+	configs, err := app.getConfigs(ctx)
+	if err != nil {
+		t.Fatalf("error getting configs: %v", err)
+	}
 
-// 	err = testItems.app.setReporters(ctx)
-// 	if err != nil {
-// 		t.Fatalf("error setting reporters: %v", err)
-// 	}
+	ticker := time.NewTicker(1 * time.Second)
+	defer ticker.Stop()
+	timeout := time.After(5 * time.Second)
+	submissionDataCount := 0
 
-// 	_, err = tests.RawPostRequest(testItems.admin, "/api/v1/reporter/activate", nil)
-// 	if err != nil {
-// 		t.Fatalf("error activating reporter: %v", err)
-// 	}
-
-// 	assert.Equal(t, testItems.app.Reporters[0].isRunning, true)
-// }
-
-// func TestRestartReporterByAdmin(t *testing.T) {
-// 	// TODO: add checking for address mapping changes
-
-// 	ctx := context.Background()
-// 	cleanup, testItems, err := setup(ctx)
-// 	if err != nil {
-// 		t.Fatalf("error setting up test: %v", err)
-// 	}
-// 	defer func() {
-// 		if cleanupErr := cleanup(); cleanupErr != nil {
-// 			t.Logf("Cleanup failed: %v", cleanupErr)
-// 		}
-// 	}()
-
-// 	err = testItems.app.setReporters(ctx)
-// 	if err != nil {
-// 		t.Fatalf("error setting reporters: %v", err)
-// 	}
-
-// 	_, err = tests.RawPostRequest(testItems.admin, "/api/v1/reporter/activate", nil)
-// 	if err != nil {
-// 		t.Fatalf("error activating reporter: %v", err)
-// 	}
-
-// 	_, err = tests.RawPostRequest(testItems.admin, "/api/v1/reporter/refresh", nil)
-// 	if err != nil {
-// 		t.Fatalf("error refreshing reporter: %v", err)
-// 	}
-
-// 	assert.Equal(t, testItems.app.Reporters[0].isRunning, true)
-// }
+	for {
+		select {
+		case <-ticker.C:
+			if app.WsHelper != nil && app.WsHelper.IsRunning {
+				for _, config := range configs {
+					if _, ok := app.LatestData.Load(config.Name); ok {
+						submissionDataCount++
+					}
+				}
+				if submissionDataCount == len(configs) {
+					return
+				}
+			}
+		case <-timeout:
+			if submissionDataCount != len(configs) {
+				t.Fatal("not all submission data received from websocket")
+			}
+		}
+	}
+}

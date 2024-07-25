@@ -23,6 +23,7 @@ func GetDeviatingAggregates(submissionPairs map[int32]SubmissionPair, latestData
 	for configID, submissionPair := range submissionPairs {
 		latestData, ok := GetLatestData(latestData, submissionPair.Name)
 		if !ok {
+			log.Debug().Str("Player", "Reporter").Msg("latest data not found during deviation check")
 			continue
 		}
 		if shouldReport := ShouldReportDeviation(submissionPair.LastSubmission, latestData.Value, threshold); shouldReport {
