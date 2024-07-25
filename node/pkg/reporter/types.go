@@ -47,8 +47,8 @@ type Config struct {
 }
 
 type SubmissionPair struct {
-	LastSubmission int32  `db:"last_submission"`
-	Name           string `db:"name"`
+	LastSubmission int64
+	Name           string
 }
 
 type App struct {
@@ -127,6 +127,8 @@ type Reporter struct {
 	isRunning  bool
 
 	LatestData *sync.Map
+
+	JobType JobType
 }
 
 type GlobalAggregate types.GlobalAggregate
@@ -134,10 +136,10 @@ type GlobalAggregate types.GlobalAggregate
 type Proof types.Proof
 
 type RawSubmissionData struct {
-	Value         string   `json:"value"`
-	AggregateTime string   `json:"aggregateTime"`
-	Proof         []byte   `json:"proof"`
-	FeedHash      [32]byte `json:"feedHash"`
+	Value         string `json:"value"`
+	AggregateTime string `json:"aggregateTime"`
+	Proof         []byte `json:"proof"`
+	FeedHash      []byte `json:"feedHash"`
 }
 type SubmissionData struct {
 	Value         int64    `json:"value"`

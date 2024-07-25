@@ -37,6 +37,7 @@ func NewReporter(ctx context.Context, opts ...ReporterOption) (*Reporter, error)
 		SubmissionInterval: groupInterval,
 		CachedWhitelist:    config.CachedWhitelist,
 		deviationThreshold: deviationThreshold,
+		JobType:            config.JobType,
 	}
 
 	reporter.SubmissionPairs = make(map[int32]SubmissionPair)
@@ -57,32 +58,38 @@ func (r *Reporter) Run(ctx context.Context) {
 			log.Debug().Str("Player", "Reporter").Msg("context done, stopping reporter")
 			return
 		case <-ticker.C:
-			go func() {
-				err := r.report(ctx)
-				if err != nil {
-					log.Error().Str("Player", "Reporter").Err(err).Msg("reporting failed")
-				}
-			}()
+			if r.JobType == ReportJob {
+				go func() {
+					err := r.report(ctx, r.SubmissionPairs)
+					if err != nil {
+						log.Error().Str("Player", "Reporter").Err(err).Msg("reporting failed")
+					}
+				}()
+			} else {
+				log.Info().Str("Player", "Reporter").Msg("reporter job type temp not supported")
+			}
 		}
 	}
 }
 
-func (r *Reporter) report(ctx context.Context) error {
+func (r *Reporter) report(ctx context.Context, submissionPairs map[int32]SubmissionPair) error {
 	var feedHashes [][32]byte
 	var values []*big.Int
 	var timestamps []*big.Int
 	var proofs [][]byte
+	var configIds []int32
 
-	feedHashesChan := make(chan [32]byte, len(r.SubmissionPairs))
-	valuesChan := make(chan *big.Int, len(r.SubmissionPairs))
-	timestampsChan := make(chan *big.Int, len(r.SubmissionPairs))
-	proofsChan := make(chan []byte, len(r.SubmissionPairs))
+	feedHashesChan := make(chan [32]byte, len(submissionPairs))
+	valuesChan := make(chan *big.Int, len(submissionPairs))
+	timestampsChan := make(chan *big.Int, len(submissionPairs))
+	proofsChan := make(chan []byte, len(submissionPairs))
+	configIdChan := make(chan int32, len(submissionPairs))
 
 	wg := sync.WaitGroup{}
 
-	for _, pair := range r.SubmissionPairs {
+	for id, pair := range submissionPairs {
 		wg.Add(1)
-		go func(pair SubmissionPair) {
+		go func(id int32, pair SubmissionPair) {
 			defer wg.Done()
 			if value, ok := r.LatestData.Load(pair.Name); ok {
 				submissionData, err := processDalWsRawData(value)
@@ -95,10 +102,11 @@ func (r *Reporter) report(ctx context.Context) error {
 				valuesChan <- big.NewInt(submissionData.Value)
 				timestampsChan <- big.NewInt(submissionData.AggregateTime)
 				proofsChan <- submissionData.Proof
+				configIdChan <- id
 			} else {
 				log.Error().Str("Player", "Reporter").Msgf("latest data for pair %s not found", pair.Name)
 			}
-		}(pair)
+		}(id, pair)
 	}
 
 	wg.Wait()
@@ -107,12 +115,14 @@ func (r *Reporter) report(ctx context.Context) error {
 	close(valuesChan)
 	close(feedHashesChan)
 	close(proofsChan)
+	close(configIdChan)
 
 	for feedHash := range feedHashesChan {
 		feedHashes = append(feedHashes, feedHash)
 		values = append(values, <-valuesChan)
 		timestamps = append(timestamps, <-timestampsChan)
 		proofs = append(proofs, <-proofsChan)
+		configIds = append(configIds, <-configIdChan)
 	}
 
 	errs := []error{}
@@ -131,6 +141,14 @@ func (r *Reporter) report(ctx context.Context) error {
 			errs = append(errs, err)
 		}
 	}
+
+	// assumption: values[i] will always correspond to configIds[i] (theoretically doesn't have to be the case)
+	for i, configId := range configIds {
+		pair := r.SubmissionPairs[configId]
+		pair.LastSubmission = values[i].Int64()
+		r.SubmissionPairs[configId] = pair
+	}
+
 	if len(errs) > 0 {
 		return mergeErrors(errs)
 	}
@@ -152,8 +170,10 @@ func processDalWsRawData(data any) (SubmissionData, error) {
 		return SubmissionData{}, errorSentinel.ErrReporterDalWsDataProcessingFailed
 	}
 
+	var feedHash [32]byte
+	copy(feedHash[:], rawSubmissionData.FeedHash)
 	submissionData := SubmissionData{
-		FeedHash: rawSubmissionData.FeedHash,
+		FeedHash: feedHash,
 		Proof:    rawSubmissionData.Proof,
 	}
 
