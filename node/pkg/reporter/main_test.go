@@ -25,7 +25,7 @@ func getConfigUrl() string {
 
 func fetchConfigs(ctx context.Context) ([]Config, error) {
 	configUrl := getConfigUrl()
-	configs, err := request.Request[[]Config](request.WithEndpoint(configUrl))
+	configs, err := request.Request[[]Config](request.WithEndpoint(configUrl), request.WithTimeout(10))
 	if err != nil {
 		return nil, err
 	}
