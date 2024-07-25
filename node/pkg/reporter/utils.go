@@ -4,6 +4,7 @@ import (
 	"context"
 	"math"
 	"math/big"
+	"sync"
 	"time"
 
 	"bisonai.com/orakl/node/pkg/chain/helper"
@@ -17,20 +18,27 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func GetDeviatingAggregates(lastSubmitted []GlobalAggregate, newAggregates []GlobalAggregate, threshold float64) []GlobalAggregate {
-	submittedAggregates := make(map[int32]GlobalAggregate)
-	for _, aggregate := range lastSubmitted {
-		submittedAggregates[aggregate.ConfigID] = aggregate
-	}
+func GetDeviatingAggregates(submissionPairs map[int32]SubmissionPair, latestData *sync.Map, threshold float64) map[int32]SubmissionPair {
+	deviatingSubmissionPairs := make(map[int32]SubmissionPair)
+	for configID, submissionPair := range submissionPairs {
+		latestDataValue, ok := latestData.Load(configID)
+		if !ok {
+			continue
+		}
 
-	result := make([]GlobalAggregate, 0, len(newAggregates))
-	for _, newAggregate := range newAggregates {
-		submittedAggregate, ok := submittedAggregates[newAggregate.ConfigID]
-		if !ok || ShouldReportDeviation(submittedAggregate.Value, newAggregate.Value, threshold) {
-			result = append(result, newAggregate)
+		latestDataValueInt64, ok := latestDataValue.(int64)
+		if !ok {
+			continue
+		}
+
+		if ShouldReportDeviation(submissionPair.LastSubmission, latestDataValueInt64, threshold) {
+			deviatingSubmissionPairs[configID] = SubmissionPair{
+				LastSubmission: latestDataValueInt64,
+				Name:           submissionPair.Name,
+			}
 		}
 	}
-	return result
+	return deviatingSubmissionPairs
 }
 
 func ShouldReportDeviation(oldValue int64, newValue int64, threshold float64) bool {

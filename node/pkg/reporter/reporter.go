@@ -10,6 +10,7 @@ import (
 	"time"
 
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
+	"bisonai.com/orakl/node/pkg/utils/retrier"
 
 	"github.com/rs/zerolog/log"
 )
@@ -66,7 +67,12 @@ func (r *Reporter) Run(ctx context.Context) {
 					}
 				}()
 			} else {
-				log.Info().Str("Player", "Reporter").Msg("reporter job type temp not supported")
+				go func() {
+					err := r.deviationJob(ctx)
+					if err != nil {
+						log.Error().Str("Player", "Reporter").Err(err).Msg("deviation job failed")
+					}
+				}()
 			}
 		}
 	}
@@ -152,6 +158,44 @@ func (r *Reporter) report(ctx context.Context, submissionPairs map[int32]Submiss
 	if len(errs) > 0 {
 		return mergeErrors(errs)
 	}
+	return nil
+}
+
+func (r *Reporter) deviationJob(ctx context.Context) error {
+	deviatingAggregates := GetDeviatingAggregates(r.SubmissionPairs, r.LatestData, r.deviationThreshold)
+	if len(deviatingAggregates) == 0 {
+		log.Info().Msg("no deviating aggregates found")
+		return nil
+	}
+
+	log.Info().Msgf("deviating aggregates found: %v", deviatingAggregates)
+
+	reportJob := func() error {
+		err := r.report(ctx, deviatingAggregates)
+		if err != nil {
+			log.Error().Str("Player", "Reporter").Err(err).Msg("DeviationReport")
+			return err
+		}
+		return nil
+	}
+
+	err := retrier.Retry(
+		reportJob,
+		MAX_RETRY,
+		INITIAL_FAILURE_TIMEOUT,
+		MAX_RETRY_DELAY,
+	)
+	if err != nil {
+		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to report deviation, resigning from leader")
+		return errorSentinel.ErrReporterDeviationReportFail
+	}
+
+	for configId, agg := range deviatingAggregates {
+		pair := r.SubmissionPairs[configId]
+		pair.LastSubmission = agg.LastSubmission
+		r.SubmissionPairs[configId] = pair
+	}
+
 	return nil
 }
 
