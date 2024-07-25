@@ -114,13 +114,11 @@ func (c *Collector) GetLatestData(symbol string) (*dalcommon.OutgoingSubmissionD
 }
 
 func (c *Collector) GetAllLatestData() []dalcommon.OutgoingSubmissionData {
-	result := make([]dalcommon.OutgoingSubmissionData, 0)
+	result := make([]dalcommon.OutgoingSubmissionData, 0, len(c.Symbols))
 	c.LatestData.Range(func(key, value interface{}) bool {
-		data, ok := value.(*dalcommon.OutgoingSubmissionData)
-		if !ok {
-			return true
+		if data, ok := value.(*dalcommon.OutgoingSubmissionData); ok {
+			result = append(result, *data)
 		}
-		result = append(result, *data)
 		return true
 	})
 	return result
