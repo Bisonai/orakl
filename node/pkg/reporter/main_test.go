@@ -7,49 +7,71 @@ import (
 	"testing"
 
 	"bisonai.com/orakl/node/pkg/db"
-	"bisonai.com/orakl/node/pkg/utils/request"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
-const InsertConfigQuery = `INSERT INTO configs (name, aggregate_interval, submit_interval) VALUES (@name, @aggregate_interval, @submit_interval) RETURNING name, id, submit_interval, aggregate_interval;`
+const (
+	InsertConfigQuery = `
+		INSERT INTO configs (name, aggregate_interval, submit_interval) 
+		VALUES (@name, @aggregate_interval, @submit_interval) 
+		ON CONFLICT (name) DO NOTHING
+		RETURNING name, id, submit_interval, aggregate_interval;
+	`
+	DeleteConfigQuery = `DELETE FROM configs WHERE id = @id;`
+)
 
-func getConfigUrl() string {
-	configUrl := os.Getenv("ADMIN_ENDPOINT")
-	if configUrl == "" {
-		configUrl = "http://100.65.92.37:3030/api/v1"
+func setup(ctx context.Context) ([]int32, error) {
+	aggregateInterval := 400
+	submitInterval15000 := 15000
+	submitInterval60000 := 60000
+
+	configs := []Config{
+		{
+			Name:              "BTC-USDT",
+			AggregateInterval: &aggregateInterval,
+			SubmitInterval:    &submitInterval15000,
+		},
+		{
+			Name:              "ETH-USDT",
+			AggregateInterval: &aggregateInterval,
+			SubmitInterval:    &submitInterval15000,
+		},
+		{
+			Name:              "BTC-KRW",
+			AggregateInterval: &aggregateInterval,
+			SubmitInterval:    &submitInterval60000,
+		},
+		{
+			Name:              "ETH-KRW",
+			AggregateInterval: &aggregateInterval,
+			SubmitInterval:    &submitInterval60000,
+		},
 	}
 
-	return configUrl + "/config"
-}
-
-func fetchConfigs(ctx context.Context) ([]Config, error) {
-	configUrl := getConfigUrl()
-	configs, err := request.Request[[]Config](request.WithEndpoint(configUrl), request.WithTimeout(10))
-	if err != nil {
-		return nil, err
-	}
-	return configs, nil
-}
-
-func setup(ctx context.Context) error {
-	err := db.QueryWithoutResult(ctx, "DELETE FROM configs;", nil)
-	if err != nil {
-		return err
-	}
-
-	configs, err := fetchConfigs(ctx)
-	if err != nil {
-		return err
-	}
-
+	var res []int32
 	for _, config := range configs {
-		_, err := db.QueryRow[Config](ctx, InsertConfigQuery, map[string]any{"name": config.Name, "aggregate_interval": config.AggregateInterval, "submit_interval": config.SubmitInterval})
+		insertedConfig, err := db.QueryRow[Config](ctx, InsertConfigQuery, map[string]any{"name": config.Name, "aggregate_interval": config.AggregateInterval, "submit_interval": config.SubmitInterval})
 		if err != nil {
 			log.Error().Err(err).Msgf("error inserting config %s", config.Name)
+			return nil, err
+		}
+		res = append(res, insertedConfig.ID)
+	}
+
+	return res, nil
+}
+
+func cleanUp(ctx context.Context, configIds []int32) error {
+	for _, id := range configIds {
+		_, err := db.QueryRow[any](ctx, DeleteConfigQuery, map[string]any{"id": id})
+		if err != nil {
+			log.Error().Err(err).Msgf("error deleting config %d", id)
 			return err
 		}
 	}
+
+	db.ClosePool()
 
 	return nil
 }
@@ -57,7 +79,7 @@ func setup(ctx context.Context) error {
 func TestMain(m *testing.M) {
 	ctx := context.Background()
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
-	err := setup(ctx)
+	configIds, err := setup(ctx)
 	if err != nil {
 		log.Fatal().Err(err).Msg("error setting up test")
 		os.Exit(1)
@@ -65,6 +87,10 @@ func TestMain(m *testing.M) {
 
 	code := m.Run()
 
-	db.ClosePool()
+	err = cleanUp(ctx, configIds)
+	if err != nil {
+		log.Fatal().Err(err).Msg("error cleaning up configs")
+		os.Exit(1)
+	}
 	os.Exit(code)
 }
