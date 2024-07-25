@@ -1,9 +1,6 @@
 package reporter
 
 import (
-	"context"
-	"fmt"
-	"strings"
 	"sync"
 	"time"
 
@@ -47,13 +44,12 @@ type Config struct {
 }
 
 type SubmissionPair struct {
-	LastSubmission int32  `db:"last_submission"`
-	Name           string `db:"name"`
+	LastSubmission int64
+	Name           string
 }
 
 type App struct {
-	Reporters   []*Reporter
-	chainHelper *helper.ChainHelper
+	Reporters []*Reporter
 
 	WsHelper   *wss.WebsocketHelper
 	LatestData sync.Map
@@ -74,6 +70,8 @@ type ReporterConfig struct {
 	JobType         JobType
 	DalApiKey       string
 	DalWsEndpoint   string
+	KaiaHelper      *helper.ChainHelper
+	LatestData      *sync.Map
 }
 
 type ReporterOption func(*ReporterConfig)
@@ -113,6 +111,18 @@ func WithJobType(jobType JobType) ReporterOption {
 	}
 }
 
+func WithKaiaHelper(chainHelper *helper.ChainHelper) ReporterOption {
+	return func(c *ReporterConfig) {
+		c.KaiaHelper = chainHelper
+	}
+}
+
+func WithLatestData(latestData *sync.Map) ReporterOption {
+	return func(c *ReporterConfig) {
+		c.LatestData = latestData
+	}
+}
+
 type Reporter struct {
 	KaiaHelper         *helper.ChainHelper
 	SubmissionPairs    map[int32]SubmissionPair
@@ -122,11 +132,8 @@ type Reporter struct {
 	contractAddress    string
 	deviationThreshold float64
 
-	nodeCtx    context.Context
-	nodeCancel context.CancelFunc
-	isRunning  bool
-
-	LatestData *sync.Map
+	LatestData *sync.Map // map[symbol]SubmissionData
+	Job        func() error
 }
 
 type GlobalAggregate types.GlobalAggregate
@@ -134,10 +141,10 @@ type GlobalAggregate types.GlobalAggregate
 type Proof types.Proof
 
 type RawSubmissionData struct {
-	Value         string   `json:"value"`
-	AggregateTime string   `json:"aggregateTime"`
-	Proof         []byte   `json:"proof"`
-	FeedHash      [32]byte `json:"feedHash"`
+	Value         string `json:"value"`
+	AggregateTime string `json:"aggregateTime"`
+	Proof         string `json:"proof"`
+	FeedHash      string `json:"feedHash"`
 }
 type SubmissionData struct {
 	Value         int64    `json:"value"`
@@ -148,23 +155,4 @@ type SubmissionData struct {
 
 type SubmissionMessage struct {
 	Submissions []GlobalAggregate `json:"submissions"`
-}
-
-func makeGetLatestGlobalAggregatesQuery(configIds []int32) string {
-	queryConfigIds := make([]string, len(configIds))
-	for i, id := range configIds {
-		queryConfigIds[i] = fmt.Sprintf("'%d'", id)
-	}
-
-	q := fmt.Sprintf(`
-	SELECT ga.config_id, ga.value, ga.round, ga.timestamp
-	FROM global_aggregates ga
-	JOIN (
-		SELECT config_id, MAX(round) as max_round
-		FROM global_aggregates
-		WHERE config_id IN (%s)
-		GROUP BY config_id
-	) subq ON ga.config_id = subq.config_id AND ga.round = subq.max_round;`, strings.Join(queryConfigIds, ","))
-
-	return q
 }

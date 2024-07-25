@@ -2,35 +2,48 @@ package reporter
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"math"
-	"math/big"
+	"strconv"
+	"strings"
+	"sync"
 	"time"
 
 	"bisonai.com/orakl/node/pkg/chain/helper"
-	"bisonai.com/orakl/node/pkg/common/keys"
-	"bisonai.com/orakl/node/pkg/db"
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
 	"bisonai.com/orakl/node/pkg/wss"
 
-	"github.com/klaytn/klaytn/common"
-	"github.com/klaytn/klaytn/crypto"
+	klaytncommon "github.com/klaytn/klaytn/common"
 	"github.com/rs/zerolog/log"
 )
 
-func GetDeviatingAggregates(lastSubmitted []GlobalAggregate, newAggregates []GlobalAggregate, threshold float64) []GlobalAggregate {
-	submittedAggregates := make(map[int32]GlobalAggregate)
-	for _, aggregate := range lastSubmitted {
-		submittedAggregates[aggregate.ConfigID] = aggregate
-	}
-
-	result := make([]GlobalAggregate, 0, len(newAggregates))
-	for _, newAggregate := range newAggregates {
-		submittedAggregate, ok := submittedAggregates[newAggregate.ConfigID]
-		if !ok || ShouldReportDeviation(submittedAggregate.Value, newAggregate.Value, threshold) {
-			result = append(result, newAggregate)
+func GetDeviatingAggregates(submissionPairs map[int32]SubmissionPair, latestData *sync.Map, threshold float64) map[int32]SubmissionPair {
+	deviatingSubmissionPairs := make(map[int32]SubmissionPair)
+	for configID, submissionPair := range submissionPairs {
+		latestData, ok := GetLatestData(latestData, submissionPair.Name)
+		if !ok {
+			continue
+		}
+		if shouldReport := ShouldReportDeviation(submissionPair.LastSubmission, latestData.Value, threshold); shouldReport {
+			deviatingSubmissionPairs[configID] = submissionPair
 		}
 	}
-	return result
+	return deviatingSubmissionPairs
+}
+
+func GetLatestData(latestData *sync.Map, name string) (SubmissionData, bool) {
+	rawLatestData, ok := latestData.Load(name)
+	if !ok {
+		log.Debug().Str("Player", "Reporter").Msg("latest data not found during deviation check")
+		return SubmissionData{}, false
+	}
+	convertedLatestData, latestDataOk := rawLatestData.(SubmissionData)
+	if !latestDataOk {
+		log.Error().Str("Player", "Reporter").Msg("latest data type assertion failed during deviation check")
+		return SubmissionData{}, false
+	}
+	return convertedLatestData, true
 }
 
 func ShouldReportDeviation(oldValue int64, newValue int64, threshold float64) bool {
@@ -50,77 +63,7 @@ func ShouldReportDeviation(oldValue int64, newValue int64, threshold float64) bo
 	}
 }
 
-func GetLastSubmission(ctx context.Context, submissionPairs map[int32]SubmissionPair) ([]GlobalAggregate, error) {
-	keyList := make([]string, 0, len(submissionPairs))
-
-	for configID := range submissionPairs {
-		keyList = append(keyList, keys.LastSubmissionKey(configID))
-	}
-
-	return db.MGetObject[GlobalAggregate](ctx, keyList)
-}
-
-func MakeContractArgsWithProofs(aggregates []GlobalAggregate, submissionPairs map[int32]SubmissionPair) ([][32]byte, []*big.Int, []*big.Int, error) {
-	if len(aggregates) == 0 {
-		return nil, nil, nil, errorSentinel.ErrReporterEmptyAggregatesParam
-	}
-
-	if len(submissionPairs) == 0 {
-		return nil, nil, nil, errorSentinel.ErrReporterEmptySubmissionPairsParam
-	}
-
-	feedHash := make([][32]byte, len(aggregates))
-	values := make([]*big.Int, len(aggregates))
-	timestamps := make([]*big.Int, len(aggregates))
-
-	for i, agg := range aggregates {
-		if agg.ConfigID == 0 || agg.Value < 0 {
-			log.Error().Str("Player", "Reporter").Int32("configId", agg.ConfigID).Int64("value", agg.Value).Msg("skipping invalid aggregate")
-			return nil, nil, nil, errorSentinel.ErrReporterInvalidAggregateFound
-		}
-
-		name := submissionPairs[agg.ConfigID].Name
-		copy(feedHash[i][:], crypto.Keccak256([]byte(name)))
-		values[i] = big.NewInt(agg.Value)
-		timestamps[i] = big.NewInt(agg.Timestamp.Unix())
-	}
-
-	if len(feedHash) == 0 || len(values) == 0 || len(timestamps) == 0 {
-		return nil, nil, nil, errorSentinel.ErrReporterEmptyValidAggregates
-	}
-	return feedHash, values, timestamps, nil
-}
-
-func GetLatestGlobalAggregates(ctx context.Context, submissionPairs map[int32]SubmissionPair) ([]GlobalAggregate, error) {
-	result, err := GetLatestGlobalAggregatesRdb(ctx, submissionPairs)
-	if err != nil {
-		log.Error().Str("Player", "Reporter").Err(err).Msg("getLatestGlobalAggregatesRdb failed, trying to get from pgsql")
-		return GetLatestGlobalAggregatesPgsql(ctx, submissionPairs)
-	}
-	return result, nil
-}
-
-func GetLatestGlobalAggregatesPgsql(ctx context.Context, submissionPairs map[int32]SubmissionPair) ([]GlobalAggregate, error) {
-	configIds := make([]int32, 0, len(submissionPairs))
-	for configId := range submissionPairs {
-		configIds = append(configIds, configId)
-	}
-
-	q := makeGetLatestGlobalAggregatesQuery(configIds)
-	return db.QueryRows[GlobalAggregate](ctx, q, nil)
-}
-
-func GetLatestGlobalAggregatesRdb(ctx context.Context, submissionPairs map[int32]SubmissionPair) ([]GlobalAggregate, error) {
-	keyList := make([]string, 0, len(submissionPairs))
-
-	for configId := range submissionPairs {
-		keyList = append(keyList, keys.GlobalAggregateKey(configId))
-	}
-
-	return db.MGetObject[GlobalAggregate](ctx, keyList)
-}
-
-func ReadOnchainWhitelist(ctx context.Context, chainHelper *helper.ChainHelper, contractAddress string, contractFunction string) ([]common.Address, error) {
+func ReadOnchainWhitelist(ctx context.Context, chainHelper *helper.ChainHelper, contractAddress string, contractFunction string) ([]klaytncommon.Address, error) {
 	result, err := chainHelper.ReadContract(ctx, contractAddress, contractFunction)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to read contract")
@@ -133,7 +76,7 @@ func ReadOnchainWhitelist(ctx context.Context, chainHelper *helper.ChainHelper, 
 		return nil, errorSentinel.ErrReporterResultCastToInterfaceFail
 	}
 
-	arr, ok := rawResultSlice[0].([]common.Address)
+	arr, ok := rawResultSlice[0].([]klaytncommon.Address)
 	if !ok {
 		log.Error().Str("Player", "Reporter").Msg("unexpected raw result type")
 		return nil, errorSentinel.ErrReporterResultCastToAddressFail
@@ -174,4 +117,44 @@ func SetupDalWsHelper(ctx context.Context, configs []Config, endpoint string, ap
 	}
 	return wsHelper, nil
 
+}
+
+func ProcessDalWsRawData(data any) (SubmissionData, error) {
+	rawSubmissionData := RawSubmissionData{}
+
+	jsonMarshalData, jsonMarshalDataErr := json.Marshal(data)
+	if jsonMarshalDataErr != nil {
+		log.Error().Str("Player", "Reporter").Err(jsonMarshalDataErr).Msg("failed to marshal data: " + fmt.Sprintf("%v", data))
+		return SubmissionData{}, errorSentinel.ErrReporterDalWsDataProcessingFailed
+	}
+
+	jsonUnmarshalDataErr := json.Unmarshal(jsonMarshalData, &rawSubmissionData)
+	if jsonUnmarshalDataErr != nil {
+		log.Error().Str("Player", "Reporter").Err(jsonUnmarshalDataErr).Msg("failed to unmarshal data: " + string(jsonMarshalData))
+		return SubmissionData{}, errorSentinel.ErrReporterDalWsDataProcessingFailed
+	}
+
+	feedHashBytes := klaytncommon.Hex2Bytes(strings.TrimPrefix(rawSubmissionData.FeedHash, "0x"))
+	feedHash := [32]byte{}
+	copy(feedHash[:], feedHashBytes)
+	submissionData := SubmissionData{
+		FeedHash: feedHash,
+		Proof:    klaytncommon.Hex2Bytes(strings.TrimPrefix(rawSubmissionData.Proof, "0x")),
+	}
+
+	value, valueErr := strconv.ParseInt(rawSubmissionData.Value, 10, 64)
+	if valueErr != nil {
+		log.Error().Str("Player", "Reporter").Err(valueErr).Msg("failed to parse value: " + rawSubmissionData.Value)
+		return SubmissionData{}, errorSentinel.ErrReporterDalWsDataProcessingFailed
+	}
+	submissionData.Value = value
+
+	timestampValue, timestampErr := strconv.ParseInt(rawSubmissionData.AggregateTime, 10, 64)
+	if timestampErr != nil {
+		log.Error().Str("Player", "Reporter").Err(timestampErr).Msg("failed to parse timestamp: " + rawSubmissionData.AggregateTime)
+		return SubmissionData{}, errorSentinel.ErrReporterDalWsDataProcessingFailed
+	}
+	submissionData.AggregateTime = timestampValue
+
+	return submissionData, nil
 }
