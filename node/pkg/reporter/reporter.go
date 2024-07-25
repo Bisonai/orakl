@@ -8,7 +8,6 @@ import (
 	"time"
 
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
-	"bisonai.com/orakl/node/pkg/utils/retrier"
 
 	"github.com/rs/zerolog/log"
 )
@@ -170,26 +169,11 @@ func (r *Reporter) deviationJob(ctx context.Context) error {
 	}
 	log.Debug().Str("Player", "Reporter").Msgf("deviating aggregates found: %v", deviatingAggregates)
 
-	reportJob := func() error {
-		err := r.report(ctx, deviatingAggregates)
-		if err != nil {
-			log.Error().Str("Player", "Reporter").Err(err).Msg("DeviationReport")
-			return err
-		}
-		return nil
-	}
-
-	err := retrier.Retry(
-		reportJob,
-		MAX_RETRY,
-		INITIAL_FAILURE_TIMEOUT,
-		MAX_RETRY_DELAY,
-	)
+	err := r.report(ctx, deviatingAggregates)
 	if err != nil {
-		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to report deviation, resigning from leader")
-		return errorSentinel.ErrReporterDeviationReportFail
+		log.Error().Str("Player", "Reporter").Err(err).Msg("DeviationReport")
+		return err
 	}
-
 	return nil
 }
 
