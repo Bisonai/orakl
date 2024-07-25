@@ -12,11 +12,10 @@ import (
 )
 
 type ChainHelper struct {
-	clients             []utils.ClientInterface
-	wallet              string
-	chainID             *big.Int
-	delegatorUrl        string
-	lastUsedWalletIndex int
+	clients      []utils.ClientInterface
+	wallet       string
+	chainID      *big.Int
+	delegatorUrl string
 }
 
 type ChainHelperConfig struct {

@@ -154,7 +154,6 @@ func (t *ChainHelper) GetSignedFromDelegator(tx *types.Transaction) (*types.Tran
 
 func (t *ChainHelper) MakeDirectTx(ctx context.Context, contractAddressHex string, functionString string, nonce uint64, args ...interface{}) (*types.Transaction, error) {
 	var result *types.Transaction
-	var err error
 	job := func(c utils.ClientInterface) error {
 		tmp, err := utils.MakeDirectTx(ctx, c, contractAddressHex, t.wallet, functionString, t.chainID, nonce, args...)
 		if err == nil {
@@ -162,13 +161,12 @@ func (t *ChainHelper) MakeDirectTx(ctx context.Context, contractAddressHex strin
 		}
 		return err
 	}
-	err = t.retryOnJsonRpcFailure(ctx, job)
+	err := t.retryOnJsonRpcFailure(ctx, job)
 	return result, err
 }
 
 func (t *ChainHelper) MakeFeeDelegatedTx(ctx context.Context, contractAddressHex string, functionString string, nonce uint64, args ...interface{}) (*types.Transaction, error) {
 	var result *types.Transaction
-	var err error
 	job := func(c utils.ClientInterface) error {
 		tmp, err := utils.MakeFeeDelegatedTx(ctx, c, contractAddressHex, t.wallet, functionString, t.chainID, nonce, args...)
 		if err == nil {
@@ -176,7 +174,7 @@ func (t *ChainHelper) MakeFeeDelegatedTx(ctx context.Context, contractAddressHex
 		}
 		return err
 	}
-	err = t.retryOnJsonRpcFailure(ctx, job)
+	err := t.retryOnJsonRpcFailure(ctx, job)
 	return result, err
 }
 
@@ -245,16 +243,14 @@ func (t *ChainHelper) SubmitDelegatedFallbackDirect(ctx context.Context, contrac
 		return err
 	}
 
-	for i := 0; i < maxRetrial; i++ {
-		if t.delegatorUrl != "" {
+	if t.delegatorUrl != "" {
+		for i := 0; i < maxRetrial; i++ {
 			tx, err = utils.MakeFeeDelegatedTx(ctx, t.clients[clientIndex], contractAddress, t.wallet, functionString, t.chainID, nonce, args...)
 			if err != nil {
 				if utils.ShouldRetryWithSwitchedJsonRPC(err) {
 					clientIndex = (clientIndex + 1) % len(t.clients)
-					continue
-				} else {
-					return err
 				}
+				continue
 			}
 
 			tx, err = t.GetSignedFromDelegator(tx)
@@ -266,16 +262,13 @@ func (t *ChainHelper) SubmitDelegatedFallbackDirect(ctx context.Context, contrac
 			if err != nil {
 				if utils.ShouldRetryWithSwitchedJsonRPC(err) {
 					clientIndex = (clientIndex + 1) % len(t.clients)
-					continue
-				} else if utils.IsNonceError(err) || utils.IsNonceAlreadyInPool(err) {
+				} else {
 					nonce, err = noncemanager.GetAndIncrementNonce(t.wallet)
 					if err != nil {
 						return err
 					}
-					continue
-				} else {
-					return err
 				}
+				continue
 			}
 			return nil
 		}
@@ -286,26 +279,21 @@ func (t *ChainHelper) SubmitDelegatedFallbackDirect(ctx context.Context, contrac
 		if err != nil {
 			if utils.ShouldRetryWithSwitchedJsonRPC(err) {
 				clientIndex = (clientIndex + 1) % len(t.clients)
-				continue
-			} else {
-				return err
 			}
+			continue
 		}
 
 		err = utils.SubmitRawTx(ctx, t.clients[clientIndex], tx)
 		if err != nil {
 			if utils.ShouldRetryWithSwitchedJsonRPC(err) {
 				clientIndex = (clientIndex + 1) % len(t.clients)
-				continue
-			} else if utils.IsNonceError(err) || utils.IsNonceAlreadyInPool(err) {
+			} else {
 				nonce, err = noncemanager.GetAndIncrementNonce(t.wallet)
 				if err != nil {
 					return err
 				}
-				continue
-			} else {
-				return err
 			}
+			continue
 		}
 		return nil
 	}
