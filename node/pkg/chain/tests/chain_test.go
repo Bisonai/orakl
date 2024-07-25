@@ -139,7 +139,7 @@ func TestMakeDirectTx(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		directTx, err := kaiaHelper.MakeDirectTx(ctx, test.contractAddress, test.functionString)
+		directTx, err := kaiaHelper.MakeDirectTx(ctx, test.contractAddress, test.functionString, 0)
 		if err != nil {
 			if err.Error() != test.expectedError.Error() {
 				t.Errorf("Test case %s: Expected error '%v', but got '%v'", test.name, test.expectedError, err)
@@ -188,7 +188,7 @@ func TestMakeFeeDelegatedTx(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		feeDelegatedTx, err := kaiaHelper.MakeFeeDelegatedTx(ctx, test.contractAddress, test.functionString)
+		feeDelegatedTx, err := kaiaHelper.MakeFeeDelegatedTx(ctx, test.contractAddress, test.functionString, 0)
 		if err != nil {
 			assert.ErrorIs(t, err, test.expectedError)
 		}
@@ -209,7 +209,7 @@ func TestTxToHashToTx(t *testing.T) {
 	}
 	defer kaiaHelper.Close()
 
-	rawTx, err := kaiaHelper.MakeFeeDelegatedTx(ctx, "0x93120927379723583c7a0dd2236fcb255e96949f", "increment()")
+	rawTx, err := kaiaHelper.MakeFeeDelegatedTx(ctx, "0x93120927379723583c7a0dd2236fcb255e96949f", "increment()", 0)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -257,7 +257,7 @@ func TestGenerateViewABI(t *testing.T) {
 	assert.NotEqual(t, abi, nil)
 }
 
-func TestSubmitDirect(t *testing.T) {
+func TestSubmitDelegetedFallbackDirect(t *testing.T) {
 	ctx := context.Background()
 	noncemanager.ResetInstance()
 	kaiaHelper, err := helper.NewChainHelper(ctx)
@@ -266,13 +266,13 @@ func TestSubmitDirect(t *testing.T) {
 	}
 	defer kaiaHelper.Close()
 
-	err = kaiaHelper.SubmitDirect(ctx, "0x93120927379723583c7a0dd2236fcb255e96949f", "increment()")
+	err = kaiaHelper.SubmitDelegatedFallbackDirect(ctx, "0x93120927379723583c7a0dd2236fcb255e96949f", "increment()")
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
 }
 
-func TestSubmitDirectConcurrent(t *testing.T) {
+func TestSubmitDelegetedFallbackDirectConcurrent(t *testing.T) {
 	ctx := context.Background()
 	noncemanager.ResetInstance()
 	kaiaHelper, err := helper.NewChainHelper(ctx)
@@ -290,7 +290,7 @@ func TestSubmitDirectConcurrent(t *testing.T) {
 
 	submitTx := func() {
 		defer wg.Done()
-		err := kaiaHelper.SubmitDirect(ctx, "0x93120927379723583c7a0dd2236fcb255e96949f", "increment()")
+		err := kaiaHelper.SubmitDelegatedFallbackDirect(ctx, "0x93120927379723583c7a0dd2236fcb255e96949f", "increment()")
 		errCh <- err
 	}
 
@@ -708,12 +708,12 @@ func TestSignerRenew(t *testing.T) {
 	addOracleFunctionSignature := "addOracle(address _oracle) external returns (uint256)"
 	removeOracleFunctionSignature := "function removeOracle(address _oracle) external"
 
-	err = chainHelperForCleanup.SubmitDirect(ctx, contractAddr, addOracleFunctionSignature, common.HexToAddress(oldSignerAddr))
+	err = chainHelperForCleanup.SubmitDelegatedFallbackDirect(ctx, contractAddr, addOracleFunctionSignature, common.HexToAddress(oldSignerAddr))
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
 
-	err = chainHelperForCleanup.SubmitDirect(ctx, contractAddr, removeOracleFunctionSignature, common.HexToAddress(newSignerAddr))
+	err = chainHelperForCleanup.SubmitDelegatedFallbackDirect(ctx, contractAddr, removeOracleFunctionSignature, common.HexToAddress(newSignerAddr))
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
