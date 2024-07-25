@@ -36,8 +36,8 @@ contract SubmissionProxy is Ownable {
     }
 
     mapping(address => OracleInfo) public whitelist;
+    mapping(bytes32 feedHash => IFeed feed) public feeds;
     mapping(bytes32 feedHash => uint8 threshold) thresholds;
-    mapping(bytes32 feedHash => IFeed feed) feeds;
     mapping(bytes32 feedHash => uint256 lastSubmissionTime) lastSubmissionTimes;
 
     event OracleAdded(address oracle, uint256 expirationTime);
