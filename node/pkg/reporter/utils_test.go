@@ -8,26 +8,51 @@ import (
 )
 
 func TestProcessDalWsRawData(t *testing.T) {
-	input := RawSubmissionData{
-		Value:         "123",
-		AggregateTime: "1609459200", // 2021-01-01 00:00:00 UTC
-		Proof:         "0xabcdef",
-		FeedHash:      "0x123456",
-	}
-	expected := SubmissionData{
-		Value:         123,
-		AggregateTime: 1609459200,
-		Proof:         []byte{0xab, 0xcd, 0xef},
-		FeedHash:      [32]byte{0x12, 0x34, 0x56},
+	tests := []struct {
+		name     string
+		input    RawSubmissionData
+		expected SubmissionData
+		wantErr  bool
+	}{
+		{
+			name: "Valid input",
+			input: RawSubmissionData{
+				Value:         "123",
+				AggregateTime: "1609459200",
+				Proof:         "0xabcdef",
+				FeedHash:      "0x123456",
+			},
+			expected: SubmissionData{
+				Value:         123,
+				AggregateTime: 1609459200,
+				Proof:         []byte{0xab, 0xcd, 0xef},
+				FeedHash:      [32]byte{0x12, 0x34, 0x56},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Invalid value",
+			input: RawSubmissionData{
+				Value:         "abc",
+				AggregateTime: "1609459200",
+				Proof:         "0xabcdef",
+				FeedHash:      "0x123456",
+			},
+			expected: SubmissionData{},
+			wantErr:  true,
+		},
 	}
 
-	result, err := ProcessDalWsRawData(input)
-
-	if err != nil {
-		t.Errorf("Expected no error, got %v", err)
-	}
-
-	if !reflect.DeepEqual(result, expected) {
-		t.Errorf("Expected result %+v, got %+v", expected, result)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := ProcessDalWsRawData(tt.input)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ProcessDalWsRawData() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(result, tt.expected) {
+				t.Errorf("ProcessDalWsRawData() = %v, want %v", result, tt.expected)
+			}
+		})
 	}
 }
