@@ -13,7 +13,6 @@ import (
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
 	"bisonai.com/orakl/node/pkg/wss"
 
-	"github.com/klaytn/klaytn/common"
 	klaytncommon "github.com/klaytn/klaytn/common"
 	"github.com/rs/zerolog/log"
 )
@@ -58,7 +57,7 @@ func ShouldReportDeviation(oldValue int64, newValue int64, threshold float64) bo
 	}
 }
 
-func ReadOnchainWhitelist(ctx context.Context, chainHelper *helper.ChainHelper, contractAddress string, contractFunction string) ([]common.Address, error) {
+func ReadOnchainWhitelist(ctx context.Context, chainHelper *helper.ChainHelper, contractAddress string, contractFunction string) ([]klaytncommon.Address, error) {
 	result, err := chainHelper.ReadContract(ctx, contractAddress, contractFunction)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to read contract")
@@ -71,7 +70,7 @@ func ReadOnchainWhitelist(ctx context.Context, chainHelper *helper.ChainHelper, 
 		return nil, errorSentinel.ErrReporterResultCastToInterfaceFail
 	}
 
-	arr, ok := rawResultSlice[0].([]common.Address)
+	arr, ok := rawResultSlice[0].([]klaytncommon.Address)
 	if !ok {
 		log.Error().Str("Player", "Reporter").Msg("unexpected raw result type")
 		return nil, errorSentinel.ErrReporterResultCastToAddressFail

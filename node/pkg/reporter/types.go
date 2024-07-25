@@ -2,8 +2,6 @@ package reporter
 
 import (
 	"context"
-	"fmt"
-	"strings"
 	"sync"
 	"time"
 
@@ -150,23 +148,4 @@ type SubmissionData struct {
 
 type SubmissionMessage struct {
 	Submissions []GlobalAggregate `json:"submissions"`
-}
-
-func makeGetLatestGlobalAggregatesQuery(configIds []int32) string {
-	queryConfigIds := make([]string, len(configIds))
-	for i, id := range configIds {
-		queryConfigIds[i] = fmt.Sprintf("'%d'", id)
-	}
-
-	q := fmt.Sprintf(`
-	SELECT ga.config_id, ga.value, ga.round, ga.timestamp
-	FROM global_aggregates ga
-	JOIN (
-		SELECT config_id, MAX(round) as max_round
-		FROM global_aggregates
-		WHERE config_id IN (%s)
-		GROUP BY config_id
-	) subq ON ga.config_id = subq.config_id AND ga.round = subq.max_round;`, strings.Join(queryConfigIds, ","))
-
-	return q
 }
