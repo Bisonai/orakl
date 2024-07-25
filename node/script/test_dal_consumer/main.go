@@ -52,7 +52,10 @@ func main() {
 		panic("failed to convert string to big int")
 	}
 
-	feedHashes := [][32]byte{result.FeedHash}
+	var feedHash [32]byte
+	copy(feedHash[:], result.FeedHash)
+
+	feedHashes := [][32]byte{feedHash}
 	values := []*big.Int{&submissionVal}
 	timestamps := []*big.Int{&submissionTime}
 	proofs := [][]byte{result.Proof}
