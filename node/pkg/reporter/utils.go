@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"math"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -128,12 +129,12 @@ func ProcessDalWsRawData(data any) (SubmissionData, error) {
 		return SubmissionData{}, errorSentinel.ErrReporterDalWsDataProcessingFailed
 	}
 
-	feedHashBytes := klaytncommon.Hex2Bytes(rawSubmissionData.FeedHash)
+	feedHashBytes := klaytncommon.Hex2Bytes(strings.TrimPrefix(rawSubmissionData.FeedHash, "0x"))
 	feedHash := [32]byte{}
 	copy(feedHash[:], feedHashBytes)
 	submissionData := SubmissionData{
 		FeedHash: feedHash,
-		Proof:    klaytncommon.Hex2Bytes(rawSubmissionData.Proof),
+		Proof:    klaytncommon.Hex2Bytes(strings.TrimPrefix(rawSubmissionData.Proof, "0x")),
 	}
 
 	value, valueErr := strconv.ParseInt(rawSubmissionData.Value, 10, 64)
