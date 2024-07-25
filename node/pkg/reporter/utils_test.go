@@ -5,6 +5,9 @@ package reporter
 import (
 	"reflect"
 	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestProcessDalWsRawData(t *testing.T) {
@@ -55,4 +58,12 @@ func TestProcessDalWsRawData(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestGetDeviationThreshold(t *testing.T) {
+	assert.Equal(t, 0.05, GetDeviationThreshold(15*time.Second))
+	assert.Equal(t, 0.01, GetDeviationThreshold(60*time.Second))
+	assert.Equal(t, 0.05, GetDeviationThreshold(1*time.Second))
+	assert.Equal(t, 0.01, GetDeviationThreshold(2*time.Hour))
+	assert.Less(t, GetDeviationThreshold(30*time.Second), 0.05)
 }

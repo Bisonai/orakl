@@ -15,7 +15,7 @@ import (
 func New() *App {
 	return &App{
 		Reporters:  []*Reporter{},
-		LatestData: &sync.Map{},
+		LatestData: new(sync.Map),
 	}
 }
 

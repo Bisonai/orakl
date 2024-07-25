@@ -5,7 +5,6 @@ import (
 	"context"
 	"os"
 	"testing"
-	"time"
 
 	"bisonai.com/orakl/node/pkg/chain/helper"
 	"github.com/stretchr/testify/assert"
@@ -67,14 +66,6 @@ func TestShouldReportDeviation(t *testing.T) {
 	assert.False(t, ShouldReportDeviation(100000000000, 100100000000, 0.05))
 	assert.True(t, ShouldReportDeviation(100000000000, 105100000000, 0.05))
 	assert.False(t, ShouldReportDeviation(100000000000, 0, 0.05))
-}
-
-func TestGetDeviationThreshold(t *testing.T) {
-	assert.Equal(t, 0.05, GetDeviationThreshold(15*time.Second))
-	assert.Equal(t, 0.01, GetDeviationThreshold(60*time.Minute))
-	assert.Equal(t, 0.05, GetDeviationThreshold(1*time.Second))
-	assert.Equal(t, 0.01, GetDeviationThreshold(2*time.Hour))
-	assert.Less(t, GetDeviationThreshold(30*time.Minute), 0.05)
 }
 
 func TestGetDeviatingAggregates(t *testing.T) {

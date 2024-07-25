@@ -88,7 +88,7 @@ func ReadOnchainWhitelist(ctx context.Context, chainHelper *helper.ChainHelper, 
 func GetDeviationThreshold(submissionInterval time.Duration) float64 {
 	if submissionInterval <= 15*time.Second {
 		return MIN_DEVIATION_THRESHOLD
-	} else if submissionInterval >= 60*time.Minute {
+	} else if submissionInterval >= 60*time.Second {
 		return MAX_DEVIATION_THRESHOLD
 	} else {
 		submissionIntervalSec := submissionInterval.Seconds()

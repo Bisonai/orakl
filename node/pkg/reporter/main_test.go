@@ -80,6 +80,7 @@ func TestMain(m *testing.M) {
 	ctx := context.Background()
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	configIds, err := setup(ctx)
+	defer cleanUp(ctx, configIds)
 	if err != nil {
 		log.Fatal().Err(err).Msg("error setting up test")
 		os.Exit(1)
@@ -87,10 +88,5 @@ func TestMain(m *testing.M) {
 
 	code := m.Run()
 
-	err = cleanUp(ctx, configIds)
-	if err != nil {
-		log.Fatal().Err(err).Msg("error cleaning up configs")
-		os.Exit(1)
-	}
 	os.Exit(code)
 }
