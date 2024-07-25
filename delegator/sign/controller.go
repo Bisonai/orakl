@@ -484,19 +484,21 @@ func HashToTx(hash string) (*types.Transaction, error) {
 
 func insertTransaction(c *fiber.Ctx, payload *SignInsertPayload) (*SignModel, error) {
 	transaction, err := utils.QueryRow[SignModel](c, InsertTransaction, map[string]any{
-		"timestamp": payload.Timestamp.String(),
-		"from":      payload.From,
-		"to":        payload.To,
-		"input":     payload.Input,
-		"gas":       payload.Gas,
-		"value":     payload.Value,
-		"chainId":   payload.ChainId,
-		"gasPrice":  payload.GasPrice,
-		"nonce":     payload.Nonce,
-		"v":         payload.V,
-		"r":         payload.R,
-		"s":         payload.S,
-		"rawTx":     payload.RawTx,
+		"timestamp":   payload.Timestamp.String(),
+		"from":        payload.From,
+		"to":          payload.To,
+		"input":       payload.Input,
+		"gas":         payload.Gas,
+		"value":       payload.Value,
+		"chainId":     payload.ChainId,
+		"gasPrice":    payload.GasPrice,
+		"nonce":       payload.Nonce,
+		"v":           payload.V,
+		"r":           payload.R,
+		"s":           payload.S,
+		"rawTx":       payload.RawTx,
+		"signedRawTx": payload.SignedRawTx,
+		"succeed":     payload.Succeed,
 	})
 	if err != nil {
 		return nil, err
