@@ -76,3 +76,4 @@
 - **dal** v0.0.1.20240723.0713.3684c42 <br> *`PR`*: Potential fix for concurrent w... <br><br> 
 - **dal** v0.0.1.20240723.0950.f26c52f <br> *`PR`*: DAL hotfix mutex implementatio... <br><br> 
 - **delegator** v0.0.1.20240724.0615.951a25d <br> *`PR`*: Delegator delegator sign funct... <br><br> 
+- **node** v0.0.1.20240725.0309.d5a2c89 <br> *`PR`*: DAL Minor update <br><br> 
