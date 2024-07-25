@@ -6,21 +6,13 @@ import (
 
 	"bisonai.com/orakl/node/pkg/chain/helper"
 	"bisonai.com/orakl/node/pkg/common/types"
-	"bisonai.com/orakl/node/pkg/raft"
 	"bisonai.com/orakl/node/pkg/wss"
 	"github.com/klaytn/klaytn/common"
 )
 
 const (
-	SubmissionMsg           raft.MessageType = "submission"
-	TOPIC_STRING                             = "orakl-offchain-aggregation-reporter"
-	MESSAGE_BUFFER                           = 100
-	DEVIATION_TIMEOUT                        = 5 * time.Second
-	INITIAL_FAILURE_TIMEOUT                  = 50 * time.Millisecond
-	MAX_RETRY                                = 3
-	MAX_RETRY_DELAY                          = 500 * time.Millisecond
-	SUBMIT_WITH_PROOFS                       = "submit(bytes32[] calldata _feedHashes, int256[] calldata _answers, uint256[] calldata _timestamps, bytes[] calldata _proofs)"
-	GET_ONCHAIN_WHITELIST                    = "getAllOracles() public view returns (address[] memory)"
+	SUBMIT_WITH_PROOFS    = "submit(bytes32[] calldata _feedHashes, int256[] calldata _answers, uint256[] calldata _timestamps, bytes[] calldata _proofs)"
+	GET_ONCHAIN_WHITELIST = "getAllOracles() public view returns (address[] memory)"
 
 	GET_REPORTER_CONFIGS = `SELECT name, id, submit_interval, aggregate_interval FROM configs;`
 
@@ -138,8 +130,6 @@ type Reporter struct {
 
 type GlobalAggregate types.GlobalAggregate
 
-type Proof types.Proof
-
 type RawSubmissionData struct {
 	Value         string `json:"value"`
 	AggregateTime string `json:"aggregateTime"`
@@ -151,8 +141,4 @@ type SubmissionData struct {
 	AggregateTime int64    `json:"aggregateTime"`
 	Proof         []byte   `json:"proof"`
 	FeedHash      [32]byte `json:"feedHash"`
-}
-
-type SubmissionMessage struct {
-	Submissions []GlobalAggregate `json:"submissions"`
 }
