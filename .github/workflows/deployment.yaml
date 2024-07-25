@@ -83,6 +83,7 @@ on:
           - delegator:v0.0.1.20240724.0615.951a25d:Delegator delegator sign funct...
           - node:v0.0.1.20240725.0309.d5a2c89:DAL Minor update
           - delegator:v0.0.1.20240725.0310.d5a2c89:DAL Minor update
+          - delegator:v0.0.1.20240725.0348.bb6b5ab:Delegator Fix grafana not visu...
 jobs:
   prepare-taskflow:
     name: Prepare

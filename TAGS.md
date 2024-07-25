@@ -78,3 +78,4 @@
 - **delegator** v0.0.1.20240724.0615.951a25d <br> *`PR`*: Delegator delegator sign funct... <br><br> 
 - **node** v0.0.1.20240725.0309.d5a2c89 <br> *`PR`*: DAL Minor update <br><br> 
 - **delegator** v0.0.1.20240725.0310.d5a2c89 <br> *`PR`*: DAL Minor update <br><br> 
+- **delegator** v0.0.1.20240725.0348.bb6b5ab <br> *`PR`*: Delegator Fix grafana not visu... <br><br> 
