@@ -5,11 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 
 	"bisonai.com/orakl/node/pkg/common/types"
 	"bisonai.com/orakl/node/pkg/dal/collector"
 	dalcommon "bisonai.com/orakl/node/pkg/dal/common"
-	"bisonai.com/orakl/node/pkg/dal/utils/stats"
 	"bisonai.com/orakl/node/pkg/utils/request"
 	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
@@ -19,7 +19,7 @@ import (
 func Setup(ctx context.Context, adminEndpoint string) (*Controller, error) {
 	configs, err := request.Request[[]types.Config](request.WithEndpoint(adminEndpoint + "/config"))
 	if err != nil {
-		log.Error().Err(err).Msg("failed to get configs")
+		log.Error().Str("Player", "controller").Err(err).Msg("failed to get configs")
 		return nil, err
 	}
 
@@ -29,7 +29,7 @@ func Setup(ctx context.Context, adminEndpoint string) (*Controller, error) {
 	}
 	collector, err := collector.NewCollector(ctx, configs)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to create collector")
+		log.Error().Str("Player", "controller").Err(err).Msg("failed to create collector")
 		return nil, err
 	}
 
@@ -42,35 +42,56 @@ func NewController(configs map[string]types.Config, internalCollector *collector
 		Collector: internalCollector,
 		configs:   configs,
 
-		clients:    make(map[*websocket.Conn]map[string]bool),
-		register:   make(chan *websocket.Conn),
-		unregister: make(chan *websocket.Conn),
-		broadcast:  make(map[string]chan dalcommon.OutgoingSubmissionData),
+		clients:         make(map[*websocket.Conn]map[string]bool),
+		register:        make(chan *websocket.Conn),
+		unregister:      make(chan *websocket.Conn),
+		broadcast:       make(map[string]chan dalcommon.OutgoingSubmissionData),
+		connectionCount: make(map[string]int),
+
+		mu: sync.RWMutex{},
 	}
 }
 
 func (c *Controller) Start(ctx context.Context) {
 	go c.Collector.Start(ctx)
-	log.Info().Msg("api collector started")
+	log.Info().Str("Player", "controller").Msg("api collector started")
 	go func() {
 		for {
 			select {
 			case conn := <-c.register:
+				apiKey := conn.Headers("X-Api-Key")
 				c.mu.Lock()
-				c.clients[conn] = make(map[string]bool)
+				if _, ok := c.clients[conn]; !ok {
+					c.clients[conn] = make(map[string]bool)
+					c.connectionCount[apiKey]++
+				}
 				c.mu.Unlock()
 			case conn := <-c.unregister:
+				apiKey := conn.Headers("X-Api-Key")
 				c.mu.Lock()
-				delete(c.clients, conn)
+				if _, ok := c.clients[conn]; ok {
+					c.connectionCount[apiKey]--
+					delete(c.clients, conn)
+				}
 				conn.Close()
 				c.mu.Unlock()
+			case <-ctx.Done():
+				c.mu.Lock()
+				for conn := range c.clients {
+					delete(c.clients, conn)
+					conn.Close()
+				}
+				c.mu.Unlock()
+				return
 			}
 		}
 	}()
 
 	for configId, stream := range c.Collector.OutgoingStream {
 		symbol := c.configIdToSymbol(configId)
-		c.broadcast[symbol] = make(chan dalcommon.OutgoingSubmissionData)
+		if symbol == "" {
+			continue
+		}
 		c.broadcast[symbol] = stream
 	}
 
@@ -90,7 +111,6 @@ func (c *Controller) configIdToSymbol(id int32) string {
 
 func (c *Controller) broadcastDataForSymbol(symbol string) {
 	for data := range c.broadcast[symbol] {
-
 		go c.castSubmissionData(&data, &symbol)
 	}
 }
@@ -102,72 +122,10 @@ func (c *Controller) castSubmissionData(data *dalcommon.OutgoingSubmissionData, 
 	for conn := range c.clients {
 		if _, ok := c.clients[conn][*symbol]; ok {
 			if err := conn.WriteJSON(*data); err != nil {
-				log.Error().Err(err).Msg("failed to write message")
+				log.Error().Str("Player", "controller").Err(err).Msg("failed to write message")
 				delete(c.clients, conn)
-				conn.Close()
+				conn.CloseHandler()(websocket.CloseInternalServerErr, "failed to write message")
 			}
-		}
-	}
-}
-
-func HandleWebsocket(conn *websocket.Conn) {
-	c, ok := conn.Locals("apiController").(*Controller)
-	if !ok {
-		log.Error().Msg("api controller not found")
-		return
-	}
-
-	ctx, ok := conn.Locals("context").(*context.Context)
-	if !ok {
-		log.Error().Msg("ctx not found")
-		return
-	}
-
-	c.register <- conn
-	apiKey := conn.Headers("X-Api-Key")
-
-	id, err := stats.InsertWebsocketConnection(*ctx, apiKey)
-	if err != nil {
-		log.Error().Err(err).Msg("failed to insert websocket connection")
-		return
-	}
-	log.Info().Int32("id", id).Msg("inserted websocket connection")
-
-	defer func() {
-		c.unregister <- conn
-		conn.Close()
-		err = stats.UpdateWebsocketConnection(*ctx, id)
-		if err != nil {
-			log.Error().Err(err).Msg("failed to update websocket connection")
-			return
-		}
-		log.Info().Int32("id", id).Msg("updated websocket connection")
-	}()
-
-	for {
-		var msg Subscription
-		if err = conn.ReadJSON(&msg); err != nil {
-			log.Error().Err(err).Msg("failed to read message")
-			return
-		}
-
-		if msg.Method == "SUBSCRIBE" {
-			c.mu.Lock()
-			if c.clients[conn] == nil {
-				c.clients[conn] = make(map[string]bool)
-			}
-			for _, param := range msg.Params {
-				symbol := strings.TrimPrefix(param, "submission@")
-				if _, ok := c.configs[symbol]; !ok {
-					continue
-				}
-				c.clients[conn][symbol] = true
-				err = stats.InsertWebsocketSubscription(*ctx, id, param)
-				if err != nil {
-					log.Error().Err(err).Msg("failed to insert websocket subscription")
-				}
-			}
-			c.mu.Unlock()
 		}
 	}
 }

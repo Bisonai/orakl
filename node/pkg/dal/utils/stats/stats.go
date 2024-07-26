@@ -71,6 +71,14 @@ func InsertWebsocketSubscription(ctx context.Context, connectionId int32, topic 
 	})
 }
 
+func InsertWebsocketSubscriptions(ctx context.Context, connectionId int32, topics []string) error {
+	rows := make([][]any, 0, len(topics))
+	for _, topic := range topics {
+		rows = append(rows, []any{connectionId, topic})
+	}
+	return db.BulkInsert(ctx, "websocket_subscriptions", []string{"connection_id", "topic"}, rows)
+}
+
 func StatsMiddleware(c *fiber.Ctx) error {
 	start := time.Now()
 	if err := c.Next(); err != nil {

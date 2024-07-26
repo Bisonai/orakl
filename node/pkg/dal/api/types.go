@@ -17,11 +17,12 @@ type Subscription struct {
 type Controller struct {
 	Collector *collector.Collector
 
-	configs    map[string]types.Config
-	clients    map[*websocket.Conn]map[string]bool
-	register   chan *websocket.Conn
-	unregister chan *websocket.Conn
-	broadcast  map[string]chan dalcommon.OutgoingSubmissionData
+	configs         map[string]types.Config
+	clients         map[*websocket.Conn]map[string]bool
+	register        chan *websocket.Conn
+	unregister      chan *websocket.Conn
+	broadcast       map[string]chan dalcommon.OutgoingSubmissionData
+	connectionCount map[string]int
 
 	mu sync.RWMutex
 }
