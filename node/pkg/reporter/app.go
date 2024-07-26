@@ -134,7 +134,6 @@ func fetchConfigs() ([]Config, error) {
 	endpoint := fmt.Sprintf("https://config.orakl.network/%s_configs.json", chain)
 	configs, err := request.Request[[]Config](request.WithEndpoint(endpoint))
 	if err != nil {
-		log.Error().Str("Player", "Reporter").Err(err).Msgf("failed to fetch configs from endpoint %s", endpoint)
 		return nil, err
 	}
 	return configs, nil
