@@ -53,8 +53,8 @@ func TestNewReporter(t *testing.T) {
 			WithContractAddress(contractAddress),
 			WithCachedWhitelist(whitelist),
 			WithKaiaHelper(tmpHelper),
-			WithLatestData(app.LatestDataMap),
-			WithLatestSubmittedData(app.LatestSubmittedDataMap),
+			WithLatestDataMap(app.LatestDataMap),
+			WithLatestSubmittedDataMap(app.LatestSubmittedDataMap),
 		)
 		if err != nil {
 			t.Fatalf("error creating new reporter: %v", err)
@@ -70,8 +70,8 @@ func TestNewReporter(t *testing.T) {
 		WithCachedWhitelist(whitelist),
 		WithJobType(DeviationJob),
 		WithKaiaHelper(tmpHelper),
-		WithLatestData(app.LatestDataMap),
-		WithLatestSubmittedData(app.LatestSubmittedDataMap),
+		WithLatestDataMap(app.LatestDataMap),
+		WithLatestSubmittedDataMap(app.LatestSubmittedDataMap),
 	)
 	if errNewDeviationReporter != nil {
 		if err != nil {
@@ -147,8 +147,8 @@ func TestGetDeviatingAggregates(t *testing.T) {
 		WithCachedWhitelist(whitelist),
 		WithJobType(DeviationJob),
 		WithKaiaHelper(tmpHelper),
-		WithLatestData(app.LatestDataMap),
-		WithLatestSubmittedData(app.LatestSubmittedDataMap),
+		WithLatestDataMap(app.LatestDataMap),
+		WithLatestSubmittedDataMap(app.LatestSubmittedDataMap),
 	)
 	if err != nil {
 		t.Fatalf("error creating new deviation reporter: %v", err)

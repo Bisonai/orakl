@@ -106,13 +106,13 @@ func WithKaiaHelper(chainHelper *helper.ChainHelper) ReporterOption {
 	}
 }
 
-func WithLatestData(latestDataMap *sync.Map) ReporterOption {
+func WithLatestDataMap(latestDataMap *sync.Map) ReporterOption {
 	return func(c *ReporterConfig) {
 		c.LatestDataMap = latestDataMap
 	}
 }
 
-func WithLatestSubmittedData(latestSubmittedDataMap *sync.Map) ReporterOption {
+func WithLatestSubmittedDataMap(latestSubmittedDataMap *sync.Map) ReporterOption {
 	return func(c *ReporterConfig) {
 		c.LatestSubmittedDataMap = latestSubmittedDataMap
 	}

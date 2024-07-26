@@ -81,8 +81,8 @@ func (a *App) setReporters(ctx context.Context) error {
 			WithContractAddress(contractAddress),
 			WithCachedWhitelist(cachedWhitelist),
 			WithKaiaHelper(chainHelper),
-			WithLatestData(a.LatestDataMap),
-			WithLatestSubmittedData(a.LatestSubmittedDataMap),
+			WithLatestDataMap(a.LatestDataMap),
+			WithLatestSubmittedDataMap(a.LatestSubmittedDataMap),
 		)
 		if errNewReporter != nil {
 			log.Error().Str("Player", "Reporter").Err(errNewReporter).Msg("failed to set reporter")
@@ -103,8 +103,8 @@ func (a *App) setReporters(ctx context.Context) error {
 		WithCachedWhitelist(cachedWhitelist),
 		WithJobType(DeviationJob),
 		WithKaiaHelper(chainHelper),
-		WithLatestData(a.LatestDataMap),
-		WithLatestSubmittedData(a.LatestSubmittedDataMap),
+		WithLatestDataMap(a.LatestDataMap),
+		WithLatestSubmittedDataMap(a.LatestSubmittedDataMap),
 	)
 	if errNewDeviationReporter != nil {
 		log.Error().Str("Player", "Reporter").Err(errNewDeviationReporter).Msg("failed to set deviation reporter")
