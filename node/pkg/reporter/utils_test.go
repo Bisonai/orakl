@@ -44,6 +44,61 @@ func TestProcessDalWsRawData(t *testing.T) {
 			expected: SubmissionData{},
 			wantErr:  true,
 		},
+		{
+			name: "Empty all fields",
+			input: RawSubmissionData{
+				Value:         "",
+				AggregateTime: "",
+				Proof:         "",
+				FeedHash:      "",
+			},
+			expected: SubmissionData{},
+			wantErr:  true,
+		},
+		{
+			name: "Empty value",
+			input: RawSubmissionData{
+				Value:         "",
+				AggregateTime: "1609459200",
+				Proof:         "0xabcdef",
+				FeedHash:      "0x123456",
+			},
+			expected: SubmissionData{},
+			wantErr:  true,
+		},
+		{
+			name: "Empty aggregate time",
+			input: RawSubmissionData{
+				Value:         "123",
+				AggregateTime: "",
+				Proof:         "0xabcdef",
+				FeedHash:      "0x123456",
+			},
+			expected: SubmissionData{},
+			wantErr:  true,
+		},
+		{
+			name: "Empty proof",
+			input: RawSubmissionData{
+				Value:         "123",
+				AggregateTime: "1609459200",
+				Proof:         "",
+				FeedHash:      "0x123456",
+			},
+			expected: SubmissionData{},
+			wantErr:  true,
+		},
+		{
+			name: "Empty feed hash",
+			input: RawSubmissionData{
+				Value:         "123",
+				AggregateTime: "1609459200",
+				Proof:         "0xabcdef",
+				FeedHash:      "",
+			},
+			expected: SubmissionData{},
+			wantErr:  true,
+		},
 	}
 
 	for _, tt := range tests {

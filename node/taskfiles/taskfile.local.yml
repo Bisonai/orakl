@@ -105,7 +105,7 @@ tasks:
   test-reporter:
     dotenv: [".env"]
     cmds:
-      - go test ./pkg/reporter -v -count=1 -run TestGetDeviationThreshold
+      - go test ./pkg/reporter -v -count=1
   test-boot:
     dotenv: [".env"]
     cmds:

@@ -11,15 +11,20 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// func TestTest(t *testing.T) {
-// 	t.Logf("Test passed")
-// }
-
 func TestRunApp(t *testing.T) {
 	ctx := context.Background()
-	app := New()
+	cleanUp, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer func() {
+		if cleanupErr := cleanUp(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
+		}
+	}()
 
-	err := app.Run(ctx)
+	app := New()
+	err = app.Run(ctx)
 	if err != nil {
 		t.Fatalf("error running reporter: %v", err)
 	}
@@ -27,12 +32,21 @@ func TestRunApp(t *testing.T) {
 
 func TestRunMissingApiKey(t *testing.T) {
 	ctx := context.Background()
+	cleanUp, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer func() {
+		if cleanupErr := cleanUp(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
+		}
+	}()
 	app := New()
 
 	apiKey := os.Getenv("API_KEY")
 	os.Setenv("API_KEY", "")
 
-	err := app.Run(ctx)
+	err = app.Run(ctx)
 	os.Setenv("API_KEY", apiKey)
 
 	assert.ErrorIs(t, err, errorSentinel.ErrReporterDalApiKeyNotFound)
@@ -40,12 +54,21 @@ func TestRunMissingApiKey(t *testing.T) {
 
 func TestRunMissingWsUrl(t *testing.T) {
 	ctx := context.Background()
+	cleanUp, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer func() {
+		if cleanupErr := cleanUp(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
+		}
+	}()
 	app := New()
 
 	dalWsEndpoint := os.Getenv("DAL_WS_URL")
 	os.Setenv("DAL_WS_URL", "")
 
-	err := app.Run(ctx)
+	err = app.Run(ctx)
 	os.Setenv("DAL_WS_URL", dalWsEndpoint)
 
 	assert.NoError(t, err)
@@ -53,12 +76,21 @@ func TestRunMissingWsUrl(t *testing.T) {
 
 func TestRunMissingSubmissionProxyContract(t *testing.T) {
 	ctx := context.Background()
+	cleanUp, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer func() {
+		if cleanupErr := cleanUp(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
+		}
+	}()
 	app := New()
 
 	submissionProxy := os.Getenv("SUBMISSION_PROXY_CONTRACT")
 	os.Setenv("SUBMISSION_PROXY_CONTRACT", "")
 
-	err := app.Run(ctx)
+	err = app.Run(ctx)
 	os.Setenv("SUBMISSION_PROXY_CONTRACT", submissionProxy)
 
 	assert.ErrorIs(t, err, errorSentinel.ErrReporterSubmissionProxyContractNotFound)
@@ -66,9 +98,18 @@ func TestRunMissingSubmissionProxyContract(t *testing.T) {
 
 func TestWsDataHandling(t *testing.T) {
 	ctx := context.Background()
+	cleanUp, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer func() {
+		if cleanupErr := cleanUp(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
+		}
+	}()
 	app := New()
 
-	err := app.Run(ctx)
+	err = app.Run(ctx)
 	if err != nil {
 		t.Fatalf("error running reporter: %v", err)
 	}

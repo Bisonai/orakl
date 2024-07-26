@@ -35,16 +35,12 @@ type Config struct {
 	AggregateInterval *int   `db:"aggregate_interval"`
 }
 
-type SubmissionPair struct {
-	LastSubmission int64
-	Name           string
-}
-
 type App struct {
 	Reporters []*Reporter
 
-	WsHelper   *wss.WebsocketHelper
-	LatestData *sync.Map
+	WsHelper            *wss.WebsocketHelper
+	LatestData          *sync.Map // map[symbol]SubmissionData
+	LatestSubmittedData *sync.Map // map[symbol]int64
 }
 
 type JobType int
@@ -55,15 +51,16 @@ const (
 )
 
 type ReporterConfig struct {
-	Configs         []Config
-	Interval        int
-	ContractAddress string
-	CachedWhitelist []common.Address
-	JobType         JobType
-	DalApiKey       string
-	DalWsEndpoint   string
-	KaiaHelper      *helper.ChainHelper
-	LatestData      *sync.Map
+	Configs             []Config
+	Interval            int
+	ContractAddress     string
+	CachedWhitelist     []common.Address
+	JobType             JobType
+	DalApiKey           string
+	DalWsEndpoint       string
+	KaiaHelper          *helper.ChainHelper
+	LatestData          *sync.Map
+	LatestSubmittedData *sync.Map
 }
 
 type ReporterOption func(*ReporterConfig)
@@ -115,17 +112,24 @@ func WithLatestData(latestData *sync.Map) ReporterOption {
 	}
 }
 
+func WithLatestSubmittedData(latestSubmittedData *sync.Map) ReporterOption {
+	return func(c *ReporterConfig) {
+		c.LatestSubmittedData = latestSubmittedData
+	}
+}
+
 type Reporter struct {
 	KaiaHelper         *helper.ChainHelper
-	SubmissionPairs    map[int32]SubmissionPair
+	Pairs              []string
 	SubmissionInterval time.Duration
 	CachedWhitelist    []common.Address
 
 	contractAddress    string
 	deviationThreshold float64
 
-	LatestData *sync.Map // map[symbol]SubmissionData
-	Job        func() error
+	LatestData          *sync.Map
+	LatestSubmittedData *sync.Map
+	Job                 func() error
 }
 
 type GlobalAggregate types.GlobalAggregate

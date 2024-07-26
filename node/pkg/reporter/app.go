@@ -14,8 +14,9 @@ import (
 
 func New() *App {
 	return &App{
-		Reporters:  []*Reporter{},
-		LatestData: new(sync.Map),
+		Reporters:           []*Reporter{},
+		LatestData:          new(sync.Map),
+		LatestSubmittedData: new(sync.Map),
 	}
 }
 
@@ -81,6 +82,7 @@ func (a *App) setReporters(ctx context.Context) error {
 			WithCachedWhitelist(cachedWhitelist),
 			WithKaiaHelper(chainHelper),
 			WithLatestData(a.LatestData),
+			WithLatestSubmittedData(a.LatestSubmittedData),
 		)
 		if errNewReporter != nil {
 			log.Error().Str("Player", "Reporter").Err(errNewReporter).Msg("failed to set reporter")
@@ -102,6 +104,7 @@ func (a *App) setReporters(ctx context.Context) error {
 		WithJobType(DeviationJob),
 		WithKaiaHelper(chainHelper),
 		WithLatestData(a.LatestData),
+		WithLatestSubmittedData(a.LatestSubmittedData),
 	)
 	if errNewDeviationReporter != nil {
 		log.Error().Str("Player", "Reporter").Err(errNewDeviationReporter).Msg("failed to set deviation reporter")

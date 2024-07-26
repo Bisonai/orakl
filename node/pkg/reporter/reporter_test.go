@@ -12,13 +12,22 @@ import (
 
 func TestNewReporter(t *testing.T) {
 	ctx := context.Background()
+	cleanUp, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer func() {
+		if cleanupErr := cleanUp(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
+		}
+	}()
 	app := New()
 
-	submissionPairs, err := getConfigs(ctx)
+	configs, err := getConfigs(ctx)
 	if err != nil {
 		t.Fatalf("error getting submission pairs: %v", err)
 	}
-	groupedSubmissionPairs := groupConfigsBySubmitIntervals(submissionPairs)
+	groupedConfigs := groupConfigsBySubmitIntervals(configs)
 
 	contractAddress := os.Getenv("SUBMISSION_PROXY_CONTRACT")
 	if contractAddress == "" {
@@ -36,8 +45,8 @@ func TestNewReporter(t *testing.T) {
 		t.Fatalf("error reading onchain whitelist: %v", err)
 	}
 
-	for groupInterval, pairs := range groupedSubmissionPairs {
-		_, err := NewReporter(
+	for groupInterval, pairs := range groupedConfigs {
+		reporter, err := NewReporter(
 			ctx,
 			WithConfigs(pairs),
 			WithInterval(groupInterval),
@@ -45,18 +54,47 @@ func TestNewReporter(t *testing.T) {
 			WithCachedWhitelist(whitelist),
 			WithKaiaHelper(tmpHelper),
 			WithLatestData(app.LatestData),
+			WithLatestSubmittedData(app.LatestSubmittedData),
 		)
 		if err != nil {
 			t.Fatalf("error creating new reporter: %v", err)
 		}
+		app.Reporters = append(app.Reporters, reporter)
 	}
+
+	deviationReporter, errNewDeviationReporter := NewReporter(
+		ctx,
+		WithConfigs(configs),
+		WithInterval(DEVIATION_INTERVAL),
+		WithContractAddress(contractAddress),
+		WithCachedWhitelist(whitelist),
+		WithJobType(DeviationJob),
+		WithKaiaHelper(tmpHelper),
+		WithLatestData(app.LatestData),
+		WithLatestSubmittedData(app.LatestSubmittedData),
+	)
+	if errNewDeviationReporter != nil {
+		if err != nil {
+			t.Fatalf("error creating new deviation reporter: %v", err)
+		}
+	}
+	app.Reporters = append(app.Reporters, deviationReporter)
 }
 
 func TestShouldReportDeviation(t *testing.T) {
 	ctx := context.Background()
+	cleanUp, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer func() {
+		if cleanupErr := cleanUp(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
+		}
+	}()
 	app := New()
 
-	err := app.setReporters(ctx)
+	err = app.setReporters(ctx)
 	if err != nil {
 		t.Fatalf("error setting reporters: %v", err)
 	}
@@ -70,6 +108,15 @@ func TestShouldReportDeviation(t *testing.T) {
 
 func TestGetDeviatingAggregates(t *testing.T) {
 	ctx := context.Background()
+	cleanUp, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer func() {
+		if cleanupErr := cleanUp(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
+		}
+	}()
 	app := New()
 
 	configs, err := getConfigs(ctx)
@@ -92,7 +139,7 @@ func TestGetDeviatingAggregates(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error reading onchain whitelist: %v", err)
 	}
-	reporter, err := NewReporter(
+	deviationReporter, err := NewReporter(
 		ctx,
 		WithConfigs(configs),
 		WithInterval(5000),
@@ -101,21 +148,19 @@ func TestGetDeviatingAggregates(t *testing.T) {
 		WithJobType(DeviationJob),
 		WithKaiaHelper(tmpHelper),
 		WithLatestData(app.LatestData),
+		WithLatestSubmittedData(app.LatestSubmittedData),
 	)
 	if err != nil {
 		t.Fatalf("error creating new deviation reporter: %v", err)
 	}
 
 	for _, config := range configs {
-		pair := reporter.SubmissionPairs[config.ID]
-		pair.LastSubmission = 1
-		reporter.SubmissionPairs[config.ID] = pair
-
+		app.LatestSubmittedData.Store(config.Name, int64(1))
 		app.LatestData.Store(config.Name, SubmissionData{
-			Value: 2,
+			Value: int64(2),
 		})
 	}
 
-	deviatingAggregates := GetDeviatingAggregates(reporter.SubmissionPairs, app.LatestData, 0.05)
-	assert.Equal(t, len(reporter.SubmissionPairs), len(deviatingAggregates))
+	deviatingAggregates := GetDeviatingAggregates(deviationReporter.LatestSubmittedData, app.LatestData, 0.05)
+	assert.Equal(t, len(configs), len(deviatingAggregates))
 }

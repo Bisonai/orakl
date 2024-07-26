@@ -21,7 +21,7 @@ const (
 	DeleteConfigQuery = `DELETE FROM configs WHERE id = @id;`
 )
 
-func setup(ctx context.Context) ([]int32, error) {
+func setup(ctx context.Context) (func() error, error) {
 	aggregateInterval := 400
 	submitInterval15000 := 15000
 	submitInterval60000 := 60000
@@ -59,34 +59,25 @@ func setup(ctx context.Context) ([]int32, error) {
 		res = append(res, insertedConfig.ID)
 	}
 
-	return res, nil
+	return cleanUp(ctx, res), nil
 }
 
-func cleanUp(ctx context.Context, configIds []int32) error {
-	for _, id := range configIds {
-		_, err := db.QueryRow[any](ctx, DeleteConfigQuery, map[string]any{"id": id})
-		if err != nil {
-			log.Error().Err(err).Msgf("error deleting config %d", id)
-			return err
+func cleanUp(ctx context.Context, configIds []int32) func() error {
+	return func() error {
+		for _, id := range configIds {
+			_, err := db.QueryRow[any](ctx, DeleteConfigQuery, map[string]any{"id": id})
+			if err != nil {
+				log.Error().Err(err).Msgf("error deleting config %d", id)
+				return err
+			}
 		}
+		return nil
 	}
-
-	db.ClosePool()
-
-	return nil
 }
 
 func TestMain(m *testing.M) {
-	ctx := context.Background()
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
-	configIds, err := setup(ctx)
-	defer cleanUp(ctx, configIds)
-	if err != nil {
-		log.Fatal().Err(err).Msg("error setting up test")
-		os.Exit(1)
-	}
-
 	code := m.Run()
-
+	db.ClosePool()
 	os.Exit(code)
 }

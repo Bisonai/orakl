@@ -18,18 +18,24 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func GetDeviatingAggregates(submissionPairs map[int32]SubmissionPair, latestData *sync.Map, threshold float64) map[int32]SubmissionPair {
-	deviatingSubmissionPairs := make(map[int32]SubmissionPair)
-	for configID, submissionPair := range submissionPairs {
-		latestData, ok := GetLatestData(latestData, submissionPair.Name)
+func GetDeviatingAggregates(latestSubmittedData *sync.Map, latestData *sync.Map, threshold float64) []string {
+	var deviatingSubmissionPairs []string
+	latestSubmittedData.Range(func(key, value any) bool {
+		pair := key.(string)
+		oldValue := value.(int64)
+		newValue, ok := GetLatestData(latestData, pair)
+
 		if !ok {
-			log.Debug().Str("Player", "Reporter").Msg("latest data not found during deviation check")
-			continue
+			log.Warn().Str("Player", "Reporter").Msg("latest data not found during deviation check")
+			return true
 		}
-		if ShouldReportDeviation(submissionPair.LastSubmission, latestData.Value, threshold) {
-			deviatingSubmissionPairs[configID] = submissionPair
+
+		if ShouldReportDeviation(oldValue, newValue.Value, threshold) {
+			deviatingSubmissionPairs = append(deviatingSubmissionPairs, pair)
 		}
-	}
+		return true
+	})
+
 	return deviatingSubmissionPairs
 }
 
@@ -135,6 +141,10 @@ func ProcessDalWsRawData(data any) (SubmissionData, error) {
 		return SubmissionData{}, errorSentinel.ErrReporterDalWsDataProcessingFailed
 	}
 
+	if rawSubmissionData.FeedHash == "" || rawSubmissionData.Proof == "" || rawSubmissionData.Value == "" || rawSubmissionData.AggregateTime == "" {
+		log.Error().Str("Player", "Reporter").Msg("empty data fields")
+		return SubmissionData{}, errorSentinel.ErrReporterDalWsDataProcessingFailed
+	}
 	feedHashBytes := klaytncommon.Hex2Bytes(strings.TrimPrefix(rawSubmissionData.FeedHash, "0x"))
 	feedHash := [32]byte{}
 	copy(feedHash[:], feedHashBytes)

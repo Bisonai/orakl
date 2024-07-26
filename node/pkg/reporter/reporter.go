@@ -31,22 +31,23 @@ func NewReporter(ctx context.Context, opts ...ReporterOption) (*Reporter, error)
 	deviationThreshold := GetDeviationThreshold(groupInterval)
 
 	reporter := &Reporter{
-		contractAddress:    config.ContractAddress,
-		SubmissionInterval: groupInterval,
-		CachedWhitelist:    config.CachedWhitelist,
-		deviationThreshold: deviationThreshold,
-		KaiaHelper:         config.KaiaHelper,
-		LatestData:         config.LatestData,
+		contractAddress:     config.ContractAddress,
+		SubmissionInterval:  groupInterval,
+		CachedWhitelist:     config.CachedWhitelist,
+		deviationThreshold:  deviationThreshold,
+		KaiaHelper:          config.KaiaHelper,
+		LatestData:          config.LatestData,
+		LatestSubmittedData: config.LatestSubmittedData,
 	}
 
-	reporter.SubmissionPairs = make(map[int32]SubmissionPair)
+	reporter.Pairs = make([]string, 0, len(config.Configs))
 	for _, sa := range config.Configs {
-		reporter.SubmissionPairs[sa.ID] = SubmissionPair{LastSubmission: 0, Name: sa.Name}
+		reporter.Pairs = append(reporter.Pairs, sa.Name)
 	}
 
 	if config.JobType == ReportJob {
 		reporter.Job = func() error {
-			return reporter.report(ctx, reporter.SubmissionPairs)
+			return reporter.report(ctx, reporter.Pairs)
 		}
 	} else {
 		reporter.Job = func() error {
@@ -77,28 +78,28 @@ func (r *Reporter) Run(ctx context.Context) {
 	}
 }
 
-func (r *Reporter) report(ctx context.Context, submissionPairs map[int32]SubmissionPair) error {
+func (r *Reporter) report(ctx context.Context, pairs []string) error {
 	var feedHashes [][32]byte
 	var values []*big.Int
 	var timestamps []*big.Int
 	var proofs [][]byte
-	var configIds []int32
+	var submittedPairs []string
 
-	feedHashesChan := make(chan [32]byte, len(submissionPairs))
-	valuesChan := make(chan *big.Int, len(submissionPairs))
-	timestampsChan := make(chan *big.Int, len(submissionPairs))
-	proofsChan := make(chan []byte, len(submissionPairs))
-	configIdChan := make(chan int32, len(submissionPairs))
+	feedHashesChan := make(chan [32]byte, len(pairs))
+	valuesChan := make(chan *big.Int, len(pairs))
+	timestampsChan := make(chan *big.Int, len(pairs))
+	proofsChan := make(chan []byte, len(pairs))
+	submittedPairsChan := make(chan string, len(pairs))
 
 	wg := sync.WaitGroup{}
 
-	for id, pair := range submissionPairs {
+	for _, pair := range pairs {
 		wg.Add(1)
-		go func(id int32, pair SubmissionPair) {
+		go func(pair string) {
 			defer wg.Done()
-			submissionData, ok := GetLatestData(r.LatestData, pair.Name)
+			submissionData, ok := GetLatestData(r.LatestData, pair)
 			if !ok {
-				log.Error().Str("Player", "Reporter").Msgf("latest data for pair %s not found", pair.Name)
+				log.Error().Str("Player", "Reporter").Msgf("latest data for pair %s not found", pair)
 				return
 			}
 
@@ -106,8 +107,8 @@ func (r *Reporter) report(ctx context.Context, submissionPairs map[int32]Submiss
 			valuesChan <- big.NewInt(submissionData.Value)
 			timestampsChan <- big.NewInt(submissionData.AggregateTime)
 			proofsChan <- submissionData.Proof
-			configIdChan <- id
-		}(id, pair)
+			submittedPairsChan <- pair
+		}(pair)
 	}
 
 	wg.Wait()
@@ -116,14 +117,14 @@ func (r *Reporter) report(ctx context.Context, submissionPairs map[int32]Submiss
 	close(valuesChan)
 	close(feedHashesChan)
 	close(proofsChan)
-	close(configIdChan)
+	close(submittedPairsChan)
 
 	for feedHash := range feedHashesChan {
 		feedHashes = append(feedHashes, feedHash)
 		values = append(values, <-valuesChan)
 		timestamps = append(timestamps, <-timestampsChan)
 		proofs = append(proofs, <-proofsChan)
-		configIds = append(configIds, <-configIdChan)
+		submittedPairs = append(submittedPairs, <-submittedPairsChan)
 	}
 
 	errs := []error{}
@@ -143,15 +144,12 @@ func (r *Reporter) report(ctx context.Context, submissionPairs map[int32]Submiss
 		}
 	}
 
-	// assumption: values[i] will always correspond to configIds[i] (theoretically doesn't have to be the case)
-	for i, configId := range configIds {
-		pair := r.SubmissionPairs[configId]
-		pair.LastSubmission = values[i].Int64()
-		r.SubmissionPairs[configId] = pair
-	}
-
 	if len(errs) > 0 {
 		return mergeErrors(errs)
+	}
+
+	for i, pair := range submittedPairs {
+		r.LatestSubmittedData.Store(pair, values[i].Int64())
 	}
 
 	log.Debug().Str("Player", "Reporter").Msgf("reporting done for reporter with interval: %v", r.SubmissionInterval)
@@ -160,7 +158,7 @@ func (r *Reporter) report(ctx context.Context, submissionPairs map[int32]Submiss
 }
 
 func (r *Reporter) deviationJob(ctx context.Context) error {
-	deviatingAggregates := GetDeviatingAggregates(r.SubmissionPairs, r.LatestData, r.deviationThreshold)
+	deviatingAggregates := GetDeviatingAggregates(r.LatestSubmittedData, r.LatestData, r.deviationThreshold)
 	if len(deviatingAggregates) == 0 {
 		log.Debug().Str("Player", "Reporter").Msg("no deviating aggregates found")
 		return nil
