@@ -13,50 +13,45 @@ import (
 
 const (
 	InsertConfigQuery = `
-		INSERT INTO configs (name, aggregate_interval, submit_interval) 
-		VALUES (@name, @aggregate_interval, @submit_interval) 
+		INSERT INTO configs (name, submit_interval) 
+		VALUES (@name, @submit_interval) 
 		ON CONFLICT (name) DO NOTHING
-		RETURNING name, id, submit_interval, aggregate_interval;
+		RETURNING id;
 	`
 	DeleteConfigQuery = `DELETE FROM configs WHERE id = @id;`
 )
 
 func setup(ctx context.Context) (func() error, error) {
-	aggregateInterval := 400
 	submitInterval15000 := 15000
 	submitInterval60000 := 60000
 
 	configs := []Config{
 		{
-			Name:              "BTC-USDT",
-			AggregateInterval: &aggregateInterval,
-			SubmitInterval:    &submitInterval15000,
+			Name:           "BTC-USDT",
+			SubmitInterval: &submitInterval15000,
 		},
 		{
-			Name:              "ETH-USDT",
-			AggregateInterval: &aggregateInterval,
-			SubmitInterval:    &submitInterval15000,
+			Name:           "ETH-USDT",
+			SubmitInterval: &submitInterval15000,
 		},
 		{
-			Name:              "BTC-KRW",
-			AggregateInterval: &aggregateInterval,
-			SubmitInterval:    &submitInterval60000,
+			Name:           "BTC-KRW",
+			SubmitInterval: &submitInterval60000,
 		},
 		{
-			Name:              "ETH-KRW",
-			AggregateInterval: &aggregateInterval,
-			SubmitInterval:    &submitInterval60000,
+			Name:           "ETH-KRW",
+			SubmitInterval: &submitInterval60000,
 		},
 	}
 
 	var res []int32
 	for _, config := range configs {
-		insertedConfig, err := db.QueryRow[Config](ctx, InsertConfigQuery, map[string]any{"name": config.Name, "aggregate_interval": config.AggregateInterval, "submit_interval": config.SubmitInterval})
+		insertedConfig, err := db.QueryRow[int32](ctx, InsertConfigQuery, map[string]any{"name": config.Name, "submit_interval": config.SubmitInterval})
 		if err != nil {
 			log.Error().Err(err).Msgf("error inserting config %s", config.Name)
 			return nil, err
 		}
-		res = append(res, insertedConfig.ID)
+		res = append(res, insertedConfig)
 	}
 
 	return cleanUp(ctx, res), nil

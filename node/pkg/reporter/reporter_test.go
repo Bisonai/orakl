@@ -23,7 +23,7 @@ func TestNewReporter(t *testing.T) {
 	}()
 	app := New()
 
-	configs, err := getConfigs(ctx)
+	configs, err := fetchConfigs()
 	if err != nil {
 		t.Fatalf("error getting submission pairs: %v", err)
 	}
@@ -119,7 +119,7 @@ func TestGetDeviatingAggregates(t *testing.T) {
 	}()
 	app := New()
 
-	configs, err := getConfigs(ctx)
+	configs, err := fetchConfigs()
 	if err != nil {
 		t.Fatalf("error getting configs: %v", err)
 	}

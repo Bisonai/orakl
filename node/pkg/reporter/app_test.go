@@ -11,6 +11,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestFetchConfigs(t *testing.T) {
+	configs, err := fetchConfigs()
+	if err != nil || configs == nil || len(configs) == 0 {
+		t.Fatalf("error getting configs: %v", err)
+	}
+}
+
 func TestRunApp(t *testing.T) {
 	ctx := context.Background()
 	cleanUp, err := setup(ctx)
@@ -114,7 +121,7 @@ func TestWsDataHandling(t *testing.T) {
 		t.Fatalf("error running reporter: %v", err)
 	}
 
-	configs, err := getConfigs(ctx)
+	configs, err := fetchConfigs()
 	if err != nil {
 		t.Fatalf("error getting configs: %v", err)
 	}
