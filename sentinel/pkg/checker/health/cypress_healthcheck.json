@@ -28,10 +28,6 @@
     "url": "http://orakl-node.orakl.svc.cluster.local:3030/api/v1/"
   },
   {
-    "name": "orakl-reporter",
-    "url": "http://orakl-reporter.orakl.svc.cluster.local:3030/api/v1/"
-  },
-  {
     "name": "orakl-vrf-core",
     "url": "http://orakl-vrf-core.orakl.svc.cluster.local:8080/"
   },
