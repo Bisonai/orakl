@@ -86,3 +86,4 @@ jobs:
           SUBMISSION_PROXY_CONTRACT: "0xE2bA32d006e6FEd86AeA2502C561540c28CF65e9"
           CHAIN: "test"
           SIGNER_PK: ${{ secrets.TEST_DELEGATOR_REPORTER_PK}}
+          API_KEY: ${{ secrets.DAL_API_KEY}}
