@@ -29,6 +29,7 @@ const (
 )
 
 type Config struct {
+	ID             int32  `db:"id"`
 	Name           string `db:"name"`
 	SubmitInterval *int   `db:"submit_interval"`
 }
