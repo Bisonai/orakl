@@ -12,7 +12,6 @@ import (
 	"bisonai.com/orakl/node/pkg/admin/host"
 	"bisonai.com/orakl/node/pkg/admin/providerUrl"
 	"bisonai.com/orakl/node/pkg/admin/proxy"
-	"bisonai.com/orakl/node/pkg/admin/reporter"
 
 	"bisonai.com/orakl/node/pkg/admin/utils"
 	"bisonai.com/orakl/node/pkg/admin/wallet"
@@ -41,7 +40,6 @@ func Run(bus *bus.MessageBus) error {
 	proxy.Routes(v1)
 	fetcher.Routes(v1)
 	aggregator.Routes(v1)
-	reporter.Routes(v1)
 	wallet.Routes(v1)
 	providerUrl.Routes(v1)
 	config.Routes(v1)

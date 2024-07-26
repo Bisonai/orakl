@@ -2,164 +2,75 @@
 package reporter
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"os"
 	"testing"
-	"time"
 
-	"bisonai.com/orakl/node/pkg/admin/reporter"
-	"bisonai.com/orakl/node/pkg/admin/utils"
-	"bisonai.com/orakl/node/pkg/bus"
-	"bisonai.com/orakl/node/pkg/chain/helper"
-	"bisonai.com/orakl/node/pkg/common/keys"
 	"bisonai.com/orakl/node/pkg/db"
-	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
-const InsertGlobalAggregateQuery = `INSERT INTO global_aggregates (config_id, value, round, timestamp) VALUES (@config_id, @value, @round, @timestamp) RETURNING *`
-const InsertConfigQuery = `INSERT INTO configs (name, fetch_interval, aggregate_interval, submit_interval) VALUES (@name, @fetch_interval, @aggregate_interval, @submit_interval) RETURNING name, id, submit_interval, aggregate_interval;`
-const TestInterval = 15000
+const (
+	InsertConfigQuery = `
+		INSERT INTO configs (name, aggregate_interval, submit_interval) 
+		VALUES (@name, @aggregate_interval, @submit_interval) 
+		ON CONFLICT (name) DO NOTHING
+		RETURNING name, id, submit_interval, aggregate_interval;
+	`
+	DeleteConfigQuery = `DELETE FROM configs WHERE id = @id;`
+)
 
-type TestItems struct {
-	app        *App
-	admin      *fiber.App
-	messageBus *bus.MessageBus
-	tmpData    *TmpData
-}
-type TmpData struct {
-	globalAggregate GlobalAggregate
-	config          Config
-	proofBytes      []byte
-	proofTime       time.Time
-}
+func setup(ctx context.Context) (func() error, error) {
+	aggregateInterval := 400
+	submitInterval15000 := 15000
+	submitInterval60000 := 60000
 
-func insertSampleData(ctx context.Context) (*TmpData, error) {
-	var tmpData = new(TmpData)
-
-	signHelper, err := helper.NewSigner(ctx)
-	if err != nil {
-		return nil, err
-	}
-	proofTime := time.Now()
-
-	tmpConfig, err := db.QueryRow[Config](ctx, InsertConfigQuery, map[string]any{"name": "test-aggregate", "submit_interval": TestInterval, "fetch_interval": TestInterval, "aggregate_interval": TestInterval})
-	if err != nil {
-		log.Error().Err(err).Msg("error inserting config 0")
-		return nil, err
-	}
-	tmpData.config = tmpConfig
-
-	err = db.QueryWithoutResult(ctx, InsertConfigQuery, map[string]any{"name": "test-aggregate-2", "submit_interval": TestInterval * 2, "fetch_interval": TestInterval, "aggregate_interval": TestInterval})
-	if err != nil {
-		log.Error().Err(err).Msg("error inserting config 1")
-		return nil, err
-	}
-
-	key := keys.GlobalAggregateKey(tmpConfig.ID)
-	data, err := json.Marshal(map[string]any{"configId": tmpConfig.ID, "value": int64(15), "round": int64(1), "timestamp": proofTime})
-	if err != nil {
-		return nil, err
-	}
-	db.Set(ctx, key, string(data), time.Duration(10*time.Second))
-
-	tmpGlobalAggregate, err := db.QueryRow[GlobalAggregate](ctx, InsertGlobalAggregateQuery, map[string]any{"config_id": tmpConfig.ID, "value": int64(15), "round": int64(1), "timestamp": proofTime})
-	if err != nil {
-		return nil, err
-	}
-	tmpData.globalAggregate = tmpGlobalAggregate
-
-	rawProof, err := signHelper.MakeGlobalAggregateProof(int64(15), proofTime, "test-aggregate")
-	if err != nil {
-		return nil, err
-	}
-	tmpData.proofBytes = bytes.Join([][]byte{rawProof}, nil)
-	tmpData.proofTime = proofTime
-
-	err = db.QueryWithoutResult(ctx, "INSERT INTO proofs (config_id, round, proof) VALUES (@config_id, @round, @proof)", map[string]any{"config_id": tmpConfig.ID, "round": int64(1), "proof": bytes.Join([][]byte{rawProof}, nil)})
-	if err != nil {
-		return nil, err
+	configs := []Config{
+		{
+			Name:              "BTC-USDT",
+			AggregateInterval: &aggregateInterval,
+			SubmitInterval:    &submitInterval15000,
+		},
+		{
+			Name:              "ETH-USDT",
+			AggregateInterval: &aggregateInterval,
+			SubmitInterval:    &submitInterval15000,
+		},
+		{
+			Name:              "BTC-KRW",
+			AggregateInterval: &aggregateInterval,
+			SubmitInterval:    &submitInterval60000,
+		},
+		{
+			Name:              "ETH-KRW",
+			AggregateInterval: &aggregateInterval,
+			SubmitInterval:    &submitInterval60000,
+		},
 	}
 
-	rdbProof := Proof{
-		ConfigID: tmpConfig.ID,
-		Round:    int32(1),
-		Proof:    bytes.Join([][]byte{rawProof}, nil),
-	}
-	rdbProofData, err := json.Marshal(rdbProof)
-	if err != nil {
-		return nil, err
-	}
-
-	err = db.Set(ctx, keys.ProofKey(tmpConfig.ID, 1), string(rdbProofData), time.Duration(10*time.Second))
-	if err != nil {
-		return nil, err
+	var res []int32
+	for _, config := range configs {
+		insertedConfig, err := db.QueryRow[Config](ctx, InsertConfigQuery, map[string]any{"name": config.Name, "aggregate_interval": config.AggregateInterval, "submit_interval": config.SubmitInterval})
+		if err != nil {
+			log.Error().Err(err).Msgf("error inserting config %s", config.Name)
+			return nil, err
+		}
+		res = append(res, insertedConfig.ID)
 	}
 
-	return tmpData, nil
+	return cleanUp(ctx, res), nil
 }
 
-func setup(ctx context.Context) (func() error, *TestItems, error) {
-	var testItems = new(TestItems)
-
-	mb := bus.New(10)
-	testItems.messageBus = mb
-
-	admin, err := utils.Setup(utils.SetupInfo{
-		Version: "",
-		Bus:     mb,
-	})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	testItems.admin = admin
-
-	app := New()
-	testItems.app = app
-
-	tmpData, err := insertSampleData(ctx)
-	if err != nil {
-		return nil, nil, err
-	}
-	testItems.tmpData = tmpData
-
-	v1 := admin.Group("/api/v1")
-	reporter.Routes(v1)
-
-	return reporterCleanup(ctx, admin, app), testItems, nil
-
-}
-
-func reporterCleanup(ctx context.Context, admin *fiber.App, app *App) func() error {
+func cleanUp(ctx context.Context, configIds []int32) func() error {
 	return func() error {
-		err := db.QueryWithoutResult(ctx, "DELETE FROM global_aggregates;", nil)
-		if err != nil {
-			return err
+		for _, id := range configIds {
+			_, err := db.QueryRow[any](ctx, DeleteConfigQuery, map[string]any{"id": id})
+			if err != nil {
+				log.Error().Err(err).Msgf("error deleting config %d", id)
+				return err
+			}
 		}
-
-		err = db.QueryWithoutResult(ctx, "DELETE FROM proofs;", nil)
-		if err != nil {
-			return err
-		}
-
-		err = db.QueryWithoutResult(ctx, "DELETE FROM configs;", nil)
-		if err != nil {
-			return err
-		}
-
-		err = admin.Shutdown()
-		if err != nil {
-			return err
-		}
-
-		// err = app.stopReporters()
-		// if err != nil {
-		// 	return err
-		// }
 		return nil
 	}
 }
@@ -168,6 +79,5 @@ func TestMain(m *testing.M) {
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	code := m.Run()
 	db.ClosePool()
-	db.CloseRedis()
 	os.Exit(code)
 }

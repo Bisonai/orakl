@@ -3,7 +3,7 @@ package reporter
 import (
 	"context"
 	"os"
-	"time"
+	"sync"
 
 	"bisonai.com/orakl/node/pkg/chain/helper"
 	"bisonai.com/orakl/node/pkg/db"
@@ -14,7 +14,9 @@ import (
 
 func New() *App {
 	return &App{
-		Reporters: []*Reporter{},
+		Reporters:              []*Reporter{},
+		LatestDataMap:          new(sync.Map),
+		LatestSubmittedDataMap: new(sync.Map),
 	}
 }
 
@@ -79,7 +81,8 @@ func (a *App) setReporters(ctx context.Context) error {
 			WithContractAddress(contractAddress),
 			WithCachedWhitelist(cachedWhitelist),
 			WithKaiaHelper(chainHelper),
-			WithLatestData(&a.LatestData),
+			WithLatestDataMap(a.LatestDataMap),
+			WithLatestSubmittedDataMap(a.LatestSubmittedDataMap),
 		)
 		if errNewReporter != nil {
 			log.Error().Str("Player", "Reporter").Err(errNewReporter).Msg("failed to set reporter")
@@ -100,7 +103,8 @@ func (a *App) setReporters(ctx context.Context) error {
 		WithCachedWhitelist(cachedWhitelist),
 		WithJobType(DeviationJob),
 		WithKaiaHelper(chainHelper),
-		WithLatestData(&a.LatestData),
+		WithLatestDataMap(a.LatestDataMap),
+		WithLatestSubmittedDataMap(a.LatestSubmittedDataMap),
 	)
 	if errNewDeviationReporter != nil {
 		log.Error().Str("Player", "Reporter").Err(errNewDeviationReporter).Msg("failed to set deviation reporter")
@@ -147,15 +151,6 @@ func (a *App) handleWsMessage(ctx context.Context, data map[string]interface{}) 
 		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to process dal ws raw data")
 		return err
 	}
-	a.LatestData.Store(data["symbol"], submissionData)
+	a.LatestDataMap.Store(data["symbol"], submissionData)
 	return nil
-}
-
-func (a *App) GetReporterWithInterval(interval int) (*Reporter, error) {
-	for _, reporter := range a.Reporters {
-		if reporter.SubmissionInterval == time.Duration(interval)*time.Millisecond {
-			return reporter, nil
-		}
-	}
-	return nil, errorSentinel.ErrReporterNotFound
 }
