@@ -29,10 +29,8 @@ const (
 )
 
 type Config struct {
-	ID                int32  `db:"id"`
-	Name              string `db:"name"`
-	SubmitInterval    *int   `db:"submit_interval"`
-	AggregateInterval *int   `db:"aggregate_interval"`
+	Name           string `json:"name"`
+	SubmitInterval *int   `json:"submitInterval"`
 }
 
 type App struct {

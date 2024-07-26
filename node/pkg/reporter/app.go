@@ -2,12 +2,13 @@ package reporter
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"sync"
 
 	"bisonai.com/orakl/node/pkg/chain/helper"
-	"bisonai.com/orakl/node/pkg/db"
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
+	"bisonai.com/orakl/node/pkg/utils/request"
 	"github.com/klaytn/klaytn/common"
 	"github.com/rs/zerolog/log"
 )
@@ -60,7 +61,7 @@ func (a *App) setReporters(ctx context.Context) error {
 		cachedWhitelist = []common.Address{}
 	}
 
-	configs, err := getConfigs(ctx)
+	configs, err := fetchConfigs()
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to get reporter configs")
 		return err
@@ -124,13 +125,18 @@ func (a *App) startReporters(ctx context.Context) {
 	}
 }
 
-func getConfigs(ctx context.Context) ([]Config, error) {
-	reporterConfigs, err := db.QueryRows[Config](ctx, GET_REPORTER_CONFIGS, nil)
+func fetchConfigs() ([]Config, error) {
+	chain := os.Getenv("CHAIN")
+	if chain == "" {
+		log.Info().Str("Player", "Reporter").Msg("CHAIN env not set, defaulting to baobab")
+		chain = "baobab"
+	}
+	endpoint := fmt.Sprintf("https://config.orakl.network/%s_configs.json", chain)
+	configs, err := request.Request[[]Config](request.WithEndpoint(endpoint))
 	if err != nil {
-		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to load reporter configs")
 		return nil, err
 	}
-	return reporterConfigs, nil
+	return configs, nil
 }
 
 func groupConfigsBySubmitIntervals(reporterConfigs []Config) map[int][]Config {
