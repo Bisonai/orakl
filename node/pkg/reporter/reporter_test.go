@@ -12,15 +12,7 @@ import (
 
 func TestNewReporter(t *testing.T) {
 	ctx := context.Background()
-	cleanUp, err := setup(ctx)
-	if err != nil {
-		t.Fatalf("error setting up test: %v", err)
-	}
-	defer func() {
-		if cleanupErr := cleanUp(); cleanupErr != nil {
-			t.Logf("Cleanup failed: %v", cleanupErr)
-		}
-	}()
+
 	app := New()
 
 	configs, err := fetchConfigs()
@@ -83,18 +75,10 @@ func TestNewReporter(t *testing.T) {
 
 func TestShouldReportDeviation(t *testing.T) {
 	ctx := context.Background()
-	cleanUp, err := setup(ctx)
-	if err != nil {
-		t.Fatalf("error setting up test: %v", err)
-	}
-	defer func() {
-		if cleanupErr := cleanUp(); cleanupErr != nil {
-			t.Logf("Cleanup failed: %v", cleanupErr)
-		}
-	}()
+
 	app := New()
 
-	err = app.setReporters(ctx)
+	err := app.setReporters(ctx)
 	if err != nil {
 		t.Fatalf("error setting reporters: %v", err)
 	}
@@ -108,15 +92,7 @@ func TestShouldReportDeviation(t *testing.T) {
 
 func TestGetDeviatingAggregates(t *testing.T) {
 	ctx := context.Background()
-	cleanUp, err := setup(ctx)
-	if err != nil {
-		t.Fatalf("error setting up test: %v", err)
-	}
-	defer func() {
-		if cleanupErr := cleanUp(); cleanupErr != nil {
-			t.Logf("Cleanup failed: %v", cleanupErr)
-		}
-	}()
+
 	app := New()
 
 	configs, err := fetchConfigs()
