@@ -130,7 +130,7 @@ func TestWsDataHandling(t *testing.T) {
 			if app.WsHelper != nil && app.WsHelper.IsRunning {
 				submissionDataCount = 0
 				for _, config := range configs {
-					if _, ok := app.LatestData.Load(config.Name); ok {
+					if _, ok := app.LatestDataMap.Load(config.Name); ok {
 						submissionDataCount++
 					}
 				}

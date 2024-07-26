@@ -31,13 +31,13 @@ func NewReporter(ctx context.Context, opts ...ReporterOption) (*Reporter, error)
 	deviationThreshold := GetDeviationThreshold(groupInterval)
 
 	reporter := &Reporter{
-		contractAddress:     config.ContractAddress,
-		SubmissionInterval:  groupInterval,
-		CachedWhitelist:     config.CachedWhitelist,
-		deviationThreshold:  deviationThreshold,
-		KaiaHelper:          config.KaiaHelper,
-		LatestData:          config.LatestData,
-		LatestSubmittedData: config.LatestSubmittedData,
+		contractAddress:        config.ContractAddress,
+		SubmissionInterval:     groupInterval,
+		CachedWhitelist:        config.CachedWhitelist,
+		deviationThreshold:     deviationThreshold,
+		KaiaHelper:             config.KaiaHelper,
+		LatestDataMap:          config.LatestDataMap,
+		LatestSubmittedDataMap: config.LatestSubmittedDataMap,
 	}
 
 	reporter.Pairs = make([]string, 0, len(config.Configs))
@@ -88,7 +88,7 @@ func (r *Reporter) regularReporterJob(ctx context.Context) error {
 }
 
 func (r *Reporter) deviationJob(ctx context.Context) error {
-	deviatingAggregates := GetDeviatingAggregates(r.LatestSubmittedData, r.LatestData, r.deviationThreshold)
+	deviatingAggregates := GetDeviatingAggregates(r.LatestSubmittedDataMap, r.LatestDataMap, r.deviationThreshold)
 	if len(deviatingAggregates) == 0 {
 		log.Debug().Str("Player", "Reporter").Msg("no deviating aggregates found")
 		return nil
@@ -122,7 +122,7 @@ func (r *Reporter) report(ctx context.Context, pairs []string) error {
 		wg.Add(1)
 		go func(pair string) {
 			defer wg.Done()
-			submissionData, ok := GetLatestData(r.LatestData, pair)
+			submissionData, ok := GetLatestData(r.LatestDataMap, pair)
 			if !ok {
 				log.Error().Str("Player", "Reporter").Msgf("latest data for pair %s not found", pair)
 				return
@@ -174,7 +174,7 @@ func (r *Reporter) report(ctx context.Context, pairs []string) error {
 	}
 
 	for i, pair := range submittedPairs {
-		r.LatestSubmittedData.Store(pair, values[i].Int64())
+		r.LatestSubmittedDataMap.Store(pair, values[i].Int64())
 	}
 
 	log.Debug().Str("Player", "Reporter").Msgf("reporting done for reporter with interval: %v", r.SubmissionInterval)

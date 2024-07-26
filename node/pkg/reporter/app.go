@@ -14,9 +14,9 @@ import (
 
 func New() *App {
 	return &App{
-		Reporters:           []*Reporter{},
-		LatestData:          new(sync.Map),
-		LatestSubmittedData: new(sync.Map),
+		Reporters:              []*Reporter{},
+		LatestDataMap:          new(sync.Map),
+		LatestSubmittedDataMap: new(sync.Map),
 	}
 }
 
@@ -81,8 +81,8 @@ func (a *App) setReporters(ctx context.Context) error {
 			WithContractAddress(contractAddress),
 			WithCachedWhitelist(cachedWhitelist),
 			WithKaiaHelper(chainHelper),
-			WithLatestData(a.LatestData),
-			WithLatestSubmittedData(a.LatestSubmittedData),
+			WithLatestData(a.LatestDataMap),
+			WithLatestSubmittedData(a.LatestSubmittedDataMap),
 		)
 		if errNewReporter != nil {
 			log.Error().Str("Player", "Reporter").Err(errNewReporter).Msg("failed to set reporter")
@@ -103,8 +103,8 @@ func (a *App) setReporters(ctx context.Context) error {
 		WithCachedWhitelist(cachedWhitelist),
 		WithJobType(DeviationJob),
 		WithKaiaHelper(chainHelper),
-		WithLatestData(a.LatestData),
-		WithLatestSubmittedData(a.LatestSubmittedData),
+		WithLatestData(a.LatestDataMap),
+		WithLatestSubmittedData(a.LatestSubmittedDataMap),
 	)
 	if errNewDeviationReporter != nil {
 		log.Error().Str("Player", "Reporter").Err(errNewDeviationReporter).Msg("failed to set deviation reporter")
@@ -151,6 +151,6 @@ func (a *App) handleWsMessage(ctx context.Context, data map[string]interface{}) 
 		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to process dal ws raw data")
 		return err
 	}
-	a.LatestData.Store(data["symbol"], submissionData)
+	a.LatestDataMap.Store(data["symbol"], submissionData)
 	return nil
 }

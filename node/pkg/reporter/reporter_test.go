@@ -53,8 +53,8 @@ func TestNewReporter(t *testing.T) {
 			WithContractAddress(contractAddress),
 			WithCachedWhitelist(whitelist),
 			WithKaiaHelper(tmpHelper),
-			WithLatestData(app.LatestData),
-			WithLatestSubmittedData(app.LatestSubmittedData),
+			WithLatestData(app.LatestDataMap),
+			WithLatestSubmittedData(app.LatestSubmittedDataMap),
 		)
 		if err != nil {
 			t.Fatalf("error creating new reporter: %v", err)
@@ -70,8 +70,8 @@ func TestNewReporter(t *testing.T) {
 		WithCachedWhitelist(whitelist),
 		WithJobType(DeviationJob),
 		WithKaiaHelper(tmpHelper),
-		WithLatestData(app.LatestData),
-		WithLatestSubmittedData(app.LatestSubmittedData),
+		WithLatestData(app.LatestDataMap),
+		WithLatestSubmittedData(app.LatestSubmittedDataMap),
 	)
 	if errNewDeviationReporter != nil {
 		if err != nil {
@@ -147,20 +147,20 @@ func TestGetDeviatingAggregates(t *testing.T) {
 		WithCachedWhitelist(whitelist),
 		WithJobType(DeviationJob),
 		WithKaiaHelper(tmpHelper),
-		WithLatestData(app.LatestData),
-		WithLatestSubmittedData(app.LatestSubmittedData),
+		WithLatestData(app.LatestDataMap),
+		WithLatestSubmittedData(app.LatestSubmittedDataMap),
 	)
 	if err != nil {
 		t.Fatalf("error creating new deviation reporter: %v", err)
 	}
 
 	for _, config := range configs {
-		app.LatestSubmittedData.Store(config.Name, int64(1))
-		app.LatestData.Store(config.Name, SubmissionData{
+		app.LatestSubmittedDataMap.Store(config.Name, int64(1))
+		app.LatestDataMap.Store(config.Name, SubmissionData{
 			Value: int64(2),
 		})
 	}
 
-	deviatingAggregates := GetDeviatingAggregates(deviationReporter.LatestSubmittedData, app.LatestData, 0.05)
+	deviatingAggregates := GetDeviatingAggregates(deviationReporter.LatestSubmittedDataMap, app.LatestDataMap, 0.05)
 	assert.Equal(t, len(configs), len(deviatingAggregates))
 }

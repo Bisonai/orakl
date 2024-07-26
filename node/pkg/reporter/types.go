@@ -38,9 +38,9 @@ type Config struct {
 type App struct {
 	Reporters []*Reporter
 
-	WsHelper            *wss.WebsocketHelper
-	LatestData          *sync.Map // map[symbol]SubmissionData
-	LatestSubmittedData *sync.Map // map[symbol]int64
+	WsHelper               *wss.WebsocketHelper
+	LatestDataMap          *sync.Map // map[symbol]SubmissionData
+	LatestSubmittedDataMap *sync.Map // map[symbol]int64
 }
 
 type JobType int
@@ -51,16 +51,16 @@ const (
 )
 
 type ReporterConfig struct {
-	Configs             []Config
-	Interval            int
-	ContractAddress     string
-	CachedWhitelist     []common.Address
-	JobType             JobType
-	DalApiKey           string
-	DalWsEndpoint       string
-	KaiaHelper          *helper.ChainHelper
-	LatestData          *sync.Map
-	LatestSubmittedData *sync.Map
+	Configs                []Config
+	Interval               int
+	ContractAddress        string
+	CachedWhitelist        []common.Address
+	JobType                JobType
+	DalApiKey              string
+	DalWsEndpoint          string
+	KaiaHelper             *helper.ChainHelper
+	LatestDataMap          *sync.Map // map[symbol]SubmissionData
+	LatestSubmittedDataMap *sync.Map // map[symbol]int64
 }
 
 type ReporterOption func(*ReporterConfig)
@@ -106,15 +106,15 @@ func WithKaiaHelper(chainHelper *helper.ChainHelper) ReporterOption {
 	}
 }
 
-func WithLatestData(latestData *sync.Map) ReporterOption {
+func WithLatestData(latestDataMap *sync.Map) ReporterOption {
 	return func(c *ReporterConfig) {
-		c.LatestData = latestData
+		c.LatestDataMap = latestDataMap
 	}
 }
 
-func WithLatestSubmittedData(latestSubmittedData *sync.Map) ReporterOption {
+func WithLatestSubmittedData(latestSubmittedDataMap *sync.Map) ReporterOption {
 	return func(c *ReporterConfig) {
-		c.LatestSubmittedData = latestSubmittedData
+		c.LatestSubmittedDataMap = latestSubmittedDataMap
 	}
 }
 
@@ -127,9 +127,9 @@ type Reporter struct {
 	contractAddress    string
 	deviationThreshold float64
 
-	LatestData          *sync.Map
-	LatestSubmittedData *sync.Map
-	Job                 func() error
+	LatestDataMap          *sync.Map
+	LatestSubmittedDataMap *sync.Map
+	Job                    func() error
 }
 
 type GlobalAggregate types.GlobalAggregate
