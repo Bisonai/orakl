@@ -18,22 +18,29 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func GetDeviatingAggregates(submissionPairs map[int32]SubmissionPair, latestData *sync.Map, threshold float64) map[int32]SubmissionPair {
-	deviatingSubmissionPairs := make(map[int32]SubmissionPair)
-	for configID, submissionPair := range submissionPairs {
-		latestData, ok := GetLatestData(latestData, submissionPair.Name)
+func GetDeviatingAggregates(latestSubmittedData *sync.Map, latestData *sync.Map, threshold float64) []string {
+	var deviatingSubmissionPairs []string
+	latestSubmittedData.Range(func(key, value any) bool {
+		pair := key.(string)
+		oldValue := value.(int64)
+		newValue, ok := GetLatestData(latestData, pair)
+
 		if !ok {
-			continue
+			log.Warn().Str("Player", "Reporter").Msg("latest data not found during deviation check")
+			return true
 		}
-		if shouldReport := ShouldReportDeviation(submissionPair.LastSubmission, latestData.Value, threshold); shouldReport {
-			deviatingSubmissionPairs[configID] = submissionPair
+
+		if ShouldReportDeviation(oldValue, newValue.Value, threshold) {
+			deviatingSubmissionPairs = append(deviatingSubmissionPairs, pair)
 		}
-	}
+		return true
+	})
+
 	return deviatingSubmissionPairs
 }
 
-func GetLatestData(latestData *sync.Map, name string) (SubmissionData, bool) {
-	rawLatestData, ok := latestData.Load(name)
+func GetLatestData(latestDataMap *sync.Map, name string) (SubmissionData, bool) {
+	rawLatestData, ok := latestDataMap.Load(name)
 	if !ok {
 		log.Debug().Str("Player", "Reporter").Msg("latest data not found during deviation check")
 		return SubmissionData{}, false
@@ -87,7 +94,7 @@ func ReadOnchainWhitelist(ctx context.Context, chainHelper *helper.ChainHelper, 
 func GetDeviationThreshold(submissionInterval time.Duration) float64 {
 	if submissionInterval <= 15*time.Second {
 		return MIN_DEVIATION_THRESHOLD
-	} else if submissionInterval >= 60*time.Minute {
+	} else if submissionInterval >= 60*time.Second {
 		return MAX_DEVIATION_THRESHOLD
 	} else {
 		submissionIntervalSec := submissionInterval.Seconds()
@@ -134,6 +141,10 @@ func ProcessDalWsRawData(data any) (SubmissionData, error) {
 		return SubmissionData{}, errorSentinel.ErrReporterDalWsDataProcessingFailed
 	}
 
+	if rawSubmissionData.FeedHash == "" || rawSubmissionData.Proof == "" || rawSubmissionData.Value == "" || rawSubmissionData.AggregateTime == "" {
+		log.Error().Str("Player", "Reporter").Msg("empty data fields")
+		return SubmissionData{}, errorSentinel.ErrReporterDalWsDataProcessingFailed
+	}
 	feedHashBytes := klaytncommon.Hex2Bytes(strings.TrimPrefix(rawSubmissionData.FeedHash, "0x"))
 	feedHash := [32]byte{}
 	copy(feedHash[:], feedHashBytes)

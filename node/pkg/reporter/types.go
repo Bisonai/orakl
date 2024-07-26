@@ -6,21 +6,13 @@ import (
 
 	"bisonai.com/orakl/node/pkg/chain/helper"
 	"bisonai.com/orakl/node/pkg/common/types"
-	"bisonai.com/orakl/node/pkg/raft"
 	"bisonai.com/orakl/node/pkg/wss"
 	"github.com/klaytn/klaytn/common"
 )
 
 const (
-	SubmissionMsg           raft.MessageType = "submission"
-	TOPIC_STRING                             = "orakl-offchain-aggregation-reporter"
-	MESSAGE_BUFFER                           = 100
-	DEVIATION_TIMEOUT                        = 5 * time.Second
-	INITIAL_FAILURE_TIMEOUT                  = 50 * time.Millisecond
-	MAX_RETRY                                = 3
-	MAX_RETRY_DELAY                          = 500 * time.Millisecond
-	SUBMIT_WITH_PROOFS                       = "submit(bytes32[] calldata _feedHashes, int256[] calldata _answers, uint256[] calldata _timestamps, bytes[] calldata _proofs)"
-	GET_ONCHAIN_WHITELIST                    = "getAllOracles() public view returns (address[] memory)"
+	SUBMIT_WITH_PROOFS    = "submit(bytes32[] calldata _feedHashes, int256[] calldata _answers, uint256[] calldata _timestamps, bytes[] calldata _proofs)"
+	GET_ONCHAIN_WHITELIST = "getAllOracles() public view returns (address[] memory)"
 
 	GET_REPORTER_CONFIGS = `SELECT name, id, submit_interval, aggregate_interval FROM configs;`
 
@@ -43,16 +35,12 @@ type Config struct {
 	AggregateInterval *int   `db:"aggregate_interval"`
 }
 
-type SubmissionPair struct {
-	LastSubmission int64
-	Name           string
-}
-
 type App struct {
 	Reporters []*Reporter
 
-	WsHelper   *wss.WebsocketHelper
-	LatestData sync.Map
+	WsHelper               *wss.WebsocketHelper
+	LatestDataMap          *sync.Map // map[symbol]SubmissionData
+	LatestSubmittedDataMap *sync.Map // map[symbol]int64
 }
 
 type JobType int
@@ -63,15 +51,16 @@ const (
 )
 
 type ReporterConfig struct {
-	Configs         []Config
-	Interval        int
-	ContractAddress string
-	CachedWhitelist []common.Address
-	JobType         JobType
-	DalApiKey       string
-	DalWsEndpoint   string
-	KaiaHelper      *helper.ChainHelper
-	LatestData      *sync.Map
+	Configs                []Config
+	Interval               int
+	ContractAddress        string
+	CachedWhitelist        []common.Address
+	JobType                JobType
+	DalApiKey              string
+	DalWsEndpoint          string
+	KaiaHelper             *helper.ChainHelper
+	LatestDataMap          *sync.Map // map[symbol]SubmissionData
+	LatestSubmittedDataMap *sync.Map // map[symbol]int64
 }
 
 type ReporterOption func(*ReporterConfig)
@@ -117,28 +106,33 @@ func WithKaiaHelper(chainHelper *helper.ChainHelper) ReporterOption {
 	}
 }
 
-func WithLatestData(latestData *sync.Map) ReporterOption {
+func WithLatestDataMap(latestDataMap *sync.Map) ReporterOption {
 	return func(c *ReporterConfig) {
-		c.LatestData = latestData
+		c.LatestDataMap = latestDataMap
+	}
+}
+
+func WithLatestSubmittedDataMap(latestSubmittedDataMap *sync.Map) ReporterOption {
+	return func(c *ReporterConfig) {
+		c.LatestSubmittedDataMap = latestSubmittedDataMap
 	}
 }
 
 type Reporter struct {
 	KaiaHelper         *helper.ChainHelper
-	SubmissionPairs    map[int32]SubmissionPair
+	Pairs              []string
 	SubmissionInterval time.Duration
 	CachedWhitelist    []common.Address
 
 	contractAddress    string
 	deviationThreshold float64
 
-	LatestData *sync.Map // map[symbol]SubmissionData
-	Job        func() error
+	LatestDataMap          *sync.Map
+	LatestSubmittedDataMap *sync.Map
+	Job                    func() error
 }
 
 type GlobalAggregate types.GlobalAggregate
-
-type Proof types.Proof
 
 type RawSubmissionData struct {
 	Value         string `json:"value"`
@@ -151,8 +145,4 @@ type SubmissionData struct {
 	AggregateTime int64    `json:"aggregateTime"`
 	Proof         []byte   `json:"proof"`
 	FeedHash      [32]byte `json:"feedHash"`
-}
-
-type SubmissionMessage struct {
-	Submissions []GlobalAggregate `json:"submissions"`
 }
