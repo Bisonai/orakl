@@ -38,7 +38,7 @@ func TestNewReporter(t *testing.T) {
 	}
 
 	for groupInterval, pairs := range groupedConfigs {
-		reporter, err := NewReporter(
+		reporter, reporterErr := NewReporter(
 			ctx,
 			WithConfigs(pairs),
 			WithInterval(groupInterval),
@@ -48,8 +48,8 @@ func TestNewReporter(t *testing.T) {
 			WithLatestDataMap(app.LatestDataMap),
 			WithLatestSubmittedDataMap(app.LatestSubmittedDataMap),
 		)
-		if err != nil {
-			t.Fatalf("error creating new reporter: %v", err)
+		if reporterErr != nil {
+			t.Fatalf("error creating new reporter: %v", reporterErr)
 		}
 		app.Reporters = append(app.Reporters, reporter)
 	}
