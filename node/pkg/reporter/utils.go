@@ -39,8 +39,8 @@ func GetDeviatingAggregates(latestSubmittedData *sync.Map, latestData *sync.Map,
 	return deviatingSubmissionPairs
 }
 
-func GetLatestData(latestData *sync.Map, name string) (SubmissionData, bool) {
-	rawLatestData, ok := latestData.Load(name)
+func GetLatestData(latestDataMap *sync.Map, name string) (SubmissionData, bool) {
+	rawLatestData, ok := latestDataMap.Load(name)
 	if !ok {
 		log.Debug().Str("Player", "Reporter").Msg("latest data not found during deviation check")
 		return SubmissionData{}, false
