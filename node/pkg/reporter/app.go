@@ -2,7 +2,6 @@ package reporter
 
 import (
 	"context"
-	"net/http"
 	"os"
 	"sync"
 
@@ -22,24 +21,6 @@ func New() *App {
 }
 
 func (a *App) Run(ctx context.Context) error {
-	go func() {
-		port := os.Getenv("POR_PORT")
-		if port == "" {
-			port = "3000"
-		}
-
-		http.HandleFunc("/api/v1", func(w http.ResponseWriter, r *http.Request) {
-			_, err := w.Write([]byte("Orakl Reporter"))
-			if err != nil {
-				log.Error().Err(err).Msg("failed to write response")
-			}
-		})
-
-		if err := http.ListenAndServe(":"+port, nil); err != nil {
-			log.Fatal().Err(err).Msg("failed to start http server")
-		}
-	}()
-
 	err := a.setReporters(ctx)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to set reporters")
