@@ -17,17 +17,17 @@ type AbiCache struct {
 	mu     sync.RWMutex
 }
 
-func NewAbiCache() *AbiCache {
+func newAbiCache() *AbiCache {
 	return &AbiCache{
 		AbiMap: make(map[string]*AbiWithFunctionName),
 		mu:     sync.RWMutex{},
 	}
 }
 
-var AbiCacheInstance = NewAbiCache()
+var AbiCacheInstance = newAbiCache()
 
 func GetAbi(functionSignature string) (*abi.ABI, string, error) {
-	res, err := AbiCacheInstance.GetAbi(functionSignature)
+	res, err := AbiCacheInstance.getAbi(functionSignature)
 	if err != nil {
 		return nil, "", err
 	}
@@ -35,10 +35,10 @@ func GetAbi(functionSignature string) (*abi.ABI, string, error) {
 }
 
 func SetAbi(functionSignature string, abi *abi.ABI, functionName string) {
-	AbiCacheInstance.SetAbi(functionSignature, &AbiWithFunctionName{Abi: abi, FunctionName: functionName})
+	AbiCacheInstance.setAbi(functionSignature, &AbiWithFunctionName{Abi: abi, FunctionName: functionName})
 }
 
-func (c *AbiCache) GetAbi(functionSignature string) (*AbiWithFunctionName, error) {
+func (c *AbiCache) getAbi(functionSignature string) (*AbiWithFunctionName, error) {
 	c.mu.RLock()
 	abi, ok := c.AbiMap[functionSignature]
 	c.mu.RUnlock()
@@ -48,7 +48,7 @@ func (c *AbiCache) GetAbi(functionSignature string) (*AbiWithFunctionName, error
 	return nil, errorsentinel.ErrChainCachedAbiNotFound
 }
 
-func (c *AbiCache) SetAbi(functionSignature string, abiWithFunctionName *AbiWithFunctionName) {
+func (c *AbiCache) setAbi(functionSignature string, abiWithFunctionName *AbiWithFunctionName) {
 	c.mu.Lock()
 	c.AbiMap[functionSignature] = abiWithFunctionName
 	c.mu.Unlock()
