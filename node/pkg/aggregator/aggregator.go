@@ -108,9 +108,6 @@ func (n *Aggregator) HandleRoundSyncMessage(ctx context.Context, msg raft.Messag
 	// removes old round data (2 rounds ago)
 	n.cleanUpRoundData(roundSyncMessage.RoundID - 2)
 
-	n.AggregatorMutex.Lock()
-	defer n.AggregatorMutex.Unlock()
-
 	value, updateTime, err := GetLatestLocalAggregate(ctx, n.ID)
 	if err != nil {
 		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to get latest local aggregate")
@@ -119,6 +116,9 @@ func (n *Aggregator) HandleRoundSyncMessage(ctx context.Context, msg raft.Messag
 		// if not enough messages collected from HandleSyncReplyMessage, it will hang in certain round
 		value = -1
 	}
+
+	n.AggregatorMutex.Lock()
+	defer n.AggregatorMutex.Unlock()
 
 	n.PreparedLocalAggregates[roundSyncMessage.RoundID] = value
 	n.SyncedTimes[roundSyncMessage.RoundID] = roundSyncMessage.Timestamp
@@ -400,7 +400,13 @@ func (n *Aggregator) PublishProofMessage(roundId int32, proof []byte) error {
 
 func (n *Aggregator) isTimeValid(timeToValidate time.Time, baseTime time.Time) bool {
 	aggregatorInterval := time.Duration(n.AggregateInterval) * time.Millisecond
-	return timeToValidate.After(baseTime.Add(-aggregatorInterval)) && timeToValidate.Before(baseTime)
+	minTime := baseTime.Add(-aggregatorInterval)
+
+	if timeToValidate.Before(minTime) {
+		log.Warn().Time("minTime", minTime).Time("timeToValidate", timeToValidate).Msg("Time to validate is before minTime, so it is not valid")
+	}
+
+	return !timeToValidate.Before(minTime)
 }
 
 func (n *Aggregator) cleanUpRoundData(roundId int32) {
