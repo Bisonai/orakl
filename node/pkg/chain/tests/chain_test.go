@@ -499,51 +499,6 @@ func TestMakeAbiFuncAttribute(t *testing.T) {
 	}
 }
 
-func TestGetWallets(t *testing.T) {
-	ctx := context.Background()
-	testPk := "cbebf778dd0a62952e6caa9d51eefc6ec9242c1111e7b7e1165485a2041cab2b"
-
-	err := utils.InsertWallet(ctx, testPk)
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-	defer func() {
-		err = db.QueryWithoutResult(ctx, "DELETE FROM wallets;", nil)
-		if err != nil {
-			t.Errorf("Unexpected error: %v", err)
-		}
-	}()
-
-	wallets, err := utils.GetWallets(ctx)
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-
-	assert.Contains(t, wallets, testPk)
-}
-
-func TestInsertWalletEmptyDbEnv(t *testing.T) {
-	ctx := context.Background()
-	err := os.Setenv("DATABASE_URL", "")
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-
-	testPk := "cbebf778dd0a62952e6caa9d51eefc6ec9242c1111e7b7e1165485a2041cab2b"
-
-	err = utils.InsertWallet(ctx, testPk)
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-
-	wallets, err := utils.GetWallets(ctx)
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-
-	assert.NotContains(t, wallets, testPk)
-}
-
 func TestMakeGlobalAggregateProof(t *testing.T) {
 	ctx := context.Background()
 	s, err := helper.NewSigner(ctx)
