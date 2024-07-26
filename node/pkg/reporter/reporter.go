@@ -47,7 +47,7 @@ func NewReporter(ctx context.Context, opts ...ReporterOption) (*Reporter, error)
 
 	if config.JobType == ReportJob {
 		reporter.Job = func() error {
-			return reporter.report(ctx, reporter.Pairs)
+			return reporter.regularReporterJob(ctx)
 		}
 	} else {
 		reporter.Job = func() error {
@@ -76,6 +76,31 @@ func (r *Reporter) Run(ctx context.Context) {
 			}()
 		}
 	}
+}
+
+func (r *Reporter) regularReporterJob(ctx context.Context) error {
+	err := r.report(ctx, r.Pairs)
+	if err != nil {
+		log.Error().Str("Player", "Reporter").Err(err).Msg("Reporter")
+		return err
+	}
+	return nil
+}
+
+func (r *Reporter) deviationJob(ctx context.Context) error {
+	deviatingAggregates := GetDeviatingAggregates(r.LatestSubmittedData, r.LatestData, r.deviationThreshold)
+	if len(deviatingAggregates) == 0 {
+		log.Debug().Str("Player", "Reporter").Msg("no deviating aggregates found")
+		return nil
+	}
+	log.Debug().Str("Player", "Reporter").Msgf("deviating aggregates found: %v", deviatingAggregates)
+
+	err := r.report(ctx, deviatingAggregates)
+	if err != nil {
+		log.Error().Str("Player", "Reporter").Err(err).Msg("DeviationReport")
+		return err
+	}
+	return nil
 }
 
 func (r *Reporter) report(ctx context.Context, pairs []string) error {
@@ -154,22 +179,6 @@ func (r *Reporter) report(ctx context.Context, pairs []string) error {
 
 	log.Debug().Str("Player", "Reporter").Msgf("reporting done for reporter with interval: %v", r.SubmissionInterval)
 
-	return nil
-}
-
-func (r *Reporter) deviationJob(ctx context.Context) error {
-	deviatingAggregates := GetDeviatingAggregates(r.LatestSubmittedData, r.LatestData, r.deviationThreshold)
-	if len(deviatingAggregates) == 0 {
-		log.Debug().Str("Player", "Reporter").Msg("no deviating aggregates found")
-		return nil
-	}
-	log.Debug().Str("Player", "Reporter").Msgf("deviating aggregates found: %v", deviatingAggregates)
-
-	err := r.report(ctx, deviatingAggregates)
-	if err != nil {
-		log.Error().Str("Player", "Reporter").Err(err).Msg("DeviationReport")
-		return err
-	}
 	return nil
 }
 
