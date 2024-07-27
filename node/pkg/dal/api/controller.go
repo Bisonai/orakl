@@ -42,11 +42,10 @@ func NewController(configs map[string]types.Config, internalCollector *collector
 		Collector: internalCollector,
 		configs:   configs,
 
-		clients:         make(map[*websocket.Conn]map[string]bool),
-		register:        make(chan *websocket.Conn),
-		unregister:      make(chan *websocket.Conn),
-		broadcast:       make(map[string]chan dalcommon.OutgoingSubmissionData),
-		connectionCount: make(map[string]int),
+		clients:    make(map[*websocket.Conn]map[string]bool),
+		register:   make(chan *websocket.Conn),
+		unregister: make(chan *websocket.Conn),
+		broadcast:  make(map[string]chan dalcommon.OutgoingSubmissionData),
 
 		mu: sync.RWMutex{},
 	}
@@ -55,38 +54,38 @@ func NewController(configs map[string]types.Config, internalCollector *collector
 func (c *Controller) Start(ctx context.Context) {
 	go c.Collector.Start(ctx)
 	log.Info().Str("Player", "controller").Msg("api collector started")
-	go func() {
-		for {
-			select {
-			case conn := <-c.register:
-				apiKey := conn.Headers("X-Api-Key")
-				c.mu.Lock()
-				if _, ok := c.clients[conn]; !ok {
-					c.clients[conn] = make(map[string]bool)
-					c.connectionCount[apiKey]++
-				}
-				c.mu.Unlock()
-			case conn := <-c.unregister:
-				apiKey := conn.Headers("X-Api-Key")
-				c.mu.Lock()
-				if _, ok := c.clients[conn]; ok {
-					c.connectionCount[apiKey]--
-					delete(c.clients, conn)
-				}
-				conn.Close()
-				c.mu.Unlock()
-			case <-ctx.Done():
-				c.mu.Lock()
-				for conn := range c.clients {
-					delete(c.clients, conn)
-					conn.Close()
-				}
-				c.mu.Unlock()
-				return
-			}
-		}
-	}()
+	go c.handleConnection(ctx)
+	log.Info().Str("Player", "contrller").Msg("connection handler started")
+	c.startBroadCast()
+}
 
+func (c *Controller) handleConnection(ctx context.Context) {
+	for {
+		select {
+		case conn := <-c.register:
+			c.mu.Lock()
+			if _, ok := c.clients[conn]; !ok {
+				c.clients[conn] = make(map[string]bool)
+			}
+			c.mu.Unlock()
+		case conn := <-c.unregister:
+			c.mu.Lock()
+			delete(c.clients, conn)
+			conn.Close()
+			c.mu.Unlock()
+		case <-ctx.Done():
+			c.mu.Lock()
+			for conn := range c.clients {
+				delete(c.clients, conn)
+				conn.Close()
+			}
+			c.mu.Unlock()
+			return
+		}
+	}
+}
+
+func (c *Controller) startBroadCast() {
 	for configId, stream := range c.Collector.OutgoingStream {
 		symbol := c.configIdToSymbol(configId)
 		if symbol == "" {
@@ -96,7 +95,7 @@ func (c *Controller) Start(ctx context.Context) {
 	}
 
 	for symbol := range c.configs {
-		go c.broadcastDataForSymbol(symbol)
+		c.broadcastDataForSymbol(symbol)
 	}
 }
 

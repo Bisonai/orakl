@@ -3,7 +3,6 @@ package api
 import (
 	"context"
 	"strings"
-	"time"
 
 	"bisonai.com/orakl/node/pkg/dal/utils/stats"
 	"github.com/gofiber/contrib/websocket"
@@ -32,13 +31,6 @@ func HandleWebsocket(conn *websocket.Conn) {
 
 	ctx := *ctxPointer
 	apiKey := conn.Headers("X-Api-Key")
-	c.mu.RLock()
-	if c.connectionCount[apiKey] >= 10 {
-		log.Error().Str("Player", "controller").Msg("too many connections")
-		c.mu.RUnlock()
-		return
-	}
-	c.mu.RUnlock()
 
 	c.register <- conn
 
@@ -59,38 +51,21 @@ func HandleWebsocket(conn *websocket.Conn) {
 		log.Info().Str("Player", "controller").Int32("id", id).Msg("updated websocket connection")
 	}()
 
-	subscriptionTimer := time.NewTimer(5 * time.Second)
-	defer subscriptionTimer.Stop()
-
-	go func(ctx context.Context, conn *websocket.Conn, subscriptionTimer *time.Timer, c *Controller) {
-		for {
-			select {
-			case <-subscriptionTimer.C:
-				conn.CloseHandler()(websocket.ClosePolicyViolation, "no subscription in 5 seconds")
-				return
-			case <-ctx.Done():
-				conn.CloseHandler()(websocket.CloseNormalClosure, "normal closure")
-				return
-			}
-		}
-	}(ctx, conn, subscriptionTimer, c)
-
 	for {
-		if err := handleMessage(ctx, conn, c, id, subscriptionTimer); err != nil {
+		if err := handleMessage(ctx, conn, c, id); err != nil {
 			log.Error().Str("Player", "controller").Err(err).Msg("failed to handle message")
 			return
 		}
 	}
 }
 
-func handleMessage(ctx context.Context, conn *websocket.Conn, c *Controller, id int32, subscriptionTimer *time.Timer) error {
+func handleMessage(ctx context.Context, conn *websocket.Conn, c *Controller, id int32) error {
 	var msg Subscription
 	if err := conn.ReadJSON(&msg); err != nil {
 		return err
 	}
 
 	if msg.Method == "SUBSCRIBE" {
-		subscriptionTimer.Stop()
 		c.mu.Lock()
 		defer c.mu.Unlock()
 		if c.clients[conn] == nil {
