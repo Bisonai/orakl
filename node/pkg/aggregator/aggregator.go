@@ -401,11 +401,6 @@ func (n *Aggregator) PublishProofMessage(roundId int32, proof []byte) error {
 func (n *Aggregator) isTimeValid(timeToValidate time.Time, baseTime time.Time) bool {
 	aggregatorInterval := time.Duration(n.AggregateInterval) * time.Millisecond
 	minTime := baseTime.Add(-aggregatorInterval)
-
-	if timeToValidate.Before(minTime) {
-		log.Warn().Time("minTime", minTime).Time("timeToValidate", timeToValidate).Msg("Time to validate is before minTime, so it is not valid")
-	}
-
 	return !timeToValidate.Before(minTime)
 }
 
