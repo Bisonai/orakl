@@ -4,8 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"bisonai.com/orakl/node/pkg/common/types"
 	"bisonai.com/orakl/node/pkg/dal/collector"
@@ -38,6 +41,11 @@ func Setup(ctx context.Context, adminEndpoint string) (*Controller, error) {
 }
 
 func NewController(configs map[string]types.Config, internalCollector *collector.Collector) *Controller {
+	maxConns, err := strconv.Atoi(os.Getenv("MAX_CONN"))
+	if err != nil {
+		maxConns = DEFAULT_MAX_CONNS
+	}
+
 	return &Controller{
 		Collector: internalCollector,
 		configs:   configs,
@@ -46,8 +54,9 @@ func NewController(configs map[string]types.Config, internalCollector *collector
 		register:   make(chan *websocket.Conn),
 		unregister: make(chan *websocket.Conn),
 		broadcast:  make(map[string]chan dalcommon.OutgoingSubmissionData),
-
-		mu: sync.RWMutex{},
+		connQueue:  make(map[string][]*websocket.Conn),
+		maxConns:   maxConns,
+		mu:         sync.RWMutex{},
 	}
 }
 
@@ -66,21 +75,55 @@ func (c *Controller) handleConnection(ctx context.Context) {
 			c.mu.Lock()
 			if _, ok := c.clients[conn]; !ok {
 				c.clients[conn] = make(map[string]bool)
+				c.addConQueue(conn.IP(), conn)
 			}
 			c.mu.Unlock()
 		case conn := <-c.unregister:
 			c.mu.Lock()
-			delete(c.clients, conn)
-			conn.Close()
+			if _, ok := c.clients[conn]; ok {
+				c.removeConQueue(conn.IP(), conn)
+				delete(c.clients, conn)
+			}
 			c.mu.Unlock()
 		case <-ctx.Done():
 			c.mu.Lock()
 			for conn := range c.clients {
 				delete(c.clients, conn)
-				conn.Close()
 			}
 			c.mu.Unlock()
 			return
+		}
+	}
+}
+
+func (c *Controller) addConQueue(ip string, conn *websocket.Conn) {
+	if conns, ok := c.connQueue[ip]; ok {
+		if len(conns) >= c.maxConns {
+			oldest := conns[0]
+			go func(oldest *websocket.Conn) {
+				log.Info().Str("Player", "controller").Str("IP", ip).Msg("too many connections, closing oldest")
+				c.unregister <- oldest
+				_ = oldest.WriteControl(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.ClosePolicyViolation, "too many connections"), time.Now().Add(time.Second))
+				oldest.Close()
+			}(oldest)
+			c.connQueue[ip] = conns[1:] // Remove oldest from the queue
+		}
+		c.connQueue[ip] = append(conns, conn)
+	} else {
+		c.connQueue[ip] = []*websocket.Conn{conn}
+	}
+}
+
+func (c *Controller) removeConQueue(ip string, conn *websocket.Conn) {
+	if conns, ok := c.connQueue[ip]; ok {
+		for i, entry := range conns {
+			if entry == conn {
+				c.connQueue[ip] = append(conns[:i], conns[i+1:]...)
+				break
+			}
+		}
+		if len(c.connQueue[ip]) == 0 {
+			delete(c.connQueue, ip)
 		}
 	}
 }
@@ -117,15 +160,18 @@ func (c *Controller) broadcastDataForSymbol(symbol string) {
 func (c *Controller) castSubmissionData(data *dalcommon.OutgoingSubmissionData, symbol string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+
 	for conn := range c.clients {
 		if _, ok := c.clients[conn][symbol]; ok {
 			if err := conn.WriteJSON(*data); err != nil {
 				log.Error().Str("Player", "controller").Err(err).Msg("failed to write message")
-				delete(c.clients, conn)
-				conn.CloseHandler()(websocket.CloseInternalServerErr, "failed to write message")
+				c.unregister <- conn
+				_ = conn.WriteControl(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.ClosePolicyViolation, "failed to write message"), time.Now().Add(time.Second))
+				conn.Close()
 			}
 		}
 	}
+
 }
 
 func getSymbols(c *fiber.Ctx) error {

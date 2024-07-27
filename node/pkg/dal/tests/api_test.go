@@ -164,6 +164,7 @@ func TestApiWebsocket(t *testing.T) {
 	go testItems.App.Listen(":8090")
 
 	t.Run("test subscription", func(t *testing.T) {
+
 		conn, err := wss.NewWebsocketHelper(ctx, wss.WithEndpoint("ws://localhost:8090/ws"), wss.WithRequestHeaders(headers))
 		if err != nil {
 			t.Fatalf("error creating websocket helper: %v", err)
@@ -217,5 +218,24 @@ func TestApiWebsocket(t *testing.T) {
 		if err != nil {
 			t.Fatalf("error closing websocket: %v", err)
 		}
+	})
+
+	t.Run("test fail for 10+ dial", func(t *testing.T) {
+		conns := []*wss.WebsocketHelper{}
+		for i := 0; i < 11; i++ {
+			conn, err := wss.NewWebsocketHelper(ctx, wss.WithEndpoint("ws://localhost:8090/ws"), wss.WithRequestHeaders(headers))
+			if err != nil {
+				t.Fatalf("error creating websocket helper: %v", err)
+			}
+
+			err = conn.Dial(ctx)
+			if err != nil {
+				t.Fatalf("error dialing websocket: %v", err)
+			}
+
+			conns = append(conns, conn)
+		}
+
+		assert.Error(t, conns[0].IsAlive(ctx), "expected to fail due to too many connections")
 	})
 }

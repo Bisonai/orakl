@@ -5,9 +5,12 @@ import (
 
 	"bisonai.com/orakl/node/pkg/common/types"
 	"bisonai.com/orakl/node/pkg/dal/collector"
+
 	dalcommon "bisonai.com/orakl/node/pkg/dal/common"
 	"github.com/gofiber/contrib/websocket"
 )
+
+const DEFAULT_MAX_CONNS = 10
 
 type Subscription struct {
 	Method string   `json:"method"`
@@ -22,8 +25,9 @@ type Controller struct {
 	register   chan *websocket.Conn
 	unregister chan *websocket.Conn
 	broadcast  map[string]chan dalcommon.OutgoingSubmissionData
-
-	mu sync.RWMutex
+	connQueue  map[string][]*websocket.Conn
+	maxConns   int
+	mu         sync.RWMutex
 }
 
 type BulkResponse struct {

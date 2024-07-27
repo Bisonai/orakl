@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"strings"
+	"time"
 
 	"bisonai.com/orakl/node/pkg/dal/utils/stats"
 	"github.com/gofiber/contrib/websocket"
@@ -18,8 +19,8 @@ func HandleWebsocket(conn *websocket.Conn) {
 
 	closeHandler := conn.CloseHandler()
 	conn.SetCloseHandler(func(code int, text string) error {
-		log.Info().Str("Player", "controller").Int("code", code).Str("text", text).Msg("close handler")
 		c.unregister <- conn
+		conn.Close()
 		return closeHandler(code, text)
 	})
 
@@ -28,7 +29,6 @@ func HandleWebsocket(conn *websocket.Conn) {
 		log.Error().Str("Player", "controller").Str("RemoteAddr", conn.RemoteAddr().String()).Msg("ctx not found")
 		return
 	}
-
 	ctx := *ctxPointer
 	apiKey := conn.Headers("X-Api-Key")
 
@@ -42,7 +42,9 @@ func HandleWebsocket(conn *websocket.Conn) {
 	log.Info().Str("Player", "controller").Int32("id", id).Msg("inserted websocket connection")
 
 	defer func() {
-		conn.CloseHandler()(websocket.CloseNormalClosure, "normal closure")
+		c.unregister <- conn
+		_ = conn.WriteControl(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""), time.Now().Add(time.Second))
+		conn.Close()
 		err = stats.UpdateWebsocketConnection(ctx, id)
 		if err != nil {
 			log.Error().Str("Player", "controller").Str("RemoteAddr", conn.RemoteAddr().String()).Err(err).Msg("failed to update websocket connection")
