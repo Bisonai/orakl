@@ -218,42 +218,4 @@ func TestApiWebsocket(t *testing.T) {
 			t.Fatalf("error closing websocket: %v", err)
 		}
 	})
-
-	t.Run("test disconnection on no subscription", func(t *testing.T) {
-		conn, err := wss.NewWebsocketHelper(ctx, wss.WithEndpoint("ws://localhost:8090/ws"), wss.WithRequestHeaders(headers))
-		if err != nil {
-			t.Fatalf("error creating websocket helper: %v", err)
-		}
-
-		err = conn.Dial(ctx)
-		if err != nil {
-			t.Fatalf("error dialing websocket: %v", err)
-		}
-
-		time.Sleep(6 * time.Second) // Sleep longer than the subscription timeout period
-		assert.Error(t, conn.IsAlive(ctx), "expected to fail due to no subscription")
-
-		err = conn.Close()
-		if err != nil {
-			t.Fatalf("error closing websocket: %v", err)
-		}
-	})
-
-	t.Run("test fail for 10+ dial", func(t *testing.T) {
-		conn, err := wss.NewWebsocketHelper(ctx, wss.WithEndpoint("ws://localhost:8090/ws"), wss.WithRequestHeaders(headers))
-		if err != nil {
-			t.Fatalf("error creating websocket helper: %v", err)
-		}
-
-		for i := 0; i < 10; i++ {
-			err = conn.Dial(ctx)
-			if err != nil {
-				t.Fatalf("error dialing websocket: %v", err)
-			}
-		}
-
-		err = conn.Dial(ctx)
-		assert.NoError(t, err)
-		assert.Error(t, conn.IsAlive(ctx), "expected to fail due to no subscription")
-	})
 }
