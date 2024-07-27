@@ -155,7 +155,7 @@ func (r *Reporter) report(ctx context.Context, pairs []string) error {
 	errs := []error{}
 	dataLen := len(feedHashes)
 	for start := 0; start < dataLen; start += MAX_REPORT_BATCH_SIZE {
-		end := min(start+MAX_REPORT_BATCH_SIZE, dataLen-1)
+		end := min(start+MAX_REPORT_BATCH_SIZE, dataLen)
 
 		batchFeedHashes := feedHashes[start:end]
 		batchValues := values[start:end]

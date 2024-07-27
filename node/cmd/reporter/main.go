@@ -32,7 +32,7 @@ func main() {
 	}
 
 	go func() {
-		port := os.Getenv("POR_PORT")
+		port := os.Getenv("REPORTER_PORT")
 		if port == "" {
 			port = "3000"
 		}
