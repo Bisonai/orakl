@@ -28,7 +28,7 @@ func TestCollectorStartAndStop(t *testing.T) {
 
 	time.Sleep(10 * time.Millisecond)
 
-	collector := testItems.Controller.Collector
+	collector := testItems.Collector
 	assert.True(t, collector.IsRunning)
 
 	assert.Greater(t, len(collector.Symbols), 0)
@@ -51,7 +51,7 @@ func TestCollectorStream(t *testing.T) {
 
 	time.Sleep(20 * time.Millisecond)
 
-	collector := testItems.Controller.Collector
+	collector := testItems.Collector
 	assert.Greater(t, len(collector.Symbols), 0)
 	assert.True(t, collector.IsRunning)
 
@@ -95,7 +95,7 @@ func TestCollectorStream(t *testing.T) {
 	ch := make(chan any)
 	go conn.Read(ctx, ch)
 
-	expected, err := testItems.Controller.Collector.IncomingDataToOutgoingData(ctx, *sampleSubmissionData)
+	expected, err := testItems.Collector.IncomingDataToOutgoingData(ctx, *sampleSubmissionData)
 	if err != nil {
 		t.Fatalf("error converting sample submission data to outgoing data: %v", err)
 	}
