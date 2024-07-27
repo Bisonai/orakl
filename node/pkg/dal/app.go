@@ -6,9 +6,12 @@ import (
 	"os"
 	"time"
 
+	"bisonai.com/orakl/node/pkg/common/types"
 	"bisonai.com/orakl/node/pkg/dal/api"
+	"bisonai.com/orakl/node/pkg/dal/collector"
 	"bisonai.com/orakl/node/pkg/dal/utils/initializer"
 	"bisonai.com/orakl/node/pkg/dal/utils/keycache"
+	"bisonai.com/orakl/node/pkg/utils/request"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog/log"
@@ -25,13 +28,21 @@ func Run(ctx context.Context) error {
 		return errors.New("ORAKL_NODE_ADMIN_URL is not set")
 	}
 
-	controller, err := api.Setup(ctx, adminEndpoint)
+	configs, err := fetchConfigs(ctx, adminEndpoint)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to setup DAL API server")
+		log.Error().Err(err).Msg("Failed to fetch configs")
 		return err
 	}
 
-	app, err := initializer.Setup(ctx, controller, keyCache)
+	collector, err := collector.NewCollector(ctx, configs)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to setup collector")
+		return err
+	}
+
+	hub := api.HubSetup(ctx, configs)
+
+	app, err := initializer.Setup(ctx, collector, hub, keyCache)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to setup DAL API server")
 		return err
@@ -52,4 +63,8 @@ func Run(ctx context.Context) error {
 	}
 
 	return app.Listen(":" + port)
+}
+
+func fetchConfigs(ctx context.Context, endpoint string) ([]types.Config, error) {
+	return request.Request[[]types.Config](request.WithEndpoint(endpoint + "/config"))
 }
