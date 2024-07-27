@@ -55,8 +55,8 @@ func (c *Controller) Start(ctx context.Context) {
 	go c.Collector.Start(ctx)
 	log.Info().Str("Player", "controller").Msg("api collector started")
 	go c.handleConnection(ctx)
-	log.Info().Str("Player", "contrller").Msg("connection handler started")
-	c.startBroadCast()
+	log.Info().Str("Player", "controller").Msg("connection handler started")
+	go c.startBroadCast()
 }
 
 func (c *Controller) handleConnection(ctx context.Context) {
