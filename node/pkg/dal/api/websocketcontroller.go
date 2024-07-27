@@ -25,7 +25,7 @@ func HandleWebsocket(conn *websocket.Conn) {
 
 	ctxPointer, ok := conn.Locals("context").(*context.Context)
 	if !ok {
-		log.Error().Str("Player", "controller").Msg("ctx not found")
+		log.Error().Str("Player", "controller").Str("RemoteAddr", conn.RemoteAddr().String()).Msg("ctx not found")
 		return
 	}
 
@@ -36,7 +36,7 @@ func HandleWebsocket(conn *websocket.Conn) {
 
 	id, err := stats.InsertWebsocketConnection(ctx, apiKey)
 	if err != nil {
-		log.Error().Str("Player", "controller").Err(err).Msg("failed to insert websocket connection")
+		log.Error().Str("Player", "controller").Str("RemoteAddr", conn.RemoteAddr().String()).Err(err).Msg("failed to insert websocket connection")
 		return
 	}
 	log.Info().Str("Player", "controller").Int32("id", id).Msg("inserted websocket connection")
@@ -45,7 +45,7 @@ func HandleWebsocket(conn *websocket.Conn) {
 		conn.CloseHandler()(websocket.CloseNormalClosure, "normal closure")
 		err = stats.UpdateWebsocketConnection(ctx, id)
 		if err != nil {
-			log.Error().Str("Player", "controller").Err(err).Msg("failed to update websocket connection")
+			log.Error().Str("Player", "controller").Str("RemoteAddr", conn.RemoteAddr().String()).Err(err).Msg("failed to update websocket connection")
 			return
 		}
 		log.Info().Str("Player", "controller").Int32("id", id).Msg("updated websocket connection")
@@ -53,7 +53,7 @@ func HandleWebsocket(conn *websocket.Conn) {
 
 	for {
 		if err := handleMessage(ctx, conn, c, id); err != nil {
-			log.Error().Str("Player", "controller").Err(err).Msg("failed to handle message")
+			log.Error().Str("Player", "controller").Str("RemoteAddr", conn.RemoteAddr().String()).Err(err).Msg("failed to handle message")
 			return
 		}
 	}
