@@ -111,16 +111,15 @@ func (c *Controller) configIdToSymbol(id int32) string {
 
 func (c *Controller) broadcastDataForSymbol(symbol string) {
 	for data := range c.broadcast[symbol] {
-		go c.castSubmissionData(&data, &symbol)
+		go c.castSubmissionData(&data, symbol)
 	}
 }
 
-// pass by pointer to reduce memory copy time
-func (c *Controller) castSubmissionData(data *dalcommon.OutgoingSubmissionData, symbol *string) {
+func (c *Controller) castSubmissionData(data *dalcommon.OutgoingSubmissionData, symbol string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	for conn := range c.clients {
-		if _, ok := c.clients[conn][*symbol]; ok {
+		if _, ok := c.clients[conn][symbol]; ok {
 			if err := conn.WriteJSON(*data); err != nil {
 				log.Error().Str("Player", "controller").Err(err).Msg("failed to write message")
 				delete(c.clients, conn)
