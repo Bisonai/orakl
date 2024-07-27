@@ -138,7 +138,7 @@ func (c *Controller) startBroadCast() {
 	}
 
 	for symbol := range c.configs {
-		c.broadcastDataForSymbol(symbol)
+		go c.broadcastDataForSymbol(symbol)
 	}
 }
 
