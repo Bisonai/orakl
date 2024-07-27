@@ -16,7 +16,7 @@ import (
 )
 
 const LocalAggregatesChannelSize = 2_000
-const DefaultLocalAggregateInterval = 250 * time.Millisecond
+const DefaultLocalAggregateInterval = 200 * time.Millisecond
 
 func New(bus *bus.MessageBus) *App {
 	return &App{

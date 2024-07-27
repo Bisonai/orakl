@@ -38,7 +38,7 @@ import (
 )
 
 const (
-	DefaultStoreInterval = 250 * time.Millisecond
+	DefaultStoreInterval = 200 * time.Millisecond
 	DefaultBufferSize    = 3000
 )
 
