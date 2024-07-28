@@ -27,8 +27,8 @@ type DBKeyResult struct {
 }
 
 func Setup(ctx context.Context, collector *collector.Collector, hub *api.Hub, keyCache *keycache.KeyCache) (*fiber.App, error) {
-	if hub == nil || keyCache == nil {
-		return nil, errors.New("api controller and key cache cannot be nil")
+	if collector == nil || hub == nil || keyCache == nil {
+		return nil, errors.New("collector or hub or keyCache is nil in Setup")
 	}
 	go collector.Start(ctx)
 	hub.Start(ctx, collector)
