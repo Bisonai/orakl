@@ -99,7 +99,7 @@ func (c *Hub) configIdToSymbol(id int32) string {
 
 func (c *Hub) broadcastDataForSymbol(symbol string) {
 	for data := range c.broadcast[symbol] {
-		c.castSubmissionData(&data, &symbol)
+		go c.castSubmissionData(&data, &symbol)
 	}
 }
 
