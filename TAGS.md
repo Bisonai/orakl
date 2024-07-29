@@ -81,3 +81,4 @@
 - **delegator** v0.0.1.20240725.0348.bb6b5ab <br> *`PR`*: Delegator Fix grafana not visu... <br><br> 
 - **dal** v0.0.1.20240725.0608.3c62dcb <br> *`PR`*: Return hexstring for bytes typ... <br><br> 
 - **reporter** v0.0.1.20240729.0535.9951bc8 <br> *`PR`*: OraklNode Update intervals <br><br> 
+- **reporter** v0.0.1.20240729.0601.c47cac1 <br> *`PR`*: remove db dependency from repo... <br><br> 
