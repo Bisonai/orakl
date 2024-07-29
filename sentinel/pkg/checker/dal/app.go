@@ -20,12 +20,12 @@ const (
 )
 
 type OutgoingSubmissionData struct {
-	Symbol        string   `json:"symbol"`
-	Value         string   `json:"value"`
-	AggregateTime string   `json:"aggregateTime"`
-	Proof         []byte   `json:"proof"`
-	FeedHash      [32]byte `json:"feedHash"`
-	Decimals      string   `json:"decimals"`
+	Symbol        string `json:"symbol"`
+	Value         string `json:"value"`
+	AggregateTime string `json:"aggregateTime"`
+	Proof         string `json:"proof"`
+	FeedHash      string `json:"feedHash"`
+	Decimals      string `json:"decimals"`
 }
 
 func Start() error {
@@ -85,6 +85,11 @@ func checkDal(endpoint string, key string, alarmCount map[string]int) error {
 		offset := time.Since(timestamp)
 		log.Debug().Str("Player", "DalChecker").Dur("network delay", networkDelay).Str("symbol", data.Symbol).Time("timestamp", timestamp).Dur("offset", offset).Msg("DAL price check")
 
+		if checkValueEmptiness(&data) {
+			log.Debug().Str("Player", "DalChecker").Msg("data is empty")
+			msg += fmt.Sprintf("(DAL) empty data exists among data\n %v\n", data)
+		}
+
 		if offset > DelayOffset+networkDelay {
 			alarmCount[data.Symbol]++
 
@@ -103,4 +108,8 @@ func checkDal(endpoint string, key string, alarmCount map[string]int) error {
 	}
 
 	return nil
+}
+
+func checkValueEmptiness(data *OutgoingSubmissionData) bool {
+	return data.Symbol == "" || data.Value == "" || data.AggregateTime == "" || data.Proof == "" || data.FeedHash == "" || data.Decimals == ""
 }
