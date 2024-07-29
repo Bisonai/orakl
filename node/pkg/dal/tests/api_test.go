@@ -235,6 +235,7 @@ func TestApiWebsocket(t *testing.T) {
 
 			conns = append(conns, conn)
 		}
+		time.Sleep(1 * time.Second)
 
 		assert.Error(t, conns[0].IsAlive(ctx), "expected to fail due to too many connections")
 	})
