@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"bisonai.com/orakl/node/pkg/dal/api"
+	"bisonai.com/orakl/node/pkg/dal/collector"
 	"bisonai.com/orakl/node/pkg/dal/utils/keycache"
 	"bisonai.com/orakl/node/pkg/dal/utils/stats"
 	"bisonai.com/orakl/node/pkg/db"
@@ -25,12 +26,13 @@ type DBKeyResult struct {
 	Exist bool `db:"exists"`
 }
 
-func Setup(ctx context.Context, apiController *api.Controller, keyCache *keycache.KeyCache) (*fiber.App, error) {
-	if apiController == nil || keyCache == nil {
-		return nil, errors.New("api controller and key cache cannot be nil")
+func Setup(ctx context.Context, collector *collector.Collector, hub *api.Hub, keyCache *keycache.KeyCache) (*fiber.App, error) {
+	if collector == nil || hub == nil || keyCache == nil {
+		return nil, errors.New("collector, hub, or keyCache is nil in Setup")
 	}
-	apiController.Start(ctx)
-	log.Info().Msg("api controller started")
+	go collector.Start(ctx)
+	hub.Start(ctx, collector)
+	log.Info().Msg("hub and collector started")
 
 	_, err := db.GetPool(ctx)
 	if err != nil {
@@ -58,7 +60,8 @@ func Setup(ctx context.Context, apiController *api.Controller, keyCache *keycach
 	))
 
 	app.Use(func(c *fiber.Ctx) error {
-		c.Locals("apiController", apiController)
+		c.Locals("collector", collector)
+		c.Locals("hub", hub)
 		c.Locals("keyCache", keyCache)
 		c.Locals("context", &ctx)
 		return c.Next()

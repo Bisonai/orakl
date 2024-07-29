@@ -14,6 +14,7 @@ import (
 	"bisonai.com/orakl/node/pkg/common/keys"
 	"bisonai.com/orakl/node/pkg/common/types"
 	"bisonai.com/orakl/node/pkg/dal/api"
+	"bisonai.com/orakl/node/pkg/dal/collector"
 	"bisonai.com/orakl/node/pkg/dal/utils/initializer"
 	"bisonai.com/orakl/node/pkg/dal/utils/keycache"
 	"bisonai.com/orakl/node/pkg/db"
@@ -24,7 +25,8 @@ import (
 
 type TestItems struct {
 	App        *fiber.App
-	Controller *api.Controller
+	Collector  *collector.Collector
+	Controller *api.Hub
 	TmpConfig  types.Config
 	MockAdmin  *httptest.Server
 	ApiKey     string
@@ -94,22 +96,26 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 		SubmitInterval:    15000,
 	}
 
+	configs := []types.Config{testItems.TmpConfig}
+
 	keyCache := keycache.NewAPIKeyCache(1 * time.Hour)
 	keyCache.CleanupLoop(10 * time.Minute)
 
-	apiController, err := api.Setup(ctx, mockAdminServer.URL)
+	collector, err := collector.NewCollector(ctx, configs)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to setup DAL API server")
 		return nil, nil, err
 	}
 
-	app, err := initializer.Setup(ctx, apiController, keyCache)
+	hub := api.HubSetup(ctx, configs)
+
+	app, err := initializer.Setup(ctx, collector, hub, keyCache)
 	if err != nil {
 		return nil, nil, err
 	}
 	testItems.App = app
-
-	testItems.Controller = apiController
+	testItems.Collector = collector
+	testItems.Controller = hub
 	testItems.MockAdmin = mockAdminServer
 
 	v1 := app.Group("")
@@ -129,7 +135,7 @@ func cleanup(ctx context.Context, testItems *TestItems) func() error {
 			return err
 		}
 
-		testItems.Controller.Collector.Stop()
+		testItems.Collector.Stop()
 		testItems.Controller = nil
 
 		testItems.MockAdmin.Close()
