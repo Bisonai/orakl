@@ -86,6 +86,7 @@ on:
           - delegator:v0.0.1.20240725.0310.d5a2c89:DAL Minor update
           - delegator:v0.0.1.20240725.0348.bb6b5ab:Delegator Fix grafana not visu...
           - dal:v0.0.1.20240725.0608.3c62dcb:Return hexstring for bytes typ...
+          - reporter:v0.0.1.20240729.0535.9951bc8:OraklNode Update intervals
 jobs:
   prepare-taskflow:
     name: Prepare
