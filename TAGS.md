@@ -84,3 +84,4 @@
 - **reporter** v0.0.1.20240729.0601.c47cac1 <br> *`PR`*: remove db dependency from repo... <br><br> 
 - **reporter** v0.0.1.20240729.0617.71e4260 <br> *`PR`*: Reporter Remove additional pro... <br><br> 
 - **node** v0.0.1.20240729.0629.7671f73 <br> *`PR`*: Reporter Remove additional pro... <br><br> 
+- **sentinel** v0.0.1.20240729.0632.d94d2c1 <br> *`PR`*: Reporter Remove additional pro... <br><br> 
