@@ -142,9 +142,9 @@ func (h *Hub) configIdToSymbol(id int32) string {
 	return ""
 }
 
-func (c *Hub) broadcastDataForSymbol(symbol string) {
-	for data := range c.broadcast[symbol] {
-		go c.castSubmissionData(&data, &symbol)
+func (h *Hub) broadcastDataForSymbol(symbol string) {
+	for data := range h.broadcast[symbol] {
+		go h.castSubmissionData(&data, &symbol)
 	}
 }
 
