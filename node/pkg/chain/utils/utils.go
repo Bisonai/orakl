@@ -177,15 +177,21 @@ func MakeDirectTx(ctx context.Context, client ClientInterface, contractAddressHe
 		return nil, errorSentinel.ErrChainEmptyChainIdParam
 	}
 
-	functionName, inputs, outputs, err := ParseMethodSignature(functionString)
+	abi, functionName, err := GetAbi(functionString)
 	if err != nil {
-		return nil, err
-	}
+		var inputs, outputs string
+		functionName, inputs, outputs, err = ParseMethodSignature(functionString)
+		if err != nil {
+			return nil, err
+		}
 
-	abi, err := GenerateCallABI(functionName, inputs, outputs)
-	if err != nil {
-		log.Error().Err(err).Msg("failed to generate abi")
-		return nil, err
+		abi, err = GenerateCallABI(functionName, inputs, outputs)
+		if err != nil {
+			log.Error().Err(err).Msg("failed to generate abi")
+			return nil, err
+		}
+
+		SetAbi(functionString, abi, functionName)
 	}
 
 	packed, err := abi.Pack(functionName, args...)
@@ -244,16 +250,21 @@ func MakeFeeDelegatedTx(ctx context.Context, client ClientInterface, contractAdd
 		return nil, errorSentinel.ErrChainEmptyChainIdParam
 	}
 
-	functionName, inputs, outputs, err := ParseMethodSignature(functionString)
+	abi, functionName, err := GetAbi(functionString)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to parse method signature")
-		return nil, err
-	}
+		var inputs, outputs string
+		functionName, inputs, outputs, err = ParseMethodSignature(functionString)
+		if err != nil {
+			return nil, err
+		}
 
-	abi, err := GenerateCallABI(functionName, inputs, outputs)
-	if err != nil {
-		log.Error().Err(err).Msg("failed to generate abi")
-		return nil, err
+		abi, err = GenerateCallABI(functionName, inputs, outputs)
+		if err != nil {
+			log.Error().Err(err).Msg("failed to generate abi")
+			return nil, err
+		}
+
+		SetAbi(functionString, abi, functionName)
 	}
 
 	packed, err := abi.Pack(functionName, args...)
@@ -420,14 +431,21 @@ func ReadContract(ctx context.Context, client ClientInterface, functionString st
 		return nil, errorSentinel.ErrChainEmptyFuncStringParam
 	}
 
-	functionName, inputs, outputs, err := ParseMethodSignature(functionString)
+	abi, functionName, err := GetAbi(functionString)
 	if err != nil {
-		return nil, err
-	}
+		var inputs, outputs string
+		functionName, inputs, outputs, err = ParseMethodSignature(functionString)
+		if err != nil {
+			return nil, err
+		}
 
-	abi, err := GenerateViewABI(functionName, inputs, outputs)
-	if err != nil {
-		return nil, err
+		abi, err = GenerateViewABI(functionName, inputs, outputs)
+		if err != nil {
+			log.Error().Err(err).Msg("failed to generate abi")
+			return nil, err
+		}
+
+		SetAbi(functionString, abi, functionName)
 	}
 
 	contractAddressHex := common.HexToAddress(contractAddress)
