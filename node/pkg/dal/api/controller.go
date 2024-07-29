@@ -17,7 +17,7 @@ import (
 func HandleWebsocket(conn *websocket.Conn) {
 	c, ok := conn.Locals("hub").(*Hub)
 	if !ok {
-		log.Error().Msg("api controller not found")
+		log.Error().Msg("hub not found")
 		return
 	}
 
@@ -78,7 +78,7 @@ func HandleWebsocket(conn *websocket.Conn) {
 func getSymbols(c *fiber.Ctx) error {
 	hub, ok := c.Locals("hub").(*Hub)
 	if !ok {
-		return errors.New("api controller not found")
+		return errors.New("hub not found")
 	}
 
 	result := []string{}
@@ -101,7 +101,7 @@ func getAllLatestFeeds(c *fiber.Ctx) error {
 func getLatestFeeds(c *fiber.Ctx) error {
 	collector, ok := c.Locals("collector").(*collector.Collector)
 	if !ok {
-		return errors.New("api controller not found")
+		return errors.New("collector not found")
 	}
 
 	symbolsStr := c.Params("symbols")
@@ -139,7 +139,7 @@ func getLatestFeeds(c *fiber.Ctx) error {
 func getLatestFeedsTransposed(c *fiber.Ctx) error {
 	collector, ok := c.Locals("collector").(*collector.Collector)
 	if !ok {
-		return errors.New("api controller not found")
+		return errors.New("collector not found")
 	}
 
 	symbolsStr := c.Params("symbols")
@@ -181,7 +181,7 @@ func getLatestFeedsTransposed(c *fiber.Ctx) error {
 func getAllLatestFeedsTransposed(c *fiber.Ctx) error {
 	collector, ok := c.Locals("collector").(*collector.Collector)
 	if !ok {
-		return errors.New("api controller not found")
+		return errors.New("collector not found")
 	}
 
 	result := collector.GetAllLatestData()
