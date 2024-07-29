@@ -39,7 +39,6 @@ func HandleWebsocket(conn *websocket.Conn) {
 
 	defer func() {
 		c.unregister <- conn
-		conn.Close()
 		err = stats.UpdateWebsocketConnection(*ctx, id)
 		if err != nil {
 			log.Error().Err(err).Msg("failed to update websocket connection")
