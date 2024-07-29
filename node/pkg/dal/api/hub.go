@@ -49,11 +49,13 @@ func (c *Hub) Start(ctx context.Context, collector *collector.Collector) {
 					delete(c.clients, conn)
 				}
 				c.mu.Unlock()
-				conn.WriteControl(
+				if err := conn.WriteControl(
 					websocket.CloseMessage,
 					websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""),
 					time.Now().Add(time.Second),
-				)
+				); err != nil {
+					log.Error().Err(err).Msg("failed to send close message")
+				}
 				conn.Close()
 			}
 		}
