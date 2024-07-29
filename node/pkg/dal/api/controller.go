@@ -15,11 +15,17 @@ import (
 )
 
 func HandleWebsocket(conn *websocket.Conn) {
-	c, ok := conn.Locals("hub").(*Hub)
+	h, ok := conn.Locals("hub").(*Hub)
 	if !ok {
 		log.Error().Msg("hub not found")
 		return
 	}
+
+	closeHandler := conn.CloseHandler()
+	conn.SetCloseHandler(func(code int, text string) error {
+		h.unregister <- conn
+		return closeHandler(code, text)
+	})
 
 	ctx, ok := conn.Locals("context").(*context.Context)
 	if !ok {
@@ -27,7 +33,7 @@ func HandleWebsocket(conn *websocket.Conn) {
 		return
 	}
 
-	c.register <- conn
+	h.register <- conn
 	apiKey := conn.Headers("X-Api-Key")
 
 	id, err := stats.InsertWebsocketConnection(*ctx, apiKey)
@@ -38,7 +44,7 @@ func HandleWebsocket(conn *websocket.Conn) {
 	log.Info().Int32("id", id).Msg("inserted websocket connection")
 
 	defer func() {
-		c.unregister <- conn
+		h.unregister <- conn
 		err = stats.UpdateWebsocketConnection(*ctx, id)
 		if err != nil {
 			log.Error().Err(err).Msg("failed to update websocket connection")
@@ -55,22 +61,22 @@ func HandleWebsocket(conn *websocket.Conn) {
 		}
 
 		if msg.Method == "SUBSCRIBE" {
-			c.mu.Lock()
-			if c.clients[conn] == nil {
-				c.clients[conn] = make(map[string]bool)
+			h.mu.Lock()
+			if h.clients[conn] == nil {
+				h.clients[conn] = make(map[string]bool)
 			}
 			for _, param := range msg.Params {
 				symbol := strings.TrimPrefix(param, "submission@")
-				if _, ok := c.configs[symbol]; !ok {
+				if _, ok := h.configs[symbol]; !ok {
 					continue
 				}
-				c.clients[conn][symbol] = true
+				h.clients[conn][symbol] = true
 				err = stats.InsertWebsocketSubscription(*ctx, id, param)
 				if err != nil {
 					log.Error().Err(err).Msg("failed to insert websocket subscription")
 				}
 			}
-			c.mu.Unlock()
+			h.mu.Unlock()
 		}
 	}
 }
