@@ -41,9 +41,14 @@ func (c *Hub) Start(ctx context.Context, collector *collector.Collector) {
 				c.mu.Unlock()
 			case conn := <-c.unregister:
 				c.mu.Lock()
-				delete(c.clients, conn)
-				conn.Close()
+				if _, ok := c.clients[conn]; ok {
+					for symbol := range c.clients[conn] {
+						delete(c.clients[conn], symbol)
+					}
+					delete(c.clients, conn)
+				}
 				c.mu.Unlock()
+				conn.Close()
 			}
 		}
 	}()
@@ -73,7 +78,6 @@ func (c *Hub) configIdToSymbol(id int32) string {
 
 func (c *Hub) broadcastDataForSymbol(symbol string) {
 	for data := range c.broadcast[symbol] {
-
 		go c.castSubmissionData(&data, &symbol)
 	}
 }
