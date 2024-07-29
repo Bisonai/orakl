@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"time"
 
 	"bisonai.com/orakl/node/pkg/common/types"
 	"bisonai.com/orakl/node/pkg/dal/collector"
@@ -48,6 +49,13 @@ func (c *Hub) Start(ctx context.Context, collector *collector.Collector) {
 					delete(c.clients, conn)
 				}
 				c.mu.Unlock()
+				if err := conn.WriteControl(
+					websocket.CloseMessage,
+					websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""),
+					time.Now().Add(time.Second),
+				); err != nil {
+					log.Error().Err(err).Msg("failed to send close message")
+				}
 				conn.Close()
 			}
 		}
