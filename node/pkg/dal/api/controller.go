@@ -91,7 +91,7 @@ func getSymbols(c *fiber.Ctx) error {
 func getAllLatestFeeds(c *fiber.Ctx) error {
 	collector, ok := c.Locals("collector").(*collector.Collector)
 	if !ok {
-		return errors.New("api controller not found")
+		return errors.New("collector not found")
 	}
 
 	result := collector.GetAllLatestData()
