@@ -33,44 +33,59 @@ func NewHub(configs map[string]types.Config) *Hub {
 }
 
 func (c *Hub) Start(ctx context.Context, collector *collector.Collector) {
-	go func() {
-		for {
-			select {
-			case conn := <-c.register:
-				c.mu.Lock()
-				c.clients[conn] = make(map[string]bool)
-				c.mu.Unlock()
-			case conn := <-c.unregister:
-				c.mu.Lock()
-				if _, ok := c.clients[conn]; ok {
-					for symbol := range c.clients[conn] {
-						delete(c.clients[conn], symbol)
-					}
-					delete(c.clients, conn)
-				}
-				c.mu.Unlock()
-				if err := conn.WriteControl(
-					websocket.CloseMessage,
-					websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""),
-					time.Now().Add(time.Second),
-				); err != nil {
-					log.Error().Err(err).Msg("failed to send close message")
-				}
-				conn.Close()
-			}
-		}
-	}()
+	go c.handleClientRegistration()
 
-	for configId, stream := range collector.OutgoingStream {
-		symbol := c.configIdToSymbol(configId)
-		if symbol == "" {
-			continue
-		}
-		c.broadcast[symbol] = stream
-	}
+	c.initializeBroadcastChannels(collector)
 
 	for symbol := range c.configs {
 		go c.broadcastDataForSymbol(symbol)
+	}
+}
+
+func (c *Hub) handleClientRegistration() {
+	for {
+		select {
+		case conn := <-c.register:
+			c.addClient(conn)
+		case conn := <-c.unregister:
+			c.removeClient(conn)
+		}
+	}
+}
+
+func (c *Hub) addClient(conn *websocket.Conn) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if _, ok := c.clients[conn]; ok {
+		return
+	}
+	c.clients[conn] = make(map[string]bool)
+}
+
+func (c *Hub) removeClient(conn *websocket.Conn) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if _, ok := c.clients[conn]; ok {
+		for symbol := range c.clients[conn] {
+			delete(c.clients[conn], symbol)
+		}
+		delete(c.clients, conn)
+	}
+	if err := conn.WriteControl(
+		websocket.CloseMessage,
+		websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""),
+		time.Now().Add(time.Second),
+	); err != nil {
+		log.Error().Err(err).Msg("failed to send close message")
+	}
+	conn.Close()
+}
+
+func (c *Hub) initializeBroadcastChannels(collector *collector.Collector) {
+	for configId, stream := range collector.OutgoingStream {
+		symbol := c.configIdToSymbol(configId)
+		c.broadcast[symbol] = make(chan dalcommon.OutgoingSubmissionData)
+		c.broadcast[symbol] = stream
 	}
 }
 
