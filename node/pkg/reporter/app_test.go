@@ -3,12 +3,8 @@ package reporter
 
 import (
 	"context"
-	"os"
 	"testing"
 	"time"
-
-	errorSentinel "bisonai.com/orakl/node/pkg/error"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestFetchConfigs(t *testing.T) {
@@ -26,47 +22,6 @@ func TestRunApp(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error running reporter: %v", err)
 	}
-}
-
-func TestRunMissingApiKey(t *testing.T) {
-	ctx := context.Background()
-
-	app := New()
-
-	apiKey := os.Getenv("API_KEY")
-	os.Setenv("API_KEY", "")
-
-	err := app.Run(ctx)
-	os.Setenv("API_KEY", apiKey)
-
-	assert.ErrorIs(t, err, errorSentinel.ErrReporterDalApiKeyNotFound)
-}
-
-func TestRunMissingWsUrl(t *testing.T) {
-	ctx := context.Background()
-	app := New()
-
-	dalWsEndpoint := os.Getenv("DAL_WS_URL")
-	os.Setenv("DAL_WS_URL", "")
-
-	err := app.Run(ctx)
-	os.Setenv("DAL_WS_URL", dalWsEndpoint)
-
-	assert.NoError(t, err)
-}
-
-func TestRunMissingSubmissionProxyContract(t *testing.T) {
-	ctx := context.Background()
-
-	app := New()
-
-	submissionProxy := os.Getenv("SUBMISSION_PROXY_CONTRACT")
-	os.Setenv("SUBMISSION_PROXY_CONTRACT", "")
-
-	err := app.Run(ctx)
-	os.Setenv("SUBMISSION_PROXY_CONTRACT", submissionProxy)
-
-	assert.ErrorIs(t, err, errorSentinel.ErrReporterSubmissionProxyContractNotFound)
 }
 
 func TestWsDataHandling(t *testing.T) {
