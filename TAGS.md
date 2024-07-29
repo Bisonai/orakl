@@ -90,3 +90,4 @@
 - **reporter** v0.0.1.20240729.0722.0661431 <br> *`PR`*: remove trailing slash <br><br> 
 - **sentinel** v0.0.1.20240729.0734.8a64d46 <br> *`PR`*: remove trailing slash <br><br> 
 - **sentinel** v0.0.1.20240729.0744.b3448bb <br> *`PR`*: Sentinel Update sentinel with ... <br><br> 
+- **dal** v0.0.1.20240729.0821.0bc41a5 <br> *`PR`*: Sentinel Update sentinel with ... <br><br> 
