@@ -66,7 +66,6 @@ func (c *Hub) Start(ctx context.Context, collector *collector.Collector) {
 		if symbol == "" {
 			continue
 		}
-		c.broadcast[symbol] = make(chan dalcommon.OutgoingSubmissionData)
 		c.broadcast[symbol] = stream
 	}
 
@@ -86,7 +85,7 @@ func (c *Hub) configIdToSymbol(id int32) string {
 
 func (c *Hub) broadcastDataForSymbol(symbol string) {
 	for data := range c.broadcast[symbol] {
-		go c.castSubmissionData(&data, &symbol)
+		c.castSubmissionData(&data, &symbol)
 	}
 }
 
