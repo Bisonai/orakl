@@ -86,3 +86,4 @@
 - **node** v0.0.1.20240729.0629.7671f73 <br> *`PR`*: Reporter Remove additional pro... <br><br> 
 - **sentinel** v0.0.1.20240729.0632.d94d2c1 <br> *`PR`*: Reporter Remove additional pro... <br><br> 
 - **sentinel** v0.0.1.20240729.0701.5968549 <br> *`PR`*: remove admin wallet endpoint f... <br><br> 
+- **sentinel** v0.0.1.20240729.0709.d749c0c <br> *`PR`*: fix reporter endpoint <br><br> 
