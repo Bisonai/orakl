@@ -26,7 +26,7 @@ func GetDeviatingAggregates(latestSubmittedData *sync.Map, latestData *sync.Map,
 		newValue, ok := GetLatestData(latestData, pair)
 
 		if !ok {
-			log.Warn().Str("Player", "Reporter").Msg("latest data not found during deviation check")
+			log.Error().Str("Player", "Reporter").Msg("latest data not found during deviation check")
 			return true
 		}
 
