@@ -82,3 +82,4 @@
 - **dal** v0.0.1.20240725.0608.3c62dcb <br> *`PR`*: Return hexstring for bytes typ... <br><br> 
 - **reporter** v0.0.1.20240729.0535.9951bc8 <br> *`PR`*: OraklNode Update intervals <br><br> 
 - **reporter** v0.0.1.20240729.0601.c47cac1 <br> *`PR`*: remove db dependency from repo... <br><br> 
+- **reporter** v0.0.1.20240729.0617.71e4260 <br> *`PR`*: Reporter Remove additional pro... <br><br> 
