@@ -21,7 +21,7 @@
   },
   {
     "name": "orakl-reporter",
-    "url": "http://orakl-reporter.orakl.svc.cluster.local:3030/api/v1/"
+    "url": "http://orakl-reporter.orakl.svc.cluster.local:3000/api/v1/"
   },
   {
     "name": "orakl-por",
