@@ -8,6 +8,7 @@ import (
 
 	"bisonai.com/orakl/node/pkg/chain/helper"
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
+	"bisonai.com/orakl/node/pkg/secrets"
 	"bisonai.com/orakl/node/pkg/utils/request"
 	"github.com/klaytn/klaytn/common"
 	"github.com/rs/zerolog/log"
@@ -34,7 +35,7 @@ func (a *App) Run(ctx context.Context) error {
 }
 
 func (a *App) setReporters(ctx context.Context) error {
-	dalApiKey := os.Getenv("API_KEY")
+	dalApiKey := secrets.GetSecret("API_KEY")
 	if dalApiKey == "" {
 		return errorSentinel.ErrReporterDalApiKeyNotFound
 	}
