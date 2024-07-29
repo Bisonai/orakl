@@ -84,7 +84,6 @@ func (c *Hub) removeClient(conn *websocket.Conn) {
 func (c *Hub) initializeBroadcastChannels(collector *collector.Collector) {
 	for configId, stream := range collector.OutgoingStream {
 		symbol := c.configIdToSymbol(configId)
-		c.broadcast[symbol] = make(chan dalcommon.OutgoingSubmissionData)
 		c.broadcast[symbol] = stream
 	}
 }
