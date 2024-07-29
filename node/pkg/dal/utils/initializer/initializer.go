@@ -32,7 +32,7 @@ func Setup(ctx context.Context, collector *collector.Collector, hub *api.Hub, ke
 	}
 	go collector.Start(ctx)
 	hub.Start(ctx, collector)
-	log.Info().Msg("api controller started")
+	log.Info().Msg("hub and collector started")
 
 	_, err := db.GetPool(ctx)
 	if err != nil {
