@@ -20,6 +20,10 @@
     "url": "http://orakl-node.orakl.svc.cluster.local:3030/api/v1/"
   },
   {
+    "name": "orakl-reporter",
+    "url": "http://orakl-reporter.orakl.svc.cluster.local:3030/api/v1/"
+  },
+  {
     "name": "orakl-por",
     "url": "http://orakl-por.orakl.svc.cluster.local:3000/api/v1"
   },
