@@ -95,6 +95,7 @@ on:
           - sentinel:v0.0.1.20240729.0709.d749c0c:fix reporter endpoint
           - reporter:v0.0.1.20240729.0722.0661431:remove trailing slash
           - sentinel:v0.0.1.20240729.0734.8a64d46:remove trailing slash
+          - sentinel:v0.0.1.20240729.0744.b3448bb:Sentinel Update sentinel with ...
 jobs:
   prepare-taskflow:
     name: Prepare

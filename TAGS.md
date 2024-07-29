@@ -89,3 +89,4 @@
 - **sentinel** v0.0.1.20240729.0709.d749c0c <br> *`PR`*: fix reporter endpoint <br><br> 
 - **reporter** v0.0.1.20240729.0722.0661431 <br> *`PR`*: remove trailing slash <br><br> 
 - **sentinel** v0.0.1.20240729.0734.8a64d46 <br> *`PR`*: remove trailing slash <br><br> 
+- **sentinel** v0.0.1.20240729.0744.b3448bb <br> *`PR`*: Sentinel Update sentinel with ... <br><br> 
