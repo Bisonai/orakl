@@ -12,7 +12,6 @@ import (
 	"bisonai.com/orakl/node/pkg/admin/host"
 	"bisonai.com/orakl/node/pkg/admin/providerUrl"
 	"bisonai.com/orakl/node/pkg/admin/proxy"
-	"bisonai.com/orakl/node/pkg/admin/reporter"
 	"bisonai.com/orakl/node/pkg/admin/utils"
 	"bisonai.com/orakl/node/pkg/bus"
 	"bisonai.com/orakl/node/pkg/db"
@@ -61,7 +60,6 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 	feed.Routes(v1)
 	fetcher.Routes(v1)
 	proxy.Routes(v1)
-	reporter.Routes(v1)
 	providerUrl.Routes(v1)
 	config.Routes(v1)
 	host.Routes(v1)

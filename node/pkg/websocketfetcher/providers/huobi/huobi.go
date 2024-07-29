@@ -59,7 +59,7 @@ func (f *HuobiFetcher) handleMessage(ctx context.Context, message map[string]any
 		}
 	} else {
 		if _, exists := message["subbed"]; exists {
-			f.checkSubResponse(message)
+			_ = f.checkSubResponse(message)
 			return nil
 		}
 

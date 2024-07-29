@@ -1,141 +1,113 @@
-//nolint:all
+// //nolint:all
 package reporter
 
 import (
 	"context"
+	"os"
 	"testing"
+	"time"
 
-	"bisonai.com/orakl/node/pkg/admin/tests"
+	errorSentinel "bisonai.com/orakl/node/pkg/error"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestRun(t *testing.T) {
-	ctx := context.Background()
-	cleanup, testItems, err := setup(ctx)
-	if err != nil {
-		t.Fatalf("error setting up test: %v", err)
+func TestFetchConfigs(t *testing.T) {
+	configs, err := fetchConfigs()
+	if err != nil || configs == nil || len(configs) == 0 {
+		t.Fatalf("error getting configs: %v", err)
 	}
-	defer func() {
-		if cleanupErr := cleanup(); cleanupErr != nil {
-			t.Logf("Cleanup failed: %v", cleanupErr)
-		}
-	}()
+}
 
-	err = testItems.app.Run(ctx)
+func TestRunApp(t *testing.T) {
+	ctx := context.Background()
+
+	app := New()
+	err := app.Run(ctx)
+	if err != nil {
+		t.Fatalf("error running reporter: %v", err)
+	}
+}
+
+func TestRunMissingApiKey(t *testing.T) {
+	ctx := context.Background()
+
+	app := New()
+
+	apiKey := os.Getenv("API_KEY")
+	os.Setenv("API_KEY", "")
+
+	err := app.Run(ctx)
+	os.Setenv("API_KEY", apiKey)
+
+	assert.ErrorIs(t, err, errorSentinel.ErrReporterDalApiKeyNotFound)
+}
+
+func TestRunMissingWsUrl(t *testing.T) {
+	ctx := context.Background()
+	app := New()
+
+	dalWsEndpoint := os.Getenv("DAL_WS_URL")
+	os.Setenv("DAL_WS_URL", "")
+
+	err := app.Run(ctx)
+	os.Setenv("DAL_WS_URL", dalWsEndpoint)
+
+	assert.NoError(t, err)
+}
+
+func TestRunMissingSubmissionProxyContract(t *testing.T) {
+	ctx := context.Background()
+
+	app := New()
+
+	submissionProxy := os.Getenv("SUBMISSION_PROXY_CONTRACT")
+	os.Setenv("SUBMISSION_PROXY_CONTRACT", "")
+
+	err := app.Run(ctx)
+	os.Setenv("SUBMISSION_PROXY_CONTRACT", submissionProxy)
+
+	assert.ErrorIs(t, err, errorSentinel.ErrReporterSubmissionProxyContractNotFound)
+}
+
+func TestWsDataHandling(t *testing.T) {
+	ctx := context.Background()
+
+	app := New()
+
+	err := app.Run(ctx)
 	if err != nil {
 		t.Fatalf("error running reporter: %v", err)
 	}
 
-	assert.Equal(t, testItems.app.Reporters[0].isRunning, true)
-}
-
-func TestStopReporter(t *testing.T) {
-	ctx := context.Background()
-	cleanup, testItems, err := setup(ctx)
+	configs, err := fetchConfigs()
 	if err != nil {
-		t.Fatalf("error setting up test: %v", err)
+		t.Fatalf("error getting configs: %v", err)
 	}
-	defer func() {
-		if cleanupErr := cleanup(); cleanupErr != nil {
-			t.Logf("Cleanup failed: %v", cleanupErr)
+
+	ticker := time.NewTicker(1 * time.Second)
+	defer ticker.Stop()
+	timeout := time.After(5 * time.Second)
+	submissionDataCount := 0
+
+	for {
+		select {
+		case <-ticker.C:
+			if app.WsHelper != nil && app.WsHelper.IsRunning {
+				submissionDataCount = 0
+				for _, config := range configs {
+					if _, ok := app.LatestDataMap.Load(config.Name); ok {
+						submissionDataCount++
+					}
+				}
+				if submissionDataCount == len(configs) {
+
+					return
+				}
+			}
+		case <-timeout:
+			if submissionDataCount != len(configs) {
+				t.Fatal("not all submission data received from websocket")
+			}
 		}
-	}()
-
-	err = testItems.app.Run(ctx)
-	if err != nil {
-		t.Fatal("error running reporter")
 	}
-
-	err = testItems.app.stopReporters()
-	if err != nil {
-		t.Fatal("error stopping reporter")
-	}
-
-	assert.Equal(t, testItems.app.Reporters[0].isRunning, false)
-}
-
-func TestStopReporterByAdmin(t *testing.T) {
-	ctx := context.Background()
-	cleanup, testItems, err := setup(ctx)
-	if err != nil {
-		t.Fatalf("error setting up test: %v", err)
-	}
-	defer func() {
-		if cleanupErr := cleanup(); cleanupErr != nil {
-			t.Logf("Cleanup failed: %v", cleanupErr)
-		}
-	}()
-
-	testItems.app.subscribe(ctx)
-
-	err = testItems.app.Run(ctx)
-	if err != nil {
-		t.Fatal("error running reporter")
-	}
-
-	_, err = tests.RawPostRequest(testItems.admin, "/api/v1/reporter/deactivate", nil)
-	if err != nil {
-		t.Fatalf("error activating reporter: %v", err)
-	}
-
-	assert.Equal(t, testItems.app.Reporters[0].isRunning, false)
-}
-
-func TestStartReporterByAdmin(t *testing.T) {
-	ctx := context.Background()
-	cleanup, testItems, err := setup(ctx)
-	if err != nil {
-		t.Fatalf("error setting up test: %v", err)
-	}
-	defer func() {
-		if cleanupErr := cleanup(); cleanupErr != nil {
-			t.Logf("Cleanup failed: %v", cleanupErr)
-		}
-	}()
-
-	testItems.app.subscribe(ctx)
-	err = testItems.app.setReporters(ctx, testItems.app.Host, testItems.app.Pubsub)
-	if err != nil {
-		t.Fatalf("error setting reporters: %v", err)
-	}
-
-	_, err = tests.RawPostRequest(testItems.admin, "/api/v1/reporter/activate", nil)
-	if err != nil {
-		t.Fatalf("error activating reporter: %v", err)
-	}
-
-	assert.Equal(t, testItems.app.Reporters[0].isRunning, true)
-}
-
-func TestRestartReporterByAdmin(t *testing.T) {
-	// TODO: add checking for address mapping changes
-
-	ctx := context.Background()
-	cleanup, testItems, err := setup(ctx)
-	if err != nil {
-		t.Fatalf("error setting up test: %v", err)
-	}
-	defer func() {
-		if cleanupErr := cleanup(); cleanupErr != nil {
-			t.Logf("Cleanup failed: %v", cleanupErr)
-		}
-	}()
-
-	testItems.app.subscribe(ctx)
-	err = testItems.app.setReporters(ctx, testItems.app.Host, testItems.app.Pubsub)
-	if err != nil {
-		t.Fatalf("error setting reporters: %v", err)
-	}
-
-	_, err = tests.RawPostRequest(testItems.admin, "/api/v1/reporter/activate", nil)
-	if err != nil {
-		t.Fatalf("error activating reporter: %v", err)
-	}
-
-	_, err = tests.RawPostRequest(testItems.admin, "/api/v1/reporter/refresh", nil)
-	if err != nil {
-		t.Fatalf("error refreshing reporter: %v", err)
-	}
-
-	assert.Equal(t, testItems.app.Reporters[0].isRunning, true)
 }
