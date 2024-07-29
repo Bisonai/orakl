@@ -111,7 +111,7 @@ func (c *Hub) castSubmissionData(data *dalcommon.OutgoingSubmissionData, symbol 
 		if _, ok := c.clients[conn][*symbol]; ok {
 			if err := conn.WriteJSON(*data); err != nil {
 				log.Error().Err(err).Msg("failed to write message")
-				c.unregister <- conn
+				go func() { c.unregister <- conn }()
 			}
 		}
 	}
