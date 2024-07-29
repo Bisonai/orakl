@@ -76,6 +76,7 @@ func (c *Hub) addClient(client *ThreadSafeClient) {
 			}
 		}
 		delete(h.clients, oldConn)
+		h.connPerIP[ip] = h.connPerIP[ip][1:]
 		oldConn.WriteControl(
 			websocket.CloseMessage,
 			websocket.FormatCloseMessage(websocket.ClosePolicyViolation, "too many connections"),
@@ -99,9 +100,9 @@ func (c *Hub) removeClient(client *ThreadSafeClient) {
 
 	for i, c := range h.connPerIP[conn.IP()] {
 		if c == conn {
-			h.connPerIP[conn.IP()] = append(h.connPerIP[conn.IP()][:i], h.connPerIP[conn.IP()][i+1:]...)
+			h.connPerIP[ip] = append(h.connPerIP[ip][:i], h.connPerIP[ip][i+1:]...)
 			if len(h.connPerIP) == 0 {
-				delete(h.connPerIP, conn.IP())
+				delete(h.connPerIP, ip)
 			}
 		}
 	}
