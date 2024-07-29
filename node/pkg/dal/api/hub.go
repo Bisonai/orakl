@@ -29,20 +29,21 @@ func NewHub(configs map[string]types.Config) *Hub {
 		register:   make(chan *ThreadSafeClient),
 		unregister: make(chan *ThreadSafeClient),
 		broadcast:  make(map[string]chan dalcommon.OutgoingSubmissionData),
+		connPerIP:  make(map[string][]*websocket.Conn),
 	}
 }
 
-func (c *Hub) Start(ctx context.Context, collector *collector.Collector) {
-	go c.handleClientRegistration()
+func (h *Hub) Start(ctx context.Context, collector *collector.Collector) {
+	go h.handleClientRegistration()
 
-	c.initializeBroadcastChannels(collector)
+	h.initializeBroadcastChannels(collector)
 
-	for symbol := range c.configs {
-		go c.broadcastDataForSymbol(symbol)
+	for symbol := range h.configs {
+		go h.broadcastDataForSymbol(symbol)
 	}
 }
 
-func (c *Hub) handleClientRegistration() {
+func (h *Hub) handleClientRegistration() {
 	for {
 		select {
 		case client := <-c.register:
@@ -60,6 +61,28 @@ func (c *Hub) addClient(client *ThreadSafeClient) {
 		return
 	}
 	c.clients[client] = make(map[string]bool)
+	
+	if _, ok := h.connPerIP[conn.IP()]; !ok {
+		h.connPerIP[conn.IP()] = make([]*websocket.Conn, 0)
+	}
+
+	h.connPerIP[conn.IP()] = append(h.connPerIP[conn.IP()], conn)
+	
+	if len(h.connPerIP) > MAX_CONNECTIONS {
+		oldConn := h.connPerIP[conn.IP()][0]
+		if subs, ok := h.clients[oldConn]; ok {
+			for k := range subs {
+				delete(h.clients[oldConn], k)
+			}
+		}
+		delete(h.clients, oldConn)
+		oldConn.WriteControl(
+			websocket.CloseMessage,
+			websocket.FormatCloseMessage(websocket.ClosePolicyViolation, "too many connections"),
+			time.Now().Add(time.Second),
+		)
+		oldConn.Close()
+	}
 }
 
 func (c *Hub) removeClient(client *ThreadSafeClient) {
@@ -73,6 +96,16 @@ func (c *Hub) removeClient(client *ThreadSafeClient) {
 	for symbol := range subscriptions {
 		delete(subscriptions, symbol)
 	}
+
+	for i, c := range h.connPerIP[conn.IP()] {
+		if c == conn {
+			h.connPerIP[conn.IP()] = append(h.connPerIP[conn.IP()][:i], h.connPerIP[conn.IP()][i+1:]...)
+			if len(h.connPerIP) == 0 {
+				delete(h.connPerIP, conn.IP())
+			}
+		}
+	}
+
 
 	err := client.WriteControl(
 		websocket.CloseMessage,
@@ -88,7 +121,7 @@ func (c *Hub) removeClient(client *ThreadSafeClient) {
 	}
 }
 
-func (c *Hub) initializeBroadcastChannels(collector *collector.Collector) {
+func (h *Hub) initializeBroadcastChannels(collector *collector.Collector) {
 	for configId, stream := range collector.OutgoingStream {
 		symbol := c.configIdToSymbol(configId)
 		if symbol == "" {
@@ -99,8 +132,8 @@ func (c *Hub) initializeBroadcastChannels(collector *collector.Collector) {
 	}
 }
 
-func (c *Hub) configIdToSymbol(id int32) string {
-	for symbol, config := range c.configs {
+func (h *Hub) configIdToSymbol(id int32) string {
+	for symbol, config := range h.configs {
 		if config.ID == id {
 			return symbol
 		}
