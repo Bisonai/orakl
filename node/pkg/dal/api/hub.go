@@ -54,30 +54,40 @@ func (c *Hub) handleClientRegistration() {
 }
 
 func (c *Hub) addClient(conn *websocket.Conn) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	c.mu.RLock()
 	if _, ok := c.clients[conn]; ok {
+		c.mu.RUnlock()
 		return
 	}
+	c.mu.RUnlock()
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	c.clients[conn] = make(map[string]bool)
 }
 
 func (c *Hub) removeClient(conn *websocket.Conn) {
+	c.mu.RLock()
+	if _, ok := c.clients[conn]; !ok {
+		c.mu.RUnlock()
+		return
+	}
+	c.mu.RUnlock()
+
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	if _, ok := c.clients[conn]; ok {
-		for symbol := range c.clients[conn] {
-			delete(c.clients[conn], symbol)
-		}
-		delete(c.clients, conn)
+
+	for symbol := range c.clients[conn] {
+		delete(c.clients[conn], symbol)
 	}
-	if err := conn.WriteControl(
+	delete(c.clients, conn)
+
+	_ = conn.WriteControl(
 		websocket.CloseMessage,
 		websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""),
 		time.Now().Add(time.Second),
-	); err != nil {
-		log.Error().Err(err).Msg("failed to send close message")
-	}
+	)
 	conn.Close()
 }
 
