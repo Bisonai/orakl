@@ -36,23 +36,6 @@ func TestLoadWalletFromOraklApi(t *testing.T) {
 	assert.Equal(t, testAddr1, wallets[1].Address.Hex())
 }
 
-func TestLoadWalletFromOraklAdmin(t *testing.T) {
-	ctx := context.Background()
-	mockServer := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		rw.Write([]byte(`["` + testAddr0 + `","` + testAddr1 + `"]`))
-	}))
-	defer mockServer.Close()
-
-	wallets, err := loadWalletFromOraklAdmin(ctx, mockServer.URL)
-	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
-	}
-
-	assert.Equal(t, 2, len(wallets))
-	assert.Equal(t, testAddr0, wallets[0].Address.Hex())
-	assert.Equal(t, testAddr1, wallets[1].Address.Hex())
-}
-
 func TestLoadWalletFromPor(t *testing.T) {
 	ctx := context.Background()
 	mockServer := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {

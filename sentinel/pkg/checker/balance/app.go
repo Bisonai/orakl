@@ -22,7 +22,6 @@ import (
 
 const (
 	oraklApiEndpoint       = "/reporter"
-	oraklNodeAdminEndpoint = "/wallet/addresses"
 	oraklDelegatorEndpoint = "/sign/feePayer"
 	porEndpoint            = "/address"
 	DefaultRRMinimum       = 1
@@ -190,12 +189,6 @@ func loadWallets(ctx context.Context, urls Urls) ([]Wallet, error) {
 	}
 	wallets = append(wallets, apiWallets...)
 
-	adminWallets, err := loadWalletFromOraklAdmin(ctx, urls.OraklNodeAdminUrl)
-	if err != nil {
-		return wallets, err
-	}
-	wallets = append(wallets, adminWallets...)
-
 	porWallet, err := loadWalletFromPor(ctx, urls.PorUrl)
 	if err != nil {
 		return wallets, err
@@ -239,26 +232,6 @@ func loadWalletFromOraklApi(ctx context.Context, url string) ([]Wallet, error) {
 			Balance: 0,
 			Minimum: minimumBalance,
 			Tag:     "reporter loaded from orakl api",
-		}
-		wallets = append(wallets, wallet)
-	}
-	return wallets, nil
-}
-
-func loadWalletFromOraklAdmin(ctx context.Context, url string) ([]Wallet, error) {
-	wallets := []Wallet{}
-	reporters, err := request.Request[[]string](request.WithEndpoint(url + oraklNodeAdminEndpoint))
-	if err != nil {
-		return wallets, err
-	}
-
-	for _, reporter := range reporters {
-		address := common.HexToAddress(reporter)
-		wallet := Wallet{
-			Address: address,
-			Balance: 0,
-			Minimum: SubmitterAlarmAmount,
-			Tag:     "reporter loaded from orakl node admin",
 		}
 		wallets = append(wallets, wallet)
 	}
