@@ -94,3 +94,4 @@
 - **dal** v0.0.1.20240729.0857.1e70d2e <br> *`PR`*: DAL Hotfix add missing threadi... <br><br> 
 - **dal** v0.0.1.20240729.1006.3081fa7 <br> *`PR`*: DAL Hotfix mutex lock duplicat... <br><br> 
 - **dal** v0.0.1.20240729.1032.5dcc456 <br> *`PR`*: DAL Quick return from client h... <br><br> 
+- **dal** v0.0.1.20240730.0325.afa71cc <br> *`PR`*: log timestamps for pairs in da... <br><br> 
