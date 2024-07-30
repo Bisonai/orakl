@@ -161,7 +161,12 @@ func (c *Collector) processIncomingData(ctx context.Context, data aggregator.Sub
 	symbol := c.Symbols[data.GlobalAggregate.ConfigID]
 	diff := time.Since(data.GlobalAggregate.Timestamp)
 	if diff > 1*time.Second {
-		log.Warn().Int64("value", data.GlobalAggregate.Value).Dur("duration", diff).Str("Symbol", symbol).Str("Player", "DalCollector").Msg("processing incoming data")
+		log.Warn().Dur("duration", diff).Str("Symbol", symbol).Str("Player", "DalCollector").Msg("processing incoming data")
+	}
+
+	diffFromPublish := time.Since(data.PublishTime)
+	if diffFromPublish > 100*time.Millisecond {
+		log.Warn().Dur("redisDelay", diffFromPublish).Str("Symbol", symbol).Str("Player", "DalCollector").Msg("redis delay over 100 millisec")
 	}
 
 	result, err := c.IncomingDataToOutgoingData(ctx, data)
