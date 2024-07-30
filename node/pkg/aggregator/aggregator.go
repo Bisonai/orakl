@@ -106,7 +106,7 @@ func (n *Aggregator) HandleRoundSyncMessage(ctx context.Context, msg raft.Messag
 	}
 
 	// removes old round data (2 rounds ago)
-	n.cleanUpRoundData(roundSyncMessage.RoundID - 2)
+	// n.cleanUpRoundData(roundSyncMessage.RoundID - 2)
 
 	value, updateTime, err := GetLatestLocalAggregate(ctx, n.ID)
 	if err != nil {
