@@ -62,7 +62,7 @@ func insertLocalAggregatePgsql(ctx context.Context, configId int32, value float6
 
 func insertLocalAggregateRdb(ctx context.Context, configId int32, value float64) error {
 	data := LocalAggregate{ConfigID: configId, Value: int64(value), Timestamp: time.Now()}
-	return db.SetObject(ctx, keys.LocalAggregateKey(configId), data, time.Duration(5*time.Minute))
+	return db.SetObject(ctx, keys.LocalAggregateKey(configId), data, 0)
 }
 
 func copyFeedData(ctx context.Context, feedData []FeedData) error {
