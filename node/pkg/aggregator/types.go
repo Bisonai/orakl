@@ -39,12 +39,13 @@ type SubmissionData struct {
 }
 
 type App struct {
-	Bus         *bus.MessageBus
-	Aggregators map[int32]*Aggregator
-	Streamer    *Streamer
-	Host        host.Host
-	Pubsub      *pubsub.PubSub
-	Signer      *helper.Signer
+	Bus                   *bus.MessageBus
+	Aggregators           map[int32]*Aggregator
+	Streamer              *Streamer
+	Host                  host.Host
+	Pubsub                *pubsub.PubSub
+	Signer                *helper.Signer
+	LatestLocalAggregates *sync.Map
 }
 
 type Config struct {
@@ -57,6 +58,7 @@ type Aggregator struct {
 	Config
 	Raft *raft.Raft
 
+	LatestLocalAggregates    *sync.Map
 	CollectedPrices          map[int32][]int64
 	CollectedProofs          map[int32][][]byte
 	CollectedAgreements      map[int32][]bool

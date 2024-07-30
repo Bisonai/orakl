@@ -75,11 +75,12 @@ type TestItems struct {
 	insertedConfigs []config.ConfigModel
 	insertedFeeds   []feed.FeedModel
 	mockDataSource  []*httptest.Server
+	aggChan         <-chan bus.Message
 }
 
 func setup(ctx context.Context) (func() error, *TestItems, error) {
 	var testItems = new(TestItems)
-	mb := bus.New(10)
+	mb := bus.New(100)
 
 	admin, err := utils.Setup(utils.SetupInfo{
 		Version: "",
@@ -108,6 +109,7 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 	testItems.admin = admin
 	testItems.messageBus = mb
 	testItems.app = app
+	testItems.aggChan = mb.Subscribe(bus.AGGREGATOR)
 
 	configs, feeds, err := insertSampleData(ctx, testItems)
 	if err != nil {

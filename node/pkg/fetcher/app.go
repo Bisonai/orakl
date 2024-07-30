@@ -411,7 +411,7 @@ func (a *App) initialize(ctx context.Context) error {
 		if getFeedsErr != nil {
 			return getFeedsErr
 		}
-		a.Collectors[config.ID] = NewCollector(config, collectorFeeds, a.Accumulator.accumulatorChannel)
+		a.Collectors[config.ID] = NewCollector(config, collectorFeeds, a.Accumulator.accumulatorChannel, a.Bus)
 	}
 	streamIntervalRaw := os.Getenv("FEED_DATA_STREAM_INTERVAL")
 	streamInterval, err := time.ParseDuration(streamIntervalRaw)

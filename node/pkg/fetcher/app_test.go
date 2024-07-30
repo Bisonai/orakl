@@ -93,11 +93,8 @@ func TestAppRun(t *testing.T) {
 			}
 			assert.NotNil(t, result)
 		}
-		rdbResult, localAggregateErr := db.Get(ctx, keys.LocalAggregateKey(fetcher.Config.ID))
-		if localAggregateErr != nil {
-			t.Fatalf("error getting local aggregate: %v", localAggregateErr)
-		}
-		assert.NotNil(t, rdbResult)
+		data := <-testItems.aggChan
+		assert.NotNil(t, data)
 	}
 
 	err = app.Streamer.Job(ctx)

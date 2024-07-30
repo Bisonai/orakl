@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"os"
 	"strconv"
+	"sync"
 	"time"
 
 	"bisonai.com/orakl/node/pkg/bus"
@@ -19,10 +20,11 @@ import (
 
 func New(bus *bus.MessageBus, h host.Host, ps *pubsub.PubSub) *App {
 	return &App{
-		Aggregators: make(map[int32]*Aggregator),
-		Bus:         bus,
-		Host:        h,
-		Pubsub:      ps,
+		Aggregators:           make(map[int32]*Aggregator),
+		Bus:                   bus,
+		Host:                  h,
+		Pubsub:                ps,
+		LatestLocalAggregates: new(sync.Map),
 	}
 }
 
@@ -127,7 +129,7 @@ func (a *App) initializeLoadedAggregators(ctx context.Context, loadedConfigs []C
 		}
 
 		topicString := config.Name + "-global-aggregator-topic-" + strconv.Itoa(int(config.AggregateInterval))
-		tmpNode, err := NewAggregator(h, ps, topicString, config, signer)
+		tmpNode, err := NewAggregator(h, ps, topicString, config, signer, a.LatestLocalAggregates)
 		if err != nil {
 			return err
 		}
@@ -348,6 +350,9 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 			return
 		}
 		msg.Response <- bus.MessageResponse{Success: true}
+	case bus.STREAM_LOCAL_AGGREGATE:
+		localAggregate := msg.Content.Args["value"].(LocalAggregate)
+		a.LatestLocalAggregates.Store(localAggregate.ConfigID, localAggregate)
 	default:
 		bus.HandleMessageError(errorSentinel.ErrBusUnknownCommand, msg, "aggregator received unknown command")
 		return
