@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"bisonai.com/orakl/node/pkg/chain/helper"
+	"bisonai.com/orakl/node/pkg/common/types"
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
 	"bisonai.com/orakl/node/pkg/raft"
 	"bisonai.com/orakl/node/pkg/utils/calculator"
@@ -119,7 +120,7 @@ func (n *Aggregator) HandleRoundSyncMessage(ctx context.Context, msg raft.Messag
 		// if not enough messages collected from HandleSyncReplyMessage, it will hang in certain round
 		value = -1
 	} else {
-		localAggregate := localAggregateRaw.(LocalAggregate)
+		localAggregate := localAggregateRaw.(types.LocalAggregate)
 		value = localAggregate.Value
 		updateTime = localAggregate.Timestamp
 	}
