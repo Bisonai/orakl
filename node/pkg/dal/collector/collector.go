@@ -76,8 +76,8 @@ func NewCollector(ctx context.Context, configs []types.Config) (*Collector, erro
 	}
 
 	for _, config := range configs {
-		collector.IncomingStream[config.ID] = make(chan aggregator.SubmissionData)
-		collector.OutgoingStream[config.ID] = make(chan dalcommon.OutgoingSubmissionData)
+		collector.IncomingStream[config.ID] = make(chan aggregator.SubmissionData, 1000)
+		collector.OutgoingStream[config.ID] = make(chan dalcommon.OutgoingSubmissionData, 1000)
 		collector.Symbols[config.ID] = config.Name
 		collector.FeedHashes[config.ID] = crypto.Keccak256([]byte(config.Name))
 	}
