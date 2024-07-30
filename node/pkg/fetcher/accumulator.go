@@ -36,6 +36,7 @@ func (a *Accumulator) Run(ctx context.Context) {
 }
 
 func (a *Accumulator) accumulatorJob(ctx context.Context) {
+	start := time.Now()
 	if len(a.accumulatorChannel) == 0 {
 		return
 	}
@@ -64,5 +65,10 @@ loop:
 
 	if redisErr != nil || pgsqlErr != nil {
 		log.Error().Err(redisErr).Err(pgsqlErr).Msg("failed to save local aggregates")
+	}
+
+	diff := time.Since(start).Milliseconds()
+	if diff > 200 {
+		log.Warn().Str("Player", "Fetcher").Msgf("accumulatorJob finished in %d ms", diff)
 	}
 }
