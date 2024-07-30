@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 	"sync"
+	"time"
 
 	"bisonai.com/orakl/node/pkg/aggregator"
 	"bisonai.com/orakl/node/pkg/chain/websocketchainreader"
@@ -157,7 +158,17 @@ func (c *Collector) receiveEach(ctx context.Context, configId int32) error {
 }
 
 func (c *Collector) processIncomingData(ctx context.Context, data aggregator.SubmissionData) {
+	symbol := c.Symbols[data.GlobalAggregate.ConfigID]
+	log.Info().Msgf(
+		"%s: %.2f seconds had passed when data is received",
+		symbol,
+		time.Since(data.GlobalAggregate.Timestamp).Seconds(),
+	)
+
+	start := time.Now()
 	result, err := c.IncomingDataToOutgoingData(ctx, data)
+	log.Info().Msgf("%s took %.2f seconds to process", symbol, time.Since(start).Seconds())
+
 	if err != nil {
 		log.Error().Err(err).Str("Player", "DalCollector").Msg("failed to convert incoming data to outgoing data")
 		return
