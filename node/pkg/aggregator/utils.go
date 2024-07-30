@@ -44,6 +44,8 @@ func PublishGlobalAggregateAndProof(ctx context.Context, globalAggregate GlobalA
 	if globalAggregate.Value == 0 || globalAggregate.Timestamp.IsZero() {
 		return nil
 	}
+
+	globalAggregate.Timestamp = time.Now()
 	data := SubmissionData{
 		GlobalAggregate: globalAggregate,
 		Proof:           proof,
