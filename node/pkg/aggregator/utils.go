@@ -54,6 +54,10 @@ func PublishGlobalAggregateAndProof(ctx context.Context, globalAggregate GlobalA
 
 func GetLatestLocalAggregate(ctx context.Context, configId int32) (int64, time.Time, error) {
 	redisAggregate, err := GetLatestLocalAggregateFromRdb(ctx, configId)
+	diff := time.Since(redisAggregate.Timestamp).Milliseconds()
+	if diff > 400 {
+		log.Warn().Msgf("redisAggregate is %d ms old", diff)
+	}
 	if err != nil {
 		pgsqlAggregate, err := GetLatestLocalAggregateFromPgs(ctx, configId)
 		if err != nil {
