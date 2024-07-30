@@ -125,7 +125,6 @@ func calculateAggregatedPrice(valueWeightedAveragePrice, medianPrice float64) fl
 
 func (c *Collector) streamLocalAggregate(ctx context.Context, aggregated float64) error {
 	if aggregated != 0 {
-		insertLocalAggregateRdb(ctx, c.ID, aggregated)
 		c.localAggregatesChannel <- LocalAggregate{
 			ConfigID:  c.ID,
 			Value:     int64(aggregated),
