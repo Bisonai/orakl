@@ -6,15 +6,18 @@ import (
 	"os"
 	"time"
 
+	"bisonai.com/orakl/node/pkg/bus"
+	"bisonai.com/orakl/node/pkg/common/types"
 	"github.com/rs/zerolog/log"
 )
 
-func NewCollector(config Config, feeds []Feed, localAggregatesChannel chan LocalAggregate) *Collector {
+func NewCollector(config Config, feeds []Feed, localAggregatesChannel chan LocalAggregate, bus *bus.MessageBus) *Collector {
 	return &Collector{
 		Config:                 config,
 		Feeds:                  feeds,
 		collectorCtx:           nil,
 		cancel:                 nil,
+		bus:                    bus,
 		localAggregatesChannel: localAggregatesChannel,
 	}
 }
@@ -125,11 +128,28 @@ func calculateAggregatedPrice(valueWeightedAveragePrice, medianPrice float64) fl
 
 func (c *Collector) streamLocalAggregate(ctx context.Context, aggregated float64) error {
 	if aggregated != 0 {
+		busLocalAggregate := types.LocalAggregate{
+			ConfigID:  c.ID,
+			Value:     int64(aggregated),
+			Timestamp: time.Now(),
+		}
+
+		msg := bus.Message{
+			From: bus.FETCHER,
+			To:   bus.AGGREGATOR,
+			Content: bus.MessageContent{
+				Command: bus.STREAM_LOCAL_AGGREGATE,
+				Args:    map[string]any{"value": busLocalAggregate},
+			},
+		}
+
 		c.localAggregatesChannel <- LocalAggregate{
 			ConfigID:  c.ID,
 			Value:     int64(aggregated),
 			Timestamp: time.Now(),
 		}
+		return c.bus.Publish(msg)
+
 	}
 
 	return nil

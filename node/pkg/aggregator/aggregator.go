@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"bisonai.com/orakl/node/pkg/chain/helper"
+	"bisonai.com/orakl/node/pkg/common/types"
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
 	"bisonai.com/orakl/node/pkg/raft"
 	"bisonai.com/orakl/node/pkg/utils/calculator"
@@ -17,7 +18,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string, config Config, signHelper *helper.Signer) (*Aggregator, error) {
+func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string, config Config, signHelper *helper.Signer, latestLocalAggregates *sync.Map) (*Aggregator, error) {
 	if h == nil || ps == nil || topicString == "" {
 		return nil, errorSentinel.ErrAggregatorInvalidInitValue
 	}
@@ -42,6 +43,7 @@ func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string, config Co
 		AggregatorMutex:          sync.Mutex{},
 		RoundID:                  1,
 		Signer:                   signHelper,
+		LatestLocalAggregates:    latestLocalAggregates,
 	}
 	aggregator.Raft.LeaderJob = aggregator.LeaderJob
 	aggregator.Raft.HandleCustomMessage = aggregator.HandleCustomMessage
@@ -108,13 +110,19 @@ func (n *Aggregator) HandleRoundSyncMessage(ctx context.Context, msg raft.Messag
 	// removes old round data (2 rounds ago)
 	// n.cleanUpRoundData(roundSyncMessage.RoundID - 2)
 
-	value, updateTime, err := GetLatestLocalAggregate(ctx, n.ID)
-	if err != nil {
-		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to get latest local aggregate")
+	var value int64
+	var updateTime time.Time
+	localAggregateRaw, ok := n.LatestLocalAggregates.Load(n.ID)
+	if !ok {
+		log.Error().Str("Player", "Aggregator").Msg("failed to get latest local aggregate")
 		// set value to -1 rather than returning error
 		// it is to proceed further steps even if current node fails to get latest local aggregate
 		// if not enough messages collected from HandleSyncReplyMessage, it will hang in certain round
 		value = -1
+	} else {
+		localAggregate := localAggregateRaw.(types.LocalAggregate)
+		value = localAggregate.Value
+		updateTime = localAggregate.Timestamp
 	}
 
 	n.AggregatorMutex.Lock()

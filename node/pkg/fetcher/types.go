@@ -51,6 +51,7 @@ type Collector struct {
 	collectorCtx context.Context
 	cancel       context.CancelFunc
 	isRunning    bool
+	bus          *bus.MessageBus
 
 	localAggregatesChannel chan LocalAggregate
 }

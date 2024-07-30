@@ -2,8 +2,8 @@ package aggregator
 
 import (
 	"context"
-	"encoding/json"
 	"os"
+	"sync"
 	"testing"
 	"time"
 
@@ -36,12 +36,13 @@ type TmpData struct {
 }
 
 type TestItems struct {
-	app         *App
-	admin       *fiber.App
-	topicString string
-	messageBus  *bus.MessageBus
-	tmpData     *TmpData
-	signer      *helper.Signer
+	app               *App
+	admin             *fiber.App
+	topicString       string
+	messageBus        *bus.MessageBus
+	tmpData           *TmpData
+	signer            *helper.Signer
+	latestLocalAggMap *sync.Map
 }
 
 func setup(ctx context.Context) (func() error, *TestItems, error) {
@@ -73,8 +74,8 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 	testItems.app = app
 
 	testItems.topicString = "test-topic"
-
-	tmpData, err := insertSampleData(ctx, app)
+	testItems.latestLocalAggMap = &sync.Map{}
+	tmpData, err := insertSampleData(ctx, app, testItems.latestLocalAggMap)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -93,7 +94,7 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 	return aggregatorCleanup(ctx, admin, app), testItems, nil
 }
 
-func insertSampleData(ctx context.Context, app *App) (*TmpData, error) {
+func insertSampleData(ctx context.Context, app *App, latestLocalAggMap *sync.Map) (*TmpData, error) {
 	_ = db.QueryWithoutResult(ctx, DeleteConfigs, nil)
 
 	var tmpData = new(TmpData)
@@ -107,18 +108,16 @@ func insertSampleData(ctx context.Context, app *App) (*TmpData, error) {
 
 	localAggregateInsertTime := time.Now()
 
-	key := keys.LocalAggregateKey(tmpConfig.ID)
-	data, err := json.Marshal(LocalAggregate{ConfigID: tmpConfig.ID, Value: int64(10), Timestamp: localAggregateInsertTime})
-	if err != nil {
-		return nil, err
-	}
+	// key := keys.LocalAggregateKey(tmpConfig.ID)
+	// data, err := json.Marshal(LocalAggregate{ConfigID: tmpConfig.ID, Value: int64(10), Timestamp: localAggregateInsertTime})
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	err = db.Set(ctx, key, string(data), time.Duration(5*time.Minute))
-	if err != nil {
-		return nil, err
-	}
+	tmpLocalAggregate := LocalAggregate{ConfigID: tmpConfig.ID, Value: int64(10), Timestamp: localAggregateInsertTime}
+	latestLocalAggMap.Store(tmpConfig.ID, tmpLocalAggregate)
 
-	tmpData.rLocalAggregate = LocalAggregate{ConfigID: tmpConfig.ID, Value: int64(10), Timestamp: localAggregateInsertTime}
+	tmpData.rLocalAggregate = tmpLocalAggregate
 
 	tmpPLocalAggregate, err := db.QueryRow[LocalAggregate](ctx, InsertLocalAggregateQuery, map[string]any{"config_id": tmpConfig.ID, "value": int64(10), "time": localAggregateInsertTime})
 	if err != nil {

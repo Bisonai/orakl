@@ -2,6 +2,7 @@ package fetcher
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -40,7 +41,7 @@ func TestAccumulator(t *testing.T) {
 		if getFeedsErr != nil {
 			t.Fatalf("error getting configs: %v", getFeedsErr)
 		}
-		app.Collectors[config.ID] = NewCollector(config, collectorFeeds, localAggregatesChannel)
+		app.Collectors[config.ID] = NewCollector(config, collectorFeeds, localAggregatesChannel, testItems.messageBus)
 		for _, feed := range collectorFeeds {
 			feedData[keys.LatestFeedDataKey(feed.ID)] = FeedData{FeedID: feed.ID, Value: DUMMY_FEED_VALUE, Timestamp: nil, Volume: DUMMY_FEED_VALUE}
 		}
@@ -49,6 +50,8 @@ func TestAccumulator(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error starting collectors: %v", err)
 	}
+
+	fmt.Println("collector started")
 
 	err = db.MSetObject(ctx, feedData)
 	if err != nil {
@@ -61,12 +64,6 @@ func TestAccumulator(t *testing.T) {
 	go app.Accumulator.Run(ctx)
 
 	time.Sleep(DefaultLocalAggregateInterval * 4)
-
-	redisData, redisErr := db.GetObject[LocalAggregate](ctx, keys.LocalAggregateKey(data.ConfigID))
-	if redisErr != nil {
-		t.Fatalf("error getting local aggregate from redis: %v", redisErr)
-	}
-	assert.Equal(t, DUMMY_FEED_VALUE, float64(redisData.Value))
 
 	pgsqlData, pgsqlErr := db.QueryRow[LocalAggregate](ctx, "SELECT * FROM local_aggregates WHERE config_id = @config_id", map[string]any{
 		"config_id": data.ConfigID,

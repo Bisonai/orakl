@@ -23,7 +23,7 @@ func main() {
 	zeropglog := zeropglog.New()
 	go zeropglog.Run(ctx)
 
-	mb := bus.New(10)
+	mb := bus.New(1000)
 	var wg sync.WaitGroup
 
 	host, err := libp2pSetup.NewHost(ctx, libp2pSetup.WithHolePunch())

@@ -33,6 +33,8 @@ const (
 	DEACTIVATE_REPORTER = "deactivate_reporter"
 	REFRESH_REPORTER    = "refresh_reporter"
 
+	STREAM_LOCAL_AGGREGATE = "local_aggregate"
+
 	GET_PEER_COUNT = "get_peer_count"
 	LIBP2P_SYNC    = "libp2p_sync"
 )
