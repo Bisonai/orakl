@@ -99,3 +99,4 @@
 - **node** v0.0.1.20240730.0346.f01799b <br> *`PR`*: OraklNode Remove bulk rdb inse... <br><br> 
 - **node** v0.0.1.20240730.0517.f63c184 <br> *`PR`*: measure accumulatorJob executi... <br><br> 
 - **node** v0.0.1.20240730.0643.dba5faa <br> *`PR`*: OraklNode Use message bus for ... <br><br> 
+- **node** v0.0.1.20240730.0717.328c4df <br> *`PR`*: OraklNode Remove time validati... <br><br> 
