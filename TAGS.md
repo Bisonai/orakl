@@ -96,3 +96,4 @@
 - **dal** v0.0.1.20240729.1032.5dcc456 <br> *`PR`*: DAL Quick return from client h... <br><br> 
 - **dal** v0.0.1.20240730.0325.afa71cc <br> *`PR`*: log timestamps for pairs in da... <br><br> 
 - **dal** v0.0.1.20240730.0342.152a6dd <br> *`PR`*: udpate dal collector info logs... <br><br> 
+- **node** v0.0.1.20240730.0346.f01799b <br> *`PR`*: OraklNode Remove bulk rdb inse... <br><br> 
