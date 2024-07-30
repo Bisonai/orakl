@@ -110,6 +110,7 @@ func (n *Aggregator) HandleRoundSyncMessage(ctx context.Context, msg raft.Messag
 	// n.cleanUpRoundData(roundSyncMessage.RoundID - 2)
 
 	var value int64
+	var updateTime time.Time
 	localAggregateRaw, ok := n.LatestLocalAggregates.Load(n.ID)
 	if !ok {
 		log.Error().Str("Player", "Aggregator").Msg("failed to get latest local aggregate")
@@ -117,10 +118,11 @@ func (n *Aggregator) HandleRoundSyncMessage(ctx context.Context, msg raft.Messag
 		// it is to proceed further steps even if current node fails to get latest local aggregate
 		// if not enough messages collected from HandleSyncReplyMessage, it will hang in certain round
 		value = -1
+	} else {
+		localAggregate := localAggregateRaw.(LocalAggregate)
+		value = localAggregate.Value
+		updateTime = localAggregate.Timestamp
 	}
-	localAggregate := localAggregateRaw.(LocalAggregate)
-	value = localAggregate.Value
-	updateTime := localAggregate.Timestamp
 
 	n.AggregatorMutex.Lock()
 	defer n.AggregatorMutex.Unlock()
