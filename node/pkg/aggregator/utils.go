@@ -28,18 +28,6 @@ func FilterNegative(values []int64) []int64 {
 	return result
 }
 
-func SetLatestGlobalAggregateAndProof(ctx context.Context, configId int32, globalAggregate GlobalAggregate, proof Proof) {
-	err := db.SetObject(ctx, keys.ProofKey(configId, proof.Round), proof, time.Duration(5*time.Minute))
-	if err != nil {
-		log.Error().Err(err).Msg("failed to set proof")
-	}
-
-	err = db.SetObject(ctx, keys.GlobalAggregateKey(configId), globalAggregate, time.Duration(5*time.Minute))
-	if err != nil {
-		log.Error().Err(err).Msg("failed to set global aggregate")
-	}
-}
-
 func PublishGlobalAggregateAndProof(ctx context.Context, globalAggregate GlobalAggregate, proof Proof) error {
 	if globalAggregate.Value == 0 || globalAggregate.Timestamp.IsZero() {
 		return nil

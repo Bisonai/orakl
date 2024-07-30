@@ -193,7 +193,6 @@ func (s *Streamer) updateLatestDataJob(ctx context.Context, configId int32, data
 		return
 	}
 	s.LatestGlobalAggregateInfo.UpdateData(configId, data.GlobalAggregate.Value)
-	SetLatestGlobalAggregateAndProof(ctx, configId, data.GlobalAggregate, data.Proof)
 }
 
 func (s *Streamer) bulkInsertJob(ctx context.Context) {
