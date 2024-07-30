@@ -101,3 +101,4 @@
 - **node** v0.0.1.20240730.0643.dba5faa <br> *`PR`*: OraklNode Use message bus for ... <br><br> 
 - **node** v0.0.1.20240730.0717.328c4df <br> *`PR`*: OraklNode Remove time validati... <br><br> 
 - **node** v0.0.1.20240730.0746.de0a795 <br> *`PR`*: OraklNode add aggregator logs <br><br> 
+- **dal** v0.0.1.20240730.0821.882e4ac <br> *`PR`*: DAL Print log <br><br> 
