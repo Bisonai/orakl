@@ -159,21 +159,12 @@ func (c *Collector) receiveEach(ctx context.Context, configId int32) error {
 
 func (c *Collector) processIncomingData(ctx context.Context, data aggregator.SubmissionData) {
 	symbol := c.Symbols[data.GlobalAggregate.ConfigID]
-	diff := time.Since(data.GlobalAggregate.Timestamp).Seconds()
-	if diff > 3 {
-		log.Warn().Msgf(
-			"%s: %.2f seconds had passed when data is received",
-			symbol,
-			diff,
-		)
+	diff := time.Since(data.GlobalAggregate.Timestamp)
+	if diff > 1*time.Second {
+		log.Warn().Int64("value", data.GlobalAggregate.Value).Dur("duration", diff).Str("Symbol", symbol).Str("Player", "DalCollector").Msg("processing incoming data")
 	}
 
-	start := time.Now()
 	result, err := c.IncomingDataToOutgoingData(ctx, data)
-	diff = time.Since(start).Seconds()
-	if diff > 3 {
-		log.Warn().Msgf("%s took %.2f seconds to process", symbol)
-	}
 
 	if err != nil {
 		log.Error().Err(err).Str("Player", "DalCollector").Msg("failed to convert incoming data to outgoing data")
