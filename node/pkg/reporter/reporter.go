@@ -2,7 +2,6 @@ package reporter
 
 import (
 	"context"
-	"errors"
 	"math/big"
 	"sync"
 	"time"
@@ -157,7 +156,6 @@ func (r *Reporter) report(ctx context.Context, pairs []string) error {
 		submittedPairs = append(submittedPairs, <-submittedPairsChan)
 	}
 
-	errs := []error{}
 	dataLen := len(feedHashes)
 	for start := 0; start < dataLen; start += MAX_REPORT_BATCH_SIZE {
 		end := min(start+MAX_REPORT_BATCH_SIZE, dataLen)
@@ -167,20 +165,12 @@ func (r *Reporter) report(ctx context.Context, pairs []string) error {
 		batchTimestamps := timestamps[start:end]
 		batchProofs := proofs[start:end]
 
-		startReport := time.Now()
-		err := r.KaiaHelper.SubmitDelegatedFallbackDirect(ctx, r.contractAddress, SUBMIT_WITH_PROOFS, batchFeedHashes, batchValues, batchTimestamps, batchProofs)
-		if err != nil {
-			log.Error().Str("Player", "Reporter").Err(err).Msg("splitReport")
-			errs = append(errs, err)
-		}
-		diff := time.Since(startReport)
-		if diff > 5*time.Second {
-			log.Warn().Str("Player", "Reporter").Dur("duration", diff).Msg("splitReport delayed over 5 seconds")
-		}
-	}
-
-	if len(errs) > 0 {
-		return mergeErrors(errs)
+		go func() {
+			err := r.KaiaHelper.SubmitDelegatedFallbackDirect(ctx, r.contractAddress, SUBMIT_WITH_PROOFS, batchFeedHashes, batchValues, batchTimestamps, batchProofs)
+			if err != nil {
+				log.Error().Str("Player", "Reporter").Err(err).Msg("splitReport")
+			}
+		}()
 	}
 
 	for i, pair := range submittedPairs {
@@ -190,21 +180,4 @@ func (r *Reporter) report(ctx context.Context, pairs []string) error {
 	log.Debug().Str("Player", "Reporter").Msgf("reporting done for reporter with interval: %v", r.SubmissionInterval)
 
 	return nil
-}
-
-func mergeErrors(errs []error) error {
-	if len(errs) == 0 {
-		return nil
-	}
-
-	if len(errs) == 1 {
-		return errs[0]
-	}
-	var errMsg string
-	for _, err := range errs {
-		if err != nil {
-			errMsg += err.Error() + "; "
-		}
-	}
-	return errors.New(errMsg)
 }
