@@ -13,8 +13,8 @@ import (
 	"bisonai.com/orakl/node/pkg/chain/helper"
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
 	"bisonai.com/orakl/node/pkg/secrets"
+	"bisonai.com/orakl/node/pkg/utils/request"
 	"bisonai.com/orakl/node/pkg/wss"
-	"bisonai.com/orakl/sentinel/pkg/request"
 
 	klaytncommon "github.com/klaytn/klaytn/common"
 	"github.com/rs/zerolog/log"
