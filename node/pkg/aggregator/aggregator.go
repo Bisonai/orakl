@@ -107,9 +107,6 @@ func (n *Aggregator) HandleRoundSyncMessage(ctx context.Context, msg raft.Messag
 		n.RoundID = roundSyncMessage.RoundID
 	}
 
-	// removes old round data (2 rounds ago)
-	// n.cleanUpRoundData(roundSyncMessage.RoundID - 2)
-
 	var value int64
 	localAggregateRaw, ok := n.LatestLocalAggregates.Load(n.ID)
 	if !ok {
@@ -125,6 +122,9 @@ func (n *Aggregator) HandleRoundSyncMessage(ctx context.Context, msg raft.Messag
 
 	n.AggregatorMutex.Lock()
 	defer n.AggregatorMutex.Unlock()
+	// run cleanup to prevent memory leak
+	// removes data 10 rounds ago, approximately 4 seconds old data
+	n.cleanUpRoundData(roundSyncMessage.RoundID - 10)
 
 	n.PreparedLocalAggregates[roundSyncMessage.RoundID] = value
 	n.SyncedTimes[roundSyncMessage.RoundID] = roundSyncMessage.Timestamp

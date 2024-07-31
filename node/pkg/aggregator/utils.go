@@ -71,16 +71,6 @@ func getLatestRoundId(ctx context.Context, configId int32) (int32, error) {
 }
 
 // used for testing
-func getProofFromRdb(ctx context.Context, configId int32, round int32) (Proof, error) {
-	return db.GetObject[Proof](ctx, keys.ProofKey(configId, round))
-}
-
-// used for testing
-func getLatestGlobalAggregateFromRdb(ctx context.Context, configId int32) (GlobalAggregate, error) {
-	return db.GetObject[GlobalAggregate](ctx, keys.GlobalAggregateKey(configId))
-}
-
-// used for testing
 func getProofFromPgs(ctx context.Context, configId int32, round int32) (Proof, error) {
 	return db.QueryRow[Proof](ctx, "SELECT config_id, round, proof FROM proofs WHERE config_id = @config_id AND round = @round", map[string]any{"config_id": configId, "round": round})
 }
