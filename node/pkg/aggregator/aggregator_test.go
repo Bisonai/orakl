@@ -121,66 +121,6 @@ func TestGetLatestRoundId(t *testing.T) {
 	assert.Equal(t, roundId, testItems.tmpData.globalAggregate.Round)
 }
 
-func TestSetLatestGlobalAggregateAndProof(t *testing.T) {
-	ctx := context.Background()
-	cleanup, testItems, err := setup(ctx)
-	if err != nil {
-		t.Fatalf("error setting up test: %v", err)
-	}
-	defer func() {
-		if cleanupErr := cleanup(); cleanupErr != nil {
-			t.Logf("Cleanup failed: %v", cleanupErr)
-		}
-	}()
-
-	node, err := NewAggregator(testItems.app.Host, testItems.app.Pubsub, testItems.topicString, testItems.tmpData.config, testItems.signer, testItems.latestLocalAggMap)
-	if err != nil {
-		t.Fatal("error creating new node")
-	}
-
-	p, err := node.Signer.MakeGlobalAggregateProof(
-		testItems.tmpData.globalAggregate.Value,
-		testItems.tmpData.globalAggregate.Timestamp,
-		"test_pair",
-	)
-	if err != nil {
-		t.Fatal("error making global aggregate proof")
-	}
-
-	concatProof := bytes.Join([][]byte{p, p}, nil)
-
-	proof := Proof{
-		ConfigID: node.ID,
-		Round:    testItems.tmpData.globalAggregate.Round,
-		Proof:    concatProof,
-	}
-
-	SetLatestGlobalAggregateAndProof(ctx, node.ID, testItems.tmpData.globalAggregate, proof)
-	if err != nil {
-		t.Fatal("error setting latest global aggregate and proof")
-	}
-
-	roundId, err := getLatestRoundId(ctx, node.ID)
-	if err != nil {
-		t.Fatal("error getting latest round id")
-	}
-
-	globalAggregateResult, err := getLatestGlobalAggregateFromRdb(ctx, node.ID)
-	if err != nil {
-		t.Fatal("error getting latest global aggregate from rdb")
-	}
-
-	proofResult, err := getProofFromRdb(ctx, node.ID, roundId)
-	if err != nil {
-		t.Fatal("error getting proof from rdb")
-	}
-
-	assert.Equal(t, int64(15), globalAggregateResult.Value)
-	assert.Equal(t, int32(1), globalAggregateResult.Round)
-	assert.Equal(t, int32(1), roundId)
-	assert.EqualValues(t, bytes.Join([][]byte{p, p}, nil), proofResult.Proof)
-}
-
 func TestPublishGlobalAggregateAndProof(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cleanup, testItems, err := setup(ctx)

@@ -2,7 +2,6 @@ package aggregator
 
 import (
 	"context"
-	"sync"
 	"time"
 
 	"bisonai.com/orakl/node/pkg/common/keys"
@@ -15,47 +14,6 @@ import (
 2. update latest proof, aggregate in rdb
 */
 
-type GlobalAggregateInfoEntry struct {
-	LastUpdateTime time.Time
-	Value          int64
-	mu             sync.RWMutex
-}
-
-type LatestGlobalAggregateInfo struct {
-	Entries map[int32]*GlobalAggregateInfoEntry
-	mu      sync.RWMutex
-}
-
-func (s *LatestGlobalAggregateInfo) UpdateData(configId int32, value int64) {
-	s.mu.RLock()
-	entry, exists := s.Entries[configId]
-	s.mu.RUnlock()
-	if !exists {
-		s.mu.Lock()
-		entry = &GlobalAggregateInfoEntry{}
-		s.Entries[configId] = entry
-		s.mu.Unlock()
-	}
-
-	entry.mu.Lock()
-	defer entry.mu.Unlock()
-	entry.LastUpdateTime = time.Now()
-	entry.Value = value
-}
-
-func (s *LatestGlobalAggregateInfo) GetData(configId int32) (*time.Time, *int64, bool) {
-	s.mu.RLock()
-	entry, exists := s.Entries[configId]
-	s.mu.RUnlock()
-	if !exists {
-		return nil, nil, false
-	}
-
-	entry.mu.RLock()
-	defer entry.mu.RUnlock()
-	return &entry.LastUpdateTime, &entry.Value, true
-}
-
 type Streamer struct {
 	ReceiveChannels map[int32]chan SubmissionData
 	Buffer          chan SubmissionData
@@ -63,30 +21,20 @@ type Streamer struct {
 	LatestDataUpdateInterval time.Duration
 	PgsqlBulkInsertInterval  time.Duration
 
-	LatestGlobalAggregateInfo LatestGlobalAggregateInfo
-
 	ctx        context.Context
 	cancelFunc context.CancelFunc
 }
 
-const DefaultLatestDataUpdateInterval = 3 * time.Second
 const DefaultPgsqlBulkInsertInterval = 1 * time.Second
-const DefaultBufferSize = 1000
+const DefaultBufferSize = 2000
 
 type StreamerConfig struct {
-	LatestDataUpdateInterval time.Duration
-	PgsqlBulkInsertInterval  time.Duration
-	BufferSize               int
-	ConfigIds                []int32
+	PgsqlBulkInsertInterval time.Duration
+	BufferSize              int
+	ConfigIds               []int32
 }
 
 type StreamerOption func(*StreamerConfig)
-
-func WithLatestDataUpdateInterval(interval time.Duration) StreamerOption {
-	return func(config *StreamerConfig) {
-		config.LatestDataUpdateInterval = interval
-	}
-}
 
 func WithPgsqlBulkInsertInterval(interval time.Duration) StreamerOption {
 	return func(config *StreamerConfig) {
@@ -108,9 +56,8 @@ func WithConfigIds(configIds []int32) StreamerOption {
 
 func NewStreamer(opts ...StreamerOption) *Streamer {
 	config := &StreamerConfig{
-		LatestDataUpdateInterval: DefaultLatestDataUpdateInterval,
-		PgsqlBulkInsertInterval:  DefaultPgsqlBulkInsertInterval,
-		BufferSize:               DefaultBufferSize,
+		PgsqlBulkInsertInterval: DefaultPgsqlBulkInsertInterval,
+		BufferSize:              DefaultBufferSize,
 	}
 	for _, opt := range opts {
 		opt(config)
@@ -120,17 +67,10 @@ func NewStreamer(opts ...StreamerOption) *Streamer {
 		ReceiveChannels: make(map[int32]chan SubmissionData, len(config.ConfigIds)),
 		Buffer:          make(chan SubmissionData, config.BufferSize),
 
-		LatestDataUpdateInterval: config.LatestDataUpdateInterval,
-		PgsqlBulkInsertInterval:  config.PgsqlBulkInsertInterval,
-
-		LatestGlobalAggregateInfo: LatestGlobalAggregateInfo{
-			Entries: make(map[int32]*GlobalAggregateInfoEntry, len(config.ConfigIds)),
-			mu:      sync.RWMutex{},
-		},
+		PgsqlBulkInsertInterval: config.PgsqlBulkInsertInterval,
 	}
 
 	for _, configId := range config.ConfigIds {
-		result.LatestGlobalAggregateInfo.Entries[configId] = &GlobalAggregateInfoEntry{}
 		result.ReceiveChannels[configId] = make(chan SubmissionData)
 	}
 
@@ -178,22 +118,9 @@ func (s *Streamer) receiveEach(ctx context.Context, configId int32) {
 		case <-ctx.Done():
 			return
 		case data := <-s.ReceiveChannels[configId]:
-			go s.updateLatestDataJob(ctx, configId, data)
 			s.Buffer <- data
 		}
 	}
-}
-
-func (s *Streamer) updateLatestDataJob(ctx context.Context, configId int32, data SubmissionData) {
-	lastUpdateTime, value, exist := s.LatestGlobalAggregateInfo.GetData(configId)
-
-	if exist &&
-		time.Since(*lastUpdateTime) < s.LatestDataUpdateInterval &&
-		*value == data.GlobalAggregate.Value {
-		return
-	}
-	s.LatestGlobalAggregateInfo.UpdateData(configId, data.GlobalAggregate.Value)
-	SetLatestGlobalAggregateAndProof(ctx, configId, data.GlobalAggregate, data.Proof)
 }
 
 func (s *Streamer) bulkInsertJob(ctx context.Context) {
