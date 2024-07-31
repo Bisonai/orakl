@@ -113,3 +113,4 @@
 - **dal** v0.0.1.20240731.0514.5da3ce6 <br> *`PR`*: update redis delay log <br><br> 
 - **dal** v0.0.1.20240731.0531.4e0cafc <br> *`PR`*: update redis delay log <br><br> 
 - **dal** v0.0.1.20240731.0605.aae343e <br> *`PR`*: Reporter Rest reporter <br><br> 
+- **reporter** v0.0.1.20240731.0607.67a5dd3 <br> *`PR`*: Reporter Rest reporter <br><br> 

@@ -119,6 +119,7 @@ on:
           - dal:v0.0.1.20240731.0514.5da3ce6:update redis delay log
           - dal:v0.0.1.20240731.0531.4e0cafc:update redis delay log
           - dal:v0.0.1.20240731.0605.aae343e:Reporter Rest reporter
+          - reporter:v0.0.1.20240731.0607.67a5dd3:Reporter Rest reporter
 jobs:
   prepare-taskflow:
     name: Prepare
