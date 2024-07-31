@@ -1,15 +1,19 @@
 package dal
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"bisonai.com/orakl/sentinel/pkg/alert"
 	"bisonai.com/orakl/sentinel/pkg/request"
 	"bisonai.com/orakl/sentinel/pkg/secrets"
+	wss "bisonai.com/orakl/sentinel/pkg/ws"
 	"github.com/rs/zerolog/log"
 )
 
@@ -18,6 +22,21 @@ const (
 	DelayOffset             = 5 * time.Second
 	AlarmOffset             = 3
 )
+
+type WsResponse struct {
+	Symbol        string `json:"symbol"`
+	AggregateTime string `json:"aggregateTime"`
+}
+
+type Subscription struct {
+	Method string   `json:"method"`
+	Params []string `json:"params"`
+}
+
+type Config struct {
+	Name           string `json:"name"`
+	SubmitInterval *int   `json:"submitInterval"`
+}
 
 type OutgoingSubmissionData struct {
 	Symbol        string `json:"symbol"`
@@ -28,7 +47,10 @@ type OutgoingSubmissionData struct {
 	Decimals      string `json:"decimals"`
 }
 
-func Start() error {
+var wsChan = make(chan WsResponse, 3000)
+var wsMsgChan = make(chan string, 1000)
+
+func Start(ctx context.Context) error {
 	interval, err := time.ParseDuration(os.Getenv("DAL_CHECK_INTERVAL"))
 	if err != nil {
 		interval = DefaultDalCheckInterval
@@ -45,6 +67,34 @@ func Start() error {
 	}
 
 	endpoint := fmt.Sprintf("https://dal.%s.orakl.network", chain)
+	wsEndpoint := fmt.Sprintf("ws://dal.%s.orakl.network/ws", chain)
+
+	configs, err := fetchConfigs()
+	if err != nil {
+		return err
+	}
+
+	subscription := Subscription{
+		Method: "SUBSCRIBE",
+		Params: []string{},
+	}
+
+	for _, configs := range configs {
+		subscription.Params = append(subscription.Params, "submission@"+configs.Name)
+	}
+
+	wsHelper, err := wss.NewWebsocketHelper(
+		ctx,
+		wss.WithEndpoint(wsEndpoint),
+		wss.WithSubscriptions([]interface{}{subscription}),
+		wss.WithRequestHeaders(map[string]string{"X-API-Key": key}),
+	)
+	if err != nil {
+		return err
+	}
+
+	go wsHelper.Run(ctx, handleWsMessage)
+	go filterWsReponses()
 
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
@@ -56,6 +106,7 @@ func Start() error {
 		if err != nil {
 			log.Error().Str("Player", "DalChecker").Err(err).Msg("error in checkDal")
 		}
+		checkDalWs(ctx)
 	}
 	return nil
 }
@@ -110,6 +161,71 @@ func checkDal(endpoint string, key string, alarmCount map[string]int) error {
 	return nil
 }
 
+func checkDalWs(ctx context.Context) {
+
+	select {
+	case <-ctx.Done():
+		return
+	case entry := <-wsMsgChan:
+		msgs := []string{entry}
+	loop:
+		for {
+			select {
+			case entry := <-wsMsgChan:
+				msgs = append(msgs, entry)
+			default:
+				break loop
+			}
+		}
+		if len(msgs) > 0 {
+			alert.SlackAlert(strings.Join(msgs, "\n"))
+		}
+	}
+
+}
+
 func checkValueEmptiness(data *OutgoingSubmissionData) bool {
 	return data.Symbol == "" || data.Value == "" || data.AggregateTime == "" || data.Proof == "" || data.FeedHash == "" || data.Decimals == ""
+}
+
+func fetchConfigs() ([]Config, error) {
+	chain := os.Getenv("CHAIN")
+	if chain == "" {
+		log.Info().Str("Player", "Reporter").Msg("CHAIN env not set, defaulting to baobab")
+		chain = "baobab"
+	}
+	endpoint := fmt.Sprintf("https://config.orakl.network/%s_configs.json", chain)
+	configs, err := request.Request[[]Config](request.WithEndpoint(endpoint))
+	if err != nil {
+		return nil, err
+	}
+	return configs, nil
+}
+
+func handleWsMessage(ctx context.Context, data map[string]interface{}) error {
+	wsData := WsResponse{}
+	jsonMarhsalData, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+	err = json.Unmarshal(jsonMarhsalData, &wsData)
+	if err != nil {
+		return err
+	}
+	wsChan <- wsData
+	return nil
+}
+
+func filterWsReponses() {
+	for entry := range wsChan {
+		strTimestamp := entry.AggregateTime
+
+		unixTimestamp, _ := strconv.ParseInt(strTimestamp, 10, 64)
+
+		timestamp := time.Unix(unixTimestamp, 0)
+		diff := time.Since(timestamp)
+		if diff > 5*time.Second {
+			wsMsgChan <- fmt.Sprintf("(%s) ws delayed by %v(sec)", entry.Symbol, diff.Seconds())
+		}
+	}
 }
