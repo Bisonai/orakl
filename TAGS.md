@@ -103,3 +103,4 @@
 - **node** v0.0.1.20240730.0746.de0a795 <br> *`PR`*: OraklNode add aggregator logs <br><br> 
 - **dal** v0.0.1.20240730.0821.882e4ac <br> *`PR`*: DAL Print log <br><br> 
 - **dal** v0.0.1.20240730.0839.8ff2ec2 <br> *`PR`*: DAL Update buffer <br><br> 
+- **node** v0.0.1.20240731.0147.daed99b <br> *`PR`*: OraklNode log redis latency <br><br> 

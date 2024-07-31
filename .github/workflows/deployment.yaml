@@ -109,6 +109,7 @@ on:
           - node:v0.0.1.20240730.0746.de0a795:OraklNode add aggregator logs
           - dal:v0.0.1.20240730.0821.882e4ac:DAL Print log
           - dal:v0.0.1.20240730.0839.8ff2ec2:DAL Update buffer
+          - node:v0.0.1.20240731.0147.daed99b:OraklNode log redis latency
 jobs:
   prepare-taskflow:
     name: Prepare
