@@ -133,12 +133,14 @@ type Reporter struct {
 type GlobalAggregate types.GlobalAggregate
 
 type RawSubmissionData struct {
+	Symbol        string `json:"symbol"`
 	Value         string `json:"value"`
 	AggregateTime string `json:"aggregateTime"`
 	Proof         string `json:"proof"`
 	FeedHash      string `json:"feedHash"`
 }
 type SubmissionData struct {
+	Symbol        string   `json:"symbol"`
 	Value         int64    `json:"value"`
 	AggregateTime int64    `json:"aggregateTime"`
 	Proof         []byte   `json:"proof"`
