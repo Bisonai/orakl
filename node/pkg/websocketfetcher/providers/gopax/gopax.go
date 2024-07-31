@@ -3,9 +3,11 @@ package gopax
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
+	errorSentinel "bisonai.com/orakl/node/pkg/error"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/common"
 	"bisonai.com/orakl/node/pkg/wss"
 	"github.com/rs/zerolog/log"
@@ -74,7 +76,7 @@ func (f *GopaxFetcher) handleMessage(ctx context.Context, message map[string]any
 		for _, ticker := range tickers {
 			feedData, err := TickerToFeedData(ticker, f.FeedMap)
 			if err != nil {
-				if err.Error() == "Feed not found" {
+				if errors.Is(err, errorSentinel.ErrFetcherFeedNotFound) {
 					continue
 				}
 				log.Error().Err(err).Str("Player", "Gopax").Msg("error in gopax.handleMessage, failed to convert ticker to feed data")
