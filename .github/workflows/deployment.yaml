@@ -113,6 +113,7 @@ on:
           - dal:v0.0.1.20240731.0150.45c94d9:OraklNode log redis latency
           - reporter:v0.0.1.20240731.0251.36d5b48:Reporter add delay log
           - reporter:v0.0.1.20240731.0254.5eb7fab:Reporter add delayed submissio...
+          - reporter:v0.0.1.20240731.0340.77015eb:Reporter Thread submission fro...
 jobs:
   prepare-taskflow:
     name: Prepare

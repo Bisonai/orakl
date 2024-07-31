@@ -107,3 +107,4 @@
 - **dal** v0.0.1.20240731.0150.45c94d9 <br> *`PR`*: OraklNode log redis latency <br><br> 
 - **reporter** v0.0.1.20240731.0251.36d5b48 <br> *`PR`*: Reporter add delay log <br><br> 
 - **reporter** v0.0.1.20240731.0254.5eb7fab <br> *`PR`*: Reporter add delayed submissio... <br><br> 
+- **reporter** v0.0.1.20240731.0340.77015eb <br> *`PR`*: Reporter Thread submission fro... <br><br> 
