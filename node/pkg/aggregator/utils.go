@@ -47,6 +47,7 @@ func PublishGlobalAggregateAndProof(ctx context.Context, globalAggregate GlobalA
 	data := SubmissionData{
 		GlobalAggregate: globalAggregate,
 		Proof:           proof,
+		PublishTime:     time.Now(),
 	}
 
 	diff := time.Since(globalAggregate.Timestamp)
