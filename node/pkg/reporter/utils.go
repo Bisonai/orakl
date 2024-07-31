@@ -21,7 +21,7 @@ import (
 )
 
 func GetDeviatingAggregates(latestSubmittedData *sync.Map, latestData *sync.Map, threshold float64) map[string]SubmissionData {
-	var deviatingSubmissionPairs map[string]SubmissionData
+	deviatingSubmissionPairs := map[string]SubmissionData{}
 	latestSubmittedData.Range(func(key, value any) bool {
 		pair := key.(string)
 		oldValue := value.(int64)
