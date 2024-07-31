@@ -161,7 +161,7 @@ func (c *Collector) processIncomingData(ctx context.Context, data aggregator.Sub
 	symbol := c.Symbols[data.GlobalAggregate.ConfigID]
 	diff := time.Since(data.GlobalAggregate.Timestamp)
 	diffFromPublish := time.Since(data.PublishTime)
-	if diffFromPublish >= 3*time.Second || diff >= 3*time.Second {
+	if diffFromPublish >= 1*time.Second || diff >= 1*time.Second {
 		log.Warn().Dur("dataDiff", diff).Dur("diffFromPublish", diffFromPublish).Str("Symbol", symbol).Str("Player", "DalCollector")
 	}
 
