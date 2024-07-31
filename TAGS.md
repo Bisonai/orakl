@@ -109,3 +109,4 @@
 - **reporter** v0.0.1.20240731.0254.5eb7fab <br> *`PR`*: Reporter add delayed submissio... <br><br> 
 - **reporter** v0.0.1.20240731.0340.77015eb <br> *`PR`*: Reporter Thread submission fro... <br><br> 
 - **reporter** v0.0.1.20240731.0430.9bf0e75 <br> *`PR`*: Reporter wg update <br><br> 
+- **dal** v0.0.1.20240731.0436.0039a2f <br> *`PR`*: update redis delay log <br><br> 
