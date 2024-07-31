@@ -12,14 +12,16 @@ import (
 
 	"bisonai.com/orakl/node/pkg/chain/helper"
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
+	"bisonai.com/orakl/node/pkg/secrets"
 	"bisonai.com/orakl/node/pkg/wss"
+	"bisonai.com/orakl/sentinel/pkg/request"
 
 	klaytncommon "github.com/klaytn/klaytn/common"
 	"github.com/rs/zerolog/log"
 )
 
-func GetDeviatingAggregates(latestSubmittedData *sync.Map, latestData *sync.Map, threshold float64) []string {
-	var deviatingSubmissionPairs []string
+func GetDeviatingAggregates(latestSubmittedData *sync.Map, latestData *sync.Map, threshold float64) map[string]SubmissionData {
+	var deviatingSubmissionPairs map[string]SubmissionData
 	latestSubmittedData.Range(func(key, value any) bool {
 		pair := key.(string)
 		oldValue := value.(int64)
@@ -31,12 +33,32 @@ func GetDeviatingAggregates(latestSubmittedData *sync.Map, latestData *sync.Map,
 		}
 
 		if ShouldReportDeviation(oldValue, newValue.Value, threshold) {
-			deviatingSubmissionPairs = append(deviatingSubmissionPairs, pair)
+			deviatingSubmissionPairs[pair] = newValue
 		}
 		return true
 	})
 
 	return deviatingSubmissionPairs
+}
+
+func GetLatestDataRest(ctx context.Context, name []string) (map[string]SubmissionData, error) {
+	url := fmt.Sprintf("http://orakl-dal.orakl.svc.cluster.local/latest-data-feeds/%s", strings.Join(name, ","))
+	resp, err := request.Request[[]RawSubmissionData](request.WithEndpoint(url), request.WithHeaders(map[string]string{"X-API-Key": secrets.GetSecret("API_KEY")}))
+	if err != nil {
+		return nil, err
+	}
+
+	result := map[string]SubmissionData{}
+
+	for _, entry := range resp {
+		submissionData, err := RawSubmissionData2SubmissionData(entry)
+		if err != nil {
+			return nil, err
+		}
+		result[entry.Symbol] = submissionData
+	}
+
+	return result, nil
 }
 
 func GetLatestData(latestDataMap *sync.Map, name string) (SubmissionData, bool) {
@@ -141,6 +163,10 @@ func ProcessDalWsRawData(data any) (SubmissionData, error) {
 		return SubmissionData{}, errorSentinel.ErrReporterDalWsDataProcessingFailed
 	}
 
+	return RawSubmissionData2SubmissionData(rawSubmissionData)
+}
+
+func RawSubmissionData2SubmissionData(rawSubmissionData RawSubmissionData) (SubmissionData, error) {
 	if rawSubmissionData.FeedHash == "" || rawSubmissionData.Proof == "" || rawSubmissionData.Value == "" || rawSubmissionData.AggregateTime == "" {
 		log.Error().Str("Player", "Reporter").Msg("empty data fields")
 		return SubmissionData{}, errorSentinel.ErrReporterDalWsDataProcessingFailed
@@ -166,6 +192,7 @@ func ProcessDalWsRawData(data any) (SubmissionData, error) {
 		return SubmissionData{}, errorSentinel.ErrReporterDalWsDataProcessingFailed
 	}
 	submissionData.AggregateTime = timestampValue
+	submissionData.Symbol = rawSubmissionData.Symbol
 
 	return submissionData, nil
 }

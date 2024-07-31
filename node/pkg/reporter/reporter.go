@@ -2,6 +2,7 @@ package reporter
 
 import (
 	"context"
+	"errors"
 	"math/big"
 	"sync"
 	"time"
@@ -78,7 +79,13 @@ func (r *Reporter) Run(ctx context.Context) {
 }
 
 func (r *Reporter) regularReporterJob(ctx context.Context) error {
-	err := r.report(ctx, r.Pairs)
+	pairsMap, err := GetLatestDataRest(ctx, r.Pairs)
+	if err != nil {
+		log.Error().Str("Player", "Reporter").Err(err).Msg("GetLatestDataRest")
+		return err
+	}
+
+	err = r.report(ctx, pairsMap)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("Reporter")
 		return err
@@ -102,62 +109,25 @@ func (r *Reporter) deviationJob(ctx context.Context) error {
 	return nil
 }
 
-func (r *Reporter) report(ctx context.Context, pairs []string) error {
+func (r *Reporter) report(ctx context.Context, pairs map[string]SubmissionData) error {
 	var feedHashes [][32]byte
 	var values []*big.Int
 	var timestamps []*big.Int
 	var proofs [][]byte
 	var submittedPairs []string
 
-	feedHashesChan := make(chan [32]byte, len(pairs))
-	valuesChan := make(chan *big.Int, len(pairs))
-	timestampsChan := make(chan *big.Int, len(pairs))
-	proofsChan := make(chan []byte, len(pairs))
-	submittedPairsChan := make(chan string, len(pairs))
-
-	wg := sync.WaitGroup{}
-
-	for _, pair := range pairs {
-		wg.Add(1)
-		go func(pair string) {
-			defer wg.Done()
-			submissionData, ok := GetLatestData(r.LatestDataMap, pair)
-			if !ok {
-				log.Error().Str("Player", "Reporter").Msgf("latest data for pair %s not found", pair)
-				return
-			}
-
-			diff := time.Since(time.Unix(submissionData.AggregateTime, 0))
-			if diff > 9*time.Second {
-				log.Error().Str("Player", "Reporter").Str("pair", pair).Dur("reportDelay", diff).Msg("Delayed report")
-			}
-
-			feedHashesChan <- submissionData.FeedHash
-			valuesChan <- big.NewInt(submissionData.Value)
-			timestampsChan <- big.NewInt(submissionData.AggregateTime)
-			proofsChan <- submissionData.Proof
-			submittedPairsChan <- pair
-		}(pair)
-	}
-
-	wg.Wait()
-
-	close(timestampsChan)
-	close(valuesChan)
-	close(feedHashesChan)
-	close(proofsChan)
-	close(submittedPairsChan)
-
-	for feedHash := range feedHashesChan {
-		feedHashes = append(feedHashes, feedHash)
-		values = append(values, <-valuesChan)
-		timestamps = append(timestamps, <-timestampsChan)
-		proofs = append(proofs, <-proofsChan)
-		submittedPairs = append(submittedPairs, <-submittedPairsChan)
+	for pair, submissionData := range pairs {
+		feedHashes = append(feedHashes, submissionData.FeedHash)
+		values = append(values, big.NewInt(submissionData.Value))
+		timestamps = append(timestamps, big.NewInt(submissionData.AggregateTime))
+		proofs = append(proofs, submissionData.Proof)
+		submittedPairs = append(submittedPairs, pair)
 	}
 
 	dataLen := len(feedHashes)
-	wg = sync.WaitGroup{}
+	wg := sync.WaitGroup{}
+
+	errorsChan := make(chan error, 5)
 	for start := 0; start < dataLen; start += MAX_REPORT_BATCH_SIZE {
 		end := min(start+MAX_REPORT_BATCH_SIZE, dataLen)
 
@@ -171,10 +141,20 @@ func (r *Reporter) report(ctx context.Context, pairs []string) error {
 			err := r.KaiaHelper.SubmitDelegatedFallbackDirect(ctx, r.contractAddress, SUBMIT_WITH_PROOFS, batchFeedHashes, batchValues, batchTimestamps, batchProofs)
 			if err != nil {
 				log.Error().Str("Player", "Reporter").Err(err).Msg("splitReport")
+				errorsChan <- err
 			}
 		}()
 	}
 	wg.Wait()
+	close(errorsChan)
+
+	for err := range errorsChan {
+		tmp := []error{}
+		tmp = append(tmp, err)
+		if len(tmp) > 0 {
+			return mergeErrors(tmp)
+		}
+	}
 
 	for i, pair := range submittedPairs {
 		r.LatestSubmittedDataMap.Store(pair, values[i].Int64())
@@ -183,4 +163,21 @@ func (r *Reporter) report(ctx context.Context, pairs []string) error {
 	log.Debug().Str("Player", "Reporter").Msgf("reporting done for reporter with interval: %v", r.SubmissionInterval)
 
 	return nil
+}
+
+func mergeErrors(errs []error) error {
+	if len(errs) == 0 {
+		return nil
+	}
+
+	if len(errs) == 1 {
+		return errs[0]
+	}
+	var errMsg string
+	for _, err := range errs {
+		if err != nil {
+			errMsg += err.Error() + "; "
+		}
+	}
+	return errors.New(errMsg)
 }

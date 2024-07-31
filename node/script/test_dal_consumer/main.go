@@ -5,6 +5,8 @@ import (
 	"math/big"
 	"os"
 	"strings"
+	"sync"
+	"time"
 
 	"bisonai.com/orakl/node/pkg/chain/helper"
 	"bisonai.com/orakl/node/pkg/dal/common"
@@ -34,8 +36,8 @@ func main() {
 		panic(err)
 	}
 
-	for i := 0; i < 10; i++ {
-		results, err := request.Request[[]common.OutgoingSubmissionData](request.WithEndpoint(url), request.WithHeaders(map[string]string{"X-API-Key": ""}))
+	for i := 0; i < 100; i++ {
+		results, err := request.Request[[]common.OutgoingSubmissionData](request.WithEndpoint(url), request.WithHeaders(map[string]string{"X-API-Key": "PBCTNTAfgnGmDRbdzEor"}))
 		if err != nil {
 			log.Error().Err(err).Str("Player", "TestConsumer").Msg("failed to get data feed")
 			panic(err)
@@ -47,8 +49,6 @@ func main() {
 		proofs := [][]byte{}
 
 		for _, entry := range results {
-			log.Info().Any("result", entry).Msg("got data feed")
-
 			var submissionVal big.Int
 			_, success := submissionVal.SetString(entry.Value, 10)
 			if !success {
@@ -72,24 +72,27 @@ func main() {
 			timestamps = append(timestamps, &submissionTime)
 			proofs = append(proofs, klaytncommon.Hex2Bytes(strings.TrimPrefix(entry.Proof, "0x")))
 
-			if len(feedHashes) >= 50 {
-				err = kaiaHelper.SubmitDelegatedFallbackDirect(ctx, contractAddr, SUBMIT_STRICT, feedHashes, values, timestamps, proofs)
+		}
+		wg := sync.WaitGroup{}
+		for start := 0; start < len(feedHashes); start += 50 {
+			end := min(start+50, len(feedHashes))
+
+			batchFeedHashes := feedHashes[start:end]
+			batchValues := values[start:end]
+			batchTimestamps := timestamps[start:end]
+			batchProofs := proofs[start:end]
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				err = kaiaHelper.SubmitDelegatedFallbackDirect(ctx, contractAddr, SUBMIT_STRICT, batchFeedHashes, batchValues, batchTimestamps, batchProofs)
 				if err != nil {
 					log.Error().Err(err).Msg("MakeDirect")
-					panic(err)
 				}
-
-				feedHashes = [][32]byte{}
-				values = []*big.Int{}
-				timestamps = []*big.Int{}
-				proofs = [][]byte{}
-			}
+			}()
 		}
+		wg.Wait()
 
-		err = kaiaHelper.SubmitDelegatedFallbackDirect(ctx, contractAddr, SUBMIT_STRICT, feedHashes, values, timestamps, proofs)
-		if err != nil {
-			log.Error().Err(err).Msg("MakeDirect")
-			panic(err)
-		}
+		time.Sleep(15 * time.Second)
 	}
+
 }
