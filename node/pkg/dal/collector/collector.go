@@ -165,8 +165,8 @@ func (c *Collector) processIncomingData(ctx context.Context, data aggregator.Sub
 	}
 
 	diffFromPublish := time.Since(data.PublishTime)
-	if diffFromPublish > 100*time.Millisecond {
-		log.Warn().Dur("redisDelay", diffFromPublish).Str("Symbol", symbol).Str("Player", "DalCollector").Msg("redis delay over 100 millisec")
+	if diffFromPublish > 3*time.Second {
+		log.Warn().Dur("time between Publish and processIncomingData", diffFromPublish).Str("Symbol", symbol).Str("Player", "DalCollector")
 	}
 
 	result, err := c.IncomingDataToOutgoingData(ctx, data)
