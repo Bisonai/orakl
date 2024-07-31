@@ -8,6 +8,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"bisonai.com/orakl/sentinel/pkg/alert"
@@ -49,6 +50,7 @@ type OutgoingSubmissionData struct {
 
 var wsChan = make(chan WsResponse, 30000)
 var wsMsgChan = make(chan string, 10000)
+var latestUpdates = sync.Map{}
 
 func Start(ctx context.Context) error {
 	interval, err := time.ParseDuration(os.Getenv("DAL_CHECK_INTERVAL"))
@@ -166,6 +168,22 @@ func checkDalWs(ctx context.Context) {
 	if len(msgs) > 0 {
 		alert.SlackAlert(strings.Join(msgs, "\n"))
 	}
+
+	msgsNotRecieved := []string{}
+	latestUpdates.Range(func(key, value interface{}) bool {
+		if recievedTime, ok := value.(time.Time); ok {
+			diff := time.Since(recievedTime)
+			if diff > 1*time.Second {
+				symbol := key.(string)
+				msg := fmt.Sprintf("(%s) ws not pushed for %v(sec)", symbol, diff.Seconds())
+				msgsNotRecieved = append(msgsNotRecieved, msg)
+			}
+		}
+		return true
+	})
+	if len(msgsNotRecieved) > 0 {
+		alert.SlackAlert(strings.Join(msgsNotRecieved, "\n"))
+	}
 }
 
 func extractWsAlarms(ctx context.Context) []string {
@@ -216,6 +234,7 @@ func handleWsMessage(ctx context.Context, data map[string]interface{}) error {
 	if err != nil {
 		return err
 	}
+	defer latestUpdates.Store(wsData.Symbol, time.Now())
 	wsChan <- wsData
 	return nil
 }
