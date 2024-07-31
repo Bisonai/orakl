@@ -47,8 +47,8 @@ type OutgoingSubmissionData struct {
 	Decimals      string `json:"decimals"`
 }
 
-var wsChan = make(chan WsResponse, 3000)
-var wsMsgChan = make(chan string, 1000)
+var wsChan = make(chan WsResponse, 30000)
+var wsMsgChan = make(chan string, 10000)
 
 func Start(ctx context.Context) error {
 	interval, err := time.ParseDuration(os.Getenv("DAL_CHECK_INTERVAL"))
