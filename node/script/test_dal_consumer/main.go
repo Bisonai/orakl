@@ -2,9 +2,9 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"math/big"
 	"os"
+	"strings"
 
 	"bisonai.com/orakl/node/pkg/chain/helper"
 	"bisonai.com/orakl/node/pkg/dal/common"
@@ -14,13 +14,14 @@ import (
 )
 
 const (
-	SINGLE_PAIR        = "ADA-USDT"
-	SUBMIT_WITH_PROOFS = "submit(bytes32[] calldata _feedHashes, int256[] calldata _answers, uint256[] calldata _timestamps, bytes[] calldata _proofs)"
+	// SINGLE_PAIR        = "ADA-USDT"
+	// SUBMIT_WITH_PROOFS = "submit(bytes32[] calldata _feedHashes, int256[] calldata _answers, uint256[] calldata _timestamps, bytes[] calldata _proofs)"
+	SUBMIT_STRICT = "submitStrict(bytes32[] calldata _feedHashes, int256[] calldata _answers, uint256[] calldata _timestamps, bytes[] calldata _proofs)"
 )
 
 func main() {
 	ctx := context.Background()
-	url := fmt.Sprintf("http://localhost:8090/latest-data-feeds/%s", SINGLE_PAIR)
+	url := "https://dal.baobab.orakl.network/latest-data-feeds/all"
 	contractAddr := os.Getenv("SUBMISSION_PROXY_CONTRACT")
 	if contractAddr == "" {
 		log.Error().Msg("Missing SUBMISSION_PROXY_CONTRACT")
@@ -33,41 +34,62 @@ func main() {
 		panic(err)
 	}
 
-	results, err := request.Request[[]common.OutgoingSubmissionData](request.WithEndpoint(url), request.WithHeaders(map[string]string{"X-API-Key": "testkey"}))
-	if err != nil {
-		log.Error().Err(err).Str("Player", "TestConsumer").Msg("failed to get data feed")
-		panic(err)
-	}
+	for i := 0; i < 10; i++ {
+		results, err := request.Request[[]common.OutgoingSubmissionData](request.WithEndpoint(url), request.WithHeaders(map[string]string{"X-API-Key": ""}))
+		if err != nil {
+			log.Error().Err(err).Str("Player", "TestConsumer").Msg("failed to get data feed")
+			panic(err)
+		}
 
-	result := results[0]
-	log.Info().Any("result", result).Msg("got data feed")
+		feedHashes := [][32]byte{}
+		values := []*big.Int{}
+		timestamps := []*big.Int{}
+		proofs := [][]byte{}
 
-	var submissionVal big.Int
-	_, success := submissionVal.SetString(result.Value, 10)
-	if !success {
-		log.Error().Str("Player", "TestConsumer").Msg("failed to convert string to big int")
-		panic("failed to convert string to big int")
-	}
+		for _, entry := range results {
+			log.Info().Any("result", entry).Msg("got data feed")
 
-	var submissionTime big.Int
-	_, success = submissionTime.SetString(result.AggregateTime, 10)
-	if !success {
-		log.Error().Str("Player", "TestConsumer").Msg("failed to convert string to big int")
-		panic("failed to convert string to big int")
-	}
+			var submissionVal big.Int
+			_, success := submissionVal.SetString(entry.Value, 10)
+			if !success {
+				log.Error().Str("Player", "TestConsumer").Msg("failed to convert string to big int")
+				panic("failed to convert string to big int")
+			}
 
-	feedHashBytes := klaytncommon.Hex2Bytes(result.FeedHash)
-	feedHash := [32]byte{}
-	copy(feedHash[:], feedHashBytes)
+			var submissionTime big.Int
+			_, success = submissionTime.SetString(entry.AggregateTime, 10)
+			if !success {
+				log.Error().Str("Player", "TestConsumer").Msg("failed to convert string to big int")
+				panic("failed to convert string to big int")
+			}
 
-	feedHashes := [][32]byte{feedHash}
-	values := []*big.Int{&submissionVal}
-	timestamps := []*big.Int{&submissionTime}
-	proofs := [][]byte{klaytncommon.Hex2Bytes(result.Proof)}
+			feedHashBytes := klaytncommon.Hex2Bytes(strings.TrimPrefix(entry.FeedHash, "0x"))
+			feedHash := [32]byte{}
+			copy(feedHash[:], feedHashBytes)
 
-	err = kaiaHelper.SubmitDelegatedFallbackDirect(ctx, contractAddr, SUBMIT_WITH_PROOFS, feedHashes, values, timestamps, proofs)
-	if err != nil {
-		log.Error().Err(err).Msg("MakeDirect")
-		panic(err)
+			feedHashes = append(feedHashes, feedHash)
+			values = append(values, &submissionVal)
+			timestamps = append(timestamps, &submissionTime)
+			proofs = append(proofs, klaytncommon.Hex2Bytes(strings.TrimPrefix(entry.Proof, "0x")))
+
+			if len(feedHashes) >= 50 {
+				err = kaiaHelper.SubmitDelegatedFallbackDirect(ctx, contractAddr, SUBMIT_STRICT, feedHashes, values, timestamps, proofs)
+				if err != nil {
+					log.Error().Err(err).Msg("MakeDirect")
+					panic(err)
+				}
+
+				feedHashes = [][32]byte{}
+				values = []*big.Int{}
+				timestamps = []*big.Int{}
+				proofs = [][]byte{}
+			}
+		}
+
+		err = kaiaHelper.SubmitDelegatedFallbackDirect(ctx, contractAddr, SUBMIT_STRICT, feedHashes, values, timestamps, proofs)
+		if err != nil {
+			log.Error().Err(err).Msg("MakeDirect")
+			panic(err)
+		}
 	}
 }
