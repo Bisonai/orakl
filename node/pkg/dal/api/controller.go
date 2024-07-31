@@ -21,9 +21,11 @@ func HandleWebsocket(conn *websocket.Conn) {
 		return
 	}
 
+	threadSafeClient := NewThreadSafeClient(conn)
+
 	closeHandler := conn.CloseHandler()
 	conn.SetCloseHandler(func(code int, text string) error {
-		h.unregister <- conn
+		h.unregister <- threadSafeClient
 		return closeHandler(code, text)
 	})
 
@@ -33,7 +35,7 @@ func HandleWebsocket(conn *websocket.Conn) {
 		return
 	}
 
-	h.register <- conn
+	h.register <- threadSafeClient
 	apiKey := conn.Headers("X-Api-Key")
 
 	id, err := stats.InsertWebsocketConnection(*ctx, apiKey)
@@ -44,7 +46,7 @@ func HandleWebsocket(conn *websocket.Conn) {
 	log.Info().Int32("id", id).Msg("inserted websocket connection")
 
 	defer func() {
-		h.unregister <- conn
+		h.unregister <- threadSafeClient
 		err = stats.UpdateWebsocketConnection(*ctx, id)
 		if err != nil {
 			log.Error().Err(err).Msg("failed to update websocket connection")
@@ -55,28 +57,32 @@ func HandleWebsocket(conn *websocket.Conn) {
 
 	for {
 		var msg Subscription
-		if err = conn.ReadJSON(&msg); err != nil {
+		if err = threadSafeClient.ReadJSON(&msg); err != nil {
 			log.Error().Err(err).Msg("failed to read message")
-			return
+			continue
 		}
 
 		if msg.Method == "SUBSCRIBE" {
-			h.mu.Lock()
-			if h.clients[conn] == nil {
-				h.clients[conn] = make(map[string]bool)
+			val, ok := h.clients.Load(threadSafeClient)
+			if !ok {
+				val = make(map[string]bool)
 			}
+			subscriptions := val.(map[string]bool)
+			valid := []string{}
+
 			for _, param := range msg.Params {
 				symbol := strings.TrimPrefix(param, "submission@")
 				if _, ok := h.configs[symbol]; !ok {
 					continue
 				}
-				h.clients[conn][symbol] = true
-				err = stats.InsertWebsocketSubscription(*ctx, id, param)
-				if err != nil {
-					log.Error().Err(err).Msg("failed to insert websocket subscription")
-				}
+				subscriptions[symbol] = true
+				valid = append(valid, param)
 			}
-			h.mu.Unlock()
+			h.clients.Store(threadSafeClient, subscriptions)
+			err = stats.InsertWebsocketSubscriptions(*ctx, id, valid)
+			if err != nil {
+				log.Error().Err(err).Msg("failed to insert websocket subscription log")
+			}
 		}
 	}
 }

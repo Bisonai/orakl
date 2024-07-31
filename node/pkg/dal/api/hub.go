@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"bisonai.com/orakl/node/pkg/common/types"
@@ -25,9 +26,8 @@ func NewHub(configs map[string]types.Config) *Hub {
 	return &Hub{
 		configs: configs,
 
-		clients:    make(map[*websocket.Conn]map[string]bool),
-		register:   make(chan *websocket.Conn),
-		unregister: make(chan *websocket.Conn),
+		register:   make(chan *ThreadSafeClient),
+		unregister: make(chan *ThreadSafeClient),
 		broadcast:  make(map[string]chan dalcommon.OutgoingSubmissionData),
 	}
 }
@@ -45,50 +45,41 @@ func (c *Hub) Start(ctx context.Context, collector *collector.Collector) {
 func (c *Hub) handleClientRegistration() {
 	for {
 		select {
-		case conn := <-c.register:
-			c.addClient(conn)
-		case conn := <-c.unregister:
-			c.removeClient(conn)
+		case client := <-c.register:
+			c.addClient(client)
+		case client := <-c.unregister:
+			c.removeClient(client)
 		}
 	}
 }
 
-func (c *Hub) addClient(conn *websocket.Conn) {
-	c.mu.RLock()
-	if _, ok := c.clients[conn]; ok {
-		c.mu.RUnlock()
-		return
-	}
-	c.mu.RUnlock()
-
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	c.clients[conn] = make(map[string]bool)
+func (c *Hub) addClient(client *ThreadSafeClient) {
+	c.clients.LoadOrStore(client, make(map[string]bool))
 }
 
-func (c *Hub) removeClient(conn *websocket.Conn) {
-	c.mu.RLock()
-	if _, ok := c.clients[conn]; !ok {
-		c.mu.RUnlock()
-		return
+func (c *Hub) removeClient(client *ThreadSafeClient) {
+	raw, ok := c.clients.LoadAndDelete(client)
+	if ok {
+		subscriptions, typeOk := raw.(map[string]bool)
+		if typeOk {
+			for symbol := range subscriptions {
+				delete(subscriptions, symbol)
+			}
+		}
 	}
-	c.mu.RUnlock()
 
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	for symbol := range c.clients[conn] {
-		delete(c.clients[conn], symbol)
-	}
-	delete(c.clients, conn)
-
-	_ = conn.WriteControl(
+	err := client.WriteControl(
 		websocket.CloseMessage,
 		websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""),
 		time.Now().Add(time.Second),
 	)
-	conn.Close()
+	if err != nil {
+		log.Warn().Err(err).Msg("failed to write close message")
+	}
+	err = client.Close()
+	if err != nil {
+		log.Warn().Err(err).Msg("failed to close connection")
+	}
 }
 
 func (c *Hub) initializeBroadcastChannels(collector *collector.Collector) {
@@ -115,16 +106,25 @@ func (c *Hub) broadcastDataForSymbol(symbol string) {
 
 // pass by pointer to reduce memory copy time
 func (c *Hub) castSubmissionData(data *dalcommon.OutgoingSubmissionData, symbol *string) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	for conn := range c.clients {
-		if _, ok := c.clients[conn][*symbol]; ok {
-			if err := conn.WriteJSON(*data); err != nil {
-				log.Error().Err(err).Msg("failed to write message")
-				go func(conn *websocket.Conn) {
-					c.unregister <- conn
-				}(conn)
-			}
+	var wg sync.WaitGroup
+	c.clients.Range(func(threadSafeClient, symbols any) bool {
+		client, ok := threadSafeClient.(*ThreadSafeClient)
+		if !ok {
+			return true
 		}
-	}
+
+		subscriptions := symbols.(map[string]bool)
+		if subscriptions[*symbol] {
+			wg.Add(1)
+			go func(entry *ThreadSafeClient) {
+				defer wg.Done()
+				if err := entry.WriteJSON(*data); err != nil {
+					log.Error().Err(err).Msg("failed to write message")
+					c.unregister <- entry
+				}
+			}(client)
+		}
+		return true
+	})
+	wg.Wait()
 }
