@@ -50,7 +50,7 @@ type OutgoingSubmissionData struct {
 
 var wsChan = make(chan WsResponse, 30000)
 var wsMsgChan = make(chan string, 10000)
-var latestUpdates = sync.Map{}
+var updateTimes = sync.Map{}
 
 func Start(ctx context.Context) error {
 	interval, err := time.ParseDuration(os.Getenv("DAL_CHECK_INTERVAL"))
@@ -170,7 +170,7 @@ func checkDalWs(ctx context.Context) {
 	}
 
 	msgsNotRecieved := []string{}
-	latestUpdates.Range(func(key, value interface{}) bool {
+	updateTimes.Range(func(key, value interface{}) bool {
 		if recievedTime, ok := value.(time.Time); ok {
 			diff := time.Since(recievedTime)
 			if diff > 1*time.Second {
@@ -234,7 +234,7 @@ func handleWsMessage(ctx context.Context, data map[string]interface{}) error {
 	if err != nil {
 		return err
 	}
-	defer latestUpdates.Store(wsData.Symbol, time.Now())
+	defer updateTimes.Store(wsData.Symbol, time.Now())
 	wsChan <- wsData
 	return nil
 }
