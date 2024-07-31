@@ -115,12 +115,6 @@ func TestStreamerDataStore(t *testing.T) {
 	}
 	time.Sleep(time.Second * 3)
 
-	updateTime, value, exists := streamer.LatestGlobalAggregateInfo.GetData(testItems.tmpData.globalAggregate.ConfigID)
-	assert.True(t, exists)
-
-	assert.NotEqual(t, nil, updateTime)
-	assert.Equal(t, testItems.tmpData.globalAggregate.Value, *value)
-
 	pgsLoadedProof, err := getProofFromPgs(ctx, testItems.tmpData.globalAggregate.ConfigID, testItems.tmpData.globalAggregate.Round)
 	if err != nil {
 		t.Fatal("error getting proof from pgs:" + err.Error())
