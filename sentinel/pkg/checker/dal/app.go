@@ -226,11 +226,11 @@ func fetchConfigs() ([]Config, error) {
 
 func handleWsMessage(ctx context.Context, data map[string]interface{}) error {
 	wsData := WsResponse{}
-	jsonMarhsalData, err := json.Marshal(data)
+	jsonMarshalData, err := json.Marshal(data)
 	if err != nil {
 		return err
 	}
-	err = json.Unmarshal(jsonMarhsalData, &wsData)
+	err = json.Unmarshal(jsonMarshalData, &wsData)
 	if err != nil {
 		return err
 	}
