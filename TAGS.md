@@ -108,3 +108,4 @@
 - **reporter** v0.0.1.20240731.0251.36d5b48 <br> *`PR`*: Reporter add delay log <br><br> 
 - **reporter** v0.0.1.20240731.0254.5eb7fab <br> *`PR`*: Reporter add delayed submissio... <br><br> 
 - **reporter** v0.0.1.20240731.0340.77015eb <br> *`PR`*: Reporter Thread submission fro... <br><br> 
+- **reporter** v0.0.1.20240731.0430.9bf0e75 <br> *`PR`*: Reporter wg update <br><br> 
