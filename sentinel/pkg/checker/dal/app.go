@@ -162,12 +162,19 @@ func checkDal(endpoint string, key string, alarmCount map[string]int) error {
 }
 
 func checkDalWs(ctx context.Context) {
+	msgs := extractWsAlarms(ctx)
+	if len(msgs) > 0 {
+		alert.SlackAlert(strings.Join(msgs, "\n"))
+	}
+}
 
+func extractWsAlarms(ctx context.Context) []string {
+	var msgs = []string{}
 	select {
 	case <-ctx.Done():
-		return
+		return nil
 	case entry := <-wsMsgChan:
-		msgs := []string{entry}
+		msgs = append(msgs, entry)
 	loop:
 		for {
 			select {
@@ -177,11 +184,8 @@ func checkDalWs(ctx context.Context) {
 				break loop
 			}
 		}
-		if len(msgs) > 0 {
-			alert.SlackAlert(strings.Join(msgs, "\n"))
-		}
 	}
-
+	return msgs
 }
 
 func checkValueEmptiness(data *OutgoingSubmissionData) bool {
