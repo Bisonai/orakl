@@ -167,10 +167,15 @@ func (r *Reporter) report(ctx context.Context, pairs []string) error {
 		batchTimestamps := timestamps[start:end]
 		batchProofs := proofs[start:end]
 
+		startReport := time.Now()
 		err := r.KaiaHelper.SubmitDelegatedFallbackDirect(ctx, r.contractAddress, SUBMIT_WITH_PROOFS, batchFeedHashes, batchValues, batchTimestamps, batchProofs)
 		if err != nil {
 			log.Error().Str("Player", "Reporter").Err(err).Msg("splitReport")
 			errs = append(errs, err)
+		}
+		diff := time.Since(startReport)
+		if diff > 5*time.Second {
+			log.Warn().Str("Player", "Reporter").Dur("duration", diff).Msg("splitReport delayed over 5 seconds")
 		}
 	}
 
