@@ -160,13 +160,9 @@ func (c *Collector) receiveEach(ctx context.Context, configId int32) error {
 func (c *Collector) processIncomingData(ctx context.Context, data aggregator.SubmissionData) {
 	symbol := c.Symbols[data.GlobalAggregate.ConfigID]
 	diff := time.Since(data.GlobalAggregate.Timestamp)
-	if diff > 1*time.Second {
-		log.Warn().Dur("duration", diff).Str("Symbol", symbol).Str("Player", "DalCollector").Msg("processing incoming data")
-	}
-
 	diffFromPublish := time.Since(data.PublishTime)
-	if diffFromPublish > 3*time.Second {
-		log.Warn().Dur("time between Publish and processIncomingData", diffFromPublish).Str("Symbol", symbol).Str("Player", "DalCollector")
+	if diffFromPublish >= 3*time.Second || diff >= 3*time.Second {
+		log.Warn().Dur("dataDiff", diff).Dur("diffFromPublish", diffFromPublish).Str("Symbol", symbol).Str("Player", "DalCollector")
 	}
 
 	result, err := c.IncomingDataToOutgoingData(ctx, data)
