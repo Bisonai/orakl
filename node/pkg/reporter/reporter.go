@@ -128,6 +128,11 @@ func (r *Reporter) report(ctx context.Context, pairs []string) error {
 				return
 			}
 
+			diff := time.Since(time.Unix(submissionData.AggregateTime, 0))
+			if diff > 9*time.Second {
+				log.Error().Str("Player", "Reporter").Str("pair", pair).Dur("reportDelay", diff).Msg("Delayed report")
+			}
+
 			feedHashesChan <- submissionData.FeedHash
 			valuesChan <- big.NewInt(submissionData.Value)
 			timestampsChan <- big.NewInt(submissionData.AggregateTime)
