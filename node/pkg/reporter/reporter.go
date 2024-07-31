@@ -96,7 +96,6 @@ func (r *Reporter) regularReporterJob(ctx context.Context) error {
 func (r *Reporter) deviationJob(ctx context.Context) error {
 	deviatingAggregates := GetDeviatingAggregates(r.LatestSubmittedDataMap, r.LatestDataMap, r.deviationThreshold)
 	if len(deviatingAggregates) == 0 {
-		log.Debug().Str("Player", "Reporter").Msg("no deviating aggregates found")
 		return nil
 	}
 	log.Debug().Str("Player", "Reporter").Msgf("deviating aggregates found: %v", deviatingAggregates)

@@ -35,14 +35,8 @@ func PublishGlobalAggregateAndProof(ctx context.Context, globalAggregate GlobalA
 	data := SubmissionData{
 		GlobalAggregate: globalAggregate,
 		Proof:           proof,
-		PublishTime:     time.Now(),
 	}
 
-	diff := time.Since(globalAggregate.Timestamp)
-	if diff > 1*time.Second {
-		log.Info().Dur("duration", diff).Int32("config_id", globalAggregate.ConfigID).Int64("value", globalAggregate.Value).Msg("published global aggregate")
-
-	}
 	return db.Publish(ctx, keys.SubmissionDataStreamKey(globalAggregate.ConfigID), data)
 }
 

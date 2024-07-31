@@ -34,7 +34,6 @@ type Proof types.Proof
 type GlobalAggregate types.GlobalAggregate
 
 type SubmissionData struct {
-	PublishTime     time.Time
 	GlobalAggregate GlobalAggregate
 	Proof           Proof
 }
