@@ -157,6 +157,7 @@ func (r *Reporter) report(ctx context.Context, pairs []string) error {
 	}
 
 	dataLen := len(feedHashes)
+	wg = sync.WaitGroup{}
 	for start := 0; start < dataLen; start += MAX_REPORT_BATCH_SIZE {
 		end := min(start+MAX_REPORT_BATCH_SIZE, dataLen)
 
@@ -164,14 +165,16 @@ func (r *Reporter) report(ctx context.Context, pairs []string) error {
 		batchValues := values[start:end]
 		batchTimestamps := timestamps[start:end]
 		batchProofs := proofs[start:end]
-
+		wg.Add(1)
 		go func() {
+			defer wg.Done()
 			err := r.KaiaHelper.SubmitDelegatedFallbackDirect(ctx, r.contractAddress, SUBMIT_WITH_PROOFS, batchFeedHashes, batchValues, batchTimestamps, batchProofs)
 			if err != nil {
 				log.Error().Str("Player", "Reporter").Err(err).Msg("splitReport")
 			}
 		}()
 	}
+	wg.Wait()
 
 	for i, pair := range submittedPairs {
 		r.LatestSubmittedDataMap.Store(pair, values[i].Int64())
