@@ -59,7 +59,7 @@ func HandleWebsocket(conn *websocket.Conn) {
 		var msg Subscription
 		if err = threadSafeClient.ReadJSON(&msg); err != nil {
 			log.Error().Err(err).Msg("failed to read message")
-			continue
+			return
 		}
 
 		if msg.Method == "SUBSCRIBE" {
