@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 	"sync"
+	"time"
 
 	"bisonai.com/orakl/node/pkg/aggregator"
 	"bisonai.com/orakl/node/pkg/chain/websocketchainreader"
@@ -157,6 +158,13 @@ func (c *Collector) receiveEach(ctx context.Context, configId int32) error {
 }
 
 func (c *Collector) processIncomingData(ctx context.Context, data aggregator.SubmissionData) {
+	symbol := c.Symbols[data.GlobalAggregate.ConfigID]
+	diff := time.Since(data.GlobalAggregate.Timestamp).Seconds()
+	diffFromPublish := time.Since(data.PublishTime).Seconds()
+	if diffFromPublish >= 1 || diff >= 1 {
+		log.Warn().Msgf("dataDiff: %v, diffFromPublish: %v for symbol %s", diff, diffFromPublish, symbol)
+	}
+
 	result, err := c.IncomingDataToOutgoingData(ctx, data)
 	if err != nil {
 		log.Error().Err(err).Str("Player", "DalCollector").Msg("failed to convert incoming data to outgoing data")
