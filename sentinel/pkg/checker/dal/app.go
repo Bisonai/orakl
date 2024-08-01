@@ -164,13 +164,13 @@ func checkDal(endpoint string, key string, alarmCount map[string]int) error {
 }
 
 func checkDalWs(ctx context.Context) {
-	log.Info().Msg("checking msg delays")
+	log.Debug().Msg("checking msg delays")
 	msgs := extractWsAlarms(ctx)
 	if len(msgs) > 0 {
 		alert.SlackAlert(strings.Join(msgs, "\n"))
 	}
 
-	log.Info().Msg("checking msg push")
+	log.Debug().Msg("checking msg push")
 	msgsNotRecieved := []string{}
 	updateTimes.Range(func(key, value interface{}) bool {
 		if recievedTime, ok := value.(time.Time); ok {
