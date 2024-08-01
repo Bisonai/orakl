@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"bisonai.com/orakl/node/pkg/chain/helper"
-	"bisonai.com/orakl/node/pkg/common/types"
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
 	"bisonai.com/orakl/node/pkg/raft"
 	"bisonai.com/orakl/node/pkg/utils/calculator"
@@ -18,7 +17,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string, config Config, signHelper *helper.Signer, latestLocalAggregates *sync.Map) (*Aggregator, error) {
+func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string, config Config, signHelper *helper.Signer, latestLocalAggregates *LatestLocalAggregates) (*Aggregator, error) {
 	if h == nil || ps == nil || topicString == "" {
 		return nil, errorSentinel.ErrAggregatorInvalidInitValue
 	}
@@ -108,7 +107,7 @@ func (n *Aggregator) HandleRoundSyncMessage(ctx context.Context, msg raft.Messag
 	}
 
 	var value int64
-	localAggregateRaw, ok := n.LatestLocalAggregates.Load(n.ID)
+	localAggregate, ok := n.LatestLocalAggregates.Load(n.ID)
 	if !ok {
 		log.Error().Str("Player", "Aggregator").Msg("failed to get latest local aggregate")
 		// set value to -1 rather than returning error
@@ -116,7 +115,6 @@ func (n *Aggregator) HandleRoundSyncMessage(ctx context.Context, msg raft.Messag
 		// if not enough messages collected from HandleSyncReplyMessage, it will hang in certain round
 		value = -1
 	} else {
-		localAggregate := localAggregateRaw.(types.LocalAggregate)
 		value = localAggregate.Value
 	}
 

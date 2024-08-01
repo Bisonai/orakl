@@ -3,7 +3,6 @@ package aggregator
 import (
 	"context"
 	"os"
-	"sync"
 	"testing"
 	"time"
 
@@ -42,7 +41,7 @@ type TestItems struct {
 	messageBus        *bus.MessageBus
 	tmpData           *TmpData
 	signer            *helper.Signer
-	latestLocalAggMap *sync.Map
+	latestLocalAggMap *LatestLocalAggregates
 }
 
 func setup(ctx context.Context) (func() error, *TestItems, error) {
@@ -74,7 +73,7 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 	testItems.app = app
 
 	testItems.topicString = "test-topic"
-	testItems.latestLocalAggMap = &sync.Map{}
+	testItems.latestLocalAggMap = NewLatestLocalAggregates()
 	tmpData, err := insertSampleData(ctx, app, testItems.latestLocalAggMap)
 	if err != nil {
 		return nil, nil, err
@@ -94,7 +93,7 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 	return aggregatorCleanup(ctx, admin, app), testItems, nil
 }
 
-func insertSampleData(ctx context.Context, app *App, latestLocalAggMap *sync.Map) (*TmpData, error) {
+func insertSampleData(ctx context.Context, app *App, latestLocalAggMap *LatestLocalAggregates) (*TmpData, error) {
 	_ = db.QueryWithoutResult(ctx, DeleteConfigs, nil)
 
 	var tmpData = new(TmpData)
