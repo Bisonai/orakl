@@ -114,3 +114,4 @@
 - **dal** v0.0.1.20240731.0531.4e0cafc <br> *`PR`*: update redis delay log <br><br> 
 - **dal** v0.0.1.20240731.0605.aae343e <br> *`PR`*: Reporter Rest reporter <br><br> 
 - **reporter** v0.0.1.20240731.0607.67a5dd3 <br> *`PR`*: Reporter Rest reporter <br><br> 
+- **node** v0.0.1.20240801.0345.e8a1d52 <br> *`PR`*: OraklNode Add condition to inc... <br><br> 
