@@ -8,6 +8,7 @@ require (
 	github.com/jackc/pgx/v5 v5.5.5
 	github.com/rs/zerolog v1.32.0
 	k8s.io/api v0.30.1
+	nhooyr.io/websocket v1.8.11
 )
 
 require (
