@@ -193,8 +193,13 @@ func checkDalWs(ctx context.Context) {
 
 func extractWsAlarms(ctx context.Context) []string {
 	log.Debug().Msg("extracting WebSocket alarms")
-	var msgs []string
+
 	var msgs = []string{}
+
+	if len(wsMsgChan) == 0 {
+		return msgs
+	}
+
 	select {
 	case <-ctx.Done():
 		return nil
@@ -248,7 +253,6 @@ func handleWsMessage(ctx context.Context, data map[string]interface{}) error {
 
 func filterWsReponses() {
 	log.Debug().Msg("filtering WebSocket responses")
-	for entry := range wsChan {
 	for entry := range wsChan {
 		strTimestamp := entry.AggregateTime
 
