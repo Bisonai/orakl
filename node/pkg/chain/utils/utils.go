@@ -5,7 +5,6 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"math/big"
 	"os"
@@ -19,7 +18,6 @@ import (
 	"github.com/klaytn/klaytn"
 	"github.com/klaytn/klaytn/accounts/abi"
 	"github.com/klaytn/klaytn/accounts/abi/bind"
-	"github.com/klaytn/klaytn/blockchain"
 	"github.com/klaytn/klaytn/blockchain/types"
 	"github.com/klaytn/klaytn/common"
 	"github.com/klaytn/klaytn/crypto"
@@ -696,8 +694,8 @@ func GetNonceFromPk(ctx context.Context, pkString string, client ClientInterface
 }
 
 func IsNonceError(err error) bool {
-	if errors.Is(err, blockchain.ErrNonceTooLow) ||
-		errors.Is(err, blockchain.ErrAlreadyNonceExistInPool) {
+	if err.Error() == "nonce too low" ||
+		err.Error() == "there is another tx which has the same nonce in the tx pool" {
 		return true
 	}
 	return false
