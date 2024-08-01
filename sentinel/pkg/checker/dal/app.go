@@ -22,6 +22,9 @@ const (
 	DefaultDalCheckInterval = 10 * time.Second
 	DelayOffset             = 5 * time.Second
 	AlarmOffset             = 3
+
+	WsDelayThreshold = 9 * time.Second
+	WsPushThreshold  = 5 * time.Second
 )
 
 type WsResponse struct {
@@ -181,7 +184,7 @@ func checkDalWs(ctx context.Context) {
 	updateTimes.Range(func(key, value interface{}) bool {
 		if recievedTime, ok := value.(time.Time); ok {
 			diff := time.Since(recievedTime)
-			if diff > 3*time.Second {
+			if diff > WsPushThreshold {
 				symbol := key.(string)
 				msg := fmt.Sprintf("(%s) ws not pushed for %v(sec)", symbol, diff.Seconds())
 				msgsNotRecieved = append(msgsNotRecieved, msg)
@@ -263,7 +266,7 @@ func filterWsReponses() {
 
 		timestamp := time.Unix(unixTimestamp, 0)
 		diff := time.Since(timestamp)
-		if diff > 5*time.Second {
+		if diff > WsDelayThreshold {
 			wsMsgChan <- fmt.Sprintf("(%s) ws delayed by %v(sec)", entry.Symbol, diff.Seconds())
 		}
 	}
