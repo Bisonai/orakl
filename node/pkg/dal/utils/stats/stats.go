@@ -25,12 +25,6 @@ const (
 		SET connection_end = NOW(), duration = EXTRACT(EPOCH FROM (NOW() - timestamp)) * 1000
 		WHERE id = @id;
 	`
-
-	INSERT_WEBSOCKET_SUBSCRIPTIONS = `
-		INSERT INTO
-			websocket_subscriptions (connection_id, topic)
-		VALUES (@connection_id, @topic);
-	`
 )
 
 type websocketId struct {
@@ -64,11 +58,13 @@ func UpdateWebsocketConnection(ctx context.Context, connectionId int32) error {
 	})
 }
 
-func InsertWebsocketSubscription(ctx context.Context, connectionId int32, topic string) error {
-	return db.QueryWithoutResult(ctx, INSERT_WEBSOCKET_SUBSCRIPTIONS, map[string]any{
-		"connection_id": connectionId,
-		"topic":         topic,
-	})
+func InsertWebsocketSubscriptions(ctx context.Context, connectionId int32, topics []string) error {
+	entries := [][]any{}
+	for _, topic := range topics {
+		entries = append(entries, []any{connectionId, topic})
+	}
+
+	return db.BulkInsert(ctx, "websocket_subscriptions", []string{"connection_id", "topic"}, entries)
 }
 
 func StatsMiddleware(c *fiber.Ctx) error {

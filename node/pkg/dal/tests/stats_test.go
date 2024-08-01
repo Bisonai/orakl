@@ -96,7 +96,7 @@ func TestWebsocketSubcription(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Greater(t, id, int32(0))
 
-	err = stats.InsertWebsocketSubscription(ctx, id, "test_topic")
+	err = stats.InsertWebsocketSubscriptions(ctx, id, []string{"test_topic"})
 	assert.NoError(t, err)
 
 	result, err := db.QueryRows[WebsocketSubscription](ctx, "SELECT * FROM websocket_subscriptions", nil)

@@ -5,7 +5,6 @@ import (
 
 	"bisonai.com/orakl/node/pkg/common/types"
 	dalcommon "bisonai.com/orakl/node/pkg/dal/common"
-	"github.com/gofiber/contrib/websocket"
 )
 
 type Subscription struct {
@@ -15,12 +14,10 @@ type Subscription struct {
 
 type Hub struct {
 	configs    map[string]types.Config
-	clients    map[*websocket.Conn]map[string]bool
-	register   chan *websocket.Conn
-	unregister chan *websocket.Conn
+	clients    sync.Map // map[*ThreadSafeClient]map[string]bool
+	register   chan *ThreadSafeClient
+	unregister chan *ThreadSafeClient
 	broadcast  map[string]chan dalcommon.OutgoingSubmissionData
-
-	mu sync.RWMutex
 }
 
 type BulkResponse struct {
