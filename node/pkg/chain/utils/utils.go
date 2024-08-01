@@ -626,7 +626,9 @@ func RecoverSigner(hash []byte, signature []byte) (address common.Address, err e
 	// use copy to avoid modifying the original signature
 	signatureCopy := make([]byte, len(signature))
 	copy(signatureCopy, signature)
-	signatureCopy[64] -= 27
+	if signatureCopy[64] == 27 || signatureCopy[64] == 28 {
+		signatureCopy[64] -= 27
+	}
 
 	pubKey, err := crypto.SigToPub(hash, signatureCopy)
 	if err != nil {

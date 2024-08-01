@@ -114,7 +114,7 @@ func removeDuplicateProof(proof []byte) []byte {
 		uniqueProofs[string(p)] = p
 	}
 
-	result := make([][]byte, 0, len(uniqueProofs)*65)
+	result := make([][]byte, 0, len(uniqueProofs))
 	for _, p := range uniqueProofs {
 		result = append(result, p)
 	}
