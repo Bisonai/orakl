@@ -126,6 +126,7 @@ on:
           - reporter:v0.0.1.20240801.0521.9e654a8:OraklNode Handle nonce error
           - dal:v0.0.1.20240801.0522.fcbfdcd:OraklNode Handle nonce error
           - reporter:v0.0.1.20240801.0539.66f274d:OraklNode error is not being c...
+          - node:v0.0.1.20240801.0647.836356c:add data delay logs to node an...
 jobs:
   prepare-taskflow:
     name: Prepare
