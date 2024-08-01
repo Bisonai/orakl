@@ -167,8 +167,11 @@ func checkDal(endpoint string, key string, alarmCount map[string]int) error {
 
 func checkDalWs(ctx context.Context) {
 	log.Debug().Msg("checking WebSocket message delays")
-	log.Debug().Msg("checking msg delays")
-	msgs := extractWsAlarms(ctx)
+
+	ctxWithTimeout, cancel := context.WithTimeout(ctx, 100*time.Millisecond)
+	defer cancel()
+
+	msgs := extractWsAlarms(ctxWithTimeout)
 	if len(msgs) > 0 {
 		alert.SlackAlert(strings.Join(msgs, "\n"))
 	}
@@ -195,10 +198,6 @@ func extractWsAlarms(ctx context.Context) []string {
 	log.Debug().Msg("extracting WebSocket alarms")
 
 	var msgs = []string{}
-
-	if len(wsMsgChan) == 0 {
-		return msgs
-	}
 
 	select {
 	case <-ctx.Done():
