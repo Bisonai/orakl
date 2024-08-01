@@ -36,7 +36,6 @@ type GlobalAggregate types.GlobalAggregate
 type SubmissionData struct {
 	GlobalAggregate GlobalAggregate
 	Proof           Proof
-	PublishTime     time.Time
 }
 
 type App struct {
