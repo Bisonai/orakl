@@ -126,3 +126,4 @@
 - **dal** v0.0.1.20240801.0727.248258e <br> *`PR`*: rollback node and dal data del... <br><br> 
 - **reporter** v0.0.1.20240801.0750.b725976 <br> *`PR`*: Sentinel Update threshold to r... <br><br> 
 - **sentinel** v0.0.1.20240801.0753.169c3c9 <br> *`PR`*: Sentinel Update threshold to r... <br><br> 
+- **sentinel** v0.0.1.20240801.0907.c3a64db <br> *`PR`*: Sentinel Change threshold to r... <br><br> 
