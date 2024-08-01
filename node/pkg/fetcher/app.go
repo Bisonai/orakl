@@ -248,7 +248,7 @@ func (a *App) startAllFetchers(ctx context.Context) error {
 			return err
 		}
 		// starts with random sleep to avoid all fetchers starting at the same time
-		time.Sleep(time.Millisecond * time.Duration(rand.Intn(300)+100))
+		time.Sleep(time.Millisecond * time.Duration(rand.Intn(100)+50))
 	}
 	return nil
 }
@@ -261,7 +261,7 @@ func (a *App) startAllCollectors(ctx context.Context) error {
 			return err
 		}
 		// starts with random sleep to avoid all fetchers starting at the same time
-		time.Sleep(time.Millisecond * time.Duration(rand.Intn(300)+100))
+		time.Sleep(time.Millisecond * time.Duration(rand.Intn(100)+50))
 	}
 	return nil
 }
