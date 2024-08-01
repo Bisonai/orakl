@@ -1,6 +1,7 @@
 package aggregator
 
 import (
+	"bytes"
 	"context"
 	"sync"
 	"time"
@@ -54,52 +55,121 @@ type Config struct {
 	AggregateInterval int32  `db:"aggregate_interval"`
 }
 
+type RoundPrices struct {
+	prices map[int32][]int64
+	mu     sync.RWMutex
+}
+
+type RoundProofs struct {
+	proofs map[int32][][]byte
+	mu     sync.RWMutex
+}
+
 type Aggregator struct {
 	Config
 	Raft *raft.Raft
 
 	LatestLocalAggregates    *LatestLocalAggregates
-	CollectedPrices          map[int32][]int64
-	CollectedProofs          map[int32][][]byte
-	CollectedAgreements      map[int32][]bool
-	PreparedLocalAggregates  map[int32]int64
-	PreparedGlobalAggregates map[int32]GlobalAggregate
-	SyncedTimes              map[int32]time.Time
-	AggregatorMutex          sync.Mutex
+	roundPrices *RoundPrices
+	roundProofs *RoundProofs
 
-	RoundID int32
-
-	Signer *helper.Signer
+	RoundID               int32
+	Signer                *helper.Signer
 
 	nodeCtx    context.Context
 	nodeCancel context.CancelFunc
 	isRunning  bool
 }
 
-type RoundSyncMessage struct {
+type PriceDataMessage struct {
+	RoundID   int32     `json:"roundID"`
+	PriceData int64     `json:"priceData"`
+	Timestamp time.Time `json:"timestamp"`
+}
+
+type ProofMessage struct {
+	RoundID   int32     `json:"roundID"`
+	Value     int64     `json:"value"`
+	Proof     []byte    `json:"proof"`
+	Timestamp time.Time `json:"timestamp"`
+}
+
+type TriggerMessage struct {
 	LeaderID  string    `json:"leaderID"`
 	RoundID   int32     `json:"roundID"`
 	Timestamp time.Time `json:"timestamp"`
 }
 
-type PriceDataMessage struct {
-	RoundID   int32 `json:"roundID"`
-	PriceData int64 `json:"priceData"`
+func (r *RoundPrices) push(round int32, value int64) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if prices, ok := r.prices[round]; ok {
+		r.prices[round] = append(prices, value)
+	} else {
+		r.prices[round] = []int64{value}
+	}
 }
 
-type ProofMessage struct {
-	RoundID int32  `json:"roundID"`
-	Proof   []byte `json:"proof"`
+func (r *RoundPrices) len(round int32) int {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	if prices, ok := r.prices[round]; ok {
+		return len(prices)
+	}
+	return 0
 }
 
-type SyncReplyMessage struct {
-	RoundID int32 `json:"roundID"`
-	Agreed  bool  `json:"agreed"`
+func (r *RoundPrices) snapshot(round int32) []int64 {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	prices, ok := r.prices[round]
+	if !ok {
+		return nil
+	}
+	result := make([]int64, len(prices))
+	copy(result, prices)
+	return result
 }
 
-type TriggerMessage struct {
-	LeaderID string `json:"leaderID"`
-	RoundID  int32  `json:"roundID"`
+func (r *RoundPrices) delete(round int32) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	delete(r.prices, round)
+}
+
+func (r *RoundProofs) push(round int32, proof []byte) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if proofs, ok := r.proofs[round]; ok {
+		r.proofs[round] = append(proofs, proof)
+	} else {
+		r.proofs[round] = [][]byte{proof}
+	}
+}
+
+func (r *RoundProofs) len(round int32) int {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	if proofs, ok := r.proofs[round]; ok {
+		return len(proofs)
+	}
+	return 0
+}
+
+func (r *RoundProofs) concat(round int32) []byte {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	proofs, ok := r.proofs[round]
+	if !ok {
+		return nil
+	}
+	return bytes.Join(proofs, nil)
+}
+
+func (r *RoundProofs) delete(round int32) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	delete(r.proofs, round)
 }
 
 type LatestLocalAggregates struct {
