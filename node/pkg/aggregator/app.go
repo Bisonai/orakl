@@ -182,7 +182,7 @@ func (a *App) startAllAggregators(ctx context.Context) error {
 		}
 		// starts with random sleep to avoid all aggregators starting at the same time
 		jitter := time.Duration(rand.Intn(100)) * time.Millisecond
-		time.Sleep(time.Millisecond*200 + jitter)
+		time.Sleep(time.Millisecond*50 + jitter)
 	}
 	return nil
 }
