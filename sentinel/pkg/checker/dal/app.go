@@ -108,7 +108,9 @@ func Start(ctx context.Context) error {
 		if err != nil {
 			log.Error().Str("Player", "DalChecker").Err(err).Msg("error in checkDal")
 		}
+		log.Debug().Msg("checking DAL WebSocket")
 		checkDalWs(ctx)
+		log.Debug().Msg("checked DAL WebSocket")
 	}
 	return nil
 }
@@ -164,13 +166,14 @@ func checkDal(endpoint string, key string, alarmCount map[string]int) error {
 }
 
 func checkDalWs(ctx context.Context) {
+	log.Debug().Msg("checking WebSocket message delays")
 	log.Debug().Msg("checking msg delays")
 	msgs := extractWsAlarms(ctx)
 	if len(msgs) > 0 {
 		alert.SlackAlert(strings.Join(msgs, "\n"))
 	}
 
-	log.Debug().Msg("checking msg push")
+	log.Debug().Msg("checking WebSocket message push")
 	msgsNotRecieved := []string{}
 	updateTimes.Range(func(key, value interface{}) bool {
 		if recievedTime, ok := value.(time.Time); ok {
@@ -189,6 +192,8 @@ func checkDalWs(ctx context.Context) {
 }
 
 func extractWsAlarms(ctx context.Context) []string {
+	log.Debug().Msg("extracting WebSocket alarms")
+	var msgs []string
 	var msgs = []string{}
 	select {
 	case <-ctx.Done():
@@ -242,12 +247,14 @@ func handleWsMessage(ctx context.Context, data map[string]interface{}) error {
 }
 
 func filterWsReponses() {
+	log.Debug().Msg("filtering WebSocket responses")
+	for entry := range wsChan {
 	for entry := range wsChan {
 		strTimestamp := entry.AggregateTime
 
 		unixTimestamp, err := strconv.ParseInt(strTimestamp, 10, 64)
 		if err != nil {
-			log.Error().Err(err).Msg("failed to parse timestamp")
+			log.Error().Err(err).Msg("failed to parse timestamp for WebSocket response")
 			continue
 		}
 
