@@ -124,3 +124,4 @@
 - **dal** v0.0.1.20240801.0651.633694f <br> *`PR`*: add data delay logs to node an... <br><br> 
 - **node** v0.0.1.20240801.0703.862980f <br> *`PR`*: rollback node and dal data del... <br><br> 
 - **dal** v0.0.1.20240801.0727.248258e <br> *`PR`*: rollback node and dal data del... <br><br> 
+- **reporter** v0.0.1.20240801.0750.b725976 <br> *`PR`*: Sentinel Update threshold to r... <br><br> 
