@@ -24,8 +24,8 @@ func HubSetup(ctx context.Context, configs []types.Config) *Hub {
 
 func NewHub(configs map[string]types.Config) *Hub {
 	return &Hub{
-		configs: configs,
-
+		configs:    configs,
+		clients:    make(map[*ThreadSafeClient]map[string]bool),
 		register:   make(chan *ThreadSafeClient),
 		unregister: make(chan *ThreadSafeClient),
 		broadcast:  make(map[string]chan dalcommon.OutgoingSubmissionData),
