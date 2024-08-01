@@ -97,6 +97,10 @@ func (c *Hub) removeClient(client *ThreadSafeClient) {
 func (c *Hub) initializeBroadcastChannels(collector *collector.Collector) {
 	for configId, stream := range collector.OutgoingStream {
 		symbol := c.configIdToSymbol(configId)
+		if symbol == "" {
+			continue
+		}
+
 		c.broadcast[symbol] = stream
 	}
 }
