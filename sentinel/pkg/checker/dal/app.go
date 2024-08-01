@@ -181,7 +181,7 @@ func checkDalWs(ctx context.Context) {
 	updateTimes.Range(func(key, value interface{}) bool {
 		if recievedTime, ok := value.(time.Time); ok {
 			diff := time.Since(recievedTime)
-			if diff > 1*time.Second {
+			if diff > 3*time.Second {
 				symbol := key.(string)
 				msg := fmt.Sprintf("(%s) ws not pushed for %v(sec)", symbol, diff.Seconds())
 				msgsNotRecieved = append(msgsNotRecieved, msg)
