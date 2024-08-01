@@ -115,3 +115,4 @@
 - **dal** v0.0.1.20240731.0605.aae343e <br> *`PR`*: Reporter Rest reporter <br><br> 
 - **reporter** v0.0.1.20240731.0607.67a5dd3 <br> *`PR`*: Reporter Rest reporter <br><br> 
 - **node** v0.0.1.20240801.0345.e8a1d52 <br> *`PR`*: OraklNode Add condition to inc... <br><br> 
+- **sentinel** v0.0.1.20240801.0350.f515ac9 <br> *`PR`*: fix go mod tidy <br><br> 

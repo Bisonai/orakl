@@ -121,6 +121,7 @@ on:
           - dal:v0.0.1.20240731.0605.aae343e:Reporter Rest reporter
           - reporter:v0.0.1.20240731.0607.67a5dd3:Reporter Rest reporter
           - node:v0.0.1.20240801.0345.e8a1d52:OraklNode Add condition to inc...
+          - sentinel:v0.0.1.20240801.0350.f515ac9:fix go mod tidy
 jobs:
   prepare-taskflow:
     name: Prepare
