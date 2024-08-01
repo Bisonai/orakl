@@ -14,10 +14,11 @@ type Subscription struct {
 
 type Hub struct {
 	configs    map[string]types.Config
-	clients    sync.Map // map[*ThreadSafeClient]map[string]bool
+	clients    map[*ThreadSafeClient]map[string]bool
 	register   chan *ThreadSafeClient
 	unregister chan *ThreadSafeClient
 	broadcast  map[string]chan dalcommon.OutgoingSubmissionData
+	mu         sync.RWMutex
 }
 
 type BulkResponse struct {

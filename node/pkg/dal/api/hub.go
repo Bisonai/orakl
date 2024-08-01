@@ -54,18 +54,30 @@ func (c *Hub) handleClientRegistration() {
 }
 
 func (c *Hub) addClient(client *ThreadSafeClient) {
-	c.clients.LoadOrStore(client, make(map[string]bool))
+	c.mu.RLock()
+	_, ok := c.clients[client]
+	c.mu.RUnlock()
+	if ok {
+		return
+	}
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.clients[client] = make(map[string]bool)
 }
 
 func (c *Hub) removeClient(client *ThreadSafeClient) {
-	raw, ok := c.clients.LoadAndDelete(client)
-	if ok {
-		subscriptions, typeOk := raw.(map[string]bool)
-		if typeOk {
-			for symbol := range subscriptions {
-				delete(subscriptions, symbol)
-			}
-		}
+	c.mu.RLock()
+	subscriptions, ok := c.clients[client]
+	c.mu.RUnlock()
+	if !ok {
+		return
+	}
+
+	c.mu.Lock()
+	delete(c.clients, client)
+	for symbol := range subscriptions {
+		delete(subscriptions, symbol)
 	}
 
 	err := client.WriteControl(
@@ -107,13 +119,10 @@ func (c *Hub) broadcastDataForSymbol(symbol string) {
 // pass by pointer to reduce memory copy time
 func (c *Hub) castSubmissionData(data *dalcommon.OutgoingSubmissionData, symbol *string) {
 	var wg sync.WaitGroup
-	c.clients.Range(func(threadSafeClient, symbols any) bool {
-		client, ok := threadSafeClient.(*ThreadSafeClient)
-		if !ok {
-			return true
-		}
 
-		subscriptions := symbols.(map[string]bool)
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	for client, subscriptions := range c.clients {
 		if subscriptions[*symbol] {
 			wg.Add(1)
 			go func(entry *ThreadSafeClient) {
@@ -124,7 +133,6 @@ func (c *Hub) castSubmissionData(data *dalcommon.OutgoingSubmissionData, symbol 
 				}
 			}(client)
 		}
-		return true
-	})
+	}
 	wg.Wait()
 }
