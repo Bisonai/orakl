@@ -125,6 +125,7 @@ on:
           - dal:v0.0.1.20240801.0357.fd16df0:fix go mod tidy
           - reporter:v0.0.1.20240801.0521.9e654a8:OraklNode Handle nonce error
           - dal:v0.0.1.20240801.0522.fcbfdcd:OraklNode Handle nonce error
+          - reporter:v0.0.1.20240801.0539.66f274d:OraklNode error is not being c...
 jobs:
   prepare-taskflow:
     name: Prepare

@@ -119,3 +119,4 @@
 - **dal** v0.0.1.20240801.0357.fd16df0 <br> *`PR`*: fix go mod tidy <br><br> 
 - **reporter** v0.0.1.20240801.0521.9e654a8 <br> *`PR`*: OraklNode Handle nonce error <br><br> 
 - **dal** v0.0.1.20240801.0522.fcbfdcd <br> *`PR`*: OraklNode Handle nonce error <br><br> 
+- **reporter** v0.0.1.20240801.0539.66f274d <br> *`PR`*: OraklNode error is not being c... <br><br> 
