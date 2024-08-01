@@ -263,7 +263,7 @@ func (t *ChainHelper) SubmitDelegatedFallbackDirect(ctx context.Context, contrac
 			if err != nil {
 				if utils.ShouldRetryWithSwitchedJsonRPC(err) {
 					clientIndex = (clientIndex + 1) % len(t.clients)
-				} else if errors.Is(err, errorSentinel.ErrChainTransactionFail) {
+				} else if errors.Is(err, errorSentinel.ErrChainTransactionFail) || utils.IsNonceError(err) {
 					nonce, err = noncemanager.GetAndIncrementNonce(t.wallet)
 					if err != nil {
 						return err
@@ -288,7 +288,7 @@ func (t *ChainHelper) SubmitDelegatedFallbackDirect(ctx context.Context, contrac
 		if err != nil {
 			if utils.ShouldRetryWithSwitchedJsonRPC(err) {
 				clientIndex = (clientIndex + 1) % len(t.clients)
-			} else if errors.Is(err, errorSentinel.ErrChainTransactionFail) {
+			} else if errors.Is(err, errorSentinel.ErrChainTransactionFail) || utils.IsNonceError(err) {
 				nonce, err = noncemanager.GetAndIncrementNonce(t.wallet)
 				if err != nil {
 					return err
