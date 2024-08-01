@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math/big"
 	"os"
@@ -18,6 +19,7 @@ import (
 	"github.com/klaytn/klaytn"
 	"github.com/klaytn/klaytn/accounts/abi"
 	"github.com/klaytn/klaytn/accounts/abi/bind"
+	"github.com/klaytn/klaytn/blockchain"
 	"github.com/klaytn/klaytn/blockchain/types"
 	"github.com/klaytn/klaytn/common"
 	"github.com/klaytn/klaytn/crypto"
@@ -691,4 +693,12 @@ func GetNonceFromPk(ctx context.Context, pkString string, client ClientInterface
 
 	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
 	return client.PendingNonceAt(ctx, fromAddress)
+}
+
+func IsNonceError(err error) bool {
+	if errors.Is(err, blockchain.ErrNonceTooLow) ||
+		errors.Is(err, blockchain.ErrAlreadyNonceExistInPool) {
+		return true
+	}
+	return false
 }
