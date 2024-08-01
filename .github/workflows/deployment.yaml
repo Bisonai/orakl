@@ -124,6 +124,7 @@ on:
           - sentinel:v0.0.1.20240801.0350.f515ac9:fix go mod tidy
           - dal:v0.0.1.20240801.0357.fd16df0:fix go mod tidy
           - reporter:v0.0.1.20240801.0521.9e654a8:OraklNode Handle nonce error
+          - dal:v0.0.1.20240801.0522.fcbfdcd:OraklNode Handle nonce error
 jobs:
   prepare-taskflow:
     name: Prepare

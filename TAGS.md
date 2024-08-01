@@ -118,3 +118,4 @@
 - **sentinel** v0.0.1.20240801.0350.f515ac9 <br> *`PR`*: fix go mod tidy <br><br> 
 - **dal** v0.0.1.20240801.0357.fd16df0 <br> *`PR`*: fix go mod tidy <br><br> 
 - **reporter** v0.0.1.20240801.0521.9e654a8 <br> *`PR`*: OraklNode Handle nonce error <br><br> 
+- **dal** v0.0.1.20240801.0522.fcbfdcd <br> *`PR`*: OraklNode Handle nonce error <br><br> 
