@@ -121,3 +121,4 @@
 - **dal** v0.0.1.20240801.0522.fcbfdcd <br> *`PR`*: OraklNode Handle nonce error <br><br> 
 - **reporter** v0.0.1.20240801.0539.66f274d <br> *`PR`*: OraklNode error is not being c... <br><br> 
 - **node** v0.0.1.20240801.0647.836356c <br> *`PR`*: add data delay logs to node an... <br><br> 
+- **dal** v0.0.1.20240801.0651.633694f <br> *`PR`*: add data delay logs to node an... <br><br> 
