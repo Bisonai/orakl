@@ -168,7 +168,7 @@ func checkDal(endpoint string, key string, alarmCount map[string]int) error {
 func checkDalWs(ctx context.Context) {
 	log.Debug().Msg("checking WebSocket message delays")
 
-	ctxWithTimeout, cancel := context.WithTimeout(ctx, 100*time.Millisecond)
+	ctxWithTimeout, cancel := context.WithTimeout(ctx, 500*time.Millisecond)
 	defer cancel()
 
 	msgs := extractWsAlarms(ctxWithTimeout)
