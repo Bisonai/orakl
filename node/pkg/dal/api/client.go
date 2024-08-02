@@ -33,7 +33,6 @@ func (c *ThreadSafeClient) WriteJSON(data any) error {
 // since the only place it is called is from `HandleWebsocket` inner for loop
 func (c *ThreadSafeClient) ReadJSON(data any) error {
 	if err := c.Conn.ReadJSON(&data); err != nil {
-		log.Error().Err(err).Msg("failed to read json msg")
 		return err
 	}
 	return nil

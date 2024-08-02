@@ -155,20 +155,25 @@ func (h *Hub) broadcastDataForSymbol(symbol string) {
 // pass by pointer to reduce memory copy time
 func (c *Hub) castSubmissionData(data *dalcommon.OutgoingSubmissionData, symbol *string) {
 	var wg sync.WaitGroup
+	clientsToNotify := make([]*ThreadSafeClient, 0)
 
 	c.mu.Lock()
-	defer c.mu.Unlock()
 	for client, subscriptions := range c.clients {
 		if subscriptions[*symbol] {
-			wg.Add(1)
-			go func(entry *ThreadSafeClient) {
-				defer wg.Done()
-				if err := entry.WriteJSON(*data); err != nil {
-					log.Error().Err(err).Msg("failed to write message")
-					c.unregister <- entry
-				}
-			}(client)
+			clientsToNotify = append(clientsToNotify, client)
 		}
+	}
+	c.mu.Unlock()
+
+	for _, client := range clientsToNotify {
+		wg.Add(1)
+		go func(entry *ThreadSafeClient) {
+			defer wg.Done()
+			if err := entry.WriteJSON(*data); err != nil {
+				log.Error().Err(err).Msg("failed to write message")
+				c.unregister <- entry
+			}
+		}(client)
 	}
 	wg.Wait()
 }
