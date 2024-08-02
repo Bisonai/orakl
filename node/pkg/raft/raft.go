@@ -7,6 +7,8 @@ import (
 	"sync"
 	"time"
 
+	"bisonai.com/orakl/node/pkg/utils/retrier"
+
 	"github.com/rs/zerolog/log"
 
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
@@ -51,10 +53,12 @@ func (r *Raft) Run(ctx context.Context) {
 	for {
 		select {
 		case msg := <-r.MessageBuffer:
-			err := r.handleMessage(ctx, msg)
-			if err != nil {
-				log.Error().Err(err).Msg("failed to handle message")
-			}
+			go func(m Message) {
+				err := r.handleMessage(ctx, m)
+				if err != nil {
+					log.Error().Err(err).Msg("failed to handle message")
+				}
+			}(msg)
 
 		case <-r.ElectionTimer.C:
 			r.startElection()
@@ -318,6 +322,12 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 	r.LeaderJobTicker = time.NewTicker(r.LeaderJobTimeout)
 
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Error().Msgf("recovered from panic in leader job: %v", r)
+			}
+		}()
+
 		for {
 			select {
 			case <-r.Resign:
@@ -335,11 +345,6 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 
 			case <-r.LeaderJobTicker.C:
 				go func() {
-					defer func() {
-						if r := recover(); r != nil {
-							log.Error().Msgf("recovered from panic in leader job: %v", r)
-						}
-					}()
 					err := r.LeaderJob()
 					if err != nil {
 						log.Error().Err(err).Msg("failed to execute leader job")
@@ -379,7 +384,7 @@ func (r *Raft) startElection() {
 
 	r.startElectionTimer()
 
-	err := r.sendRequestVote()
+	err := retrier.Retry(r.sendRequestVote, 3, 10*time.Millisecond, 50*time.Millisecond)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to send request vote")
 	}
