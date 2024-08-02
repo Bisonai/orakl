@@ -63,12 +63,13 @@ func HandleWebsocket(conn *websocket.Conn) {
 		}
 
 		if msg.Method == "SUBSCRIBE" {
-			h.mu.RLock()
+			h.mu.Lock()
+
 			subscriptions, ok := h.clients[threadSafeClient]
 			if !ok {
 				subscriptions = map[string]bool{}
 			}
-			h.mu.RUnlock()
+
 			valid := []string{}
 
 			for _, param := range msg.Params {
@@ -79,7 +80,6 @@ func HandleWebsocket(conn *websocket.Conn) {
 				subscriptions[symbol] = true
 				valid = append(valid, param)
 			}
-			h.mu.Lock()
 			h.clients[threadSafeClient] = subscriptions
 			h.mu.Unlock()
 			err = stats.InsertWebsocketSubscriptions(*ctx, id, valid)
