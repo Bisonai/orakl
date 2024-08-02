@@ -51,9 +51,37 @@ type OutgoingSubmissionData struct {
 	Decimals      string `json:"decimals"`
 }
 
+type UpdateTimes struct {
+	lastUpdates map[string]time.Time
+	mu          sync.RWMutex
+}
+
 var wsChan = make(chan WsResponse, 30000)
 var wsMsgChan = make(chan string, 10000)
-var updateTimes = sync.Map{}
+var updateTimes = &UpdateTimes{
+	lastUpdates: make(map[string]time.Time),
+}
+
+func (u *UpdateTimes) Store(symbol string, time time.Time) {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	u.lastUpdates[symbol] = time
+}
+
+func (u *UpdateTimes) CheckLastUpdateOffsets() []string {
+	u.mu.RLock()
+	defer u.mu.RUnlock()
+
+	msgsNotRecieved := []string{}
+	for symbol, updateTime := range u.lastUpdates {
+		diff := time.Since(updateTime)
+		if diff > WsPushThreshold {
+			msg := fmt.Sprintf("(%s) ws not pushed for %v(sec)", symbol, diff.Seconds())
+			msgsNotRecieved = append(msgsNotRecieved, msg)
+		}
+	}
+	return msgsNotRecieved
+}
 
 func Start(ctx context.Context) error {
 	interval, err := time.ParseDuration(os.Getenv("DAL_CHECK_INTERVAL"))
@@ -180,18 +208,7 @@ func checkDalWs(ctx context.Context) {
 	}
 
 	log.Debug().Msg("checking WebSocket message push")
-	msgsNotRecieved := []string{}
-	updateTimes.Range(func(key, value interface{}) bool {
-		if recievedTime, ok := value.(time.Time); ok {
-			diff := time.Since(recievedTime)
-			if diff > WsPushThreshold {
-				symbol := key.(string)
-				msg := fmt.Sprintf("(%s) ws not pushed for %v(sec)", symbol, diff.Seconds())
-				msgsNotRecieved = append(msgsNotRecieved, msg)
-			}
-		}
-		return true
-	})
+	msgsNotRecieved := updateTimes.CheckLastUpdateOffsets()
 	if len(msgsNotRecieved) > 0 {
 		alert.SlackAlert(strings.Join(msgsNotRecieved, "\n"))
 	}
