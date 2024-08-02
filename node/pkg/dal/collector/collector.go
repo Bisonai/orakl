@@ -179,7 +179,7 @@ func (c *Collector) compareAndSwapLatestTimestamp(data aggregator.SubmissionData
 func (c *Collector) processIncomingData(ctx context.Context, data aggregator.SubmissionData) {
 	valid := c.compareAndSwapLatestTimestamp(data)
 	if !valid {
-		log.Debug().Msg("old data recieved")
+		log.Debug().Str("Player", "DalCollector").Str("Symbol", c.Symbols[data.GlobalAggregate.ConfigID]).Msg("old data recieved")
 		return
 	}
 
