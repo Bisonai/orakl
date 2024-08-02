@@ -21,7 +21,7 @@ type Hub struct {
 	unregister chan *ThreadSafeClient
 	broadcast  map[string]chan dalcommon.OutgoingSubmissionData
 	connPerIP map[string][]*ThreadSafeClient
-	mu         sync.Mutex
+	mu         sync.RWMutex
 	
 }
 

@@ -29,7 +29,7 @@ func (c *ThreadSafeClient) WriteJSON(data any) error {
 	return nil
 }
 
-// even though readjson is not thread safe, it is expected not be called concurrently
+// even though readjson is not thread safe, it is expected not to be called concurrently
 // since the only place it is called is from `HandleWebsocket` inner for loop
 func (c *ThreadSafeClient) ReadJSON(data any) error {
 	if err := c.Conn.ReadJSON(&data); err != nil {

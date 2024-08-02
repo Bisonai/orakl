@@ -157,13 +157,13 @@ func (c *Hub) castSubmissionData(data *dalcommon.OutgoingSubmissionData, symbol 
 	var wg sync.WaitGroup
 	clientsToNotify := make([]*ThreadSafeClient, 0)
 
-	c.mu.Lock()
+	c.mu.RLock()
 	for client, subscriptions := range c.clients {
 		if subscriptions[*symbol] {
 			clientsToNotify = append(clientsToNotify, client)
 		}
 	}
-	c.mu.Unlock()
+	c.mu.RUnlock()
 
 	for _, client := range clientsToNotify {
 		wg.Add(1)
