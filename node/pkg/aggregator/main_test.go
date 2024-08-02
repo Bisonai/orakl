@@ -3,7 +3,6 @@ package aggregator
 import (
 	"context"
 	"os"
-	"sync"
 	"testing"
 	"time"
 
@@ -12,6 +11,7 @@ import (
 	"bisonai.com/orakl/node/pkg/admin/utils"
 	"bisonai.com/orakl/node/pkg/chain/helper"
 	"bisonai.com/orakl/node/pkg/common/keys"
+	"bisonai.com/orakl/node/pkg/common/types"
 
 	"bisonai.com/orakl/node/pkg/bus"
 	"bisonai.com/orakl/node/pkg/db"
@@ -30,7 +30,7 @@ const (
 
 type TmpData struct {
 	config          Config
-	rLocalAggregate LocalAggregate
+	rLocalAggregate types.LocalAggregate
 	pLocalAggregate LocalAggregate
 	globalAggregate GlobalAggregate
 }
@@ -42,7 +42,7 @@ type TestItems struct {
 	messageBus        *bus.MessageBus
 	tmpData           *TmpData
 	signer            *helper.Signer
-	latestLocalAggMap *sync.Map
+	latestLocalAggMap *LatestLocalAggregates
 }
 
 func setup(ctx context.Context) (func() error, *TestItems, error) {
@@ -74,7 +74,7 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 	testItems.app = app
 
 	testItems.topicString = "test-topic"
-	testItems.latestLocalAggMap = &sync.Map{}
+	testItems.latestLocalAggMap = NewLatestLocalAggregates()
 	tmpData, err := insertSampleData(ctx, app, testItems.latestLocalAggMap)
 	if err != nil {
 		return nil, nil, err
@@ -94,7 +94,7 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 	return aggregatorCleanup(ctx, admin, app), testItems, nil
 }
 
-func insertSampleData(ctx context.Context, app *App, latestLocalAggMap *sync.Map) (*TmpData, error) {
+func insertSampleData(ctx context.Context, app *App, latestLocalAggMap *LatestLocalAggregates) (*TmpData, error) {
 	_ = db.QueryWithoutResult(ctx, DeleteConfigs, nil)
 
 	var tmpData = new(TmpData)
@@ -114,7 +114,7 @@ func insertSampleData(ctx context.Context, app *App, latestLocalAggMap *sync.Map
 	// 	return nil, err
 	// }
 
-	tmpLocalAggregate := LocalAggregate{ConfigID: tmpConfig.ID, Value: int64(10), Timestamp: localAggregateInsertTime}
+	tmpLocalAggregate := types.LocalAggregate{ConfigID: tmpConfig.ID, Value: int64(10), Timestamp: localAggregateInsertTime}
 	latestLocalAggMap.Store(tmpConfig.ID, tmpLocalAggregate)
 
 	tmpData.rLocalAggregate = tmpLocalAggregate

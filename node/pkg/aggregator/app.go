@@ -5,7 +5,6 @@ import (
 	"math/rand"
 	"os"
 	"strconv"
-	"sync"
 	"time"
 
 	"bisonai.com/orakl/node/pkg/bus"
@@ -25,7 +24,7 @@ func New(bus *bus.MessageBus, h host.Host, ps *pubsub.PubSub) *App {
 		Bus:                   bus,
 		Host:                  h,
 		Pubsub:                ps,
-		LatestLocalAggregates: new(sync.Map),
+		LatestLocalAggregates: NewLatestLocalAggregates(),
 	}
 }
 

@@ -45,7 +45,7 @@ type App struct {
 	Host                  host.Host
 	Pubsub                *pubsub.PubSub
 	Signer                *helper.Signer
-	LatestLocalAggregates *sync.Map
+	LatestLocalAggregates *LatestLocalAggregates
 }
 
 type Config struct {
@@ -58,7 +58,7 @@ type Aggregator struct {
 	Config
 	Raft *raft.Raft
 
-	LatestLocalAggregates    *sync.Map
+	LatestLocalAggregates    *LatestLocalAggregates
 	CollectedPrices          map[int32][]int64
 	CollectedProofs          map[int32][][]byte
 	CollectedAgreements      map[int32][]bool
@@ -100,4 +100,28 @@ type SyncReplyMessage struct {
 type TriggerMessage struct {
 	LeaderID string `json:"leaderID"`
 	RoundID  int32  `json:"roundID"`
+}
+
+type LatestLocalAggregates struct {
+	LocalAggregateMap map[int32]types.LocalAggregate
+	mu                sync.RWMutex
+}
+
+func NewLatestLocalAggregates() *LatestLocalAggregates {
+	return &LatestLocalAggregates{
+		LocalAggregateMap: map[int32]types.LocalAggregate{},
+	}
+}
+
+func (a *LatestLocalAggregates) Load(id int32) (types.LocalAggregate, bool) {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	result, ok := a.LocalAggregateMap[id]
+	return result, ok
+}
+
+func (a *LatestLocalAggregates) Store(id int32, aggregate types.LocalAggregate) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.LocalAggregateMap[id] = aggregate
 }
