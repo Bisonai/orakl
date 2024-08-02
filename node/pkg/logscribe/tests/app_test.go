@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"sync"
 	"testing"
-	"time"
 
 	"bisonai.com/orakl/node/pkg/logscribe"
 	"bisonai.com/orakl/node/pkg/utils/request"
@@ -26,8 +25,6 @@ func TestLogscribeRun(t *testing.T) {
 			t.Logf("error running logscribe: %v", err)
 		}
 	}()
-
-	time.Sleep(500 * time.Millisecond)
 
 	response, err := request.RequestRaw(request.WithEndpoint("http://localhost:3000/api/v1/"))
 	if response.StatusCode != http.StatusOK {

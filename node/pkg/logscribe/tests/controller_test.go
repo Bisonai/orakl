@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"sync"
 	"testing"
-	"time"
 
 	"bisonai.com/orakl/node/pkg/logscribe"
 	"bisonai.com/orakl/node/pkg/utils/request"
@@ -24,8 +23,6 @@ func TestInsertLogs(t *testing.T) {
 			t.Logf("error running logscribe: %v", err)
 		}
 	}()
-
-	time.Sleep(500 * time.Millisecond)
 
 	logsData, err := getInsertLogData()
 	if err != nil {
