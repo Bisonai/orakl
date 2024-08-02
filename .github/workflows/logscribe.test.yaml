@@ -1,0 +1,66 @@
+name: "orakl logscribe test"
+
+on:
+  push:
+    branches-ignore:
+      - "master"
+    paths:
+      - "node/pkg/logscribe/**"
+  workflow_dispatch:
+
+jobs:
+  core-build:
+    strategy:
+      fail-fast: false
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: orakl-test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22.3"
+          check-latest: true
+          cache-dependency-path: |
+            ./node/go.sum
+
+      - name: Install golang-migrate
+        run: |
+          curl -L https://github.com/golang-migrate/migrate/releases/download/v4.17.0/migrate.linux-amd64.tar.gz | tar xvz
+          sudo mv ./migrate /usr/bin
+
+      - name: Migrate up
+        run: |
+          cd ./node
+          migrate -database "postgresql://postgres:postgres@localhost:5432/orakl-test?search_path=public&sslmode=disable" -verbose -path ./migrations/logscribe up
+
+      - name: Install dependencies
+        run: |
+          cd ./node
+          go mod tidy
+
+      - name: Install Task
+        uses: arduino/setup-task@v2
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run test
+        run: |
+          cd ./node
+          task local:test-logscribe
+        env:
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/orakl-test?search_path=public"
