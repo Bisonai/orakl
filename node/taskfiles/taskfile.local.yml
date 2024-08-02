@@ -70,6 +70,10 @@ tasks:
     dotenv: [".env"]
     cmds:
       - go run ./script/test_dal_consumer/main.go
+  script-test-dal-ws:
+    dotenv: [".env"]
+    cmds:
+      - go run ./script/test_dal_consumer_ws/main.go
   script-test-single-fetch:
     dotenv: [".env"]
     cmds:
