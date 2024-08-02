@@ -29,6 +29,10 @@ tasks:
     dotenv: [".env"]
     cmds:
       - go run ./cmd/reporter/main.go
+  logscribe:
+    dotenv: [".env"]
+    cmds:
+      - go run ./cmd/logscribe/main.go -count 1
 
   script-submission:
     dotenv: [".env"]
@@ -137,6 +141,10 @@ tasks:
     dotenv: [".env"]
     cmds:
       - go test ./pkg/raft -v
+  test-logscribe:
+    dotenv: [".env"]
+    cmds:
+      - go test ./pkg/logscribe/tests -v
 
   check-api:
     dotenv: [".env"]
