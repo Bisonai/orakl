@@ -129,3 +129,4 @@
 - **sentinel** v0.0.1.20240801.0907.c3a64db <br> *`PR`*: Sentinel Change threshold to r... <br><br> 
 - **sentinel** v0.0.1.20240802.0153.63a109c <br> *`PR`*: OraklNode Mutex lock instead o... <br><br> 
 - **dal** v0.0.1.20240802.0156.df96ad7 <br> *`PR`*: OraklNode Mutex lock instead o... <br><br> 
+- **node** v0.0.1.20240802.0200.b20a5c6 <br> *`PR`*: OraklNode Mutex lock instead o... <br><br> 
