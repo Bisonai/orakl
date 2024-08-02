@@ -19,7 +19,7 @@ func insertLogs(c *fiber.Ctx, logsChannel chan []LogInsertModel) error {
 	logEntries := new([]LogInsertModel)
 	if err := c.BodyParser(logEntries); err != nil {
 		log.Error().Err(err).Msg("Failed to parse request body")
-		return err
+		return c.Status(fiber.StatusBadRequest).SendString("Failed to parse request body")
 	}
 	logsChannel <- *logEntries
 
