@@ -156,30 +156,22 @@ func (c *Collector) receiveEach(ctx context.Context, configId int32) error {
 }
 
 func (c *Collector) compareAndSwapLatestTimestamp(data aggregator.SubmissionData) bool {
-	c.mu.RLock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	old, ok := c.LatestTimestamps[data.GlobalAggregate.ConfigID]
-	c.mu.RUnlock()
-	if !ok {
-		c.mu.Lock()
+	if !ok || !old.After(data.GlobalAggregate.Timestamp) {
 		c.LatestTimestamps[data.GlobalAggregate.ConfigID] = data.GlobalAggregate.Timestamp
-		c.mu.Unlock()
 		return true
 	}
 
-	if old.After(data.GlobalAggregate.Timestamp) {
-		return false
-	}
-
-	c.mu.Lock()
-	c.LatestTimestamps[data.GlobalAggregate.ConfigID] = data.GlobalAggregate.Timestamp
-	c.mu.Unlock()
-	return true
+	return false
 }
 
 func (c *Collector) processIncomingData(ctx context.Context, data aggregator.SubmissionData) {
 	valid := c.compareAndSwapLatestTimestamp(data)
 	if !valid {
-		log.Debug().Msg("old data recieved")
+		log.Debug().Str("Player", "DalCollector").Str("Symbol", c.Symbols[data.GlobalAggregate.ConfigID]).Msg("old data recieved")
 		return
 	}
 
