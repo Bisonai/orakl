@@ -137,3 +137,4 @@
 - **sentinel** v0.0.1.20240802.0722.815e34a <br> *`PR`*: Sentinel Initialize count if i... <br><br> 
 - **dal** v0.0.1.20240802.0737.d1641c9 <br> *`PR`*: DAL Prevent deadlock from mult... <br><br> 
 - **dal** v0.0.1.20240802.0814.2366d70 <br> *`PR`*: DAL definite unlock through de... <br><br> 
+- **dal** v0.0.1.20240802.0902.33bad15 <br> *`PR`*: DAL definite unlock through de... <br><br> 
