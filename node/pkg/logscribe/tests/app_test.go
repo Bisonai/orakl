@@ -16,19 +16,31 @@ func TestLogscribeRun(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cleanup(ctx)
 
+	errChan := make(chan error)
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		err := logscribe.Run(ctx)
 		if err != nil {
-			t.Logf("error running logscribe: %v", err)
+			errChan <- err
 		}
+		close(errChan)
 	}()
 
+	select {
+	case err := <-errChan:
+		t.Fatalf("error running logscribe: %v", err)
+	default:
+	}
+
 	response, err := request.RequestRaw(request.WithEndpoint("http://localhost:3000/api/v1/"))
+
 	if response.StatusCode != http.StatusOK {
 		t.Fatalf("error requesting logscribe: %v", err)
+	}
+	if response == nil {
+		t.Fatalf("received nil response: %v", err)
 	}
 
 	resultBody, err := io.ReadAll(response.Body)

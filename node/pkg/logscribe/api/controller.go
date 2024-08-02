@@ -23,5 +23,5 @@ func insertLogs(c *fiber.Ctx, logsChannel chan []LogInsertModel) error {
 	}
 	logsChannel <- *logEntries
 
-	return nil
+	return c.Status(fiber.StatusOK).SendString("Logs inserted successfully")
 }
