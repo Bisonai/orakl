@@ -134,3 +134,4 @@
 - **dal** v0.0.1.20240802.0426.303cd85 <br> *`PR`*: DAL Prevent possible race cond... <br><br> 
 - **dal** v0.0.1.20240802.0554.e60151d <br> *`PR`*: DAL Fix ws deadlock <br><br> 
 - **sentinel** v0.0.1.20240802.0656.c31b1af <br> *`PR`*: Sentinel Alarm count offset fo... <br><br> 
+- **sentinel** v0.0.1.20240802.0722.815e34a <br> *`PR`*: Sentinel Initialize count if i... <br><br> 
