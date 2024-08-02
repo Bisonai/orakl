@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
+	"bisonai.com/orakl/node/pkg/db"
 	"bisonai.com/orakl/node/pkg/logscribe"
 	"bisonai.com/orakl/node/pkg/utils/request"
-	"bisonai.com/orakl/sentinel/pkg/db"
 	"github.com/stretchr/testify/assert"
 )
 
