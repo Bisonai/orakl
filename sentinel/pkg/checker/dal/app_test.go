@@ -10,7 +10,6 @@ import (
 )
 
 func TestExtractWsAlarms(t *testing.T) {
-
 	tests := []struct {
 		name          string
 		messages      []string
@@ -42,8 +41,13 @@ func TestExtractWsAlarms(t *testing.T) {
 				cancel() // Cancel the context to stop the function
 			}()
 
+			alarmCountMap := map[string]int{
+				"BTC": 3,
+				"ETH": 3,
+			}
+
 			// Call the function
-			msgs := extractWsAlarms(ctx)
+			msgs := extractWsAlarms(ctx, alarmCountMap)
 			assert.Equal(t, 0, len(wsMsgChan))
 			for i, entry := range tt.messages {
 				assert.Equal(t, entry, msgs[i])
