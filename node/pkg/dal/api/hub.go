@@ -70,11 +70,7 @@ func (h *Hub) addClient(client *ThreadSafeClient) {
 	h.connPerIP[ip] = append(h.connPerIP[ip], client)
 	if len(h.connPerIP[ip]) > MAX_CONNECTIONS {
 		oldConn := h.connPerIP[ip][0]
-		if subs, ok := h.clients[oldConn]; ok {
-			for k := range subs {
-				delete(h.clients[oldConn], k)
-			}
-		}
+
 		subscriptions, ok := h.clients[oldConn]
 		if !ok {
 			return
@@ -115,7 +111,6 @@ func (h *Hub) removeClient(client *ThreadSafeClient) {
 			}
 		}
 	}
-
 
 	err := client.WriteControl(
 		websocket.CloseMessage,
