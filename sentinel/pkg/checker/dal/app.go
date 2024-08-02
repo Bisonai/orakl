@@ -84,6 +84,8 @@ func (u *UpdateTimes) CheckLastUpdateOffsets(pushAlarmCount map[string]int) []st
 				msgsNotRecieved = append(msgsNotRecieved, msg)
 				pushAlarmCount[symbol] = 0
 			}
+		} else {
+			pushAlarmCount[symbol] = 0
 		}
 	}
 	return msgsNotRecieved
@@ -243,17 +245,26 @@ func extractWsAlarms(ctx context.Context, alarmCount map[string]int) []string {
 		}
 	}
 
+	delayedSymbols := map[string]any{}
 	resultMsgs := []string{}
 	for _, entry := range rawMsgs {
 		match := re.FindStringSubmatch(entry)
 		symbol := match[1]
-
+		delayedSymbols[symbol] = struct{}{}
 		alarmCount[symbol]++
 		if alarmCount[symbol] > AlarmOffset {
 			resultMsgs = append(resultMsgs, entry)
 			alarmCount[symbol] = 0
 		}
 	}
+
+	defer func() {
+		for entry := range alarmCount {
+			if _, exists := delayedSymbols[entry]; !exists {
+				alarmCount[entry] = 0
+			}
+		}
+	}()
 
 	return resultMsgs
 }
