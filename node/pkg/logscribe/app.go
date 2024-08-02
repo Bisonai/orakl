@@ -45,36 +45,7 @@ func Run(ctx context.Context) error {
 		}
 	}()
 
-	go func() {
-		ticker := time.NewTicker(DefaultBulkLogsCopyInterval)
-		for {
-			select {
-			case <-ctx.Done():
-				ticker.Stop()
-				return
-			case <-ticker.C:
-				bulkCopyEntries := [][]interface{}{}
-			loop:
-				for {
-					select {
-					case logs := <-logsChannel:
-						for _, log := range logs {
-							bulkCopyEntries = append(bulkCopyEntries, []interface{}{log.Service, log.Timestamp, log.Level, log.Message, log.Fields})
-						}
-					default:
-						break loop
-					}
-				}
-
-				if len(bulkCopyEntries) > 0 {
-					_, err := db.BulkCopy(ctx, "logs", []string{"service", "timestamp", "level", "message", "fields"}, bulkCopyEntries)
-					if err != nil {
-						log.Error().Err(err).Msg("Failed to bulk copy logs")
-					}
-				}
-			}
-		}
-	}()
+	go bulkCopyLogs(ctx, logsChannel)
 
 	<-ctx.Done()
 
@@ -84,4 +55,35 @@ func Run(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func bulkCopyLogs(ctx context.Context, logsChannel <-chan []api.LogInsertModel) {
+	ticker := time.NewTicker(DefaultBulkLogsCopyInterval)
+	for {
+		select {
+		case <-ctx.Done():
+			ticker.Stop()
+			return
+		case <-ticker.C:
+			bulkCopyEntries := [][]interface{}{}
+		loop:
+			for {
+				select {
+				case logs := <-logsChannel:
+					for _, log := range logs {
+						bulkCopyEntries = append(bulkCopyEntries, []interface{}{log.Service, log.Timestamp, log.Level, log.Message, log.Fields})
+					}
+				default:
+					break loop
+				}
+			}
+
+			if len(bulkCopyEntries) > 0 {
+				_, err := db.BulkCopy(ctx, "logs", []string{"service", "timestamp", "level", "message", "fields"}, bulkCopyEntries)
+				if err != nil {
+					log.Error().Err(err).Msg("Failed to bulk copy logs")
+				}
+			}
+		}
+	}
 }
