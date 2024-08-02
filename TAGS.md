@@ -131,3 +131,4 @@
 - **dal** v0.0.1.20240802.0156.df96ad7 <br> *`PR`*: OraklNode Mutex lock instead o... <br><br> 
 - **node** v0.0.1.20240802.0200.b20a5c6 <br> *`PR`*: OraklNode Mutex lock instead o... <br><br> 
 - **dal** v0.0.1.20240802.0301.e8ff73c <br> *`PR`*: DAL dal logs for debugging <br><br> 
+- **dal** v0.0.1.20240802.0426.303cd85 <br> *`PR`*: DAL Prevent possible race cond... <br><br> 
