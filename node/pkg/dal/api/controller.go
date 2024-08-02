@@ -63,11 +63,12 @@ func HandleWebsocket(conn *websocket.Conn) {
 		}
 
 		if msg.Method == "SUBSCRIBE" {
-			val, ok := h.clients.Load(threadSafeClient)
+			h.mu.RLock()
+			subscriptions, ok := h.clients[threadSafeClient]
 			if !ok {
-				val = make(map[string]bool)
+				subscriptions = map[string]bool{}
 			}
-			subscriptions := val.(map[string]bool)
+			h.mu.RUnlock()
 			valid := []string{}
 
 			for _, param := range msg.Params {
@@ -78,7 +79,9 @@ func HandleWebsocket(conn *websocket.Conn) {
 				subscriptions[symbol] = true
 				valid = append(valid, param)
 			}
-			h.clients.Store(threadSafeClient, subscriptions)
+			h.mu.Lock()
+			h.clients[threadSafeClient] = subscriptions
+			h.mu.Unlock()
 			err = stats.InsertWebsocketSubscriptions(*ctx, id, valid)
 			if err != nil {
 				log.Error().Err(err).Msg("failed to insert websocket subscription log")

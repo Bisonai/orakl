@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 	"sync"
+	"time"
 
 	"bisonai.com/orakl/node/pkg/aggregator"
 	"bisonai.com/orakl/node/pkg/chain/websocketchainreader"
@@ -26,12 +27,13 @@ const (
 )
 
 type Collector struct {
-	IncomingStream  map[int32]chan aggregator.SubmissionData
-	OutgoingStream  map[int32]chan dalcommon.OutgoingSubmissionData
-	Symbols         map[int32]string
-	FeedHashes      map[int32][]byte
-	CachedWhitelist []klaytncommon.Address
-	LatestData      sync.Map
+	IncomingStream   map[int32]chan aggregator.SubmissionData
+	OutgoingStream   map[int32]chan dalcommon.OutgoingSubmissionData
+	Symbols          map[int32]string
+	FeedHashes       map[int32][]byte
+	LatestTimestamps map[int32]time.Time
+	LatestData       map[string]*dalcommon.OutgoingSubmissionData
+	CachedWhitelist  []klaytncommon.Address
 
 	IsRunning  bool
 	CancelFunc context.CancelFunc
@@ -68,7 +70,8 @@ func NewCollector(ctx context.Context, configs []types.Config) (*Collector, erro
 		OutgoingStream:              make(map[int32]chan dalcommon.OutgoingSubmissionData, len(configs)),
 		Symbols:                     make(map[int32]string, len(configs)),
 		FeedHashes:                  make(map[int32][]byte, len(configs)),
-		LatestData:                  sync.Map{},
+		LatestTimestamps:            make(map[int32]time.Time),
+		LatestData:                  make(map[string]*dalcommon.OutgoingSubmissionData),
 		chainReader:                 chainReader,
 		CachedWhitelist:             initialWhitelist,
 		submissionProxyContractAddr: submissionProxyContractAddr,
@@ -100,27 +103,23 @@ func (c *Collector) Start(ctx context.Context) {
 }
 
 func (c *Collector) GetLatestData(symbol string) (*dalcommon.OutgoingSubmissionData, error) {
-	result, ok := c.LatestData.Load(symbol)
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	result, ok := c.LatestData[symbol]
 	if !ok {
 		return nil, errors.New("symbol not found")
 	}
-
-	data, ok := result.(*dalcommon.OutgoingSubmissionData)
-	if !ok {
-		return nil, errors.New("symbol not converted")
-	}
-
-	return data, nil
+	return result, nil
 }
 
 func (c *Collector) GetAllLatestData() []dalcommon.OutgoingSubmissionData {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
 	result := make([]dalcommon.OutgoingSubmissionData, 0, len(c.Symbols))
-	c.LatestData.Range(func(key, value interface{}) bool {
-		if data, ok := value.(*dalcommon.OutgoingSubmissionData); ok {
-			result = append(result, *data)
-		}
-		return true
-	})
+	for _, value := range c.LatestData {
+		result = append(result, *value)
+	}
+
 	return result
 }
 
@@ -156,14 +155,45 @@ func (c *Collector) receiveEach(ctx context.Context, configId int32) error {
 	}
 }
 
+func (c *Collector) compareAndSwapLatestTimestamp(data aggregator.SubmissionData) bool {
+	c.mu.RLock()
+	old, ok := c.LatestTimestamps[data.GlobalAggregate.ConfigID]
+	c.mu.RUnlock()
+	if !ok {
+		c.mu.Lock()
+		c.LatestTimestamps[data.GlobalAggregate.ConfigID] = data.GlobalAggregate.Timestamp
+		c.mu.Unlock()
+		return true
+	}
+
+	if old.After(data.GlobalAggregate.Timestamp) {
+		return false
+	}
+
+	c.mu.Lock()
+	c.LatestTimestamps[data.GlobalAggregate.ConfigID] = data.GlobalAggregate.Timestamp
+	c.mu.Unlock()
+	return true
+}
+
 func (c *Collector) processIncomingData(ctx context.Context, data aggregator.SubmissionData) {
+	valid := c.compareAndSwapLatestTimestamp(data)
+	if !valid {
+		log.Debug().Msg("old data recieved")
+		return
+	}
+
 	result, err := c.IncomingDataToOutgoingData(ctx, data)
 	if err != nil {
 		log.Error().Err(err).Str("Player", "DalCollector").Msg("failed to convert incoming data to outgoing data")
 		return
 	}
 
-	defer c.LatestData.Store(result.Symbol, result)
+	defer func(data *dalcommon.OutgoingSubmissionData) {
+		c.mu.Lock()
+		defer c.mu.Unlock()
+		c.LatestData[data.Symbol] = data
+	}(result)
 	c.OutgoingStream[data.GlobalAggregate.ConfigID] <- *result
 }
 
