@@ -127,7 +127,7 @@ func (c *Hub) castSubmissionData(data *dalcommon.OutgoingSubmissionData, symbol 
 				defer wg.Done()
 				if err := entry.WriteJSON(*data); err != nil {
 					log.Error().Err(err).Msg("failed to write message")
-					go func(entry *ThreadSafeClient) { c.unregister <- entry }(entry)
+					c.unregister <- entry
 				}
 			}(client)
 		}
