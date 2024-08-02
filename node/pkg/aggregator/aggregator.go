@@ -3,7 +3,6 @@ package aggregator
 import (
 	"context"
 	"encoding/json"
-	"sync"
 
 	"time"
 
@@ -97,7 +96,7 @@ func (n *Aggregator) HandleTriggerMessage(ctx context.Context, msg raft.Message)
 	defer n.cleanUpRoundData(triggerMessage.RoundID - 10)
 
 	var value int64
-	localAggregateRaw, ok := n.LatestLocalAggregates.Load(n.ID)
+	localAggregate, ok := n.LatestLocalAggregates.Load(n.ID)
 	if !ok {
 		log.Error().Str("Player", "Aggregator").Msg("failed to get latest local aggregate")
 		// set value to -1 rather than returning error
@@ -105,7 +104,6 @@ func (n *Aggregator) HandleTriggerMessage(ctx context.Context, msg raft.Message)
 		// if not enough messages collected from HandleSyncReplyMessage, it will hang in certain round
 		value = -1
 	} else {
-		localAggregate := localAggregateRaw.(types.LocalAggregate)
 		value = localAggregate.Value
 	}
 

@@ -17,8 +17,6 @@ import (
 const (
 	AGREEMENT_QUORUM = 0.5
 
-	RoundSync raft.MessageType = "roundSync"
-	SyncReply raft.MessageType = "syncReply"
 	Trigger   raft.MessageType = "trigger"
 	PriceData raft.MessageType = "priceData"
 	ProofMsg  raft.MessageType = "proof"
@@ -69,12 +67,12 @@ type Aggregator struct {
 	Config
 	Raft *raft.Raft
 
-	LatestLocalAggregates    *LatestLocalAggregates
-	roundPrices *RoundPrices
-	roundProofs *RoundProofs
+	LatestLocalAggregates *LatestLocalAggregates
+	roundPrices           *RoundPrices
+	roundProofs           *RoundProofs
 
-	RoundID               int32
-	Signer                *helper.Signer
+	RoundID int32
+	Signer  *helper.Signer
 
 	nodeCtx    context.Context
 	nodeCancel context.CancelFunc
@@ -98,6 +96,17 @@ type TriggerMessage struct {
 	LeaderID  string    `json:"leaderID"`
 	RoundID   int32     `json:"roundID"`
 	Timestamp time.Time `json:"timestamp"`
+}
+
+type LatestLocalAggregates struct {
+	LocalAggregateMap map[int32]types.LocalAggregate
+	mu                sync.RWMutex
+}
+
+func NewLatestLocalAggregates() *LatestLocalAggregates {
+	return &LatestLocalAggregates{
+		LocalAggregateMap: map[int32]types.LocalAggregate{},
+	}
 }
 
 func (r *RoundPrices) push(round int32, value int64) {
@@ -170,17 +179,6 @@ func (r *RoundProofs) delete(round int32) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	delete(r.proofs, round)
-}
-
-type LatestLocalAggregates struct {
-	LocalAggregateMap map[int32]types.LocalAggregate
-	mu                sync.RWMutex
-}
-
-func NewLatestLocalAggregates() *LatestLocalAggregates {
-	return &LatestLocalAggregates{
-		LocalAggregateMap: map[int32]types.LocalAggregate{},
-	}
 }
 
 func (a *LatestLocalAggregates) Load(id int32) (types.LocalAggregate, bool) {
