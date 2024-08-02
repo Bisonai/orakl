@@ -37,7 +37,7 @@ func main() {
 	}
 
 	wsEndpoint := fmt.Sprintf("ws://dal.%s.orakl.network/ws", chain)
-	// wsEndpoint := "ws://localhost:8090/ws"
+
 	wsHelper, err := wss.NewWebsocketHelper(
 		ctx,
 		wss.WithEndpoint(wsEndpoint),
@@ -81,11 +81,9 @@ func handleWsMessage(ctx context.Context, data map[string]interface{}) error {
 		return err
 	}
 
-	// log.Info().Any("wsData", wsData).Msg("ws message")
-
 	timestamp, err := strconv.ParseInt(wsData.AggregateTime, 10, 64)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to parse timestamp")
+		log.Error().Err(err).Str("data", string(jsonMarshalData)).Msg("failed to parse timestamp")
 		return err
 	}
 
