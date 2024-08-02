@@ -138,6 +138,7 @@ on:
           - node:v0.0.1.20240802.0200.b20a5c6:OraklNode Mutex lock instead o...
           - dal:v0.0.1.20240802.0301.e8ff73c:DAL dal logs for debugging
           - dal:v0.0.1.20240802.0426.303cd85:DAL Prevent possible race cond...
+          - dal:v0.0.1.20240802.0554.e60151d:DAL Fix ws deadlock
 jobs:
   prepare-taskflow:
     name: Prepare
