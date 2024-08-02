@@ -32,7 +32,7 @@ tasks:
   logscribe:
     dotenv: [".env"]
     cmds:
-      - go run ./cmd/logscribe/main.go -count 1
+      - go run ./cmd/logscribe/main.go
 
   script-submission:
     dotenv: [".env"]
