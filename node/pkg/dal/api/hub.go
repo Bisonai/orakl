@@ -118,8 +118,8 @@ func (c *Hub) broadcastDataForSymbol(symbol string) {
 func (c *Hub) castSubmissionData(data *dalcommon.OutgoingSubmissionData, symbol *string) {
 	var wg sync.WaitGroup
 
-	c.mu.RLock()
-	defer c.mu.RUnlock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	for client, subscriptions := range c.clients {
 		if subscriptions[*symbol] {
 			wg.Add(1)

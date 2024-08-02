@@ -18,7 +18,7 @@ type Hub struct {
 	register   chan *ThreadSafeClient
 	unregister chan *ThreadSafeClient
 	broadcast  map[string]chan dalcommon.OutgoingSubmissionData
-	mu         sync.RWMutex
+	mu         sync.Mutex
 }
 
 type BulkResponse struct {
