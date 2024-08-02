@@ -103,24 +103,24 @@ type TriggerMessage struct {
 }
 
 type LatestLocalAggregates struct {
-	LocalAggregateMap map[int32]LocalAggregate
+	LocalAggregateMap map[int32]types.LocalAggregate
 	mu                sync.RWMutex
 }
 
 func NewLatestLocalAggregates() *LatestLocalAggregates {
 	return &LatestLocalAggregates{
-		LocalAggregateMap: map[int32]LocalAggregate{},
+		LocalAggregateMap: map[int32]types.LocalAggregate{},
 	}
 }
 
-func (a *LatestLocalAggregates) Load(id int32) (LocalAggregate, bool) {
+func (a *LatestLocalAggregates) Load(id int32) (types.LocalAggregate, bool) {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 	result, ok := a.LocalAggregateMap[id]
 	return result, ok
 }
 
-func (a *LatestLocalAggregates) Store(id int32, aggregate LocalAggregate) {
+func (a *LatestLocalAggregates) Store(id int32, aggregate types.LocalAggregate) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	a.LocalAggregateMap[id] = aggregate
