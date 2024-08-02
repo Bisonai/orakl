@@ -63,31 +63,36 @@ func HandleWebsocket(conn *websocket.Conn) {
 		}
 
 		if msg.Method == "SUBSCRIBE" {
-			h.mu.Lock()
-
-			subscriptions, ok := h.clients[threadSafeClient]
-			if !ok {
-				subscriptions = map[string]bool{}
-			}
-
-			valid := []string{}
-
-			for _, param := range msg.Params {
-				symbol := strings.TrimPrefix(param, "submission@")
-				if _, ok := h.configs[symbol]; !ok {
-					continue
-				}
-				subscriptions[symbol] = true
-				valid = append(valid, param)
-			}
-			h.clients[threadSafeClient] = subscriptions
-			h.mu.Unlock()
-			err = stats.InsertWebsocketSubscriptions(*ctx, id, valid)
-			if err != nil {
-				log.Error().Err(err).Msg("failed to insert websocket subscription log")
-			}
+			handleSubscribe(h, threadSafeClient, msg, *ctx, id)
 		}
 	}
+}
+
+func handleSubscribe(h *Hub, client *ThreadSafeClient, msg Subscription, ctx context.Context, id int32) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	subscriptions, ok := h.clients[client]
+	if !ok {
+		subscriptions = map[string]bool{}
+	}
+
+	valid := []string{}
+	for _, param := range msg.Params {
+		symbol := strings.TrimPrefix(param, "submission@")
+		if _, ok := h.configs[symbol]; !ok {
+			continue
+		}
+		subscriptions[symbol] = true
+		valid = append(valid, param)
+	}
+	h.clients[client] = subscriptions
+
+	defer func(subscribed []string) {
+		if err := stats.InsertWebsocketSubscriptions(ctx, id, valid); err != nil {
+			log.Error().Err(err).Msg("failed to insert websocket subscription log")
+		}
+	}(valid)
 }
 
 func getSymbols(c *fiber.Ctx) error {
