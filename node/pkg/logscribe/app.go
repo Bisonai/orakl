@@ -14,7 +14,7 @@ import (
 
 const (
 	logsChannelSize             = 10_000
-	defaultBulkLogsCopyInterval = 10 * time.Second
+	DefaultBulkLogsCopyInterval = 3 * time.Second
 )
 
 func Run(ctx context.Context) error {
@@ -46,7 +46,7 @@ func Run(ctx context.Context) error {
 	}()
 
 	go func() {
-		ticker := time.NewTicker(defaultBulkLogsCopyInterval)
+		ticker := time.NewTicker(DefaultBulkLogsCopyInterval)
 		for {
 			select {
 			case <-ctx.Done():
