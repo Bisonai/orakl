@@ -89,6 +89,9 @@ func handleSubscribe(h *Hub, client *ThreadSafeClient, msg Subscription, ctx con
 	h.clients[client] = subscriptions
 
 	defer func(subscribed []string) {
+		if len(valid) == 0 {
+			return
+		}
 		if err := stats.InsertWebsocketSubscriptions(ctx, id, valid); err != nil {
 			log.Error().Err(err).Msg("failed to insert websocket subscription log")
 		}

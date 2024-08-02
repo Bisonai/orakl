@@ -29,7 +29,7 @@ func NewHub(configs map[string]types.Config) *Hub {
 		register:   make(chan *ThreadSafeClient),
 		unregister: make(chan *ThreadSafeClient),
 		broadcast:  make(map[string]chan dalcommon.OutgoingSubmissionData),
-		connPerIP:  make(map[string][]*websocket.Conn),
+		connPerIP:  make(map[string][]*ThreadSafeClient),
 	}
 }
 
@@ -46,36 +46,43 @@ func (h *Hub) Start(ctx context.Context, collector *collector.Collector) {
 func (h *Hub) handleClientRegistration() {
 	for {
 		select {
-		case client := <-c.register:
-			c.addClient(client)
-		case client := <-c.unregister:
-			c.removeClient(client)
+		case client := <-h.register:
+			h.addClient(client)
+		case client := <-h.unregister:
+			h.removeClient(client)
 		}
 	}
 }
 
-func (c *Hub) addClient(client *ThreadSafeClient) {
-	c.mu.Lock() // Use write lock for both checking and insertion
-	defer c.mu.Unlock()
-	if _, ok := c.clients[client]; ok {
+func (h *Hub) addClient(client *ThreadSafeClient) {
+	h.mu.Lock() // Use write lock for both checking and insertion
+	defer h.mu.Unlock()
+	if _, ok := h.clients[client]; ok {
 		return
 	}
-	c.clients[client] = make(map[string]bool)
-	
-	if _, ok := h.connPerIP[conn.IP()]; !ok {
-		h.connPerIP[conn.IP()] = make([]*websocket.Conn, 0)
+	h.clients[client] = make(map[string]bool)
+
+	ip := client.Conn.IP()
+	if _, ok := h.connPerIP[ip]; !ok {
+		h.connPerIP[ip] = make([]*ThreadSafeClient, 0)
 	}
 
-	h.connPerIP[conn.IP()] = append(h.connPerIP[conn.IP()], conn)
-	
-	if len(h.connPerIP) > MAX_CONNECTIONS {
-		oldConn := h.connPerIP[conn.IP()][0]
+	h.connPerIP[ip] = append(h.connPerIP[ip], client)
+	if len(h.connPerIP[ip]) > MAX_CONNECTIONS {
+		oldConn := h.connPerIP[ip][0]
 		if subs, ok := h.clients[oldConn]; ok {
 			for k := range subs {
 				delete(h.clients[oldConn], k)
 			}
 		}
+		subscriptions, ok := h.clients[oldConn]
+		if !ok {
+			return
+		}
 		delete(h.clients, oldConn)
+		for symbol := range subscriptions {
+			delete(subscriptions, symbol)
+		}
 		h.connPerIP[ip] = h.connPerIP[ip][1:]
 		oldConn.WriteControl(
 			websocket.CloseMessage,
@@ -86,20 +93,22 @@ func (c *Hub) addClient(client *ThreadSafeClient) {
 	}
 }
 
-func (c *Hub) removeClient(client *ThreadSafeClient) {
-	c.mu.Lock() // Use write lock for both checking and removal
-	defer c.mu.Unlock()
-	subscriptions, ok := c.clients[client]
+func (h *Hub) removeClient(client *ThreadSafeClient) {
+	h.mu.Lock() // Use write lock for both checking and removal
+	defer h.mu.Unlock()
+	subscriptions, ok := h.clients[client]
 	if !ok {
 		return
 	}
-	delete(c.clients, client)
+	delete(h.clients, client)
 	for symbol := range subscriptions {
 		delete(subscriptions, symbol)
 	}
 
-	for i, c := range h.connPerIP[conn.IP()] {
-		if c == conn {
+	ip := client.Conn.IP()
+
+	for i, entry := range h.connPerIP[ip] {
+		if entry == client {
 			h.connPerIP[ip] = append(h.connPerIP[ip][:i], h.connPerIP[ip][i+1:]...)
 			if len(h.connPerIP) == 0 {
 				delete(h.connPerIP, ip)
@@ -124,12 +133,12 @@ func (c *Hub) removeClient(client *ThreadSafeClient) {
 
 func (h *Hub) initializeBroadcastChannels(collector *collector.Collector) {
 	for configId, stream := range collector.OutgoingStream {
-		symbol := c.configIdToSymbol(configId)
+		symbol := h.configIdToSymbol(configId)
 		if symbol == "" {
 			continue
 		}
 
-		c.broadcast[symbol] = stream
+		h.broadcast[symbol] = stream
 	}
 }
 
