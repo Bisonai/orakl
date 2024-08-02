@@ -54,27 +54,21 @@ func (c *Hub) handleClientRegistration() {
 }
 
 func (c *Hub) addClient(client *ThreadSafeClient) {
-	c.mu.RLock()
-	_, ok := c.clients[client]
-	c.mu.RUnlock()
-	if ok {
+	c.mu.Lock() // Use write lock for both checking and insertion
+	defer c.mu.Unlock()
+	if _, ok := c.clients[client]; ok {
 		return
 	}
-
-	c.mu.Lock()
-	defer c.mu.Unlock()
 	c.clients[client] = make(map[string]bool)
 }
 
 func (c *Hub) removeClient(client *ThreadSafeClient) {
-	c.mu.RLock()
+	c.mu.Lock() // Use write lock for both checking and removal
+	defer c.mu.Unlock()
 	subscriptions, ok := c.clients[client]
-	c.mu.RUnlock()
 	if !ok {
 		return
 	}
-
-	c.mu.Lock()
 	delete(c.clients, client)
 	for symbol := range subscriptions {
 		delete(subscriptions, symbol)
