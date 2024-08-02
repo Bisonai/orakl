@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -61,6 +62,7 @@ var wsMsgChan = make(chan string, 10000)
 var updateTimes = &UpdateTimes{
 	lastUpdates: make(map[string]time.Time),
 }
+var re = regexp.MustCompile(`\(([^)]+)\)`)
 
 func (u *UpdateTimes) Store(symbol string, time time.Time) {
 	u.mu.Lock()
@@ -68,7 +70,7 @@ func (u *UpdateTimes) Store(symbol string, time time.Time) {
 	u.lastUpdates[symbol] = time
 }
 
-func (u *UpdateTimes) CheckLastUpdateOffsets() []string {
+func (u *UpdateTimes) CheckLastUpdateOffsets(pushAlarmCount map[string]int) []string {
 	u.mu.RLock()
 	defer u.mu.RUnlock()
 
@@ -76,8 +78,12 @@ func (u *UpdateTimes) CheckLastUpdateOffsets() []string {
 	for symbol, updateTime := range u.lastUpdates {
 		diff := time.Since(updateTime)
 		if diff > WsPushThreshold {
-			msg := fmt.Sprintf("(%s) ws not pushed for %v(sec)", symbol, diff.Seconds())
-			msgsNotRecieved = append(msgsNotRecieved, msg)
+			pushAlarmCount[symbol]++
+			if pushAlarmCount[symbol] > AlarmOffset {
+				msg := fmt.Sprintf("(%s) ws not pushed for %v(sec)", symbol, diff.Seconds())
+				msgsNotRecieved = append(msgsNotRecieved, msg)
+				pushAlarmCount[symbol] = 0
+			}
 		}
 	}
 	return msgsNotRecieved
@@ -133,6 +139,8 @@ func Start(ctx context.Context) error {
 	defer ticker.Stop()
 
 	alarmCount := map[string]int{}
+	wsPushAlarmCount := map[string]int{}
+	wsDelayAlarmCount := map[string]int{}
 
 	for range ticker.C {
 		err := checkDal(endpoint, key, alarmCount)
@@ -140,7 +148,7 @@ func Start(ctx context.Context) error {
 			log.Error().Str("Player", "DalChecker").Err(err).Msg("error in checkDal")
 		}
 		log.Debug().Msg("checking DAL WebSocket")
-		checkDalWs(ctx)
+		checkDalWs(ctx, wsPushAlarmCount, wsDelayAlarmCount)
 		log.Debug().Msg("checked DAL WebSocket")
 	}
 	return nil
@@ -196,45 +204,58 @@ func checkDal(endpoint string, key string, alarmCount map[string]int) error {
 	return nil
 }
 
-func checkDalWs(ctx context.Context) {
+func checkDalWs(ctx context.Context, wsPushAlarmCount, wsDelayAlarmCount map[string]int) {
 	log.Debug().Msg("checking WebSocket message delays")
 
 	ctxWithTimeout, cancel := context.WithTimeout(ctx, 500*time.Millisecond)
 	defer cancel()
 
-	msgs := extractWsAlarms(ctxWithTimeout)
+	msgs := extractWsAlarms(ctxWithTimeout, wsDelayAlarmCount)
 	if len(msgs) > 0 {
 		alert.SlackAlert(strings.Join(msgs, "\n"))
 	}
 
 	log.Debug().Msg("checking WebSocket message push")
-	msgsNotRecieved := updateTimes.CheckLastUpdateOffsets()
+	msgsNotRecieved := updateTimes.CheckLastUpdateOffsets(wsPushAlarmCount)
 	if len(msgsNotRecieved) > 0 {
 		alert.SlackAlert(strings.Join(msgsNotRecieved, "\n"))
 	}
 }
 
-func extractWsAlarms(ctx context.Context) []string {
+func extractWsAlarms(ctx context.Context, alarmCount map[string]int) []string {
 	log.Debug().Msg("extracting WebSocket alarms")
 
-	var msgs = []string{}
+	var rawMsgs = []string{}
 
 	select {
 	case <-ctx.Done():
 		return nil
 	case entry := <-wsMsgChan:
-		msgs = append(msgs, entry)
+		rawMsgs = append(rawMsgs, entry)
 	loop:
 		for {
 			select {
 			case entry := <-wsMsgChan:
-				msgs = append(msgs, entry)
+				rawMsgs = append(rawMsgs, entry)
 			default:
 				break loop
 			}
 		}
 	}
-	return msgs
+
+	resultMsgs := []string{}
+	for _, entry := range rawMsgs {
+		match := re.FindStringSubmatch(entry)
+		symbol := match[1]
+
+		alarmCount[symbol]++
+		if alarmCount[symbol] > AlarmOffset {
+			resultMsgs = append(resultMsgs, entry)
+			alarmCount[symbol] = 0
+		}
+	}
+
+	return resultMsgs
 }
 
 func checkValueEmptiness(data *OutgoingSubmissionData) bool {
