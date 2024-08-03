@@ -126,7 +126,19 @@ func (h *Hub) removeClient(client *ThreadSafeClient) {
 	}
 }
 
-func (h *Hub) initializeBroadcastChannels(collector *collector.Collector) {
+func (c *Hub) getClientsSnapshotToNotify(symbol string) []*ThreadSafeClient {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	result := []*ThreadSafeClient{}
+	for client, subscriptions := range c.clients {
+		if subscriptions[symbol] {
+			result = append(result, client)
+		}
+	}
+	return result
+}
+
+func (c *Hub) initializeBroadcastChannels(collector *collector.Collector) {
 	for configId, stream := range collector.OutgoingStream {
 		symbol := h.configIdToSymbol(configId)
 		if symbol == "" {
@@ -155,15 +167,7 @@ func (h *Hub) broadcastDataForSymbol(symbol string) {
 // pass by pointer to reduce memory copy time
 func (c *Hub) castSubmissionData(data *dalcommon.OutgoingSubmissionData, symbol *string) {
 	var wg sync.WaitGroup
-	clientsToNotify := make([]*ThreadSafeClient, 0)
-
-	c.mu.RLock()
-	for client, subscriptions := range c.clients {
-		if subscriptions[*symbol] {
-			clientsToNotify = append(clientsToNotify, client)
-		}
-	}
-	c.mu.RUnlock()
+	clientsToNotify := c.getClientsSnapshotToNotify(*symbol)
 
 	for _, client := range clientsToNotify {
 		wg.Add(1)
