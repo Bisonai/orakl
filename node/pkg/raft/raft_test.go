@@ -46,9 +46,9 @@ func setup(ctx context.Context, cancel context.CancelFunc) (func() error, *TestI
 		pss = append(pss, ps)
 	}
 
-	for i := 0; i < 2; i++ {
+	for i := 0; i < 3; i++ {
 		host := hosts[i]
-		host.Connect(ctx, peer.AddrInfo{ID: hosts[i+1].ID(), Addrs: hosts[i+1].Addrs()})
+		host.Connect(ctx, peer.AddrInfo{ID: hosts[(i+1)%3].ID(), Addrs: hosts[(i+1)%3].Addrs()})
 	}
 
 	topics := make([]*pubsub.Topic, 0)
@@ -97,14 +97,20 @@ func setup(ctx context.Context, cancel context.CancelFunc) (func() error, *TestI
 	return cleanup, testItems, nil
 }
 
-func TestRaft(t *testing.T) {
-
-	ctx, cancel := context.WithCancel(context.Background())
+func setupRaftCluster(ctx context.Context, cancel context.CancelFunc, t *testing.T) (cleanup func() error, testItems *TestItems) {
 	cleanup, testItems, err := setup(ctx, cancel)
 	if err != nil {
 		cancel()
 		t.Fatalf("error setting up test: %v", err)
 	}
+	return cleanup, testItems
+}
+
+func TestRaft_LeaderElection(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	cleanup, testItems := setupRaftCluster(ctx, cancel, t)
 	defer func() {
 		if cleanupErr := cleanup(); cleanupErr != nil {
 			t.Logf("Cleanup failed: %v", cleanupErr)
@@ -115,126 +121,222 @@ func TestRaft(t *testing.T) {
 		go raftNode.Run(ctx)
 	}
 
-	// give time to connect and start
 	time.Sleep(2 * time.Second)
 
-	// all raft nodes should have same leader
-	leaderIds := make(map[string]any)
-	for i := range testItems.RaftNodes {
-		leader := testItems.RaftNodes[i].GetLeader()
-		leaderIds[leader] = struct{}{}
-	}
-	assert.Equal(t, 1, len(leaderIds))
-
-	// every node should be follower except leader
-	followerCount := 0
-	for i := range testItems.RaftNodes {
-		if testItems.RaftNodes[i].GetRole() == Follower {
-			followerCount++
+	t.Run("Verify single leader across nodes", func(t *testing.T) {
+		leaderIds := make(map[string]struct{})
+		for _, node := range testItems.RaftNodes {
+			leader := node.GetLeader()
+			leaderIds[leader] = struct{}{}
+			assert.Equal(t, 2, node.SubscribersCount())
 		}
-	}
-	assert.Equal(t, len(testItems.RaftNodes)-1, followerCount)
+		assert.Equal(t, 1, len(leaderIds))
+	})
 
-	// all raft nodes should have same term
-	terms := make(map[int]any)
-	for i := range testItems.RaftNodes {
-		term := testItems.RaftNodes[i].GetCurrentTerm()
-		terms[term] = struct{}{}
-	}
-	assert.Equal(t, 1, len(terms))
-
-	// Term should be increasing every second based on leader job
-	termsBefore := []int{}
-	for i := range testItems.RaftNodes {
-		termsBefore = append(termsBefore, testItems.RaftNodes[i].GetCurrentTerm())
-	}
-	time.Sleep(2 * time.Second)
-	termsAfter := []int{}
-	for i := range testItems.RaftNodes {
-		termsAfter = append(termsAfter, testItems.RaftNodes[i].GetCurrentTerm())
-	}
-
-	for i := range termsBefore {
-		assert.Greater(t, termsAfter[i], termsBefore[i])
-	}
-
-	// If leader resigns, a leader should be elected
-	for i := range testItems.RaftNodes {
-		if testItems.RaftNodes[i].GetRole() == Leader {
-			testItems.RaftNodes[i].ResignLeader()
-			break
+	t.Run("All nodes except leader should be followers", func(t *testing.T) {
+		followerCount := 0
+		for _, node := range testItems.RaftNodes {
+			if node.GetRole() == Follower {
+				followerCount++
+			}
 		}
-	}
-	time.Sleep(2 * time.Second)
-	leaderIds = make(map[string]any)
-	for i := range testItems.RaftNodes {
-		leader := testItems.RaftNodes[i].GetLeader()
-		leaderIds[leader] = struct{}{}
-	}
-	assert.Equal(t, 1, len(leaderIds))
+		assert.Equal(t, len(testItems.RaftNodes)-1, followerCount)
+	})
 
-	// If new node joins, it should also be working as expected
+	t.Run("All nodes should have the same term", func(t *testing.T) {
+		terms := make(map[int]struct{})
+		for _, node := range testItems.RaftNodes {
+			term := node.GetCurrentTerm()
+			terms[term] = struct{}{}
+		}
+		assert.Equal(t, 1, len(terms))
+	})
+}
+
+func TestRaft_TermIncrease(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	cleanup, testItems := setupRaftCluster(ctx, cancel, t)
+	defer func() {
+		if cleanupErr := cleanup(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
+		}
+	}()
+
+	for _, raftNode := range testItems.RaftNodes {
+		go raftNode.Run(ctx)
+	}
+
+	time.Sleep(2 * time.Second)
+
+	t.Run("Term should increase over time", func(t *testing.T) {
+		termsBefore := getTerms(testItems.RaftNodes)
+		time.Sleep(2 * time.Second)
+		termsAfter := getTerms(testItems.RaftNodes)
+
+		for i := range termsBefore {
+			assert.Greater(t, termsAfter[i], termsBefore[i])
+		}
+	})
+}
+
+func TestRaft_LeaderResignAndReelection(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	cleanup, testItems := setupRaftCluster(ctx, cancel, t)
+	defer func() {
+		if cleanupErr := cleanup(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
+		}
+	}()
+
+	for _, raftNode := range testItems.RaftNodes {
+		go raftNode.Run(ctx)
+	}
+
+	time.Sleep(2 * time.Second)
+
+	t.Run("Leader resign and reelection", func(t *testing.T) {
+		for _, node := range testItems.RaftNodes {
+			if node.GetRole() == Leader {
+				node.ResignLeader()
+				break
+			}
+		}
+		time.Sleep(2 * time.Second)
+
+		leaderIds := make(map[string]struct{})
+		for _, node := range testItems.RaftNodes {
+			leader := node.GetLeader()
+			leaderIds[leader] = struct{}{}
+		}
+
+		assert.Equal(t, 1, len(leaderIds))
+	})
+}
+
+func TestRaft_NewNodeJoin(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	cleanup, testItems := setupRaftCluster(ctx, cancel, t)
+	defer func() {
+		if cleanupErr := cleanup(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
+		}
+	}()
+
+	for _, raftNode := range testItems.RaftNodes {
+		go raftNode.Run(ctx)
+	}
+
+	time.Sleep(2 * time.Second)
+
+	t.Run("New node join and expected behavior", func(t *testing.T) {
+		newNode := joinNewNode(ctx, testItems, t)
+		defer newNode.Host.Close()
+
+		time.Sleep(2 * time.Second)
+
+		leaderIds := make(map[string]struct{})
+		terms := make(map[int]struct{})
+
+		leaderIds[newNode.GetLeader()] = struct{}{}
+		terms[newNode.GetCurrentTerm()] = struct{}{}
+		assert.Equal(t, 3, newNode.SubscribersCount())
+		for _, node := range testItems.RaftNodes {
+			leader := node.GetLeader()
+			term := node.GetCurrentTerm()
+			leaderIds[leader] = struct{}{}
+			terms[term] = struct{}{}
+			assert.Equal(t, 3, node.SubscribersCount())
+		}
+		assert.Equal(t, 1, len(leaderIds))
+		assert.Equal(t, 1, len(terms))
+	})
+}
+
+func TestRaft_LeaderDisconnect(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	cleanup, testItems := setupRaftCluster(ctx, cancel, t)
+	defer func() {
+		if cleanupErr := cleanup(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
+		}
+	}()
+
+	for _, raftNode := range testItems.RaftNodes {
+		go raftNode.Run(ctx)
+	}
+
+	time.Sleep(2 * time.Second)
+
+	t.Run("Leader disconnect and reelection", func(t *testing.T) {
+		var prevLeaderID string
+		var oldLeaderIndex int
+		for i, node := range testItems.RaftNodes {
+			if node.GetRole() == Leader {
+				oldLeaderIndex = i
+				prevLeaderID = node.GetHostId()
+				testItems.Hosts[i].Close()
+				break
+			}
+		}
+		assert.NotEmpty(t, prevLeaderID)
+
+		time.Sleep(2 * time.Second)
+
+		var newLeaderID string
+		for i, node := range testItems.RaftNodes {
+			if i == oldLeaderIndex {
+				continue
+			}
+			assert.Equal(t, 1, node.SubscribersCount())
+			if node.GetRole() == Leader {
+				newLeaderID = node.GetHostId()
+				break
+			}
+		}
+
+		assert.NotEmpty(t, newLeaderID)
+		assert.NotEqual(t, prevLeaderID, newLeaderID)
+	})
+}
+
+// Helper functions
+func getTerms(nodes []*Raft) []int {
+	terms := make([]int, len(nodes))
+	for i, node := range nodes {
+		terms[i] = node.GetCurrentTerm()
+	}
+	return terms
+}
+
+func joinNewNode(ctx context.Context, testItems *TestItems, t *testing.T) *Raft {
 	newHost, err := libp2psetup.NewHost(ctx)
 	if err != nil {
 		t.Fatalf("error making host: %v", err)
 	}
-	newHost.Connect(ctx, peer.AddrInfo{ID: testItems.Hosts[0].ID(), Addrs: testItems.Hosts[0].Addrs()})
-	defer newHost.Close()
+
 	newPs, err := libp2psetup.MakePubsub(ctx, newHost)
 	if err != nil {
 		t.Fatalf("error making pubsub: %v", err)
 	}
+
+	for _, host := range testItems.Hosts {
+		newHost.Connect(ctx, peer.AddrInfo{ID: host.ID(), Addrs: host.Addrs()})
+	}
+
 	newTopic, err := newPs.Join(topicString)
 	if err != nil {
 		t.Fatalf("error joining topic: %v", err)
 	}
-	defer newTopic.Close()
+
 	newNode := NewRaftNode(newHost, newPs, newTopic, 100, time.Second)
 	go newNode.Run(ctx)
-
-	time.Sleep(2 * time.Second)
-	leaderIds = make(map[string]any)
-	terms = make(map[int]any)
-
-	leaderIds[newNode.GetLeader()] = struct{}{}
-	terms[newNode.GetCurrentTerm()] = struct{}{}
-	for i := range testItems.RaftNodes {
-		leader := testItems.RaftNodes[i].GetLeader()
-		term := testItems.RaftNodes[i].GetCurrentTerm()
-		leaderIds[leader] = struct{}{}
-		terms[term] = struct{}{}
-	}
-	assert.Equal(t, 1, len(leaderIds))
-	assert.Equal(t, 1, len(terms))
-
-	// If leader disconnects, a leader should be elected
-	var prevLeaderID string
-	var oldLeaderIndex int
-	for i := range testItems.RaftNodes {
-		if testItems.RaftNodes[i].GetRole() == Leader {
-			oldLeaderIndex = i
-			prevLeaderID = testItems.RaftNodes[i].GetHostId()
-			testItems.Hosts[i].Close()
-			break
-		}
-	}
-	assert.NotEmpty(t, prevLeaderID)
-
-	time.Sleep(3 * time.Second)
-	var newLeaderID string
-	for i := range testItems.RaftNodes {
-		if i == oldLeaderIndex {
-			continue
-		}
-		if testItems.RaftNodes[i].GetRole() == Leader {
-			newLeaderID = testItems.RaftNodes[i].GetHostId()
-			break
-		}
-	}
-	if newNode.GetRole() == Leader {
-		newLeaderID = newNode.GetHostId()
-	}
-
-	assert.NotEmpty(t, newLeaderID)
-	assert.NotEqual(t, prevLeaderID, newLeaderID)
+	return newNode
 }

@@ -343,6 +343,11 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 
 			case <-r.LeaderJobTicker.C:
 				go func() {
+					defer func() {
+						if r := recover(); r != nil {
+							log.Error().Msgf("recovered from panic in LeaderJob: %v", r)
+						}
+					}()
 					err := r.LeaderJob()
 					if err != nil {
 						log.Error().Err(err).Msg("failed to execute leader job")
