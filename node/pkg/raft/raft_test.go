@@ -191,7 +191,7 @@ func TestRaft(t *testing.T) {
 	newNode := NewRaftNode(newHost, newPs, newTopic, 100, 500*time.Millisecond)
 	go newNode.Run(ctx)
 
-	time.Sleep(1 * time.Second)
+	time.Sleep(1500 * time.Millisecond)
 	leaderIds = make(map[string]any)
 	terms = make(map[int]any)
 
