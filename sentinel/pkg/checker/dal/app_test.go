@@ -47,7 +47,7 @@ func TestExtractWsAlarms(t *testing.T) {
 			}
 
 			// Call the function
-			msgs := extractWsAlarms(ctx, alarmCountMap)
+			msgs := extractWsDelayAlarms(ctx, alarmCountMap)
 			assert.Equal(t, 0, len(wsMsgChan))
 			for i, entry := range tt.messages {
 				assert.Equal(t, entry, msgs[i])
@@ -153,7 +153,7 @@ func TestFilterWsReponses(t *testing.T) {
 			wsChan <- tt.wsResponse
 
 			// Run filterWsReponses in a goroutine
-			go filterWsReponses()
+			go filterDelayedWsResponse()
 
 			// Allow some time for the function to process
 			time.Sleep(100 * time.Millisecond)

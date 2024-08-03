@@ -23,9 +23,17 @@ const (
 	DefaultDalCheckInterval = 10 * time.Second
 	DelayOffset             = 5 * time.Second
 	AlarmOffset             = 3
+	WsDelayThreshold        = 9 * time.Second
+	WsPushThreshold         = 5 * time.Second
+)
 
-	WsDelayThreshold = 9 * time.Second
-	WsPushThreshold  = 5 * time.Second
+var (
+	wsChan      = make(chan WsResponse, 30000)
+	wsMsgChan   = make(chan string, 10000)
+	updateTimes = &UpdateTimes{
+		lastUpdates: make(map[string]time.Time),
+	}
+	re = regexp.MustCompile(`\(([^)]+)\)`)
 )
 
 type WsResponse struct {
@@ -57,38 +65,31 @@ type UpdateTimes struct {
 	mu          sync.RWMutex
 }
 
-var wsChan = make(chan WsResponse, 30000)
-var wsMsgChan = make(chan string, 10000)
-var updateTimes = &UpdateTimes{
-	lastUpdates: make(map[string]time.Time),
-}
-var re = regexp.MustCompile(`\(([^)]+)\)`)
-
 func (u *UpdateTimes) Store(symbol string, time time.Time) {
 	u.mu.Lock()
 	defer u.mu.Unlock()
 	u.lastUpdates[symbol] = time
 }
 
-func (u *UpdateTimes) CheckLastUpdateOffsets(pushAlarmCount map[string]int) []string {
+func (u *UpdateTimes) CheckLastUpdateOffsets(alarmCount map[string]int) []string {
 	u.mu.RLock()
 	defer u.mu.RUnlock()
 
-	msgsNotRecieved := []string{}
+	var messages []string
 	for symbol, updateTime := range u.lastUpdates {
-		diff := time.Since(updateTime)
-		if diff > WsPushThreshold {
-			pushAlarmCount[symbol]++
-			if pushAlarmCount[symbol] > AlarmOffset {
-				msg := fmt.Sprintf("(%s) ws not pushed for %v(sec)", symbol, diff.Seconds())
-				msgsNotRecieved = append(msgsNotRecieved, msg)
-				pushAlarmCount[symbol] = 0
+		elapsedTime := time.Since(updateTime)
+		if elapsedTime > WsPushThreshold {
+			alarmCount[symbol]++
+			if alarmCount[symbol] > AlarmOffset {
+				message := fmt.Sprintf("(%s) WebSocket not pushed for %v seconds", symbol, elapsedTime.Seconds())
+				messages = append(messages, message)
+				alarmCount[symbol] = 0
 			}
 		} else {
-			pushAlarmCount[symbol] = 0
+			alarmCount[symbol] = 0
 		}
 	}
-	return msgsNotRecieved
+	return messages
 }
 
 func Start(ctx context.Context) error {
@@ -117,11 +118,7 @@ func Start(ctx context.Context) error {
 
 	subscription := Subscription{
 		Method: "SUBSCRIBE",
-		Params: []string{},
-	}
-
-	for _, configs := range configs {
-		subscription.Params = append(subscription.Params, "submission@"+configs.Name)
+		Params: buildSubscriptionParams(configs),
 	}
 
 	wsHelper, err := wss.NewWebsocketHelper(
@@ -135,7 +132,7 @@ func Start(ctx context.Context) error {
 	}
 
 	go wsHelper.Run(ctx, handleWsMessage)
-	go filterWsReponses()
+	go filterDelayedWsResponse()
 
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
@@ -154,6 +151,14 @@ func Start(ctx context.Context) error {
 		log.Debug().Msg("checked DAL WebSocket")
 	}
 	return nil
+}
+
+func buildSubscriptionParams(configs []Config) []string {
+	params := make([]string, len(configs))
+	for i, config := range configs {
+		params[i] = "submission@" + config.Name
+	}
+	return params
 }
 
 func checkDal(endpoint string, key string, alarmCount map[string]int) error {
@@ -177,18 +182,16 @@ func checkDal(endpoint string, key string, alarmCount map[string]int) error {
 			continue
 		}
 
-		timestamp := time.Unix(rawTimestamp, 0)
-		offset := time.Since(timestamp)
-		log.Debug().Str("Player", "DalChecker").Dur("network delay", networkDelay).Str("symbol", data.Symbol).Time("timestamp", timestamp).Dur("offset", offset).Msg("DAL price check")
+		offset := time.Since(time.Unix(rawTimestamp, 0))
+		log.Debug().Str("Player", "DalChecker").Dur("network delay", networkDelay).Str("symbol", data.Symbol).Dur("offset", offset).Msg("DAL price check")
 
-		if checkValueEmptiness(&data) {
+		if isDataEmpty(&data) {
 			log.Debug().Str("Player", "DalChecker").Msg("data is empty")
 			msg += fmt.Sprintf("(DAL) empty data exists among data\n %v\n", data)
 		}
 
 		if offset > DelayOffset+networkDelay {
 			alarmCount[data.Symbol]++
-
 			if alarmCount[data.Symbol] > AlarmOffset {
 				msg += fmt.Sprintf("(DAL) %s price update delayed by %s\n", data.Symbol, offset)
 				alarmCount[data.Symbol] = 0
@@ -209,22 +212,17 @@ func checkDal(endpoint string, key string, alarmCount map[string]int) error {
 func checkDalWs(ctx context.Context, wsPushAlarmCount, wsDelayAlarmCount map[string]int) {
 	log.Debug().Msg("checking WebSocket message delays")
 
-	ctxWithTimeout, cancel := context.WithTimeout(ctx, 500*time.Millisecond)
-	defer cancel()
-
-	msgs := extractWsAlarms(ctxWithTimeout, wsDelayAlarmCount)
-	if len(msgs) > 0 {
+	if msgs := extractWsDelayAlarms(ctx, wsDelayAlarmCount); len(msgs) > 0 {
 		alert.SlackAlert(strings.Join(msgs, "\n"))
 	}
 
 	log.Debug().Msg("checking WebSocket message push")
-	msgsNotRecieved := updateTimes.CheckLastUpdateOffsets(wsPushAlarmCount)
-	if len(msgsNotRecieved) > 0 {
-		alert.SlackAlert(strings.Join(msgsNotRecieved, "\n"))
+	if msgs := updateTimes.CheckLastUpdateOffsets(wsPushAlarmCount); len(msgs) > 0 {
+		alert.SlackAlert(strings.Join(msgs, "\n"))
 	}
 }
 
-func extractWsAlarms(ctx context.Context, alarmCount map[string]int) []string {
+func extractWsDelayAlarms(ctx context.Context, alarmCount map[string]int) []string {
 	log.Debug().Msg("extracting WebSocket alarms")
 
 	var rawMsgs = []string{}
@@ -243,6 +241,8 @@ func extractWsAlarms(ctx context.Context, alarmCount map[string]int) []string {
 				break loop
 			}
 		}
+	default:
+		return nil
 	}
 
 	delayedSymbols := map[string]any{}
@@ -258,18 +258,16 @@ func extractWsAlarms(ctx context.Context, alarmCount map[string]int) []string {
 		}
 	}
 
-	defer func() {
-		for entry := range alarmCount {
-			if _, exists := delayedSymbols[entry]; !exists {
-				alarmCount[entry] = 0
-			}
+	for symbol := range alarmCount {
+		if _, exists := delayedSymbols[symbol]; !exists {
+			alarmCount[symbol] = 0
 		}
-	}()
+	}
 
 	return resultMsgs
 }
 
-func checkValueEmptiness(data *OutgoingSubmissionData) bool {
+func isDataEmpty(data *OutgoingSubmissionData) bool {
 	return data.Symbol == "" || data.Value == "" || data.AggregateTime == "" || data.Proof == "" || data.FeedHash == "" || data.Decimals == ""
 }
 
@@ -302,21 +300,17 @@ func handleWsMessage(ctx context.Context, data map[string]interface{}) error {
 	return nil
 }
 
-func filterWsReponses() {
+func filterDelayedWsResponse() {
 	log.Debug().Msg("filtering WebSocket responses")
 	for entry := range wsChan {
-		strTimestamp := entry.AggregateTime
-
-		unixTimestamp, err := strconv.ParseInt(strTimestamp, 10, 64)
+		timestamp, err := strconv.ParseInt(entry.AggregateTime, 10, 64)
 		if err != nil {
 			log.Error().Err(err).Msg("failed to parse timestamp for WebSocket response")
 			continue
 		}
 
-		timestamp := time.Unix(unixTimestamp, 0)
-		diff := time.Since(timestamp)
-		if diff > WsDelayThreshold {
-			wsMsgChan <- fmt.Sprintf("(%s) ws delayed by %v(sec)", entry.Symbol, diff.Seconds())
+		if diff := time.Since(time.Unix(timestamp, 0)); diff > WsDelayThreshold {
+			wsMsgChan <- fmt.Sprintf("(%s) ws delayed by %v sec", entry.Symbol, diff.Seconds())
 		}
 	}
 }
