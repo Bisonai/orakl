@@ -126,6 +126,18 @@ func (h *Hub) removeClient(client *ThreadSafeClient) {
 	}
 }
 
+func (h *Hub) getClientsSnapshotToNotify(symbol string) []*ThreadSafeClient {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	result := []*ThreadSafeClient{}
+	for client, subscriptions := range h.clients {
+		if subscriptions[symbol] {
+			result = append(result, client)
+		}
+	}
+	return result
+}
+
 func (h *Hub) initializeBroadcastChannels(collector *collector.Collector) {
 	for configId, stream := range collector.OutgoingStream {
 		symbol := h.configIdToSymbol(configId)
@@ -153,22 +165,19 @@ func (h *Hub) broadcastDataForSymbol(symbol string) {
 }
 
 // pass by pointer to reduce memory copy time
-func (c *Hub) castSubmissionData(data *dalcommon.OutgoingSubmissionData, symbol *string) {
+func (h *Hub) castSubmissionData(data *dalcommon.OutgoingSubmissionData, symbol *string) {
 	var wg sync.WaitGroup
+	clientsToNotify := h.getClientsSnapshotToNotify(*symbol)
 
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	for client, subscriptions := range c.clients {
-		if subscriptions[*symbol] {
-			wg.Add(1)
-			go func(entry *ThreadSafeClient) {
-				defer wg.Done()
-				if err := entry.WriteJSON(*data); err != nil {
-					log.Error().Err(err).Msg("failed to write message")
-					c.unregister <- entry
-				}
-			}(client)
-		}
+	for _, client := range clientsToNotify {
+		wg.Add(1)
+		go func(entry *ThreadSafeClient) {
+			defer wg.Done()
+			if err := entry.WriteJSON(*data); err != nil {
+				log.Error().Err(err).Msg("failed to write message")
+				h.unregister <- entry
+			}
+		}(client)
 	}
 	wg.Wait()
 }
