@@ -23,12 +23,11 @@ type SetupInfo struct {
 	Bus     *bus.MessageBus
 }
 
-func Setup(setupInfo SetupInfo) (*fiber.App, error) {
+func Setup(ctx context.Context, setupInfo SetupInfo) (*fiber.App, error) {
 	if setupInfo.Version == "" {
 		setupInfo.Version = "test"
 	}
 
-	ctx := context.Background()
 	_, err := db.GetPool(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("error getting db pool")

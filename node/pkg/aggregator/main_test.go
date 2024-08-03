@@ -51,7 +51,7 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 	mb := bus.New(10)
 	testItems.messageBus = mb
 
-	admin, err := utils.Setup(utils.SetupInfo{
+	admin, err := utils.Setup(ctx, utils.SetupInfo{
 		Version: "",
 		Bus:     mb,
 	})

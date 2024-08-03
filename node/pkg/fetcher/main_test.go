@@ -82,7 +82,7 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 	var testItems = new(TestItems)
 	mb := bus.New(100)
 
-	admin, err := utils.Setup(utils.SetupInfo{
+	admin, err := utils.Setup(ctx, utils.SetupInfo{
 		Version: "",
 		Bus:     mb,
 	})

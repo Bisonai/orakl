@@ -19,9 +19,9 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func Run(bus *bus.MessageBus) error {
+func Run(ctx context.Context, bus *bus.MessageBus) error {
 	log.Debug().Msg("Starting admin server")
-	app, err := utils.Setup(utils.SetupInfo{
+	app, err := utils.Setup(ctx, utils.SetupInfo{
 		Version: "0.1.0",
 		Bus:     bus,
 	})
