@@ -1,5 +1,17 @@
 package raft
 
+func (r *Raft) GetRole() RoleType {
+	r.Mutex.Lock()
+	defer r.Mutex.Unlock()
+	return r.Role
+}
+
+func (r *Raft) GetCurrentTerm() int {
+	r.Mutex.Lock()
+	defer r.Mutex.Unlock()
+	return r.Term
+}
+
 func (r *Raft) IncreaseTerm() {
 	r.Mutex.Lock()
 	defer r.Mutex.Unlock()
