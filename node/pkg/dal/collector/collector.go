@@ -186,7 +186,7 @@ func (c *Collector) processIncomingData(ctx context.Context, data aggregator.Sub
 		defer c.mu.Unlock()
 		c.LatestData[data.Symbol] = data
 	}(result)
-	c.OutgoingStream[data.GlobalAggregate.ConfigID] <- *result
+	c.OutgoingStream[data.GlobalAggregate.ConfigID] <- result
 }
 
 func (c *Collector) IncomingDataToOutgoingData(ctx context.Context, data aggregator.SubmissionData) (*dalcommon.OutgoingSubmissionData, error) {
