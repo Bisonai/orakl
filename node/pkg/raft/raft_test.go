@@ -62,7 +62,7 @@ func setup(ctx context.Context, cancel context.CancelFunc) (func() error, *TestI
 
 	raftNodes := []*Raft{}
 	for i := 0; i < 3; i++ {
-		node := NewRaftNode(hosts[i], pss[i], topics[i], 100, 500*time.Millisecond)
+		node := NewRaftNode(hosts[i], pss[i], topics[i], 100, time.Second)
 		node.LeaderJob = func() error {
 			log.Debug().Int("subscribers", node.SubscribersCount()).Int("Term", node.GetCurrentTerm()).Msg("Leader job")
 			node.IncreaseTerm()
@@ -189,7 +189,7 @@ func TestRaft(t *testing.T) {
 		t.Fatalf("error joining topic: %v", err)
 	}
 	defer newTopic.Close()
-	newNode := NewRaftNode(newHost, newPs, newTopic, 100, 500*time.Millisecond)
+	newNode := NewRaftNode(newHost, newPs, newTopic, 100, time.Second)
 	go newNode.Run(ctx)
 
 	time.Sleep(2 * time.Second)
