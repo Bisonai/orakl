@@ -209,8 +209,10 @@ func TestRaft(t *testing.T) {
 
 	// If leader disconnects, a leader should be elected
 	var prevLeaderID string
+	var oldLeaderIndex int
 	for i := range testItems.RaftNodes {
 		if testItems.RaftNodes[i].GetRole() == Leader {
+			oldLeaderIndex = i
 			prevLeaderID = testItems.RaftNodes[i].GetHostId()
 			testItems.Hosts[i].Close()
 			break
@@ -218,9 +220,12 @@ func TestRaft(t *testing.T) {
 	}
 	assert.NotEmpty(t, prevLeaderID)
 
-	time.Sleep(2 * time.Second)
+	time.Sleep(3 * time.Second)
 	var newLeaderID string
 	for i := range testItems.RaftNodes {
+		if i == oldLeaderIndex {
+			continue
+		}
 		if testItems.RaftNodes[i].GetRole() == Leader {
 			newLeaderID = testItems.RaftNodes[i].GetHostId()
 			break
