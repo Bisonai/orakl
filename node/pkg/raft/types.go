@@ -66,5 +66,5 @@ type Raft struct {
 	LeaderJobTimeout    time.Duration
 	LeaderJobTicker     *time.Ticker
 	HandleCustomMessage func(context.Context, Message) error
-	LeaderJob           func() error
+	LeaderJob           func(context.Context) error
 }
