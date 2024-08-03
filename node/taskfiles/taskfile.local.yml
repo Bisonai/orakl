@@ -21,10 +21,6 @@ tasks:
     dotenv: [".env"]
     cmds:
       - go run ./cmd/fetcher/main.go
-  aggregator:
-    dotenv: [".env"]
-    cmds:
-      - go run ./cmd/aggregator/main.go
   dal:
     dotenv: [".env"]
     cmds:
