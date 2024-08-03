@@ -102,6 +102,7 @@ func TestRaft(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cleanup, testItems, err := setup(ctx, cancel)
 	if err != nil {
+		cancel()
 		t.Fatalf("error setting up test: %v", err)
 	}
 	defer func() {
@@ -126,13 +127,13 @@ func TestRaft(t *testing.T) {
 	assert.Equal(t, 1, len(leaderIds))
 
 	// every node should be follower except leader
-	follwerCount := 0
+	followerCount := 0
 	for i := range testItems.RaftNodes {
 		if testItems.RaftNodes[i].GetRole() == Follower {
-			follwerCount++
+			followerCount++
 		}
 	}
-	assert.Equal(t, len(testItems.RaftNodes)-1, follwerCount)
+	assert.Equal(t, len(testItems.RaftNodes)-1, followerCount)
 
 	// all raft nodes should have same term
 	terms := make(map[int]any)
@@ -191,7 +192,7 @@ func TestRaft(t *testing.T) {
 	newNode := NewRaftNode(newHost, newPs, newTopic, 100, 500*time.Millisecond)
 	go newNode.Run(ctx)
 
-	time.Sleep(1500 * time.Millisecond)
+	time.Sleep(2 * time.Second)
 	leaderIds = make(map[string]any)
 	terms = make(map[int]any)
 
@@ -215,8 +216,9 @@ func TestRaft(t *testing.T) {
 			break
 		}
 	}
+	assert.NotEmpty(t, prevLeaderID)
 
-	time.Sleep(1 * time.Second)
+	time.Sleep(2 * time.Second)
 	var newLeaderID string
 	for i := range testItems.RaftNodes {
 		if testItems.RaftNodes[i].GetRole() == Leader {
@@ -224,5 +226,6 @@ func TestRaft(t *testing.T) {
 			break
 		}
 	}
+	assert.NotEmpty(t, newLeaderID)
 	assert.NotEqual(t, prevLeaderID, newLeaderID)
 }
