@@ -29,26 +29,21 @@ func TestExtractWsAlarms(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
 			// Set up context with timeout
-			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-			defer cancel()
-
-			// Populate wsMsgChan with test messages
-			go func() {
-				for _, msg := range tt.messages {
-					wsMsgChan <- msg
-				}
-				cancel() // Cancel the context to stop the function
-			}()
-
+			for _, msg := range tt.messages {
+				wsMsgChan <- msg
+			}
 			alarmCountMap := map[string]int{
 				"BTC": 3,
 				"ETH": 3,
 			}
 
 			// Call the function
-			msgs := extractWsAlarms(ctx, alarmCountMap)
+			msgs := extractWsDelayAlarms(ctx, alarmCountMap)
+
 			assert.Equal(t, 0, len(wsMsgChan))
+
 			for i, entry := range tt.messages {
 				assert.Equal(t, entry, msgs[i])
 			}
@@ -58,8 +53,7 @@ func TestExtractWsAlarms(t *testing.T) {
 
 func TestHandleWsMessage(t *testing.T) {
 	// Create a mock context
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-	defer cancel()
+	ctx := context.Background()
 
 	// Define test cases
 	tests := []struct {
@@ -153,7 +147,7 @@ func TestFilterWsReponses(t *testing.T) {
 			wsChan <- tt.wsResponse
 
 			// Run filterWsReponses in a goroutine
-			go filterWsReponses()
+			go filterDelayedWsResponse()
 
 			// Allow some time for the function to process
 			time.Sleep(100 * time.Millisecond)
