@@ -28,7 +28,7 @@ const (
 
 type Collector struct {
 	IncomingStream   map[int32]chan aggregator.SubmissionData
-	OutgoingStream   map[int32]chan dalcommon.OutgoingSubmissionData
+	OutgoingStream   map[int32]chan *dalcommon.OutgoingSubmissionData
 	Symbols          map[int32]string
 	FeedHashes       map[int32][]byte
 	LatestTimestamps map[int32]time.Time
@@ -67,7 +67,7 @@ func NewCollector(ctx context.Context, configs []types.Config) (*Collector, erro
 
 	collector := &Collector{
 		IncomingStream:              make(map[int32]chan aggregator.SubmissionData, len(configs)),
-		OutgoingStream:              make(map[int32]chan dalcommon.OutgoingSubmissionData, len(configs)),
+		OutgoingStream:              make(map[int32]chan *dalcommon.OutgoingSubmissionData, len(configs)),
 		Symbols:                     make(map[int32]string, len(configs)),
 		FeedHashes:                  make(map[int32][]byte, len(configs)),
 		LatestTimestamps:            make(map[int32]time.Time),
@@ -79,7 +79,7 @@ func NewCollector(ctx context.Context, configs []types.Config) (*Collector, erro
 
 	for _, config := range configs {
 		collector.IncomingStream[config.ID] = make(chan aggregator.SubmissionData, 1000)
-		collector.OutgoingStream[config.ID] = make(chan dalcommon.OutgoingSubmissionData, 1000)
+		collector.OutgoingStream[config.ID] = make(chan *dalcommon.OutgoingSubmissionData, 1000)
 		collector.Symbols[config.ID] = config.Name
 		collector.FeedHashes[config.ID] = crypto.Keccak256([]byte(config.Name))
 	}
