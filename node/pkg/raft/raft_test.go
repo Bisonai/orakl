@@ -231,6 +231,10 @@ func TestRaft(t *testing.T) {
 			break
 		}
 	}
+	if newNode.GetRole() == Leader {
+		newLeaderID = newNode.GetHostId()
+	}
+
 	assert.NotEmpty(t, newLeaderID)
 	assert.NotEqual(t, prevLeaderID, newLeaderID)
 }
