@@ -30,7 +30,7 @@ func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string, config Co
 
 	aggregator := Aggregator{
 		Config: config,
-		Raft:   raft.NewRaftNode(h, ps, topic, 100, aggregateInterval),
+		Raft:   raft.NewRaftNode(h, ps, topic, 1000, aggregateInterval),
 
 		roundPrices: &RoundPrices{prices: map[int32][]int64{}},
 		roundProofs: &RoundProofs{proofs: map[int32][][]byte{}},
