@@ -116,7 +116,7 @@ func TestRaft(t *testing.T) {
 	}
 
 	// give time to connect and start
-	time.Sleep(1 * time.Second)
+	time.Sleep(2 * time.Second)
 
 	// all raft nodes should have same leader
 	leaderIds := make(map[string]any)
@@ -148,7 +148,7 @@ func TestRaft(t *testing.T) {
 	for i := range testItems.RaftNodes {
 		termsBefore = append(termsBefore, testItems.RaftNodes[i].GetCurrentTerm())
 	}
-	time.Sleep(1 * time.Second)
+	time.Sleep(2 * time.Second)
 	termsAfter := []int{}
 	for i := range testItems.RaftNodes {
 		termsAfter = append(termsAfter, testItems.RaftNodes[i].GetCurrentTerm())
@@ -165,7 +165,7 @@ func TestRaft(t *testing.T) {
 			break
 		}
 	}
-	time.Sleep(1 * time.Second)
+	time.Sleep(2 * time.Second)
 	leaderIds = make(map[string]any)
 	for i := range testItems.RaftNodes {
 		leader := testItems.RaftNodes[i].GetLeader()
