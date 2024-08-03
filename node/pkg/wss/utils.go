@@ -281,6 +281,20 @@ func (ws *WebsocketHelper) Close() error {
 	return nil
 }
 
+func (ws *WebsocketHelper) IsAlive(ctx context.Context) error {
+	if ws.Conn == nil {
+		return fmt.Errorf("websocket is not running")
+	}
+	ctx = ws.Conn.CloseRead(ctx)
+
+	err := ws.Conn.Ping(ctx)
+	if err != nil {
+		log.Error().Err(err).Str("endpoint", ws.Endpoint).Msg("error pinging websocket")
+		return err
+	}
+	return nil
+}
+
 func defaultReader(ctx context.Context, conn *websocket.Conn) (map[string]interface{}, error) {
 	var data map[string]interface{}
 	err := wsjson.Read(ctx, conn, &data)

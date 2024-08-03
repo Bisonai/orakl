@@ -7,6 +7,8 @@ import (
 	dalcommon "bisonai.com/orakl/node/pkg/dal/common"
 )
 
+const MAX_CONNECTIONS = 10
+
 type Subscription struct {
 	Method string   `json:"method"`
 	Params []string `json:"params"`
@@ -18,7 +20,9 @@ type Hub struct {
 	register   chan *ThreadSafeClient
 	unregister chan *ThreadSafeClient
 	broadcast  map[string]chan dalcommon.OutgoingSubmissionData
+	connPerIP map[string][]*ThreadSafeClient
 	mu         sync.Mutex
+	
 }
 
 type BulkResponse struct {
