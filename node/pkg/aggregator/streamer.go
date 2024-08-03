@@ -10,8 +10,7 @@ import (
 )
 
 /*
-1. bulk insert proofs and aggregates into pgsql
-2. update latest proof, aggregate in rdb
+bulk insert proofs and aggregates into pgsql
 */
 
 type Streamer struct {
@@ -163,6 +162,8 @@ func (s *Streamer) bulkInsert(ctx context.Context) {
 		if err != nil {
 			log.Error().Err(err).Msg("failed to store global aggregates")
 		}
+	default:
+		return
 	}
 }
 

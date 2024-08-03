@@ -93,7 +93,6 @@ func (n *Aggregator) HandleTriggerMessage(ctx context.Context, msg raft.Message)
 		return errorSentinel.ErrAggregatorNonLeaderRaftMessage
 	}
 
-	defer n.cleanUpRoundData(triggerMessage.RoundID - 10)
 
 	var value int64
 	localAggregate, ok := n.LatestLocalAggregates.Load(n.ID)
@@ -252,7 +251,3 @@ func (n *Aggregator) PublishProofMessage(roundId int32, value int64, proof []byt
 	return n.Raft.PublishMessage(message)
 }
 
-func (n *Aggregator) cleanUpRoundData(roundId int32) {
-	n.roundPrices.delete(roundId)
-	n.roundProofs.delete(roundId)
-}
