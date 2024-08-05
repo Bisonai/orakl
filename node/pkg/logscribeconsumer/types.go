@@ -1,4 +1,4 @@
-package zeropglog
+package logscribeconsumer
 
 import (
 	"time"

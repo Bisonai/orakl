@@ -1,5 +1,5 @@
 //nolint:all
-package zeropglog
+package logscribeconsumer
 
 import (
 	"context"
@@ -70,7 +70,7 @@ func TestNew(t *testing.T) {
 	}
 }
 
-func TestZeropglogWrite(t *testing.T) {
+func TestLogscribeConsumerWrite(t *testing.T) {
 	tests := []struct {
 		name    string
 		log     []byte
@@ -100,7 +100,7 @@ func TestZeropglogWrite(t *testing.T) {
 			l := New()
 			_, err := l.Write(tt.log)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("Zeropglog.Write() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("LogscribeConsumer.Write() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if !tt.wantErr {
 				res := <-l.buffer

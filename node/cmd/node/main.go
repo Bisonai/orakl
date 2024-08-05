@@ -12,16 +12,16 @@ import (
 	"bisonai.com/orakl/node/pkg/fetcher"
 	"bisonai.com/orakl/node/pkg/libp2p/helper"
 	libp2pSetup "bisonai.com/orakl/node/pkg/libp2p/setup"
+	"bisonai.com/orakl/node/pkg/logscribeconsumer"
 	"bisonai.com/orakl/node/pkg/utils/retrier"
-	"bisonai.com/orakl/node/pkg/zeropglog"
 	"github.com/rs/zerolog/log"
 )
 
 func main() {
 	ctx := context.Background()
 
-	zeropglog := zeropglog.New()
-	go zeropglog.Run(ctx)
+	logscribeconsumer := logscribeconsumer.New()
+	go logscribeconsumer.Run(ctx)
 
 	mb := bus.New(1000)
 	var wg sync.WaitGroup
