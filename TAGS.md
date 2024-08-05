@@ -143,3 +143,4 @@
 - **node** v0.0.1.20240805.0419.cadaade <br> *`PR`*: OraklNode Offchain Proof and T... <br><br> 
 - **dal** v0.0.1.20240805.0421.cadaade <br> *`PR`*: OraklNode Offchain Proof and T... <br><br> 
 - **logscribe** v0.0.1.20240805.0548.4a1cddf <br> *`PR`*: Contract Deploy cypress submis... <br><br> 
+- **logscribe** v0.0.1.20240805.0558.ee14074 <br> *`PR`*: Contract Deploy cypress submis... <br><br> 
