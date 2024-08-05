@@ -51,7 +51,7 @@ func (n *Aggregator) Run(ctx context.Context) {
 	if err != nil {
 		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to get latest round id, setting roundId to 1")
 	} else if latestRoundId > 0 {
-		n.RoundID = latestRoundId
+		n.RoundID = latestRoundId + 1
 	}
 
 	n.Raft.Run(ctx)
