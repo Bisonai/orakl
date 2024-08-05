@@ -141,3 +141,4 @@
 - **node** v0.0.1.20240805.0142.77d6df9 <br> *`PR`*: DAL Chore minor dal optimizati... <br><br> 
 - **dal** v0.0.1.20240805.0149.18cb534 <br> *`PR`*: DAL Chore minor dal optimizati... <br><br> 
 - **node** v0.0.1.20240805.0419.cadaade <br> *`PR`*: OraklNode Offchain Proof and T... <br><br> 
+- **dal** v0.0.1.20240805.0421.cadaade <br> *`PR`*: OraklNode Offchain Proof and T... <br><br> 
