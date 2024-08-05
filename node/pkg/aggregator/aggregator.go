@@ -1,6 +1,7 @@
 package aggregator
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 
@@ -93,7 +94,6 @@ func (n *Aggregator) HandleTriggerMessage(ctx context.Context, msg raft.Message)
 		return errorSentinel.ErrAggregatorNonLeaderRaftMessage
 	}
 
-
 	var value int64
 	localAggregate, ok := n.LatestLocalAggregates.Load(n.ID)
 	if !ok {
@@ -122,11 +122,18 @@ func (n *Aggregator) HandlePriceDataMessage(ctx context.Context, msg raft.Messag
 		return errorSentinel.ErrAggregatorInvalidRaftMessage
 	}
 
-	n.roundPrices.push(priceDataMessage.RoundID, priceDataMessage.PriceData)
-	if n.roundPrices.len(priceDataMessage.RoundID) >= n.Raft.SubscribersCount()+1 {
-		prices := n.roundPrices.snapshot(priceDataMessage.RoundID)
-		log.Debug().Str("Player", "Aggregator").Str("Name", n.Name).Any("collected prices", prices).Int32("roundId", priceDataMessage.RoundID).Msg("collected prices")
-		defer n.roundPrices.delete(priceDataMessage.RoundID)
+	n.roundPrices.mu.Lock()
+	defer n.roundPrices.mu.Unlock()
+
+	if prices, ok := n.roundPrices.prices[priceDataMessage.RoundID]; ok {
+		n.roundPrices.prices[priceDataMessage.RoundID] = append(prices, priceDataMessage.PriceData)
+	} else {
+		n.roundPrices.prices[priceDataMessage.RoundID] = []int64{priceDataMessage.PriceData}
+	}
+	if len(n.roundPrices.prices[priceDataMessage.RoundID]) >= n.Raft.SubscribersCount()+1 {
+		defer delete(n.roundPrices.prices, priceDataMessage.RoundID)
+		prices := n.roundPrices.prices[priceDataMessage.RoundID]
+		log.Debug().Str("Player", "Aggregator").Int("peerCount", n.Raft.SubscribersCount()).Str("Name", n.Name).Any("collected prices", prices).Int32("roundId", priceDataMessage.RoundID).Msg("collected prices")
 
 		filteredCollectedPrices := FilterNegative(prices)
 		if len(filteredCollectedPrices) == 0 {
@@ -164,22 +171,40 @@ func (n *Aggregator) HandleProofMessage(ctx context.Context, msg raft.Message) e
 		return errorSentinel.ErrAggregatorInvalidRaftMessage
 	}
 
-	n.roundProofs.push(proofMessage.RoundID, proofMessage.Proof)
-	if n.roundProofs.len(proofMessage.RoundID) >= n.Raft.SubscribersCount()+1 {
-		defer n.roundProofs.delete(proofMessage.RoundID)
+	if proofMessage.Proof == nil {
+		log.Error().Str("Player", "Aggregator").Msg("invalid proof message")
+		return errorSentinel.ErrAggregatorEmptyProof
+	}
+
+	n.roundProofs.mu.Lock()
+	defer n.roundProofs.mu.Unlock()
+
+	if proofs, ok := n.roundProofs.proofs[proofMessage.RoundID]; ok {
+		n.roundProofs.proofs[proofMessage.RoundID] = append(proofs, proofMessage.Proof)
+	} else {
+		n.roundProofs.proofs[proofMessage.RoundID] = [][]byte{proofMessage.Proof}
+	}
+
+	if len(n.roundProofs.proofs[proofMessage.RoundID]) >= n.Raft.SubscribersCount()+1 {
+		defer delete(n.roundProofs.proofs, proofMessage.RoundID)
+		log.Debug().Str("Player", "Aggregator").Str("Name", n.Name).Int("peerCount", n.Raft.SubscribersCount()).Int32("roundId", proofMessage.RoundID).Any("collected proofs", n.roundProofs.proofs[proofMessage.RoundID]).Msg("collected proofs")
+
 		globalAggregate := GlobalAggregate{
 			ConfigID:  n.ID,
 			Value:     proofMessage.Value,
 			Round:     proofMessage.RoundID,
 			Timestamp: proofMessage.Timestamp}
-		concatProof := n.roundProofs.concat(proofMessage.RoundID)
+
+		concatProof := bytes.Join(n.roundProofs.proofs[proofMessage.RoundID], nil)
 		proof := Proof{ConfigID: n.ID, Round: proofMessage.RoundID, Proof: concatProof}
 
-		err := PublishGlobalAggregateAndProof(ctx, globalAggregate, proof)
-		if err != nil {
-			log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to publish global aggregate and proof")
-			return err
-		}
+		go func(ctx context.Context, globalAggregate GlobalAggregate, proof Proof) {
+			err := PublishGlobalAggregateAndProof(ctx, globalAggregate, proof)
+			if err != nil {
+				log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to publish global aggregate and proof")
+			}
+		}(ctx, globalAggregate, proof)
+
 	}
 	return nil
 }
@@ -250,4 +275,3 @@ func (n *Aggregator) PublishProofMessage(ctx context.Context, roundId int32, val
 
 	return n.Raft.PublishMessage(ctx, message)
 }
-

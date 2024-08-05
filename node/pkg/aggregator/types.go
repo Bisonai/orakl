@@ -1,7 +1,6 @@
 package aggregator
 
 import (
-	"bytes"
 	"context"
 	"sync"
 	"time"
@@ -55,12 +54,12 @@ type Config struct {
 
 type RoundPrices struct {
 	prices map[int32][]int64
-	mu     sync.RWMutex
+	mu     sync.Mutex
 }
 
 type RoundProofs struct {
 	proofs map[int32][][]byte
-	mu     sync.RWMutex
+	mu     sync.Mutex
 }
 
 type Aggregator struct {
@@ -107,78 +106,6 @@ func NewLatestLocalAggregates() *LatestLocalAggregates {
 	return &LatestLocalAggregates{
 		LocalAggregateMap: map[int32]types.LocalAggregate{},
 	}
-}
-
-func (r *RoundPrices) push(round int32, value int64) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	if prices, ok := r.prices[round]; ok {
-		r.prices[round] = append(prices, value)
-	} else {
-		r.prices[round] = []int64{value}
-	}
-}
-
-func (r *RoundPrices) len(round int32) int {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-	if prices, ok := r.prices[round]; ok {
-		return len(prices)
-	}
-	return 0
-}
-
-func (r *RoundPrices) snapshot(round int32) []int64 {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-	prices, ok := r.prices[round]
-	if !ok {
-		return nil
-	}
-	result := make([]int64, len(prices))
-	copy(result, prices)
-	return result
-}
-
-func (r *RoundPrices) delete(round int32) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	delete(r.prices, round)
-}
-
-func (r *RoundProofs) push(round int32, proof []byte) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	if proofs, ok := r.proofs[round]; ok {
-		r.proofs[round] = append(proofs, proof)
-	} else {
-		r.proofs[round] = [][]byte{proof}
-	}
-}
-
-func (r *RoundProofs) len(round int32) int {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-	if proofs, ok := r.proofs[round]; ok {
-		return len(proofs)
-	}
-	return 0
-}
-
-func (r *RoundProofs) concat(round int32) []byte {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-	proofs, ok := r.proofs[round]
-	if !ok {
-		return nil
-	}
-	return bytes.Join(proofs, nil)
-}
-
-func (r *RoundProofs) delete(round int32) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	delete(r.proofs, round)
 }
 
 func (a *LatestLocalAggregates) Load(id int32) (types.LocalAggregate, bool) {
