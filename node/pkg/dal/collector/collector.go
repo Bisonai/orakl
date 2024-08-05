@@ -27,8 +27,8 @@ const (
 )
 
 type Collector struct {
-	IncomingStream   map[int32]chan aggregator.SubmissionData
-	OutgoingStream   map[int32]chan dalcommon.OutgoingSubmissionData
+	IncomingStream   map[int32]chan *aggregator.SubmissionData
+	OutgoingStream   map[int32]chan *dalcommon.OutgoingSubmissionData
 	Symbols          map[int32]string
 	FeedHashes       map[int32][]byte
 	LatestTimestamps map[int32]time.Time
@@ -66,8 +66,8 @@ func NewCollector(ctx context.Context, configs []types.Config) (*Collector, erro
 	}
 
 	collector := &Collector{
-		IncomingStream:              make(map[int32]chan aggregator.SubmissionData, len(configs)),
-		OutgoingStream:              make(map[int32]chan dalcommon.OutgoingSubmissionData, len(configs)),
+		IncomingStream:              make(map[int32]chan *aggregator.SubmissionData, len(configs)),
+		OutgoingStream:              make(map[int32]chan *dalcommon.OutgoingSubmissionData, len(configs)),
 		Symbols:                     make(map[int32]string, len(configs)),
 		FeedHashes:                  make(map[int32][]byte, len(configs)),
 		LatestTimestamps:            make(map[int32]time.Time),
@@ -78,8 +78,8 @@ func NewCollector(ctx context.Context, configs []types.Config) (*Collector, erro
 	}
 
 	for _, config := range configs {
-		collector.IncomingStream[config.ID] = make(chan aggregator.SubmissionData, 1000)
-		collector.OutgoingStream[config.ID] = make(chan dalcommon.OutgoingSubmissionData, 1000)
+		collector.IncomingStream[config.ID] = make(chan *aggregator.SubmissionData, 1000)
+		collector.OutgoingStream[config.ID] = make(chan *dalcommon.OutgoingSubmissionData, 1000)
 		collector.Symbols[config.ID] = config.Name
 		collector.FeedHashes[config.ID] = crypto.Keccak256([]byte(config.Name))
 	}
@@ -155,7 +155,7 @@ func (c *Collector) receiveEach(ctx context.Context, configId int32) error {
 	}
 }
 
-func (c *Collector) compareAndSwapLatestTimestamp(data aggregator.SubmissionData) bool {
+func (c *Collector) compareAndSwapLatestTimestamp(data *aggregator.SubmissionData) bool {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -168,10 +168,10 @@ func (c *Collector) compareAndSwapLatestTimestamp(data aggregator.SubmissionData
 	return false
 }
 
-func (c *Collector) processIncomingData(ctx context.Context, data aggregator.SubmissionData) {
+func (c *Collector) processIncomingData(ctx context.Context, data *aggregator.SubmissionData) {
 	valid := c.compareAndSwapLatestTimestamp(data)
 	if !valid {
-		log.Debug().Str("Player", "DalCollector").Str("Symbol", c.Symbols[data.GlobalAggregate.ConfigID]).Msg("old data recieved")
+		log.Info().Str("Player", "DalCollector").Str("Symbol", c.Symbols[data.GlobalAggregate.ConfigID]).Msg("old data recieved")
 		return
 	}
 
@@ -186,10 +186,10 @@ func (c *Collector) processIncomingData(ctx context.Context, data aggregator.Sub
 		defer c.mu.Unlock()
 		c.LatestData[data.Symbol] = data
 	}(result)
-	c.OutgoingStream[data.GlobalAggregate.ConfigID] <- *result
+	c.OutgoingStream[data.GlobalAggregate.ConfigID] <- result
 }
 
-func (c *Collector) IncomingDataToOutgoingData(ctx context.Context, data aggregator.SubmissionData) (*dalcommon.OutgoingSubmissionData, error) {
+func (c *Collector) IncomingDataToOutgoingData(ctx context.Context, data *aggregator.SubmissionData) (*dalcommon.OutgoingSubmissionData, error) {
 	c.mu.RLock()
 	whitelist := c.CachedWhitelist
 	c.mu.RUnlock()

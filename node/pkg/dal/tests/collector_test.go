@@ -95,7 +95,7 @@ func TestCollectorStream(t *testing.T) {
 	ch := make(chan any)
 	go conn.Read(ctx, ch)
 
-	expected, err := testItems.Collector.IncomingDataToOutgoingData(ctx, *sampleSubmissionData)
+	expected, err := testItems.Collector.IncomingDataToOutgoingData(ctx, sampleSubmissionData)
 	if err != nil {
 		t.Fatalf("error converting sample submission data to outgoing data: %v", err)
 	}

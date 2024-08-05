@@ -28,7 +28,7 @@ func NewHub(configs map[string]types.Config) *Hub {
 		clients:    make(map[*ThreadSafeClient]map[string]bool),
 		register:   make(chan *ThreadSafeClient),
 		unregister: make(chan *ThreadSafeClient),
-		broadcast:  make(map[string]chan dalcommon.OutgoingSubmissionData),
+		broadcast:  make(map[string]chan *dalcommon.OutgoingSubmissionData),
 		connPerIP:  make(map[string][]*ThreadSafeClient),
 	}
 }
@@ -160,7 +160,7 @@ func (h *Hub) configIdToSymbol(id int32) string {
 
 func (h *Hub) broadcastDataForSymbol(symbol string) {
 	for data := range h.broadcast[symbol] {
-		go h.castSubmissionData(&data, &symbol)
+		go h.castSubmissionData(data, &symbol)
 	}
 }
 
