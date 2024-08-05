@@ -58,6 +58,8 @@ func (n *Aggregator) Run(ctx context.Context) {
 }
 
 func (n *Aggregator) LeaderJob(ctx context.Context) error {
+	n.mu.Lock()
+	defer n.mu.Unlock()
 	n.RoundID++
 	n.Raft.IncreaseTerm()
 	return n.PublishTriggerMessage(ctx, n.RoundID, time.Now())

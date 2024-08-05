@@ -76,6 +76,8 @@ type Aggregator struct {
 	nodeCtx    context.Context
 	nodeCancel context.CancelFunc
 	isRunning  bool
+
+	mu sync.Mutex
 }
 
 type PriceDataMessage struct {
