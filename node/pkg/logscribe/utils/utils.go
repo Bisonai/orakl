@@ -23,7 +23,7 @@ func Setup(appVersion string, logsChannel chan *[]api.LogInsertModel) (*fiber.Ap
 	_, err := db.GetPool(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("error getting db pool")
-		return nil, errorSentinel.ErrAdminDbPoolNotFound
+		return nil, errorSentinel.ErrLogscribeDbPoolNotFound
 	}
 
 	app := fiber.New(fiber.Config{
