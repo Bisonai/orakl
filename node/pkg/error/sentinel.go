@@ -89,6 +89,7 @@ var (
 	ErrAggregatorGlobalAggregateInsertion = &CustomError{Service: Aggregator, Code: DatabaseError, Message: "Failed to insert global aggregator"}
 	ErrAggregatorNotFound                 = &CustomError{Service: Aggregator, Code: InternalError, Message: "Aggregator not found"}
 	ErrAggregatorCancelNotFound           = &CustomError{Service: Aggregator, Code: InternalError, Message: "Aggregator cancel function not found"}
+	ErrAggregatorEmptyProof               = &CustomError{Service: Aggregator, Code: InternalError, Message: "Empty proof"}
 
 	ErrBootAPIDbPoolNotFound = &CustomError{Service: BootAPI, Code: InternalError, Message: "db pool not found"}
 

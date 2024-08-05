@@ -171,6 +171,11 @@ func (n *Aggregator) HandleProofMessage(ctx context.Context, msg raft.Message) e
 		return errorSentinel.ErrAggregatorInvalidRaftMessage
 	}
 
+	if proofMessage.Proof == nil {
+		log.Error().Str("Player", "Aggregator").Msg("invalid proof message")
+		return errorSentinel.ErrAggregatorEmptyProof
+	}
+
 	n.roundProofs.mu.Lock()
 	defer n.roundProofs.mu.Unlock()
 
