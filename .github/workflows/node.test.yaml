@@ -11,6 +11,7 @@ on:
       - "!node/pkg/boot/**"
       - "!node/migrations/boot/**"
       - "!node/pkg/logscribe/**"
+      - "!node/migrations/logscribe/**"
   workflow_dispatch:
 
 jobs:
