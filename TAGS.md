@@ -148,3 +148,4 @@
 - **logscribe** v0.0.1.20240805.0639.4d0df4b <br> *`PR`*: Contract Deploy cypress submis... <br><br> 
 - **node** v0.0.1.20240805.0858.7647cf1 <br> *`PR`*: OraklNode Minor updates add em... <br><br> 
 - **dal** v0.0.1.20240805.0904.8bc24f7 <br> *`PR`*: OraklNode Minor updates add em... <br><br> 
+- **dal** v0.0.1.20240805.1011.e61e2a9 <br> *`PR`*: DAL update log <br><br> 
