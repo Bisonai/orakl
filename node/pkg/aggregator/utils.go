@@ -18,7 +18,7 @@ func GetLatestLocalAggregateFromPgs(ctx context.Context, configId int32) (LocalA
 }
 
 func FilterNegative(values []int64) []int64 {
-	result := []int64{}
+	result := make([]int64, 0, len(values))
 	for _, value := range values {
 		if value < 0 {
 			continue

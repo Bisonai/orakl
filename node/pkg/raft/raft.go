@@ -63,6 +63,7 @@ func (r *Raft) subscribe(ctx context.Context) {
 	sub, err := r.Topic.Subscribe()
 	if err != nil {
 		log.Error().Err(err).Msg("failed to subscribe to topic")
+		return
 	}
 	defer func() {
 		sub.Cancel()
