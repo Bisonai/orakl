@@ -33,8 +33,16 @@ func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string, config Co
 		Config: config,
 		Raft:   raft.NewRaftNode(h, ps, topic, 1000, aggregateInterval),
 
-		roundPrices: &RoundPrices{prices: map[int32][]int64{}},
-		roundProofs: &RoundProofs{proofs: map[int32][][]byte{}},
+		roundPrices: &RoundPrices{
+			prices:  map[int32][]int64{},
+			senders: map[int32][]string{},
+			locked:  map[int32]bool{},
+		},
+		roundProofs: &RoundProofs{
+			proofs:  map[int32][][]byte{},
+			senders: map[int32][]string{},
+			locked:  map[int32]bool{},
+		},
 
 		RoundID:               1,
 		Signer:                signHelper,

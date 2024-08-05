@@ -51,6 +51,15 @@ func GetInt64Med(nums []int64) (int64, error) {
 	if len(nums) == 0 {
 		return 0, errorSentinel.ErrCalculatorEmptyArr
 	}
+
+	if len(nums) == 1 {
+		return nums[0], nil
+	}
+
+	if len(nums) == 2 {
+		return (nums[0] + nums[1]) / 2, nil
+	}
+
 	sort.Slice(nums, func(i, j int) bool { return nums[i] < nums[j] })
 	n := len(nums)
 	if n%2 == 0 {
