@@ -45,7 +45,7 @@ func main() {
 
 	log.Debug().Msg("creating raft node")
 	node := raft.NewRaftNode(host, ps, topic, 100, 1*time.Second)
-	node.LeaderJob = func() error {
+	node.LeaderJob = func(context.Context) error {
 		log.Debug().Int("subscribers", node.SubscribersCount()).Int("Term", node.GetCurrentTerm()).Msg("Leader job")
 		node.IncreaseTerm()
 		return nil

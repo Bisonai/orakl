@@ -63,7 +63,7 @@ func setup(ctx context.Context, cancel context.CancelFunc) (func() error, *TestI
 	raftNodes := []*Raft{}
 	for i := 0; i < 3; i++ {
 		node := NewRaftNode(hosts[i], pss[i], topics[i], 100, time.Second)
-		node.LeaderJob = func() error {
+		node.LeaderJob = func(context.Context) error {
 			log.Debug().Int("subscribers", node.SubscribersCount()).Int("Term", node.GetCurrentTerm()).Msg("Leader job")
 			node.IncreaseTerm()
 			return nil

@@ -52,7 +52,7 @@ func TestLeaderJob(t *testing.T) {
 		t.Fatal("error creating new node")
 	}
 
-	err = node.LeaderJob()
+	err = node.LeaderJob(ctx)
 	if err != nil {
 		t.Fatal("error running leader job")
 	}

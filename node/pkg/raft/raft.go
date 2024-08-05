@@ -52,7 +52,7 @@ func (r *Raft) Run(ctx context.Context) {
 		case msg := <-r.MessageBuffer:
 			go r.handleMessage(ctx, msg)
 		case <-r.ElectionTimer.C:
-			r.startElection()
+			r.startElection(ctx)
 		case <-ctx.Done():
 			return
 		}
@@ -99,7 +99,7 @@ func (r *Raft) handleMessage(ctx context.Context, msg Message) error {
 	case Heartbeat:
 		return r.handleHeartbeat(msg)
 	case RequestVote:
-		return r.handleRequestVote(msg)
+		return r.handleRequestVote(ctx, msg)
 	case ReplyVote:
 		return r.handleReplyVote(ctx, msg)
 	default:
@@ -153,7 +153,7 @@ func (r *Raft) handleHeartbeat(msg Message) error {
 	return nil
 }
 
-func (r *Raft) handleRequestVote(msg Message) error {
+func (r *Raft) handleRequestVote(ctx context.Context, msg Message) error {
 	r.Mutex.Lock()
 	defer r.Mutex.Unlock()
 	if r.Role == Leader {
@@ -174,12 +174,12 @@ func (r *Raft) handleRequestVote(msg Message) error {
 	}
 
 	if RequestVoteMessage.Term < currentTerm {
-		return r.sendReplyVote(msg.SentFrom, false)
+		return r.sendReplyVote(ctx, msg.SentFrom, false)
 	}
 
 	if r.Role == Candidate && RequestVoteMessage.Term == currentTerm && msg.SentFrom != r.GetHostId() {
 		r.Role = Follower
-		return r.sendReplyVote(msg.SentFrom, false)
+		return r.sendReplyVote(ctx, msg.SentFrom, false)
 	}
 
 	voteGranted := false
@@ -188,7 +188,7 @@ func (r *Raft) handleRequestVote(msg Message) error {
 		r.VotedFor = msg.SentFrom
 	}
 	log.Debug().Bool("vote granted", voteGranted).Msg("voted")
-	return r.sendReplyVote(msg.SentFrom, voteGranted)
+	return r.sendReplyVote(ctx, msg.SentFrom, voteGranted)
 }
 
 func (r *Raft) handleReplyVote(ctx context.Context, msg Message) error {
@@ -221,15 +221,15 @@ func (r *Raft) handleReplyVote(ctx context.Context, msg Message) error {
 
 // publishing messages
 
-func (r *Raft) PublishMessage(msg Message) error {
+func (r *Raft) PublishMessage(ctx context.Context, msg Message) error {
 	data, err := json.Marshal(msg)
 	if err != nil {
 		return err
 	}
-	return r.Topic.Publish(context.Background(), data)
+	return r.Topic.Publish(ctx, data)
 }
 
-func (r *Raft) sendHeartbeat() error {
+func (r *Raft) sendHeartbeat(ctx context.Context) error {
 	r.Mutex.Lock()
 	heartbeatMessage := HeartbeatMessage{
 		LeaderID: r.GetHostId(),
@@ -247,7 +247,7 @@ func (r *Raft) sendHeartbeat() error {
 		SentFrom: r.GetHostId(),
 		Data:     json.RawMessage(marshalledHeartbeatMsg),
 	}
-	err = r.PublishMessage(message)
+	err = r.PublishMessage(ctx, message)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to send heartbeat")
 		return err
@@ -255,7 +255,7 @@ func (r *Raft) sendHeartbeat() error {
 	return nil
 }
 
-func (r *Raft) sendReplyVote(to string, voteGranted bool) error {
+func (r *Raft) sendReplyVote(ctx context.Context, to string, voteGranted bool) error {
 	replyVoteMessage := ReplyRequestVoteMessage{
 		VoteGranted: voteGranted,
 		LeaderID:    to,
@@ -269,14 +269,14 @@ func (r *Raft) sendReplyVote(to string, voteGranted bool) error {
 		SentFrom: r.GetHostId(),
 		Data:     json.RawMessage(marshalledReplyVoteMsg),
 	}
-	err = r.PublishMessage(message)
+	err = r.PublishMessage(ctx, message)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (r *Raft) sendRequestVote() error {
+func (r *Raft) sendRequestVote(ctx context.Context) error {
 	requestVoteMessage := RequestVoteMessage{
 		Term: r.Term,
 	}
@@ -290,7 +290,7 @@ func (r *Raft) sendRequestVote() error {
 		SentFrom: r.GetHostId(),
 		Data:     json.RawMessage(marshalledRequestVoteMsg),
 	}
-	err = r.PublishMessage(message)
+	err = r.PublishMessage(ctx, message)
 	if err != nil {
 		return err
 	}
@@ -337,7 +337,7 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 				return
 
 			case <-r.HeartbeatTicker.C:
-				err := r.sendHeartbeat()
+				err := r.sendHeartbeat(ctx)
 				if err != nil {
 					log.Error().Err(err).Msg("failed to send heartbeat")
 				}
@@ -349,7 +349,7 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 							log.Error().Msgf("recovered from panic in LeaderJob: %v", r)
 						}
 					}()
-					err := r.LeaderJob()
+					err := r.LeaderJob(ctx)
 					if err != nil {
 						log.Error().Err(err).Msg("failed to execute leader job")
 					}
@@ -390,7 +390,7 @@ func (r *Raft) startElectionTimer() {
 	}
 }
 
-func (r *Raft) startElection() {
+func (r *Raft) startElection(ctx context.Context) {
 	log.Debug().Msg("start election")
 	r.Mutex.Lock()
 	defer r.Mutex.Unlock()
@@ -401,7 +401,7 @@ func (r *Raft) startElection() {
 
 	r.startElectionTimer()
 
-	err := r.sendRequestVote()
+	err := r.sendRequestVote(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to send request vote")
 	}
