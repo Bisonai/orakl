@@ -53,13 +53,51 @@ type Config struct {
 }
 
 type RoundPrices struct {
-	prices map[int32][]int64
-	mu     sync.Mutex
+	senders map[int32][]string
+	prices  map[int32][]int64
+	locked  map[int32]bool
+	mu      sync.Mutex
+}
+
+func (r *RoundPrices) isReplay(roundID int32, sender string) bool {
+	for _, s := range r.senders[roundID] {
+		if s == sender {
+			return true
+		}
+	}
+	return false
+}
+
+func (r *RoundPrices) cleanup(roundID int32) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	delete(r.senders, roundID)
+	delete(r.prices, roundID)
+	delete(r.locked, roundID)
 }
 
 type RoundProofs struct {
-	proofs map[int32][][]byte
-	mu     sync.Mutex
+	senders map[int32][]string
+	proofs  map[int32][][]byte
+	locked  map[int32]bool
+	mu      sync.Mutex
+}
+
+func (r *RoundProofs) isReplay(roundID int32, sender string) bool {
+	for _, s := range r.senders[roundID] {
+		if s == sender {
+			return true
+		}
+	}
+	return false
+}
+
+func (r *RoundProofs) cleanup(roundID int32) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	delete(r.senders, roundID)
+	delete(r.proofs, roundID)
+	delete(r.locked, roundID)
 }
 
 type Aggregator struct {
