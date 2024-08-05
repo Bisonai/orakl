@@ -12,7 +12,7 @@ import (
 
 const (
 	DEFAULT_MINE_WAIT_TIME     = 10 * time.Second
-	DEFAULT_GAS_LIMIT          = uint64(6000000)
+	DEFAULT_GAS_LIMIT          = uint64(10000000)
 	SELECT_PROVIDER_URLS_QUERY = "SELECT * FROM provider_urls WHERE chain_id = @chain_id ORDER BY priority;"
 	LOAD_SIGNER                = "SELECT id, pk FROM signer LIMIT 1;"
 	STORE_SIGNER               = "INSERT INTO signer (pk, unique_dummy) VALUES (@pk, TRUE) ON CONFLICT (unique_dummy) DO UPDATE SET pk = EXCLUDED.pk;"
