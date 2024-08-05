@@ -28,7 +28,7 @@ func main() {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		err := admin.Run(mb)
+		err := admin.Run(ctx, mb)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to start admin server")
 			return

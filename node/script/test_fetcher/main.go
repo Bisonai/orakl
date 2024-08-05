@@ -14,13 +14,14 @@ import (
 // it doesn't automatically import adapters so please manually add before running the script
 
 func main() {
+	ctx := context.Background()
 	mb := bus.New(10)
 	var wg sync.WaitGroup
 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		err := admin.Run(mb)
+		err := admin.Run(ctx, mb)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to start admin server")
 			return
@@ -31,7 +32,7 @@ func main() {
 	go func() {
 		defer wg.Done()
 		f := fetcher.New(mb)
-		err := f.Run(context.Background())
+		err := f.Run(ctx)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to start fetcher")
 			return
