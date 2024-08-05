@@ -449,7 +449,7 @@ contract SubmissionProxyTest is Test {
             feeds_[i] = address(feed_);
             feedHashes_[i] = keccak256(abi.encodePacked(SAMPLE_NAMES[i]));
             submissions_[i] = _submissionValue;
-            timestamps_[i] = block.timestamp;
+            timestamps_[i] = block.timestamp * 1000;
             proofs_[i] =
                 createProof(_oracleSk, keccak256(abi.encodePacked(timestamps_[i], submissions_[i], feedHashes_[i])));
             submissionProxy.updateFeed(feedHashes_[i], address(feeds_[i]));
@@ -474,7 +474,7 @@ contract SubmissionProxyTest is Test {
             feeds_[i] = address(feed_);
             feedHashes_[i] = keccak256(abi.encodePacked(SAMPLE_NAMES[i]));
             submissions_[i] = _submissionValue;
-            timestamps_[i] = block.timestamp;
+            timestamps_[i] = block.timestamp * 1000;
             proofs_[i] =
                 createProof(_oracleSk, keccak256(abi.encodePacked(timestamps_[i], submissions_[i], feedHashes_[i])));
             submissionProxy.updateFeed(feedHashes_[i], address(feeds_[i]));
