@@ -14,6 +14,7 @@ const (
 	Admin
 	Por
 	Dal
+	Logscribe
 	Others
 )
 
@@ -223,4 +224,6 @@ var (
 	ErrLogMsgNotExist       = &CustomError{Service: Others, Code: InvalidInputError, Message: "Log message not exist"}
 	ErrLogLvlNotExist       = &CustomError{Service: Others, Code: InvalidInputError, Message: "Log level not exist"}
 	ErrLogEmptyLogByte      = &CustomError{Service: Others, Code: InvalidInputError, Message: "Empty log byte"}
+
+	ErrLogscribeDbPoolNotFound = &CustomError{Service: Logscribe, Code: InternalError, Message: "db pool not found"}
 )
