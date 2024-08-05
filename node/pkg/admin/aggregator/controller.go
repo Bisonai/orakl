@@ -5,6 +5,7 @@ import (
 
 	"bisonai.com/orakl/node/pkg/admin/utils"
 	"bisonai.com/orakl/node/pkg/bus"
+	chainutils "bisonai.com/orakl/node/pkg/chain/utils"
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog/log"
 )
@@ -100,4 +101,16 @@ func renewSigner(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to refresh signer: " + resp.Args["error"].(string))
 	}
 	return c.SendString("s refreshed: " + strconv.FormatBool(resp.Success))
+}
+
+func getSigner(c *fiber.Ctx) error {
+	signerpk, err := chainutils.LoadSignerPk(c.Context())
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("failed to get signer: " + err.Error())
+	}
+	addr, err := chainutils.StringPkToAddressHex(signerpk)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("failed to get signer: " + err.Error())
+	}
+	return c.JSON(fiber.Map{"signer": addr})
 }
