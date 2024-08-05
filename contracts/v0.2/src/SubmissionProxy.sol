@@ -346,7 +346,7 @@ contract SubmissionProxy is Ownable {
      * submit the data.
      * @param _feedHashes The hashes of the feeds
      * @param _answers The submissions
-     * @param _timestamps The timestamps of the proofs
+     * @param _timestamps The unixmilli timestamps of the proofs
      * @param _proofs The proofs
      */
     function submit(
@@ -365,7 +365,7 @@ contract SubmissionProxy is Ownable {
         uint256 feedsLength_ = _feedHashes.length;
         for (uint256 i = 0; i < feedsLength_; i++) {
             if (
-                _timestamps[i] <= block.timestamp - dataFreshness
+                _timestamps[i] / 1000 <= block.timestamp - dataFreshness
                     || lastSubmissionTimes[_feedHashes[i]] >= _timestamps[i]
             ) {
                 // answer is too old -> do not submit!
@@ -416,7 +416,7 @@ contract SubmissionProxy is Ownable {
     }
 
     function submitSingle(bytes32 _feedHash, int256 _answer, uint256 _timestamp, bytes calldata _proof) public {
-        if (_timestamp <= block.timestamp - dataFreshness || lastSubmissionTimes[_feedHash] >= _timestamp) {
+        if (_timestamp / 1000 <= block.timestamp - dataFreshness || lastSubmissionTimes[_feedHash] >= _timestamp) {
             revert AnswerTooOld();
         }
 
