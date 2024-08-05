@@ -10,6 +10,7 @@ on:
       - "!node/migrations/dal/**"
       - "!node/pkg/boot/**"
       - "!node/migrations/boot/**"
+      - "!node/pkg/logscribe/**"
   workflow_dispatch:
 
 jobs:
