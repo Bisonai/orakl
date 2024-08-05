@@ -145,3 +145,4 @@
 - **logscribe** v0.0.1.20240805.0548.4a1cddf <br> *`PR`*: Contract Deploy cypress submis... <br><br> 
 - **logscribe** v0.0.1.20240805.0558.ee14074 <br> *`PR`*: Contract Deploy cypress submis... <br><br> 
 - **logscribe** v0.0.1.20240805.0615.4fde42a <br> *`PR`*: Contract Deploy cypress submis... <br><br> 
+- **logscribe** v0.0.1.20240805.0639.4d0df4b <br> *`PR`*: Contract Deploy cypress submis... <br><br> 
