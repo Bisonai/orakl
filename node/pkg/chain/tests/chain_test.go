@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"bytes"
 	"context"
 	"encoding/hex"
 	"fmt"
@@ -528,6 +529,61 @@ func TestMakeGlobalAggregateProof(t *testing.T) {
 	addrFromEnv := crypto.PubkeyToAddress(pk.PublicKey)
 
 	assert.Equal(t, addrFromEnv.Hex(), addr.Hex())
+}
+
+func TestGlobalAggregateProofMergeAndSplit(t *testing.T) {
+	ctx := context.Background()
+	s, err := helper.NewSigner(ctx)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	timestamp := time.Now()
+
+	sampleValues := []int64{100000000, 200000000, 300000000}
+	sampleProofs := [][]byte{}
+
+	for _, v := range sampleValues {
+		proof, err := s.MakeGlobalAggregateProof(v, timestamp, "test-aggregate")
+		if err != nil {
+			t.Errorf("Unexpected error: %v", err)
+		}
+		sampleProofs = append(sampleProofs, proof)
+	}
+
+	merged := bytes.Join(sampleProofs, nil)
+
+	proofs := make([][]byte, 0, len(merged)/65)
+	for i := 0; i < len(merged); i += 65 {
+		proofs = append(proofs, merged[i:i+65])
+	}
+
+	for i, p := range proofs {
+		if !bytes.Equal(p, sampleProofs[i]) {
+			t.Errorf("Test case %d: Expected proof %x, but got %x", i, sampleProofs[i], p)
+		}
+	}
+
+	hashes := [][]byte{}
+	for _, v := range sampleValues {
+		hash := utils.Value2HashForSign(v, timestamp.UnixMilli(), "test-aggregate")
+		hashes = append(hashes, hash)
+	}
+
+	for i, h := range hashes {
+		addr, err := utils.RecoverSigner(h, proofs[i])
+		if err != nil {
+			t.Errorf("Unexpected error: %v", err)
+		}
+
+		pk, err := utils.StringToPk(os.Getenv("SIGNER_PK"))
+		if err != nil {
+			t.Errorf("Unexpected error: %v", err)
+		}
+		addrFromEnv := crypto.PubkeyToAddress(pk.PublicKey)
+
+		assert.Equal(t, addrFromEnv.Hex(), addr.Hex())
+	}
 }
 
 func TestNewPk(t *testing.T) {
