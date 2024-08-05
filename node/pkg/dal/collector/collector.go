@@ -203,14 +203,16 @@ func (c *Collector) IncomingDataToOutgoingData(ctx context.Context, data *aggreg
 	if err != nil {
 		log.Error().Err(err).Str("Player", "DalCollector").Str("Symbol", c.Symbols[data.GlobalAggregate.ConfigID]).Msg("failed to order proof")
 		if errors.Is(err, errorSentinel.ErrReporterSignerNotWhitelisted) {
-			newList, getAllOraclesErr := getAllOracles(ctx, c.chainReader, c.submissionProxyContractAddr)
-			if getAllOraclesErr != nil {
-				log.Error().Err(getAllOraclesErr).Str("Player", "DalCollector").Msg("failed to refresh oracles")
-				return nil, getAllOraclesErr
-			}
-			c.mu.Lock()
-			c.CachedWhitelist = newList
-			c.mu.Unlock()
+			go func(ctx context.Context, chainHelper *websocketchainreader.ChainReader, contractAddress string) {
+				newList, getAllOraclesErr := getAllOracles(ctx, chainHelper, contractAddress)
+				if getAllOraclesErr != nil {
+					log.Error().Err(getAllOraclesErr).Str("Player", "DalCollector").Msg("failed to refresh oracles")
+					return
+				}
+				c.mu.Lock()
+				c.CachedWhitelist = newList
+				c.mu.Unlock()
+			}(ctx, c.chainReader, c.submissionProxyContractAddr)
 		}
 		return nil, err
 	}
