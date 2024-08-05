@@ -531,6 +531,57 @@ func TestMakeGlobalAggregateProof(t *testing.T) {
 	assert.Equal(t, addrFromEnv.Hex(), addr.Hex())
 }
 
+func TestMakeMultiGlobalAggregateProof(t *testing.T) {
+	ctx := context.Background()
+
+	pubKeys := []string{"0x75EC9060d2C3260c0009297ca093320A98B8741a", "0xbC1259FB2AaD1881Dff9317e22722bffa4492543"}
+	privKeys := []string{"0x27894b84849f129e08f37634be4e8ccc4c7267d824eb8cfd285185854ba5b78d", "0xc4aeea4b48e0cba6651c33ef86b96c1ae8c9d0229fd4605d6404fc8f8b6b180b"}
+
+	timestamp := time.Now()
+	value := int64(200000000)
+
+	signHelpers := make([]*helper.Signer, 0, len(pubKeys))
+	for _, pk := range privKeys {
+		s, err := helper.NewSigner(ctx, helper.WithSignerPk(pk))
+		if err != nil {
+			t.Errorf("Unexpected error: %v", err)
+		}
+		signHelpers = append(signHelpers, s)
+	}
+
+	rawProofs := [][]byte{}
+
+	for _, s := range signHelpers {
+		proof, err := s.MakeGlobalAggregateProof(value, timestamp, "test-aggregate")
+		if err != nil {
+			t.Errorf("Unexpected error: %v", err)
+		}
+		rawProofs = append(rawProofs, proof)
+		assert.NotNil(t, proof)
+	}
+
+	hash := utils.Value2HashForSign(value, timestamp.UnixMilli(), "test-aggregate")
+
+	merged := bytes.Join(rawProofs, nil)
+	proofs := make([][]byte, 0, len(merged)/65)
+	for i := 0; i < len(merged); i += 65 {
+		proofs = append(proofs, merged[i:i+65])
+	}
+
+	signers := []common.Address{}
+	for _, p := range proofs {
+		signer, err := utils.RecoverSigner(hash, p)
+		if err != nil {
+			t.Errorf("Unexpected error: %v", err)
+		}
+		signers = append(signers, signer)
+	}
+
+	for i, signer := range signers {
+		assert.Equal(t, pubKeys[i], signer.Hex())
+	}
+}
+
 func TestGlobalAggregateProofMergeAndSplit(t *testing.T) {
 	ctx := context.Background()
 	s, err := helper.NewSigner(ctx)

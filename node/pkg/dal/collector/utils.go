@@ -79,7 +79,12 @@ func subscribeAddOracleEvent(ctx context.Context, chainReader *websocketchainrea
 }
 
 func orderProof(ctx context.Context, proof []byte, value int64, timestamp time.Time, symbol string, cachedWhitelist []klaytncommon.Address) ([]byte, error) {
-	proof = removeDuplicateProof(proof)
+	proof, err := removeDuplicateProof(proof)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to remove duplicate proofs in orderProof")
+		return nil, err
+	}
+
 	hash := chainutils.Value2HashForSign(value, timestamp.UnixMilli(), symbol)
 	proofChunks, err := splitProofToChunk(proof)
 	if err != nil {
@@ -87,11 +92,20 @@ func orderProof(ctx context.Context, proof []byte, value int64, timestamp time.T
 		return nil, err
 	}
 
+	log.Debug().Int("len", len(proofChunks)).Any("chunks", proofChunks).Msg("proof chunks")
+
 	signers, err := getSignerListFromProofs(hash, proofChunks)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to get signer list from proofs in orderProof")
 		return nil, err
 	}
+
+	signersHex := make([]string, 0, len(signers))
+	for _, signer := range signers {
+		signersHex = append(signersHex, signer.Hex())
+	}
+
+	log.Debug().Int("len", len(signers)).Any("signers", signersHex).Msg("signers")
 
 	err = checkForNonWhitelistedSigners(signers, cachedWhitelist)
 	if err != nil {
@@ -103,10 +117,10 @@ func orderProof(ctx context.Context, proof []byte, value int64, timestamp time.T
 	return validateProof(signerMap, cachedWhitelist)
 }
 
-func removeDuplicateProof(proof []byte) []byte {
+func removeDuplicateProof(proof []byte) ([]byte, error) {
 	proofs, err := splitProofToChunk(proof)
 	if err != nil {
-		return []byte{}
+		return nil, err
 	}
 
 	uniqueProofs := make(map[string][]byte)
@@ -119,7 +133,7 @@ func removeDuplicateProof(proof []byte) []byte {
 		result = append(result, p)
 	}
 
-	return bytes.Join(result, nil)
+	return bytes.Join(result, nil), nil
 }
 
 func splitProofToChunk(proof []byte) ([][]byte, error) {

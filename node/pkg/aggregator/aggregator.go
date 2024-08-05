@@ -187,6 +187,8 @@ func (n *Aggregator) HandleProofMessage(ctx context.Context, msg raft.Message) e
 
 	if len(n.roundProofs.proofs[proofMessage.RoundID]) >= n.Raft.SubscribersCount()+1 {
 		defer delete(n.roundProofs.proofs, proofMessage.RoundID)
+		log.Debug().Str("Player", "Aggregator").Str("Name", n.Name).Int32("roundId", proofMessage.RoundID).Any("collected proofs", n.roundProofs.proofs[proofMessage.RoundID]).Msg("collected proofs")
+
 		globalAggregate := GlobalAggregate{
 			ConfigID:  n.ID,
 			Value:     proofMessage.Value,
