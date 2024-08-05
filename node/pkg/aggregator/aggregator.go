@@ -133,7 +133,7 @@ func (n *Aggregator) HandlePriceDataMessage(ctx context.Context, msg raft.Messag
 	if len(n.roundPrices.prices[priceDataMessage.RoundID]) >= n.Raft.SubscribersCount()+1 {
 		defer delete(n.roundPrices.prices, priceDataMessage.RoundID)
 		prices := n.roundPrices.prices[priceDataMessage.RoundID]
-		log.Debug().Str("Player", "Aggregator").Str("Name", n.Name).Any("collected prices", prices).Int32("roundId", priceDataMessage.RoundID).Msg("collected prices")
+		log.Debug().Str("Player", "Aggregator").Int("peerCount", n.Raft.SubscribersCount()).Str("Name", n.Name).Any("collected prices", prices).Int32("roundId", priceDataMessage.RoundID).Msg("collected prices")
 
 		filteredCollectedPrices := FilterNegative(prices)
 		if len(filteredCollectedPrices) == 0 {
@@ -187,7 +187,7 @@ func (n *Aggregator) HandleProofMessage(ctx context.Context, msg raft.Message) e
 
 	if len(n.roundProofs.proofs[proofMessage.RoundID]) >= n.Raft.SubscribersCount()+1 {
 		defer delete(n.roundProofs.proofs, proofMessage.RoundID)
-		log.Debug().Str("Player", "Aggregator").Str("Name", n.Name).Int32("roundId", proofMessage.RoundID).Any("collected proofs", n.roundProofs.proofs[proofMessage.RoundID]).Msg("collected proofs")
+		log.Debug().Str("Player", "Aggregator").Str("Name", n.Name).Int("peerCount", n.Raft.SubscribersCount()).Int32("roundId", proofMessage.RoundID).Any("collected proofs", n.roundProofs.proofs[proofMessage.RoundID]).Msg("collected proofs")
 
 		globalAggregate := GlobalAggregate{
 			ConfigID:  n.ID,
