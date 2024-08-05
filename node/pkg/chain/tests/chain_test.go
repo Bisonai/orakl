@@ -515,7 +515,7 @@ func TestMakeGlobalAggregateProof(t *testing.T) {
 
 	assert.NotEqual(t, proof, nil)
 
-	hash := utils.Value2HashForSign(200000000, timestamp.Unix(), "test-aggregate")
+	hash := utils.Value2HashForSign(200000000, timestamp.UnixMilli(), "test-aggregate")
 	addr, err := utils.RecoverSigner(hash, proof)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)

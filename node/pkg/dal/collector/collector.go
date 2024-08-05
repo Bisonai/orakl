@@ -217,7 +217,7 @@ func (c *Collector) IncomingDataToOutgoingData(ctx context.Context, data *aggreg
 	return &dalcommon.OutgoingSubmissionData{
 		Symbol:        c.Symbols[data.GlobalAggregate.ConfigID],
 		Value:         strconv.FormatInt(data.GlobalAggregate.Value, 10),
-		AggregateTime: strconv.FormatInt(data.GlobalAggregate.Timestamp.Unix(), 10),
+		AggregateTime: strconv.FormatInt(data.GlobalAggregate.Timestamp.UnixMilli(), 10),
 		Proof:         formatBytesToHex(orderedProof),
 		FeedHash:      formatBytesToHex(c.FeedHashes[data.GlobalAggregate.ConfigID]),
 		Decimals:      DefaultDecimals,

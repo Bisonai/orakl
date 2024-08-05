@@ -80,7 +80,7 @@ func subscribeAddOracleEvent(ctx context.Context, chainReader *websocketchainrea
 
 func orderProof(ctx context.Context, proof []byte, value int64, timestamp time.Time, symbol string, cachedWhitelist []klaytncommon.Address) ([]byte, error) {
 	proof = removeDuplicateProof(proof)
-	hash := chainutils.Value2HashForSign(value, timestamp.Unix(), symbol)
+	hash := chainutils.Value2HashForSign(value, timestamp.UnixMilli(), symbol)
 	proofChunks, err := splitProofToChunk(proof)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to split proof to chunks in orderProof")

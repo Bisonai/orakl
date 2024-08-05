@@ -120,7 +120,7 @@ func (s *Signer) MakeGlobalAggregateProof(val int64, timestamp time.Time, name s
 	s.mu.RLock()
 	pk := s.PK
 	s.mu.RUnlock()
-	return utils.MakeValueSignature(val, timestamp.Unix(), name, pk)
+	return utils.MakeValueSignature(val, timestamp.UnixMilli(), name, pk)
 }
 
 func (s *Signer) autoRenew(ctx context.Context) {
