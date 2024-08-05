@@ -20,7 +20,9 @@ const (
 func Run(ctx context.Context) error {
 	log.Debug().Msg("Starting logscribe server")
 
-	app, err := utils.Setup("0.1.0")
+	logsChannel := make(chan *[]api.LogInsertModel, logsChannelSize)
+
+	app, err := utils.Setup("0.1.0", logsChannel)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to setup logscribe server")
 		return err
@@ -31,13 +33,11 @@ func Run(ctx context.Context) error {
 		return c.SendString("Logscribe service")
 	})
 
-	logsChannel := make(chan []api.LogInsertModel, logsChannelSize)
-
 	port := os.Getenv("LOGSCRIBE_PORT")
 	if port == "" {
 		port = "3000"
 	}
-	api.Routes(v1, logsChannel)
+	api.Routes(v1)
 
 	go func() {
 		if err := app.Listen(":" + port); err != nil {
@@ -57,7 +57,7 @@ func Run(ctx context.Context) error {
 	return nil
 }
 
-func bulkCopyLogs(ctx context.Context, logsChannel <-chan []api.LogInsertModel) {
+func bulkCopyLogs(ctx context.Context, logsChannel <-chan *[]api.LogInsertModel) {
 	ticker := time.NewTicker(DefaultBulkLogsCopyInterval)
 	for {
 		select {
@@ -70,7 +70,7 @@ func bulkCopyLogs(ctx context.Context, logsChannel <-chan []api.LogInsertModel) 
 			for {
 				select {
 				case logs := <-logsChannel:
-					for _, log := range logs {
+					for _, log := range *logs {
 						bulkCopyEntries = append(bulkCopyEntries, []interface{}{log.Service, log.Timestamp, log.Level, log.Message, log.Fields})
 					}
 				default:

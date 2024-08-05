@@ -15,13 +15,13 @@ type LogInsertModel struct {
 	Fields    json.RawMessage `db:"fields" json:"fields"`
 }
 
-func insertLogs(c *fiber.Ctx, logsChannel chan []LogInsertModel) error {
+func insertLogs(c *fiber.Ctx) error {
 	logEntries := new([]LogInsertModel)
 	if err := c.BodyParser(logEntries); err != nil {
 		log.Error().Err(err).Msg("Failed to parse request body")
 		return c.Status(fiber.StatusBadRequest).SendString("Failed to parse request body")
 	}
-	logsChannel <- *logEntries
+	c.Locals("logsChannel").(chan *[]LogInsertModel) <- logEntries
 
 	return c.Status(fiber.StatusOK).SendString("Logs inserted successfully")
 }
