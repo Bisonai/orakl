@@ -4,11 +4,15 @@ package logscribeconsumer
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"net/http"
 	"strings"
 	"testing"
 	"time"
 
-	"bisonai.com/orakl/node/pkg/db"
+	"bisonai.com/orakl/node/pkg/logscribe"
+	"bisonai.com/orakl/node/pkg/utils/retrier"
+	"bisonai.com/orakl/sentinel/pkg/request"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 )
@@ -30,8 +34,9 @@ func TestNew(t *testing.T) {
 			name: "default",
 			opts: nil,
 			want: &App{
-				StoreInterval: DefaultLogStoreInterval,
-				buffer:        make(chan map[string]any, DefaultBufferSize),
+				StoreInterval:    DefaultLogStoreInterval,
+				buffer:           make(chan map[string]any, DefaultBufferSize),
+				LogscribeEnpoint: DefaultLogscribeEnpoint,
 			},
 		},
 		{
@@ -56,6 +61,15 @@ func TestNew(t *testing.T) {
 			want: &App{
 				StoreInterval: DefaultLogStoreInterval,
 				buffer:        make(chan map[string]any, DefaultBufferSize), // Should fallback to default
+			},
+		},
+		{
+			name: "custom logscribe endpoint",
+			opts: []AppOption{WithLogscribeEndpoint("http://localhost:3000")},
+			want: &App{
+				StoreInterval:    DefaultLogStoreInterval,
+				buffer:           make(chan map[string]any, DefaultBufferSize),
+				LogscribeEnpoint: "http://localhost:3000",
 			},
 		},
 	}
@@ -111,13 +125,35 @@ func TestLogscribeConsumerWrite(t *testing.T) {
 }
 
 func TestBulkCopyLogEntries(t *testing.T) {
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	go func() {
+		err := logscribe.Run(ctx)
+		if err != nil {
+			t.Errorf("Failed to start logscribe: %v", err)
+		}
+	}()
+
+	retrier.Retry(func() error {
+		resp, err := request.RequestRaw(request.WithEndpoint("http://localhost:3000/api/v1"))
+		if err != nil {
+			return err
+		}
+		if resp.StatusCode != http.StatusOK {
+			return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+		}
+		return nil
+	}, 10, 100*time.Millisecond, 1*time.Second)
+
+	app := New(WithLogscribeEndpoint("http://localhost:3000/api/v1"))
 
 	events := []map[string]any{
 		{
 			"time":    1234567890.0,
 			"level":   "error",
 			"message": "test message",
+			"service": "node",
 			"field1":  "test field 1",
 			"field2":  123,
 		},
@@ -125,6 +161,7 @@ func TestBulkCopyLogEntries(t *testing.T) {
 			"time":    9876543210.0,
 			"level":   "info",
 			"message": "another test message",
+			"service": "dal",
 			"field3":  "test field 3",
 			"field4":  456,
 		},
@@ -132,49 +169,20 @@ func TestBulkCopyLogEntries(t *testing.T) {
 			"time":    1111111111.0,
 			"level":   "debug",
 			"message": "debug message",
+			"service": "reporter",
 			"field5":  "test field 5",
 		},
 	}
 
-	expected := []LogEntry{
-		{
-			Level:     zerolog.ErrorLevel,
-			Message:   "test message",
-			Fields:    json.RawMessage(`{"field1": "test field 1", "field2": 123}`),
-			TimeStamp: time.Unix(1234567890, 0),
-		},
-		{
-			Level:     zerolog.InfoLevel,
-			Message:   "another test message",
-			Fields:    json.RawMessage(`{"field3": "test field 3", "field4": 456}`),
-			TimeStamp: time.Unix(9876543210, 0),
-		},
-		{
-			Level:     zerolog.DebugLevel,
-			Message:   "debug message",
-			Fields:    json.RawMessage(`{"field5": "test field 5"}`),
-			TimeStamp: time.Unix(1111111111, 0),
-		},
-	}
-
-	err := bulkCopyLogEntries(ctx, events)
+	err := app.bulkCopyLogEntries(events)
 	assert.NoError(t, err)
-
-	result, err := db.QueryRows[LogEntry](ctx, "SELECT level, message, fields, timestamp FROM zerologs", nil)
-	assert.NoError(t, err)
-
-	assert.Equal(t, expected, result)
-
-	err = db.QueryWithoutResult(ctx, "DELETE FROM zerologs", nil)
-	assert.NoError(t, err)
-
 }
 
-func TestExtractDBEntry(t *testing.T) {
+func TestExtractLogscribeEntry(t *testing.T) {
 	tests := []struct {
 		name     string
 		event    map[string]interface{}
-		expected []any
+		expected *LogInsertModel
 		wantErr  bool
 	}{
 		{
@@ -183,14 +191,16 @@ func TestExtractDBEntry(t *testing.T) {
 				"time":    1234567890.0,
 				"level":   "error",
 				"message": "test message",
+				"service": "node",
 				"field1":  "test field 1",
 				"field2":  123,
 			},
-			expected: []any{
-				time.Unix(1234567890, 0),
-				zerolog.ErrorLevel,
-				"test message",
-				json.RawMessage(`{"field1":"test field 1","field2":123}`),
+			expected: &LogInsertModel{
+				Timestamp: time.Unix(1234567890, 0),
+				Level:     int(zerolog.ErrorLevel),
+				Message:   "test message",
+				Service:   "node",
+				Fields:    json.RawMessage(`{"field1":"test field 1","field2":123}`),
 			},
 		},
 		{
@@ -213,26 +223,38 @@ func TestExtractDBEntry(t *testing.T) {
 			wantErr:  true,
 		},
 		{
+			name: "missing service",
+			event: map[string]interface{}{
+				"time":    1234567890.0,
+				"level":   "error",
+				"message": "test message",
+			},
+			expected: nil,
+			wantErr:  true,
+		},
+		{
 			name: "nested fields",
 			event: map[string]interface{}{
 				"time":    1234567890.0,
 				"level":   "error",
 				"message": "test message",
+				"service": "node",
 				"nested": map[string]interface{}{
 					"inner": "value",
 				},
 			},
-			expected: []any{
-				time.Unix(1234567890, 0),
-				zerolog.ErrorLevel,
-				"test message",
-				json.RawMessage(`{"nested":{"inner":"value"}}`),
+			expected: &LogInsertModel{
+				Timestamp: time.Unix(1234567890, 0),
+				Level:     int(zerolog.ErrorLevel),
+				Message:   "test message",
+				Service:   "node",
+				Fields:    json.RawMessage(`{"nested":{"inner":"value"}}`),
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			actual, err := extractDbEntry(tt.event)
+			actual, err := extractLogscribeEntry(tt.event)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("extractDbEntry() error = %v, wantErr %v", err, tt.wantErr)
 				return

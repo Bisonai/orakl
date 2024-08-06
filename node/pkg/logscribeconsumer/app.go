@@ -174,10 +174,15 @@ func extractLogscribeEntry(entry map[string]interface{}) (*LogInsertModel, error
 		return nil, errorsentinel.ErrLogLvlNotExist
 	}
 
+	serviceVal, ok := entry["service"]
+	if !ok {
+		return nil, errorsentinel.ErrLogscribeServiceNotExist
+	}
+
 	timestamp := time.Unix(int64(timeVal.(float64)), 0)
 	message := messageVal.(string)
 	levelStr := levelStrVal.(string)
-	service := entry["service"].(string)
+	service := serviceVal.(string)
 
 	level, err := zerolog.ParseLevel(levelStr)
 	if err != nil {
