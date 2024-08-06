@@ -52,6 +52,17 @@ type Config struct {
 	AggregateInterval int32  `db:"aggregate_interval"`
 }
 
+type RoundTriggers struct {
+	locked map[int32]bool
+	mu     sync.Mutex
+}
+
+func (r *RoundTriggers) cleanup(roundID int32) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	delete(r.locked, roundID)
+}
+
 type RoundPrices struct {
 	senders map[int32][]string
 	prices  map[int32][]int64
@@ -105,6 +116,7 @@ type Aggregator struct {
 	Raft *raft.Raft
 
 	LatestLocalAggregates *LatestLocalAggregates
+	RoundTriggers         *RoundTriggers
 	roundPrices           *RoundPrices
 	roundProofs           *RoundProofs
 

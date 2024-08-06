@@ -33,6 +33,9 @@ func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string, config Co
 		Config: config,
 		Raft:   raft.NewRaftNode(h, ps, topic, 1000, aggregateInterval),
 
+		RoundTriggers: &RoundTriggers{
+			locked: map[int32]bool{},
+		},
 		roundPrices: &RoundPrices{
 			prices:  map[int32][]int64{},
 			senders: map[int32][]string{},
@@ -103,6 +106,15 @@ func (n *Aggregator) HandleTriggerMessage(ctx context.Context, msg raft.Message)
 		return errorSentinel.ErrAggregatorNonLeaderRaftMessage
 	}
 
+	n.RoundTriggers.mu.Lock()
+	defer n.RoundTriggers.mu.Unlock()
+
+	if n.RoundTriggers.locked[triggerMessage.RoundID] {
+		log.Warn().Str("Player", "Aggregator").Int32("RoundID", triggerMessage.RoundID).Msg("trigger message already processed")
+		return nil
+	}
+	n.RoundTriggers.locked[triggerMessage.RoundID] = true
+
 	var value int64
 	localAggregate, ok := n.LatestLocalAggregates.Load(n.ID)
 	if !ok {
@@ -135,6 +147,7 @@ func (n *Aggregator) HandlePriceDataMessage(ctx context.Context, msg raft.Messag
 	defer n.roundPrices.mu.Unlock()
 
 	if n.roundPrices.locked[priceDataMessage.RoundID] || n.roundPrices.isReplay(priceDataMessage.RoundID, msg.SentFrom) {
+		log.Warn().Str("Player", "Aggregator").Int32("RoundID", priceDataMessage.RoundID).Msg("price data message already processed")
 		return nil
 	}
 
@@ -198,6 +211,7 @@ func (n *Aggregator) HandleProofMessage(ctx context.Context, msg raft.Message) e
 	defer n.roundProofs.mu.Unlock()
 
 	if n.roundProofs.locked[proofMessage.RoundID] || n.roundProofs.isReplay(proofMessage.RoundID, msg.SentFrom) {
+		log.Warn().Str("Player", "Aggregator").Int32("RoundID", proofMessage.RoundID).Msg("proof message already processed")
 		return nil
 	}
 
@@ -303,6 +317,7 @@ func (n *Aggregator) PublishProofMessage(ctx context.Context, roundId int32, val
 }
 
 func (n *Aggregator) cleanUp(roundID int32) {
+	n.RoundTriggers.cleanup(roundID)
 	n.roundPrices.cleanup(roundID)
 	n.roundProofs.cleanup(roundID)
 }
