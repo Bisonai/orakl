@@ -227,4 +227,5 @@ var (
 	ErrLogEmptyLogByte      = &CustomError{Service: Others, Code: InvalidInputError, Message: "Empty log byte"}
 
 	ErrLogscribeDbPoolNotFound = &CustomError{Service: Logscribe, Code: InternalError, Message: "db pool not found"}
+	ErrLogscribeInsertFailed   = &CustomError{Service: Logscribe, Code: DatabaseError, Message: "Failed to insert logs to Logscribe"}
 )

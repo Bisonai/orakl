@@ -3,12 +3,13 @@ package logscribeconsumer
 import (
 	"context"
 	"encoding/json"
+	"net/http"
 	"os"
 	"strings"
 	"time"
 
-	"bisonai.com/orakl/node/pkg/db"
 	errorsentinel "bisonai.com/orakl/node/pkg/error"
+	"bisonai.com/orakl/node/pkg/utils/request"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
@@ -17,16 +18,18 @@ func New(options ...AppOption) *App {
 	consoleWriter := zerolog.ConsoleWriter{Out: os.Stdout}
 
 	c := &AppConfig{
-		StoreInterval: DefaultLogStoreInterval,
-		Buffer:        DefaultBufferSize,
+		StoreInterval:    DefaultLogStoreInterval,
+		Buffer:           DefaultBufferSize,
+		LogscribeEnpoint: DefaultLogscribeEnpoint,
 	}
 	for _, option := range options {
 		option(c)
 	}
 	return &App{
-		StoreInterval: c.StoreInterval,
-		buffer:        make(chan map[string]any, c.Buffer),
-		consoleWriter: consoleWriter,
+		StoreInterval:    c.StoreInterval,
+		buffer:           make(chan map[string]any, c.Buffer),
+		consoleWriter:    consoleWriter,
+		LogscribeEnpoint: c.LogscribeEnpoint,
 	}
 }
 
@@ -108,7 +111,7 @@ func (a *App) processBatch(ctx context.Context) error {
 				break loop
 			}
 		}
-		return bulkCopyLogEntries(ctx, batch)
+		return a.bulkCopyLogEntries(batch)
 	default:
 		return nil
 	}
@@ -131,29 +134,33 @@ func isLogLevelValid(entry map[string]any) bool {
 	return true
 }
 
-func bulkCopyLogEntries(ctx context.Context, logEntries []map[string]any) error {
-	bulkCopyEntries := [][]any{}
+func (a *App) bulkCopyLogEntries(logEntries []map[string]any) error {
+	bulkCopyEntries := []LogInsertModel{}
 
 	for _, entry := range logEntries {
-		res, err := extractDbEntry(entry)
-		if err != nil {
+		res, err := extractLogscribeEntry(entry)
+		if err != nil || res == nil {
 			log.Error().Err(err).Msg("Error extracting log entry")
 			continue
 		}
 
-		bulkCopyEntries = append(bulkCopyEntries, res)
+		bulkCopyEntries = append(bulkCopyEntries, *res)
 	}
 
 	if len(bulkCopyEntries) > 0 {
-		_, err := db.BulkCopy(ctx, "zerologs", []string{"timestamp", "level", "message", "fields"}, bulkCopyEntries)
+		res, err := request.RequestRaw(request.WithEndpoint(a.LogscribeEnpoint), request.WithBody(bulkCopyEntries), request.WithMethod("POST"))
 		if err != nil {
 			return err
 		}
+		if res.StatusCode != http.StatusOK {
+			return errorsentinel.ErrLogscribeInsertFailed
+		}
+		log.Debug().Msg("Log entries inserted successfully")
 	}
 	return nil
 }
 
-func extractDbEntry(entry map[string]interface{}) ([]any, error) {
+func extractLogscribeEntry(entry map[string]interface{}) (*LogInsertModel, error) {
 	timeVal, ok := entry["time"]
 	if !ok {
 		return nil, errorsentinel.ErrLogTimestampNotExist
@@ -170,6 +177,7 @@ func extractDbEntry(entry map[string]interface{}) ([]any, error) {
 	timestamp := time.Unix(int64(timeVal.(float64)), 0)
 	message := messageVal.(string)
 	levelStr := levelStrVal.(string)
+	service := entry["service"].(string)
 
 	level, err := zerolog.ParseLevel(levelStr)
 	if err != nil {
@@ -179,13 +187,14 @@ func extractDbEntry(entry map[string]interface{}) ([]any, error) {
 	delete(entry, "time")
 	delete(entry, "level")
 	delete(entry, "message")
+	delete(entry, "service")
 
 	jsonData, err := json.Marshal(entry)
 	if err != nil {
 		return nil, err
 	}
 	fields := json.RawMessage(jsonData)
-	return []any{timestamp, level, message, fields}, nil
+	return &LogInsertModel{Timestamp: timestamp, Service: service, Level: int(level), Message: message, Fields: fields}, nil
 }
 
 func byte2Entry(b []byte) (map[string]any, error) {
