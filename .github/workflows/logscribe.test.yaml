@@ -6,6 +6,7 @@ on:
       - "master"
     paths:
       - "node/pkg/logscribe/**"
+      - "node/pkg/logscribeconsumer/**"
   workflow_dispatch:
 
 jobs:
@@ -58,9 +59,16 @@ jobs:
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Run test
+      - name: Run logscribe tests
         run: |
           cd ./node
           task local:test-logscribe
+        env:
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/orakl-test?search_path=public"
+
+      - name: Run logscribeconsumer tests
+        run: |
+          cd ./node
+          task local:test-logscribeconsumer
         env:
           DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/orakl-test?search_path=public"
