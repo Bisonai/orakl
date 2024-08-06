@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"bisonai.com/orakl/node/pkg/logscribe"
+	"bisonai.com/orakl/node/pkg/utils/request"
 	"bisonai.com/orakl/node/pkg/utils/retrier"
-	"bisonai.com/orakl/sentinel/pkg/request"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 )
