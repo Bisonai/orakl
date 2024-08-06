@@ -40,12 +40,14 @@ func NewRaftNode(
 		HeartbeatTimeout: HEARTBEAT_TIMEOUT,
 
 		LeaderJobTimeout: leaderJobTimeout,
+		prevMessageMap:   NewPrevMessageMap(MessageTTL),
 	}
 	return r
 }
 
 func (r *Raft) Run(ctx context.Context) {
 	go r.subscribe(ctx)
+	r.prevMessageMap.RunRegularCleanup(ctx, MessageCleanupInterval)
 	r.startElectionTimer()
 	for {
 		select {
@@ -81,13 +83,26 @@ func (r *Raft) subscribe(ctx context.Context) {
 				continue
 			}
 
-			msg, err := r.unmarshalMessage(rawMsg.Data)
-			if err != nil {
-				log.Error().Err(err).Msg("failed to unmarshal message")
-				continue
-			}
+			go func(*pubsub.Message) {
+				msg, err := r.unmarshalMessage(rawMsg.Data)
+				if err != nil {
+					log.Error().Err(err).Msg("failed to unmarshal message")
+					return
+				}
 
-			r.MessageBuffer <- msg
+				hash, err := msg.Hash()
+				if err != nil {
+					log.Error().Err(err).Msg("failed to generate hash")
+					return
+				}
+
+				if !r.prevMessageMap.AddIfValid(hash) {
+					log.Error().Msg("Message alread processed")
+					return
+				}
+
+				r.MessageBuffer <- msg
+			}(rawMsg)
 		}
 	}
 }
