@@ -2,8 +2,6 @@ package raft
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"sync"
 	"time"
@@ -25,31 +23,12 @@ const (
 	Leader    RoleType = "leader"
 	Candidate RoleType = "candidate"
 	Follower  RoleType = "follower"
-
-	MessageCleanupInterval = 10 * time.Second
-	MessageTTL             = 30 * time.Second
 )
 
 type Message struct {
 	Type     MessageType     `json:"type"`
 	SentFrom string          `json:"sentFrom"`
 	Data     json.RawMessage `json:"data"`
-}
-
-func (m *Message) Hash() (*string, error) {
-	hash := sha256.New()
-	if _, err := hash.Write([]byte(m.Type)); err != nil {
-		return nil, err
-	}
-	if _, err := hash.Write([]byte(m.SentFrom)); err != nil {
-		return nil, err
-	}
-	if _, err := hash.Write(m.Data); err != nil {
-		return nil, err
-	}
-
-	hashString := hex.EncodeToString(hash.Sum(nil))
-	return &hashString, nil
 }
 
 type RequestVoteMessage struct {
