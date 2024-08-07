@@ -19,12 +19,16 @@ type App struct {
 	buffer           chan map[string]any
 	consoleWriter    zerolog.ConsoleWriter
 	LogscribeEnpoint string
+	Service          string
+	Level            string
 }
 
 type AppConfig struct {
 	StoreInterval    time.Duration
 	Buffer           int
 	LogscribeEnpoint string
+	Service          string
+	Level            string
 }
 
 type AppOption func(c *AppConfig)
@@ -52,5 +56,17 @@ func WithStoreInterval(interval time.Duration) AppOption {
 func WithLogscribeEndpoint(endpoint string) AppOption {
 	return func(c *AppConfig) {
 		c.LogscribeEnpoint = endpoint
+	}
+}
+
+func WithStoreService(service string) AppOption {
+	return func(c *AppConfig) {
+		c.Service = service
+	}
+}
+
+func WithStoreLevel(level string) AppOption {
+	return func(c *AppConfig) {
+		c.Level = level
 	}
 }

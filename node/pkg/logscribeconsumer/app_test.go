@@ -4,15 +4,11 @@ package logscribeconsumer
 import (
 	"context"
 	"encoding/json"
-	"fmt"
-	"net/http"
 	"strings"
 	"testing"
 	"time"
 
 	"bisonai.com/orakl/node/pkg/logscribe"
-	"bisonai.com/orakl/node/pkg/utils/request"
-	"bisonai.com/orakl/node/pkg/utils/retrier"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 )
@@ -26,60 +22,71 @@ type LogEntry struct {
 
 func TestNew(t *testing.T) {
 	tests := []struct {
-		name string
-		opts []AppOption
-		want *App
+		name    string
+		opts    []AppOption
+		want    *App
+		wantErr bool
 	}{
 		{
-			name: "default",
-			opts: nil,
-			want: &App{
-				StoreInterval:    DefaultLogStoreInterval,
-				buffer:           make(chan map[string]any, DefaultBufferSize),
-				LogscribeEnpoint: DefaultLogscribeEnpoint,
-			},
-		},
-		{
 			name: "custom buffer",
-			opts: []AppOption{WithBuffer(500)},
+			opts: []AppOption{WithBuffer(500), WithStoreService("node")},
 			want: &App{
 				StoreInterval: DefaultLogStoreInterval,
 				buffer:        make(chan map[string]any, 500),
 			},
+			wantErr: false,
 		},
 		{
 			name: "custom interval",
-			opts: []AppOption{WithStoreInterval(time.Second)},
+			opts: []AppOption{WithStoreInterval(time.Second), WithStoreService("node")},
 			want: &App{
 				StoreInterval: time.Second,
 				buffer:        make(chan map[string]any, DefaultBufferSize),
 			},
+			wantErr: false,
 		},
 		{
 			name: "negative buffer",
-			opts: []AppOption{WithBuffer(-1)},
+			opts: []AppOption{WithBuffer(-1), WithStoreService("node")},
 			want: &App{
 				StoreInterval: DefaultLogStoreInterval,
 				buffer:        make(chan map[string]any, DefaultBufferSize), // Should fallback to default
 			},
+			wantErr: false,
 		},
 		{
 			name: "custom logscribe endpoint",
-			opts: []AppOption{WithLogscribeEndpoint("http://localhost:3000")},
+			opts: []AppOption{WithLogscribeEndpoint("http://localhost:3000"), WithStoreService("node")},
 			want: &App{
 				StoreInterval:    DefaultLogStoreInterval,
 				buffer:           make(chan map[string]any, DefaultBufferSize),
 				LogscribeEnpoint: "http://localhost:3000",
 			},
+			wantErr: false,
+		},
+		{
+			name:    "service not provided",
+			opts:    []AppOption{WithLogscribeEndpoint("http://localhost:3000")},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name:    "invalid log level",
+			opts:    []AppOption{WithStoreService("node"), WithStoreLevel("test")},
+			want:    nil,
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := New(tt.opts...)
-
-			assert.Equal(t, tt.want.StoreInterval, got.StoreInterval, "StoreInterval should be equal")
-
-			assert.Equal(t, cap(tt.want.buffer), cap(got.buffer), "Buffer capacity should be equal")
+			got, err := New(tt.opts...)
+			if tt.wantErr {
+				assert.Error(t, err)
+				assert.Nil(t, got)
+			} else {
+				assert.Equal(t, tt.want.StoreInterval, got.StoreInterval, "StoreInterval should be equal")
+				assert.Equal(t, cap(tt.want.buffer), cap(got.buffer), "Buffer capacity should be equal")
+			}
 		})
 	}
 }
@@ -111,7 +118,7 @@ func TestLogscribeConsumerWrite(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			l := New()
+			l, _ := New(WithStoreService("node"))
 			_, err := l.Write(tt.log)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("LogscribeConsumer.Write() error = %v, wantErr %v", err, tt.wantErr)
@@ -131,22 +138,13 @@ func TestBulkCopyLogEntries(t *testing.T) {
 	go func() {
 		err := logscribe.Run(ctx)
 		if err != nil {
-			t.Errorf("Failed to start logscribe: %v", err)
+			t.Errorf("failed to start logscribe app: %v", err)
 		}
 	}()
 
-	retrier.Retry(func() error {
-		resp, err := request.RequestRaw(request.WithEndpoint("http://localhost:3000/api/v1"))
-		if err != nil {
-			return err
-		}
-		if resp.StatusCode != http.StatusOK {
-			return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
-		}
-		return nil
-	}, 10, 100*time.Millisecond, 1*time.Second)
+	time.Sleep(500 * time.Millisecond)
 
-	app := New(WithLogscribeEndpoint("http://localhost:3000/api/v1"))
+	app, _ := New(WithLogscribeEndpoint("http://localhost:3000/api/v1"), WithStoreService("node"))
 
 	events := []map[string]any{
 		{
@@ -174,7 +172,7 @@ func TestBulkCopyLogEntries(t *testing.T) {
 		},
 	}
 
-	err := app.bulkCopyLogEntries(events)
+	err := app.bulkPostLogEntries(events)
 	assert.NoError(t, err)
 }
 
@@ -191,7 +189,6 @@ func TestExtractLogscribeEntry(t *testing.T) {
 				"time":    1234567890.0,
 				"level":   "error",
 				"message": "test message",
-				"service": "node",
 				"field1":  "test field 1",
 				"field2":  123,
 			},
@@ -223,22 +220,11 @@ func TestExtractLogscribeEntry(t *testing.T) {
 			wantErr:  true,
 		},
 		{
-			name: "missing service",
-			event: map[string]interface{}{
-				"time":    1234567890.0,
-				"level":   "error",
-				"message": "test message",
-			},
-			expected: nil,
-			wantErr:  true,
-		},
-		{
 			name: "nested fields",
 			event: map[string]interface{}{
 				"time":    1234567890.0,
 				"level":   "error",
 				"message": "test message",
-				"service": "node",
 				"nested": map[string]interface{}{
 					"inner": "value",
 				},
@@ -252,9 +238,12 @@ func TestExtractLogscribeEntry(t *testing.T) {
 			},
 		},
 	}
+
+	app, _ := New(WithStoreService("node"))
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			actual, err := extractLogscribeEntry(tt.event)
+			actual, err := app.extractLogscribeEntry(tt.event)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("extractDbEntry() error = %v, wantErr %v", err, tt.wantErr)
 				return

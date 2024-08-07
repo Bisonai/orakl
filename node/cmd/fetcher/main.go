@@ -14,7 +14,11 @@ import (
 func main() {
 	ctx := context.Background()
 
-	logscribeconsumer := logscribeconsumer.New()
+	logscribeconsumer, err := logscribeconsumer.New(logscribeconsumer.WithStoreService("fetcher"))
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to create a new logscribeconsumer instance")
+		return
+	}
 	go logscribeconsumer.Run(ctx)
 
 	mb := bus.New(10)
@@ -31,7 +35,7 @@ func main() {
 	}()
 
 	log.Info().Msg("Syncing orakl config")
-	err := admin.SyncOraklConfig(ctx)
+	err = admin.SyncOraklConfig(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to sync orakl config")
 		return

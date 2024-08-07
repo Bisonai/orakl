@@ -20,7 +20,11 @@ import (
 func main() {
 	ctx := context.Background()
 
-	logscribeconsumer := logscribeconsumer.New()
+	logscribeconsumer, err := logscribeconsumer.New(logscribeconsumer.WithStoreService("node"))
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to create a new logscribeconsumer instance")
+		return
+	}
 	go logscribeconsumer.Run(ctx)
 
 	mb := bus.New(1000)

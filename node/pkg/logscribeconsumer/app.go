@@ -14,7 +14,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func New(options ...AppOption) *App {
+func New(options ...AppOption) (*App, error) {
 	consoleWriter := zerolog.ConsoleWriter{Out: os.Stdout}
 
 	c := &AppConfig{
@@ -25,12 +25,22 @@ func New(options ...AppOption) *App {
 	for _, option := range options {
 		option(c)
 	}
+
+	if c.Service == "" {
+		return nil, errorsentinel.ErrLogscribeConsumerServiceNotProvided
+	}
+	if !isLogLevelValid(map[string]any{"level": c.Level}) {
+		return nil, errorsentinel.ErrLogscribeConsumerInvalidLevel
+	}
+
 	return &App{
 		StoreInterval:    c.StoreInterval,
 		buffer:           make(chan map[string]any, c.Buffer),
 		consoleWriter:    consoleWriter,
 		LogscribeEnpoint: c.LogscribeEnpoint,
-	}
+		Service:          c.Service,
+		Level:            c.Level,
+	}, nil
 }
 
 func (a *App) Write(p []byte) (n int, err error) {
@@ -111,7 +121,7 @@ func (a *App) processBatch(ctx context.Context) error {
 				break loop
 			}
 		}
-		return a.bulkCopyLogEntries(batch)
+		return a.bulkPostLogEntries(batch)
 	default:
 		return nil
 	}
@@ -134,11 +144,11 @@ func isLogLevelValid(entry map[string]any) bool {
 	return true
 }
 
-func (a *App) bulkCopyLogEntries(logEntries []map[string]any) error {
+func (a *App) bulkPostLogEntries(logEntries []map[string]any) error {
 	bulkCopyEntries := []LogInsertModel{}
 
 	for _, entry := range logEntries {
-		res, err := extractLogscribeEntry(entry)
+		res, err := a.extractLogscribeEntry(entry)
 		if err != nil || res == nil {
 			log.Error().Err(err).Msg("Error extracting log entry")
 			continue
@@ -160,7 +170,7 @@ func (a *App) bulkCopyLogEntries(logEntries []map[string]any) error {
 	return nil
 }
 
-func extractLogscribeEntry(entry map[string]interface{}) (*LogInsertModel, error) {
+func (a *App) extractLogscribeEntry(entry map[string]interface{}) (*LogInsertModel, error) {
 	timeVal, ok := entry["time"]
 	if !ok {
 		return nil, errorsentinel.ErrLogTimestampNotExist
@@ -174,32 +184,31 @@ func extractLogscribeEntry(entry map[string]interface{}) (*LogInsertModel, error
 		return nil, errorsentinel.ErrLogLvlNotExist
 	}
 
-	serviceVal, ok := entry["service"]
-	if !ok {
-		return nil, errorsentinel.ErrLogscribeServiceNotExist
-	}
-
 	timestamp := time.Unix(int64(timeVal.(float64)), 0)
 	message := messageVal.(string)
-	levelStr := levelStrVal.(string)
-	service := serviceVal.(string)
 
-	level, err := zerolog.ParseLevel(levelStr)
+	var levelStr string
+	if a.Level == "" {
+		levelStr = levelStrVal.(string)
+	} else {
+		levelStr = a.Level
+	}
+	zerologLevel, err := zerolog.ParseLevel(levelStr)
 	if err != nil {
 		return nil, err
 	}
+	level := int(zerologLevel)
 
 	delete(entry, "time")
 	delete(entry, "level")
 	delete(entry, "message")
-	delete(entry, "service")
 
 	jsonData, err := json.Marshal(entry)
 	if err != nil {
 		return nil, err
 	}
 	fields := json.RawMessage(jsonData)
-	return &LogInsertModel{Timestamp: timestamp, Service: service, Level: int(level), Message: message, Fields: fields}, nil
+	return &LogInsertModel{Timestamp: timestamp, Service: a.Service, Level: int(level), Message: message, Fields: fields}, nil
 }
 
 func byte2Entry(b []byte) (map[string]any, error) {

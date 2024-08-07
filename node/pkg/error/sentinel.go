@@ -15,6 +15,7 @@ const (
 	Por
 	Dal
 	Logscribe
+	LogscribeConsumer
 	Others
 )
 
@@ -229,4 +230,7 @@ var (
 	ErrLogscribeDbPoolNotFound  = &CustomError{Service: Logscribe, Code: InternalError, Message: "db pool not found"}
 	ErrLogscribeInsertFailed    = &CustomError{Service: Logscribe, Code: DatabaseError, Message: "Failed to insert logs to Logscribe"}
 	ErrLogscribeServiceNotExist = &CustomError{Service: Logscribe, Code: InvalidInputError, Message: "Service field not found in log entry"}
+
+	ErrLogscribeConsumerServiceNotProvided = &CustomError{Service: LogscribeConsumer, Code: InvalidInputError, Message: "Service field not provided in logscribeconsumer"}
+	ErrLogscribeConsumerInvalidLevel       = &CustomError{Service: LogscribeConsumer, Code: InvalidInputError, Message: "Invalid log level provided to logscribeconsumer"}
 )
