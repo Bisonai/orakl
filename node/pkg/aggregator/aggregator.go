@@ -33,8 +33,19 @@ func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string, config Co
 		Config: config,
 		Raft:   raft.NewRaftNode(h, ps, topic, 1000, aggregateInterval),
 
-		roundPrices: &RoundPrices{prices: map[int32][]int64{}},
-		roundProofs: &RoundProofs{proofs: map[int32][][]byte{}},
+		RoundTriggers: &RoundTriggers{
+			locked: map[int32]bool{},
+		},
+		roundPrices: &RoundPrices{
+			prices:  map[int32][]int64{},
+			senders: map[int32][]string{},
+			locked:  map[int32]bool{},
+		},
+		roundProofs: &RoundProofs{
+			proofs:  map[int32][][]byte{},
+			senders: map[int32][]string{},
+			locked:  map[int32]bool{},
+		},
 
 		RoundID:               1,
 		Signer:                signHelper,
@@ -60,6 +71,7 @@ func (n *Aggregator) Run(ctx context.Context) {
 func (n *Aggregator) LeaderJob(ctx context.Context) error {
 	n.RoundID++
 	n.Raft.IncreaseTerm()
+	defer n.cleanUp(n.RoundID - 20) // cleanup 20 rounds earlier data, approximately 8 sec ago
 	return n.PublishTriggerMessage(ctx, n.RoundID, time.Now())
 }
 
@@ -94,6 +106,15 @@ func (n *Aggregator) HandleTriggerMessage(ctx context.Context, msg raft.Message)
 		return errorSentinel.ErrAggregatorNonLeaderRaftMessage
 	}
 
+	n.RoundTriggers.mu.Lock()
+	defer n.RoundTriggers.mu.Unlock()
+
+	if n.RoundTriggers.locked[triggerMessage.RoundID] {
+		log.Warn().Str("Player", "Aggregator").Int32("RoundID", triggerMessage.RoundID).Msg("trigger message already processed")
+		return nil
+	}
+	n.RoundTriggers.locked[triggerMessage.RoundID] = true
+
 	var value int64
 	localAggregate, ok := n.LatestLocalAggregates.Load(n.ID)
 	if !ok {
@@ -125,13 +146,23 @@ func (n *Aggregator) HandlePriceDataMessage(ctx context.Context, msg raft.Messag
 	n.roundPrices.mu.Lock()
 	defer n.roundPrices.mu.Unlock()
 
+	if n.roundPrices.locked[priceDataMessage.RoundID] || n.roundPrices.isReplay(priceDataMessage.RoundID, msg.SentFrom) {
+		log.Warn().Str("Player", "Aggregator").Int32("RoundID", priceDataMessage.RoundID).Msg("price data message already processed")
+		return nil
+	}
+
 	if prices, ok := n.roundPrices.prices[priceDataMessage.RoundID]; ok {
 		n.roundPrices.prices[priceDataMessage.RoundID] = append(prices, priceDataMessage.PriceData)
+		n.roundPrices.senders[priceDataMessage.RoundID] = append(n.roundPrices.senders[priceDataMessage.RoundID], msg.SentFrom)
 	} else {
 		n.roundPrices.prices[priceDataMessage.RoundID] = []int64{priceDataMessage.PriceData}
+		n.roundPrices.senders[priceDataMessage.RoundID] = []string{msg.SentFrom}
 	}
-	if len(n.roundPrices.prices[priceDataMessage.RoundID]) >= n.Raft.SubscribersCount()+1 {
+
+	if len(n.roundPrices.prices[priceDataMessage.RoundID]) == n.Raft.SubscribersCount()+1 {
 		defer delete(n.roundPrices.prices, priceDataMessage.RoundID)
+		n.roundPrices.locked[priceDataMessage.RoundID] = true
+
 		prices := n.roundPrices.prices[priceDataMessage.RoundID]
 		log.Debug().Str("Player", "Aggregator").Int("peerCount", n.Raft.SubscribersCount()).Str("Name", n.Name).Any("collected prices", prices).Int32("roundId", priceDataMessage.RoundID).Msg("collected prices")
 
@@ -179,14 +210,23 @@ func (n *Aggregator) HandleProofMessage(ctx context.Context, msg raft.Message) e
 	n.roundProofs.mu.Lock()
 	defer n.roundProofs.mu.Unlock()
 
-	if proofs, ok := n.roundProofs.proofs[proofMessage.RoundID]; ok {
-		n.roundProofs.proofs[proofMessage.RoundID] = append(proofs, proofMessage.Proof)
-	} else {
-		n.roundProofs.proofs[proofMessage.RoundID] = [][]byte{proofMessage.Proof}
+	if n.roundProofs.locked[proofMessage.RoundID] || n.roundProofs.isReplay(proofMessage.RoundID, msg.SentFrom) {
+		log.Warn().Str("Player", "Aggregator").Int32("RoundID", proofMessage.RoundID).Msg("proof message already processed")
+		return nil
 	}
 
-	if len(n.roundProofs.proofs[proofMessage.RoundID]) >= n.Raft.SubscribersCount()+1 {
+	if proofs, ok := n.roundProofs.proofs[proofMessage.RoundID]; ok {
+		n.roundProofs.proofs[proofMessage.RoundID] = append(proofs, proofMessage.Proof)
+		n.roundProofs.senders[proofMessage.RoundID] = append(n.roundProofs.senders[proofMessage.RoundID], msg.SentFrom)
+	} else {
+		n.roundProofs.proofs[proofMessage.RoundID] = [][]byte{proofMessage.Proof}
+		n.roundProofs.senders[proofMessage.RoundID] = []string{msg.SentFrom}
+	}
+
+	if len(n.roundProofs.proofs[proofMessage.RoundID]) == n.Raft.SubscribersCount()+1 {
 		defer delete(n.roundProofs.proofs, proofMessage.RoundID)
+		n.roundProofs.locked[proofMessage.RoundID] = true
+
 		log.Debug().Str("Player", "Aggregator").Str("Name", n.Name).Int("peerCount", n.Raft.SubscribersCount()).Int32("roundId", proofMessage.RoundID).Any("collected proofs", n.roundProofs.proofs[proofMessage.RoundID]).Msg("collected proofs")
 
 		globalAggregate := GlobalAggregate{
@@ -274,4 +314,10 @@ func (n *Aggregator) PublishProofMessage(ctx context.Context, roundId int32, val
 	}
 
 	return n.Raft.PublishMessage(ctx, message)
+}
+
+func (n *Aggregator) cleanUp(roundID int32) {
+	n.RoundTriggers.cleanup(roundID)
+	n.roundPrices.cleanup(roundID)
+	n.roundProofs.cleanup(roundID)
 }
