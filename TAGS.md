@@ -150,3 +150,4 @@
 - **dal** v0.0.1.20240805.0904.8bc24f7 <br> *`PR`*: OraklNode Minor updates add em... <br><br> 
 - **dal** v0.0.1.20240805.1011.e61e2a9 <br> *`PR`*: DAL update log <br><br> 
 - **node** v0.0.1.20240807.0149.4005140 <br> *`PR`*: OraklNode Msg replay preventio... <br><br> 
+- **node** v0.0.1.20240807.0233.c512afe <br> *`PR`*: OraklNode Mutex lock roundID <br><br> 

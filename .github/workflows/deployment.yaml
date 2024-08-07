@@ -157,6 +157,7 @@ on:
           - dal:v0.0.1.20240805.0904.8bc24f7:OraklNode Minor updates add em...
           - dal:v0.0.1.20240805.1011.e61e2a9:DAL update log
           - node:v0.0.1.20240807.0149.4005140:OraklNode Msg replay preventio...
+          - node:v0.0.1.20240807.0233.c512afe:OraklNode Mutex lock roundID
 jobs:
   prepare-taskflow:
     name: Prepare
