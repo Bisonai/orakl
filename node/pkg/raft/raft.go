@@ -50,7 +50,12 @@ func (r *Raft) Run(ctx context.Context) {
 	for {
 		select {
 		case msg := <-r.MessageBuffer:
-			go r.handleMessage(ctx, msg)
+			go func(Message) {
+				err := r.handleMessage(ctx, msg)
+				if err != nil {
+					log.Error().Err(err).Str("Player", "Raft").Msg("failed to handle message")
+				}
+			}(msg)
 		case <-r.ElectionTimer.C:
 			r.startElection(ctx)
 		case <-ctx.Done():

@@ -58,10 +58,19 @@ type RoundTriggers struct {
 	mu     sync.Mutex
 }
 
-func (r *RoundTriggers) cleanup(roundID int32) {
+func (r *RoundTriggers) leaveOnlyLast10Entries(roundID int32) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	delete(r.locked, roundID)
+
+	newLocked := make(map[int32]bool)
+
+	for i := roundID; i > roundID-10; i-- {
+		if val, exists := r.locked[i]; exists {
+			newLocked[i] = val
+		}
+	}
+
+	r.locked = newLocked
 }
 
 type RoundPrices struct {
@@ -80,12 +89,33 @@ func (r *RoundPrices) isReplay(roundID int32, sender string) bool {
 	return false
 }
 
-func (r *RoundPrices) cleanup(roundID int32) {
+func (r *RoundPrices) leaveOnlyLast10Entries(roundID int32) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	delete(r.senders, roundID)
-	delete(r.prices, roundID)
-	delete(r.locked, roundID)
+
+	newLocked := make(map[int32]bool)
+	for i := roundID; i > roundID-10; i-- {
+		if val, exists := r.locked[i]; exists {
+			newLocked[i] = val
+		}
+	}
+	r.locked = newLocked
+
+	newPrices := make(map[int32][]int64)
+	for i := roundID; i > roundID-10; i-- {
+		if val, exists := r.prices[i]; exists {
+			newPrices[i] = val
+		}
+	}
+	r.prices = newPrices
+
+	newSenders := make(map[int32][]string)
+	for i := roundID; i > roundID-10; i-- {
+		if val, exists := r.senders[i]; exists {
+			newSenders[i] = val
+		}
+	}
+	r.senders = newSenders
 }
 
 type RoundPriceFixes struct {
@@ -93,10 +123,17 @@ type RoundPriceFixes struct {
 	mu     sync.Mutex
 }
 
-func (r *RoundPriceFixes) cleanup(roundID int32) {
+func (r *RoundPriceFixes) leaveOnlyLast10Entries(roundID int32) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	delete(r.locked, roundID)
+
+	newLocked := make(map[int32]bool)
+	for i := roundID; i > roundID-10; i-- {
+		if val, exists := r.locked[i]; exists {
+			newLocked[i] = val
+		}
+	}
+	r.locked = newLocked
 }
 
 type RoundProofs struct {
@@ -115,12 +152,33 @@ func (r *RoundProofs) isReplay(roundID int32, sender string) bool {
 	return false
 }
 
-func (r *RoundProofs) cleanup(roundID int32) {
+func (r *RoundProofs) leaveOnlyLast10Entries(roundID int32) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	delete(r.senders, roundID)
-	delete(r.proofs, roundID)
-	delete(r.locked, roundID)
+
+	newLocked := make(map[int32]bool)
+	for i := roundID; i > roundID-10; i-- {
+		if val, exists := r.locked[i]; exists {
+			newLocked[i] = val
+		}
+	}
+	r.locked = newLocked
+
+	newProofs := make(map[int32][][]byte)
+	for i := roundID; i > roundID-10; i-- {
+		if val, exists := r.proofs[i]; exists {
+			newProofs[i] = val
+		}
+	}
+	r.proofs = newProofs
+
+	newSenders := make(map[int32][]string)
+	for i := roundID; i > roundID-10; i-- {
+		if val, exists := r.senders[i]; exists {
+			newSenders[i] = val
+		}
+	}
+	r.senders = newSenders
 }
 
 type Aggregator struct {
@@ -128,7 +186,7 @@ type Aggregator struct {
 	Raft *raft.Raft
 
 	LatestLocalAggregates *LatestLocalAggregates
-	RoundTriggers         *RoundTriggers
+	roundTriggers         *RoundTriggers
 	roundPrices           *RoundPrices
 	roundPriceFixes       *RoundPriceFixes
 	roundProofs           *RoundProofs

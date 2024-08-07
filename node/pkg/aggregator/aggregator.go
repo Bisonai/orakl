@@ -33,7 +33,7 @@ func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string, config Co
 		Config: config,
 		Raft:   raft.NewRaftNode(h, ps, topic, 1000, aggregateInterval),
 
-		RoundTriggers: &RoundTriggers{
+		roundTriggers: &RoundTriggers{
 			locked: map[int32]bool{},
 		},
 		roundPrices: &RoundPrices{
@@ -101,7 +101,7 @@ func (n *Aggregator) HandleTriggerMessage(ctx context.Context, msg raft.Message)
 		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to unmarshal trigger message")
 		return err
 	}
-	n.cleanUp(triggerMessage.RoundID - 10)
+	defer n.leaveOnlyLast10Entries(triggerMessage.RoundID)
 
 	if triggerMessage.RoundID == 0 {
 		log.Error().Str("Player", "Aggregator").Msg("invalid trigger message")
@@ -119,14 +119,14 @@ func (n *Aggregator) HandleTriggerMessage(ctx context.Context, msg raft.Message)
 		n.mu.Unlock()
 	}
 
-	n.RoundTriggers.mu.Lock()
-	defer n.RoundTriggers.mu.Unlock()
+	n.roundTriggers.mu.Lock()
+	defer n.roundTriggers.mu.Unlock()
 
-	if n.RoundTriggers.locked[triggerMessage.RoundID] {
+	if n.roundTriggers.locked[triggerMessage.RoundID] {
 		log.Warn().Str("Player", "Aggregator").Int32("RoundID", triggerMessage.RoundID).Msg("trigger message already processed")
 		return nil
 	}
-	n.RoundTriggers.locked[triggerMessage.RoundID] = true
+	n.roundTriggers.locked[triggerMessage.RoundID] = true
 
 	var value int64
 	localAggregate, ok := n.LatestLocalAggregates.Load(n.ID)
@@ -173,7 +173,6 @@ func (n *Aggregator) HandlePriceDataMessage(ctx context.Context, msg raft.Messag
 	}
 
 	if len(n.roundPrices.prices[priceDataMessage.RoundID]) == n.Raft.SubscribersCount()+1 {
-		defer delete(n.roundPrices.prices, priceDataMessage.RoundID)
 		n.roundPrices.locked[priceDataMessage.RoundID] = true
 
 		if n.Raft.GetRole() == raft.Leader {
@@ -213,7 +212,6 @@ func (n *Aggregator) HandlePriceFixMessage(ctx context.Context, msg raft.Message
 
 	n.roundPriceFixes.mu.Lock()
 	defer n.roundPriceFixes.mu.Unlock()
-
 	if n.roundPriceFixes.locked[priceFixMessage.RoundID] {
 		log.Warn().Str("Player", "Aggregator").Int32("RoundID", priceFixMessage.RoundID).Msg("price fix message already processed")
 		return nil
@@ -284,7 +282,6 @@ func (n *Aggregator) HandleProofMessage(ctx context.Context, msg raft.Message) e
 			if err != nil {
 				log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to publish global aggregate and proof")
 			}
-			n.cleanUp(proofMessage.RoundID - 10)
 		}(ctx, globalAggregate, proof)
 
 	}
@@ -380,9 +377,9 @@ func (n *Aggregator) PublishProofMessage(ctx context.Context, roundId int32, val
 	return n.Raft.PublishMessage(ctx, message)
 }
 
-func (n *Aggregator) cleanUp(roundID int32) {
-	n.RoundTriggers.cleanup(roundID)
-	n.roundPrices.cleanup(roundID)
-	n.roundPriceFixes.cleanup(roundID)
-	n.roundProofs.cleanup(roundID)
+func (n *Aggregator) leaveOnlyLast10Entries(roundID int32) {
+	n.roundTriggers.leaveOnlyLast10Entries(roundID)
+	n.roundPrices.leaveOnlyLast10Entries(roundID)
+	n.roundPriceFixes.leaveOnlyLast10Entries(roundID)
+	n.roundProofs.leaveOnlyLast10Entries(roundID)
 }
