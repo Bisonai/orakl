@@ -84,7 +84,7 @@ func (r *Raft) subscribe(ctx context.Context) {
 			msg, err := r.unmarshalMessage(rawMsg.Data)
 			if err != nil {
 				log.Error().Err(err).Msg("failed to unmarshal message")
-				return
+				continue
 			}
 
 			r.MessageBuffer <- msg
