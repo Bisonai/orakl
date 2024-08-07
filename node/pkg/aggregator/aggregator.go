@@ -74,7 +74,6 @@ func (n *Aggregator) LeaderJob(ctx context.Context) error {
 	n.RoundID += 1
 	n.Raft.IncreaseTerm()
 
-	defer n.cleanUp(n.RoundID - 20)
 	return n.PublishTriggerMessage(ctx, n.RoundID, time.Now())
 }
 
@@ -108,6 +107,8 @@ func (n *Aggregator) HandleTriggerMessage(ctx context.Context, msg raft.Message)
 		log.Warn().Str("Player", "Aggregator").Msg("trigger message sent from non-leader")
 		return errorSentinel.ErrAggregatorNonLeaderRaftMessage
 	}
+
+	defer n.cleanUp(triggerMessage.RoundID - 10)
 
 	if msg.SentFrom != n.Raft.GetHostId() {
 		n.mu.Lock()
