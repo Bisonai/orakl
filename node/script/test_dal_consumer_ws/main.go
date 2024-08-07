@@ -87,10 +87,10 @@ func handleWsMessage(ctx context.Context, data map[string]interface{}) error {
 		return err
 	}
 
-	t := time.Unix(timestamp, 0)
+	t := time.UnixMilli(timestamp)
 
 	diff := time.Since(t)
-	if diff > time.Second*1 {
+	if diff > time.Second {
 		log.Info().Str("Player", "Reporter").Str("Symbol", wsData.Symbol).Str("delay", fmt.Sprintf("%f", diff.Seconds())).Msg("ws message")
 	}
 
