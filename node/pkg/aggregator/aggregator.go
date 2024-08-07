@@ -109,6 +109,12 @@ func (n *Aggregator) HandleTriggerMessage(ctx context.Context, msg raft.Message)
 		return errorSentinel.ErrAggregatorNonLeaderRaftMessage
 	}
 
+	if msg.SentFrom != n.Raft.GetHostId() {
+		n.mu.Lock()
+		n.RoundID = max(triggerMessage.RoundID, n.RoundID)
+		n.mu.Unlock()
+	}
+
 	n.RoundTriggers.mu.Lock()
 	defer n.RoundTriggers.mu.Unlock()
 
