@@ -3,7 +3,6 @@ package raft
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"testing"
 	"time"
@@ -306,87 +305,6 @@ func TestRaft_LeaderDisconnect(t *testing.T) {
 		assert.NotEmpty(t, newLeaderID)
 		assert.NotEqual(t, prevLeaderID, newLeaderID)
 	})
-}
-
-func TestRaftMessageHash(t *testing.T) {
-	message := Message{
-		Type:     Heartbeat,
-		SentFrom: "test",
-		Data:     json.RawMessage("{\"test\": \"test\"}"),
-	}
-
-	res1, err := message.Hash()
-	assert.NoError(t, err)
-
-	res2, err := message.Hash()
-	assert.NoError(t, err)
-
-	res3, err := message.Hash()
-	assert.NoError(t, err)
-
-	assert.Equal(t, res1, res2)
-	assert.Equal(t, res1, res3)
-
-	message2 := Message{
-		Type:     RequestVote,
-		SentFrom: "test2",
-		Data:     json.RawMessage("{\"test\": \"test\"}"),
-	}
-
-	res4, err := message2.Hash()
-	assert.NoError(t, err)
-
-	assert.NotEqual(t, res1, res4)
-}
-
-func TestPrevMessageMap(t *testing.T) {
-	ctx := context.Background()
-	testMessages := []Message{
-		{
-			Type:     Heartbeat,
-			SentFrom: "test",
-			Data:     json.RawMessage("{\"test\": \"test\"}"),
-		},
-		{
-			Type:     ReplyVote,
-			SentFrom: "test2",
-			Data:     json.RawMessage("{\"test2\": \"test2\"}"),
-		},
-	}
-
-	hashes := []*string{}
-
-	for _, msg := range testMessages {
-		hash, err := msg.Hash()
-		assert.NoError(t, err)
-		hashes = append(hashes, hash)
-	}
-
-	prevMessageMap := NewPrevMessageMap(2 * time.Second)
-	prevMessageMap.RunRegularCleanup(ctx, 1*time.Second)
-
-	for _, hash := range hashes {
-
-		valid := prevMessageMap.AddIfValid(hash)
-		assert.True(t, valid)
-	}
-
-	for _, hash := range hashes {
-		exists := prevMessageMap.Exists(hash)
-		assert.True(t, exists)
-	}
-
-	for _, hash := range hashes {
-		valid := prevMessageMap.AddIfValid(hash)
-		assert.False(t, valid)
-	}
-
-	time.Sleep(2100 * time.Millisecond)
-
-	for _, hash := range hashes {
-		exists := prevMessageMap.Exists(hash)
-		assert.False(t, exists)
-	}
 }
 
 // Helper functions
