@@ -153,3 +153,4 @@
 - **node** v0.0.1.20240807.0233.c512afe <br> *`PR`*: OraklNode Mutex lock roundID <br><br> 
 - **node** v0.0.1.20240807.0400.5926df7 <br> *`PR`*: OraklNode Rollback raft msg re... <br><br> 
 - **node** v0.0.1.20240807.0514.6907ece <br> *`PR`*: OraklNode Admin add fallback t... <br><br> 
+- **dal** v0.0.1.20240807.0602.570af13 <br> *`PR`*: DAL Set log lv from env <br><br> 
