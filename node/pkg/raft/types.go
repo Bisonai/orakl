@@ -26,8 +26,8 @@ const (
 	Candidate RoleType = "candidate"
 	Follower  RoleType = "follower"
 
-	MessageCleanupInterval = 5 * time.Second
-	MessageTTL             = 10 * time.Second
+	MessageCleanupInterval = 10 * time.Second
+	MessageTTL             = 30 * time.Second
 )
 
 type Message struct {

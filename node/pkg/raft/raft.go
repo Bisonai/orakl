@@ -83,26 +83,24 @@ func (r *Raft) subscribe(ctx context.Context) {
 				continue
 			}
 
-			go func(*pubsub.Message) {
-				msg, err := r.unmarshalMessage(rawMsg.Data)
-				if err != nil {
-					log.Error().Err(err).Msg("failed to unmarshal message")
-					return
-				}
+			msg, err := r.unmarshalMessage(rawMsg.Data)
+			if err != nil {
+				log.Error().Err(err).Msg("failed to unmarshal message")
+				return
+			}
 
-				hash, err := msg.Hash()
-				if err != nil {
-					log.Error().Err(err).Msg("failed to generate hash")
-					return
-				}
+			hash, err := msg.Hash()
+			if err != nil {
+				log.Error().Err(err).Msg("failed to generate hash")
+				return
+			}
 
-				if !r.prevMessageMap.AddIfValid(hash) {
-					log.Error().Msg("Message alread processed")
-					return
-				}
+			if !r.prevMessageMap.AddIfValid(hash) {
+				log.Error().Msg("Message alread processed")
+				return
+			}
 
-				r.MessageBuffer <- msg
-			}(rawMsg)
+			r.MessageBuffer <- msg
 		}
 	}
 }
