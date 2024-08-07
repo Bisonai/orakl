@@ -80,11 +80,14 @@ func (h *Hub) addClient(client *ThreadSafeClient) {
 			delete(subscriptions, symbol)
 		}
 		h.connPerIP[ip] = h.connPerIP[ip][1:]
-		oldConn.WriteControl(
+		err := oldConn.WriteControl(
 			websocket.CloseMessage,
 			websocket.FormatCloseMessage(websocket.ClosePolicyViolation, "too many connections"),
 			time.Now().Add(time.Second),
 		)
+		if err != nil {
+			log.Warn().Err(err).Msg("failed to write close message")
+		}
 		oldConn.Close()
 	}
 }
