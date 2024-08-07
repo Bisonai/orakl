@@ -103,3 +103,23 @@ func TestAggregatorDeactivate(t *testing.T) {
 		t.Fatalf("error deactivating aggregator: %v", err)
 	}
 }
+
+func TestAggregatorGetSigner(t *testing.T) {
+	type signer struct {
+		Signer string `json:"signer"`
+	}
+	ctx := context.Background()
+	cleanup, testItems, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer cleanup()
+
+	res, err := GetRequest[signer](testItems.app, "/api/v1/aggregator/signer", nil)
+	if err != nil {
+		t.Fatalf("error getting signer: %v", err)
+	}
+
+	assert.NotNil(t, res)
+	assert.NotEmpty(t, res.Signer)
+}
