@@ -75,7 +75,6 @@ func (n *Aggregator) LeaderJob(ctx context.Context) error {
 	n.mu.Lock()
 	defer n.mu.Unlock()
 	n.RoundID += 1
-	n.Raft.IncreaseTerm()
 
 	return n.PublishTriggerMessage(ctx, n.RoundID, time.Now())
 }
@@ -285,7 +284,7 @@ func (n *Aggregator) HandleProofMessage(ctx context.Context, msg raft.Message) e
 			if err != nil {
 				log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to publish global aggregate and proof")
 			}
-			n.cleanUp(proofMessage.RoundID)
+			n.cleanUp(proofMessage.RoundID - 10)
 		}(ctx, globalAggregate, proof)
 
 	}
