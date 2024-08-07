@@ -18,6 +18,7 @@ const (
 
 	Trigger   raft.MessageType = "trigger"
 	PriceData raft.MessageType = "priceData"
+	PriceFix  raft.MessageType = "priceFix"
 	ProofMsg  raft.MessageType = "proof"
 
 	SelectConfigQuery                = `SELECT id, name, aggregate_interval FROM configs`
@@ -87,6 +88,17 @@ func (r *RoundPrices) cleanup(roundID int32) {
 	delete(r.locked, roundID)
 }
 
+type RoundPriceFixes struct {
+	locked map[int32]bool
+	mu     sync.Mutex
+}
+
+func (r *RoundPriceFixes) cleanup(roundID int32) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	delete(r.locked, roundID)
+}
+
 type RoundProofs struct {
 	senders map[int32][]string
 	proofs  map[int32][][]byte
@@ -118,6 +130,7 @@ type Aggregator struct {
 	LatestLocalAggregates *LatestLocalAggregates
 	RoundTriggers         *RoundTriggers
 	roundPrices           *RoundPrices
+	roundPriceFixes       *RoundPriceFixes
 	roundProofs           *RoundProofs
 
 	RoundID int32
@@ -131,6 +144,12 @@ type Aggregator struct {
 }
 
 type PriceDataMessage struct {
+	RoundID   int32     `json:"roundID"`
+	PriceData int64     `json:"priceData"`
+	Timestamp time.Time `json:"timestamp"`
+}
+
+type PriceFixMessage struct {
 	RoundID   int32     `json:"roundID"`
 	PriceData int64     `json:"priceData"`
 	Timestamp time.Time `json:"timestamp"`

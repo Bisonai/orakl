@@ -41,6 +41,9 @@ func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string, config Co
 			senders: map[int32][]string{},
 			locked:  map[int32]bool{},
 		},
+		roundPriceFixes: &RoundPriceFixes{
+			locked: map[int32]bool{},
+		},
 		roundProofs: &RoundProofs{
 			proofs:  map[int32][][]byte{},
 			senders: map[int32][]string{},
@@ -83,6 +86,8 @@ func (n *Aggregator) HandleCustomMessage(ctx context.Context, message raft.Messa
 		return n.HandleTriggerMessage(ctx, message)
 	case PriceData:
 		return n.HandlePriceDataMessage(ctx, message)
+	case PriceFix:
+		return n.HandlePriceFixMessage(ctx, message)
 	case ProofMsg:
 		return n.HandleProofMessage(ctx, message)
 	default:
@@ -91,12 +96,15 @@ func (n *Aggregator) HandleCustomMessage(ctx context.Context, message raft.Messa
 }
 
 func (n *Aggregator) HandleTriggerMessage(ctx context.Context, msg raft.Message) error {
+
 	var triggerMessage TriggerMessage
 	err := json.Unmarshal(msg.Data, &triggerMessage)
 	if err != nil {
 		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to unmarshal trigger message")
 		return err
 	}
+
+	defer n.cleanUp(triggerMessage.RoundID - 10)
 
 	if triggerMessage.RoundID == 0 {
 		log.Error().Str("Player", "Aggregator").Msg("invalid trigger message")
@@ -107,8 +115,6 @@ func (n *Aggregator) HandleTriggerMessage(ctx context.Context, msg raft.Message)
 		log.Warn().Str("Player", "Aggregator").Msg("trigger message sent from non-leader")
 		return errorSentinel.ErrAggregatorNonLeaderRaftMessage
 	}
-
-	defer n.cleanUp(triggerMessage.RoundID - 10)
 
 	if msg.SentFrom != n.Raft.GetHostId() {
 		n.mu.Lock()
@@ -173,30 +179,59 @@ func (n *Aggregator) HandlePriceDataMessage(ctx context.Context, msg raft.Messag
 		defer delete(n.roundPrices.prices, priceDataMessage.RoundID)
 		n.roundPrices.locked[priceDataMessage.RoundID] = true
 
-		prices := n.roundPrices.prices[priceDataMessage.RoundID]
-		log.Debug().Str("Player", "Aggregator").Int("peerCount", n.Raft.SubscribersCount()).Str("Name", n.Name).Any("collected prices", prices).Int32("roundId", priceDataMessage.RoundID).Msg("collected prices")
+		if n.Raft.GetRole() == raft.Leader {
+			prices := n.roundPrices.prices[priceDataMessage.RoundID]
+			log.Debug().Str("Player", "Aggregator").Int("peerCount", n.Raft.SubscribersCount()).Str("Name", n.Name).Any("collected prices", prices).Int32("roundId", priceDataMessage.RoundID).Msg("collected prices")
 
-		filteredCollectedPrices := FilterNegative(prices)
-		if len(filteredCollectedPrices) == 0 {
-			log.Warn().Str("Player", "Aggregator").Str("Name", n.Name).Int32("roundId", priceDataMessage.RoundID).Msg("no prices collected")
-			return nil
-		}
+			filteredCollectedPrices := FilterNegative(prices)
+			if len(filteredCollectedPrices) == 0 {
+				log.Warn().Str("Player", "Aggregator").Str("Name", n.Name).Int32("roundId", priceDataMessage.RoundID).Msg("no prices collected")
+				return nil
+			}
 
-		median, err := calculator.GetInt64Med(filteredCollectedPrices)
-		if err != nil {
-			log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to get median")
-			return err
-		}
-		log.Debug().Str("Player", "Aggregator").Str("Name", n.Name).Any("filtered collected prices", filteredCollectedPrices).Int32("roundId", priceDataMessage.RoundID).Int64("global_aggregate", median).Msg("global aggregated")
+			median, err := calculator.GetInt64Med(filteredCollectedPrices)
+			if err != nil {
+				log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to get median")
+				return err
+			}
 
-		proof, err := n.Signer.MakeGlobalAggregateProof(median, priceDataMessage.Timestamp, n.Name)
-		if err != nil {
-			log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to make global aggregate proof")
-			return err
+			return n.PublishPriceFixMessage(ctx, priceDataMessage.RoundID, median, priceDataMessage.Timestamp)
 		}
-		return n.PublishProofMessage(ctx, priceDataMessage.RoundID, median, proof, priceDataMessage.Timestamp)
 	}
 	return nil
+}
+
+func (n *Aggregator) HandlePriceFixMessage(ctx context.Context, msg raft.Message) error {
+	var priceFixMessage PriceFixMessage
+	err := json.Unmarshal(msg.Data, &priceFixMessage)
+	if err != nil {
+		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to unmarshal price fix message")
+		return err
+	}
+
+	if msg.SentFrom != n.Raft.GetLeader() {
+		log.Warn().Str("Player", "Aggregator").Str("Leader", n.Raft.GetLeader()).Msg("price fix message sent from non-leader")
+		return errorSentinel.ErrAggregatorNonLeaderRaftMessage
+	}
+
+	n.roundPriceFixes.mu.Lock()
+	defer n.roundPriceFixes.mu.Unlock()
+
+	if n.roundPriceFixes.locked[priceFixMessage.RoundID] {
+		log.Warn().Str("Player", "Aggregator").Int32("RoundID", priceFixMessage.RoundID).Msg("price fix message already processed")
+		return nil
+	}
+
+	n.roundPriceFixes.locked[priceFixMessage.RoundID] = true
+
+	proof, err := n.Signer.MakeGlobalAggregateProof(priceFixMessage.PriceData, priceFixMessage.Timestamp, n.Name)
+	if err != nil {
+		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to make global aggregate proof")
+		return err
+	}
+
+	return n.PublishProofMessage(ctx, priceFixMessage.RoundID, priceFixMessage.PriceData, proof, priceFixMessage.Timestamp)
+
 }
 
 func (n *Aggregator) HandleProofMessage(ctx context.Context, msg raft.Message) error {
@@ -303,6 +338,28 @@ func (n *Aggregator) PublishPriceDataMessage(ctx context.Context, roundId int32,
 	return n.Raft.PublishMessage(ctx, message)
 }
 
+func (n *Aggregator) PublishPriceFixMessage(ctx context.Context, roundId int32, value int64, timestamp time.Time) error {
+	priceFixMessage := PriceFixMessage{
+		RoundID:   roundId,
+		PriceData: value,
+		Timestamp: timestamp,
+	}
+
+	marshalledPriceFixMessage, err := json.Marshal(priceFixMessage)
+	if err != nil {
+		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to marshal price fix message")
+		return err
+	}
+
+	message := raft.Message{
+		Type:     PriceFix,
+		SentFrom: n.Raft.GetHostId(),
+		Data:     json.RawMessage(marshalledPriceFixMessage),
+	}
+
+	return n.Raft.PublishMessage(ctx, message)
+}
+
 func (n *Aggregator) PublishProofMessage(ctx context.Context, roundId int32, value int64, proof []byte, timestamp time.Time) error {
 	proofMessage := ProofMessage{
 		RoundID:   roundId,
@@ -329,5 +386,7 @@ func (n *Aggregator) PublishProofMessage(ctx context.Context, roundId int32, val
 func (n *Aggregator) cleanUp(roundID int32) {
 	n.RoundTriggers.cleanup(roundID)
 	n.roundPrices.cleanup(roundID)
+	n.roundPriceFixes.cleanup(roundID)
 	n.roundProofs.cleanup(roundID)
+
 }
