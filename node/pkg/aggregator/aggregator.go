@@ -86,6 +86,8 @@ func (n *Aggregator) HandleCustomMessage(ctx context.Context, message raft.Messa
 		return n.HandleTriggerMessage(ctx, message)
 	case PriceData:
 		return n.HandlePriceDataMessage(ctx, message)
+	case PriceFix:
+		return n.HandlePriceFixMessage(ctx, message)
 	case ProofMsg:
 		return n.HandleProofMessage(ctx, message)
 	default:
