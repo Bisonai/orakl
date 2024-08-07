@@ -1,11 +1,14 @@
 package aggregator
 
 import (
+	"errors"
+	"os"
 	"strconv"
 
 	"bisonai.com/orakl/node/pkg/admin/utils"
 	"bisonai.com/orakl/node/pkg/bus"
 	chainutils "bisonai.com/orakl/node/pkg/chain/utils"
+	errorsentinel "bisonai.com/orakl/node/pkg/error"
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog/log"
 )
@@ -105,9 +108,17 @@ func renewSigner(c *fiber.Ctx) error {
 
 func getSigner(c *fiber.Ctx) error {
 	signerpk, err := chainutils.LoadSignerPk(c.Context())
-	if err != nil {
+	if err != nil && !errors.Is(err, errorsentinel.ErrChainSignerPKNotFound) {
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to get signer: " + err.Error())
 	}
+
+	if signerpk == "" {
+		signerpk = os.Getenv("SIGNER_PK")
+		if signerpk == "" {
+			return c.Status(fiber.StatusInternalServerError).SendString("failed to get signer, no signer set")
+		}
+	}
+
 	addr, err := chainutils.StringPkToAddressHex(signerpk)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to get signer: " + err.Error())
