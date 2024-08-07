@@ -20,7 +20,15 @@ type LogEntry struct {
 	TimeStamp time.Time       `json:"timestamp" db:"timestamp"`
 }
 
+const (
+	testEndpoint = "http://localhost:3000/api/v1/"
+	testService  = "node"
+)
+
 func TestNew(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	tests := []struct {
 		name    string
 		opts    []AppOption
@@ -29,7 +37,7 @@ func TestNew(t *testing.T) {
 	}{
 		{
 			name: "custom buffer",
-			opts: []AppOption{WithBuffer(500), WithStoreService("node")},
+			opts: []AppOption{WithBuffer(500), WithStoreService(testService), WithLogscribeEndpoint(testEndpoint)},
 			want: &App{
 				StoreInterval: DefaultLogStoreInterval,
 				buffer:        make(chan map[string]any, 500),
@@ -38,7 +46,7 @@ func TestNew(t *testing.T) {
 		},
 		{
 			name: "custom interval",
-			opts: []AppOption{WithStoreInterval(time.Second), WithStoreService("node")},
+			opts: []AppOption{WithStoreInterval(time.Second), WithStoreService(testService), WithLogscribeEndpoint(testEndpoint)},
 			want: &App{
 				StoreInterval: time.Second,
 				buffer:        make(chan map[string]any, DefaultBufferSize),
@@ -47,7 +55,7 @@ func TestNew(t *testing.T) {
 		},
 		{
 			name: "negative buffer",
-			opts: []AppOption{WithBuffer(-1), WithStoreService("node")},
+			opts: []AppOption{WithBuffer(-1), WithStoreService(testService), WithLogscribeEndpoint(testEndpoint)},
 			want: &App{
 				StoreInterval: DefaultLogStoreInterval,
 				buffer:        make(chan map[string]any, DefaultBufferSize), // Should fallback to default
@@ -56,27 +64,43 @@ func TestNew(t *testing.T) {
 		},
 		{
 			name: "custom logscribe endpoint",
-			opts: []AppOption{WithLogscribeEndpoint("http://localhost:3000"), WithStoreService("node")},
+			opts: []AppOption{WithStoreService(testService), WithLogscribeEndpoint(testEndpoint)},
 			want: &App{
 				StoreInterval:    DefaultLogStoreInterval,
 				buffer:           make(chan map[string]any, DefaultBufferSize),
-				LogscribeEnpoint: "http://localhost:3000",
+				LogscribeEnpoint: testEndpoint,
 			},
 			wantErr: false,
 		},
 		{
 			name:    "service not provided",
-			opts:    []AppOption{WithLogscribeEndpoint("http://localhost:3000")},
+			opts:    []AppOption{WithLogscribeEndpoint(testEndpoint)},
 			want:    nil,
 			wantErr: true,
 		},
 		{
 			name:    "invalid log level",
-			opts:    []AppOption{WithStoreService("node"), WithStoreLevel("test")},
+			opts:    []AppOption{WithStoreService(testService), WithStoreLevel("test"), WithLogscribeEndpoint(testEndpoint)},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name:    "invalid logscribe endpoint",
+			opts:    []AppOption{WithLogscribeEndpoint("test"), WithStoreService(testService)},
 			want:    nil,
 			wantErr: true,
 		},
 	}
+
+	go func() {
+		err := logscribe.Run(ctx)
+		if err != nil {
+			t.Errorf("failed to start logscribe app: %v", err)
+		}
+	}()
+
+	time.Sleep(500 * time.Millisecond)
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := New(tt.opts...)
@@ -92,6 +116,9 @@ func TestNew(t *testing.T) {
 }
 
 func TestLogscribeConsumerWrite(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	tests := []struct {
 		name    string
 		log     []byte
@@ -116,9 +143,19 @@ func TestLogscribeConsumerWrite(t *testing.T) {
 			log:  []byte("{\"test\": \"" + strings.Repeat("test", 10000) + "\", \"level\": \"error\"}"),
 		},
 	}
+
+	go func() {
+		err := logscribe.Run(ctx)
+		if err != nil {
+			t.Errorf("failed to start logscribe app: %v", err)
+		}
+	}()
+
+	time.Sleep(500 * time.Millisecond)
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			l, _ := New(WithStoreService("node"))
+			l, _ := New(WithStoreService(testService), WithLogscribeEndpoint(testEndpoint))
 			_, err := l.Write(tt.log)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("LogscribeConsumer.Write() error = %v, wantErr %v", err, tt.wantErr)
@@ -144,7 +181,7 @@ func TestBulkCopyLogEntries(t *testing.T) {
 
 	time.Sleep(500 * time.Millisecond)
 
-	app, _ := New(WithLogscribeEndpoint("http://localhost:3000/api/v1"), WithStoreService("node"))
+	app, _ := New(WithLogscribeEndpoint("http://localhost:3000/api/v1/"), WithStoreService("node"))
 
 	events := []map[string]any{
 		{
@@ -177,6 +214,9 @@ func TestBulkCopyLogEntries(t *testing.T) {
 }
 
 func TestExtractLogscribeEntry(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	tests := []struct {
 		name     string
 		event    map[string]interface{}
@@ -196,7 +236,7 @@ func TestExtractLogscribeEntry(t *testing.T) {
 				Timestamp: time.Unix(1234567890, 0),
 				Level:     int(zerolog.ErrorLevel),
 				Message:   "test message",
-				Service:   "node",
+				Service:   testService,
 				Fields:    json.RawMessage(`{"field1":"test field 1","field2":123}`),
 			},
 		},
@@ -233,13 +273,25 @@ func TestExtractLogscribeEntry(t *testing.T) {
 				Timestamp: time.Unix(1234567890, 0),
 				Level:     int(zerolog.ErrorLevel),
 				Message:   "test message",
-				Service:   "node",
+				Service:   testService,
 				Fields:    json.RawMessage(`{"nested":{"inner":"value"}}`),
 			},
 		},
 	}
 
-	app, _ := New(WithStoreService("node"))
+	go func() {
+		err := logscribe.Run(ctx)
+		if err != nil {
+			t.Errorf("failed to start logscribe app: %v", err)
+		}
+	}()
+
+	time.Sleep(500 * time.Millisecond)
+
+	app, err := New(WithStoreService(testService), WithLogscribeEndpoint(testEndpoint))
+	if err != nil {
+		t.Errorf("failed to create logscribe app: %v", err)
+	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

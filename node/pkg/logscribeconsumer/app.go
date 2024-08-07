@@ -26,6 +26,11 @@ func New(options ...AppOption) (*App, error) {
 		option(c)
 	}
 
+	resp, err := request.RequestRaw(request.WithEndpoint(c.LogscribeEnpoint))
+	if err != nil || resp.StatusCode != http.StatusOK {
+		return nil, errorsentinel.ErrLogscribeConsumerEndpointUnresponsive
+	}
+
 	if c.Service == "" {
 		return nil, errorsentinel.ErrLogscribeConsumerServiceNotProvided
 	}

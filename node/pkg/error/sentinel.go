@@ -231,6 +231,7 @@ var (
 	ErrLogscribeInsertFailed    = &CustomError{Service: Logscribe, Code: DatabaseError, Message: "Failed to insert logs to Logscribe"}
 	ErrLogscribeServiceNotExist = &CustomError{Service: Logscribe, Code: InvalidInputError, Message: "Service field not found in log entry"}
 
-	ErrLogscribeConsumerServiceNotProvided = &CustomError{Service: LogscribeConsumer, Code: InvalidInputError, Message: "Service field not provided in logscribeconsumer"}
-	ErrLogscribeConsumerInvalidLevel       = &CustomError{Service: LogscribeConsumer, Code: InvalidInputError, Message: "Invalid log level provided to logscribeconsumer"}
+	ErrLogscribeConsumerServiceNotProvided   = &CustomError{Service: LogscribeConsumer, Code: InvalidInputError, Message: "Service field not provided in logscribeconsumer"}
+	ErrLogscribeConsumerInvalidLevel         = &CustomError{Service: LogscribeConsumer, Code: InvalidInputError, Message: "Invalid log level provided to logscribeconsumer"}
+	ErrLogscribeConsumerEndpointUnresponsive = &CustomError{Service: LogscribeConsumer, Code: NetworkError, Message: "Logscribe endpoint unresponsive"}
 )
