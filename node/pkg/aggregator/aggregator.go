@@ -62,16 +62,19 @@ func (n *Aggregator) Run(ctx context.Context) {
 	if err != nil {
 		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to get latest round id, setting roundId to 1")
 	} else if latestRoundId > 0 {
-		n.RoundID = latestRoundId
+		n.RoundID = latestRoundId + 1
 	}
 
 	n.Raft.Run(ctx)
 }
 
 func (n *Aggregator) LeaderJob(ctx context.Context) error {
-	n.RoundID++
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	n.RoundID += 1
 	n.Raft.IncreaseTerm()
-	defer n.cleanUp(n.RoundID - 20) // cleanup 20 rounds earlier data, approximately 8 sec ago
+
+	defer n.cleanUp(n.RoundID - 20)
 	return n.PublishTriggerMessage(ctx, n.RoundID, time.Now())
 }
 
