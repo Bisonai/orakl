@@ -96,15 +96,13 @@ func (n *Aggregator) HandleCustomMessage(ctx context.Context, message raft.Messa
 }
 
 func (n *Aggregator) HandleTriggerMessage(ctx context.Context, msg raft.Message) error {
-
 	var triggerMessage TriggerMessage
 	err := json.Unmarshal(msg.Data, &triggerMessage)
 	if err != nil {
 		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to unmarshal trigger message")
 		return err
 	}
-
-	defer n.cleanUp(triggerMessage.RoundID - 10)
+	n.cleanUp(triggerMessage.RoundID - 10)
 
 	if triggerMessage.RoundID == 0 {
 		log.Error().Str("Player", "Aggregator").Msg("invalid trigger message")
@@ -269,7 +267,6 @@ func (n *Aggregator) HandleProofMessage(ctx context.Context, msg raft.Message) e
 	}
 
 	if len(n.roundProofs.proofs[proofMessage.RoundID]) == n.Raft.SubscribersCount()+1 {
-		defer delete(n.roundProofs.proofs, proofMessage.RoundID)
 		n.roundProofs.locked[proofMessage.RoundID] = true
 
 		log.Debug().Str("Player", "Aggregator").Str("Name", n.Name).Int("peerCount", n.Raft.SubscribersCount()).Int32("roundId", proofMessage.RoundID).Any("collected proofs", n.roundProofs.proofs[proofMessage.RoundID]).Msg("collected proofs")
@@ -288,6 +285,7 @@ func (n *Aggregator) HandleProofMessage(ctx context.Context, msg raft.Message) e
 			if err != nil {
 				log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to publish global aggregate and proof")
 			}
+			n.cleanUp(proofMessage.RoundID)
 		}(ctx, globalAggregate, proof)
 
 	}
@@ -388,5 +386,4 @@ func (n *Aggregator) cleanUp(roundID int32) {
 	n.roundPrices.cleanup(roundID)
 	n.roundPriceFixes.cleanup(roundID)
 	n.roundProofs.cleanup(roundID)
-
 }
