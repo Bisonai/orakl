@@ -14,7 +14,7 @@ import (
 	"bisonai.com/orakl/node/pkg/common/types"
 	dalcommon "bisonai.com/orakl/node/pkg/dal/common"
 	"bisonai.com/orakl/node/pkg/db"
-	errorSentinel "bisonai.com/orakl/node/pkg/error"
+	errorsentinel "bisonai.com/orakl/node/pkg/error"
 	klaytncommon "github.com/klaytn/klaytn/common"
 	"github.com/klaytn/klaytn/crypto"
 	"github.com/rs/zerolog/log"
@@ -202,7 +202,7 @@ func (c *Collector) IncomingDataToOutgoingData(ctx context.Context, data *aggreg
 		whitelist)
 	if err != nil {
 		log.Error().Err(err).Str("Player", "DalCollector").Str("Symbol", c.Symbols[data.GlobalAggregate.ConfigID]).Msg("failed to order proof")
-		if errors.Is(err, errorSentinel.ErrReporterSignerNotWhitelisted) {
+		if errors.Is(err, errorsentinel.ErrDalSignerNotWhitelisted) {
 			go func(ctx context.Context, chainHelper *websocketchainreader.ChainReader, contractAddress string) {
 				newList, getAllOraclesErr := getAllOracles(ctx, chainHelper, contractAddress)
 				if getAllOraclesErr != nil {
