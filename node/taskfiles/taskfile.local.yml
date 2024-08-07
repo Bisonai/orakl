@@ -203,7 +203,7 @@ tasks:
   get-signer:
     dotenv: [".env"]
     cmds:
-      - curl -X GET "http://localhost:$APP_PORT/api/v1/wallet/signer" | jq
+      - curl -X GET "http://localhost:$APP_PORT/api/v1/aggregator/signer" | jq
   renew-signer:
     dotenv: [".env"]
     cmds:
