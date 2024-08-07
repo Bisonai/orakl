@@ -155,3 +155,4 @@
 - **node** v0.0.1.20240807.0514.6907ece <br> *`PR`*: OraklNode Admin add fallback t... <br><br> 
 - **dal** v0.0.1.20240807.0602.570af13 <br> *`PR`*: DAL Set log lv from env <br><br> 
 - **node** v0.0.1.20240807.0628.0de723f <br> *`PR`*: OraklNode Add step to fix glob... <br><br> 
+- **node** v0.0.1.20240807.0831.bef131a <br> *`PR`*: OraklNode Possible fix for mem... <br><br> 
