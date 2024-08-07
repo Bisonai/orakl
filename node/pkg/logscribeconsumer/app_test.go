@@ -39,8 +39,10 @@ func TestNew(t *testing.T) {
 			name: "custom buffer",
 			opts: []AppOption{WithBuffer(500), WithStoreService(testService), WithLogscribeEndpoint(testEndpoint)},
 			want: &App{
-				StoreInterval: DefaultLogStoreInterval,
-				buffer:        make(chan map[string]any, 500),
+				StoreInterval:    DefaultLogStoreInterval,
+				buffer:           make(chan map[string]any, 500),
+				LogscribeEnpoint: testEndpoint,
+				Service:          testService,
 			},
 			wantErr: false,
 		},
@@ -48,8 +50,10 @@ func TestNew(t *testing.T) {
 			name: "custom interval",
 			opts: []AppOption{WithStoreInterval(time.Second), WithStoreService(testService), WithLogscribeEndpoint(testEndpoint)},
 			want: &App{
-				StoreInterval: time.Second,
-				buffer:        make(chan map[string]any, DefaultBufferSize),
+				StoreInterval:    time.Second,
+				buffer:           make(chan map[string]any, DefaultBufferSize),
+				LogscribeEnpoint: testEndpoint,
+				Service:          testService,
 			},
 			wantErr: false,
 		},
@@ -57,8 +61,10 @@ func TestNew(t *testing.T) {
 			name: "negative buffer",
 			opts: []AppOption{WithBuffer(-1), WithStoreService(testService), WithLogscribeEndpoint(testEndpoint)},
 			want: &App{
-				StoreInterval: DefaultLogStoreInterval,
-				buffer:        make(chan map[string]any, DefaultBufferSize), // Should fallback to default
+				StoreInterval:    DefaultLogStoreInterval,
+				buffer:           make(chan map[string]any, DefaultBufferSize), // Should fallback to default
+				LogscribeEnpoint: testEndpoint,
+				Service:          testService,
 			},
 			wantErr: false,
 		},
@@ -69,6 +75,7 @@ func TestNew(t *testing.T) {
 				StoreInterval:    DefaultLogStoreInterval,
 				buffer:           make(chan map[string]any, DefaultBufferSize),
 				LogscribeEnpoint: testEndpoint,
+				Service:          testService,
 			},
 			wantErr: false,
 		},
@@ -207,6 +214,15 @@ func TestBulkCopyLogEntries(t *testing.T) {
 			"service": "reporter",
 			"field5":  "test field 5",
 		},
+		{
+			"time":    1234567890.0,
+			"level":   "error",
+			"message": "test message",
+			"nested": map[string]interface{}{
+				"inner": "value",
+			},
+		},
+		{},
 	}
 
 	err := app.bulkPostLogEntries(events)
@@ -306,6 +322,9 @@ func TestExtractLogscribeEntry(t *testing.T) {
 }
 
 func mapToJSON(m map[string]any) string {
-	b, _ := json.Marshal(m)
+	b, err := json.Marshal(m)
+	if err != nil {
+		return ""
+	}
 	return string(b)
 }

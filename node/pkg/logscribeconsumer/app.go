@@ -32,9 +32,11 @@ func New(options ...AppOption) (*App, error) {
 	}
 
 	if c.Service == "" {
+		log.Error().Msg("Service not provided")
 		return nil, errorsentinel.ErrLogscribeConsumerServiceNotProvided
 	}
 	if !isLogLevelValid(map[string]any{"level": c.Level}) {
+		log.Error().Msgf("Invalid log level: %v", c.Level)
 		return nil, errorsentinel.ErrLogscribeConsumerInvalidLevel
 	}
 
@@ -83,8 +85,8 @@ func (a *App) Run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			err := a.processBatch(ctx)
-			if err != nil {
+			errors := a.processBatch(ctx)
+			for _, err := range errors {
 				log.Err(err).Msg("log batch process failure")
 			}
 
@@ -111,7 +113,7 @@ func (a *App) setLogWriter() {
 	log.Logger = logger
 }
 
-func (a *App) processBatch(ctx context.Context) error {
+func (a *App) processBatch(ctx context.Context) []error {
 	select {
 	case <-ctx.Done():
 		return nil
@@ -126,7 +128,19 @@ func (a *App) processBatch(ctx context.Context) error {
 				break loop
 			}
 		}
-		return a.bulkPostLogEntries(batch)
+		batchLen := len(batch)
+		errors := []error{}
+		for i := 0; i < batchLen; i += ProcessLogsBatchSize {
+			end := i + ProcessLogsBatchSize
+			if end > batchLen {
+				end = batchLen
+			}
+			err := a.bulkPostLogEntries(batch[i:end])
+			if err != nil {
+				errors = append(errors, err)
+			}
+		}
+		return errors
 	default:
 		return nil
 	}

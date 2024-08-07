@@ -12,6 +12,7 @@ const (
 	DefaultBufferSize       = 3000
 	MinimalLogStoreLevel    = zerolog.WarnLevel
 	DefaultLogscribeEnpoint = "http://orakl-logscribe.orakl.svc.cluster.local:3000/api/v1/"
+	ProcessLogsBatchSize    = 1000
 )
 
 type App struct {

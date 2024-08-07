@@ -63,12 +63,6 @@ jobs:
         run: |
           cd ./node
           task local:test-logscribe
-        env:
-          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/orakl-test?search_path=public"
-
-      - name: Run logscribeconsumer tests
-        run: |
-          cd ./node
           task local:test-logscribeconsumer
         env:
           DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/orakl-test?search_path=public"
