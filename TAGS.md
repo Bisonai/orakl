@@ -157,3 +157,4 @@
 - **node** v0.0.1.20240807.0628.0de723f <br> *`PR`*: OraklNode Add step to fix glob... <br><br> 
 - **node** v0.0.1.20240807.0831.bef131a <br> *`PR`*: OraklNode Possible fix for mem... <br><br> 
 - **node** v0.0.1.20240807.0845.28f066d <br> *`PR`*: OraklNode Dont increase raft t... <br><br> 
+- **node** v0.0.1.20240807.1057.37fd445 <br> *`PR`*: OraklNode fix memory leak  lin... <br><br> 
