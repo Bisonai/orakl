@@ -113,7 +113,7 @@ func getSigner(c *fiber.Ctx) error {
 	}
 
 	if signerpk == "" {
-		signerpk := os.Getenv("SIGNER_PK")
+		signerpk = os.Getenv("SIGNER_PK")
 		if signerpk == "" {
 			return c.Status(fiber.StatusInternalServerError).SendString("failed to get signer, no signer set")
 		}
