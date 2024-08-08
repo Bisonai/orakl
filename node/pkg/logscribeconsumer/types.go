@@ -21,7 +21,7 @@ type App struct {
 	consoleWriter     zerolog.ConsoleWriter
 	LogscribeEndpoint string
 	Service           string
-	Level             int
+	Level             zerolog.Level
 }
 
 type AppConfig struct {

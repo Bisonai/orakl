@@ -46,7 +46,7 @@ func New(options ...AppOption) (*App, error) {
 		consoleWriter:     consoleWriter,
 		LogscribeEndpoint: c.LogscribeEndpoint,
 		Service:           c.Service,
-		Level:             int(level),
+		Level:             level,
 	}, nil
 }
 
@@ -69,7 +69,7 @@ func (a *App) Write(p []byte) (n int, err error) {
 	}
 
 	if !a.isLogLevelValid(res) {
-		return 0, err
+		return 0, nil
 	}
 
 	a.buffer <- res
@@ -146,7 +146,7 @@ func (a *App) isLogLevelValid(entry map[string]any) bool {
 		return false
 	}
 
-	return int(lv) >= a.Level
+	return lv >= a.Level
 }
 
 func (a *App) bulkPostLogEntries(logEntries []map[string]any) error {
