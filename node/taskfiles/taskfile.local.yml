@@ -133,10 +133,10 @@ tasks:
     dotenv: [".env"]
     cmds:
       - go test ./pkg/dal/tests -v
-  test-zeropglog:
+  test-logscribeconsumer:
     dotenv: [".env"]
     cmds:
-      - go test ./pkg/zeropglog -v
+      - go test ./pkg/logscribeconsumer -v
   test-raft:
     dotenv: [".env"]
     cmds:
@@ -246,5 +246,4 @@ tasks:
       - task: test-chain
       - task: test-wss
       - task: test-websocketfetcher
-      - task: test-zeropglog
       - task: test-raft

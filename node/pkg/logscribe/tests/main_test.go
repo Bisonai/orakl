@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"testing"
+	"time"
 
 	"bisonai.com/orakl/node/pkg/db"
 	"bisonai.com/orakl/node/pkg/logscribe/api"
@@ -28,7 +29,7 @@ func getInsertLogData() ([]api.LogInsertModel, error) {
 	for i := 0; i < insertLogDataCount; i++ {
 		data = append(data, api.LogInsertModel{
 			Service:   "node",
-			Timestamp: "2024-07-29 03:15:02+00",
+			Timestamp: time.Now(),
 			Level:     3,
 			Message:   "error in requestFeed",
 			Fields:    json.RawMessage(fieldJsonData),

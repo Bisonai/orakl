@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"os"
+	"strconv"
 	"sync"
 	"time"
 
@@ -12,16 +13,27 @@ import (
 	"bisonai.com/orakl/node/pkg/fetcher"
 	"bisonai.com/orakl/node/pkg/libp2p/helper"
 	libp2pSetup "bisonai.com/orakl/node/pkg/libp2p/setup"
+	"bisonai.com/orakl/node/pkg/logscribeconsumer"
 	"bisonai.com/orakl/node/pkg/utils/retrier"
-	"bisonai.com/orakl/node/pkg/zeropglog"
 	"github.com/rs/zerolog/log"
 )
 
 func main() {
 	ctx := context.Background()
 
-	zeropglog := zeropglog.New()
-	go zeropglog.Run(ctx)
+	postToLogscribe, err := strconv.ParseBool(os.Getenv("POST_TO_LOGSCRIBE"))
+	if err != nil {
+		postToLogscribe = true
+	}
+	logscribeconsumer, err := logscribeconsumer.New(
+		logscribeconsumer.WithStoreService("node"),
+		logscribeconsumer.WithPostToLogscribe(postToLogscribe),
+	)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to create a new logscribeconsumer instance")
+		return
+	}
+	go logscribeconsumer.Run(ctx)
 
 	mb := bus.New(1000)
 	var wg sync.WaitGroup
