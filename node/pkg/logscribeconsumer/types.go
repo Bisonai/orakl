@@ -8,28 +8,28 @@ import (
 )
 
 const (
-	DefaultLogStoreInterval = 10 * time.Second
-	DefaultBufferSize       = 3000
-	MinimalLogStoreLevel    = zerolog.WarnLevel
-	DefaultLogscribeEnpoint = "http://orakl-logscribe.orakl.svc.cluster.local:3000/api/v1/"
-	ProcessLogsBatchSize    = 1000
+	DefaultLogStoreInterval     = 10 * time.Second
+	DefaultBufferSize           = 3000
+	DefaultMinimalLogStoreLevel = zerolog.WarnLevel
+	DefaultLogscribeEndpoint    = "http://orakl-logscribe.orakl.svc.cluster.local:3000/api/v1/"
+	ProcessLogsBatchSize        = 1000
 )
 
 type App struct {
-	StoreInterval    time.Duration
-	buffer           chan map[string]any
-	consoleWriter    zerolog.ConsoleWriter
-	LogscribeEnpoint string
-	Service          string
-	Level            string
+	StoreInterval     time.Duration
+	buffer            chan map[string]any
+	consoleWriter     zerolog.ConsoleWriter
+	LogscribeEndpoint string
+	Service           string
+	Level             int
 }
 
 type AppConfig struct {
-	StoreInterval    time.Duration
-	Buffer           int
-	LogscribeEnpoint string
-	Service          string
-	Level            string
+	StoreInterval     time.Duration
+	Buffer            int
+	LogscribeEndpoint string
+	Service           string
+	Level             string
 }
 
 type AppOption func(c *AppConfig)
@@ -56,7 +56,7 @@ func WithStoreInterval(interval time.Duration) AppOption {
 
 func WithLogscribeEndpoint(endpoint string) AppOption {
 	return func(c *AppConfig) {
-		c.LogscribeEnpoint = endpoint
+		c.LogscribeEndpoint = endpoint
 	}
 }
 

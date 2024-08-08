@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	errorsentinel "bisonai.com/orakl/node/pkg/error"
@@ -18,15 +17,16 @@ func New(options ...AppOption) (*App, error) {
 	consoleWriter := zerolog.ConsoleWriter{Out: os.Stdout}
 
 	c := &AppConfig{
-		StoreInterval:    DefaultLogStoreInterval,
-		Buffer:           DefaultBufferSize,
-		LogscribeEnpoint: DefaultLogscribeEnpoint,
+		StoreInterval:     DefaultLogStoreInterval,
+		Buffer:            DefaultBufferSize,
+		LogscribeEndpoint: DefaultLogscribeEndpoint,
+		Level:             DefaultMinimalLogStoreLevel.String(),
 	}
 	for _, option := range options {
 		option(c)
 	}
 
-	resp, err := request.RequestRaw(request.WithEndpoint(c.LogscribeEnpoint))
+	resp, err := request.RequestRaw(request.WithEndpoint(c.LogscribeEndpoint))
 	if err != nil || resp.StatusCode != http.StatusOK {
 		return nil, errorsentinel.ErrLogscribeConsumerEndpointUnresponsive
 	}
@@ -35,18 +35,19 @@ func New(options ...AppOption) (*App, error) {
 		log.Error().Msg("Service not provided")
 		return nil, errorsentinel.ErrLogscribeConsumerServiceNotProvided
 	}
-	if !isLogLevelValid(map[string]any{"level": c.Level}) {
-		log.Error().Msgf("Invalid log level: %v", c.Level)
-		return nil, errorsentinel.ErrLogscribeConsumerInvalidLevel
+	level, err := zerolog.ParseLevel(c.Level)
+	if err != nil {
+		log.Error().Msgf("Error parsing log level, falling back to default value: %s", DefaultMinimalLogStoreLevel.String())
+		level = DefaultMinimalLogStoreLevel
 	}
 
 	return &App{
-		StoreInterval:    c.StoreInterval,
-		buffer:           make(chan map[string]any, c.Buffer),
-		consoleWriter:    consoleWriter,
-		LogscribeEnpoint: c.LogscribeEnpoint,
-		Service:          c.Service,
-		Level:            c.Level,
+		StoreInterval:     c.StoreInterval,
+		buffer:            make(chan map[string]any, c.Buffer),
+		consoleWriter:     consoleWriter,
+		LogscribeEndpoint: c.LogscribeEndpoint,
+		Service:           c.Service,
+		Level:             int(level),
 	}, nil
 }
 
@@ -68,9 +69,10 @@ func (a *App) Write(p []byte) (n int, err error) {
 		return 0, errorsentinel.ErrLogEmptyLogByte
 	}
 
-	if !isLogLevelValid(res) {
+	if !a.isLogLevelValid(res) {
 		return 0, err
 	}
+
 	a.buffer <- res
 	return len(p), nil
 }
@@ -96,19 +98,7 @@ func (a *App) Run(ctx context.Context) {
 
 func (a *App) setup() {
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
-	a.setLogLevel()
-	a.setLogWriter()
-}
-
-func (a *App) setLogLevel() {
-	logLevel := os.Getenv("LOG_LEVEL")
-	if logLevel == "" {
-		logLevel = "info"
-	}
-	zerolog.SetGlobalLevel(getLogLevel(logLevel))
-}
-
-func (a *App) setLogWriter() {
+	zerolog.SetGlobalLevel(zerolog.Level(a.Level))
 	logger := zerolog.New(a).With().Timestamp().Logger()
 	log.Logger = logger
 }
@@ -146,7 +136,7 @@ func (a *App) processBatch(ctx context.Context) []error {
 	}
 }
 
-func isLogLevelValid(entry map[string]any) bool {
+func (a *App) isLogLevelValid(entry map[string]any) bool {
 	levelStr, ok := entry["level"].(string)
 	if !ok {
 		return false
@@ -157,14 +147,11 @@ func isLogLevelValid(entry map[string]any) bool {
 		return false
 	}
 
-	if lv < MinimalLogStoreLevel {
-		return false
-	}
-	return true
+	return int(lv) >= a.Level
 }
 
 func (a *App) bulkPostLogEntries(logEntries []map[string]any) error {
-	bulkCopyEntries := []LogInsertModel{}
+	bulkPostEntries := []LogInsertModel{}
 
 	for _, entry := range logEntries {
 		res, err := a.extractLogscribeEntry(entry)
@@ -173,11 +160,11 @@ func (a *App) bulkPostLogEntries(logEntries []map[string]any) error {
 			continue
 		}
 
-		bulkCopyEntries = append(bulkCopyEntries, *res)
+		bulkPostEntries = append(bulkPostEntries, *res)
 	}
 
-	if len(bulkCopyEntries) > 0 {
-		res, err := request.RequestRaw(request.WithEndpoint(a.LogscribeEnpoint), request.WithBody(bulkCopyEntries), request.WithMethod("POST"))
+	if len(bulkPostEntries) > 0 {
+		res, err := request.RequestRaw(request.WithEndpoint(a.LogscribeEndpoint), request.WithBody(bulkPostEntries), request.WithMethod("POST"))
 		if err != nil {
 			return err
 		}
@@ -198,7 +185,7 @@ func (a *App) extractLogscribeEntry(entry map[string]interface{}) (*LogInsertMod
 	if !ok {
 		return nil, errorsentinel.ErrLogMsgNotExist
 	}
-	levelStrVal, ok := entry["level"]
+	levelStr, ok := entry["level"].(string)
 	if !ok {
 		return nil, errorsentinel.ErrLogLvlNotExist
 	}
@@ -206,17 +193,10 @@ func (a *App) extractLogscribeEntry(entry map[string]interface{}) (*LogInsertMod
 	timestamp := time.Unix(int64(timeVal.(float64)), 0)
 	message := messageVal.(string)
 
-	var levelStr string
-	if a.Level == "" {
-		levelStr = levelStrVal.(string)
-	} else {
-		levelStr = a.Level
-	}
 	zerologLevel, err := zerolog.ParseLevel(levelStr)
 	if err != nil {
 		return nil, err
 	}
-	level := int(zerologLevel)
 
 	delete(entry, "time")
 	delete(entry, "level")
@@ -227,7 +207,7 @@ func (a *App) extractLogscribeEntry(entry map[string]interface{}) (*LogInsertMod
 		return nil, err
 	}
 	fields := json.RawMessage(jsonData)
-	return &LogInsertModel{Timestamp: timestamp, Service: a.Service, Level: int(level), Message: message, Fields: fields}, nil
+	return &LogInsertModel{Timestamp: timestamp, Service: a.Service, Level: int(zerologLevel), Message: message, Fields: fields}, nil
 }
 
 func byte2Entry(b []byte) (map[string]any, error) {
@@ -237,23 +217,4 @@ func byte2Entry(b []byte) (map[string]any, error) {
 		return nil, err
 	}
 	return entry, nil
-}
-
-func getLogLevel(input string) zerolog.Level {
-	switch strings.ToLower(input) {
-	case "debug":
-		return zerolog.DebugLevel
-	case "info":
-		return zerolog.InfoLevel
-	case "warn":
-		return zerolog.WarnLevel
-	case "error":
-		return zerolog.ErrorLevel
-	case "fatal":
-		return zerolog.FatalLevel
-	case "panic":
-		return zerolog.PanicLevel
-	default:
-		return zerolog.InfoLevel
-	}
 }
