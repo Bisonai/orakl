@@ -31,7 +31,6 @@ func (c *Collector) Run(ctx context.Context) {
 	localAggregateIntervalRaw := os.Getenv("LOCAL_AGGREGATE_INTERVAL")
 	localAggregateInterval, err := time.ParseDuration(localAggregateIntervalRaw)
 	if err != nil {
-		log.Warn().Str("Player", "Collector").Err(err).Msg("error in ParseDuration in collector, using default")
 		localAggregateInterval = DefaultLocalAggregateInterval
 	}
 	collectorFrequency := localAggregateInterval
