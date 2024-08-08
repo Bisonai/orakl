@@ -74,15 +74,10 @@ func (a *App) Write(p []byte) (n int, err error) {
 		return 0, errorsentinel.ErrLogEmptyLogByte
 	}
 
-	// check if the log should be sent to logscribe
-	if isLogLevelValid(res, a.Level) {
-		a.buffer <- res
-	}
-
-	// check if the log should be written to the console
-	if !isLogLevelValid(res, DefaultLogConsoleLevel) {
+	if !isLogLevelValid(res, a.Level) {
 		return 0, nil
 	}
+	a.buffer <- res
 
 	return len(p), nil
 }
