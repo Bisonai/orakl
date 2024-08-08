@@ -20,7 +20,13 @@ import (
 func main() {
 	ctx := context.Background()
 
-	logscribeconsumer, err := logscribeconsumer.New(logscribeconsumer.WithStoreService("node"))
+	postToLogscribe := os.Getenv("POST_TO_LOGSCRIBE")
+	logscribeconsumer, err := logscribeconsumer.New(
+		logscribeconsumer.WithStoreService("node"),
+		logscribeconsumer.WithPostToLogscribe(
+			postToLogscribe == "" || postToLogscribe == "true",
+		),
+	)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to create a new logscribeconsumer instance")
 		return

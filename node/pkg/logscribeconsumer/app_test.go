@@ -9,7 +9,9 @@ import (
 	"time"
 
 	"bisonai.com/orakl/node/pkg/logscribe"
+	"bisonai.com/orakl/sentinel/pkg/db"
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -28,6 +30,9 @@ const (
 func TestNew(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
+	startLogscribe(ctx, t)
+	defer cleanup(ctx)
 
 	tests := []struct {
 		name    string
@@ -93,15 +98,6 @@ func TestNew(t *testing.T) {
 		},
 	}
 
-	go func() {
-		err := logscribe.Run(ctx)
-		if err != nil {
-			t.Errorf("failed to start logscribe app: %v", err)
-		}
-	}()
-
-	time.Sleep(500 * time.Millisecond)
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := New(tt.opts...)
@@ -119,6 +115,9 @@ func TestNew(t *testing.T) {
 func TestLogscribeConsumerWrite(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
+	startLogscribe(ctx, t)
+	defer cleanup(ctx)
 
 	tests := []struct {
 		name    string
@@ -145,15 +144,6 @@ func TestLogscribeConsumerWrite(t *testing.T) {
 		},
 	}
 
-	go func() {
-		err := logscribe.Run(ctx)
-		if err != nil {
-			t.Errorf("failed to start logscribe app: %v", err)
-		}
-	}()
-
-	time.Sleep(500 * time.Millisecond)
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			l, _ := New(WithStoreService(testService), WithLogscribeEndpoint(testEndpoint))
@@ -173,14 +163,8 @@ func TestBulkCopyLogEntries(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	go func() {
-		err := logscribe.Run(ctx)
-		if err != nil {
-			t.Errorf("failed to start logscribe app: %v", err)
-		}
-	}()
-
-	time.Sleep(500 * time.Millisecond)
+	startLogscribe(ctx, t)
+	defer cleanup(ctx)
 
 	app, _ := New(WithLogscribeEndpoint("http://localhost:3000/api/v1/"), WithStoreService("node"))
 
@@ -226,6 +210,9 @@ func TestBulkCopyLogEntries(t *testing.T) {
 func TestExtractLogscribeEntry(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
+	startLogscribe(ctx, t)
+	defer cleanup(ctx)
 
 	tests := []struct {
 		name     string
@@ -289,15 +276,6 @@ func TestExtractLogscribeEntry(t *testing.T) {
 		},
 	}
 
-	go func() {
-		err := logscribe.Run(ctx)
-		if err != nil {
-			t.Errorf("failed to start logscribe app: %v", err)
-		}
-	}()
-
-	time.Sleep(500 * time.Millisecond)
-
 	app, err := New(WithStoreService(testService), WithLogscribeEndpoint(testEndpoint))
 	if err != nil {
 		t.Errorf("failed to create logscribe app: %v", err)
@@ -312,6 +290,98 @@ func TestExtractLogscribeEntry(t *testing.T) {
 			}
 			assert.Equal(t, tt.expected, actual)
 		})
+	}
+}
+
+func TestPostToLogscribe(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	startLogscribe(ctx, t)
+	defer cleanup(ctx)
+
+	app, err := New(
+		WithStoreInterval(100*time.Millisecond),
+		WithLogscribeEndpoint("http://localhost:3000/api/v1/"),
+		WithStoreService("test"),
+		// WithStoreLevel("error"),
+	)
+	if err != nil {
+		t.Errorf("failed to create logscribeconsumer app: %v", err)
+	}
+	go app.Run(ctx)
+	time.Sleep(500 * time.Millisecond)
+	log.Error().Msg("this message should be posted to logscribe")
+	time.Sleep(logscribe.DefaultBulkLogsCopyInterval + 1*time.Second)
+
+	res, err := db.QueryRow[Count](ctx, "SELECT Count(*) FROM logs;", nil)
+	if err != nil {
+		t.Errorf("failed to query logs: %v", err)
+	}
+	assert.Equal(t, 1, res.Count)
+}
+
+func TestNotPostToLogscribe(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	startLogscribe(ctx, t)
+	defer cleanup(ctx)
+
+	app, err := New(
+		WithStoreInterval(100*time.Millisecond),
+		WithLogscribeEndpoint("http://localhost:3000/api/v1/"),
+		WithStoreService("test"),
+		WithPostToLogscribe(false),
+	)
+	if err != nil {
+		t.Errorf("failed to create logscribeconsumer app: %v", err)
+	}
+	go app.Run(ctx)
+	time.Sleep(500 * time.Millisecond)
+	log.Error().Msg("this message shouldn't be posted to logscribe")
+	time.Sleep(logscribe.DefaultBulkLogsCopyInterval + 1*time.Second)
+
+	res, err := db.QueryRow[Count](ctx, "SELECT Count(*) FROM logs;", nil)
+	if err != nil {
+		t.Errorf("failed to query logs: %v", err)
+	}
+	assert.Equal(t, 0, res.Count)
+}
+
+func TestCustomLogLevel(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	startLogscribe(ctx, t)
+	defer cleanup(ctx)
+
+	zerologLevel := zerolog.InfoLevel
+	app, err := New(
+		WithStoreInterval(100*time.Millisecond),
+		WithLogscribeEndpoint("http://localhost:3000/api/v1/"),
+		WithStoreService("test"),
+		WithPostToLogscribe(false),
+		WithStoreLevel(zerologLevel.String()),
+	)
+	if err != nil {
+		t.Errorf("failed to create logscribeconsumer app: %v", err)
+	}
+	go app.Run(ctx)
+	time.Sleep(500 * time.Millisecond)
+
+	log.Debug().Msg("debug message")
+	log.Info().Msg("info message")
+	log.Warn().Msg("warn message")
+	log.Error().Msg("error message")
+	time.Sleep(logscribe.DefaultBulkLogsCopyInterval + 1*time.Second)
+
+	res, err := db.QueryRows[LogInsertModel](ctx, "SELECT * FROM logs;", nil)
+	if err != nil {
+		t.Errorf("failed to query logs: %v", err)
+	}
+	for _, log := range res {
+		assert.GreaterOrEqual(t, zerologLevel, zerolog.Level(log.Level))
 	}
 }
 
