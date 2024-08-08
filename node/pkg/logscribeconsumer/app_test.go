@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"bisonai.com/orakl/node/pkg/db"
 	"bisonai.com/orakl/node/pkg/logscribe"
-	"bisonai.com/orakl/sentinel/pkg/db"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"
