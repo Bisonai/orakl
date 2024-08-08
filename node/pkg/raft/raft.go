@@ -35,7 +35,7 @@ func NewRaftNode(
 		Term:          0,
 		Mutex:         sync.Mutex{},
 
-		MessageBuffer:    make(chan Message, messageBuffer),
+		MessageBuffer:    make(chan *pubsub.Message, messageBuffer),
 		Resign:           make(chan interface{}),
 		HeartbeatTimeout: HEARTBEAT_TIMEOUT,
 
@@ -49,13 +49,19 @@ func (r *Raft) Run(ctx context.Context) {
 	r.startElectionTimer()
 	for {
 		select {
-		case msg := <-r.MessageBuffer:
-			go func(Message) {
-				err := r.handleMessage(ctx, msg)
+		case rawMsg := <-r.MessageBuffer:
+			go func(*pubsub.Message) {
+				msg, err := r.unmarshalMessage(rawMsg.Data)
+				if err != nil {
+					log.Error().Err(err).Msg("failed to unmarshal message")
+					return
+				}
+
+				err = r.handleMessage(ctx, msg)
 				if err != nil {
 					log.Error().Err(err).Str("Player", "Raft").Msg("failed to handle message")
 				}
-			}(msg)
+			}(rawMsg)
 		case <-r.ElectionTimer.C:
 			r.startElection(ctx)
 		case <-ctx.Done():
@@ -85,14 +91,7 @@ func (r *Raft) subscribe(ctx context.Context) {
 				log.Error().Err(err).Msg("failed to get message from topic")
 				continue
 			}
-
-			msg, err := r.unmarshalMessage(rawMsg.Data)
-			if err != nil {
-				log.Error().Err(err).Msg("failed to unmarshal message")
-				continue
-			}
-
-			r.MessageBuffer <- msg
+			r.MessageBuffer <- rawMsg
 		}
 	}
 }
@@ -132,29 +131,19 @@ func (r *Raft) handleHeartbeat(msg Message) error {
 
 	currentRole := r.Role
 	currentTerm := r.Term
-	currentLeader := r.LeaderID
 
-	if currentTerm > heartbeatMessage.Term && currentRole != Leader {
+	if heartbeatMessage.Term >= currentTerm {
+		if currentRole == Leader {
+			r.ResignLeader()
+		}
+
+		r.Term = max(heartbeatMessage.Term, currentTerm)
+		r.Role = Follower
+		r.LeaderID = heartbeatMessage.LeaderID
 		r.startElectionTimer()
 		return nil
 	}
 
-	if currentTerm > heartbeatMessage.Term && currentRole == Leader {
-		return nil
-	}
-
-	if currentRole == Leader {
-		r.ResignLeader()
-	} else if currentRole == Candidate {
-		r.Role = Follower
-	}
-
-	r.startElectionTimer()
-	r.Term = heartbeatMessage.Term
-
-	if currentLeader != heartbeatMessage.LeaderID {
-		r.LeaderID = heartbeatMessage.LeaderID
-	}
 	return nil
 }
 
@@ -373,8 +362,8 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 }
 
 func (r *Raft) getRandomElectionTimeout() time.Duration {
-	minTimeout := int(r.HeartbeatTimeout) * 3
-	maxTimeout := int(r.HeartbeatTimeout) * 6
+	minTimeout := int(r.HeartbeatTimeout) * 5
+	maxTimeout := int(r.HeartbeatTimeout) * 8
 	duration := time.Duration(minTimeout + rand.Intn(maxTimeout-minTimeout))
 	return duration
 }
