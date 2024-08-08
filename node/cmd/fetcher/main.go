@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"os"
+	"strconv"
 	"sync"
 
 	"bisonai.com/orakl/node/pkg/admin"
@@ -15,12 +16,13 @@ import (
 func main() {
 	ctx := context.Background()
 
-	postToLogscribe := os.Getenv("POST_TO_LOGSCRIBE")
+	postToLogscribe, err := strconv.ParseBool(os.Getenv("POST_TO_LOGSCRIBE"))
+	if err != nil {
+		postToLogscribe = true
+	}
 	logscribeconsumer, err := logscribeconsumer.New(
 		logscribeconsumer.WithStoreService("fetcher"),
-		logscribeconsumer.WithPostToLogscribe(
-			postToLogscribe == "" || postToLogscribe == "true",
-		),
+		logscribeconsumer.WithPostToLogscribe(postToLogscribe),
 	)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to create a new logscribeconsumer instance")
