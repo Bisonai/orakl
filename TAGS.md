@@ -160,3 +160,4 @@
 - **node** v0.0.1.20240807.1057.37fd445 <br> *`PR`*: OraklNode fix memory leak  lin... <br><br> 
 - **node** v0.0.1.20240808.0118.9477188 <br> *`PR`*: OraklNode Improve message hand... <br><br> 
 - **node** v0.0.1.20240808.0506.cea77a4 <br> *`PR`*: OraklNode Reduce default 120 s... <br><br> 
+- **node** v0.0.1.20240808.0519.79fb175 <br> *`PR`*: OraklNode hotfix segmentation ... <br><br> 
