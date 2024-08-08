@@ -2,6 +2,8 @@ package db
 
 import (
 	"context"
+	"sync"
+	"time"
 
 	errorsentinel "bisonai.com/orakl/node/pkg/error"
 	"github.com/redis/go-redis/v9"
@@ -9,19 +11,30 @@ import (
 )
 
 type Rediscriber struct {
-	client        *redis.Client
-	router        func(*redis.Message) error
-	redisChannels []string
+	client *redis.Client
+	router func(*redis.Message) error
+	topics []string
+
+	host              string
+	port              string
+	reconnectInterval time.Duration
+
+	mu sync.Mutex
 }
 
 type RediscriberConfig struct {
-	RedisHost     string
-	RedisPort     string
-	RedisChannels []string
-	Router        func(*redis.Message) error
+	RedisHost         string
+	RedisPort         string
+	RedisTopics       []string
+	Router            func(*redis.Message) error
+	ReconnectInterval time.Duration
 }
 
 type RediscriberOption func(*RediscriberConfig)
+
+const (
+	DefaultReconnectInterval = 30 * time.Second
+)
 
 func WithRedisHost(host string) RediscriberOption {
 	return func(config *RediscriberConfig) {
@@ -37,7 +50,7 @@ func WithRedisPort(port string) RediscriberOption {
 
 func WithRedisChannels(channels []string) RediscriberOption {
 	return func(config *RediscriberConfig) {
-		config.RedisChannels = channels
+		config.RedisTopics = channels
 	}
 }
 
@@ -47,8 +60,16 @@ func WithRedisRouter(router func(*redis.Message) error) RediscriberOption {
 	}
 }
 
+func WithReconnectInterval(interval time.Duration) RediscriberOption {
+	return func(config *RediscriberConfig) {
+		config.ReconnectInterval = interval
+	}
+}
+
 func NewRediscriber(ctx context.Context, opts ...RediscriberOption) (*Rediscriber, error) {
-	config := &RediscriberConfig{}
+	config := &RediscriberConfig{
+		ReconnectInterval: DefaultReconnectInterval,
+	}
 	for _, opt := range opts {
 		opt(config)
 	}
@@ -57,46 +78,107 @@ func NewRediscriber(ctx context.Context, opts ...RediscriberOption) (*Rediscribe
 		return nil, errorsentinel.ErrRediscriberRouterNotFound
 	}
 
-	client, err := newRedisClient(ctx, config.RedisHost, config.RedisPort)
-	if err != nil {
-		return nil, err
-	}
 	return &Rediscriber{
-		client:        client,
-		router:        config.Router,
-		redisChannels: config.RedisChannels,
+		router: config.Router,
+		topics: config.RedisTopics,
+
+		host: config.RedisHost,
+		port: config.RedisPort,
+
+		reconnectInterval: config.ReconnectInterval,
 	}, nil
 }
 
-func (r *Rediscriber) Start(ctx context.Context) error {
-	err := r.client.Ping(ctx).Err()
-	if err != nil {
-		log.Error().Err(err).Msg("Error connecting to redis")
-		return err
+func (r *Rediscriber) Start(ctx context.Context) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			if err := r.reconnect(ctx); err != nil {
+				log.Error().Err(err).Msg("failed to establish initial connection")
+				return
+			}
+
+			wg := new(sync.WaitGroup)
+			wg.Add(len(r.topics))
+
+			for _, topic := range r.topics {
+				go r.subscribe(ctx, topic, wg)
+			}
+
+			wg.Wait()
+
+			if r.client != nil {
+				r.mu.Lock()
+				r.client.Close()
+				r.client = nil
+				r.mu.Unlock()
+			}
+
+			time.Sleep(r.reconnectInterval)
+		}
+	}
+}
+
+func (r *Rediscriber) connect(ctx context.Context) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if r.client != nil {
+		_ = r.client.Close()
 	}
 
-	for _, channel := range r.redisChannels {
-		sub := r.client.Subscribe(ctx, channel)
-		rawCh := sub.Channel()
-		go func(channel string) {
-			for {
-				select {
-				case <-ctx.Done():
-					sub.Close()
-					return
-				case msg := <-rawCh:
-					if ctx.Err() != nil {
-						return
-					}
-					err := r.router(msg)
-					if err != nil {
-						log.Error().Err(err).Str("channel", channel).Msg("Error handling redis message")
-					}
+	client, err := newRedisClient(ctx, r.host, r.port)
+	if err != nil {
+		return err
+	}
+	r.client = client
+	return nil
+}
+
+func (r *Rediscriber) reconnect(ctx context.Context) error {
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+			err := r.connect(ctx)
+			if err != nil {
+				if isConnectionError(err) {
+					time.Sleep(r.reconnectInterval)
+					continue
+				}
+				return err
+			}
+			return nil
+		}
+
+	}
+}
+
+func (r *Rediscriber) subscribe(ctx context.Context, topic string, wg *sync.WaitGroup) {
+	defer wg.Done()
+	sub := r.client.Subscribe(ctx, topic)
+	defer sub.Close()
+
+	ch := sub.Channel()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case msg, ok := <-ch:
+			if !ok {
+				return
+			}
+			if msg != nil {
+				if err := r.router(msg); err != nil {
+					log.Error().Err(err).Str("channel", topic).Msg("Error handling redis message")
 				}
 			}
-		}(channel)
+		}
 	}
-	return nil
 }
 
 func newRedisClient(ctx context.Context, host string, port string) (*redis.Client, error) {
