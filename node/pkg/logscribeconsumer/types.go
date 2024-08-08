@@ -8,11 +8,12 @@ import (
 )
 
 const (
-	DefaultLogStoreInterval     = 10 * time.Second
-	DefaultBufferSize           = 3000
-	DefaultMinimalLogStoreLevel = zerolog.WarnLevel
-	DefaultLogscribeEndpoint    = "http://orakl-logscribe.orakl.svc.cluster.local:3000/api/v1/"
-	ProcessLogsBatchSize        = 1000
+	DefaultLogStoreInterval  = 10 * time.Second
+	DefaultBufferSize        = 3000
+	DefaultLogStoreLevel     = zerolog.ErrorLevel
+	DefaultLogConsoleLevel   = zerolog.WarnLevel
+	DefaultLogscribeEndpoint = "http://orakl-logscribe.orakl.svc.cluster.local:3000/api/v1/"
+	ProcessLogsBatchSize     = 1000
 )
 
 type App struct {

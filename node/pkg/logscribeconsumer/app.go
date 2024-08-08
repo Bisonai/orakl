@@ -19,7 +19,7 @@ func New(options ...AppOption) (*App, error) {
 	c := &AppConfig{
 		StoreInterval:     DefaultLogStoreInterval,
 		Buffer:            DefaultBufferSize,
-		Level:             DefaultMinimalLogStoreLevel.String(),
+		Level:             os.Getenv("LOGSCRIBE_LOG_LEVEL"),
 		PostToLogscribe:   true,
 		LogscribeEndpoint: DefaultLogscribeEndpoint,
 	}
@@ -38,8 +38,7 @@ func New(options ...AppOption) (*App, error) {
 	}
 	level, err := zerolog.ParseLevel(c.Level)
 	if err != nil {
-		log.Debug().Msgf("Error parsing log level, falling back to default value: %s", DefaultMinimalLogStoreLevel.String())
-		level = DefaultMinimalLogStoreLevel
+		level = DefaultLogStoreLevel
 	}
 
 	return &App{
@@ -75,11 +74,16 @@ func (a *App) Write(p []byte) (n int, err error) {
 		return 0, errorsentinel.ErrLogEmptyLogByte
 	}
 
-	if !a.isLogLevelValid(res) {
+	// check if the log should be sent to logscribe
+	if isLogLevelValid(res, a.Level) {
+		a.buffer <- res
+	}
+
+	// check if the log should be written to the console
+	if !isLogLevelValid(res, DefaultLogConsoleLevel) {
 		return 0, nil
 	}
 
-	a.buffer <- res
 	return len(p), nil
 }
 
@@ -103,8 +107,13 @@ func (a *App) Run(ctx context.Context) {
 }
 
 func (a *App) setup() {
+	consoleLogLevel, err := zerolog.ParseLevel(os.Getenv("LOG_LEVEL"))
+	if err != nil {
+		consoleLogLevel = DefaultLogConsoleLevel
+	}
+
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
-	zerolog.SetGlobalLevel(zerolog.Level(a.Level))
+	zerolog.SetGlobalLevel(consoleLogLevel)
 	logger := zerolog.New(a).With().Timestamp().Logger()
 	log.Logger = logger
 }
@@ -142,7 +151,7 @@ func (a *App) processBatch(ctx context.Context) []error {
 	}
 }
 
-func (a *App) isLogLevelValid(entry map[string]any) bool {
+func isLogLevelValid(entry map[string]any, minLevel zerolog.Level) bool {
 	levelStr, ok := entry["level"].(string)
 	if !ok {
 		return false
@@ -153,7 +162,7 @@ func (a *App) isLogLevelValid(entry map[string]any) bool {
 		return false
 	}
 
-	return lv >= a.Level
+	return lv >= minLevel
 }
 
 func (a *App) bulkPostLogEntries(logEntries []map[string]any) error {
