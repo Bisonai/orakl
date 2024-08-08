@@ -162,3 +162,4 @@
 - **node** v0.0.1.20240808.0506.cea77a4 <br> *`PR`*: OraklNode Reduce default 120 s... <br><br> 
 - **node** v0.0.1.20240808.0519.79fb175 <br> *`PR`*: OraklNode hotfix segmentation ... <br><br> 
 - **logscribe** v0.0.1.20240808.0640.42454de <br> *`PR`*: OraklNode hotfix segmentation ... <br><br> 
+- **node** v0.0.1.20240808.0642.ce80216 <br> *`PR`*: OraklNode hotfix segmentation ... <br><br> 
