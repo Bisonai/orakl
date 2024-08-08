@@ -68,7 +68,11 @@ func ConnectThroughBootApi(ctx context.Context, h host.Host) error {
 		}
 
 		err = retrier.Retry(func() error {
-			return h.Connect(ctx, *info)
+			dialErr := h.Connect(ctx, *info)
+			if dialErr.Error() == "failed to dial: dial to self attempted" {
+				return nil
+			}
+			return dialErr
 		}, 5, 1*time.Second, 5*time.Second)
 		if err != nil {
 			log.Error().Err(err).Msg("error connecting to peer: " + dbPeer.Url)
