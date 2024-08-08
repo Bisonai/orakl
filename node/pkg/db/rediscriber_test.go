@@ -19,6 +19,7 @@ func TestNewRediscriber(t *testing.T) {
 	host := os.Getenv("REDIS_HOST")
 	port := os.Getenv("REDIS_PORT")
 
+	done := make(chan struct{})
 	rediscriber, err := NewRediscriber(ctx,
 		WithRedisHost(host),
 		WithRedisPort(port),
@@ -26,6 +27,7 @@ func TestNewRediscriber(t *testing.T) {
 		WithRedisRouter(func(msg *redis.Message) error {
 			assert.Equal(t, "test-channel", msg.Channel)
 			assert.Equal(t, "test-message", msg.Payload)
+			close(done)
 			return nil
 		}),
 	)
@@ -33,20 +35,25 @@ func TestNewRediscriber(t *testing.T) {
 	defer rediscriber.client.Close()
 
 	// Start the Rediscriber
+	started := make(chan struct{})
 	go func() {
 		err := rediscriber.Start(ctx)
 		require.NoError(t, err)
+		close(started)
 	}()
 
-	// Allow some time for the subscription to start
-	time.Sleep(1 * time.Second)
+	<-started
 
 	// Publish a test message
 	err = rediscriber.client.Publish(ctx, "test-channel", "test-message").Err()
 	require.NoError(t, err)
 
-	// Allow some time for the message to be processed
-	time.Sleep(1 * time.Second)
+	select {
+	case <-done:
+		return
+	case <-time.After(5 * time.Second):
+		t.Fatal("Test timed out waiting for message processing")
+	}
 }
 
 func TestRediscriber_ErrorHandling(t *testing.T) {
@@ -58,13 +65,14 @@ func TestRediscriber_ErrorHandling(t *testing.T) {
 	port := os.Getenv("REDIS_PORT")
 
 	errorHandlerCalled := false
-
+	errorHandled := make(chan struct{})
 	rediscriber, err := NewRediscriber(ctx,
 		WithRedisHost(host),
 		WithRedisPort(port),
 		WithRedisChannels([]string{"error-channel"}),
 		WithRedisRouter(func(msg *redis.Message) error {
 			errorHandlerCalled = true
+			close(errorHandled)
 			return assert.AnError
 		}),
 	)
@@ -72,20 +80,24 @@ func TestRediscriber_ErrorHandling(t *testing.T) {
 	defer rediscriber.client.Close()
 
 	// Start the Rediscriber
+	started := make(chan struct{})
 	go func() {
 		err := rediscriber.Start(ctx)
 		require.NoError(t, err)
+		close(started)
 	}()
-
-	// Allow some time for the subscription to start
-	time.Sleep(1 * time.Second)
+	<-started
 
 	// Publish a test message
 	err = rediscriber.client.Publish(ctx, "error-channel", "test-message").Err()
 	require.NoError(t, err)
 
-	// Allow some time for the message to be processed
-	time.Sleep(1 * time.Second)
+	// Wait for the error handler to be called or timeout
+	select {
+	case <-errorHandled:
+	case <-time.After(5 * time.Second):
+		t.Fatal("Test timed out waiting for error handling")
+	}
 
 	assert.True(t, errorHandlerCalled, "The error handler should have been called")
 }

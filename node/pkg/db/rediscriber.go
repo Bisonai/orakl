@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 
+	errorsentinel "bisonai.com/orakl/node/pkg/error"
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
 )
@@ -52,6 +53,10 @@ func NewRediscriber(ctx context.Context, opts ...RediscriberOption) (*Rediscribe
 		opt(config)
 	}
 
+	if config.Router == nil {
+		return nil, errorsentinel.ErrRediscriberRouterNotFound
+	}
+
 	client, err := newRedisClient(ctx, config.RedisHost, config.RedisPort)
 	if err != nil {
 		return nil, err
@@ -80,11 +85,13 @@ func (r *Rediscriber) Start(ctx context.Context) error {
 					sub.Close()
 					return
 				case msg := <-rawCh:
+					if ctx.Err() != nil {
+						return
+					}
 					err := r.router(msg)
 					if err != nil {
 						log.Error().Err(err).Str("channel", channel).Msg("Error handling redis message")
 					}
-
 				}
 			}
 		}(channel)
