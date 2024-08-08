@@ -20,10 +20,11 @@ func main() {
 	if err != nil {
 		postToLogscribe = true
 	}
+	logLevel := os.Getenv("LOG_LEVEL")
 	logscribeconsumer, err := logscribeconsumer.New(
 		logscribeconsumer.WithStoreService("fetcher"),
 		logscribeconsumer.WithPostToLogscribe(postToLogscribe),
-		logscribeconsumer.WithStoreLevel("error"),
+		logscribeconsumer.WithStoreLevel(logLevel),
 	)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to create a new logscribeconsumer instance")
