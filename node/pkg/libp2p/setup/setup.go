@@ -69,7 +69,7 @@ func ConnectThroughBootApi(ctx context.Context, h host.Host) error {
 
 		err = retrier.Retry(func() error {
 			dialErr := h.Connect(ctx, *info)
-			if dialErr.Error() == "failed to dial: dial to self attempted" {
+			if dialErr != nil && dialErr.Error() == "failed to dial: dial to self attempted" {
 				return nil
 			}
 			return dialErr
