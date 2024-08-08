@@ -17,10 +17,11 @@ func New(options ...AppOption) (*App, error) {
 	consoleWriter := zerolog.ConsoleWriter{Out: os.Stdout}
 
 	c := &AppConfig{
-		StoreInterval:   DefaultLogStoreInterval,
-		Buffer:          DefaultBufferSize,
-		Level:           DefaultMinimalLogStoreLevel.String(),
-		PostToLogscribe: true,
+		StoreInterval:     DefaultLogStoreInterval,
+		Buffer:            DefaultBufferSize,
+		Level:             DefaultMinimalLogStoreLevel.String(),
+		PostToLogscribe:   true,
+		LogscribeEndpoint: DefaultLogscribeEndpoint,
 	}
 	for _, option := range options {
 		option(c)
