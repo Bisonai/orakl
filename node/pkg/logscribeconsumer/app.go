@@ -17,10 +17,9 @@ func New(options ...AppOption) (*App, error) {
 	consoleWriter := zerolog.ConsoleWriter{Out: os.Stdout}
 
 	c := &AppConfig{
-		StoreInterval:     DefaultLogStoreInterval,
-		Buffer:            DefaultBufferSize,
-		LogscribeEndpoint: DefaultLogscribeEndpoint,
-		Level:             DefaultMinimalLogStoreLevel.String(),
+		StoreInterval: DefaultLogStoreInterval,
+		Buffer:        DefaultBufferSize,
+		Level:         DefaultMinimalLogStoreLevel.String(),
 	}
 	for _, option := range options {
 		option(c)
@@ -37,7 +36,7 @@ func New(options ...AppOption) (*App, error) {
 	}
 	level, err := zerolog.ParseLevel(c.Level)
 	if err != nil {
-		log.Error().Msgf("Error parsing log level, falling back to default value: %s", DefaultMinimalLogStoreLevel.String())
+		log.Debug().Msgf("Error parsing log level, falling back to default value: %s", DefaultMinimalLogStoreLevel.String())
 		level = DefaultMinimalLogStoreLevel
 	}
 
