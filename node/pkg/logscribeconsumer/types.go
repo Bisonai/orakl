@@ -22,6 +22,7 @@ type App struct {
 	LogscribeEndpoint string
 	Service           string
 	Level             zerolog.Level
+	PostToLogscribe   bool
 }
 
 type AppConfig struct {
@@ -30,6 +31,7 @@ type AppConfig struct {
 	LogscribeEndpoint string
 	Service           string
 	Level             string
+	PostToLogscribe   bool
 }
 
 type AppOption func(c *AppConfig)
@@ -69,5 +71,11 @@ func WithStoreService(service string) AppOption {
 func WithStoreLevel(level string) AppOption {
 	return func(c *AppConfig) {
 		c.Level = level
+	}
+}
+
+func WithPostToLogscribe(post bool) AppOption {
+	return func(c *AppConfig) {
+		c.PostToLogscribe = post
 	}
 }
