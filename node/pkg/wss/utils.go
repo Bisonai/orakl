@@ -253,6 +253,16 @@ func (ws *WebsocketHelper) Write(ctx context.Context, message interface{}) error
 	return nil
 }
 
+func (ws *WebsocketHelper) WriteDelayed(ctx context.Context, message interface{}, delay time.Duration) error {
+	time.Sleep(delay)
+	err := wsjson.Write(ctx, ws.Conn, message)
+	if err != nil {
+		log.Error().Err(err).Str("endpoint", ws.Endpoint).Msg("error writing to websocket")
+		return err
+	}
+	return nil
+}
+
 func (ws *WebsocketHelper) RawWrite(ctx context.Context, message string) error {
 	return ws.Conn.Write(ctx, websocket.MessageText, []byte(message))
 }

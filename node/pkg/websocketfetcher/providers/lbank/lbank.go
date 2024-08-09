@@ -3,6 +3,7 @@ package lbank
 import (
 	"context"
 	"strings"
+	"time"
 
 	"bisonai.com/orakl/node/pkg/websocketfetcher/common"
 	"bisonai.com/orakl/node/pkg/wss"
@@ -52,10 +53,14 @@ func (f *LbankFetcher) handleMessage(ctx context.Context, message map[string]any
 			log.Error().Str("Player", "Lbank").Err(err).Msg("error in MessageToPing")
 			return err
 		}
-		return f.Ws.Write(ctx, Pong{
-			Action: "pong",
-			Pong:   ping.Ping,
-		})
+
+		return f.Ws.WriteDelayed(
+			ctx,
+			Pong{
+				Action: "pong",
+				Pong:   ping.Ping,
+			},
+			10*time.Millisecond)
 	}
 	response, err := common.MessageToStruct[Response](message)
 	if err != nil {
