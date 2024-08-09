@@ -2,6 +2,7 @@ package collector
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"os"
 	"strconv"
@@ -17,6 +18,7 @@ import (
 	errorsentinel "bisonai.com/orakl/node/pkg/error"
 	klaytncommon "github.com/klaytn/klaytn/common"
 	"github.com/klaytn/klaytn/crypto"
+	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
 )
 
@@ -27,13 +29,15 @@ const (
 )
 
 type Collector struct {
-	IncomingStream   map[int32]chan *aggregator.SubmissionData
 	OutgoingStream   map[int32]chan *dalcommon.OutgoingSubmissionData
 	Symbols          map[int32]string
 	FeedHashes       map[int32][]byte
 	LatestTimestamps map[int32]time.Time
 	LatestData       map[string]*dalcommon.OutgoingSubmissionData
 	CachedWhitelist  []klaytncommon.Address
+
+	baseRediscribe *db.Rediscribe
+	subRediscribe  *db.Rediscribe
 
 	IsRunning  bool
 	CancelFunc context.CancelFunc
@@ -55,6 +59,26 @@ func NewCollector(ctx context.Context, configs []types.Config) (*Collector, erro
 		return nil, errors.New("SUBMISSION_PROXY_CONTRACT is not set")
 	}
 
+	baseRedisHost := os.Getenv("REDIS_HOST")
+	if baseRedisHost == "" {
+		return nil, errors.New("REDIS_HOST is not set")
+	}
+
+	baseRedisPort := os.Getenv("REDIS_PORT")
+	if baseRedisPort == "" {
+		return nil, errors.New("REDIS_PORT is not set")
+	}
+
+	subRedisHost := os.Getenv("SUB_REDIS_HOST")
+	if subRedisHost == "" {
+		log.Warn().Msg("sub redis host not set")
+	}
+
+	subRedisPort := os.Getenv("SUB_REDIS_PORT")
+	if subRedisPort == "" {
+		log.Warn().Msg("sub redis port not set")
+	}
+
 	chainReader, err := websocketchainreader.New(websocketchainreader.WithKaiaWebsocketUrl(kaiaWebsocketUrl))
 	if err != nil {
 		return nil, err
@@ -66,7 +90,6 @@ func NewCollector(ctx context.Context, configs []types.Config) (*Collector, erro
 	}
 
 	collector := &Collector{
-		IncomingStream:              make(map[int32]chan *aggregator.SubmissionData, len(configs)),
 		OutgoingStream:              make(map[int32]chan *dalcommon.OutgoingSubmissionData, len(configs)),
 		Symbols:                     make(map[int32]string, len(configs)),
 		FeedHashes:                  make(map[int32][]byte, len(configs)),
@@ -77,11 +100,26 @@ func NewCollector(ctx context.Context, configs []types.Config) (*Collector, erro
 		submissionProxyContractAddr: submissionProxyContractAddr,
 	}
 
+	redisTopics := []string{}
 	for _, config := range configs {
-		collector.IncomingStream[config.ID] = make(chan *aggregator.SubmissionData, 1000)
 		collector.OutgoingStream[config.ID] = make(chan *dalcommon.OutgoingSubmissionData, 1000)
 		collector.Symbols[config.ID] = config.Name
 		collector.FeedHashes[config.ID] = crypto.Keccak256([]byte(config.Name))
+		redisTopics = append(redisTopics, keys.SubmissionDataStreamKey(config.ID))
+	}
+
+	baseRediscribe, err := db.NewRediscribe(ctx, db.WithRedisHost(baseRedisHost), db.WithRedisPort(baseRedisPort), db.WithRedisTopics(redisTopics), db.WithRedisRouter(collector.redisRouter))
+	if err != nil {
+		return nil, err
+	}
+	collector.baseRediscribe = baseRediscribe
+
+	if subRedisHost != "" && subRedisPort != "" {
+		subRediscribe, err := db.NewRediscribe(ctx, db.WithRedisHost(subRedisHost), db.WithRedisPort(subRedisPort), db.WithRedisTopics(redisTopics), db.WithRedisRouter(collector.redisRouter))
+		if err != nil {
+			return nil, err
+		}
+		collector.subRediscribe = subRediscribe
 	}
 
 	return collector, nil
@@ -131,28 +169,22 @@ func (c *Collector) Stop() {
 }
 
 func (c *Collector) receive(ctx context.Context) {
-	for id := range c.IncomingStream {
-		go func(id int32) {
-			if err := c.receiveEach(ctx, id); err != nil {
-				log.Error().Err(err).Str("Player", "DalCollector").Msg("Error in receiveEach goroutine")
-			}
-		}(id)
+	c.baseRediscribe.Start(ctx)
+
+	if c.subRediscribe != nil {
+		c.subRediscribe.Start(ctx)
 	}
 }
 
-func (c *Collector) receiveEach(ctx context.Context, configId int32) error {
-	err := db.Subscribe(ctx, keys.SubmissionDataStreamKey(configId), c.IncomingStream[configId])
+func (c *Collector) redisRouter(ctx context.Context, msg *redis.Message) error {
+	var data *aggregator.SubmissionData
+	err := json.Unmarshal([]byte(msg.Payload), &data)
 	if err != nil {
-		return err
+		return nil
 	}
-	for {
-		select {
-		case <-ctx.Done():
-			return nil
-		case data := <-c.IncomingStream[configId]:
-			go c.processIncomingData(ctx, data)
-		}
-	}
+
+	go c.processIncomingData(ctx, data)
+	return nil
 }
 
 func (c *Collector) compareAndSwapLatestTimestamp(data *aggregator.SubmissionData) bool {
@@ -169,24 +201,29 @@ func (c *Collector) compareAndSwapLatestTimestamp(data *aggregator.SubmissionDat
 }
 
 func (c *Collector) processIncomingData(ctx context.Context, data *aggregator.SubmissionData) {
-	valid := c.compareAndSwapLatestTimestamp(data)
-	if !valid {
-		log.Info().Str("Player", "DalCollector").Str("Symbol", c.Symbols[data.GlobalAggregate.ConfigID]).Msg("old data recieved")
+	select {
+	case <-ctx.Done():
 		return
-	}
+	default:
+		valid := c.compareAndSwapLatestTimestamp(data)
+		if !valid {
+			log.Info().Str("Player", "DalCollector").Str("Symbol", c.Symbols[data.GlobalAggregate.ConfigID]).Msg("old data recieved")
+			return
+		}
 
-	result, err := c.IncomingDataToOutgoingData(ctx, data)
-	if err != nil {
-		log.Error().Err(err).Str("Player", "DalCollector").Msg("failed to convert incoming data to outgoing data")
-		return
-	}
+		result, err := c.IncomingDataToOutgoingData(ctx, data)
+		if err != nil {
+			log.Error().Err(err).Str("Player", "DalCollector").Msg("failed to convert incoming data to outgoing data")
+			return
+		}
 
-	defer func(data *dalcommon.OutgoingSubmissionData) {
-		c.mu.Lock()
-		defer c.mu.Unlock()
-		c.LatestData[data.Symbol] = data
-	}(result)
-	c.OutgoingStream[data.GlobalAggregate.ConfigID] <- result
+		defer func(data *dalcommon.OutgoingSubmissionData) {
+			c.mu.Lock()
+			defer c.mu.Unlock()
+			c.LatestData[data.Symbol] = data
+		}(result)
+		c.OutgoingStream[data.GlobalAggregate.ConfigID] <- result
+	}
 }
 
 func (c *Collector) IncomingDataToOutgoingData(ctx context.Context, data *aggregator.SubmissionData) (*dalcommon.OutgoingSubmissionData, error) {

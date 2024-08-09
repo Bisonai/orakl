@@ -25,7 +25,7 @@ func TestNewRediscribe(t *testing.T) {
 		WithRedisHost(host),
 		WithRedisPort(port),
 		WithRedisTopics([]string{"test-channel"}),
-		WithRedisRouter(func(msg *redis.Message) error {
+		WithRedisRouter(func(ctx context.Context, msg *redis.Message) error {
 			assert.Equal(t, "test-channel", msg.Channel)
 			assert.Equal(t, "test-message", msg.Payload)
 			close(done)
@@ -63,7 +63,7 @@ func TestRediscribeErrorHandling(t *testing.T) {
 		WithRedisHost(host),
 		WithRedisPort(port),
 		WithRedisTopics([]string{"error-channel"}),
-		WithRedisRouter(func(msg *redis.Message) error {
+		WithRedisRouter(func(ctx context.Context, msg *redis.Message) error {
 			errorHandlerCalled = true
 			close(errorHandled)
 			return assert.AnError
@@ -102,7 +102,7 @@ func TestRediscribeReconnectOnConnectionFailure(t *testing.T) {
 		WithRedisHost(host),
 		WithRedisPort(port),
 		WithRedisTopics([]string{"test-channel"}),
-		WithRedisRouter(func(msg *redis.Message) error {
+		WithRedisRouter(func(ctx context.Context, msg *redis.Message) error {
 			return nil
 		}),
 		WithReconnectInterval(100*time.Millisecond),
@@ -130,7 +130,7 @@ func TestRediscribeGracefulShutdown(t *testing.T) {
 		WithRedisHost(host),
 		WithRedisPort(port),
 		WithRedisTopics([]string{"test-channel"}),
-		WithRedisRouter(func(msg *redis.Message) error {
+		WithRedisRouter(func(ctx context.Context, msg *redis.Message) error {
 			return nil
 		}),
 	)
@@ -165,7 +165,7 @@ func TestRediscribeResumeSubscriptionAfterReconnection(t *testing.T) {
 		WithRedisHost(host),
 		WithRedisPort(port),
 		WithRedisTopics([]string{"test-channel"}),
-		WithRedisRouter(func(msg *redis.Message) error {
+		WithRedisRouter(func(ctx context.Context, msg *redis.Message) error {
 			assert.Equal(t, "test-channel", msg.Channel)
 			assert.Equal(t, "test-message", msg.Payload)
 			close(done)
@@ -221,7 +221,7 @@ func TestRediscribeMultipleChannels(t *testing.T) {
 		WithRedisHost(host),
 		WithRedisPort(port),
 		WithRedisTopics([]string{"channel-1", "channel-2"}),
-		WithRedisRouter(func(msg *redis.Message) error {
+		WithRedisRouter(func(ctx context.Context, msg *redis.Message) error {
 			mu.Lock()
 			defer mu.Unlock()
 			messagesReceived[msg.Channel] = msg.Payload
@@ -269,7 +269,7 @@ func TestRediscribeRouterErrorHandling(t *testing.T) {
 		WithRedisHost(host),
 		WithRedisPort(port),
 		WithRedisTopics([]string{"error-channel"}),
-		WithRedisRouter(func(msg *redis.Message) error {
+		WithRedisRouter(func(ctx context.Context, msg *redis.Message) error {
 			close(errorHandled)
 			return assert.AnError // Simulate router error
 		}),
