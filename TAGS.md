@@ -165,3 +165,4 @@
 - **node** v0.0.1.20240808.0642.ce80216 <br> *`PR`*: OraklNode hotfix segmentation ... <br><br> 
 - **node** v0.0.1.20240808.0659.628fe3d <br> *`PR`*: provide default endpoint for l... <br><br> 
 - **node** v0.0.1.20240809.0442.cf7529f <br> *`PR`*: separate console and logscribe... <br><br> 
+- **sentinel** v0.0.1.20240809.0726.87b4291 <br> *`PR`*: zerolog remove table up and do... <br><br> 
