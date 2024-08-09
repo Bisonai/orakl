@@ -429,10 +429,6 @@ Reads events from the Graphnode DB and sends an alarm message if the expected ev
 
 Checks DAL service status
 
-### Health Checker
-
-Check service liveness
-
 ### Peers Checker
 
 Check orakl node cluster peer counts
