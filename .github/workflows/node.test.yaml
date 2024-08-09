@@ -6,6 +6,7 @@ on:
       - "master"
     paths:
       - "node/**"
+      - "!node/**.md"
       - "!node/pkg/dal/**"
       - "!node/migrations/dal/**"
       - "!node/pkg/boot/**"
@@ -14,6 +15,7 @@ on:
       - "!node/migrations/logscribe/**"
       - "!node/pkg/logscribeconsumer/**"
       - "!node/pkg/checker/**"
+
   workflow_dispatch:
 
 jobs:
