@@ -10,7 +10,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-type Rediscriber struct {
+type Rediscribe struct {
 	client *redis.Client
 	router func(*redis.Message) error
 	topics []string
@@ -22,7 +22,7 @@ type Rediscriber struct {
 	mu sync.Mutex
 }
 
-type RediscriberConfig struct {
+type RediscribeConfig struct {
 	RedisHost         string
 	RedisPort         string
 	RedisTopics       []string
@@ -30,44 +30,44 @@ type RediscriberConfig struct {
 	ReconnectInterval time.Duration
 }
 
-type RediscriberOption func(*RediscriberConfig)
+type RediscribeOption func(*RediscribeConfig)
 
 const (
 	DefaultReconnectInterval = 30 * time.Second
 )
 
-func WithRedisHost(host string) RediscriberOption {
-	return func(config *RediscriberConfig) {
+func WithRedisHost(host string) RediscribeOption {
+	return func(config *RediscribeConfig) {
 		config.RedisHost = host
 	}
 }
 
-func WithRedisPort(port string) RediscriberOption {
-	return func(config *RediscriberConfig) {
+func WithRedisPort(port string) RediscribeOption {
+	return func(config *RediscribeConfig) {
 		config.RedisPort = port
 	}
 }
 
-func WithRedisChannels(channels []string) RediscriberOption {
-	return func(config *RediscriberConfig) {
-		config.RedisTopics = channels
+func WithRedisTopics(topics []string) RediscribeOption {
+	return func(config *RediscribeConfig) {
+		config.RedisTopics = topics
 	}
 }
 
-func WithRedisRouter(router func(*redis.Message) error) RediscriberOption {
-	return func(config *RediscriberConfig) {
+func WithRedisRouter(router func(*redis.Message) error) RediscribeOption {
+	return func(config *RediscribeConfig) {
 		config.Router = router
 	}
 }
 
-func WithReconnectInterval(interval time.Duration) RediscriberOption {
-	return func(config *RediscriberConfig) {
+func WithReconnectInterval(interval time.Duration) RediscribeOption {
+	return func(config *RediscribeConfig) {
 		config.ReconnectInterval = interval
 	}
 }
 
-func NewRediscriber(ctx context.Context, opts ...RediscriberOption) (*Rediscriber, error) {
-	config := &RediscriberConfig{
+func NewRediscribe(ctx context.Context, opts ...RediscribeOption) (*Rediscribe, error) {
+	config := &RediscribeConfig{
 		ReconnectInterval: DefaultReconnectInterval,
 	}
 	for _, opt := range opts {
@@ -78,7 +78,7 @@ func NewRediscriber(ctx context.Context, opts ...RediscriberOption) (*Rediscribe
 		return nil, errorsentinel.ErrRediscriberRouterNotFound
 	}
 
-	return &Rediscriber{
+	return &Rediscribe{
 		router: config.Router,
 		topics: config.RedisTopics,
 
@@ -89,7 +89,7 @@ func NewRediscriber(ctx context.Context, opts ...RediscriberOption) (*Rediscribe
 	}, nil
 }
 
-func (r *Rediscriber) Start(ctx context.Context) {
+func (r *Rediscribe) Start(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
@@ -121,7 +121,7 @@ func (r *Rediscriber) Start(ctx context.Context) {
 	}
 }
 
-func (r *Rediscriber) connect(ctx context.Context) error {
+func (r *Rediscribe) connect(ctx context.Context) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -137,7 +137,7 @@ func (r *Rediscriber) connect(ctx context.Context) error {
 	return nil
 }
 
-func (r *Rediscriber) reconnect(ctx context.Context) error {
+func (r *Rediscribe) reconnect(ctx context.Context) error {
 	for {
 		select {
 		case <-ctx.Done():
@@ -157,7 +157,7 @@ func (r *Rediscriber) reconnect(ctx context.Context) error {
 	}
 }
 
-func (r *Rediscriber) subscribe(ctx context.Context, topic string, wg *sync.WaitGroup) {
+func (r *Rediscribe) subscribe(ctx context.Context, topic string, wg *sync.WaitGroup) {
 	defer wg.Done()
 	sub := r.client.Subscribe(ctx, topic)
 	defer sub.Close()

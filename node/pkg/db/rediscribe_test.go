@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewRediscriber(t *testing.T) {
+func TestNewRediscribe(t *testing.T) {
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -21,10 +21,10 @@ func TestNewRediscriber(t *testing.T) {
 	port := os.Getenv("REDIS_PORT")
 
 	done := make(chan struct{})
-	rediscriber, err := NewRediscriber(ctx,
+	rediscriber, err := NewRediscribe(ctx,
 		WithRedisHost(host),
 		WithRedisPort(port),
-		WithRedisChannels([]string{"test-channel"}),
+		WithRedisTopics([]string{"test-channel"}),
 		WithRedisRouter(func(msg *redis.Message) error {
 			assert.Equal(t, "test-channel", msg.Channel)
 			assert.Equal(t, "test-message", msg.Payload)
@@ -49,7 +49,7 @@ func TestNewRediscriber(t *testing.T) {
 	}
 }
 
-func TestRediscriberErrorHandling(t *testing.T) {
+func TestRediscribeErrorHandling(t *testing.T) {
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -59,10 +59,10 @@ func TestRediscriberErrorHandling(t *testing.T) {
 
 	errorHandlerCalled := false
 	errorHandled := make(chan struct{})
-	rediscriber, err := NewRediscriber(ctx,
+	rediscriber, err := NewRediscribe(ctx,
 		WithRedisHost(host),
 		WithRedisPort(port),
-		WithRedisChannels([]string{"error-channel"}),
+		WithRedisTopics([]string{"error-channel"}),
 		WithRedisRouter(func(msg *redis.Message) error {
 			errorHandlerCalled = true
 			close(errorHandled)
@@ -89,7 +89,7 @@ func TestRediscriberErrorHandling(t *testing.T) {
 	assert.True(t, errorHandlerCalled, "The error handler should have been called")
 }
 
-func TestRediscriberReconnectOnConnectionFailure(t *testing.T) {
+func TestRediscribeReconnectOnConnectionFailure(t *testing.T) {
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -98,10 +98,10 @@ func TestRediscriberReconnectOnConnectionFailure(t *testing.T) {
 	host := "invalid-host"
 	port := "1234"
 
-	rediscriber, err := NewRediscriber(ctx,
+	rediscriber, err := NewRediscribe(ctx,
 		WithRedisHost(host),
 		WithRedisPort(port),
-		WithRedisChannels([]string{"test-channel"}),
+		WithRedisTopics([]string{"test-channel"}),
 		WithRedisRouter(func(msg *redis.Message) error {
 			return nil
 		}),
@@ -119,17 +119,17 @@ func TestRediscriberReconnectOnConnectionFailure(t *testing.T) {
 	assert.Nil(t, rediscriber.client, "Redis client should be nil after failed connection attempts")
 }
 
-func TestRediscriberGracefulShutdown(t *testing.T) {
+func TestRediscribeGracefulShutdown(t *testing.T) {
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
 
 	host := os.Getenv("REDIS_HOST")
 	port := os.Getenv("REDIS_PORT")
 
-	rediscriber, err := NewRediscriber(ctx,
+	rediscriber, err := NewRediscribe(ctx,
 		WithRedisHost(host),
 		WithRedisPort(port),
-		WithRedisChannels([]string{"test-channel"}),
+		WithRedisTopics([]string{"test-channel"}),
 		WithRedisRouter(func(msg *redis.Message) error {
 			return nil
 		}),
@@ -151,7 +151,7 @@ func TestRediscriberGracefulShutdown(t *testing.T) {
 	assert.Nil(t, rediscriber.client, "Redis client should be nil after shutdown")
 }
 
-func TestRediscriberResumeSubscriptionAfterReconnection(t *testing.T) {
+func TestRediscribeResumeSubscriptionAfterReconnection(t *testing.T) {
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -161,10 +161,10 @@ func TestRediscriberResumeSubscriptionAfterReconnection(t *testing.T) {
 
 	done := make(chan struct{})
 	reconnected := make(chan struct{})
-	rediscriber, err := NewRediscriber(ctx,
+	rediscriber, err := NewRediscribe(ctx,
 		WithRedisHost(host),
 		WithRedisPort(port),
-		WithRedisChannels([]string{"test-channel"}),
+		WithRedisTopics([]string{"test-channel"}),
 		WithRedisRouter(func(msg *redis.Message) error {
 			assert.Equal(t, "test-channel", msg.Channel)
 			assert.Equal(t, "test-message", msg.Payload)
@@ -205,7 +205,7 @@ func TestRediscriberResumeSubscriptionAfterReconnection(t *testing.T) {
 	}
 }
 
-func TestRediscriberMultipleChannels(t *testing.T) {
+func TestRediscribeMultipleChannels(t *testing.T) {
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -217,10 +217,10 @@ func TestRediscriberMultipleChannels(t *testing.T) {
 	messagesReceived := make(map[string]string)
 	var mu sync.Mutex
 
-	rediscriber, err := NewRediscriber(ctx,
+	rediscriber, err := NewRediscribe(ctx,
 		WithRedisHost(host),
 		WithRedisPort(port),
-		WithRedisChannels([]string{"channel-1", "channel-2"}),
+		WithRedisTopics([]string{"channel-1", "channel-2"}),
 		WithRedisRouter(func(msg *redis.Message) error {
 			mu.Lock()
 			defer mu.Unlock()
@@ -256,7 +256,7 @@ func TestRediscriberMultipleChannels(t *testing.T) {
 	}
 }
 
-func TestRediscriberRouterErrorHandling(t *testing.T) {
+func TestRediscribeRouterErrorHandling(t *testing.T) {
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -265,10 +265,10 @@ func TestRediscriberRouterErrorHandling(t *testing.T) {
 	port := os.Getenv("REDIS_PORT")
 
 	errorHandled := make(chan struct{})
-	rediscriber, err := NewRediscriber(ctx,
+	rediscriber, err := NewRediscribe(ctx,
 		WithRedisHost(host),
 		WithRedisPort(port),
-		WithRedisChannels([]string{"error-channel"}),
+		WithRedisTopics([]string{"error-channel"}),
 		WithRedisRouter(func(msg *redis.Message) error {
 			close(errorHandled)
 			return assert.AnError // Simulate router error
