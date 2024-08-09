@@ -167,3 +167,4 @@
 - **node** v0.0.1.20240809.0442.cf7529f <br> *`PR`*: separate console and logscribe... <br><br> 
 - **sentinel** v0.0.1.20240809.0726.87b4291 <br> *`PR`*: zerolog remove table up and do... <br><br> 
 - **sentinel** v0.0.1.20240809.0738.edc2361 <br> *`PR`*: Sentinel update dal timestamp ... <br><br> 
+- **delegator** v0.0.1.20240809.0742.a9a293a <br> *`PR`*: Sentinel update dal timestamp ... <br><br> 
