@@ -2,14 +2,11 @@ package utils
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"os"
 	"runtime/debug"
 	"strings"
-	"time"
 
 	"bisonai.com/orakl/node/pkg/db"
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
@@ -20,8 +17,6 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/rs/zerolog/log"
 )
-
-const batchSize = 1000
 
 func Setup(appVersion string, logsChannel chan *[]api.LogInsertModel) (*fiber.App, error) {
 	ctx := context.Background()
@@ -102,45 +97,4 @@ func CustomStackTraceHandler(_ *fiber.Ctx, e interface{}) {
 		Msgf("panic: %v", e)
 
 	_, _ = os.Stderr.WriteString(fmt.Sprintf("%s\n", debug.Stack())) //nolint:errcheck // This will never fail
-}
-
-func hashLog(log api.LogInsertModel) string {
-	hash := sha256.New()
-	hash.Write([]byte(log.Service))
-	hash.Write([]byte(log.Timestamp.Format(time.RFC3339)))
-	hash.Write([]byte(fmt.Sprintf("%d", log.Level)))
-	hash.Write([]byte(log.Message))
-	hash.Write(log.Fields)
-	return hex.EncodeToString(hash.Sum(nil))
-}
-
-func FetchAndProcessLogs(ctx context.Context) (*[]api.LogInsertModel, error) {
-	processedLogs := make([]api.LogInsertModel, 0)
-	logMap := make(map[string]bool, 0)
-	offset := 0
-
-	for {
-		logs, err := db.QueryRows[api.LogInsertModel](ctx, api.ReadLogs, map[string]any{
-			"limit":  batchSize,
-			"offset": offset,
-		})
-		if err != nil {
-			return nil, err
-		}
-		if len(logs) == 0 {
-			break
-		}
-
-		for _, log := range logs {
-			hash := hashLog(log)
-			if !logMap[hash] {
-				processedLogs = append(processedLogs, log)
-				logMap[hash] = true
-			}
-		}
-
-		offset += batchSize
-	}
-
-	return &processedLogs, nil
 }

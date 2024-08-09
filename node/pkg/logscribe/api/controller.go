@@ -27,8 +27,3 @@ func insertLogs(c *fiber.Ctx) error {
 
 	return c.Status(fiber.StatusOK).SendString("Request received successfully")
 }
-
-func process(c *fiber.Ctx) error {
-
-	return nil
-}
