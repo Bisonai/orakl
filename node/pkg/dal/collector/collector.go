@@ -180,7 +180,7 @@ func (c *Collector) redisRouter(ctx context.Context, msg *redis.Message) error {
 	var data *aggregator.SubmissionData
 	err := json.Unmarshal([]byte(msg.Payload), &data)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	go c.processIncomingData(ctx, data)
