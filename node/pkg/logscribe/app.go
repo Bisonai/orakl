@@ -4,31 +4,53 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"time"
 
 	"bisonai.com/orakl/node/pkg/db"
+	errorsentinel "bisonai.com/orakl/node/pkg/error"
 	"bisonai.com/orakl/node/pkg/logscribe/api"
 	"bisonai.com/orakl/node/pkg/logscribe/utils"
 	"bisonai.com/orakl/node/pkg/utils/retrier"
 	"github.com/gofiber/fiber/v2"
+	"github.com/google/go-github/github"
 	"github.com/rs/zerolog/log"
+	"golang.org/x/oauth2"
 )
 
 const (
 	logsChannelSize             = 10_000
 	dbReadBatchSize             = 1000
 	DefaultBulkLogsCopyInterval = 3 * time.Second
-	DefaultProcessLogsInterval  = 24 * time.Hour
+	DefaultProcessLogsInterval  = 2 * time.Second //24 * time.Hour
 )
 
-type LogInsertModelWithID struct {
-	api.LogInsertModel
-	ID int `db:"id" json:"id"`
+func New(ctx context.Context) (*App, error) {
+	githubToken := os.Getenv("GITHUB_TOKEN")
+	githubOwner := os.Getenv("GITHUB_OWNER")
+	githubRepo := os.Getenv("GITHUB_REPO")
+
+	if githubToken == "" || githubOwner == "" || githubRepo == "" {
+		return nil, errorsentinel.ErrLogscribeGithubCredentialsNotFound
+	}
+
+	ts := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: githubToken},
+	)
+	tc := oauth2.NewClient(ctx, ts)
+	client := github.NewClient(tc)
+
+	return &App{
+		githubOwner:  githubOwner,
+		githubRepo:   githubRepo,
+		githubClient: client,
+	}, nil
 }
 
-func Run(ctx context.Context) error {
+func (a *App) Run(ctx context.Context) error {
 	log.Debug().Msg("Starting logscribe server")
 
 	logsChannel := make(chan *[]api.LogInsertModel, logsChannelSize)
@@ -57,7 +79,7 @@ func Run(ctx context.Context) error {
 	}()
 
 	go bulkCopyLogs(ctx, logsChannel)
-	go processLogs(ctx)
+	go a.processLogs(ctx)
 
 	<-ctx.Done()
 
@@ -100,7 +122,7 @@ func bulkCopyLogs(ctx context.Context, logsChannel <-chan *[]api.LogInsertModel)
 	}
 }
 
-func processLogs(ctx context.Context) {
+func (a *App) processLogs(ctx context.Context) {
 	ticker := time.NewTicker(DefaultProcessLogsInterval)
 
 	for {
@@ -135,7 +157,7 @@ func processLogs(ctx context.Context) {
 
 			log.Debug().Msgf("Processed %d logs with %d unique logs", totalLogs, len(processedLogs))
 			if len(processedLogs) > 0 {
-				createGithubIssue(processedLogs)
+				a.createGithubIssue(ctx, processedLogs)
 			}
 		}
 	}
@@ -175,6 +197,26 @@ func hashLog(log LogInsertModelWithID) string {
 	return hex.EncodeToString(hash.Sum(nil))
 }
 
-func createGithubIssue(logs []LogInsertModelWithID) {
+func (a *App) createGithubIssue(ctx context.Context, logs []LogInsertModelWithID) {
+	var logsJson string
+	for _, entry := range logs {
+		entryJson, err := json.Marshal(entry)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to marshal log")
+			return
+		}
+		logsJson += string(entryJson) + "\n"
+	}
 
+	formattedBody := "```go\n" + logsJson + "\n```"
+	issueRequest := &github.IssueRequest{
+		Title:  github.String("Issues from Logscribe"),
+		Body:   github.String(formattedBody),
+		Labels: &[]string{"bug"},
+	}
+
+	_, resp, err := a.githubClient.Issues.Create(ctx, a.githubOwner, a.githubRepo, issueRequest)
+	if err != nil || resp.StatusCode != http.StatusCreated {
+		log.Error().Err(err).Msg("Failed to create github issue")
+	}
 }

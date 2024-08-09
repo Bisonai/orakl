@@ -228,9 +228,10 @@ var (
 	ErrLogLvlNotExist       = &CustomError{Service: Others, Code: InvalidInputError, Message: "Log level not exist"}
 	ErrLogEmptyLogByte      = &CustomError{Service: Others, Code: InvalidInputError, Message: "Empty log byte"}
 
-	ErrLogscribeDbPoolNotFound  = &CustomError{Service: Logscribe, Code: InternalError, Message: "db pool not found"}
-	ErrLogscribeInsertFailed    = &CustomError{Service: Logscribe, Code: DatabaseError, Message: "Failed to insert logs to Logscribe"}
-	ErrLogscribeServiceNotExist = &CustomError{Service: Logscribe, Code: InvalidInputError, Message: "Service field not found in log entry"}
+	ErrLogscribeDbPoolNotFound            = &CustomError{Service: Logscribe, Code: InternalError, Message: "db pool not found"}
+	ErrLogscribeInsertFailed              = &CustomError{Service: Logscribe, Code: DatabaseError, Message: "Failed to insert logs to Logscribe"}
+	ErrLogscribeServiceNotExist           = &CustomError{Service: Logscribe, Code: InvalidInputError, Message: "Service field not found in log entry"}
+	ErrLogscribeGithubCredentialsNotFound = &CustomError{Service: Logscribe, Code: InternalError, Message: "Github credentials not found"}
 
 	ErrLogscribeConsumerServiceNotProvided   = &CustomError{Service: LogscribeConsumer, Code: InvalidInputError, Message: "Service field not provided in logscribeconsumer"}
 	ErrLogscribeConsumerInvalidLevel         = &CustomError{Service: LogscribeConsumer, Code: InvalidInputError, Message: "Invalid log level provided to logscribeconsumer"}
