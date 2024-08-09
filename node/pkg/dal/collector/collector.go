@@ -207,7 +207,7 @@ func (c *Collector) processIncomingData(ctx context.Context, data *aggregator.Su
 	default:
 		valid := c.compareAndSwapLatestTimestamp(data)
 		if !valid {
-			log.Info().Str("Player", "DalCollector").Str("Symbol", c.Symbols[data.GlobalAggregate.ConfigID]).Msg("old data recieved")
+			log.Debug().Str("Player", "DalCollector").Str("Symbol", c.Symbols[data.GlobalAggregate.ConfigID]).Msg("old data recieved")
 			return
 		}
 
