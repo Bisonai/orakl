@@ -14,9 +14,17 @@ type Count struct {
 	Count int `db:"count"`
 }
 
+const (
+	BulkLogsCopyInterval = 100 * time.Millisecond
+	ProcessLogsInterval  = 100 * time.Millisecond
+)
+
 func startLogscribe(ctx context.Context, t *testing.T) {
 	go func() {
-		logscribe, err := logscribe.New(ctx)
+		logscribe, err := logscribe.New(
+			ctx,
+			logscribe.WithBulkLogsCopyInterval(BulkLogsCopyInterval),
+		)
 		if err != nil {
 			t.Errorf("failed to create logscribe app: %v", err)
 		}
