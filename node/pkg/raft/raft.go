@@ -161,12 +161,6 @@ func (r *Raft) handleRequestVote(ctx context.Context, msg Message) error {
 		return err
 	}
 
-	if RequestVoteMessage.Term > r.Term {
-		r.Term = RequestVoteMessage.Term
-		r.Role = Follower
-		r.VotedFor = ""
-	}
-
 	if RequestVoteMessage.Term < r.Term {
 		return r.sendReplyVote(ctx, msg.SentFrom, false)
 	}
@@ -176,13 +170,21 @@ func (r *Raft) handleRequestVote(ctx context.Context, msg Message) error {
 		return r.sendReplyVote(ctx, msg.SentFrom, false)
 	}
 
-	voteGranted := false
-	if r.VotedFor == "" || r.VotedFor == msg.SentFrom {
-		voteGranted = true
-		r.VotedFor = msg.SentFrom
+	if r.VotedFor != "" && r.VotedFor != msg.SentFrom {
+		return r.sendReplyVote(ctx, msg.SentFrom, false)
 	}
-	log.Debug().Bool("vote granted", voteGranted).Msg("voted")
-	return r.sendReplyVote(ctx, msg.SentFrom, voteGranted)
+
+	if RequestVoteMessage.Term > r.Term {
+		r.Term = RequestVoteMessage.Term
+		r.Role = Follower
+		r.VotedFor = ""
+	}
+
+	r.startElectionTimer()
+	r.VotedFor = msg.SentFrom
+
+	log.Debug().Bool("vote granted", true).Msg("voted")
+	return r.sendReplyVote(ctx, msg.SentFrom, true)
 }
 
 func (r *Raft) handleReplyVote(ctx context.Context, msg Message) error {
