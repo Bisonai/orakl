@@ -17,6 +17,8 @@ on:
       - "!node/pkg/checker/**"
       - "!node/pkg/delegator/**"
       - "!node/migrations/delegator/**"
+      - "!node/pkg/api/**"
+      - "!node/migrations/api/**"
   workflow_dispatch:
 
 jobs:
