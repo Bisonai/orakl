@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"bisonai.com/orakl/node/pkg/db"
-	"bisonai.com/orakl/node/pkg/logscribe"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"
@@ -304,7 +303,6 @@ func TestPostToLogscribe(t *testing.T) {
 		WithStoreInterval(100*time.Millisecond),
 		WithLogscribeEndpoint("http://localhost:3000/api/v1/"),
 		WithStoreService("test"),
-		// WithStoreLevel("error"),
 	)
 	if err != nil {
 		t.Errorf("failed to create logscribeconsumer app: %v", err)
@@ -312,7 +310,7 @@ func TestPostToLogscribe(t *testing.T) {
 	go app.Run(ctx)
 	time.Sleep(500 * time.Millisecond)
 	log.Error().Msg("this message should be posted to logscribe")
-	time.Sleep(logscribe.DefaultBulkLogsCopyInterval + 1*time.Second)
+	time.Sleep(2 * BulkLogsCopyInterval)
 
 	res, err := db.QueryRow[Count](ctx, "SELECT Count(*) FROM logs;", nil)
 	if err != nil {
@@ -340,7 +338,7 @@ func TestNotPostToLogscribe(t *testing.T) {
 	go app.Run(ctx)
 	time.Sleep(500 * time.Millisecond)
 	log.Error().Msg("this message shouldn't be posted to logscribe")
-	time.Sleep(logscribe.DefaultBulkLogsCopyInterval + 1*time.Second)
+	time.Sleep(2 * BulkLogsCopyInterval)
 
 	res, err := db.QueryRow[Count](ctx, "SELECT Count(*) FROM logs;", nil)
 	if err != nil {
@@ -374,7 +372,7 @@ func TestCustomLogLevel(t *testing.T) {
 	log.Info().Msg("info message")
 	log.Warn().Msg("warn message")
 	log.Error().Msg("error message")
-	time.Sleep(logscribe.DefaultBulkLogsCopyInterval + 1*time.Second)
+	time.Sleep(2 * BulkLogsCopyInterval)
 
 	res, err := db.QueryRows[LogInsertModel](ctx, "SELECT * FROM logs;", nil)
 	if err != nil {
