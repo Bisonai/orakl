@@ -5,7 +5,7 @@ on:
     branches-ignore:
       - "master"
     paths:
-      - "sentinel/**"
+      - "node/pkg/checker/**"
   workflow_dispatch:
 
 jobs:
@@ -34,11 +34,11 @@ jobs:
           go-version: "1.22.3"
           check-latest: true
           cache-dependency-path: |
-            ./sentinel/go.sum
+            ./node/go.sum
 
       - name: Install dependencies
         run: |
-          cd ./sentinel
+          cd ./node
           go mod tidy
 
       - name: Install Task
@@ -48,8 +48,8 @@ jobs:
 
       - name: Run test
         run: |
-          cd ./sentinel
-          task test
+          cd ./node
+          task local:test-sentinel
         env:
           CHAIN: "baobab"
           JSON_RPC_URL: "https://public-en-kairos.node.kaia.io"
