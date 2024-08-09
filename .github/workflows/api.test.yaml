@@ -61,7 +61,7 @@ jobs:
       - name: Run test
         run: |
           cd ./node
-          go test ./node/pkg/api/tests -v
+          go test ./pkg/api/tests -v
         env:
           DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/orakl-test?search_path=public"
           ENCRYPT_PASSWORD: "abc123"
