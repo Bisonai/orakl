@@ -363,7 +363,7 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 
 func (r *Raft) getRandomElectionTimeout() time.Duration {
 	minTimeout := r.HeartbeatTimeout * 5
-	maxTimeout := r.HeartbeatTimeout * 8
+	maxTimeout := r.HeartbeatTimeout * 10
 	randomOffset := time.Duration(rand.Int63n(int64(maxTimeout - minTimeout)))
 	return minTimeout + randomOffset
 }
