@@ -161,17 +161,17 @@ func (r *Raft) handleRequestVote(ctx context.Context, msg Message) error {
 		return err
 	}
 
-	currentTerm := r.Term
-
-	if RequestVoteMessage.Term > currentTerm {
+	if RequestVoteMessage.Term > r.Term {
 		r.Term = RequestVoteMessage.Term
+		r.Role = Follower
+		r.VotedFor = ""
 	}
 
-	if RequestVoteMessage.Term < currentTerm {
+	if RequestVoteMessage.Term < r.Term {
 		return r.sendReplyVote(ctx, msg.SentFrom, false)
 	}
 
-	if r.Role == Candidate && RequestVoteMessage.Term == currentTerm && msg.SentFrom != r.GetHostId() {
+	if r.Role == Candidate && RequestVoteMessage.Term == r.Term && msg.SentFrom != r.GetHostId() {
 		r.Role = Follower
 		return r.sendReplyVote(ctx, msg.SentFrom, false)
 	}
