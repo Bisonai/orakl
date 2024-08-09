@@ -66,3 +66,5 @@ jobs:
           task local:test-logscribeconsumer
         env:
           DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/orakl-test?search_path=public"
+          LOG_LEVEL: "info"
+          LOGSCRIBE_LOG_LEVEL: "error"
