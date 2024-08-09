@@ -24,7 +24,7 @@ RUN mkdir /app/migrations
 
 COPY --from=builder /app/node/migrations/delegator /app/migrations
 
-COPY --from=builder /app/delegator/delegatorbin /usr/bin
+COPY --from=builder /app/node/delegatorbin /usr/bin
 
 COPY dockerfiles/start-go.sh .
 
