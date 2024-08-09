@@ -23,6 +23,6 @@ COPY --from=builder /app/node/taskfile.yml /app/taskfile.yml
 
 COPY --from=builder /app/node/taskfiles /app/taskfiles
 
-COPY --from=builder /app/sentinel/sentinelbin /usr/bin
+COPY --from=builder /app/node/sentinelbin /usr/bin
 
 CMD ["sentinelbin"]
