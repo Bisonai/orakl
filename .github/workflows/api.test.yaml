@@ -5,7 +5,7 @@ on:
     branches-ignore:
       - "master"
     paths:
-      - "api/**"
+      - "node/pkg/api/**"
   workflow_dispatch:
 
 jobs:
@@ -45,27 +45,23 @@ jobs:
           go-version: "1.22.3"
           check-latest: true
           cache-dependency-path: |
-            ./api/go.sum
+            ./node/go.sum
       - name: Install golang-migrate
         run: |
           curl -L https://github.com/golang-migrate/migrate/releases/download/v4.17.0/migrate.linux-amd64.tar.gz | tar xvz
           sudo mv ./migrate /usr/bin
       - name: Migrate up
         run: |
-          cd ./api
-          migrate -database "postgresql://postgres:postgres@localhost:5432/orakl-test?search_path=public&sslmode=disable" -verbose -path ./migrations up
+          cd ./node
+          migrate -database "postgresql://postgres:postgres@localhost:5432/orakl-test?search_path=public&sslmode=disable" -verbose -path ./migrations/api up
       - name: Install dependencies
         run: |
-          cd ./api
+          cd ./node
           go mod tidy
-      - name: Build
-        run: |
-          cd ./api
-          go build
       - name: Run test
         run: |
-          cd ./api
-          go test ./tests -v
+          cd ./node
+          go test ./node/pkg/api/tests -v
         env:
           DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/orakl-test?search_path=public"
           ENCRYPT_PASSWORD: "abc123"
