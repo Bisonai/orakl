@@ -1,11 +1,12 @@
-name: "delegator: test+build"
+name: "orakl delegator test"
 
 on:
   push:
     branches-ignore:
       - "master"
     paths:
-      - "delegator/**"
+      - "node/pkg/delegator/**"
+  workflow_dispatch:
 
 jobs:
   core-build:
@@ -32,26 +33,22 @@ jobs:
           go-version: "1.22.3"
           check-latest: true
           cache-dependency-path: |
-            ./delegator/go.sum
+            ./node/go.sum
       - name: Install golang-migrate
         run: |
           curl -L https://github.com/golang-migrate/migrate/releases/download/v4.17.0/migrate.linux-amd64.tar.gz | tar xvz
           sudo mv ./migrate /usr/bin
       - name: Migrate up
         run: |
-          cd ./delegator
-          migrate -database "postgresql://postgres:postgres@localhost:5432/orakl-test?search_path=public&sslmode=disable" -verbose -path ./migrations up
+          cd ./node
+          migrate -database "postgresql://postgres:postgres@localhost:5432/orakl-test?search_path=public&sslmode=disable" -verbose -path ./migrations/delegator up
       - name: Install dependencies
         run: |
-          cd ./delegator
+          cd ./node
           go mod tidy
-      - name: Build
-        run: |
-          cd ./delegator
-          go build
       - name: Run test
         run: |
-          cd ./delegator
+          cd ./node/pkg/delegator
           go test ./tests -v
         env:
           DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/orakl-test?search_path=public"
