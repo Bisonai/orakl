@@ -66,11 +66,11 @@ func TestHandleWsMessage(t *testing.T) {
 			name: "Valid data",
 			inputData: map[string]interface{}{
 				"symbol":        "BTC",
-				"aggregateTime": "1625151600",
+				"aggregateTime": "1625151600000",
 			},
 			expected: WsResponse{
 				Symbol:        "BTC",
-				AggregateTime: "1625151600",
+				AggregateTime: "1625151600000",
 			},
 			expectError: false,
 		},
@@ -78,7 +78,7 @@ func TestHandleWsMessage(t *testing.T) {
 			name: "Invalid data",
 			inputData: map[string]interface{}{
 				"symbol":        "BTC",
-				"aggregateTime": 1625151600, // Invalid type
+				"aggregateTime": 1625151600000, // Invalid type
 			},
 			expected:    WsResponse{},
 			expectError: true,
@@ -123,7 +123,7 @@ func TestFilterWsReponses(t *testing.T) {
 			name: "No delay",
 			wsResponse: WsResponse{
 				Symbol:        "BTC",
-				AggregateTime: strconv.FormatInt(time.Now().Unix(), 10),
+				AggregateTime: strconv.FormatInt(time.Now().UnixMilli(), 10),
 			},
 			expectedAlert: false,
 		},
@@ -131,7 +131,7 @@ func TestFilterWsReponses(t *testing.T) {
 			name: "Delayed response",
 			wsResponse: WsResponse{
 				Symbol:        "ETH",
-				AggregateTime: strconv.FormatInt(time.Now().Add(-10*time.Second).Unix(), 10),
+				AggregateTime: strconv.FormatInt(time.Now().Add(-10*time.Second).UnixMilli(), 10),
 			},
 			expectedAlert: true,
 		},
