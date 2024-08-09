@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"strings"
+	"time"
 
 	"bisonai.com/orakl/node/pkg/logscribe"
 	"github.com/rs/zerolog"
@@ -20,8 +21,13 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	err := logscribe.Run(ctx)
+	logscribe, err := logscribe.New(ctx, logscribe.WithProcessLogsInterval(2*time.Second))
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to create logscribe")
+		return
+	}
 
+	err = logscribe.Run(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to start logscribe")
 		cancel()

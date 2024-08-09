@@ -12,9 +12,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-const insertLogDataCount = 1_000
-
-func getInsertLogData() ([]api.LogInsertModel, error) {
+func getInsertLogData(count int) ([]api.LogInsertModel, error) {
 	field := map[string]interface{}{
 		"error":  "Service: Others, Code: InternalError, Message: Request status not OK",
 		"Player": "Fetcher",
@@ -25,8 +23,8 @@ func getInsertLogData() ([]api.LogInsertModel, error) {
 		return nil, err
 	}
 
-	data := make([]api.LogInsertModel, 0, insertLogDataCount)
-	for i := 0; i < insertLogDataCount; i++ {
+	data := make([]api.LogInsertModel, 0, count)
+	for i := 0; i < count; i++ {
 		data = append(data, api.LogInsertModel{
 			Service:   "node",
 			Timestamp: time.Now(),
