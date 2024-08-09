@@ -25,16 +25,24 @@ const (
 	logsChannelSize             = 10_000
 	dbReadBatchSize             = 1000
 	DefaultBulkLogsCopyInterval = 3 * time.Second
-	DefaultProcessLogsInterval  = 2 * time.Second //24 * time.Hour
+	DefaultProcessLogsInterval  = 24 * time.Hour
 )
 
-func New(ctx context.Context) (*App, error) {
+func New(ctx context.Context, options ...AppOption) (*App, error) {
 	githubToken := os.Getenv("GITHUB_TOKEN")
 	githubOwner := os.Getenv("GITHUB_OWNER")
 	githubRepo := os.Getenv("GITHUB_REPO")
 
 	if githubToken == "" || githubOwner == "" || githubRepo == "" {
 		return nil, errorsentinel.ErrLogscribeGithubCredentialsNotFound
+	}
+
+	c := &AppConfig{
+		processLogsInterval:  DefaultProcessLogsInterval,
+		bulkLogsCopyInterval: DefaultBulkLogsCopyInterval,
+	}
+	for _, option := range options {
+		option(c)
 	}
 
 	ts := oauth2.StaticTokenSource(
@@ -44,9 +52,11 @@ func New(ctx context.Context) (*App, error) {
 	client := github.NewClient(tc)
 
 	return &App{
-		githubOwner:  githubOwner,
-		githubRepo:   githubRepo,
-		githubClient: client,
+		githubOwner:          githubOwner,
+		githubRepo:           githubRepo,
+		githubClient:         client,
+		processLogsInterval:  c.processLogsInterval,
+		bulkLogsCopyInterval: c.bulkLogsCopyInterval,
 	}, nil
 }
 
@@ -78,7 +88,7 @@ func (a *App) Run(ctx context.Context) error {
 		}
 	}()
 
-	go bulkCopyLogs(ctx, logsChannel)
+	go a.bulkCopyLogs(ctx, logsChannel)
 	go a.processLogs(ctx)
 
 	<-ctx.Done()
@@ -91,8 +101,8 @@ func (a *App) Run(ctx context.Context) error {
 	return nil
 }
 
-func bulkCopyLogs(ctx context.Context, logsChannel <-chan *[]api.LogInsertModel) {
-	ticker := time.NewTicker(DefaultBulkLogsCopyInterval)
+func (a *App) bulkCopyLogs(ctx context.Context, logsChannel <-chan *[]api.LogInsertModel) {
+	ticker := time.NewTicker(a.bulkLogsCopyInterval)
 	for {
 		select {
 		case <-ctx.Done():
@@ -123,7 +133,7 @@ func bulkCopyLogs(ctx context.Context, logsChannel <-chan *[]api.LogInsertModel)
 }
 
 func (a *App) processLogs(ctx context.Context) {
-	ticker := time.NewTicker(DefaultProcessLogsInterval)
+	ticker := time.NewTicker(a.processLogsInterval)
 
 	for {
 		select {
@@ -198,6 +208,10 @@ func hashLog(log LogInsertModelWithID) string {
 }
 
 func (a *App) createGithubIssue(ctx context.Context, logs []LogInsertModelWithID) {
+	if a.githubOwner == "test" {
+		return
+	}
+
 	var logsJson string
 	for _, entry := range logs {
 		entryJson, err := json.Marshal(entry)
