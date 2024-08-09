@@ -136,6 +136,7 @@ var (
 	ErrDbWhereColumnValueLengthMismatch = &CustomError{Service: Others, Code: InvalidInputError, Message: "where column and value length mismatch"}
 	ErrRdbHostNotFound                  = &CustomError{Service: Others, Code: InternalError, Message: "REDIS_HOST not found"}
 	ErrRdbPortNotFound                  = &CustomError{Service: Others, Code: InternalError, Message: "REDIS_PORT not found"}
+	ErrRediscriberRouterNotFound        = &CustomError{Service: Others, Code: InternalError, Message: "Rediscriber router not found"}
 
 	ErrFetcherNotFound                    = &CustomError{Service: Fetcher, Code: InternalError, Message: "Fetcher not found"}
 	ErrFetcherCancelNotFound              = &CustomError{Service: Fetcher, Code: InternalError, Message: "Fetcher cancel function not found"}
