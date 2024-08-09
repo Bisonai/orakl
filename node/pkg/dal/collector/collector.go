@@ -169,10 +169,10 @@ func (c *Collector) Stop() {
 }
 
 func (c *Collector) receive(ctx context.Context) {
-	c.baseRediscribe.Start(ctx)
+	go c.baseRediscribe.Start(ctx)
 
 	if c.subRediscribe != nil {
-		c.subRediscribe.Start(ctx)
+		go c.subRediscribe.Start(ctx)
 	}
 }
 
