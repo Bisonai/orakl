@@ -42,10 +42,10 @@ func getHealthPort(service *corev1.Service) int32 {
 func getHealthCheckHttp(ctx context.Context, clientset *kubernetes.Clientset, namespace string) []HealthCheckUrl {
 	var result []HealthCheckUrl
 
-	services, err := clientset.CoreV1().Services(namespace).List(ctx, metav1.ListOptions{})
+	services, err := clientset.CoreV1().Services(namespace).List(metav1.ListOptions{})
 	handleError(err)
 
-	pods, err := clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
+	pods, err := clientset.CoreV1().Pods(namespace).List(metav1.ListOptions{})
 	handleError(err)
 
 	for _, service := range services.Items {
@@ -71,10 +71,10 @@ func getHealthCheckHttp(ctx context.Context, clientset *kubernetes.Clientset, na
 func getHealthCheckRedis(ctx context.Context, clientset *kubernetes.Clientset, namespace string) []HealthCheckUrl {
 	var result []HealthCheckUrl
 
-	services, err := clientset.CoreV1().Services(namespace).List(ctx, metav1.ListOptions{})
+	services, err := clientset.CoreV1().Services(namespace).List(metav1.ListOptions{})
 	handleError(err)
 
-	pods, err := clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
+	pods, err := clientset.CoreV1().Pods(namespace).List(metav1.ListOptions{})
 	handleError(err)
 
 	for _, service := range services.Items {
