@@ -182,7 +182,7 @@ func checkDal(endpoint string, key string, alarmCount map[string]int) error {
 			continue
 		}
 
-		offset := time.Since(time.Unix(rawTimestamp, 0))
+		offset := time.Since(time.UnixMilli(rawTimestamp))
 		log.Debug().Str("Player", "DalChecker").Dur("network delay", networkDelay).Str("symbol", data.Symbol).Dur("offset", offset).Msg("DAL price check")
 
 		if isDataEmpty(&data) {
@@ -309,7 +309,7 @@ func filterDelayedWsResponse() {
 			continue
 		}
 
-		if diff := time.Since(time.Unix(timestamp, 0)); diff > WsDelayThreshold {
+		if diff := time.Since(time.UnixMilli(timestamp)); diff > WsDelayThreshold {
 			wsMsgChan <- fmt.Sprintf("(%s) ws delayed by %v sec", entry.Symbol, diff.Seconds())
 		}
 	}
