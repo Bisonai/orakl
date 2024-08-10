@@ -52,14 +52,10 @@ func (f *LbankFetcher) handleMessage(ctx context.Context, message map[string]any
 			log.Error().Str("Player", "Lbank").Err(err).Msg("error in MessageToPing")
 			return err
 		}
-
-
-		return f.Ws.Write(
-			ctx,
-			Pong{
-				Action: "pong",
-				Pong:   ping.Ping,
-			})
+		return f.Ws.Write(ctx, Pong{
+			Action: "pong",
+			Pong:   ping.Ping,
+		})
 	}
 	response, err := common.MessageToStruct[Response](message)
 	if err != nil {
