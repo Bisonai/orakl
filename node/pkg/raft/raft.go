@@ -154,18 +154,23 @@ func (r *Raft) handleRequestVote(ctx context.Context, msg Message) error {
 		return nil
 	}
 
-	var RequestVoteMessage RequestVoteMessage
-	err := json.Unmarshal(msg.Data, &RequestVoteMessage)
-	if err != nil {
+	var requestVoteMessage RequestVoteMessage
+	if err := json.Unmarshal(msg.Data, &requestVoteMessage); err != nil {
 		log.Error().Err(err).Msg("failed to unmarshal request vote message")
 		return err
 	}
 
-	if RequestVoteMessage.Term < r.Term {
+	if requestVoteMessage.Term < r.Term {
 		return r.sendReplyVote(ctx, msg.SentFrom, false)
 	}
 
-	if r.Role == Candidate && RequestVoteMessage.Term == r.Term && msg.SentFrom != r.GetHostId() {
+	if requestVoteMessage.Term > r.Term {
+		r.Term = requestVoteMessage.Term
+		r.Role = Follower
+		r.VotedFor = ""
+	}
+
+	if r.Role == Candidate && requestVoteMessage.Term == r.Term && msg.SentFrom != r.GetHostId() {
 		r.Role = Follower
 		return r.sendReplyVote(ctx, msg.SentFrom, false)
 	}
@@ -174,15 +179,8 @@ func (r *Raft) handleRequestVote(ctx context.Context, msg Message) error {
 		return r.sendReplyVote(ctx, msg.SentFrom, false)
 	}
 
-	if RequestVoteMessage.Term > r.Term {
-		r.Term = RequestVoteMessage.Term
-		r.Role = Follower
-		r.VotedFor = ""
-	}
-
-	r.startElectionTimer()
 	r.VotedFor = msg.SentFrom
-
+	r.startElectionTimer()
 	log.Debug().Bool("vote granted", true).Msg("voted")
 	return r.sendReplyVote(ctx, msg.SentFrom, true)
 }
