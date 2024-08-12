@@ -107,12 +107,6 @@ func insertSampleData(ctx context.Context, app *App, latestLocalAggMap *LatestLo
 
 	localAggregateInsertTime := time.Now()
 
-	// key := keys.LocalAggregateKey(tmpConfig.ID)
-	// data, err := json.Marshal(LocalAggregate{ConfigID: tmpConfig.ID, Value: int64(10), Timestamp: localAggregateInsertTime})
-	// if err != nil {
-	// 	return nil, err
-	// }
-
 	tmpLocalAggregate := &LocalAggregate{ConfigID: tmpConfig.ID, Value: int64(10), Timestamp: localAggregateInsertTime}
 	latestLocalAggMap.Store(tmpConfig.ID, tmpLocalAggregate)
 
