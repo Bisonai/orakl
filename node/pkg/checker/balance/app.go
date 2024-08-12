@@ -299,7 +299,7 @@ func updateBalances(ctx context.Context, wallets []Wallet) {
 
 		var recentHistory []BalanceHistoryEntry
 		for _, entry := range wallets[i].BalanceHistory {
-			if entry.Timestamp.After(cutoff) {
+			if entry.IsRecent(cutoff) {
 				recentHistory = append(recentHistory, entry)
 			}
 		}

@@ -47,3 +47,7 @@ type BalanceHistoryEntry struct {
 	Timestamp time.Time
 	Balance   float64
 }
+
+func (b *BalanceHistoryEntry) IsRecent(cutoff time.Time) bool {
+	return b.Timestamp.After(cutoff)
+}
