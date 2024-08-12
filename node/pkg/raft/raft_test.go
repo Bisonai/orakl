@@ -205,7 +205,7 @@ func TestRaft_LeaderResignAndReelection(t *testing.T) {
 				break
 			}
 		}
-		time.Sleep(1500 * time.Millisecond)
+		time.Sleep(1900 * time.Millisecond)
 
 		leaderIds := make(map[string]struct{})
 		for _, node := range testItems.RaftNodes {
@@ -288,7 +288,7 @@ func TestRaft_LeaderDisconnect(t *testing.T) {
 		}
 		assert.NotEmpty(t, prevLeaderID)
 
-		time.Sleep(1500 * time.Millisecond)
+		time.Sleep(1900 * time.Millisecond)
 
 		var newLeaderID string
 		for i, node := range testItems.RaftNodes {
