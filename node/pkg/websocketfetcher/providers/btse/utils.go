@@ -42,7 +42,7 @@ func ResponseToFeedDataList(data Response, feedMap map[string]int32, volumeCache
 }
 
 func FetchVolumes(feedMap map[string]int32, volumeCacheMap *common.VolumeCacheMap) error {
-	result, err := request.Request[[]MarketSummary](request.WithEndpoint(MARKET_SUMMARY_ENDPOINT), request.WithTimeout(3*time.Second))
+	result, err := request.Request[[]MarketSummary](request.WithEndpoint(MARKET_SUMMARY_ENDPOINT), request.WithTimeout(common.VolumeFetchTimeout))
 	if err != nil {
 		log.Error().Str("Player", "btse").Err(err).Msg("error in FetchVolumes")
 		return err

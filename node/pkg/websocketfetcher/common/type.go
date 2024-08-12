@@ -20,6 +20,7 @@ const (
 	GetAllProxiesQuery  = `SELECT * FROM proxies`
 	VolumeCacheLifespan = 10 * time.Minute
 	VolumeFetchInterval = 10000
+	VolumeFetchTimeout  = 6 * time.Second
 )
 
 type Proxy = types.Proxy

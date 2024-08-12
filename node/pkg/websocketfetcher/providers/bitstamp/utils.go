@@ -44,7 +44,7 @@ func TradeEventToFeedData(data TradeEvent, feedMap map[string]int32, volumeCache
 }
 
 func FetchVolumes(feedMap map[string]int32, volumeCacheMap *common.VolumeCacheMap) error {
-	result, err := request.Request[[]VolumeEntry](request.WithEndpoint(ALL_CURRENCY_PAIR_TICKER_ENDPOINT), request.WithTimeout(3*time.Second))
+	result, err := request.Request[[]VolumeEntry](request.WithEndpoint(ALL_CURRENCY_PAIR_TICKER_ENDPOINT), request.WithTimeout(common.VolumeFetchTimeout))
 	if err != nil {
 		log.Error().Str("Player", "Bitstamp").Err(err).Msg("error in FetchVolumes")
 		return err

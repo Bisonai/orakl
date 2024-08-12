@@ -45,7 +45,7 @@ func TradeResponseToFeedDataList(data Response, feedMap map[string]int32, volume
 func FetchVolumes(feedMap map[string]int32, volumeCacheMap *common.VolumeCacheMap) {
 	for symbol, id := range feedMap {
 		endpoint := TICKER_ENDPOINT + strings.ToLower(symbol)
-		result, err := request.Request[HttpTickerResponse](request.WithEndpoint(endpoint))
+		result, err := request.Request[HttpTickerResponse](request.WithEndpoint(endpoint), request.WithTimeout(common.VolumeFetchTimeout))
 		if err != nil {
 			log.Error().Str("Player", "Gemini").Err(err).Msg("fetch volumes, http request failed")
 			continue
