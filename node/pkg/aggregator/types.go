@@ -38,13 +38,13 @@ type SubmissionData struct {
 }
 
 type App struct {
-	Bus                   *bus.MessageBus
-	Aggregators           map[int32]*Aggregator
-	Streamer              *Streamer
-	Host                  host.Host
-	Pubsub                *pubsub.PubSub
-	Signer                *helper.Signer
-	LatestLocalAggregates *LatestLocalAggregates
+	Bus                       *bus.MessageBus
+	Aggregators               map[int32]*Aggregator
+	GlobalAggregateBulkWriter *GlobalAggregateBulkWriter
+	Host                      host.Host
+	Pubsub                    *pubsub.PubSub
+	Signer                    *helper.Signer
+	LatestLocalAggregates     *LatestLocalAggregates
 }
 
 type Config struct {

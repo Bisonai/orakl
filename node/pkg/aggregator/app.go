@@ -36,8 +36,8 @@ func (a *App) Run(ctx context.Context) error {
 		return err
 	}
 
-	a.setStreamer(configs)
-	a.startStreamer(ctx)
+	a.setGlobalAggregateBulkWriter(configs)
+	a.startGlobalAggregateBulkWriter(ctx)
 
 	err = a.setAggregators(ctx, a.Host, a.Pubsub, configs)
 	if err != nil {
@@ -53,9 +53,9 @@ func (a *App) Run(ctx context.Context) error {
 	return nil
 }
 
-func (a *App) setStreamer(configs []Config) {
-	if a.Streamer != nil {
-		a.stopStreamer()
+func (a *App) setGlobalAggregateBulkWriter(configs []Config) {
+	if a.GlobalAggregateBulkWriter != nil {
+		a.stopGlobalAggregateBulkWriter()
 	}
 
 	configIds := make([]int32, len(configs))
@@ -63,15 +63,15 @@ func (a *App) setStreamer(configs []Config) {
 		configIds[i] = config.ID
 	}
 
-	a.Streamer = NewStreamer(WithConfigIds(configIds))
+	a.GlobalAggregateBulkWriter = NewGlobalAggregateBulkWriter(WithConfigIds(configIds))
 }
 
-func (a *App) startStreamer(ctx context.Context) {
-	a.Streamer.Start(ctx)
+func (a *App) startGlobalAggregateBulkWriter(ctx context.Context) {
+	a.GlobalAggregateBulkWriter.Start(ctx)
 }
 
-func (a *App) stopStreamer() {
-	a.Streamer.Stop()
+func (a *App) stopGlobalAggregateBulkWriter() {
+	a.GlobalAggregateBulkWriter.Stop()
 }
 
 func (a *App) setAggregators(ctx context.Context, h host.Host, ps *pubsub.PubSub, configs []Config) error {
@@ -296,7 +296,7 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 		msg.Response <- bus.MessageResponse{Success: true}
 	case bus.REFRESH_AGGREGATOR_APP:
 		log.Debug().Str("Player", "Aggregator").Msg("refresh aggregator msg received")
-		a.stopStreamer()
+		a.stopGlobalAggregateBulkWriter()
 		err := a.stopAllAggregators()
 		if err != nil {
 			bus.HandleMessageError(err, msg, "failed to stop all aggregators")
@@ -309,7 +309,7 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 			return
 		}
 
-		a.setStreamer(configs)
+		a.setGlobalAggregateBulkWriter(configs)
 		err = a.setAggregators(ctx, a.Host, a.Pubsub, configs)
 		if err != nil {
 			bus.HandleMessageError(err, msg, "failed to set aggregators")
@@ -320,12 +320,12 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 			bus.HandleMessageError(err, msg, "failed to start all aggregators")
 			return
 		}
-		a.startStreamer(ctx)
+		a.startGlobalAggregateBulkWriter(ctx)
 
 		msg.Response <- bus.MessageResponse{Success: true}
 	case bus.STOP_AGGREGATOR_APP:
 		log.Debug().Str("Player", "Aggregator").Msg("stop aggregator msg received")
-		a.stopStreamer()
+		a.stopGlobalAggregateBulkWriter()
 		err := a.stopAllAggregators()
 		if err != nil {
 			bus.HandleMessageError(err, msg, "failed to stop all aggregators")
@@ -339,7 +339,7 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 			bus.HandleMessageError(err, msg, "failed to start all aggregators")
 			return
 		}
-		a.startStreamer(ctx)
+		a.startGlobalAggregateBulkWriter(ctx)
 		msg.Response <- bus.MessageResponse{Success: true}
 	case bus.RENEW_SIGNER:
 		log.Debug().Str("Player", "Aggregator").Msg("refresh signer msg received")

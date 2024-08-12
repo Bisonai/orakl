@@ -2,7 +2,6 @@ package fetcher
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -11,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestAccumulator(t *testing.T) {
+func TestLocalAggregateBulkWriter(t *testing.T) {
 	ctx := context.Background()
 	clean, testItems, err := setup(ctx)
 	if err != nil {
@@ -24,34 +23,32 @@ func TestAccumulator(t *testing.T) {
 	}()
 	app := testItems.app
 
-	// get configs, initialize channel, and start collectors
+	// get configs, initialize channel, and start localAggregators
 	configs, err := app.getConfigs(ctx)
 	if err != nil {
 		t.Fatalf("error getting configs: %v", err)
 	}
 
 	localAggregatesChannel := make(chan *LocalAggregate, LocalAggregatesChannelSize)
-	app.Collectors = make(map[int32]*Collector, len(configs))
+	app.LocalAggregators = make(map[int32]*LocalAggregator, len(configs))
 	app.LocalAggregateBulkWriter = NewLocalAggregateBulkWriter(DefaultLocalAggregateInterval)
 	app.LocalAggregateBulkWriter.localAggregatesChannel = localAggregatesChannel
 
 	feedData := make(map[string]any)
 	for _, config := range configs {
-		collectorFeeds, getFeedsErr := app.getFeeds(ctx, config.ID)
+		localAggregatorFeeds, getFeedsErr := app.getFeeds(ctx, config.ID)
 		if getFeedsErr != nil {
 			t.Fatalf("error getting configs: %v", getFeedsErr)
 		}
-		app.Collectors[config.ID] = NewCollector(config, collectorFeeds, localAggregatesChannel, testItems.messageBus)
-		for _, feed := range collectorFeeds {
+		app.LocalAggregators[config.ID] = NewLocalAggregator(config, localAggregatorFeeds, localAggregatesChannel, testItems.messageBus)
+		for _, feed := range localAggregatorFeeds {
 			feedData[keys.LatestFeedDataKey(feed.ID)] = FeedData{FeedID: feed.ID, Value: DUMMY_FEED_VALUE, Timestamp: nil, Volume: DUMMY_FEED_VALUE}
 		}
 	}
-	err = app.startAllCollectors(ctx)
+	err = app.startAllLocalAggregators(ctx)
 	if err != nil {
-		t.Fatalf("error starting collectors: %v", err)
+		t.Fatalf("error starting localAggregators: %v", err)
 	}
-
-	fmt.Println("collector started")
 
 	err = db.MSetObject(ctx, feedData)
 	if err != nil {

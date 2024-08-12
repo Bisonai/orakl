@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewStreamer(t *testing.T) {
+func TestNewGlobalAggregateBulkWriter(t *testing.T) {
 	ctx := context.Background()
 	cleanup, testItems, err := setup(ctx)
 	if err != nil {
@@ -22,13 +22,13 @@ func TestNewStreamer(t *testing.T) {
 		}
 	}()
 
-	_ = NewStreamer(WithConfigIds([]int32{testItems.tmpData.config.ID}))
+	_ = NewGlobalAggregateBulkWriter(WithConfigIds([]int32{testItems.tmpData.config.ID}))
 	if err != nil {
 		t.Fatal("error creating new node")
 	}
 }
 
-func TestStreamerStart(t *testing.T) {
+func TestGlobalAggregateBulkWriterStart(t *testing.T) {
 	ctx := context.Background()
 	cleanup, testItems, err := setup(ctx)
 	if err != nil {
@@ -40,14 +40,14 @@ func TestStreamerStart(t *testing.T) {
 		}
 	}()
 
-	streamer := NewStreamer(WithConfigIds([]int32{testItems.tmpData.config.ID}))
+	bulkWriter := NewGlobalAggregateBulkWriter(WithConfigIds([]int32{testItems.tmpData.config.ID}))
 
-	streamer.Start(ctx)
+	bulkWriter.Start(ctx)
 
-	assert.NotEqual(t, nil, streamer.ctx)
+	assert.NotEqual(t, nil, bulkWriter.ctx)
 }
 
-func TestStreamerStop(t *testing.T) {
+func TestGlobalAggregateBulkWriterStop(t *testing.T) {
 	ctx := context.Background()
 	cleanup, testItems, err := setup(ctx)
 	if err != nil {
@@ -59,16 +59,16 @@ func TestStreamerStop(t *testing.T) {
 		}
 	}()
 
-	streamer := NewStreamer(WithConfigIds([]int32{testItems.tmpData.config.ID}))
+	bulkWriter := NewGlobalAggregateBulkWriter(WithConfigIds([]int32{testItems.tmpData.config.ID}))
 
-	streamer.Start(ctx)
+	bulkWriter.Start(ctx)
 
-	streamer.Stop()
+	bulkWriter.Stop()
 
-	assert.Equal(t, nil, streamer.ctx)
+	assert.Equal(t, nil, bulkWriter.ctx)
 }
 
-func TestStreamerDataStore(t *testing.T) {
+func TestGlobalAggregateBulkWriterDataStore(t *testing.T) {
 	ctx := context.Background()
 	cleanup, testItems, err := setup(ctx)
 	if err != nil {
@@ -80,11 +80,11 @@ func TestStreamerDataStore(t *testing.T) {
 		}
 	}()
 
-	streamer := NewStreamer(WithConfigIds([]int32{testItems.tmpData.globalAggregate.ConfigID}))
+	bulkWriter := NewGlobalAggregateBulkWriter(WithConfigIds([]int32{testItems.tmpData.globalAggregate.ConfigID}))
 
-	streamer.Start(ctx)
-	defer streamer.Stop()
-	assert.NotEqual(t, nil, streamer.ctx)
+	bulkWriter.Start(ctx)
+	defer bulkWriter.Stop()
+	assert.NotEqual(t, nil, bulkWriter.ctx)
 
 	node, err := NewAggregator(testItems.app.Host, testItems.app.Pubsub, testItems.topicString, testItems.tmpData.config, testItems.signer, testItems.latestLocalAggMap)
 	if err != nil {

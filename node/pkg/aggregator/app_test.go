@@ -284,7 +284,7 @@ func TestStartAppByAdmin(t *testing.T) {
 	if err != nil {
 		t.Fatal("error getting configs")
 	}
-	testItems.app.setStreamer(configs)
+	testItems.app.setGlobalAggregateBulkWriter(configs)
 	err = testItems.app.setAggregators(ctx, testItems.app.Host, testItems.app.Pubsub, configs)
 	if err != nil {
 		t.Fatal("error initializing app")
@@ -296,7 +296,7 @@ func TestStartAppByAdmin(t *testing.T) {
 	}
 
 	assert.Equal(t, true, testItems.app.Aggregators[testItems.tmpData.config.ID].isRunning)
-	assert.NotEqual(t, nil, testItems.app.Streamer.ctx)
+	assert.NotEqual(t, nil, testItems.app.GlobalAggregateBulkWriter.ctx)
 }
 
 func TestStopAppByAdmin(t *testing.T) {
@@ -317,7 +317,7 @@ func TestStopAppByAdmin(t *testing.T) {
 	if err != nil {
 		t.Fatal("error getting configs")
 	}
-	testItems.app.setStreamer(configs)
+	testItems.app.setGlobalAggregateBulkWriter(configs)
 	err = testItems.app.setAggregators(ctx, testItems.app.Host, testItems.app.Pubsub, configs)
 	if err != nil {
 		t.Fatal("error initializing app")
@@ -328,7 +328,7 @@ func TestStopAppByAdmin(t *testing.T) {
 		t.Fatalf("error starting app: %v", err)
 	}
 	assert.Equal(t, true, testItems.app.Aggregators[testItems.tmpData.config.ID].isRunning)
-	assert.NotEqual(t, nil, testItems.app.Streamer.ctx)
+	assert.NotEqual(t, nil, testItems.app.GlobalAggregateBulkWriter.ctx)
 
 	_, err = tests.RawPostRequest(testItems.admin, "/api/v1/aggregator/stop", nil)
 	if err != nil {
@@ -336,7 +336,7 @@ func TestStopAppByAdmin(t *testing.T) {
 	}
 
 	assert.Equal(t, false, testItems.app.Aggregators[testItems.tmpData.config.ID].isRunning)
-	assert.Equal(t, nil, testItems.app.Streamer.ctx)
+	assert.Equal(t, nil, testItems.app.GlobalAggregateBulkWriter.ctx)
 }
 
 func TestRefreshAppByAdmin(t *testing.T) {
@@ -357,7 +357,7 @@ func TestRefreshAppByAdmin(t *testing.T) {
 	if err != nil {
 		t.Fatal("error getting configs")
 	}
-	testItems.app.setStreamer(configs)
+	testItems.app.setGlobalAggregateBulkWriter(configs)
 	err = testItems.app.setAggregators(ctx, testItems.app.Host, testItems.app.Pubsub, configs)
 	if err != nil {
 		t.Fatal("error initializing app")
