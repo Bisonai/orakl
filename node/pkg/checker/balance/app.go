@@ -325,14 +325,14 @@ func alarm(wallets []Wallet) {
 	for _, wallet := range wallets {
 		log.Debug().Str("address", wallet.Address.Hex()).Float64("balance", wallet.Balance).Float64("minimum", wallet.Minimum).Str("tag", wallet.Tag).Msg(wallet.Tag)
 		if wallet.Balance < wallet.Minimum {
-			log.Error().Str("address", wallet.Address.Hex()).Float64("balance", wallet.Balance).Msg("Balance lower than minimum")
+			log.Warn().Str("address", wallet.Address.Hex()).Float64("balance", wallet.Balance).Msg("Balance lower than minimum")
 			alarmMessage += fmt.Sprintf("%s balance(%f) is lower than minimum(%f) | %s\n", wallet.Address.Hex(), wallet.Balance, wallet.Minimum, wallet.Tag)
 		}
 
 		if wallet.CurrentDrainRate != 0 && wallet.PreviousDrainRate != 0 {
 			increaseRatio := (wallet.CurrentDrainRate - wallet.PreviousDrainRate) / math.Abs(wallet.PreviousDrainRate)
 			if increaseRatio > MinimalIncreaseThreshold {
-				log.Error().
+				log.Warn().
 					Str("address", wallet.Address.Hex()).
 					Float64("currentDrainRate", wallet.CurrentDrainRate).
 					Float64("previousDrainRate", wallet.PreviousDrainRate).
