@@ -26,9 +26,9 @@ type App struct {
 	cron                 *cron.Cron
 }
 
-type HashLogPairs struct {
-	hash string
-	logs []LogInsertModelWithID
+type LogsWithCount struct {
+	count int
+	log   LogInsertModelWithID
 }
 
 type Count struct {

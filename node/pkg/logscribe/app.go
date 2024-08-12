@@ -24,7 +24,6 @@ import (
 
 const (
 	logsChannelSize              = 10_000
-	dbReadBatchSize              = 1000
 	DefaultBulkLogsCopyInterval  = 30 * time.Second
 	readDeleteLogsQuery          = `DELETE FROM logs RETURNING *;`
 	topOccurrencesForGithubIssue = 5
@@ -151,7 +150,7 @@ func (a *App) bulkCopyLogs(ctx context.Context, logsChannel <-chan *[]api.LogIns
 
 func ProcessLogs(ctx context.Context) map[string][]LogInsertModelWithIDWithCount {
 	processedLogs := make(map[string][]LogInsertModelWithIDWithCount)
-	logMap := make(map[string]map[string][]LogInsertModelWithID) // {"service": {hashedLog: []logs}}
+	logMap := make(map[string]map[string]LogsWithCount) // {"service": {hashedLog: []logs}}
 	logs, err := fetchDeleteLogs(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to fetch logs")
@@ -165,22 +164,26 @@ func ProcessLogs(ctx context.Context) map[string][]LogInsertModelWithIDWithCount
 	for _, log := range logs {
 		hash := hashLog(log)
 		if logMap[log.Service] == nil {
-			logMap[log.Service] = make(map[string][]LogInsertModelWithID)
+			logMap[log.Service] = make(map[string]LogsWithCount)
 		}
-		if logMap[log.Service][hash] == nil {
-			logMap[log.Service][hash] = make([]LogInsertModelWithID, 0)
+		logsWithCount, exists := logMap[log.Service][hash]
+		if !exists {
+			logsWithCount = LogsWithCount{
+				count: 0,
+				log:   log,
+			}
 		}
-		// uniquely identify logs by hash and store them in a slice to count occurrences later
-		logMap[log.Service][hash] = append(logMap[log.Service][hash], log)
+		logsWithCount.count++
+		logMap[log.Service][hash] = logsWithCount
 	}
 
 	for service, hashLogPairs := range logMap {
-		pairs := make([]HashLogPairs, 0, len(hashLogPairs))
-		for hash, logs := range hashLogPairs {
-			pairs = append(pairs, HashLogPairs{hash, logs})
+		pairs := make([]LogsWithCount, 0, len(hashLogPairs))
+		for _, pair := range hashLogPairs {
+			pairs = append(pairs, pair)
 		}
 		sort.Slice(pairs, func(i, j int) bool {
-			return len(pairs[i].logs) > len(pairs[j].logs)
+			return pairs[i].count > pairs[j].count
 		})
 
 		topOccurrences := pairs
@@ -189,10 +192,9 @@ func ProcessLogs(ctx context.Context) map[string][]LogInsertModelWithIDWithCount
 		}
 		processedLogs[service] = make([]LogInsertModelWithIDWithCount, 0, len(topOccurrences))
 		for _, pair := range topOccurrences {
-			// all logs in pair.logs are same (due to hashing), so only need to store one
 			processedLogs[service] = append(
 				processedLogs[service],
-				LogInsertModelWithIDWithCount{OccurrenceCount: len(pair.logs), LogInsertModelWithID: pair.logs[0]},
+				LogInsertModelWithIDWithCount{OccurrenceCount: pair.count, LogInsertModelWithID: pair.log},
 			)
 		}
 	}
