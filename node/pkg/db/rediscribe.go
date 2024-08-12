@@ -33,7 +33,8 @@ type RediscribeConfig struct {
 type RediscribeOption func(*RediscribeConfig)
 
 const (
-	DefaultReconnectInterval = 30 * time.Second
+	DefaultReconnectInterval   = 30 * time.Second
+	DefaultRedisSubChannelSize = 1000
 )
 
 func WithRedisHost(host string) RediscribeOption {
@@ -162,7 +163,7 @@ func (r *Rediscribe) subscribe(ctx context.Context, topic string, wg *sync.WaitG
 	sub := r.client.Subscribe(ctx, topic)
 	defer sub.Close()
 
-	ch := sub.Channel(redis.WithChannelSize(1000))
+	ch := sub.Channel(redis.WithChannelSize(DefaultRedisSubChannelSize))
 
 	for {
 		select {
