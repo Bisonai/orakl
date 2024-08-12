@@ -8,13 +8,13 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"sort"
 	"time"
 
 	"bisonai.com/orakl/node/pkg/db"
 	errorsentinel "bisonai.com/orakl/node/pkg/error"
 	"bisonai.com/orakl/node/pkg/logscribe/api"
 	"bisonai.com/orakl/node/pkg/logscribe/utils"
-	"bisonai.com/orakl/node/pkg/utils/retrier"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/go-github/github"
 	"github.com/rs/zerolog/log"
@@ -22,10 +22,13 @@ import (
 )
 
 const (
-	logsChannelSize             = 10_000
-	dbReadBatchSize             = 1000
-	DefaultBulkLogsCopyInterval = 3 * time.Second
-	DefaultProcessLogsInterval  = 24 * time.Hour
+	logsChannelSize              = 10_000
+	dbReadBatchSize              = 1000
+	DefaultBulkLogsCopyInterval  = 3 * time.Second
+	DefaultProcessLogsInterval   = 5 * time.Second //24 * time.Hour
+	readDeleteLogsQuery          = `DELETE FROM logs WHERE id IN (SELECT id FROM logs LIMIT @limit) RETURNING *;`
+	topOccurrencesForGithubIssue = 5
+	logAlreadyProcessedQuery     = `SELECT COUNT(*) FROM processed_logs WHERE log_hash = @hash`
 )
 
 func New(ctx context.Context, options ...AppOption) (*App, error) {
@@ -141,31 +144,52 @@ func (a *App) processLogs(ctx context.Context) {
 			ticker.Stop()
 			return
 		case <-ticker.C:
-			processedLogs := make([]LogInsertModelWithID, 0)
-			logMap := make(map[string]bool, 0)
-			totalLogs := 0
+			processedLogs := make(map[string][]LogInsertModelWithIDWithCount)
+
+			// {"service": {hashedLog: []logs}}
+			logMap := make(map[string]map[string][]LogInsertModelWithID)
 			for {
-				logs, err := fetchLogs(ctx)
+				logs, err := fetchDeleteLogs(ctx)
 				if err != nil || len(logs) == 0 {
 					break
 				}
-				totalLogs += len(logs)
 
 				for _, log := range logs {
 					hash := hashLog(log)
-					if !logMap[hash] {
-						processedLogs = append(processedLogs, log)
-						logMap[hash] = true
+					if logMap[log.Service] == nil {
+						logMap[log.Service] = make(map[string][]LogInsertModelWithID)
 					}
+					if logMap[log.Service][hash] == nil {
+						logMap[log.Service][hash] = make([]LogInsertModelWithID, 0)
+					}
+					// uniquely identify logs by hash and store them in a slice to count occurrences later
+					logMap[log.Service][hash] = append(logMap[log.Service][hash], log)
 				}
 
-				err = deleteLogs(ctx)
-				if err != nil {
-					break
+				for service, hashLogPairs := range logMap {
+					pairs := make([]HashLogPairs, 0, len(hashLogPairs))
+					for hash, logs := range hashLogPairs {
+						pairs = append(pairs, HashLogPairs{hash, logs})
+					}
+					sort.Slice(pairs, func(i, j int) bool {
+						return len(pairs[i].logs) > len(pairs[j].logs)
+					})
+
+					topOccurrences := pairs
+					if len(pairs) > topOccurrencesForGithubIssue {
+						topOccurrences = pairs[:topOccurrencesForGithubIssue]
+					}
+					processedLogs[service] = make([]LogInsertModelWithIDWithCount, 0, len(topOccurrences))
+					for _, pair := range topOccurrences {
+						// all logs in pair.logs are same (due to hashing), so only need to store one
+						processedLogs[service] = append(
+							processedLogs[service],
+							LogInsertModelWithIDWithCount{OccurrenceCount: len(pair.logs), LogInsertModelWithID: pair.logs[0]},
+						)
+					}
 				}
 			}
 
-			log.Debug().Msgf("Processed %d logs with %d unique logs", totalLogs, len(processedLogs))
 			if len(processedLogs) > 0 {
 				a.createGithubIssue(ctx, processedLogs)
 			}
@@ -173,8 +197,61 @@ func (a *App) processLogs(ctx context.Context) {
 	}
 }
 
-func fetchLogs(ctx context.Context) ([]LogInsertModelWithID, error) {
-	logs, err := db.QueryRows[LogInsertModelWithID](ctx, api.ReadLogs, map[string]any{
+func (a *App) createGithubIssue(ctx context.Context, processedLogs map[string][]LogInsertModelWithIDWithCount) {
+	if a.githubOwner == "test" {
+		return
+	}
+
+	issueCount := 0
+	for service, logs := range processedLogs {
+		var logsJson string
+		for _, entry := range logs {
+			hash := hashLog(entry.LogInsertModelWithID)
+			res, err := db.QueryRow[Count](ctx, logAlreadyProcessedQuery, map[string]any{
+				"hash": hash,
+			})
+			if err != nil {
+				log.Error().Err(err).Msg("Failed to check if log already processed")
+				continue
+			}
+			if res.Count > 0 {
+				log.Debug().Msg("Log already processed, skipping creation of github issue")
+				continue
+			}
+
+			entryJson, err := json.MarshalIndent(entry, "", "  ")
+			if err != nil {
+				log.Error().Err(err).Msg("Failed to marshal log")
+				return
+			}
+			logsJson += string(entryJson) + "\n"
+			formattedBody := "```go\n" + logsJson + "\n```"
+			issueRequest := &github.IssueRequest{
+				Title:  github.String(fmt.Sprintf("[%s] %s", service, entry.Message)),
+				Body:   github.String(formattedBody),
+				Labels: &[]string{"bug"},
+			}
+
+			_, resp, err := a.githubClient.Issues.Create(ctx, a.githubOwner, a.githubRepo, issueRequest)
+			if err != nil || resp.StatusCode != http.StatusCreated {
+				log.Error().Err(err).Msg("Failed to create github issue")
+			}
+
+			err = db.QueryWithoutResult(ctx, "INSERT INTO processed_logs (log_hash) VALUES (@hash)", map[string]any{
+				"hash": hash,
+			})
+			if err != nil {
+				log.Error().Err(err).Msgf("Failed to insert processed log: %v", entry)
+			}
+
+			issueCount++
+		}
+	}
+	log.Debug().Msgf("Created %d github issues", issueCount)
+}
+
+func fetchDeleteLogs(ctx context.Context) ([]LogInsertModelWithID, error) {
+	logs, err := db.QueryRows[LogInsertModelWithID](ctx, readDeleteLogsQuery, map[string]any{
 		"limit": dbReadBatchSize,
 	})
 	if err != nil {
@@ -184,20 +261,6 @@ func fetchLogs(ctx context.Context) ([]LogInsertModelWithID, error) {
 	return logs, nil
 }
 
-func deleteLogs(ctx context.Context) error {
-	err := retrier.Retry(func() error {
-		return db.QueryWithoutResult(ctx, api.DeleteLogs, map[string]any{
-			"limit": dbReadBatchSize,
-		})
-	}, 3, 1*time.Second, 3*time.Second)
-
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to delete logs")
-		return err
-	}
-	return nil
-}
-
 func hashLog(log LogInsertModelWithID) string {
 	hash := sha256.New()
 	hash.Write([]byte(log.Service))
@@ -205,32 +268,4 @@ func hashLog(log LogInsertModelWithID) string {
 	hash.Write([]byte(log.Message))
 	hash.Write(log.Fields)
 	return hex.EncodeToString(hash.Sum(nil))
-}
-
-func (a *App) createGithubIssue(ctx context.Context, logs []LogInsertModelWithID) {
-	if a.githubOwner == "test" {
-		return
-	}
-
-	var logsJson string
-	for _, entry := range logs {
-		entryJson, err := json.Marshal(entry)
-		if err != nil {
-			log.Error().Err(err).Msg("Failed to marshal log")
-			return
-		}
-		logsJson += string(entryJson) + "\n"
-	}
-
-	formattedBody := "```go\n" + logsJson + "\n```"
-	issueRequest := &github.IssueRequest{
-		Title:  github.String("Issues from Logscribe"),
-		Body:   github.String(formattedBody),
-		Labels: &[]string{"bug"},
-	}
-
-	_, resp, err := a.githubClient.Issues.Create(ctx, a.githubOwner, a.githubRepo, issueRequest)
-	if err != nil || resp.StatusCode != http.StatusCreated {
-		log.Error().Err(err).Msg("Failed to create github issue")
-	}
 }
