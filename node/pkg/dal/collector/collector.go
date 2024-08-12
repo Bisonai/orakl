@@ -26,6 +26,8 @@ const (
 	OracleAdded     = "OracleAdded(address oracle, uint256 expirationTime)"
 )
 
+type Config = types.Config
+
 type Collector struct {
 	IncomingStream   map[int32]chan *aggregator.SubmissionData
 	OutgoingStream   map[int32]chan *dalcommon.OutgoingSubmissionData
@@ -44,7 +46,7 @@ type Collector struct {
 	mu sync.RWMutex
 }
 
-func NewCollector(ctx context.Context, configs []types.Config) (*Collector, error) {
+func NewCollector(ctx context.Context, configs []Config) (*Collector, error) {
 	kaiaWebsocketUrl := os.Getenv("KAIA_WEBSOCKET_URL")
 	if kaiaWebsocketUrl == "" {
 		return nil, errors.New("KAIA_WEBSOCKET_URL is not set")

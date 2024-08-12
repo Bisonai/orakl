@@ -11,7 +11,6 @@ import (
 	"bisonai.com/orakl/node/pkg/admin/utils"
 	"bisonai.com/orakl/node/pkg/chain/helper"
 	"bisonai.com/orakl/node/pkg/common/keys"
-	"bisonai.com/orakl/node/pkg/common/types"
 
 	"bisonai.com/orakl/node/pkg/bus"
 	"bisonai.com/orakl/node/pkg/db"
@@ -30,7 +29,7 @@ const (
 
 type TmpData struct {
 	config          Config
-	rLocalAggregate types.LocalAggregate
+	rLocalAggregate LocalAggregate
 	pLocalAggregate LocalAggregate
 	globalAggregate GlobalAggregate
 }
@@ -114,7 +113,7 @@ func insertSampleData(ctx context.Context, app *App, latestLocalAggMap *LatestLo
 	// 	return nil, err
 	// }
 
-	tmpLocalAggregate := types.LocalAggregate{ConfigID: tmpConfig.ID, Value: int64(10), Timestamp: localAggregateInsertTime}
+	tmpLocalAggregate := LocalAggregate{ConfigID: tmpConfig.ID, Value: int64(10), Timestamp: localAggregateInsertTime}
 	latestLocalAggMap.Store(tmpConfig.ID, tmpLocalAggregate)
 
 	tmpData.rLocalAggregate = tmpLocalAggregate

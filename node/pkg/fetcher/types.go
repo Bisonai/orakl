@@ -23,17 +23,16 @@ const (
 	DefaultMedianRatio                    = 0.05
 )
 
-type Feed types.Feed
-type FeedData types.FeedData
-type LocalAggregate types.LocalAggregate
+type Feed = types.Feed
+type FeedData = types.FeedData
+type LocalAggregate = types.LocalAggregate
+type Proxy = types.Proxy
 
 type Config struct {
 	ID            int32  `db:"id"`
 	Name          string `db:"name"`
 	FetchInterval int32  `db:"fetch_interval"`
 }
-
-type Proxy types.Proxy
 
 type Fetcher struct {
 	Config

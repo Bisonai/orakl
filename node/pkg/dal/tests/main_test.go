@@ -23,11 +23,13 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+type Config = types.Config
+
 type TestItems struct {
 	App        *fiber.App
 	Collector  *collector.Collector
 	Controller *api.Hub
-	TmpConfig  types.Config
+	TmpConfig  Config
 	MockAdmin  *httptest.Server
 	ApiKey     string
 }
@@ -88,7 +90,7 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 			"submitInterval": 15000}]`))
 	}))
 
-	testItems.TmpConfig = types.Config{
+	testItems.TmpConfig = Config{
 		ID:                13,
 		Name:              "test-aggregate",
 		FetchInterval:     15000,
@@ -96,7 +98,7 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 		SubmitInterval:    15000,
 	}
 
-	configs := []types.Config{testItems.TmpConfig}
+	configs := []Config{testItems.TmpConfig}
 
 	keyCache := keycache.NewAPIKeyCache(1 * time.Hour)
 	keyCache.CleanupLoop(10 * time.Minute)

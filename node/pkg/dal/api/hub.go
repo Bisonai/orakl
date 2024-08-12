@@ -5,15 +5,14 @@ import (
 	"sync"
 	"time"
 
-	"bisonai.com/orakl/node/pkg/common/types"
 	"bisonai.com/orakl/node/pkg/dal/collector"
 	dalcommon "bisonai.com/orakl/node/pkg/dal/common"
 	"github.com/gofiber/contrib/websocket"
 	"github.com/rs/zerolog/log"
 )
 
-func HubSetup(ctx context.Context, configs []types.Config) *Hub {
-	configMap := make(map[string]types.Config)
+func HubSetup(ctx context.Context, configs []Config) *Hub {
+	configMap := make(map[string]Config)
 	for _, config := range configs {
 		configMap[config.Name] = config
 	}
@@ -22,7 +21,7 @@ func HubSetup(ctx context.Context, configs []types.Config) *Hub {
 	return hub
 }
 
-func NewHub(configs map[string]types.Config) *Hub {
+func NewHub(configs map[string]Config) *Hub {
 	return &Hub{
 		configs:    configs,
 		clients:    make(map[*ThreadSafeClient]map[string]bool),
