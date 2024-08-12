@@ -393,7 +393,7 @@ func (a *App) initialize(ctx context.Context) error {
 	a.Fetchers = make(map[int32]*Fetcher, len(configs))
 	a.Collectors = make(map[int32]*Collector, len(configs))
 	a.Accumulator = NewAccumulator(DefaultLocalAggregateInterval)
-	a.Accumulator.accumulatorChannel = make(chan LocalAggregate, LocalAggregatesChannelSize)
+	a.Accumulator.accumulatorChannel = make(chan *LocalAggregate, LocalAggregatesChannelSize)
 
 	for _, config := range configs {
 		// for fetcher it'll get fetcherFeeds without websocket fetcherFeeds

@@ -52,7 +52,7 @@ type Collector struct {
 	isRunning    bool
 	bus          *bus.MessageBus
 
-	localAggregatesChannel chan LocalAggregate
+	localAggregatesChannel chan *LocalAggregate
 }
 
 type Streamer struct {
@@ -69,7 +69,7 @@ type Accumulator struct {
 	accumulatorCtx     context.Context
 	cancel             context.CancelFunc
 	isRunning          bool
-	accumulatorChannel chan LocalAggregate
+	accumulatorChannel chan *LocalAggregate
 }
 
 type App struct {
