@@ -2,6 +2,7 @@ package types
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 )
 
@@ -11,6 +12,10 @@ type Proxy struct {
 	Host     string  `db:"host"`
 	Port     int     `db:"port"`
 	Location *string `db:"location"`
+}
+
+func (proxy *Proxy) GetProxyUrl() string {
+	return fmt.Sprintf("%s://%s:%d", proxy.Protocol, proxy.Host, proxy.Port)
 }
 
 type Feed struct {

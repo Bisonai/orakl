@@ -28,6 +28,8 @@ const (
 	MAX_INTERVAL            = 3600
 )
 
+type GlobalAggregate = types.GlobalAggregate
+
 type Config struct {
 	Name           string `json:"name"`
 	SubmitInterval *int   `json:"submitInterval"`
@@ -129,8 +131,6 @@ type Reporter struct {
 	LatestSubmittedDataMap *sync.Map
 	Job                    func() error
 }
-
-type GlobalAggregate types.GlobalAggregate
 
 type RawSubmissionData struct {
 	Symbol        string `json:"symbol"`

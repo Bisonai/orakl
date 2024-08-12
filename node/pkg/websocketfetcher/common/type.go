@@ -22,19 +22,14 @@ const (
 	VolumeFetchInterval = 10000
 )
 
-type Proxy types.Proxy
+type Proxy = types.Proxy
+type Feed = types.Feed
+type FeedData = types.FeedData
 
 func GetDexFeedsQuery(name string) string {
 	name = capitalizeFirstLetter(name)
 	return fmt.Sprintf(`SELECT * FROM feeds WHERE definition::jsonb @> '{"type": "%sPool"}'::jsonb;`, name)
 }
-
-func (proxy *Proxy) GetProxyUrl() string {
-	return fmt.Sprintf("%s://%s:%d", proxy.Protocol, proxy.Host, proxy.Port)
-}
-
-type Feed types.Feed
-type FeedData types.FeedData
 
 type FeedDefinition struct {
 	Type     string `json:"type"`

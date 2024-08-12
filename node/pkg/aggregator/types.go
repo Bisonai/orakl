@@ -28,9 +28,9 @@ const (
 	InsertProofQuery                 = `INSERT INTO proofs (config_id, round, proof) VALUES (@config_id, @round, @proof) RETURNING *`
 )
 
-type LocalAggregate types.LocalAggregate
-type Proof types.Proof
-type GlobalAggregate types.GlobalAggregate
+type LocalAggregate = types.LocalAggregate
+type Proof = types.Proof
+type GlobalAggregate = types.GlobalAggregate
 
 type SubmissionData struct {
 	GlobalAggregate GlobalAggregate
