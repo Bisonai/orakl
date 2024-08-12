@@ -113,10 +113,10 @@ func insertSampleData(ctx context.Context, app *App, latestLocalAggMap *LatestLo
 	// 	return nil, err
 	// }
 
-	tmpLocalAggregate := LocalAggregate{ConfigID: tmpConfig.ID, Value: int64(10), Timestamp: localAggregateInsertTime}
+	tmpLocalAggregate := &LocalAggregate{ConfigID: tmpConfig.ID, Value: int64(10), Timestamp: localAggregateInsertTime}
 	latestLocalAggMap.Store(tmpConfig.ID, tmpLocalAggregate)
 
-	tmpData.rLocalAggregate = tmpLocalAggregate
+	tmpData.rLocalAggregate = *tmpLocalAggregate
 
 	tmpPLocalAggregate, err := db.QueryRow[LocalAggregate](ctx, InsertLocalAggregateQuery, map[string]any{"config_id": tmpConfig.ID, "value": int64(10), "time": localAggregateInsertTime})
 	if err != nil {
