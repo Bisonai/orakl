@@ -28,6 +28,7 @@ const (
 	readDeleteLogsQuery          = `DELETE FROM logs RETURNING *;`
 	topOccurrencesForGithubIssue = 5
 	logAlreadyProcessedQuery     = `SELECT COUNT(*) FROM processed_logs WHERE log_hash = @hash`
+	insertIntoProcessedLogsQuery = "INSERT INTO processed_logs (log_hash) VALUES (@hash)"
 )
 
 func New(ctx context.Context, options ...AppOption) (*App, error) {
@@ -150,7 +151,7 @@ func (a *App) bulkCopyLogs(ctx context.Context, logsChannel <-chan *[]api.LogIns
 
 func ProcessLogs(ctx context.Context) map[string][]LogInsertModelWithIDWithCount {
 	processedLogs := make(map[string][]LogInsertModelWithIDWithCount)
-	logMap := make(map[string]map[string]LogsWithCount) // {"service": {hashedLog: []logs}}
+	logMap := make(map[string]map[string]LogsWithCount) // {"service": {hashedLog: {count, log}}}
 	logs, err := fetchDeleteLogs(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to fetch logs")
@@ -226,6 +227,7 @@ func (a *App) createGithubIssue(ctx context.Context, processedLogs map[string][]
 	}
 
 	issueCount := 0
+	processedLogHashes := [][]interface{}{}
 	for service, logs := range processedLogs {
 		var logsJson string
 		for _, entry := range logs {
@@ -260,15 +262,16 @@ func (a *App) createGithubIssue(ctx context.Context, processedLogs map[string][]
 				log.Error().Err(err).Msg("Failed to create github issue")
 			}
 
-			err = db.QueryWithoutResult(ctx, "INSERT INTO processed_logs (log_hash) VALUES (@hash)", map[string]any{
-				"hash": hash,
-			})
-			if err != nil {
-				log.Error().Err(err).Msgf("Failed to insert processed log: %v", entry)
-			}
+			processedLogHashes = append(processedLogHashes, []interface{}{hash})
 
 			issueCount++
 		}
 	}
+
+	_, err := db.BulkCopy(ctx, "processed_logs", []string{"log_hash"}, processedLogHashes)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to insert into processed_log")
+	}
+
 	log.Debug().Msgf("Created %d github issues", issueCount)
 }
