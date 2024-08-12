@@ -12,6 +12,8 @@ import (
 	"github.com/rs/zerolog"
 )
 
+const TestService = "test"
+
 func getInsertLogData(count int) ([]api.LogInsertModel, error) {
 	field := map[string]interface{}{
 		"error":  "Service: Others, Code: InternalError, Message: Request status not OK",
@@ -26,7 +28,7 @@ func getInsertLogData(count int) ([]api.LogInsertModel, error) {
 	data := make([]api.LogInsertModel, 0, count)
 	for i := 0; i < count; i++ {
 		data = append(data, api.LogInsertModel{
-			Service:   "node",
+			Service:   TestService,
 			Timestamp: time.Now(),
 			Level:     3,
 			Message:   "error in requestFeed",

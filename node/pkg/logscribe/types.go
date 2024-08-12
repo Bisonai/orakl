@@ -31,6 +31,11 @@ type LogsWithCount struct {
 	log   LogInsertModelWithID
 }
 
+type Service struct {
+	ID      int    `db:"id"`
+	Service string `db:"service"`
+}
+
 type Count struct {
 	Count int `db:"count"`
 }

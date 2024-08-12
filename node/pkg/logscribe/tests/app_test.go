@@ -81,7 +81,7 @@ func TestProcessLogs(t *testing.T) {
 		defer wg.Done()
 		cron := cron.New()
 		_, err := cron.AddFunc(fmt.Sprintf("@every %ds", ProcessLogsIntervalSec), func() { // Run once a week, midnight between Sat/Sun
-			logscribe.ProcessLogs(ctx)
+			logscribe.ProcessLogs(ctx, TestService)
 		})
 		if err != nil {
 			t.Logf("error adding cron job: %v", err)

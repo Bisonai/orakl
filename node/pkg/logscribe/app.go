@@ -25,9 +25,10 @@ import (
 const (
 	logsChannelSize              = 10_000
 	DefaultBulkLogsCopyInterval  = 30 * time.Second
-	readDeleteLogsQuery          = `DELETE FROM logs RETURNING *;`
+	readDeleteLogsQuery          = `DELETE FROM logs WHERE service = @service RETURNING *;`
 	topOccurrencesForGithubIssue = 5
 	logAlreadyProcessedQuery     = `SELECT COUNT(*) FROM processed_logs WHERE log_hash = @hash`
+	getServicesQuery             = `SELECT * FROM services`
 )
 
 func New(ctx context.Context, options ...AppOption) (*App, error) {
@@ -91,21 +92,9 @@ func (a *App) Run(ctx context.Context) error {
 
 	go a.bulkCopyLogs(ctx, logsChannel)
 
-	if a.cron == nil {
-		cron := cron.New()
-		_, err = cron.AddFunc("@weekly", func() { // Run once a week, midnight between Sat/Sun
-			processedLogs := ProcessLogs(ctx)
-			if len(processedLogs) > 0 {
-				a.createGithubIssue(ctx, processedLogs)
-			}
-		})
-		if err != nil {
-			log.Error().Err(err).Msg("Failed to add cron job")
-			return err
-		}
-		a.cron = cron
+	if err := a.startProcessingCronJob(ctx); err != nil {
+		return err
 	}
-	a.cron.Start()
 
 	<-ctx.Done()
 
@@ -114,6 +103,33 @@ func (a *App) Run(ctx context.Context) error {
 		return err
 	}
 
+	return nil
+}
+
+func (a *App) startProcessingCronJob(ctx context.Context) error {
+	services, err := db.QueryRows[Service](ctx, getServicesQuery, nil)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to get services")
+		return err
+	}
+
+	if a.cron == nil {
+		cron := cron.New()
+		_, err := cron.AddFunc("@weekly", func() { // Run once a week, midnight between Sat/Sun
+			for _, service := range services {
+				processedLogs := ProcessLogs(ctx, service.Service)
+				if len(processedLogs) > 0 {
+					a.createGithubIssue(ctx, processedLogs, service.Service)
+				}
+			}
+		})
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to start processing cron job")
+			return err
+		}
+		a.cron = cron
+	}
+	a.cron.Start()
 	return nil
 }
 
@@ -148,10 +164,9 @@ func (a *App) bulkCopyLogs(ctx context.Context, logsChannel <-chan *[]api.LogIns
 	}
 }
 
-func ProcessLogs(ctx context.Context) map[string][]LogInsertModelWithIDWithCount {
-	processedLogs := make(map[string][]LogInsertModelWithIDWithCount)
-	logMap := make(map[string]map[string]LogsWithCount) // {"service": {hashedLog: {count, log}}}
-	logs, err := fetchDeleteLogs(ctx)
+func ProcessLogs(ctx context.Context, service string) []LogInsertModelWithIDWithCount {
+	processedLogs := make([]LogInsertModelWithIDWithCount, 0)
+	logs, err := fetchDeleteLogs(ctx, service)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to fetch logs")
 		return nil
@@ -161,12 +176,28 @@ func ProcessLogs(ctx context.Context) map[string][]LogInsertModelWithIDWithCount
 		return nil
 	}
 
+	logHashCountMap := buildLogMap(logs)
+
+	topOccurrences := getTopOccurrences(logHashCountMap)
+	if len(topOccurrences) > topOccurrencesForGithubIssue {
+		topOccurrences = topOccurrences[:topOccurrencesForGithubIssue]
+	}
+
+	for _, pair := range topOccurrences {
+		processedLogs = append(
+			processedLogs,
+			LogInsertModelWithIDWithCount{OccurrenceCount: pair.count, LogInsertModelWithID: pair.log},
+		)
+	}
+
+	return processedLogs
+}
+
+func buildLogMap(logs []LogInsertModelWithID) map[string]LogsWithCount {
+	logHashCountMap := make(map[string]LogsWithCount) // {"hashedLog: {count, log}}
 	for _, log := range logs {
 		hash := hashLog(log)
-		if logMap[log.Service] == nil {
-			logMap[log.Service] = make(map[string]LogsWithCount)
-		}
-		logsWithCount, exists := logMap[log.Service][hash]
+		logsWithCount, exists := logHashCountMap[hash]
 		if !exists {
 			logsWithCount = LogsWithCount{
 				count: 0,
@@ -174,36 +205,26 @@ func ProcessLogs(ctx context.Context) map[string][]LogInsertModelWithIDWithCount
 			}
 		}
 		logsWithCount.count++
-		logMap[log.Service][hash] = logsWithCount
+		logHashCountMap[hash] = logsWithCount
 	}
-
-	for service, hashLogPairs := range logMap {
-		pairs := make([]LogsWithCount, 0, len(hashLogPairs))
-		for _, pair := range hashLogPairs {
-			pairs = append(pairs, pair)
-		}
-		sort.Slice(pairs, func(i, j int) bool {
-			return pairs[i].count > pairs[j].count
-		})
-
-		topOccurrences := pairs
-		if len(pairs) > topOccurrencesForGithubIssue {
-			topOccurrences = pairs[:topOccurrencesForGithubIssue]
-		}
-		processedLogs[service] = make([]LogInsertModelWithIDWithCount, 0, len(topOccurrences))
-		for _, pair := range topOccurrences {
-			processedLogs[service] = append(
-				processedLogs[service],
-				LogInsertModelWithIDWithCount{OccurrenceCount: pair.count, LogInsertModelWithID: pair.log},
-			)
-		}
-	}
-
-	return processedLogs
+	return logHashCountMap
 }
 
-func fetchDeleteLogs(ctx context.Context) ([]LogInsertModelWithID, error) {
-	logs, err := db.QueryRows[LogInsertModelWithID](ctx, readDeleteLogsQuery, nil)
+func getTopOccurrences(hashLogPairs map[string]LogsWithCount) []LogsWithCount {
+	pairs := make([]LogsWithCount, 0, len(hashLogPairs))
+	for _, pair := range hashLogPairs {
+		pairs = append(pairs, pair)
+	}
+	sort.Slice(pairs, func(i, j int) bool {
+		return pairs[i].count > pairs[j].count
+	})
+	return pairs
+}
+
+func fetchDeleteLogs(ctx context.Context, service string) ([]LogInsertModelWithID, error) {
+	logs, err := db.QueryRows[LogInsertModelWithID](ctx, readDeleteLogsQuery, map[string]any{
+		"service": service,
+	})
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to read logs")
 		return nil, err
@@ -220,54 +241,52 @@ func hashLog(log LogInsertModelWithID) string {
 	return hex.EncodeToString(hash.Sum(nil))
 }
 
-func (a *App) createGithubIssue(ctx context.Context, processedLogs map[string][]LogInsertModelWithIDWithCount) {
+func (a *App) createGithubIssue(ctx context.Context, processedLogs []LogInsertModelWithIDWithCount, service string) {
 	if a.githubOwner == "test" {
 		return
 	}
 
 	issueCount := 0
 	processedLogHashes := [][]interface{}{}
-	for service, logs := range processedLogs {
-		var logsJson string
-		for _, entry := range logs {
-			hash := hashLog(entry.LogInsertModelWithID)
-			res, err := db.QueryRow[Count](ctx, logAlreadyProcessedQuery, map[string]any{
-				"hash": hash,
-			})
-			if err != nil {
-				log.Error().Err(err).Msg("Failed to check if log already processed")
-				continue
-			}
-			if res.Count > 0 {
-				log.Debug().Msg("Log already processed, skipping creation of github issue")
-				continue
-			}
-
-			entryJson, err := json.MarshalIndent(entry, "", "  ")
-			if err != nil {
-				log.Error().Err(err).Msg("Failed to marshal log")
-				return
-			}
-			logsJson += string(entryJson) + "\n"
-			formattedBody := "```go\n" + logsJson + "\n```"
-			issueRequest := &github.IssueRequest{
-				Title:  github.String(fmt.Sprintf("[%s] %s", service, entry.Message)),
-				Body:   github.String(formattedBody),
-				Labels: &[]string{"bug"},
-			}
-
-			_, resp, err := a.githubClient.Issues.Create(ctx, a.githubOwner, a.githubRepo, issueRequest)
-			if err != nil || resp.StatusCode != http.StatusCreated {
-				log.Error().Err(err).Msg("Failed to create github issue")
-			}
-
-			processedLogHashes = append(processedLogHashes, []interface{}{hash})
-
-			issueCount++
+	for _, entry := range processedLogs {
+		logsJson := ""
+		hash := hashLog(entry.LogInsertModelWithID)
+		res, err := db.QueryRow[Count](ctx, logAlreadyProcessedQuery, map[string]any{
+			"hash": hash,
+		})
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to check if log already processed")
+			continue
 		}
+		if res.Count > 0 {
+			log.Debug().Msg("Log already processed, skipping creation of github issue")
+			continue
+		}
+
+		entryJson, err := json.MarshalIndent(entry, "", "  ")
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to marshal log")
+			return
+		}
+		logsJson += string(entryJson) + "\n"
+		formattedBody := "```go\n" + logsJson + "\n```"
+		issueRequest := &github.IssueRequest{
+			Title:  github.String(fmt.Sprintf("[%s] %s", service, entry.Message)),
+			Body:   github.String(formattedBody),
+			Labels: &[]string{"bug"},
+		}
+
+		_, resp, err := a.githubClient.Issues.Create(ctx, a.githubOwner, a.githubRepo, issueRequest)
+		if err != nil || resp.StatusCode != http.StatusCreated {
+			log.Error().Err(err).Msg("Failed to create github issue")
+		}
+
+		processedLogHashes = append(processedLogHashes, []interface{}{hash})
+
+		issueCount++
 	}
 
-	_, err := db.BulkCopy(ctx, "processed_logs", []string{"log_hash"}, processedLogHashes)
+	err := db.BulkInsert(ctx, "processed_logs", []string{"log_hash"}, processedLogHashes)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to insert into processed_log")
 	}
