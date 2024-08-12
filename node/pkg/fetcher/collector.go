@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"bisonai.com/orakl/node/pkg/bus"
-	"bisonai.com/orakl/node/pkg/common/types"
 	"github.com/rs/zerolog/log"
 )
 
@@ -127,7 +126,7 @@ func calculateAggregatedPrice(valueWeightedAveragePrice, medianPrice float64) fl
 
 func (c *Collector) streamLocalAggregate(ctx context.Context, aggregated float64) error {
 	if aggregated != 0 {
-		busLocalAggregate := types.LocalAggregate{
+		busLocalAggregate := LocalAggregate{
 			ConfigID:  c.ID,
 			Value:     int64(aggregated),
 			Timestamp: time.Now(),

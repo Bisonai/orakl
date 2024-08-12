@@ -9,7 +9,6 @@ import (
 
 	"bisonai.com/orakl/node/pkg/bus"
 	"bisonai.com/orakl/node/pkg/chain/helper"
-	"bisonai.com/orakl/node/pkg/common/types"
 	"bisonai.com/orakl/node/pkg/db"
 
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
@@ -352,7 +351,7 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 		msg.Response <- bus.MessageResponse{Success: true}
 	case bus.STREAM_LOCAL_AGGREGATE:
 
-		localAggregate := msg.Content.Args["value"].(types.LocalAggregate)
+		localAggregate := msg.Content.Args["value"].(LocalAggregate)
 		log.Debug().Any("bus local aggregate", localAggregate).Msg("local aggregate received")
 		a.LatestLocalAggregates.Store(localAggregate.ConfigID, localAggregate)
 
