@@ -20,36 +20,6 @@ import (
 	"bisonai.com/orakl/node/pkg/utils/request"
 )
 
-const (
-	oraklApiEndpoint       = "/reporter"
-	oraklDelegatorEndpoint = "/sign/feePayer"
-	porEndpoint            = "/address"
-	DefaultRRMinimum       = 1
-)
-
-var SubmitterAlarmAmount float64
-var DelegatorAlarmAmount float64
-var BalanceCheckInterval time.Duration
-var BalanceAlarmInterval time.Duration
-
-var klaytnClient *client.Client
-var wallets []Wallet
-
-type Urls struct {
-	JsonRpcUrl        string
-	OraklApiUrl       string
-	OraklNodeAdminUrl string
-	OraklDelegatorUrl string
-	PorUrl            string
-}
-
-type Wallet struct {
-	Tag     string
-	Address common.Address `db:"address" json:"address"`
-	Balance float64        `db:"balance" json:"balance"`
-	Minimum float64
-}
-
 func init() {
 	loadEnvs()
 }
@@ -232,6 +202,10 @@ func loadWalletFromOraklApi(ctx context.Context, url string) ([]Wallet, error) {
 			Balance: 0,
 			Minimum: minimumBalance,
 			Tag:     "reporter loaded from orakl api",
+
+			BalanceHistory:    []BalanceHistoryEntry{},
+			CurrentDrainRate:  0,
+			PreviousDrainRate: 0,
 		}
 		wallets = append(wallets, wallet)
 	}
@@ -265,6 +239,10 @@ func loadWalletFromPor(ctx context.Context, url string) (Wallet, error) {
 		Balance: 0,
 		Minimum: SubmitterAlarmAmount,
 		Tag:     "reporter loaded from por",
+
+		BalanceHistory:    []BalanceHistoryEntry{},
+		CurrentDrainRate:  0,
+		PreviousDrainRate: 0,
 	}
 	return wallet, nil
 }
@@ -281,6 +259,10 @@ func loadWalletFromDelegator(ctx context.Context, url string) (Wallet, error) {
 		Balance: 0,
 		Minimum: DelegatorAlarmAmount,
 		Tag:     "reporter loaded from delegator",
+
+		BalanceHistory:    []BalanceHistoryEntry{},
+		CurrentDrainRate:  0,
+		PreviousDrainRate: 0,
 	}
 	return wallet, nil
 }
@@ -298,6 +280,7 @@ func getBalance(ctx context.Context, address common.Address) (float64, error) {
 }
 
 func updateBalances(ctx context.Context, wallets []Wallet) {
+	cutoff := time.Now().Add(-BalanceHistoryTTL)
 	for i, wallet := range wallets {
 		time.Sleep(500 * time.Millisecond) //gracefully request to prevent json rpc blockage
 		balance, err := getBalance(ctx, wallet.Address)
@@ -307,6 +290,33 @@ func updateBalances(ctx context.Context, wallets []Wallet) {
 		}
 		log.Debug().Str("address", wallet.Address.Hex()).Float64("balance", balance).Str("tag", wallet.Tag).Msg("Updated balance")
 		wallets[i].Balance = balance
+
+		balanceHistoryEntry := BalanceHistoryEntry{
+			Timestamp: time.Now(),
+			Balance:   balance,
+		}
+		wallets[i].BalanceHistory = append(wallets[i].BalanceHistory, balanceHistoryEntry)
+
+		var recentHistory []BalanceHistoryEntry
+		for _, entry := range wallets[i].BalanceHistory {
+			if entry.Timestamp.After(cutoff) {
+				recentHistory = append(recentHistory, entry)
+			}
+		}
+		wallets[i].BalanceHistory = recentHistory
+
+		if len(wallets[i].BalanceHistory) > 10 {
+			previousEntry := wallets[i].BalanceHistory[len(wallets[i].BalanceHistory)-2]
+			drainRate := balance - previousEntry.Balance
+			wallets[i].PreviousDrainRate = wallets[i].CurrentDrainRate
+			wallets[i].CurrentDrainRate = drainRate
+		}
+
+		log.Debug().
+			Str("address", wallet.Address.Hex()).
+			Float64("balance", balance).
+			Str("tag", wallet.Tag).
+			Msg("Updated balance and recorded history")
 	}
 }
 
@@ -317,6 +327,19 @@ func alarm(wallets []Wallet) {
 		if wallet.Balance < wallet.Minimum {
 			log.Error().Str("address", wallet.Address.Hex()).Float64("balance", wallet.Balance).Msg("Balance lower than minimum")
 			alarmMessage += fmt.Sprintf("%s balance(%f) is lower than minimum(%f) | %s\n", wallet.Address.Hex(), wallet.Balance, wallet.Minimum, wallet.Tag)
+		}
+
+		if wallet.CurrentDrainRate != 0 && wallet.PreviousDrainRate != 0 {
+			increaseRatio := (wallet.CurrentDrainRate - wallet.PreviousDrainRate) / math.Abs(wallet.PreviousDrainRate)
+			if increaseRatio > MinimalIncreaseThreshold {
+				log.Error().
+					Str("address", wallet.Address.Hex()).
+					Float64("currentDrainRate", wallet.CurrentDrainRate).
+					Float64("previousDrainRate", wallet.PreviousDrainRate).
+					Msg("Significant increase in drain rate detected")
+				alarmMessage += fmt.Sprintf("%s drain rate increased | previous: %f, current: %f\n", wallet.Address.Hex(), wallet.PreviousDrainRate, wallet.CurrentDrainRate)
+			}
+
 		}
 	}
 
