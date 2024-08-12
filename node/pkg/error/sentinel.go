@@ -148,9 +148,9 @@ var (
 	ErrFetcherConvertToBigInt                 = &CustomError{Service: Fetcher, Code: InternalError, Message: "Failed to convert to big.Int"}
 	ErrFetcherInvalidInput                    = &CustomError{Service: Fetcher, Code: InvalidInputError, Message: "Invalid input"}
 	ErrFetcherDivisionByZero                  = &CustomError{Service: Fetcher, Code: InternalError, Message: "Division by zero"}
-	ErrLocalAggregatorCancelNotFound          = &CustomError{Service: Fetcher, Code: InternalError, Message: "Collector cancel function not found"}
+	ErrLocalAggregatorCancelNotFound          = &CustomError{Service: Fetcher, Code: InternalError, Message: "LocalAggregator cancel function not found"}
 	ErrLocalAggregatorZeroVolume              = &CustomError{Service: Fetcher, Code: InvalidInputError, Message: "Zero volume"}
-	ErrFeedDataBulkWriterCancelNotFound       = &CustomError{Service: Fetcher, Code: InternalError, Message: "Streamer cancel function not found"}
+	ErrFeedDataBulkWriterCancelNotFound       = &CustomError{Service: Fetcher, Code: InternalError, Message: "FeedDataBulkWriter cancel function not found"}
 	ErrLocalAggregateBulkWriterCancelNotFound = &CustomError{Service: Fetcher, Code: InternalError, Message: "LocalAggregateBulkWriter cancel function not found"}
 	ErrFetcherNoMatchingChainID               = &CustomError{Service: Fetcher, Code: InvalidInputError, Message: "No matching chain ID"}
 	ErrFetcherFailedToGetDexResultSlice       = &CustomError{Service: Fetcher, Code: InternalError, Message: "Failed to get dex result slice"}
