@@ -12,7 +12,7 @@ import (
 
 type Rediscribe struct {
 	client *redis.Client
-	router func(*redis.Message) error
+	router func(context.Context, *redis.Message) error
 	topics []string
 
 	host              string
@@ -26,14 +26,15 @@ type RediscribeConfig struct {
 	RedisHost         string
 	RedisPort         string
 	RedisTopics       []string
-	Router            func(*redis.Message) error
+	Router            func(context.Context, *redis.Message) error
 	ReconnectInterval time.Duration
 }
 
 type RediscribeOption func(*RediscribeConfig)
 
 const (
-	DefaultReconnectInterval = 30 * time.Second
+	DefaultReconnectInterval   = 30 * time.Second
+	DefaultRedisSubChannelSize = 1000
 )
 
 func WithRedisHost(host string) RediscribeOption {
@@ -54,7 +55,7 @@ func WithRedisTopics(topics []string) RediscribeOption {
 	}
 }
 
-func WithRedisRouter(router func(*redis.Message) error) RediscribeOption {
+func WithRedisRouter(router func(context.Context, *redis.Message) error) RediscribeOption {
 	return func(config *RediscribeConfig) {
 		config.Router = router
 	}
@@ -162,7 +163,7 @@ func (r *Rediscribe) subscribe(ctx context.Context, topic string, wg *sync.WaitG
 	sub := r.client.Subscribe(ctx, topic)
 	defer sub.Close()
 
-	ch := sub.Channel()
+	ch := sub.Channel(redis.WithChannelSize(DefaultRedisSubChannelSize))
 
 	for {
 		select {
@@ -173,7 +174,7 @@ func (r *Rediscribe) subscribe(ctx context.Context, topic string, wg *sync.WaitG
 				return
 			}
 			if msg != nil {
-				if err := r.router(msg); err != nil {
+				if err := r.router(ctx, msg); err != nil {
 					log.Error().Err(err).Str("channel", topic).Msg("Error handling redis message")
 				}
 			}
