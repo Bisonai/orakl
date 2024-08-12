@@ -103,6 +103,17 @@ func (n *Aggregator) HandleTriggerMessage(ctx context.Context, msg raft.Message)
 	}
 	defer n.leaveOnlyLast10Entries(triggerMessage.RoundID)
 
+	if msg.SentFrom != n.Raft.GetHostId() {
+		// follower can be changed into leader unexpectedly before recieving the message
+		// increase round id before checking the message sent from leader
+		// so that the next round will be triggered with larger round id
+		// prevents already handled message error
+
+		n.mu.Lock()
+		n.RoundID = max(triggerMessage.RoundID, n.RoundID)
+		n.mu.Unlock()
+	}
+
 	if triggerMessage.RoundID == 0 {
 		log.Error().Str("Player", "Aggregator").Msg("invalid trigger message")
 		return errorSentinel.ErrAggregatorInvalidRaftMessage
@@ -111,12 +122,6 @@ func (n *Aggregator) HandleTriggerMessage(ctx context.Context, msg raft.Message)
 	if msg.SentFrom != n.Raft.GetLeader() {
 		log.Warn().Str("Player", "Aggregator").Msg("trigger message sent from non-leader")
 		return errorSentinel.ErrAggregatorNonLeaderRaftMessage
-	}
-
-	if msg.SentFrom != n.Raft.GetHostId() {
-		n.mu.Lock()
-		n.RoundID = max(triggerMessage.RoundID, n.RoundID)
-		n.mu.Unlock()
 	}
 
 	n.roundTriggers.mu.Lock()

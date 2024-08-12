@@ -154,35 +154,35 @@ func (r *Raft) handleRequestVote(ctx context.Context, msg Message) error {
 		return nil
 	}
 
-	var RequestVoteMessage RequestVoteMessage
-	err := json.Unmarshal(msg.Data, &RequestVoteMessage)
-	if err != nil {
+	var requestVoteMessage RequestVoteMessage
+	if err := json.Unmarshal(msg.Data, &requestVoteMessage); err != nil {
 		log.Error().Err(err).Msg("failed to unmarshal request vote message")
 		return err
 	}
 
-	currentTerm := r.Term
-
-	if RequestVoteMessage.Term > currentTerm {
-		r.Term = RequestVoteMessage.Term
-	}
-
-	if RequestVoteMessage.Term < currentTerm {
+	if requestVoteMessage.Term < r.Term {
 		return r.sendReplyVote(ctx, msg.SentFrom, false)
 	}
 
-	if r.Role == Candidate && RequestVoteMessage.Term == currentTerm && msg.SentFrom != r.GetHostId() {
+	if requestVoteMessage.Term > r.Term {
+		r.Term = requestVoteMessage.Term
+		r.Role = Follower
+		r.VotedFor = ""
+	}
+
+	if r.Role == Candidate && requestVoteMessage.Term == r.Term && msg.SentFrom != r.GetHostId() {
 		r.Role = Follower
 		return r.sendReplyVote(ctx, msg.SentFrom, false)
 	}
 
-	voteGranted := false
-	if r.VotedFor == "" || r.VotedFor == msg.SentFrom {
-		voteGranted = true
-		r.VotedFor = msg.SentFrom
+	if r.VotedFor != "" && r.VotedFor != msg.SentFrom {
+		return r.sendReplyVote(ctx, msg.SentFrom, false)
 	}
-	log.Debug().Bool("vote granted", voteGranted).Msg("voted")
-	return r.sendReplyVote(ctx, msg.SentFrom, voteGranted)
+
+	r.VotedFor = msg.SentFrom
+	r.startElectionTimer()
+	log.Debug().Bool("vote granted", true).Msg("voted")
+	return r.sendReplyVote(ctx, msg.SentFrom, true)
 }
 
 func (r *Raft) handleReplyVote(ctx context.Context, msg Message) error {
@@ -362,10 +362,9 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 }
 
 func (r *Raft) getRandomElectionTimeout() time.Duration {
-	minTimeout := int(r.HeartbeatTimeout) * 5
-	maxTimeout := int(r.HeartbeatTimeout) * 8
-	duration := time.Duration(minTimeout + rand.Intn(maxTimeout-minTimeout))
-	return duration
+	baseTimeout := r.HeartbeatTimeout * 9
+	jitter := time.Duration(rand.Int63n(int64(baseTimeout / 10))) // 10% jitter
+	return baseTimeout + jitter
 }
 
 func (r *Raft) startElectionTimer() {
