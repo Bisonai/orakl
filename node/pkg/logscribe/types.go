@@ -21,7 +21,6 @@ type App struct {
 	githubOwner          string
 	githubRepo           string
 	githubClient         *github.Client
-	processLogsInterval  time.Duration
 	bulkLogsCopyInterval time.Duration
 }
 
@@ -37,14 +36,7 @@ type Count struct {
 type AppOption func(c *AppConfig)
 
 type AppConfig struct {
-	processLogsInterval  time.Duration
 	bulkLogsCopyInterval time.Duration
-}
-
-func WithProcessLogsInterval(interval time.Duration) AppOption {
-	return func(c *AppConfig) {
-		c.processLogsInterval = interval
-	}
 }
 
 func WithBulkLogsCopyInterval(interval time.Duration) AppOption {

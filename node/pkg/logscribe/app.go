@@ -17,6 +17,7 @@ import (
 	"bisonai.com/orakl/node/pkg/logscribe/utils"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/go-github/github"
+	"github.com/robfig/cron/v3"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/oauth2"
 )
@@ -24,8 +25,7 @@ import (
 const (
 	logsChannelSize              = 10_000
 	dbReadBatchSize              = 1000
-	DefaultBulkLogsCopyInterval  = 3 * time.Second
-	DefaultProcessLogsInterval   = 5 * time.Second //24 * time.Hour
+	DefaultBulkLogsCopyInterval  = 30 * time.Second
 	readDeleteLogsQuery          = `DELETE FROM logs WHERE id IN (SELECT id FROM logs LIMIT @limit) RETURNING *;`
 	topOccurrencesForGithubIssue = 5
 	logAlreadyProcessedQuery     = `SELECT COUNT(*) FROM processed_logs WHERE log_hash = @hash`
@@ -41,7 +41,6 @@ func New(ctx context.Context, options ...AppOption) (*App, error) {
 	}
 
 	c := &AppConfig{
-		processLogsInterval:  DefaultProcessLogsInterval,
 		bulkLogsCopyInterval: DefaultBulkLogsCopyInterval,
 	}
 	for _, option := range options {
@@ -58,7 +57,6 @@ func New(ctx context.Context, options ...AppOption) (*App, error) {
 		githubOwner:          githubOwner,
 		githubRepo:           githubRepo,
 		githubClient:         client,
-		processLogsInterval:  c.processLogsInterval,
 		bulkLogsCopyInterval: c.bulkLogsCopyInterval,
 	}, nil
 }
@@ -92,7 +90,16 @@ func (a *App) Run(ctx context.Context) error {
 	}()
 
 	go a.bulkCopyLogs(ctx, logsChannel)
-	go a.processLogs(ctx)
+
+	cron := cron.New()
+	_, err = cron.AddFunc("@every 3s", func() {
+		a.processLogs(ctx)
+	})
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to add cron job")
+		return err
+	}
+	cron.Start()
 
 	<-ctx.Done()
 
@@ -136,64 +143,52 @@ func (a *App) bulkCopyLogs(ctx context.Context, logsChannel <-chan *[]api.LogIns
 }
 
 func (a *App) processLogs(ctx context.Context) {
-	ticker := time.NewTicker(a.processLogsInterval)
-
+	processedLogs := make(map[string][]LogInsertModelWithIDWithCount)
+	logMap := make(map[string]map[string][]LogInsertModelWithID) // {"service": {hashedLog: []logs}}
 	for {
-		select {
-		case <-ctx.Done():
-			ticker.Stop()
-			return
-		case <-ticker.C:
-			processedLogs := make(map[string][]LogInsertModelWithIDWithCount)
+		logs, err := fetchDeleteLogs(ctx)
+		if err != nil || len(logs) == 0 {
+			break
+		}
 
-			// {"service": {hashedLog: []logs}}
-			logMap := make(map[string]map[string][]LogInsertModelWithID)
-			for {
-				logs, err := fetchDeleteLogs(ctx)
-				if err != nil || len(logs) == 0 {
-					break
-				}
-
-				for _, log := range logs {
-					hash := hashLog(log)
-					if logMap[log.Service] == nil {
-						logMap[log.Service] = make(map[string][]LogInsertModelWithID)
-					}
-					if logMap[log.Service][hash] == nil {
-						logMap[log.Service][hash] = make([]LogInsertModelWithID, 0)
-					}
-					// uniquely identify logs by hash and store them in a slice to count occurrences later
-					logMap[log.Service][hash] = append(logMap[log.Service][hash], log)
-				}
-
-				for service, hashLogPairs := range logMap {
-					pairs := make([]HashLogPairs, 0, len(hashLogPairs))
-					for hash, logs := range hashLogPairs {
-						pairs = append(pairs, HashLogPairs{hash, logs})
-					}
-					sort.Slice(pairs, func(i, j int) bool {
-						return len(pairs[i].logs) > len(pairs[j].logs)
-					})
-
-					topOccurrences := pairs
-					if len(pairs) > topOccurrencesForGithubIssue {
-						topOccurrences = pairs[:topOccurrencesForGithubIssue]
-					}
-					processedLogs[service] = make([]LogInsertModelWithIDWithCount, 0, len(topOccurrences))
-					for _, pair := range topOccurrences {
-						// all logs in pair.logs are same (due to hashing), so only need to store one
-						processedLogs[service] = append(
-							processedLogs[service],
-							LogInsertModelWithIDWithCount{OccurrenceCount: len(pair.logs), LogInsertModelWithID: pair.logs[0]},
-						)
-					}
-				}
+		for _, log := range logs {
+			hash := hashLog(log)
+			if logMap[log.Service] == nil {
+				logMap[log.Service] = make(map[string][]LogInsertModelWithID)
 			}
+			if logMap[log.Service][hash] == nil {
+				logMap[log.Service][hash] = make([]LogInsertModelWithID, 0)
+			}
+			// uniquely identify logs by hash and store them in a slice to count occurrences later
+			logMap[log.Service][hash] = append(logMap[log.Service][hash], log)
+		}
 
-			if len(processedLogs) > 0 {
-				a.createGithubIssue(ctx, processedLogs)
+		for service, hashLogPairs := range logMap {
+			pairs := make([]HashLogPairs, 0, len(hashLogPairs))
+			for hash, logs := range hashLogPairs {
+				pairs = append(pairs, HashLogPairs{hash, logs})
+			}
+			sort.Slice(pairs, func(i, j int) bool {
+				return len(pairs[i].logs) > len(pairs[j].logs)
+			})
+
+			topOccurrences := pairs
+			if len(pairs) > topOccurrencesForGithubIssue {
+				topOccurrences = pairs[:topOccurrencesForGithubIssue]
+			}
+			processedLogs[service] = make([]LogInsertModelWithIDWithCount, 0, len(topOccurrences))
+			for _, pair := range topOccurrences {
+				// all logs in pair.logs are same (due to hashing), so only need to store one
+				processedLogs[service] = append(
+					processedLogs[service],
+					LogInsertModelWithIDWithCount{OccurrenceCount: len(pair.logs), LogInsertModelWithID: pair.logs[0]},
+				)
 			}
 		}
+	}
+
+	if len(processedLogs) > 0 {
+		a.createGithubIssue(ctx, processedLogs)
 	}
 }
 

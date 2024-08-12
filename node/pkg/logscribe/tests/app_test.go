@@ -80,7 +80,6 @@ func TestProcessLogs(t *testing.T) {
 		logscribe, err := logscribe.New(
 			ctx,
 			logscribe.WithBulkLogsCopyInterval(BulkLogsCopyInterval),
-			logscribe.WithProcessLogsInterval(ProcessLogsInterval),
 		)
 		if err != nil {
 			t.Logf("error creating logscribe: %v", err)
