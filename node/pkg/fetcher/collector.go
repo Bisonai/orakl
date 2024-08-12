@@ -10,7 +10,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func NewCollector(config Config, feeds []Feed, localAggregatesChannel chan LocalAggregate, bus *bus.MessageBus) *Collector {
+func NewCollector(config Config, feeds []Feed, localAggregatesChannel chan *LocalAggregate, bus *bus.MessageBus) *Collector {
 	return &Collector{
 		Config:                 config,
 		Feeds:                  feeds,
@@ -126,7 +126,7 @@ func calculateAggregatedPrice(valueWeightedAveragePrice, medianPrice float64) fl
 
 func (c *Collector) streamLocalAggregate(ctx context.Context, aggregated float64) error {
 	if aggregated != 0 {
-		busLocalAggregate := LocalAggregate{
+		localAggregate := &LocalAggregate{
 			ConfigID:  c.ID,
 			Value:     int64(aggregated),
 			Timestamp: time.Now(),
@@ -137,17 +137,11 @@ func (c *Collector) streamLocalAggregate(ctx context.Context, aggregated float64
 			To:   bus.AGGREGATOR,
 			Content: bus.MessageContent{
 				Command: bus.STREAM_LOCAL_AGGREGATE,
-				Args:    map[string]any{"value": busLocalAggregate},
+				Args:    map[string]any{"value": localAggregate},
 			},
 		}
-
-		c.localAggregatesChannel <- LocalAggregate{
-			ConfigID:  c.ID,
-			Value:     int64(aggregated),
-			Timestamp: time.Now(),
-		}
+		defer func() { c.localAggregatesChannel <- localAggregate }()
 		return c.bus.Publish(msg)
-
 	}
 
 	return nil

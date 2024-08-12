@@ -30,7 +30,7 @@ func TestAccumulator(t *testing.T) {
 		t.Fatalf("error getting configs: %v", err)
 	}
 
-	localAggregatesChannel := make(chan LocalAggregate, LocalAggregatesChannelSize)
+	localAggregatesChannel := make(chan *LocalAggregate, LocalAggregatesChannelSize)
 	app.Collectors = make(map[int32]*Collector, len(configs))
 	app.Accumulator = NewAccumulator(DefaultLocalAggregateInterval)
 	app.Accumulator.accumulatorChannel = localAggregatesChannel
