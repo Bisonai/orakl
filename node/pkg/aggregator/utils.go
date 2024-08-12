@@ -2,20 +2,10 @@ package aggregator
 
 import (
 	"context"
-	"time"
 
 	"bisonai.com/orakl/node/pkg/common/keys"
 	"bisonai.com/orakl/node/pkg/db"
-	"github.com/rs/zerolog/log"
 )
-
-func GetLatestLocalAggregateFromRdb(ctx context.Context, configId int32) (LocalAggregate, error) {
-	return db.GetObject[LocalAggregate](ctx, keys.LocalAggregateKey(configId))
-}
-
-func GetLatestLocalAggregateFromPgs(ctx context.Context, configId int32) (LocalAggregate, error) {
-	return db.QueryRow[LocalAggregate](ctx, SelectLatestLocalAggregateQuery, map[string]any{"config_id": configId})
-}
 
 func FilterNegative(values []int64) []int64 {
 	result := make([]int64, 0, len(values))
@@ -38,22 +28,6 @@ func PublishGlobalAggregateAndProof(ctx context.Context, globalAggregate GlobalA
 	}
 
 	return db.Publish(ctx, keys.SubmissionDataStreamKey(globalAggregate.ConfigID), data)
-}
-
-func GetLatestLocalAggregate(ctx context.Context, configId int32) (int64, time.Time, error) {
-	redisAggregate, err := GetLatestLocalAggregateFromRdb(ctx, configId)
-	diff := time.Since(redisAggregate.Timestamp).Milliseconds()
-	if diff > 400 {
-		log.Warn().Msgf("redisAggregate is %d ms old", diff)
-	}
-	if err != nil {
-		pgsqlAggregate, err := GetLatestLocalAggregateFromPgs(ctx, configId)
-		if err != nil {
-			return 0, time.Time{}, err
-		}
-		return pgsqlAggregate.Value, pgsqlAggregate.Timestamp, nil
-	}
-	return redisAggregate.Value, redisAggregate.Timestamp, nil
 }
 
 func getLatestRoundId(ctx context.Context, configId int32) (int32, error) {

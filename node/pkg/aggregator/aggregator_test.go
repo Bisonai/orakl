@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"context"
 	"testing"
-	"time"
 
 	"bisonai.com/orakl/node/pkg/common/keys"
 	"bisonai.com/orakl/node/pkg/db"
@@ -57,41 +56,6 @@ func TestLeaderJob(t *testing.T) {
 		t.Fatal("error running leader job")
 	}
 	assert.Greater(t, node.RoundID, int32(0), "RoundID should be greater than 0")
-}
-
-func TestGetLatestLocalAggregate(t *testing.T) {
-	t.Skip()
-	ctx := context.Background()
-	cleanup, testItems, err := setup(ctx)
-	if err != nil {
-		t.Fatalf("error setting up test: %v", err)
-	}
-	defer func() {
-		if cleanupErr := cleanup(); cleanupErr != nil {
-			t.Logf("Cleanup failed: %v", cleanupErr)
-		}
-	}()
-
-	node, err := NewAggregator(testItems.app.Host, testItems.app.Pubsub, testItems.topicString, testItems.tmpData.config, testItems.signer, testItems.latestLocalAggMap)
-
-	if err != nil {
-		t.Fatal("error creating new node")
-	}
-
-	node.Name = "test_pair"
-
-	val, dbTime, err := GetLatestLocalAggregate(ctx, node.ID)
-	if err != nil {
-		t.Fatal("error getting latest local aggregate")
-	}
-
-	assert.NotZero(t, dbTime, "dbTime should not be zero")
-
-	assert.Equal(t, val, testItems.tmpData.rLocalAggregate.Value)
-	assert.Equal(t, val, testItems.tmpData.pLocalAggregate.Value)
-
-	assert.Equal(t, dbTime.UTC().Truncate(time.Millisecond), testItems.tmpData.rLocalAggregate.Timestamp.UTC().Truncate(time.Millisecond))
-	assert.Equal(t, dbTime.UTC().Truncate(time.Millisecond), testItems.tmpData.pLocalAggregate.Timestamp.UTC().Truncate(time.Millisecond))
 }
 
 func TestGetLatestRoundId(t *testing.T) {
