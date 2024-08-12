@@ -155,7 +155,7 @@ func (a *App) startAll(ctx context.Context) error {
 		return err
 	}
 
-	a.startAccumulator(ctx)
+	a.startLocalAggregateBulkWriter(ctx)
 
 	err = a.startAllCollectors(ctx)
 	if err != nil {
@@ -178,7 +178,7 @@ func (a *App) stopAll(ctx context.Context) error {
 		return err
 	}
 
-	err = a.stopAccumulator()
+	err = a.stopLocalAggregateBulkWriter()
 	if err != nil {
 		return err
 	}
@@ -222,14 +222,14 @@ func (a *App) startStreamer(ctx context.Context) error {
 	return nil
 }
 
-func (a *App) startAccumulator(ctx context.Context) {
-	if a.Accumulator.isRunning {
-		log.Debug().Str("Player", "Accumulator").Msg("accumulator already running")
+func (a *App) startLocalAggregateBulkWriter(ctx context.Context) {
+	if a.LocalAggregateBulkWriter.isRunning {
+		log.Debug().Str("Player", "Fetcher").Msg("LocalAggregateBulkWriter already running")
 	}
 
-	go a.Accumulator.Run(ctx)
+	go a.LocalAggregateBulkWriter.Run(ctx)
 
-	log.Debug().Str("Player", "Accumulator").Msg("accumulator started")
+	log.Debug().Str("Player", "Fetcher").Msg("LocalAggregateBulkWriter started")
 }
 
 func (a *App) startFetcherById(ctx context.Context, configId int32) error {
@@ -308,17 +308,17 @@ func (a *App) stopStreamer(ctx context.Context) error {
 	return nil
 }
 
-func (a *App) stopAccumulator() error {
-	log.Debug().Msg("stopping Accumulator")
-	if !a.Accumulator.isRunning {
-		log.Debug().Str("Player", "Accumulator").Msg("Accumulator already stopped")
+func (a *App) stopLocalAggregateBulkWriter() error {
+	log.Debug().Msg("stopping LocalAggregateBulkWriter")
+	if !a.LocalAggregateBulkWriter.isRunning {
+		log.Debug().Str("Player", "Fetcher").Msg("LocalAggregateBulkWriter already stopped")
 		return nil
 	}
-	if a.Accumulator.cancel == nil {
-		return errorSentinel.ErrAccumulatorCancelNotFound
+	if a.LocalAggregateBulkWriter.cancel == nil {
+		return errorSentinel.ErrLocalAggregateBulkWriterCancelNotFound
 	}
-	a.Accumulator.cancel()
-	a.Accumulator.isRunning = false
+	a.LocalAggregateBulkWriter.cancel()
+	a.LocalAggregateBulkWriter.isRunning = false
 	return nil
 }
 
@@ -392,8 +392,8 @@ func (a *App) initialize(ctx context.Context) error {
 
 	a.Fetchers = make(map[int32]*Fetcher, len(configs))
 	a.Collectors = make(map[int32]*Collector, len(configs))
-	a.Accumulator = NewAccumulator(DefaultLocalAggregateInterval)
-	a.Accumulator.accumulatorChannel = make(chan *LocalAggregate, LocalAggregatesChannelSize)
+	a.LocalAggregateBulkWriter = NewLocalAggregateBulkWriter(DefaultLocalAggregateInterval)
+	a.LocalAggregateBulkWriter.localAggregatesChannel = make(chan *LocalAggregate, LocalAggregatesChannelSize)
 
 	for _, config := range configs {
 		// for fetcher it'll get fetcherFeeds without websocket fetcherFeeds
@@ -411,7 +411,7 @@ func (a *App) initialize(ctx context.Context) error {
 		if getFeedsErr != nil {
 			return getFeedsErr
 		}
-		a.Collectors[config.ID] = NewCollector(config, collectorFeeds, a.Accumulator.accumulatorChannel, a.Bus)
+		a.Collectors[config.ID] = NewCollector(config, collectorFeeds, a.LocalAggregateBulkWriter.localAggregatesChannel, a.Bus)
 	}
 	streamIntervalRaw := os.Getenv("FEED_DATA_STREAM_INTERVAL")
 	streamInterval, err := time.ParseDuration(streamIntervalRaw)

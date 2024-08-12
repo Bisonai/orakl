@@ -8,15 +8,15 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func NewAccumulator(interval time.Duration) *Accumulator {
-	return &Accumulator{
+func NewLocalAggregateBulkWriter(interval time.Duration) *LocalAggregateBulkWriter {
+	return &LocalAggregateBulkWriter{
 		Interval: interval,
 	}
 }
 
-func (a *Accumulator) Run(ctx context.Context) {
-	accumulatorCtx, cancel := context.WithCancel(ctx)
-	a.accumulatorCtx = accumulatorCtx
+func (a *LocalAggregateBulkWriter) Run(ctx context.Context) {
+	bulkWriterCtx, cancel := context.WithCancel(ctx)
+	a.bulkWriterCtx = bulkWriterCtx
 	a.cancel = cancel
 	a.isRunning = true
 
@@ -26,7 +26,7 @@ func (a *Accumulator) Run(ctx context.Context) {
 	for {
 		select {
 		case <-ticker.C:
-			go a.accumulatorJob(accumulatorCtx)
+			go a.bulkWriterJob(bulkWriterCtx)
 		case <-ctx.Done():
 			log.Debug().Str("Player", "Fetcher").Msg("fetcher local aggregates channel goroutine stopped")
 			return
@@ -34,8 +34,8 @@ func (a *Accumulator) Run(ctx context.Context) {
 	}
 }
 
-func (a *Accumulator) accumulatorJob(ctx context.Context) {
-	if len(a.accumulatorChannel) == 0 {
+func (a *LocalAggregateBulkWriter) bulkWriterJob(ctx context.Context) {
+	if len(a.localAggregatesChannel) == 0 {
 		return
 	}
 	var localAggregatesDataPgsql [][]any
@@ -43,7 +43,7 @@ func (a *Accumulator) accumulatorJob(ctx context.Context) {
 loop:
 	for {
 		select {
-		case data := <-a.accumulatorChannel:
+		case data := <-a.localAggregatesChannel:
 			localAggregatesDataPgsql = append(localAggregatesDataPgsql, []any{data.ConfigID, int64(data.Value), data.Timestamp})
 		default:
 			break loop

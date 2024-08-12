@@ -32,8 +32,8 @@ func TestAccumulator(t *testing.T) {
 
 	localAggregatesChannel := make(chan *LocalAggregate, LocalAggregatesChannelSize)
 	app.Collectors = make(map[int32]*Collector, len(configs))
-	app.Accumulator = NewAccumulator(DefaultLocalAggregateInterval)
-	app.Accumulator.accumulatorChannel = localAggregatesChannel
+	app.LocalAggregateBulkWriter = NewLocalAggregateBulkWriter(DefaultLocalAggregateInterval)
+	app.LocalAggregateBulkWriter.localAggregatesChannel = localAggregatesChannel
 
 	feedData := make(map[string]any)
 	for _, config := range configs {
@@ -61,7 +61,7 @@ func TestAccumulator(t *testing.T) {
 	data := <-localAggregatesChannel
 	assert.Equal(t, DUMMY_FEED_VALUE, float64(data.Value))
 
-	go app.Accumulator.Run(ctx)
+	go app.LocalAggregateBulkWriter.Run(ctx)
 
 	time.Sleep(DefaultLocalAggregateInterval * 4)
 

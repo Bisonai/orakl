@@ -63,23 +63,23 @@ type Streamer struct {
 	isRunning   bool
 }
 
-type Accumulator struct {
+type LocalAggregateBulkWriter struct {
 	Interval time.Duration
 
-	accumulatorCtx     context.Context
-	cancel             context.CancelFunc
-	isRunning          bool
-	accumulatorChannel chan *LocalAggregate
+	bulkWriterCtx          context.Context
+	cancel                 context.CancelFunc
+	isRunning              bool
+	localAggregatesChannel chan *LocalAggregate
 }
 
 type App struct {
-	Bus              *bus.MessageBus
-	Fetchers         map[int32]*Fetcher
-	Collectors       map[int32]*Collector
-	Streamer         *Streamer
-	WebsocketFetcher *websocketfetcher.App
-	Proxies          []Proxy
-	Accumulator      *Accumulator
+	Bus                      *bus.MessageBus
+	Fetchers                 map[int32]*Fetcher
+	Collectors               map[int32]*Collector
+	Streamer                 *Streamer
+	WebsocketFetcher         *websocketfetcher.App
+	Proxies                  []Proxy
+	LocalAggregateBulkWriter *LocalAggregateBulkWriter
 }
 
 type Definition struct {
