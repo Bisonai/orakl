@@ -170,3 +170,4 @@
 - **delegator** v0.0.1.20240809.0742.a9a293a <br> *`PR`*: Sentinel update dal timestamp ... <br><br> 
 - **api** v0.0.1.20240809.0752.7dc3d11 <br> *`PR`*: Sentinel update dal timestamp ... <br><br> 
 - **node** v0.0.1.20240812.0227.c2b15cb <br> *`PR`*: OraklNode Fix lbank error <br><br> 
+- **node** v0.0.1.20240812.0439.b625a71 <br> *`PR`*: OraklNode Chore send local agg... <br><br> 
