@@ -5,6 +5,7 @@ import (
 
 	"bisonai.com/orakl/node/pkg/logscribe/api"
 	"github.com/google/go-github/github"
+	"github.com/robfig/cron/v3"
 )
 
 type LogInsertModelWithID struct {
@@ -22,6 +23,7 @@ type App struct {
 	githubRepo           string
 	githubClient         *github.Client
 	bulkLogsCopyInterval time.Duration
+	cron                 *cron.Cron
 }
 
 type HashLogPairs struct {
@@ -37,10 +39,17 @@ type AppOption func(c *AppConfig)
 
 type AppConfig struct {
 	bulkLogsCopyInterval time.Duration
+	cron                 *cron.Cron
 }
 
 func WithBulkLogsCopyInterval(interval time.Duration) AppOption {
 	return func(c *AppConfig) {
 		c.bulkLogsCopyInterval = interval
+	}
+}
+
+func WithCron(cron *cron.Cron) AppOption {
+	return func(c *AppConfig) {
+		c.cron = cron
 	}
 }

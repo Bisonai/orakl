@@ -58,6 +58,7 @@ func New(ctx context.Context, options ...AppOption) (*App, error) {
 		githubRepo:           githubRepo,
 		githubClient:         client,
 		bulkLogsCopyInterval: c.bulkLogsCopyInterval,
+		cron:                 c.cron,
 	}, nil
 }
 
@@ -91,15 +92,21 @@ func (a *App) Run(ctx context.Context) error {
 
 	go a.bulkCopyLogs(ctx, logsChannel)
 
-	cron := cron.New()
-	_, err = cron.AddFunc("@weekly", func() { // Run once a week, midnight between Sat/Sun
-		a.processLogs(ctx)
-	})
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to add cron job")
-		return err
+	if a.cron == nil {
+		cron := cron.New()
+		_, err = cron.AddFunc("@weekly", func() { // Run once a week, midnight between Sat/Sun
+			processedLogs := ProcessLogs(ctx)
+			if len(processedLogs) > 0 {
+				a.createGithubIssue(ctx, processedLogs)
+			}
+		})
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to add cron job")
+			return err
+		}
+		a.cron = cron
 	}
-	cron.Start()
+	a.cron.Start()
 
 	<-ctx.Done()
 
@@ -142,17 +149,17 @@ func (a *App) bulkCopyLogs(ctx context.Context, logsChannel <-chan *[]api.LogIns
 	}
 }
 
-func (a *App) processLogs(ctx context.Context) {
+func ProcessLogs(ctx context.Context) map[string][]LogInsertModelWithIDWithCount {
 	processedLogs := make(map[string][]LogInsertModelWithIDWithCount)
 	logMap := make(map[string]map[string][]LogInsertModelWithID) // {"service": {hashedLog: []logs}}
 	logs, err := fetchDeleteLogs(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to fetch logs")
-		return
+		return nil
 	}
 	if len(logs) == 0 {
 		log.Debug().Msgf("No logs to process")
-		return
+		return nil
 	}
 
 	for _, log := range logs {
@@ -190,9 +197,7 @@ func (a *App) processLogs(ctx context.Context) {
 		}
 	}
 
-	if len(processedLogs) > 0 {
-		a.createGithubIssue(ctx, processedLogs)
-	}
+	return processedLogs
 }
 
 func fetchDeleteLogs(ctx context.Context) ([]LogInsertModelWithID, error) {

@@ -2,6 +2,7 @@ package test
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"sync"
@@ -11,13 +12,14 @@ import (
 	"bisonai.com/orakl/node/pkg/db"
 	"bisonai.com/orakl/node/pkg/logscribe"
 	"bisonai.com/orakl/node/pkg/utils/request"
+	"github.com/robfig/cron/v3"
 	"github.com/stretchr/testify/assert"
 )
 
 const (
-	BulkLogsCopyInterval = 100 * time.Millisecond
-	ProcessLogsInterval  = 100 * time.Millisecond
-	insertLogDataCount   = 10_000
+	BulkLogsCopyInterval   = 100 * time.Millisecond
+	ProcessLogsIntervalSec = 1
+	insertLogDataCount     = 10_000
 )
 
 func TestLogscribeRun(t *testing.T) {
@@ -77,9 +79,17 @@ func TestProcessLogs(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
+		cron := cron.New()
+		_, err := cron.AddFunc(fmt.Sprintf("@every %ds", ProcessLogsIntervalSec), func() { // Run once a week, midnight between Sat/Sun
+			logscribe.ProcessLogs(ctx)
+		})
+		if err != nil {
+			t.Logf("error adding cron job: %v", err)
+		}
 		logscribe, err := logscribe.New(
 			ctx,
 			logscribe.WithBulkLogsCopyInterval(BulkLogsCopyInterval),
+			logscribe.WithCron(cron),
 		)
 		if err != nil {
 			t.Logf("error creating logscribe: %v", err)
@@ -95,7 +105,11 @@ func TestProcessLogs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to get insert log data: %v", err)
 	}
-	response, err := request.RequestRaw(request.WithEndpoint("http://localhost:3000/api/v1/"), request.WithMethod("POST"), request.WithBody(logsData))
+	response, err := request.RequestRaw(
+		request.WithEndpoint("http://localhost:3000/api/v1/"),
+		request.WithMethod("POST"),
+		request.WithBody(logsData),
+	)
 	if err != nil {
 		t.Fatalf("failed to insert logs: %v", err)
 	}
@@ -104,7 +118,7 @@ func TestProcessLogs(t *testing.T) {
 		t.Fatalf("failed to insert logs: %v", err)
 	}
 
-	time.Sleep(2*BulkLogsCopyInterval + 2*ProcessLogsInterval)
+	time.Sleep(2*BulkLogsCopyInterval + 2*ProcessLogsIntervalSec*time.Second)
 
 	count, err := db.QueryRow[Count](ctx, "SELECT COUNT(*) FROM logs", nil)
 
