@@ -17,6 +17,8 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+type Config = types.Config
+
 func Run(ctx context.Context) error {
 	log.Debug().Msg("Starting DAL API server")
 
@@ -65,6 +67,6 @@ func Run(ctx context.Context) error {
 	return app.Listen(":" + port)
 }
 
-func fetchConfigs(ctx context.Context, endpoint string) ([]types.Config, error) {
-	return request.Request[[]types.Config](request.WithEndpoint(endpoint + "/config"))
+func fetchConfigs(ctx context.Context, endpoint string) ([]Config, error) {
+	return request.Request[[]Config](request.WithEndpoint(endpoint + "/config"))
 }

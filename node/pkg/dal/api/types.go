@@ -9,20 +9,21 @@ import (
 
 const MAX_CONNECTIONS = 10
 
+type Config = types.Config
+
 type Subscription struct {
 	Method string   `json:"method"`
 	Params []string `json:"params"`
 }
 
 type Hub struct {
-	configs    map[string]types.Config
+	configs    map[string]Config
 	clients    map[*ThreadSafeClient]map[string]bool
 	register   chan *ThreadSafeClient
 	unregister chan *ThreadSafeClient
 	broadcast  map[string]chan *dalcommon.OutgoingSubmissionData
 	connPerIP  map[string][]*ThreadSafeClient
 	mu         sync.RWMutex
-	
 }
 
 type BulkResponse struct {

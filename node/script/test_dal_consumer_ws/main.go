@@ -14,6 +14,8 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+type Config = types.Config
+
 type Subscription struct {
 	Method string   `json:"method"`
 	Params []string `json:"params"`
@@ -54,10 +56,10 @@ func main() {
 	wg.Wait()
 }
 
-func fetchConfigs() ([]types.Config, error) {
+func fetchConfigs() ([]Config, error) {
 
 	endpoint := "https://config.orakl.network/baobab_configs.json"
-	configs, err := request.Request[[]types.Config](request.WithEndpoint(endpoint))
+	configs, err := request.Request[[]Config](request.WithEndpoint(endpoint))
 	if err != nil {
 		return nil, err
 	}
