@@ -28,7 +28,6 @@ const (
 	readDeleteLogsQuery          = `DELETE FROM logs RETURNING *;`
 	topOccurrencesForGithubIssue = 5
 	logAlreadyProcessedQuery     = `SELECT COUNT(*) FROM processed_logs WHERE log_hash = @hash`
-	insertIntoProcessedLogsQuery = "INSERT INTO processed_logs (log_hash) VALUES (@hash)"
 )
 
 func New(ctx context.Context, options ...AppOption) (*App, error) {
