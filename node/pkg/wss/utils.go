@@ -229,15 +229,20 @@ func (ws *WebsocketHelper) Run(ctx context.Context, router func(context.Context,
 			for {
 				data, err := readFunc(ctx, ws.Conn)
 				if err != nil {
+					if isErrorNormalClosure(err) {
+						break
+					}
+
 					log.Error().Err(err).Str("endpoint", ws.Endpoint).Msg("error reading from websocket")
 					break
 				}
-				go func() {
+
+				go func(context.Context, map[string]any) {
 					routerErr := router(ctx, data)
 					if routerErr != nil {
 						log.Warn().Err(routerErr).Str("endpoint", ws.Endpoint).Msg("error processing websocket message")
 					}
-				}()
+				}(ctx, data)
 			}
 			ws.Close()
 		}
@@ -247,7 +252,6 @@ func (ws *WebsocketHelper) Run(ctx context.Context, router func(context.Context,
 func (ws *WebsocketHelper) Write(ctx context.Context, message interface{}) error {
 	err := wsjson.Write(ctx, ws.Conn, message)
 	if err != nil {
-		log.Error().Err(err).Str("endpoint", ws.Endpoint).Msg("error writing to websocket")
 		return err
 	}
 	return nil
@@ -295,11 +299,14 @@ func (ws *WebsocketHelper) IsAlive(ctx context.Context) error {
 	return nil
 }
 
+func isErrorNormalClosure(err error) bool {
+	return websocket.CloseStatus(err) == websocket.StatusNormalClosure || websocket.CloseStatus(err) == websocket.StatusGoingAway
+}
+
 func defaultReader(ctx context.Context, conn *websocket.Conn) (map[string]interface{}, error) {
 	var data map[string]interface{}
 	err := wsjson.Read(ctx, conn, &data)
 	if err != nil {
-		log.Error().Err(err).Msg("wsjson read error")
 		return nil, err
 	}
 	return data, nil
