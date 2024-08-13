@@ -115,7 +115,9 @@ func Start(ctx context.Context) error {
 		checkDalWs(ctx, wsPushAlarmCount, wsDelayAlarmCount)
 		log.Debug().Msg("checked DAL WebSocket")
 
-		checkDalTraffic(ctx, pool)
+		if err := checkDalTraffic(ctx, pool); err != nil {
+			log.Error().Err(err).Msg("error in checkDalTraffic")
+		}
 	}
 	return nil
 }
@@ -282,13 +284,19 @@ func filterDelayedWsResponse() {
 	}
 }
 
-func checkDalTraffic(ctx context.Context, pool *pgxpool.Pool) {
-	result, err := db.QueryRowTransient[Count](ctx, pool, TrafficCheckQuery, map[string]any{})
-	if err != nil {
-		log.Error().Err(err).Msg("failed to check DAL traffic")
-		return
-	}
-	if result.Count > TrafficThreshold {
-		alert.SlackAlert(fmt.Sprintf("DAL traffic exceeded threshold: %d", result.Count))
+func checkDalTraffic(ctx context.Context, pool *pgxpool.Pool) error {
+	select {
+	case <-ctx.Done():
+		return nil
+	default:
+		result, err := db.QueryRowTransient[Count](ctx, pool, TrafficCheckQuery, map[string]any{})
+		if err != nil {
+			log.Error().Err(err).Msg("failed to check DAL traffic")
+			return err
+		}
+		if result.Count > TrafficThreshold {
+			alert.SlackAlert(fmt.Sprintf("DAL traffic exceeded threshold: %d", result.Count))
+		}
+		return nil
 	}
 }
