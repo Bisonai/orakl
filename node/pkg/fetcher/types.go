@@ -18,7 +18,7 @@ const (
 	SelectFeedsByConfigIdQuery            = `SELECT * FROM feeds WHERE config_id = @config_id`
 	InsertLocalAggregateQuery             = `INSERT INTO local_aggregates (config_id, value) VALUES (@config_id, @value)`
 	DECIMALS                              = 8
-	DefaultStreamInterval                 = time.Second * 5
+	DefaultFeedDataDumpInterval           = time.Second * 10
 	ForeignExchangePricePairs             = "GBP-USD,EUR-USD,KRW-USD,JPY-USD,CHF-USD"
 	DefaultMedianRatio                    = 0.05
 )
@@ -39,10 +39,11 @@ type Fetcher struct {
 	Config
 	Feeds []Feed
 
-	fetcherCtx        context.Context
-	cancel            context.CancelFunc
-	isRunning         bool
-	latestFeedDataMap *LatestFeedDataMap
+	fetcherCtx          context.Context
+	cancel              context.CancelFunc
+	isRunning           bool
+	latestFeedDataMap   *LatestFeedDataMap
+	FeedDataDumpChannel chan *FeedData
 }
 
 type LocalAggregator struct {
@@ -61,9 +62,10 @@ type LocalAggregator struct {
 type FeedDataBulkWriter struct {
 	Interval time.Duration
 
-	writerCtx context.Context
-	cancel    context.CancelFunc
-	isRunning bool
+	FeedDataDumpChannel chan *FeedData
+	writerCtx           context.Context
+	cancel              context.CancelFunc
+	isRunning           bool
 }
 
 type LocalAggregateBulkWriter struct {
@@ -84,6 +86,7 @@ type App struct {
 	WebsocketFetcher         *websocketfetcher.App
 	LatestFeedDataMap        *LatestFeedDataMap
 	Proxies                  []Proxy
+	FeedDataDumpChannel      chan *FeedData
 }
 
 type Definition struct {

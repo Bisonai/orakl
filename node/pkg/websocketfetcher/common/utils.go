@@ -3,15 +3,12 @@ package common
 import (
 	"bytes"
 	"compress/gzip"
-	"context"
 	"encoding/json"
 	"io"
 	"math"
 	"strconv"
 	"strings"
 
-	"bisonai.com/orakl/node/pkg/common/keys"
-	"bisonai.com/orakl/node/pkg/db"
 	"github.com/rs/zerolog/log"
 )
 
@@ -47,13 +44,6 @@ func GetWssFeedMap(feeds []Feed) map[string]FeedMaps {
 		feedMaps[provider].Separated[separatedName] = feed.ID
 	}
 	return feedMaps
-}
-
-func StoreFeeds(ctx context.Context, feedData []*FeedData) error {
-	if len(feedData) == 0 {
-		return nil
-	}
-	return db.LPushObject(ctx, keys.FeedDataBufferKey(), feedData)
 }
 
 func PriceStringToFloat64(price string) (float64, error) {
