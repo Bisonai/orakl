@@ -6,64 +6,18 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"regexp"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"bisonai.com/orakl/node/pkg/alert"
+	"bisonai.com/orakl/node/pkg/db"
 	"bisonai.com/orakl/node/pkg/secrets"
 	"bisonai.com/orakl/node/pkg/utils/request"
 	"bisonai.com/orakl/node/pkg/wss"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog/log"
 )
-
-const (
-	DefaultDalCheckInterval = 10 * time.Second
-	DelayOffset             = 5 * time.Second
-	AlarmOffset             = 3
-	WsDelayThreshold        = 9 * time.Second
-	WsPushThreshold         = 5 * time.Second
-)
-
-var (
-	wsChan      = make(chan WsResponse, 30000)
-	wsMsgChan   = make(chan string, 10000)
-	updateTimes = &UpdateTimes{
-		lastUpdates: make(map[string]time.Time),
-	}
-	re = regexp.MustCompile(`\(([^)]+)\)`)
-)
-
-type WsResponse struct {
-	Symbol        string `json:"symbol"`
-	AggregateTime string `json:"aggregateTime"`
-}
-
-type Subscription struct {
-	Method string   `json:"method"`
-	Params []string `json:"params"`
-}
-
-type Config struct {
-	Name           string `json:"name"`
-	SubmitInterval *int   `json:"submitInterval"`
-}
-
-type OutgoingSubmissionData struct {
-	Symbol        string `json:"symbol"`
-	Value         string `json:"value"`
-	AggregateTime string `json:"aggregateTime"`
-	Proof         string `json:"proof"`
-	FeedHash      string `json:"feedHash"`
-	Decimals      string `json:"decimals"`
-}
-
-type UpdateTimes struct {
-	lastUpdates map[string]time.Time
-	mu          sync.RWMutex
-}
 
 func (u *UpdateTimes) Store(symbol string, time time.Time) {
 	u.mu.Lock()
@@ -137,6 +91,17 @@ func Start(ctx context.Context) error {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
+	dalDBConnectionUrl := secrets.GetSecret("DAL_DB_CONNECTION_URL")
+	if dalDBConnectionUrl == "" {
+		return errors.New("DAL_DB_CONNECTION_URL not found")
+	}
+
+	pool, err := db.GetTransientPool(ctx, dalDBConnectionUrl)
+	if err != nil {
+		return err
+	}
+	defer pool.Close()
+
 	alarmCount := map[string]int{}
 	wsPushAlarmCount := map[string]int{}
 	wsDelayAlarmCount := map[string]int{}
@@ -149,6 +114,10 @@ func Start(ctx context.Context) error {
 		log.Debug().Msg("checking DAL WebSocket")
 		checkDalWs(ctx, wsPushAlarmCount, wsDelayAlarmCount)
 		log.Debug().Msg("checked DAL WebSocket")
+
+		if err := checkDalTraffic(ctx, pool); err != nil {
+			log.Error().Err(err).Msg("error in checkDalTraffic")
+		}
 	}
 	return nil
 }
@@ -313,4 +282,31 @@ func filterDelayedWsResponse() {
 			wsMsgChan <- fmt.Sprintf("(%s) ws delayed by %v sec", entry.Symbol, diff.Seconds())
 		}
 	}
+}
+
+func checkDalTraffic(ctx context.Context, pool *pgxpool.Pool) error {
+	select {
+	case <-ctx.Done():
+		return nil
+	default:
+		result, err := db.QueryRowTransient[Count](ctx, pool, getTrafficCheckQuery(), map[string]any{})
+		if err != nil {
+			log.Error().Err(err).Msg("failed to check DAL traffic")
+			return err
+		}
+		if result.Count > TrafficThreshold {
+			alert.SlackAlert(fmt.Sprintf("DAL traffic exceeded threshold: %d", result.Count))
+		}
+		return nil
+	}
+}
+
+func getTrafficCheckQuery() string {
+	keysToIgnore := strings.Split(IgnoreKeys, ",")
+	modified := []string{}
+	for _, desc := range keysToIgnore {
+		modified = append(modified, fmt.Sprintf("'%s'", desc))
+	}
+
+	return fmt.Sprintf(TrafficCheckQuery, strings.Join(modified, ", "))
 }
