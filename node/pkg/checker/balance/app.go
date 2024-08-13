@@ -323,7 +323,7 @@ func alarm(wallets []Wallet) {
 		latestDrainage := wallet.BalanceHistory[len(wallet.BalanceHistory)-1].Balance - wallet.BalanceHistory[len(wallet.BalanceHistory)-2].Balance
 		averageDrainage := getAverageDrainage(wallet.BalanceHistory)
 
-		if latestDrainage > averageDrainage {
+		if latestDrainage > averageDrainage || averageDrainage == 0 {
 			continue
 		}
 
