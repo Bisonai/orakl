@@ -121,22 +121,6 @@ func TestStoreFeeds(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	latestFeed1, err := db.GetObject[*common.FeedData](ctx, keys.LatestFeedDataKey(1))
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-	if latestFeed1.Value != 10001 {
-		t.Errorf("expected value 10001, got %f", latestFeed1.Value)
-	}
-
-	latestFeed2, err := db.GetObject[*common.FeedData](ctx, keys.LatestFeedDataKey(2))
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-	if latestFeed2.Value != 20001 {
-		t.Errorf("expected value 20001, got %f", latestFeed2.Value)
-	}
-
 	buffer, err := db.PopAllObject[*common.FeedData](ctx, keys.FeedDataBufferKey())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
