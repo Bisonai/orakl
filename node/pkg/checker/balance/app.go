@@ -203,9 +203,7 @@ func loadWalletFromOraklApi(ctx context.Context, url string) ([]Wallet, error) {
 			Minimum: minimumBalance,
 			Tag:     "reporter loaded from orakl api",
 
-			BalanceHistory:    []BalanceHistoryEntry{},
-			CurrentDrainRate:  0,
-			PreviousDrainRate: 0,
+			BalanceHistory: []BalanceHistoryEntry{},
 		}
 		wallets = append(wallets, wallet)
 	}
@@ -240,9 +238,7 @@ func loadWalletFromPor(ctx context.Context, url string) (Wallet, error) {
 		Minimum: SubmitterAlarmAmount,
 		Tag:     "reporter loaded from por",
 
-		BalanceHistory:    []BalanceHistoryEntry{},
-		CurrentDrainRate:  0,
-		PreviousDrainRate: 0,
+		BalanceHistory: []BalanceHistoryEntry{},
 	}
 	return wallet, nil
 }
@@ -260,9 +256,7 @@ func loadWalletFromDelegator(ctx context.Context, url string) (Wallet, error) {
 		Minimum: DelegatorAlarmAmount,
 		Tag:     "reporter loaded from delegator",
 
-		BalanceHistory:    []BalanceHistoryEntry{},
-		CurrentDrainRate:  0,
-		PreviousDrainRate: 0,
+		BalanceHistory: []BalanceHistoryEntry{},
 	}
 	return wallet, nil
 }
@@ -305,13 +299,6 @@ func updateBalances(ctx context.Context, wallets []Wallet) {
 		}
 		wallets[i].BalanceHistory = recentHistory
 
-		if len(wallets[i].BalanceHistory) > 10 {
-			previousEntry := wallets[i].BalanceHistory[len(wallets[i].BalanceHistory)-2]
-			drainRate := balance - previousEntry.Balance
-			wallets[i].PreviousDrainRate = wallets[i].CurrentDrainRate
-			wallets[i].CurrentDrainRate = drainRate
-		}
-
 		log.Debug().
 			Str("address", wallet.Address.Hex()).
 			Float64("balance", balance).
@@ -329,17 +316,21 @@ func alarm(wallets []Wallet) {
 			alarmMessage += fmt.Sprintf("%s balance(%f) is lower than minimum(%f) | %s\n", wallet.Address.Hex(), wallet.Balance, wallet.Minimum, wallet.Tag)
 		}
 
-		if wallet.CurrentDrainRate != 0 && wallet.PreviousDrainRate != 0 {
-			increaseRatio := (wallet.CurrentDrainRate - wallet.PreviousDrainRate) / math.Abs(wallet.PreviousDrainRate)
-			if increaseRatio > MinimalIncreaseThreshold {
-				log.Warn().
-					Str("address", wallet.Address.Hex()).
-					Float64("currentDrainRate", wallet.CurrentDrainRate).
-					Float64("previousDrainRate", wallet.PreviousDrainRate).
-					Msg("Significant increase in drain rate detected")
-				alarmMessage += fmt.Sprintf("%s drain rate increased | previous: %f, current: %f\n", wallet.Address.Hex(), wallet.PreviousDrainRate, wallet.CurrentDrainRate)
-			}
+		if len(wallet.BalanceHistory) < 2 {
+			continue
+		}
 
+		latestDrainage := wallet.BalanceHistory[len(wallet.BalanceHistory)-1].Balance - wallet.BalanceHistory[len(wallet.BalanceHistory)-2].Balance
+		averageDrainage := getAverageDrainage(wallet.BalanceHistory)
+
+		if latestDrainage > averageDrainage {
+			continue
+		}
+
+		increaseRatio := (averageDrainage - latestDrainage) / math.Abs(averageDrainage)
+		if increaseRatio > MinimalIncreaseThreshold {
+			log.Warn().Str("address", wallet.Address.Hex()).Float64("latestDrainage", latestDrainage).Float64("averageDrainage", averageDrainage).Msg("Increased balance")
+			alarmMessage += fmt.Sprintf("%s balance drained faster by %.2f%% | %s\n", wallet.Address.Hex(), increaseRatio*100, wallet.Tag)
 		}
 	}
 
@@ -351,4 +342,27 @@ func alarm(wallets []Wallet) {
 func isNumber(s string) bool {
 	_, err := strconv.ParseFloat(s, 64)
 	return err == nil
+}
+
+func getAverageDrainage(history []BalanceHistoryEntry) float64 {
+	if len(history) < 2 {
+		return 0
+	}
+	drainageList := []float64{}
+	for i := 1; i < len(history); i++ {
+		drainage := history[i-1].Balance - history[i].Balance
+		if drainage > 0 { // Only consider negative drainage
+			drainageList = append(drainageList, drainage)
+		}
+	}
+
+	if len(drainageList) == 0 {
+		return 0
+	}
+
+	sum := float64(0)
+	for _, value := range drainageList {
+		sum += value
+	}
+	return sum / float64(len(drainageList))
 }
