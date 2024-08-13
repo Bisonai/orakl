@@ -55,16 +55,6 @@ func getFeedDataBuffer(ctx context.Context) ([]FeedData, error) {
 	return db.PopAllObject[FeedData](ctx, keys.FeedDataBufferKey())
 }
 
-func insertLocalAggregatePgsql(ctx context.Context, configId int32, value float64) error {
-	err := db.QueryWithoutResult(ctx, InsertLocalAggregateQuery, map[string]any{"config_id": configId, "value": int64(value)})
-	return err
-}
-
-func insertLocalAggregateRdb(ctx context.Context, configId int32, value float64) error {
-	data := LocalAggregate{ConfigID: configId, Value: int64(value), Timestamp: time.Now()}
-	return db.SetObject(ctx, keys.LocalAggregateKey(configId), data, time.Duration(5*time.Minute))
-}
-
 func copyFeedData(ctx context.Context, feedData []FeedData) error {
 	if len(feedData) == 0 {
 		return nil

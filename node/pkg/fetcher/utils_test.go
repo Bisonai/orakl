@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 
-	"bisonai.com/orakl/node/pkg/aggregator"
 	"bisonai.com/orakl/node/pkg/common/keys"
 	"bisonai.com/orakl/node/pkg/db"
 	"github.com/stretchr/testify/assert"
@@ -228,65 +227,6 @@ func TestGetFeedDataBuffer(t *testing.T) {
 	assert.Equal(t, 2, len(result))
 	assert.Contains(t, result, feedData[0])
 	assert.Contains(t, result, feedData[1])
-}
-
-func TestInsertLocalAggregatePgsql(t *testing.T) {
-	ctx := context.Background()
-	clean, testItems, err := setup(ctx)
-	if err != nil {
-		t.Fatalf("error setting up test: %v", err)
-	}
-	defer func() {
-		if cleanupErr := clean(); cleanupErr != nil {
-			t.Logf("Cleanup failed: %v", cleanupErr)
-		}
-	}()
-
-	configs := testItems.insertedConfigs
-	for i, config := range configs {
-		insertLocalAggregateErr := insertLocalAggregatePgsql(ctx, config.ID, float64(i)+5)
-		if insertLocalAggregateErr != nil {
-			t.Fatalf("error inserting local aggregate pgsql: %v", insertLocalAggregateErr)
-		}
-	}
-
-	defer db.QueryWithoutResult(ctx, "DELETE FROM local_aggregates", nil)
-	result, err := db.QueryRows[aggregator.LocalAggregate](ctx, "SELECT * FROM local_aggregates", nil)
-	if err != nil {
-		t.Fatalf("error getting local aggregate pgsql: %v", err)
-	}
-
-	assert.Equal(t, len(configs), len(result))
-}
-
-func TestInsertLocalAggregateRdb(t *testing.T) {
-	ctx := context.Background()
-	clean, testItems, err := setup(ctx)
-	if err != nil {
-		t.Fatalf("error setting up test: %v", err)
-	}
-	defer func() {
-		if cleanupErr := clean(); cleanupErr != nil {
-			t.Logf("Cleanup failed: %v", cleanupErr)
-		}
-	}()
-
-	configs := testItems.insertedConfigs
-	for i, config := range configs {
-		err := insertLocalAggregateRdb(ctx, config.ID, float64(i)+5)
-		if err != nil {
-			t.Fatalf("error inserting local aggregate rdb: %v", err)
-		}
-		defer db.Del(ctx, keys.LocalAggregateKey(config.ID))
-	}
-
-	for _, config := range configs {
-		result, err := db.GetObject[aggregator.LocalAggregate](ctx, keys.LocalAggregateKey(config.ID))
-		if err != nil {
-			t.Fatalf("error getting local aggregate rdb: %v", err)
-		}
-		assert.Equal(t, int32(config.ID), result.ConfigID)
-	}
 }
 
 func TestCopyFeedData(t *testing.T) {
