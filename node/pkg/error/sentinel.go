@@ -232,6 +232,7 @@ var (
 	ErrLogscribeInsertFailed              = &CustomError{Service: Logscribe, Code: DatabaseError, Message: "Failed to insert logs to Logscribe"}
 	ErrLogscribeServiceNotExist           = &CustomError{Service: Logscribe, Code: InvalidInputError, Message: "Service field not found in log entry"}
 	ErrLogscribeGithubCredentialsNotFound = &CustomError{Service: Logscribe, Code: InternalError, Message: "Github credentials not found"}
+	ErrLogscribeFailedToCreateGithubIssue = &CustomError{Service: Logscribe, Code: InternalError, Message: "Failed to create github issue"}
 
 	ErrLogscribeConsumerServiceNotProvided   = &CustomError{Service: LogscribeConsumer, Code: InvalidInputError, Message: "Service field not provided in logscribeconsumer"}
 	ErrLogscribeConsumerInvalidLevel         = &CustomError{Service: LogscribeConsumer, Code: InvalidInputError, Message: "Invalid log level provided to logscribeconsumer"}

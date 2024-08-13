@@ -8,13 +8,10 @@ import (
 	"github.com/robfig/cron/v3"
 )
 
-type LogInsertModelWithID struct {
-	api.LogInsertModel
-	ID int `db:"id" json:"id"`
-}
+type LogInsertModel = api.LogInsertModel
 
-type LogInsertModelWithIDWithCount struct {
-	LogInsertModelWithID
+type LogInsertModelWithCount struct {
+	LogInsertModel
 	OccurrenceCount int `db:"occurrence_count" json:"occurrence_count"`
 }
 
@@ -28,11 +25,10 @@ type App struct {
 
 type LogsWithCount struct {
 	count int
-	log   LogInsertModelWithID
+	log   LogInsertModel
 }
 
 type Service struct {
-	ID      int    `db:"id"`
 	Service string `db:"service"`
 }
 

@@ -1,4 +1,0 @@
-CREATE TABLE IF NOT EXISTS services (
-    id SERIAL PRIMARY KEY,
-    service TEXT NOT NULL
-);
