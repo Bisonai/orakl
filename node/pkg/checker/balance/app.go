@@ -327,10 +327,10 @@ func alarm(wallets []Wallet) {
 			continue
 		}
 
-		increaseRatio := (averageDrainage - latestDrainage) / math.Abs(averageDrainage)
-		if increaseRatio > MinimalIncreaseThreshold {
+		drainageChangeRatio := (averageDrainage - latestDrainage) / math.Abs(averageDrainage)
+		if drainageChangeRatio > MinimalIncreaseThreshold {
 			log.Warn().Str("address", wallet.Address.Hex()).Float64("latestDrainage", latestDrainage).Float64("averageDrainage", averageDrainage).Msg("Increased balance")
-			alarmMessage += fmt.Sprintf("%s balance drained faster by %.2f%% | %s\n", wallet.Address.Hex(), increaseRatio*100, wallet.Tag)
+			alarmMessage += fmt.Sprintf("%s balance drained faster by %.2f%% | %s\n", wallet.Address.Hex(), drainageChangeRatio*100, wallet.Tag)
 		}
 	}
 
