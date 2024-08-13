@@ -85,7 +85,7 @@ func WithStoreInterval(interval time.Duration) AppOption {
 
 type App struct {
 	fetchers      []common.FetcherInterface
-	buffer        chan common.FeedData
+	buffer        chan *common.FeedData
 	storeInterval time.Duration
 	chainReader   *websocketchainreader.ChainReader
 }
@@ -166,7 +166,7 @@ func (a *App) initializeCex(ctx context.Context, appConfig AppConfig) error {
 	}
 	feedMap := common.GetWssFeedMap(feeds)
 
-	a.buffer = make(chan common.FeedData, appConfig.BufferSize)
+	a.buffer = make(chan *common.FeedData, appConfig.BufferSize)
 	a.storeInterval = appConfig.StoreInterval
 
 	for name, factory := range appConfig.CexFactories {
@@ -246,7 +246,7 @@ func (a *App) storeFeedData(ctx context.Context) {
 	case <-ctx.Done():
 		return
 	case feedData := <-a.buffer:
-		batch := []common.FeedData{feedData}
+		batch := []*common.FeedData{feedData}
 		// Continue to drain the buffer until it's empty
 	loop:
 		for {

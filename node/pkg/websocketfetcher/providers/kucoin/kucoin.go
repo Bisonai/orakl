@@ -67,7 +67,7 @@ func (f *KucoinFetcher) handleMessage(ctx context.Context, message map[string]an
 
 	feedData := RawDataToFeedData(raw, f.FeedMap)
 
-	f.FeedDataBuffer <- *feedData
+	f.FeedDataBuffer <- feedData
 
 	return nil
 }

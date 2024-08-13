@@ -61,7 +61,7 @@ func (f *CoinexFetcher) handleMessage(ctx context.Context, message map[string]an
 	}
 
 	for _, feedData := range feedDataList {
-		f.FeedDataBuffer <- *feedData
+		f.FeedDataBuffer <- feedData
 	}
 	return nil
 }

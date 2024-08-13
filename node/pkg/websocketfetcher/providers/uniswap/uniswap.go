@@ -60,7 +60,7 @@ func (f *UniswapFetcher) run(ctx context.Context, feed common.Feed) {
 	}
 
 	now := time.Now()
-	initialFeedData := common.FeedData{
+	initialFeedData := &common.FeedData{
 		FeedID:    feed.ID,
 		Value:     *price,
 		Timestamp: &now,
@@ -171,7 +171,7 @@ func (f *UniswapFetcher) readSwapEvent(ctx context.Context, feed common.Feed, de
 			continue
 		}
 		now := time.Now()
-		feedData := common.FeedData{
+		feedData := &common.FeedData{
 			FeedID:    feed.ID,
 			Value:     *price,
 			Timestamp: &now,

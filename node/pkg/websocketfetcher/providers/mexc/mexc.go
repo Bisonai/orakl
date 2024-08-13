@@ -51,7 +51,7 @@ func (f *MexcFetcher) handleMessage(ctx context.Context, message map[string]any)
 	}
 
 	for _, feedData := range feedDataList {
-		f.FeedDataBuffer <- *feedData
+		f.FeedDataBuffer <- feedData
 	}
 
 	return nil

@@ -71,7 +71,7 @@ func (f *BithumbFetcher) handleMessage(ctx context.Context, message map[string]a
 		return err
 	}
 
-	f.FeedDataBuffer <- *feedData
+	f.FeedDataBuffer <- feedData
 
 	return nil
 }

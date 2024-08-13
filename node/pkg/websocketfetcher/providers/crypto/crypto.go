@@ -81,7 +81,7 @@ func (f *CryptoDotComFetcher) handleMessage(ctx context.Context, message map[str
 	}
 
 	for _, feedData := range feedDataList {
-		f.FeedDataBuffer <- *feedData
+		f.FeedDataBuffer <- feedData
 	}
 
 	return nil

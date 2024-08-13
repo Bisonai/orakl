@@ -68,7 +68,7 @@ func (k *KorbitFetcher) handleMessage(ctx context.Context, message map[string]an
 		return err
 	}
 
-	k.FeedDataBuffer <- *feedData
+	k.FeedDataBuffer <- feedData
 	return nil
 }
 

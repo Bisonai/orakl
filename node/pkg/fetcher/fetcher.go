@@ -68,12 +68,12 @@ func (f *Fetcher) fetcherJob(ctx context.Context, proxies []Proxy) error {
 	return setFeedDataBuffer(ctx, result)
 }
 
-func (f *Fetcher) fetch(proxies []Proxy) ([]FeedData, error) {
+func (f *Fetcher) fetch(proxies []Proxy) ([]*FeedData, error) {
 	feeds := f.Feeds
 
-	data := []FeedData{}
+	data := []*FeedData{}
 	errList := []error{}
-	dataChan := make(chan FeedData)
+	dataChan := make(chan *FeedData)
 	errChan := make(chan error)
 
 	defer close(dataChan)
@@ -103,7 +103,7 @@ func (f *Fetcher) fetch(proxies []Proxy) ([]FeedData, error) {
 				return
 			}
 			now := time.Now()
-			dataChan <- FeedData{FeedID: feed.ID, Value: resultValue, Timestamp: &now, Volume: 0}
+			dataChan <- &FeedData{FeedID: feed.ID, Value: resultValue, Timestamp: &now, Volume: 0}
 
 		}(feed)
 	}

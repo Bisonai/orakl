@@ -72,7 +72,7 @@ func (c *CoinoneFetcher) handleMessage(ctx context.Context, message map[string]a
 		return err
 	}
 
-	c.FeedDataBuffer <- *feedData
+	c.FeedDataBuffer <- feedData
 	return nil
 }
 

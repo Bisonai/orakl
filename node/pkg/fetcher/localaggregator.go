@@ -66,14 +66,14 @@ func (c *LocalAggregator) Job(ctx context.Context) error {
 	return c.processFeeds(ctx, feeds)
 }
 
-func (c *LocalAggregator) processFeeds(ctx context.Context, feeds []FeedData) error {
+func (c *LocalAggregator) processFeeds(ctx context.Context, feeds []*FeedData) error {
 	if isFXPricePair(c.Name) {
 		return c.processFXPricePair(ctx, feeds)
 	}
 	return c.processVolumeWeightedFeeds(ctx, feeds)
 }
 
-func (c *LocalAggregator) processFXPricePair(ctx context.Context, feeds []FeedData) error {
+func (c *LocalAggregator) processFXPricePair(ctx context.Context, feeds []*FeedData) error {
 	median, err := calculateMedian(feeds)
 	if err != nil {
 		log.Error().Err(err).Str("Player", "LocalAggregator").Msg("error in calculateMedian in localAggregator")
@@ -82,7 +82,7 @@ func (c *LocalAggregator) processFXPricePair(ctx context.Context, feeds []FeedDa
 	return c.streamLocalAggregate(ctx, median)
 }
 
-func (c *LocalAggregator) processVolumeWeightedFeeds(ctx context.Context, feeds []FeedData) error {
+func (c *LocalAggregator) processVolumeWeightedFeeds(ctx context.Context, feeds []*FeedData) error {
 	volumeWeightedFeeds, medianFeeds := partitionFeeds(feeds)
 	vwap, err := calculateVWAP(volumeWeightedFeeds)
 	if err != nil {
@@ -100,9 +100,9 @@ func (c *LocalAggregator) processVolumeWeightedFeeds(ctx context.Context, feeds 
 	return c.streamLocalAggregate(ctx, aggregated)
 }
 
-func partitionFeeds(feeds []FeedData) ([]FeedData, []FeedData) {
-	volumeWeightedFeeds := []FeedData{}
-	medianFeeds := []FeedData{}
+func partitionFeeds(feeds []*FeedData) ([]*FeedData, []*FeedData) {
+	volumeWeightedFeeds := []*FeedData{}
+	medianFeeds := []*FeedData{}
 
 	for _, feed := range feeds {
 		if feed.Volume > 0 {
@@ -147,7 +147,7 @@ func (c *LocalAggregator) streamLocalAggregate(ctx context.Context, aggregated f
 	return nil
 }
 
-func (c *LocalAggregator) collect(ctx context.Context) ([]FeedData, error) {
+func (c *LocalAggregator) collect(ctx context.Context) ([]*FeedData, error) {
 	feedIds := make([]int32, len(c.Feeds))
 	for i, feed := range c.Feeds {
 		feedIds[i] = feed.ID

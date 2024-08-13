@@ -67,7 +67,7 @@ func (f *BitmartFetcher) handleMessage(ctx context.Context, message map[string]a
 	feedDataList := ResponseToFeedData(response, f.FeedMap)
 
 	for _, feedData := range feedDataList {
-		f.FeedDataBuffer <- *feedData
+		f.FeedDataBuffer <- feedData
 	}
 
 	return nil

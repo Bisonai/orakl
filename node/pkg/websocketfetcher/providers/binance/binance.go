@@ -58,7 +58,7 @@ func (b *BinanceFetcher) handleMessage(ctx context.Context, message map[string]a
 		return err
 	}
 
-	b.FeedDataBuffer <- *feedData
+	b.FeedDataBuffer <- feedData
 	return nil
 }
 

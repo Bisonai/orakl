@@ -69,7 +69,7 @@ func (f *BitstampFetcher) handleMessage(ctx context.Context, message map[string]
 		return err
 	}
 
-	f.FeedDataBuffer <- *feedData
+	f.FeedDataBuffer <- feedData
 
 	return nil
 }

@@ -68,7 +68,7 @@ func (f *BybitFetcher) handleMessage(ctx context.Context, message map[string]any
 		return err
 	}
 
-	f.FeedDataBuffer <- *feedData
+	f.FeedDataBuffer <- feedData
 	return nil
 }
 

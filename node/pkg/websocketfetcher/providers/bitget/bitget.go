@@ -69,7 +69,7 @@ func (f *BitgetFetcher) handleMessage(ctx context.Context, message map[string]an
 		return err
 	}
 	for _, feedData := range feedDataList {
-		f.FeedDataBuffer <- *feedData
+		f.FeedDataBuffer <- feedData
 	}
 
 	return nil

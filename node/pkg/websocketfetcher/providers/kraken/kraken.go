@@ -63,7 +63,7 @@ func (f *KrakenFetcher) handleMessage(ctx context.Context, message map[string]an
 	feedDataList := ResponseToFeedData(raw, f.FeedMap)
 
 	for _, feedData := range feedDataList {
-		f.FeedDataBuffer <- *feedData
+		f.FeedDataBuffer <- feedData
 	}
 	return nil
 }

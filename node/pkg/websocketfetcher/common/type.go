@@ -51,13 +51,13 @@ type DexFeedDefinition struct {
 type FetcherConfig struct {
 	FeedMaps       FeedMaps
 	Proxy          string
-	FeedDataBuffer chan FeedData
+	FeedDataBuffer chan *FeedData
 }
 
 type DexFetcherConfig struct {
 	Feeds                []Feed
 	WebsocketChainReader *websocketchainreader.ChainReader
-	FeedDataBuffer       chan FeedData
+	FeedDataBuffer       chan *FeedData
 }
 
 type FeedMaps struct {
@@ -79,7 +79,7 @@ func WithProxy(proxy string) FetcherOption {
 	}
 }
 
-func WithFeedDataBuffer(feedDataBuffer chan FeedData) FetcherOption {
+func WithFeedDataBuffer(feedDataBuffer chan *FeedData) FetcherOption {
 	return func(c *FetcherConfig) {
 		c.FeedDataBuffer = feedDataBuffer
 	}
@@ -99,7 +99,7 @@ func WithWebsocketChainReader(websocketChainReader *websocketchainreader.ChainRe
 	}
 }
 
-func WithDexFeedDataBuffer(feedDataBuffer chan FeedData) DexFetcherOption {
+func WithDexFeedDataBuffer(feedDataBuffer chan *FeedData) DexFetcherOption {
 	return func(c *DexFetcherConfig) {
 		c.FeedDataBuffer = feedDataBuffer
 	}
@@ -108,14 +108,14 @@ func WithDexFeedDataBuffer(feedDataBuffer chan FeedData) DexFetcherOption {
 type Fetcher struct {
 	FeedMap        map[string]int32
 	Ws             *wss.WebsocketHelper
-	FeedDataBuffer chan FeedData
+	FeedDataBuffer chan *FeedData
 	VolumeCacheMap VolumeCacheMap
 }
 
 type DexFetcher struct {
 	Feeds                []Feed
 	WebsocketChainReader *websocketchainreader.ChainReader
-	FeedDataBuffer       chan FeedData
+	FeedDataBuffer       chan *FeedData
 }
 
 type FetcherInterface interface {

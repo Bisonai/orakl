@@ -49,14 +49,14 @@ func GetWssFeedMap(feeds []Feed) map[string]FeedMaps {
 	return feedMaps
 }
 
-func StoreFeeds(ctx context.Context, feedData []FeedData) error {
+func StoreFeeds(ctx context.Context, feedData []*FeedData) error {
 	if len(feedData) == 0 {
 		return nil
 	}
 	latestData := make(map[string]any)
 	for _, data := range feedData {
 		key := keys.LatestFeedDataKey(data.FeedID)
-		if latestData[key] != nil && latestData[key].(FeedData).Timestamp.After(*data.Timestamp) {
+		if latestData[key] != nil && latestData[key].(*FeedData).Timestamp.After(*data.Timestamp) {
 			continue
 		}
 		latestData[key] = data

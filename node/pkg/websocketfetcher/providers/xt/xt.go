@@ -74,7 +74,7 @@ func (f *XtFetcher) handleMessage(ctx context.Context, message map[string]any) e
 		return err
 	}
 
-	f.FeedDataBuffer <- *feedData
+	f.FeedDataBuffer <- feedData
 	return nil
 }
 
