@@ -12,6 +12,10 @@ const (
 	AlarmOffset             = 3
 	WsDelayThreshold        = 9 * time.Second
 	WsPushThreshold         = 5 * time.Second
+	TrafficCheckQuery       = `select count(1) from rest_calls where
+timestamp > current_timestamp - INTERVAL '10 seconds' AND
+api_key NOT IN (SELECT key from keys WHERE description IN ('test', 'sentinel', 'orakl_reporter'))`
+	TrafficThreshold = 100
 )
 
 var (
@@ -20,11 +24,7 @@ var (
 	updateTimes = &UpdateTimes{
 		lastUpdates: make(map[string]time.Time),
 	}
-	re                = regexp.MustCompile(`\(([^)]+)\)`)
-	trafficCheckQuery = `select count(1) from rest_calls where
-timestamp > current_timestamp - INTERVAL '10 seconds' AND
-api_key NOT IN (SELECT key from keys WHERE description IN ('test', 'sentinel', 'orakl_reporter'))`
-	trafficThreshold = 100
+	re = regexp.MustCompile(`\(([^)]+)\)`)
 )
 
 type WsResponse struct {

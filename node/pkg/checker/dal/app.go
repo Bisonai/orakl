@@ -283,12 +283,12 @@ func filterDelayedWsResponse() {
 }
 
 func checkDalTraffic(ctx context.Context, pool *pgxpool.Pool) {
-	result, err := db.QueryRowTransient[Count](ctx, pool, trafficCheckQuery, map[string]any{})
+	result, err := db.QueryRowTransient[Count](ctx, pool, TrafficCheckQuery, map[string]any{})
 	if err != nil {
 		log.Error().Err(err).Msg("failed to check DAL traffic")
 		return
 	}
-	if result.Count > trafficThreshold {
+	if result.Count > TrafficThreshold {
 		alert.SlackAlert(fmt.Sprintf("DAL traffic exceeded threshold: %d", result.Count))
 	}
 }
