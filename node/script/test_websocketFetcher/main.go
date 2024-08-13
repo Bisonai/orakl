@@ -41,7 +41,7 @@ func main() {
 	}
 	feedMap := common.GetWssFeedMap(feed)
 
-	ch := make(chan common.FeedData)
+	ch := make(chan *common.FeedData)
 	fetcher, err := bybit.New(ctx, common.WithFeedDataBuffer(ch), common.WithFeedMaps(feedMap["bybit"]))
 	if err != nil {
 		log.Error().Err(err).Msg("failed to create bybit fetcher")

@@ -113,7 +113,7 @@ func main() {
 		return
 	}
 
-	ch := make(chan common.FeedData)
+	ch := make(chan *common.FeedData)
 	fetcher := uniswap.New(common.WithDexFeedDataBuffer(ch), common.WithWebsocketChainReader(chainReader), common.WithFeeds(feeds))
 	fetcher.Run(ctx)
 	for {

@@ -93,7 +93,7 @@ func TestStoreFeeds(t *testing.T) {
 		time.Now().Add(time.Second * 3),
 	}
 
-	feedData := []common.FeedData{
+	feedData := []*common.FeedData{
 		{
 			FeedID:    1,
 			Value:     10000,
@@ -121,7 +121,7 @@ func TestStoreFeeds(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	latestFeed1, err := db.GetObject[common.FeedData](ctx, keys.LatestFeedDataKey(1))
+	latestFeed1, err := db.GetObject[*common.FeedData](ctx, keys.LatestFeedDataKey(1))
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -129,7 +129,7 @@ func TestStoreFeeds(t *testing.T) {
 		t.Errorf("expected value 10001, got %f", latestFeed1.Value)
 	}
 
-	latestFeed2, err := db.GetObject[common.FeedData](ctx, keys.LatestFeedDataKey(2))
+	latestFeed2, err := db.GetObject[*common.FeedData](ctx, keys.LatestFeedDataKey(2))
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -137,7 +137,7 @@ func TestStoreFeeds(t *testing.T) {
 		t.Errorf("expected value 20001, got %f", latestFeed2.Value)
 	}
 
-	buffer, err := db.PopAllObject[common.FeedData](ctx, keys.FeedDataBufferKey())
+	buffer, err := db.PopAllObject[*common.FeedData](ctx, keys.FeedDataBufferKey())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}

@@ -62,7 +62,7 @@ func (f *GopaxFetcher) handleMessage(ctx context.Context, message map[string]any
 		feedDataList := InitialResponseToFeedData(initialResponse, f.FeedMap)
 
 		for _, feedData := range feedDataList {
-			f.FeedDataBuffer <- *feedData
+			f.FeedDataBuffer <- feedData
 		}
 		return nil
 	}
@@ -82,7 +82,7 @@ func (f *GopaxFetcher) handleMessage(ctx context.Context, message map[string]any
 				log.Error().Err(err).Str("Player", "Gopax").Msg("error in gopax.handleMessage, failed to convert ticker to feed data")
 				continue
 			}
-			f.FeedDataBuffer <- *feedData
+			f.FeedDataBuffer <- feedData
 		}
 
 		return nil

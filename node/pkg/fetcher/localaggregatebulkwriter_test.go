@@ -42,7 +42,7 @@ func TestLocalAggregateBulkWriter(t *testing.T) {
 		}
 		app.LocalAggregators[config.ID] = NewLocalAggregator(config, localAggregatorFeeds, localAggregatesChannel, testItems.messageBus)
 		for _, feed := range localAggregatorFeeds {
-			feedData[keys.LatestFeedDataKey(feed.ID)] = FeedData{FeedID: feed.ID, Value: DUMMY_FEED_VALUE, Timestamp: nil, Volume: DUMMY_FEED_VALUE}
+			feedData[keys.LatestFeedDataKey(feed.ID)] = &FeedData{FeedID: feed.ID, Value: DUMMY_FEED_VALUE, Timestamp: nil, Volume: DUMMY_FEED_VALUE}
 		}
 	}
 	err = app.startAllLocalAggregators(ctx)

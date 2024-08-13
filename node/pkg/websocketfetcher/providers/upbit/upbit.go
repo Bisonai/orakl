@@ -60,7 +60,7 @@ func (f *UpbitFetcher) handleMessage(ctx context.Context, message map[string]int
 		log.Error().Str("Player", "Upbit").Err(err).Msg("error in upbit.handleMessage")
 		return err
 	}
-	f.FeedDataBuffer <- *feedData
+	f.FeedDataBuffer <- feedData
 	return nil
 }
 

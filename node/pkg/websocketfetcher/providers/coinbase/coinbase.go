@@ -58,7 +58,7 @@ func (c *CoinbaseFetcher) handleMessage(ctx context.Context, message map[string]
 		return err
 	}
 
-	c.FeedDataBuffer <- *feedData
+	c.FeedDataBuffer <- feedData
 
 	return nil
 }

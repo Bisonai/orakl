@@ -64,7 +64,7 @@ func (f *GateioFetcher) handleMessage(ctx context.Context, message map[string]an
 		log.Error().Str("Player", "Gateio").Err(err).Msg("error in ResponseToFeedData")
 		return err
 	}
-	f.FeedDataBuffer <- *feedData
+	f.FeedDataBuffer <- feedData
 	return nil
 }
 

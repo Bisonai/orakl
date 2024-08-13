@@ -22,7 +22,7 @@ func FetchSingle(ctx context.Context, definition *Definition) (float64, error) {
 	return reducer.Reduce(rawResult, definition.Reducers)
 }
 
-func setLatestFeedData(ctx context.Context, feedData []FeedData, expiration time.Duration) error {
+func setLatestFeedData(ctx context.Context, feedData []*FeedData, expiration time.Duration) error {
 	latestData := make(map[string]any)
 	for _, data := range feedData {
 		latestData[keys.LatestFeedDataKey(data.FeedID)] = data
@@ -30,15 +30,15 @@ func setLatestFeedData(ctx context.Context, feedData []FeedData, expiration time
 	return db.MSetObjectWithExp(ctx, latestData, expiration)
 }
 
-func getLatestFeedData(ctx context.Context, feedIds []int32) ([]FeedData, error) {
+func getLatestFeedData(ctx context.Context, feedIds []int32) ([]*FeedData, error) {
 	if len(feedIds) == 0 {
-		return []FeedData{}, nil
+		return []*FeedData{}, nil
 	}
 	keyList := make([]string, len(feedIds))
 	for i, feedId := range feedIds {
 		keyList[i] = keys.LatestFeedDataKey(feedId)
 	}
-	feedData, err := db.MGetObject[FeedData](ctx, keyList)
+	feedData, err := db.MGetObject[*FeedData](ctx, keyList)
 	if err != nil {
 		return nil, err
 	}
@@ -46,16 +46,16 @@ func getLatestFeedData(ctx context.Context, feedIds []int32) ([]FeedData, error)
 	return feedData, nil
 }
 
-func setFeedDataBuffer(ctx context.Context, feedData []FeedData) error {
+func setFeedDataBuffer(ctx context.Context, feedData []*FeedData) error {
 	return db.LPushObject(ctx, keys.FeedDataBufferKey(), feedData)
 }
 
-func getFeedDataBuffer(ctx context.Context) ([]FeedData, error) {
+func getFeedDataBuffer(ctx context.Context) ([]*FeedData, error) {
 	// buffer flushed on pop all
-	return db.PopAllObject[FeedData](ctx, keys.FeedDataBufferKey())
+	return db.PopAllObject[*FeedData](ctx, keys.FeedDataBufferKey())
 }
 
-func copyFeedData(ctx context.Context, feedData []FeedData) error {
+func copyFeedData(ctx context.Context, feedData []*FeedData) error {
 	if len(feedData) == 0 {
 		return nil
 	}
@@ -67,7 +67,7 @@ func copyFeedData(ctx context.Context, feedData []FeedData) error {
 	return err
 }
 
-func calculateVWAP(feedData []FeedData) (float64, error) {
+func calculateVWAP(feedData []*FeedData) (float64, error) {
 	if len(feedData) == 0 {
 		log.Debug().Str("Player", "Fetcher").Msg("no feed data to calculate VWAP")
 		return 0, nil
@@ -88,7 +88,7 @@ func calculateVWAP(feedData []FeedData) (float64, error) {
 	return totalPrice / totalVolume, nil
 }
 
-func calculateMedian(feedData []FeedData) (float64, error) {
+func calculateMedian(feedData []*FeedData) (float64, error) {
 	if len(feedData) == 0 {
 		log.Debug().Str("Player", "Fetcher").Msg("no feed data to calculate median")
 		return 0, nil

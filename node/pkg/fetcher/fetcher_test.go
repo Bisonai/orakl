@@ -87,7 +87,7 @@ func TestFetcherFetcherJob(t *testing.T) {
 
 	for _, fetcher := range app.Fetchers {
 		for _, feed := range fetcher.Feeds {
-			res, latestFeedDataErr := db.GetObject[FeedData](ctx, keys.LatestFeedDataKey(feed.ID))
+			res, latestFeedDataErr := db.GetObject[*FeedData](ctx, keys.LatestFeedDataKey(feed.ID))
 			if latestFeedDataErr != nil {
 				t.Fatalf("error fetching feed data: %v", latestFeedDataErr)
 			}

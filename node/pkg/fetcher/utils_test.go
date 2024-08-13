@@ -108,7 +108,7 @@ func TestFetchSingle(t *testing.T) {
 
 func TestSetLatestFeedData(t *testing.T) {
 	ctx := context.Background()
-	feedData := []FeedData{
+	feedData := []*FeedData{
 		{
 			FeedID: 1,
 			Value:  0.1,
@@ -128,7 +128,7 @@ func TestSetLatestFeedData(t *testing.T) {
 	defer db.Del(ctx, keys[0])
 	defer db.Del(ctx, keys[1])
 
-	result, err := db.MGetObject[FeedData](ctx, keys)
+	result, err := db.MGetObject[*FeedData](ctx, keys)
 	if err != nil {
 		t.Fatalf("error getting latest feed data: %v", err)
 	}
@@ -140,7 +140,7 @@ func TestSetLatestFeedData(t *testing.T) {
 
 func TestGetLatestFeedData(t *testing.T) {
 	ctx := context.Background()
-	feedData := []FeedData{
+	feedData := []*FeedData{
 		{
 			FeedID: 1,
 			Value:  0.1,
@@ -171,7 +171,7 @@ func TestGetLatestFeedData(t *testing.T) {
 
 func TestSetFeedDataBuffer(t *testing.T) {
 	ctx := context.Background()
-	feedData := []FeedData{
+	feedData := []*FeedData{
 		{
 			FeedID: 1,
 			Value:  0.1,
@@ -189,7 +189,7 @@ func TestSetFeedDataBuffer(t *testing.T) {
 
 	defer db.Del(ctx, keys.FeedDataBufferKey())
 
-	result, err := db.LRangeObject[FeedData](ctx, keys.FeedDataBufferKey(), 0, -1)
+	result, err := db.LRangeObject[*FeedData](ctx, keys.FeedDataBufferKey(), 0, -1)
 	if err != nil {
 		t.Fatalf("error getting feed data buffer: %v", err)
 	}
@@ -201,7 +201,7 @@ func TestSetFeedDataBuffer(t *testing.T) {
 
 func TestGetFeedDataBuffer(t *testing.T) {
 	ctx := context.Background()
-	feedData := []FeedData{
+	feedData := []*FeedData{
 		{
 			FeedID: 1,
 			Value:  0.1,
@@ -242,11 +242,11 @@ func TestCopyFeedData(t *testing.T) {
 	}()
 
 	feeds := testItems.insertedFeeds
-	feedData := []FeedData{}
+	feedData := []*FeedData{}
 
 	for i, feed := range feeds {
 		now := time.Now().Round(time.Second)
-		feedData = append(feedData, FeedData{
+		feedData = append(feedData, &FeedData{
 			FeedID:    int32(*feed.ID),
 			Value:     float64(i) + 5,
 			Timestamp: &now,
@@ -270,5 +270,5 @@ func TestCopyFeedData(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error getting feed data: %v", err)
 	}
-	assert.Contains(t, result, feedData[0])
+	assert.Contains(t, result, *feedData[0])
 }

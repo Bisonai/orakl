@@ -61,7 +61,7 @@ func (f *OkxFetcher) handleMessage(ctx context.Context, message map[string]any) 
 	feedDataList := ResponseToFeedData(raw, f.FeedMap)
 
 	for _, feedData := range feedDataList {
-		f.FeedDataBuffer <- *feedData
+		f.FeedDataBuffer <- feedData
 	}
 
 	return nil
