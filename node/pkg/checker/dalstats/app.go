@@ -46,7 +46,7 @@ func Start(ctx context.Context) error {
 	defer dalDB.Close()
 
 	c := cron.New()
-	_, err = c.AddFunc("0 0 * * 5", func() {
+	_, err = c.AddFunc("0 1 * * 5", func() {
 		err := dalDBStats(ctx, dalDB)
 		if err != nil {
 			log.Error().Err(err).Msg("Error running DAL DB stats")
