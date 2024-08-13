@@ -93,7 +93,7 @@ func WithLatestFeedDataMap(latestFeedDataMap *types.LatestFeedDataMap) AppOption
 
 type App struct {
 	fetchers          []common.FetcherInterface
-	buffer            chan common.FeedData
+	buffer            chan *common.FeedData
 	storeInterval     time.Duration
 	chainReader       *websocketchainreader.ChainReader
 	latestFeedDataMap *types.LatestFeedDataMap

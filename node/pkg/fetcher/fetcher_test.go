@@ -285,7 +285,11 @@ func TestFetcherFilterProxyByLocation(t *testing.T) {
 		{ID: 3, Protocol: "http", Host: "localhost", Port: 8082, Location: &kr},
 	}
 
-	fetcher := NewFetcher(Config{}, []Feed{})
+	testMap := &LatestFeedDataMap{
+		FeedDataMap: make(map[int32]*FeedData),
+	}
+
+	fetcher := NewFetcher(Config{}, []Feed{}, testMap)
 
 	res := fetcher.filterProxyByLocation(proxies, uk)
 	assert.Greater(t, len(res), 0)

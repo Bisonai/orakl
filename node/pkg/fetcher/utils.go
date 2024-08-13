@@ -21,22 +21,6 @@ func FetchSingle(ctx context.Context, definition *Definition) (float64, error) {
 	return reducer.Reduce(rawResult, definition.Reducers)
 }
 
-func getLatestFeedData(ctx context.Context, feedIds []int32) ([]FeedData, error) {
-	if len(feedIds) == 0 {
-		return []*FeedData{}, nil
-	}
-	keyList := make([]string, len(feedIds))
-	for i, feedId := range feedIds {
-		keyList[i] = keys.LatestFeedDataKey(feedId)
-	}
-	feedData, err := db.MGetObject[*FeedData](ctx, keyList)
-	if err != nil {
-		return nil, err
-	}
-
-	return feedData, nil
-}
-
 func setFeedDataBuffer(ctx context.Context, feedData []*FeedData) error {
 	return db.LPushObject(ctx, keys.FeedDataBufferKey(), feedData)
 }

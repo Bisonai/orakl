@@ -40,7 +40,7 @@ func TestLocalAggregateBulkWriter(t *testing.T) {
 		if getFeedsErr != nil {
 			t.Fatalf("error getting configs: %v", getFeedsErr)
 		}
-		app.LocalAggregators[config.ID] = NewLocalAggregator(config, localAggregatorFeeds, localAggregatesChannel, testItems.messageBus)
+		app.LocalAggregators[config.ID] = NewLocalAggregator(config, localAggregatorFeeds, localAggregatesChannel, testItems.messageBus, app.LatestFeedDataMap)
 		for _, feed := range localAggregatorFeeds {
 			feedData[keys.LatestFeedDataKey(feed.ID)] = &FeedData{FeedID: feed.ID, Value: DUMMY_FEED_VALUE, Timestamp: nil, Volume: DUMMY_FEED_VALUE}
 		}
