@@ -79,7 +79,7 @@ func copyFeedData(ctx context.Context, feedData []FeedData) error {
 
 func calculateVWAP(feedData []FeedData) (float64, error) {
 	if len(feedData) == 0 {
-		log.Debug().Str("Player", "Collector").Msg("no feed data to calculate VWAP")
+		log.Debug().Str("Player", "Fetcher").Msg("no feed data to calculate VWAP")
 		return 0, nil
 	}
 
@@ -91,8 +91,8 @@ func calculateVWAP(feedData []FeedData) (float64, error) {
 	}
 
 	if totalVolume == 0 {
-		log.Debug().Str("Player", "Collector").Msg("total volume is zero to calculate VWAP")
-		return 0, errorSentinel.ErrCollectorZeroVolume
+		log.Debug().Str("Player", "Fetcher").Msg("total volume is zero to calculate VWAP")
+		return 0, errorSentinel.ErrLocalAggregatorZeroVolume
 	}
 
 	return totalPrice / totalVolume, nil
@@ -100,7 +100,7 @@ func calculateVWAP(feedData []FeedData) (float64, error) {
 
 func calculateMedian(feedData []FeedData) (float64, error) {
 	if len(feedData) == 0 {
-		log.Debug().Str("Player", "Collector").Msg("no feed data to calculate median")
+		log.Debug().Str("Player", "Fetcher").Msg("no feed data to calculate median")
 		return 0, nil
 	}
 

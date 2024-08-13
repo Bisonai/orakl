@@ -10,20 +10,20 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func NewCollector(config Config, feeds []Feed, localAggregatesChannel chan *LocalAggregate, bus *bus.MessageBus) *Collector {
-	return &Collector{
+func NewLocalAggregator(config Config, feeds []Feed, localAggregatesChannel chan *LocalAggregate, bus *bus.MessageBus) *LocalAggregator {
+	return &LocalAggregator{
 		Config:                 config,
 		Feeds:                  feeds,
-		collectorCtx:           nil,
+		aggregatorCtx:          nil,
 		cancel:                 nil,
 		bus:                    bus,
 		localAggregatesChannel: localAggregatesChannel,
 	}
 }
 
-func (c *Collector) Run(ctx context.Context) {
-	collectorCtx, cancel := context.WithCancel(ctx)
-	c.collectorCtx = collectorCtx
+func (c *LocalAggregator) Run(ctx context.Context) {
+	aggregatorCtx, cancel := context.WithCancel(ctx)
+	c.aggregatorCtx = aggregatorCtx
 	c.cancel = cancel
 	c.isRunning = true
 
@@ -32,20 +32,20 @@ func (c *Collector) Run(ctx context.Context) {
 	if err != nil {
 		localAggregateInterval = DefaultLocalAggregateInterval
 	}
-	collectorFrequency := localAggregateInterval
+	localAggregateFrequency := localAggregateInterval
 
-	ticker := time.NewTicker(collectorFrequency)
+	ticker := time.NewTicker(localAggregateFrequency)
 	go func() {
 		for {
 			select {
-			case <-c.collectorCtx.Done():
+			case <-c.aggregatorCtx.Done():
 				ticker.Stop()
 				return
 			case <-ticker.C:
 				go func() {
-					err := c.Job(c.collectorCtx)
+					err := c.Job(c.aggregatorCtx)
 					if err != nil {
-						log.Error().Str("Player", "Collector").Err(err).Msg("error in collectorJob")
+						log.Error().Str("Player", "LocalAggregator").Err(err).Msg("error in localAggregatorJob")
 					}
 				}()
 			}
@@ -53,7 +53,7 @@ func (c *Collector) Run(ctx context.Context) {
 	}()
 }
 
-func (c *Collector) Job(ctx context.Context) error {
+func (c *LocalAggregator) Job(ctx context.Context) error {
 	feeds, err := c.collect(ctx)
 	if err != nil {
 		return err
@@ -66,36 +66,36 @@ func (c *Collector) Job(ctx context.Context) error {
 	return c.processFeeds(ctx, feeds)
 }
 
-func (c *Collector) processFeeds(ctx context.Context, feeds []FeedData) error {
+func (c *LocalAggregator) processFeeds(ctx context.Context, feeds []FeedData) error {
 	if isFXPricePair(c.Name) {
 		return c.processFXPricePair(ctx, feeds)
 	}
 	return c.processVolumeWeightedFeeds(ctx, feeds)
 }
 
-func (c *Collector) processFXPricePair(ctx context.Context, feeds []FeedData) error {
+func (c *LocalAggregator) processFXPricePair(ctx context.Context, feeds []FeedData) error {
 	median, err := calculateMedian(feeds)
 	if err != nil {
-		log.Error().Err(err).Str("Player", "Collector").Msg("error in calculateMedian in collector")
+		log.Error().Err(err).Str("Player", "LocalAggregator").Msg("error in calculateMedian in localAggregator")
 		return err
 	}
 	return c.streamLocalAggregate(ctx, median)
 }
 
-func (c *Collector) processVolumeWeightedFeeds(ctx context.Context, feeds []FeedData) error {
+func (c *LocalAggregator) processVolumeWeightedFeeds(ctx context.Context, feeds []FeedData) error {
 	volumeWeightedFeeds, medianFeeds := partitionFeeds(feeds)
 	vwap, err := calculateVWAP(volumeWeightedFeeds)
 	if err != nil {
-		log.Error().Err(err).Str("Player", "Collector").Msg("error in calculateVWAP in collector")
+		log.Error().Err(err).Str("Player", "LocalAggregator").Msg("error in calculateVWAP in localAggregator")
 		return err
 	}
 
 	median, err := calculateMedian(medianFeeds)
 	if err != nil {
-		log.Error().Err(err).Str("Player", "Collector").Msg("error in calculateMedian in collector")
+		log.Error().Err(err).Str("Player", "LocalAggregator").Msg("error in calculateMedian in localAggregator")
 		return err
 	}
-	log.Debug().Str("Player", "Collector").Msg(fmt.Sprintf("VWAP: %f Median: %f", vwap, median))
+	log.Debug().Str("Player", "LocalAggregator").Msg(fmt.Sprintf("VWAP: %f Median: %f", vwap, median))
 	aggregated := calculateAggregatedPrice(vwap, median)
 	return c.streamLocalAggregate(ctx, aggregated)
 }
@@ -124,7 +124,7 @@ func calculateAggregatedPrice(valueWeightedAveragePrice, medianPrice float64) fl
 	return valueWeightedAveragePrice*(1-DefaultMedianRatio) + medianPrice*DefaultMedianRatio
 }
 
-func (c *Collector) streamLocalAggregate(ctx context.Context, aggregated float64) error {
+func (c *LocalAggregator) streamLocalAggregate(ctx context.Context, aggregated float64) error {
 	if aggregated != 0 {
 		localAggregate := &LocalAggregate{
 			ConfigID:  c.ID,
@@ -147,7 +147,7 @@ func (c *Collector) streamLocalAggregate(ctx context.Context, aggregated float64
 	return nil
 }
 
-func (c *Collector) collect(ctx context.Context) ([]FeedData, error) {
+func (c *LocalAggregator) collect(ctx context.Context) ([]FeedData, error) {
 	feedIds := make([]int32, len(c.Feeds))
 	for i, feed := range c.Feeds {
 		feedIds[i] = feed.ID

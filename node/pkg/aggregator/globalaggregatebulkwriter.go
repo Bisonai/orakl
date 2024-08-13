@@ -13,7 +13,7 @@ import (
 bulk insert proofs and aggregates into pgsql
 */
 
-type Streamer struct {
+type GlobalAggregateBulkWriter struct {
 	ReceiveChannels map[int32]chan SubmissionData
 	Buffer          chan SubmissionData
 
@@ -27,34 +27,34 @@ type Streamer struct {
 const DefaultPgsqlBulkInsertInterval = 1 * time.Second
 const DefaultBufferSize = 2000
 
-type StreamerConfig struct {
+type GlobalAggregateBulkWriterConfig struct {
 	PgsqlBulkInsertInterval time.Duration
 	BufferSize              int
 	ConfigIds               []int32
 }
 
-type StreamerOption func(*StreamerConfig)
+type GlobalAggregateBulkWriterOption func(*GlobalAggregateBulkWriterConfig)
 
-func WithPgsqlBulkInsertInterval(interval time.Duration) StreamerOption {
-	return func(config *StreamerConfig) {
+func WithPgsqlBulkInsertInterval(interval time.Duration) GlobalAggregateBulkWriterOption {
+	return func(config *GlobalAggregateBulkWriterConfig) {
 		config.PgsqlBulkInsertInterval = interval
 	}
 }
 
-func WithBufferSize(size int) StreamerOption {
-	return func(config *StreamerConfig) {
+func WithBufferSize(size int) GlobalAggregateBulkWriterOption {
+	return func(config *GlobalAggregateBulkWriterConfig) {
 		config.BufferSize = size
 	}
 }
 
-func WithConfigIds(configIds []int32) StreamerOption {
-	return func(config *StreamerConfig) {
+func WithConfigIds(configIds []int32) GlobalAggregateBulkWriterOption {
+	return func(config *GlobalAggregateBulkWriterConfig) {
 		config.ConfigIds = configIds
 	}
 }
 
-func NewStreamer(opts ...StreamerOption) *Streamer {
-	config := &StreamerConfig{
+func NewGlobalAggregateBulkWriter(opts ...GlobalAggregateBulkWriterOption) *GlobalAggregateBulkWriter {
+	config := &GlobalAggregateBulkWriterConfig{
 		PgsqlBulkInsertInterval: DefaultPgsqlBulkInsertInterval,
 		BufferSize:              DefaultBufferSize,
 	}
@@ -62,7 +62,7 @@ func NewStreamer(opts ...StreamerOption) *Streamer {
 		opt(config)
 	}
 
-	result := &Streamer{
+	result := &GlobalAggregateBulkWriter{
 		ReceiveChannels: make(map[int32]chan SubmissionData, len(config.ConfigIds)),
 		Buffer:          make(chan SubmissionData, config.BufferSize),
 
@@ -76,9 +76,9 @@ func NewStreamer(opts ...StreamerOption) *Streamer {
 	return result
 }
 
-func (s *Streamer) Start(ctx context.Context) {
+func (s *GlobalAggregateBulkWriter) Start(ctx context.Context) {
 	if s.ctx != nil {
-		log.Debug().Str("Player", "Aggregator").Msg("Streamer already running")
+		log.Debug().Str("Player", "Aggregator").Msg("GlobalAggregateBulkWriter already running")
 		return
 	}
 
@@ -90,9 +90,9 @@ func (s *Streamer) Start(ctx context.Context) {
 	s.bulkInsertJob(ctxWithCancel)
 }
 
-func (s *Streamer) Stop() {
+func (s *GlobalAggregateBulkWriter) Stop() {
 	if s.ctx == nil {
-		log.Debug().Str("Player", "Aggregator").Msg("Streamer not running")
+		log.Debug().Str("Player", "Aggregator").Msg("GlobalAggregateBulkWriter not running")
 		return
 	}
 
@@ -101,13 +101,13 @@ func (s *Streamer) Stop() {
 	s.ctx = nil
 }
 
-func (s *Streamer) receive(ctx context.Context) {
+func (s *GlobalAggregateBulkWriter) receive(ctx context.Context) {
 	for id := range s.ReceiveChannels {
 		go s.receiveEach(ctx, id)
 	}
 }
 
-func (s *Streamer) receiveEach(ctx context.Context, configId int32) {
+func (s *GlobalAggregateBulkWriter) receiveEach(ctx context.Context, configId int32) {
 	err := db.Subscribe(ctx, keys.SubmissionDataStreamKey(configId), s.ReceiveChannels[configId])
 	if err != nil {
 		log.Error().Err(err).Str("Player", "Aggregator").Msg("failed to subscribe to submission stream")
@@ -122,7 +122,7 @@ func (s *Streamer) receiveEach(ctx context.Context, configId int32) {
 	}
 }
 
-func (s *Streamer) bulkInsertJob(ctx context.Context) {
+func (s *GlobalAggregateBulkWriter) bulkInsertJob(ctx context.Context) {
 	ticker := time.NewTicker(s.PgsqlBulkInsertInterval)
 	go func() {
 		for {
@@ -137,7 +137,7 @@ func (s *Streamer) bulkInsertJob(ctx context.Context) {
 	}()
 }
 
-func (s *Streamer) bulkInsert(ctx context.Context) {
+func (s *GlobalAggregateBulkWriter) bulkInsert(ctx context.Context) {
 	select {
 	case <-ctx.Done():
 		return

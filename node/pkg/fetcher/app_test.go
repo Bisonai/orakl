@@ -65,10 +65,10 @@ func TestAppRun(t *testing.T) {
 	for _, fetcher := range app.Fetchers {
 		assert.True(t, fetcher.isRunning)
 	}
-	for _, collector := range app.Collectors {
-		assert.True(t, collector.isRunning)
+	for _, localAggregator := range app.LocalAggregators {
+		assert.True(t, localAggregator.isRunning)
 	}
-	assert.True(t, app.Streamer.isRunning)
+	assert.True(t, app.FeedDataBulkWriter.isRunning)
 
 	time.Sleep(WAIT_SECONDS)
 
@@ -79,10 +79,10 @@ func TestAppRun(t *testing.T) {
 	for _, fetcher := range app.Fetchers {
 		assert.False(t, fetcher.isRunning)
 	}
-	for _, collector := range app.Collectors {
-		assert.False(t, collector.isRunning)
+	for _, localAggregator := range app.LocalAggregators {
+		assert.False(t, localAggregator.isRunning)
 	}
-	assert.False(t, app.Streamer.isRunning)
+	assert.False(t, app.FeedDataBulkWriter.isRunning)
 
 	for _, fetcher := range app.Fetchers {
 		for _, feed := range fetcher.Feeds {
@@ -97,9 +97,9 @@ func TestAppRun(t *testing.T) {
 		assert.NotNil(t, data)
 	}
 
-	err = app.Streamer.Job(ctx)
+	err = app.FeedDataBulkWriter.Job(ctx)
 	if err != nil {
-		t.Fatalf("error running streamer job: %v", err)
+		t.Fatalf("error running FeedDataBulkWriter job: %v", err)
 	}
 
 	feedResult, err := db.QueryRows[FeedData](ctx, "SELECT * FROM feed_data", nil)
