@@ -26,7 +26,8 @@ func New(bus *bus.MessageBus) *App {
 			FeedDataMap: make(map[int32]*FeedData),
 			Mu:          sync.RWMutex{},
 		},
-		Bus: bus,
+		FeedDataDumpChannel: make(chan *FeedData, 10000),
+		Bus:                 bus,
 	}
 }
 
@@ -407,7 +408,7 @@ func (a *App) initialize(ctx context.Context) error {
 		}
 
 		if len(fetcherFeeds) > 0 {
-			a.Fetchers[config.ID] = NewFetcher(config, fetcherFeeds, a.LatestFeedDataMap)
+			a.Fetchers[config.ID] = NewFetcher(config, fetcherFeeds, a.LatestFeedDataMap, a.FeedDataDumpChannel)
 		}
 
 		// for localAggregator it'll get all feeds to be collected
@@ -422,7 +423,7 @@ func (a *App) initialize(ctx context.Context) error {
 	if err != nil {
 		streamInterval = DefaultStreamInterval
 	}
-	a.FeedDataBulkWriter = NewFeedDataBulkWriter(streamInterval)
+	a.FeedDataBulkWriter = NewFeedDataBulkWriter(streamInterval, a.FeedDataDumpChannel)
 
 	proxies, getProxyErr := a.getProxies(ctx)
 	if getProxyErr != nil {
@@ -430,7 +431,7 @@ func (a *App) initialize(ctx context.Context) error {
 	}
 	a.Proxies = proxies
 
-	err = a.WebsocketFetcher.Init(ctx, websocketfetcher.WithLatestFeedDataMap(a.LatestFeedDataMap))
+	err = a.WebsocketFetcher.Init(ctx, websocketfetcher.WithLatestFeedDataMap(a.LatestFeedDataMap), websocketfetcher.WithFeedDataDumpChannel(a.FeedDataDumpChannel))
 	if err != nil {
 		return err
 	}

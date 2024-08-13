@@ -45,13 +45,14 @@ const (
 )
 
 type AppConfig struct {
-	SetFromDB         bool
-	Feeds             []common.Feed
-	CexFactories      map[string]func(context.Context, ...common.FetcherOption) (common.FetcherInterface, error)
-	DexFactories      map[string]func(...common.DexFetcherOption) common.FetcherInterface
-	BufferSize        int
-	StoreInterval     time.Duration
-	LatestFeedDataMap *types.LatestFeedDataMap
+	SetFromDB           bool
+	Feeds               []common.Feed
+	CexFactories        map[string]func(context.Context, ...common.FetcherOption) (common.FetcherInterface, error)
+	DexFactories        map[string]func(...common.DexFetcherOption) common.FetcherInterface
+	BufferSize          int
+	StoreInterval       time.Duration
+	LatestFeedDataMap   *types.LatestFeedDataMap
+	FeedDataDumpChannel chan *types.FeedData
 }
 
 type AppOption func(*AppConfig)
@@ -92,12 +93,19 @@ func WithLatestFeedDataMap(latestFeedDataMap *types.LatestFeedDataMap) AppOption
 	}
 }
 
+func WithFeedDataDumpChannel(feedDataDumpChannel chan *types.FeedData) AppOption {
+	return func(c *AppConfig) {
+		c.FeedDataDumpChannel = feedDataDumpChannel
+	}
+}
+
 type App struct {
-	fetchers          []common.FetcherInterface
-	buffer            chan *common.FeedData
-	storeInterval     time.Duration
-	chainReader       *websocketchainreader.ChainReader
-	latestFeedDataMap *types.LatestFeedDataMap
+	fetchers            []common.FetcherInterface
+	buffer              chan *common.FeedData
+	storeInterval       time.Duration
+	chainReader         *websocketchainreader.ChainReader
+	latestFeedDataMap   *types.LatestFeedDataMap
+	feedDataDumpChannel chan *common.FeedData
 }
 
 func New() *App {
@@ -147,6 +155,7 @@ func (a *App) Init(ctx context.Context, opts ...AppOption) error {
 			FeedDataMap: make(map[int32]*types.FeedData),
 			Mu:          sync.RWMutex{},
 		},
+		FeedDataDumpChannel: make(chan *types.FeedData, 10000),
 	}
 
 	for _, opt := range opts {
@@ -154,6 +163,7 @@ func (a *App) Init(ctx context.Context, opts ...AppOption) error {
 	}
 
 	a.latestFeedDataMap = appConfig.LatestFeedDataMap
+	a.feedDataDumpChannel = appConfig.FeedDataDumpChannel
 
 	if err := a.initializeCex(ctx, *appConfig); err != nil {
 		return err
@@ -257,7 +267,6 @@ func (a *App) Start(ctx context.Context) {
 }
 
 func (a *App) storeFeedData(ctx context.Context) {
-
 	select {
 	case <-ctx.Done():
 		return
@@ -269,6 +278,7 @@ func (a *App) storeFeedData(ctx context.Context) {
 			select {
 			case feedData := <-a.buffer:
 				batch = append(batch, feedData)
+				a.feedDataDumpChannel <- feedData
 			default:
 				break loop
 			}
@@ -277,11 +287,6 @@ func (a *App) storeFeedData(ctx context.Context) {
 		err := a.latestFeedDataMap.SetLatestFeedData(batch)
 		if err != nil {
 			log.Error().Err(err).Msg("error in setting latest feed data")
-		}
-
-		err = common.StoreFeeds(ctx, batch)
-		if err != nil {
-			log.Error().Err(err).Msg("error in storing feed data")
 		}
 	default:
 		return

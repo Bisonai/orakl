@@ -4,7 +4,6 @@ import (
 	"context"
 	"strings"
 
-	"bisonai.com/orakl/node/pkg/common/keys"
 	"bisonai.com/orakl/node/pkg/db"
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
 	"bisonai.com/orakl/node/pkg/utils/calculator"
@@ -19,15 +18,6 @@ func FetchSingle(ctx context.Context, definition *Definition) (float64, error) {
 		return 0, err
 	}
 	return reducer.Reduce(rawResult, definition.Reducers)
-}
-
-func setFeedDataBuffer(ctx context.Context, feedData []*FeedData) error {
-	return db.LPushObject(ctx, keys.FeedDataBufferKey(), feedData)
-}
-
-func getFeedDataBuffer(ctx context.Context) ([]*FeedData, error) {
-	// buffer flushed on pop all
-	return db.PopAllObject[*FeedData](ctx, keys.FeedDataBufferKey())
 }
 
 func copyFeedData(ctx context.Context, feedData []*FeedData) error {

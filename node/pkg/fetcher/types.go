@@ -39,10 +39,11 @@ type Fetcher struct {
 	Config
 	Feeds []Feed
 
-	fetcherCtx        context.Context
-	cancel            context.CancelFunc
-	isRunning         bool
-	latestFeedDataMap *LatestFeedDataMap
+	fetcherCtx          context.Context
+	cancel              context.CancelFunc
+	isRunning           bool
+	latestFeedDataMap   *LatestFeedDataMap
+	FeedDataDumpChannel chan *FeedData
 }
 
 type LocalAggregator struct {
@@ -61,9 +62,10 @@ type LocalAggregator struct {
 type FeedDataBulkWriter struct {
 	Interval time.Duration
 
-	writerCtx context.Context
-	cancel    context.CancelFunc
-	isRunning bool
+	FeedDataDumpChannel chan *FeedData
+	writerCtx           context.Context
+	cancel              context.CancelFunc
+	isRunning           bool
 }
 
 type LocalAggregateBulkWriter struct {
@@ -84,6 +86,7 @@ type App struct {
 	WebsocketFetcher         *websocketfetcher.App
 	LatestFeedDataMap        *LatestFeedDataMap
 	Proxies                  []Proxy
+	FeedDataDumpChannel      chan *FeedData
 }
 
 type Definition struct {

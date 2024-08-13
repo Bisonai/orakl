@@ -1,14 +1,10 @@
 package tests
 
 import (
-	"context"
 	"encoding/json"
 	"strings"
 	"testing"
-	"time"
 
-	"bisonai.com/orakl/node/pkg/common/keys"
-	"bisonai.com/orakl/node/pkg/db"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/common"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/binance"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/bitget"
@@ -81,52 +77,6 @@ func TestGetWssFeedMap(t *testing.T) {
 		if _, exists := feedMaps[provider].Separated[separatedName]; !exists {
 			t.Errorf("separated feed %s not found", separatedName)
 		}
-	}
-}
-
-func TestStoreFeeds(t *testing.T) {
-	ctx := context.Background()
-	testTimestamps := []time.Time{
-		time.Now(),
-		time.Now().Add(time.Second),
-		time.Now().Add(time.Second * 2),
-		time.Now().Add(time.Second * 3),
-	}
-
-	feedData := []*common.FeedData{
-		{
-			FeedID:    1,
-			Value:     10000,
-			Timestamp: &testTimestamps[0],
-		},
-		{
-			FeedID:    1,
-			Value:     10001,
-			Timestamp: &testTimestamps[1],
-		},
-		{
-			FeedID:    2,
-			Value:     20000,
-			Timestamp: &testTimestamps[2],
-		},
-		{
-			FeedID:    2,
-			Value:     20001,
-			Timestamp: &testTimestamps[3],
-		},
-	}
-
-	err := common.StoreFeeds(ctx, feedData)
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-
-	buffer, err := db.PopAllObject[*common.FeedData](ctx, keys.FeedDataBufferKey())
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-	if len(buffer) != 4 {
-		t.Errorf("expected 4 buffer data, got %d", len(buffer))
 	}
 }
 
