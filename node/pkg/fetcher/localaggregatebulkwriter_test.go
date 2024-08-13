@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"bisonai.com/orakl/node/pkg/common/keys"
 	"bisonai.com/orakl/node/pkg/db"
 	"github.com/stretchr/testify/assert"
 )
@@ -34,7 +33,7 @@ func TestLocalAggregateBulkWriter(t *testing.T) {
 	app.LocalAggregateBulkWriter = NewLocalAggregateBulkWriter(DefaultLocalAggregateInterval)
 	app.LocalAggregateBulkWriter.localAggregatesChannel = localAggregatesChannel
 
-	feedData := make(map[string]any)
+	feedData := []*FeedData{}
 	for _, config := range configs {
 		localAggregatorFeeds, getFeedsErr := app.getFeeds(ctx, config.ID)
 		if getFeedsErr != nil {
@@ -42,7 +41,7 @@ func TestLocalAggregateBulkWriter(t *testing.T) {
 		}
 		app.LocalAggregators[config.ID] = NewLocalAggregator(config, localAggregatorFeeds, localAggregatesChannel, testItems.messageBus, app.LatestFeedDataMap)
 		for _, feed := range localAggregatorFeeds {
-			feedData[keys.LatestFeedDataKey(feed.ID)] = &FeedData{FeedID: feed.ID, Value: DUMMY_FEED_VALUE, Timestamp: nil, Volume: DUMMY_FEED_VALUE}
+			feedData = append(feedData, &FeedData{FeedID: feed.ID, Value: DUMMY_FEED_VALUE, Timestamp: nil, Volume: DUMMY_FEED_VALUE})
 		}
 	}
 	err = app.startAllLocalAggregators(ctx)
@@ -50,9 +49,9 @@ func TestLocalAggregateBulkWriter(t *testing.T) {
 		t.Fatalf("error starting localAggregators: %v", err)
 	}
 
-	err = db.MSetObject(ctx, feedData)
+	err = app.LatestFeedDataMap.SetLatestFeedData(feedData)
 	if err != nil {
-		t.Fatalf("error setting feed data in redis: %v", err)
+		t.Fatalf("error setting latest feed data: %v", err)
 	}
 
 	data := <-localAggregatesChannel

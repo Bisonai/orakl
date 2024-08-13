@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"bisonai.com/orakl/node/pkg/common/keys"
 	"bisonai.com/orakl/node/pkg/db"
 	"github.com/stretchr/testify/assert"
 )
@@ -87,7 +86,7 @@ func TestAppRun(t *testing.T) {
 	for _, fetcher := range app.Fetchers {
 		for _, feed := range fetcher.Feeds {
 
-			result, letestFeedDataErr := db.GetObject[*FeedData](ctx, keys.LatestFeedDataKey(feed.ID))
+			result, letestFeedDataErr := app.LatestFeedDataMap.GetLatestFeedData([]int32{feed.ID})
 			if letestFeedDataErr != nil {
 				t.Fatalf("error getting latest feed data: %v", letestFeedDataErr)
 			}

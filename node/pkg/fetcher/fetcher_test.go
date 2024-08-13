@@ -50,11 +50,6 @@ func TestFetcherRun(t *testing.T) {
 
 	defer func() {
 		db.Del(ctx, keys.FeedDataBufferKey())
-		for _, fetcher := range app.Fetchers {
-			for _, feed := range fetcher.Feeds {
-				db.Del(ctx, keys.LatestFeedDataKey(feed.ID))
-			}
-		}
 	}()
 }
 
@@ -87,7 +82,7 @@ func TestFetcherFetcherJob(t *testing.T) {
 
 	for _, fetcher := range app.Fetchers {
 		for _, feed := range fetcher.Feeds {
-			res, latestFeedDataErr := db.GetObject[*FeedData](ctx, keys.LatestFeedDataKey(feed.ID))
+			res, latestFeedDataErr := app.LatestFeedDataMap.GetLatestFeedData([]int32{feed.ID})
 			if latestFeedDataErr != nil {
 				t.Fatalf("error fetching feed data: %v", latestFeedDataErr)
 			}
