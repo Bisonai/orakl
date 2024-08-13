@@ -350,3 +350,17 @@ func ClosePool() {
 		pool = nil
 	}
 }
+
+// use if multiple different db connection is required
+// carefully generate pool, and always close after use
+func GetTransientPool(ctx context.Context, connectionString string) (*pgxpool.Pool, error) {
+	return connectToPgsql(ctx, connectionString)
+}
+
+func QueryRowTransient[T any](ctx context.Context, pool *pgxpool.Pool, queryString string, args map[string]any) (T, error) {
+	return queryRow[T](ctx, pool, queryString, args)
+}
+
+func QueryRowsTransient[T any](ctx context.Context, pool *pgxpool.Pool, queryString string, args map[string]any) ([]T, error) {
+	return queryRows[T](ctx, pool, queryString, args)
+}
