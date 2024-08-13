@@ -349,9 +349,9 @@ func getAverageDrainage(history []BalanceHistoryEntry) float64 {
 		return 0
 	}
 	drainageList := []float64{}
-	for i := 1; i < len(history); i++ {
-		drainage := history[i-1].Balance - history[i].Balance
-		if drainage > 0 { // Only consider negative drainage
+	for i := 1; i < len(history)-1; i++ {
+		drainage := history[i].Balance - history[i-1].Balance
+		if drainage < 0 { // Only consider negative drainage
 			drainageList = append(drainageList, drainage)
 		}
 	}
