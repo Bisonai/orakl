@@ -2,45 +2,23 @@ package logscribe
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
-	"encoding/json"
-	"fmt"
-	"net/http"
 	"os"
-	"sort"
 	"time"
 
 	"bisonai.com/orakl/node/pkg/db"
-	errorsentinel "bisonai.com/orakl/node/pkg/error"
 	"bisonai.com/orakl/node/pkg/logscribe/api"
-	"bisonai.com/orakl/node/pkg/logscribe/utils"
-	"bisonai.com/orakl/node/pkg/utils/retrier"
+	"bisonai.com/orakl/node/pkg/logscribe/logprocessor"
 	"github.com/gofiber/fiber/v2"
-	"github.com/google/go-github/github"
 	"github.com/robfig/cron/v3"
 	"github.com/rs/zerolog/log"
-	"golang.org/x/oauth2"
 )
 
 const (
 	logsChannelSize             = 10_000
 	DefaultBulkLogsCopyInterval = 30 * time.Second
-	readDeleteLogsQuery         = `DELETE FROM logs WHERE service = @service RETURNING service, timestamp, level, message, fields;`
-	maxGithubIssuesPerService   = 5
-	logAlreadyProcessedQuery    = `SELECT COUNT(*) FROM processed_logs WHERE log_hash = @hash`
-	getServicesQuery            = `SELECT DISTINCT service FROM logs;`
 )
 
 func New(ctx context.Context, options ...AppOption) (*App, error) {
-	githubToken := os.Getenv("GITHUB_TOKEN")
-	githubOwner := os.Getenv("GITHUB_OWNER")
-	githubRepo := os.Getenv("GITHUB_REPO")
-
-	if githubToken == "" || githubOwner == "" || githubRepo == "" {
-		return nil, errorsentinel.ErrLogscribeGithubCredentialsNotFound
-	}
-
 	c := &AppConfig{
 		bulkLogsCopyInterval: DefaultBulkLogsCopyInterval,
 	}
@@ -48,33 +26,30 @@ func New(ctx context.Context, options ...AppOption) (*App, error) {
 		option(c)
 	}
 
-	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: githubToken},
-	)
-	tc := oauth2.NewClient(ctx, ts)
-	client := github.NewClient(tc)
+	logProcessor, err := logprocessor.New(ctx)
+	if err != nil {
+		return nil, err
+	}
 
 	return &App{
-		githubOwner:          githubOwner,
-		githubRepo:           githubRepo,
-		githubClient:         client,
 		bulkLogsCopyInterval: c.bulkLogsCopyInterval,
 		cron:                 c.cron,
+		logProcessor:         logProcessor,
 	}, nil
 }
 
 func (a *App) Run(ctx context.Context) error {
 	log.Debug().Msg("Starting logscribe server")
 
-	logsChannel := make(chan *[]api.LogInsertModel, logsChannelSize)
+	logsChannel := make(chan *[]LogInsertModel, logsChannelSize)
 
-	app, err := utils.Setup("0.1.0", logsChannel)
+	fiberApp, err := Setup("0.1.0", logsChannel)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to setup logscribe server")
 		return err
 	}
 
-	v1 := app.Group("/api/v1")
+	v1 := fiberApp.Group("/api/v1")
 	v1.Get("/", func(c *fiber.Ctx) error {
 		return c.SendString("Logscribe service")
 	})
@@ -86,7 +61,7 @@ func (a *App) Run(ctx context.Context) error {
 	api.Routes(v1)
 
 	go func() {
-		if err := app.Listen(":" + port); err != nil {
+		if err := fiberApp.Listen(":" + port); err != nil {
 			log.Fatal().Err(err).Msg("Failed to start logscribe server")
 		}
 	}()
@@ -99,7 +74,7 @@ func (a *App) Run(ctx context.Context) error {
 
 	<-ctx.Done()
 
-	if err := app.Shutdown(); err != nil {
+	if err := fiberApp.Shutdown(); err != nil {
 		log.Error().Err(err).Msg("Failed to shutdown logscribe server")
 		return err
 	}
@@ -111,15 +86,15 @@ func (a *App) startProcessingCronJob(ctx context.Context) error {
 	if a.cron == nil {
 		cron := cron.New(cron.WithSeconds())
 		_, err := cron.AddFunc("0 0 0 * * 5", func() { // Run once a week, midnight between Thu/Fri
-			services, err := db.QueryRows[Service](ctx, getServicesQuery, nil)
+			services, err := db.QueryRows[Service](ctx, logprocessor.GetServicesQuery, nil)
 			if err != nil {
 				log.Error().Err(err).Msg("Failed to get services")
 				return
 			}
 			for _, service := range services {
-				processedLogs := ProcessLogs(ctx, service.Service)
+				processedLogs := logprocessor.ProcessLogs(ctx, service.Service)
 				if len(processedLogs) > 0 {
-					a.createGithubIssue(ctx, processedLogs, service.Service)
+					a.logProcessor.CreateGithubIssue(ctx, processedLogs, service.Service)
 				}
 			}
 		})
@@ -133,7 +108,7 @@ func (a *App) startProcessingCronJob(ctx context.Context) error {
 	return nil
 }
 
-func (a *App) bulkCopyLogs(ctx context.Context, logsChannel <-chan *[]api.LogInsertModel) {
+func (a *App) bulkCopyLogs(ctx context.Context, logsChannel <-chan *[]LogInsertModel) {
 	ticker := time.NewTicker(a.bulkLogsCopyInterval)
 	for {
 		select {
@@ -162,143 +137,4 @@ func (a *App) bulkCopyLogs(ctx context.Context, logsChannel <-chan *[]api.LogIns
 			}
 		}
 	}
-}
-
-func ProcessLogs(ctx context.Context, service string) []LogInsertModelWithCount {
-	processedLogs := make([]LogInsertModelWithCount, 0)
-	logs, err := fetchLogs(ctx, service)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to fetch logs")
-		return nil
-	}
-	if len(logs) == 0 {
-		log.Debug().Msgf("No logs to process")
-		return nil
-	}
-
-	logMap := buildLogMap(logs)
-
-	topOccurrences := sortLogsWithCount(logMap)
-	topOccurrences = topOccurrences[:min(len(topOccurrences), maxGithubIssuesPerService)]
-
-	for _, pair := range topOccurrences {
-		processedLogs = append(
-			processedLogs,
-			LogInsertModelWithCount{OccurrenceCount: pair.count, LogInsertModel: pair.log},
-		)
-	}
-
-	return processedLogs
-}
-
-func buildLogMap(logs []LogInsertModel) map[string]LogsWithCount {
-	logMap := make(map[string]LogsWithCount) // {"hashedLog: {count, log}}
-	for _, log := range logs {
-		hash := hashLog(log)
-		logsWithCount, exists := logMap[hash]
-		if !exists {
-			logsWithCount = LogsWithCount{
-				count: 0,
-				log:   log,
-			}
-		}
-		logsWithCount.count++
-		logMap[hash] = logsWithCount
-	}
-	return logMap
-}
-
-func sortLogsWithCount(hashLogPairs map[string]LogsWithCount) []LogsWithCount {
-	pairs := make([]LogsWithCount, 0, len(hashLogPairs))
-	for _, pair := range hashLogPairs {
-		pairs = append(pairs, pair)
-	}
-	sort.Slice(pairs, func(i, j int) bool {
-		return pairs[i].count > pairs[j].count
-	})
-	return pairs
-}
-
-func fetchLogs(ctx context.Context, service string) ([]LogInsertModel, error) {
-	logs, err := db.QueryRows[LogInsertModel](ctx, readDeleteLogsQuery, map[string]any{
-		"service": service,
-	})
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to read logs")
-		return nil, err
-	}
-	return logs, nil
-}
-
-func hashLog(log LogInsertModel) string {
-	hash := sha256.New()
-	hash.Write([]byte(log.Service))
-	hash.Write([]byte(fmt.Sprintf("%d", log.Level)))
-	hash.Write([]byte(log.Message))
-	hash.Write(log.Fields)
-	return hex.EncodeToString(hash.Sum(nil))
-}
-
-func (a *App) createGithubIssue(ctx context.Context, processedLogs []LogInsertModelWithCount, service string) {
-	if a.githubOwner == "test" {
-		return
-	}
-
-	issueCount := 0
-	processedLogHashes := [][]interface{}{}
-	for _, entry := range processedLogs {
-		logsJson := ""
-		hash := hashLog(entry.LogInsertModel)
-		res, err := db.QueryRow[Count](ctx, logAlreadyProcessedQuery, map[string]any{
-			"hash": hash,
-		})
-		if err != nil {
-			log.Error().Err(err).Msg("Failed to check if log already processed")
-			continue
-		}
-		if res.Count > 0 {
-			log.Debug().Msg("Log already processed, skipping creation of github issue")
-			continue
-		}
-
-		entryJson, err := json.MarshalIndent(entry, "", "  ")
-		if err != nil {
-			log.Error().Err(err).Msg("Failed to marshal log")
-			return
-		}
-		logsJson += string(entryJson) + "\n"
-		formattedBody := "```go\n" + logsJson + "\n```"
-		issueRequest := &github.IssueRequest{
-			Title:  github.String(fmt.Sprintf("[%s] %s", service, entry.Message)),
-			Body:   github.String(formattedBody),
-			Labels: &[]string{"bug"},
-		}
-
-		err = retrier.Retry(func() error {
-			_, resp, err := a.githubClient.Issues.Create(ctx, a.githubOwner, a.githubRepo, issueRequest)
-			if err != nil {
-				log.Error().Err(err).Msg("Failed to create github issue")
-				return err
-			}
-			if resp.StatusCode != http.StatusCreated {
-				log.Error().Msgf("Failed to create github issue, status code: %d", resp.StatusCode)
-				return errorsentinel.ErrLogscribeFailedToCreateGithubIssue
-			}
-			return nil
-		}, 3, 500*time.Millisecond, 2*time.Second)
-
-		if err == nil {
-			processedLogHashes = append(processedLogHashes, []interface{}{hash})
-			issueCount++
-		}
-	}
-
-	if len(processedLogHashes) > 0 {
-		err := db.BulkInsert(ctx, "processed_logs", []string{"log_hash"}, processedLogHashes)
-		if err != nil {
-			log.Error().Err(err).Msg("Failed to insert into processed_log")
-		}
-	}
-
-	log.Debug().Msgf("Created %d github issues", issueCount)
 }

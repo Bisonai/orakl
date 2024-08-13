@@ -11,6 +11,7 @@ import (
 
 	"bisonai.com/orakl/node/pkg/db"
 	"bisonai.com/orakl/node/pkg/logscribe"
+	"bisonai.com/orakl/node/pkg/logscribe/logprocessor"
 	"bisonai.com/orakl/node/pkg/utils/request"
 	"github.com/robfig/cron/v3"
 	"github.com/stretchr/testify/assert"
@@ -81,7 +82,14 @@ func TestProcessLogs(t *testing.T) {
 		defer wg.Done()
 		cron := cron.New()
 		_, err := cron.AddFunc(fmt.Sprintf("@every %ds", ProcessLogsIntervalSec), func() { // Run once a week, midnight between Sat/Sun
-			logscribe.ProcessLogs(ctx, TestService)
+			services, err := db.QueryRows[logscribe.Service](ctx, logprocessor.GetServicesQuery, nil)
+			if err != nil {
+				t.Logf("error getting services: %v", err)
+				return
+			}
+			for _, service := range services {
+				logprocessor.ProcessLogs(ctx, service.Service)
+			}
 		})
 		if err != nil {
 			t.Logf("error adding cron job: %v", err)

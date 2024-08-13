@@ -4,36 +4,20 @@ import (
 	"time"
 
 	"bisonai.com/orakl/node/pkg/logscribe/api"
-	"github.com/google/go-github/github"
+	"bisonai.com/orakl/node/pkg/logscribe/logprocessor"
 	"github.com/robfig/cron/v3"
 )
 
 type LogInsertModel = api.LogInsertModel
 
-type LogInsertModelWithCount struct {
-	LogInsertModel
-	OccurrenceCount int `db:"occurrence_count" json:"occurrence_count"`
-}
-
 type App struct {
-	githubOwner          string
-	githubRepo           string
-	githubClient         *github.Client
+	logProcessor         *logprocessor.LogProcessor
 	bulkLogsCopyInterval time.Duration
 	cron                 *cron.Cron
 }
 
-type LogsWithCount struct {
-	count int
-	log   LogInsertModel
-}
-
 type Service struct {
 	Service string `db:"service"`
-}
-
-type Count struct {
-	Count int `db:"count"`
 }
 
 type AppOption func(c *AppConfig)
