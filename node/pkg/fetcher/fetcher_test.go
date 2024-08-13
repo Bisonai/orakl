@@ -10,8 +10,6 @@ import (
 	"net/http"
 
 	"bisonai.com/orakl/node/pkg/admin/tests"
-	"bisonai.com/orakl/node/pkg/common/keys"
-	"bisonai.com/orakl/node/pkg/db"
 	"github.com/elazarl/goproxy"
 	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"
@@ -47,10 +45,6 @@ func TestFetcherRun(t *testing.T) {
 	for _, fetcher := range app.Fetchers {
 		fetcher.cancel()
 	}
-
-	defer func() {
-		db.Del(ctx, keys.FeedDataBufferKey())
-	}()
 }
 
 func TestFetcherFetcherJob(t *testing.T) {
