@@ -3,6 +3,7 @@ package types
 import (
 	"encoding/json"
 	"fmt"
+	"sync"
 	"time"
 )
 
@@ -57,4 +58,39 @@ type Config struct {
 	FetchInterval     int    `db:"fetch_interval" json:"fetchInterval"`
 	AggregateInterval int    `db:"aggregate_interval" json:"aggregateInterval"`
 	SubmitInterval    int    `db:"submit_interval" json:"submitInterval"`
+}
+
+type LatestFeedDataMap struct {
+	FeedDataMap map[int32]*FeedData
+	Mu          sync.RWMutex
+}
+
+func (m *LatestFeedDataMap) GetLatestFeedData(feedIds []int32) ([]*FeedData, error) {
+	result := make([]*FeedData, 0, len(feedIds))
+	m.Mu.RLock()
+	defer m.Mu.RUnlock()
+	for _, feedId := range feedIds {
+		feedData, ok := m.FeedDataMap[feedId]
+		if ok {
+			result = append(result, feedData)
+		}
+	}
+	return result, nil
+}
+
+func (m *LatestFeedDataMap) SetLatestFeedData(feedData []*FeedData) error {
+	if len(feedData) == 0 {
+		return nil
+	}
+
+	m.Mu.Lock()
+	defer m.Mu.Unlock()
+	for _, data := range feedData {
+		prev, ok := m.FeedDataMap[data.FeedID]
+		if ok && prev.Timestamp.After(*data.Timestamp) {
+			continue
+		}
+		m.FeedDataMap[data.FeedID] = data
+	}
+	return nil
 }

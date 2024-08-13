@@ -3,7 +3,6 @@ package fetcher
 import (
 	"context"
 	"strings"
-	"time"
 
 	"bisonai.com/orakl/node/pkg/common/keys"
 	"bisonai.com/orakl/node/pkg/db"
@@ -22,15 +21,7 @@ func FetchSingle(ctx context.Context, definition *Definition) (float64, error) {
 	return reducer.Reduce(rawResult, definition.Reducers)
 }
 
-func setLatestFeedData(ctx context.Context, feedData []*FeedData, expiration time.Duration) error {
-	latestData := make(map[string]any)
-	for _, data := range feedData {
-		latestData[keys.LatestFeedDataKey(data.FeedID)] = data
-	}
-	return db.MSetObjectWithExp(ctx, latestData, expiration)
-}
-
-func getLatestFeedData(ctx context.Context, feedIds []int32) ([]*FeedData, error) {
+func getLatestFeedData(ctx context.Context, feedIds []int32) ([]FeedData, error) {
 	if len(feedIds) == 0 {
 		return []*FeedData{}, nil
 	}

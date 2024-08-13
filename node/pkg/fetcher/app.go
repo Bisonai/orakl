@@ -3,9 +3,9 @@ package fetcher
 import (
 	"context"
 	"fmt"
-
 	"math/rand"
 	"os"
+	"sync"
 	"time"
 
 	"bisonai.com/orakl/node/pkg/bus"
@@ -22,7 +22,11 @@ func New(bus *bus.MessageBus) *App {
 	return &App{
 		Fetchers:         make(map[int32]*Fetcher, 0),
 		WebsocketFetcher: websocketfetcher.New(),
-		Bus:              bus,
+		LatestFeedDataMap: &LatestFeedDataMap{
+			FeedDataMap: make(map[int32]*FeedData),
+			Mu:          sync.RWMutex{},
+		},
+		Bus: bus,
 	}
 }
 
@@ -426,7 +430,7 @@ func (a *App) initialize(ctx context.Context) error {
 	}
 	a.Proxies = proxies
 
-	err = a.WebsocketFetcher.Init(ctx)
+	err = a.WebsocketFetcher.Init(ctx, websocketfetcher.WithLatestFeedDataMap(a.LatestFeedDataMap))
 	if err != nil {
 		return err
 	}

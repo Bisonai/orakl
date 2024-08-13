@@ -27,6 +27,7 @@ type Feed = types.Feed
 type FeedData = types.FeedData
 type LocalAggregate = types.LocalAggregate
 type Proxy = types.Proxy
+type LatestFeedDataMap = types.LatestFeedDataMap
 
 type Config struct {
 	ID            int32  `db:"id"`
@@ -38,9 +39,10 @@ type Fetcher struct {
 	Config
 	Feeds []Feed
 
-	fetcherCtx context.Context
-	cancel     context.CancelFunc
-	isRunning  bool
+	fetcherCtx        context.Context
+	cancel            context.CancelFunc
+	isRunning         bool
+	latestFeedDataMap *LatestFeedDataMap
 }
 
 type LocalAggregator struct {
@@ -53,6 +55,7 @@ type LocalAggregator struct {
 	bus           *bus.MessageBus
 
 	localAggregatesChannel chan *LocalAggregate
+	latestFeedDataMap      *LatestFeedDataMap
 }
 
 type FeedDataBulkWriter struct {
@@ -77,9 +80,10 @@ type App struct {
 	Fetchers                 map[int32]*Fetcher
 	LocalAggregators         map[int32]*LocalAggregator
 	FeedDataBulkWriter       *FeedDataBulkWriter
-	WebsocketFetcher         *websocketfetcher.App
-	Proxies                  []Proxy
 	LocalAggregateBulkWriter *LocalAggregateBulkWriter
+	WebsocketFetcher         *websocketfetcher.App
+	LatestFeedDataMap        *LatestFeedDataMap
+	Proxies                  []Proxy
 }
 
 type Definition struct {

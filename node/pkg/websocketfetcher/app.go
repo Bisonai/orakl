@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"bisonai.com/orakl/node/pkg/chain/websocketchainreader"
+	"bisonai.com/orakl/node/pkg/common/types"
 	"bisonai.com/orakl/node/pkg/db"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/common"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/binance"
@@ -43,12 +44,13 @@ const (
 )
 
 type AppConfig struct {
-	SetFromDB     bool
-	Feeds         []common.Feed
-	CexFactories  map[string]func(context.Context, ...common.FetcherOption) (common.FetcherInterface, error)
-	DexFactories  map[string]func(...common.DexFetcherOption) common.FetcherInterface
-	BufferSize    int
-	StoreInterval time.Duration
+	SetFromDB         bool
+	Feeds             []common.Feed
+	CexFactories      map[string]func(context.Context, ...common.FetcherOption) (common.FetcherInterface, error)
+	DexFactories      map[string]func(...common.DexFetcherOption) common.FetcherInterface
+	BufferSize        int
+	StoreInterval     time.Duration
+	LatestFeedDataMap *types.LatestFeedDataMap
 }
 
 type AppOption func(*AppConfig)
@@ -83,11 +85,18 @@ func WithStoreInterval(interval time.Duration) AppOption {
 	}
 }
 
+func WithLatestFeedDataMap(latestFeedDataMap *types.LatestFeedDataMap) AppOption {
+	return func(c *AppConfig) {
+		c.LatestFeedDataMap = latestFeedDataMap
+	}
+}
+
 type App struct {
-	fetchers      []common.FetcherInterface
-	buffer        chan *common.FeedData
-	storeInterval time.Duration
-	chainReader   *websocketchainreader.ChainReader
+	fetchers          []common.FetcherInterface
+	buffer            chan common.FeedData
+	storeInterval     time.Duration
+	chainReader       *websocketchainreader.ChainReader
+	latestFeedDataMap *types.LatestFeedDataMap
 }
 
 func New() *App {
@@ -133,6 +142,9 @@ func (a *App) Init(ctx context.Context, opts ...AppOption) error {
 		DexFactories:  dexFactories,
 		BufferSize:    DefaultBufferSize,
 		StoreInterval: DefaultStoreInterval,
+		LatestFeedDataMap: &types.LatestFeedDataMap{
+			FeedDataMap: make(map[int32]*types.FeedData),
+		},
 	}
 
 	for _, opt := range opts {
@@ -258,7 +270,12 @@ func (a *App) storeFeedData(ctx context.Context) {
 			}
 		}
 
-		err := common.StoreFeeds(ctx, batch)
+		err := a.latestFeedDataMap.SetLatestFeedData(batch)
+		if err != nil {
+			log.Error().Err(err).Msg("error in setting latest feed data")
+		}
+
+		err = common.StoreFeeds(ctx, batch)
 		if err != nil {
 			log.Error().Err(err).Msg("error in storing feed data")
 		}
