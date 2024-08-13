@@ -9,9 +9,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/redis/go-redis/v9"
-
 	"bisonai.com/orakl/node/pkg/alert"
+	"bisonai.com/orakl/node/pkg/secrets"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
 )
 
@@ -61,10 +62,31 @@ func setUp() error {
 		return err
 	}
 	log.Info().Msg("Loaded healthcheck.json")
+
+	graphnodeDB := secrets.GetSecret("DATABASE_URL")
+	if graphnodeDB != "" {
+		HealthCheckUrls = append(HealthCheckUrls, HealthCheckUrl{
+			Name: "graphnode",
+			Url:  graphnodeDB,
+		})
+	}
+
+	log.Info().Msg("Loaded graphnode db url for healthcheck")
+
+	serviceDB := secrets.GetSecret("SERVICE_DB_URL")
+	if serviceDB != "" {
+		HealthCheckUrls = append(HealthCheckUrls, HealthCheckUrl{
+			Name: "service",
+			Url:  serviceDB,
+		})
+	}
+
+	log.Info().Msg("Loaded service db url for healthcheck")
+
 	return nil
 }
 
-func Start() error {
+func Start(ctx context.Context) error {
 	err := setUp()
 	if err != nil {
 		return err
@@ -80,7 +102,7 @@ func Start() error {
 		alarmMessage := ""
 		for _, healthCheckUrl := range HealthCheckUrls {
 			log.Debug().Str("name", healthCheckUrl.Name).Str("url", healthCheckUrl.Url).Msg("Checking health")
-			isAlive := checkUrl(healthCheckUrl)
+			isAlive := checkUrl(ctx, healthCheckUrl)
 			if !isAlive {
 				downServices[healthCheckUrl.Name] = true
 				alarmMessage += healthCheckUrl.Name + " is down\n"
@@ -96,12 +118,14 @@ func Start() error {
 	return nil
 }
 
-func checkUrl(healthCheckUrl HealthCheckUrl) bool {
+func checkUrl(ctx context.Context, healthCheckUrl HealthCheckUrl) bool {
 	var alive bool
 	if strings.HasPrefix(healthCheckUrl.Url, "http") {
 		alive = checkHttp(healthCheckUrl.Url)
 	} else if strings.HasPrefix(healthCheckUrl.Url, "redis") {
-		alive = checkRedis(context.Background(), healthCheckUrl.Url)
+		alive = checkRedis(ctx, healthCheckUrl.Url)
+	} else if strings.HasPrefix(healthCheckUrl.Url, "postgresql") {
+		alive = checkPgs(ctx, healthCheckUrl.Url)
 	}
 
 	return alive
@@ -125,6 +149,22 @@ func checkRedis(ctx context.Context, url string) bool {
 	_, err := redisConnection.Ping(ctx).Result()
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to check Redis URL: %s", url)
+		return false
+	}
+	return true
+}
+
+func checkPgs(ctx context.Context, url string) bool {
+	pool, err := pgxpool.New(ctx, url)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed to check PostgreSQL URL: %s", url)
+		return false
+	}
+	defer pool.Close()
+
+	err = pool.Ping(ctx)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed to check PostgreSQL URL: %s", url)
 		return false
 	}
 	return true

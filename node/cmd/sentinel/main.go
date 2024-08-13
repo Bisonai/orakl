@@ -62,7 +62,7 @@ func main() {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		err := health.Start()
+		err := health.Start(ctx)
 		if err != nil {
 			log.Error().Err(err).Msg("error starting health checker")
 			os.Exit(1)

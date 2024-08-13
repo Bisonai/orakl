@@ -19,6 +19,12 @@ on:
       - "!node/migrations/delegator/**"
       - "!node/pkg/api/**"
       - "!node/migrations/api/**"
+      - "!node/cmd/dal/**"
+      - "!node/cmd/boot_api/**"
+      - "!node/cmd/logscribe/**"
+      - "!node/cmd/delegator/**"
+      - "!node/cmd/api/**"
+      - "!node/cmd/sentinel/**"
   workflow_dispatch:
 
 jobs:

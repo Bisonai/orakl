@@ -9,21 +9,22 @@ import (
 )
 
 func TestCheckUrl(t *testing.T) {
+	ctx := context.Background()
 	// Test case 1: URL with "http" prefix
 	httpUrl := HealthCheckUrl{Url: "http://example.com"}
-	if !checkUrl(httpUrl) {
+	if !checkUrl(ctx, httpUrl) {
 		t.Errorf("checkUrl(%s) = false, expected true", httpUrl.Url)
 	}
 
 	// Test case 2: URL with "redis" prefix
 	redisUrl := HealthCheckUrl{Url: "redis://localhost:6379"}
-	if !checkUrl(redisUrl) {
+	if !checkUrl(ctx, redisUrl) {
 		t.Errorf("checkUrl(%s) = false, expected true", redisUrl.Url)
 	}
 
 	// Test case 3: Invalid URL
 	invalidUrl := HealthCheckUrl{Url: "invalid-url"}
-	if checkUrl(invalidUrl) {
+	if checkUrl(ctx, invalidUrl) {
 		t.Errorf("checkUrl(%s) = true, expected false", invalidUrl.Url)
 	}
 }
