@@ -43,7 +43,7 @@ func (a *App) Run(ctx context.Context) error {
 
 	logsChannel := make(chan *[]LogInsertModel, logsChannelSize)
 
-	fiberApp, err := Setup("0.1.0", logsChannel)
+	fiberApp, err := Setup("0.1.0", logsChannel, a.logProcessor)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to setup logscribe server")
 		return err

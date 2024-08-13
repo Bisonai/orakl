@@ -27,11 +27,6 @@ func insertLogs(c *fiber.Ctx) error {
 
 func processLogs(c *fiber.Ctx) error {
 	defer func(c *fiber.Ctx) {
-		p, err := logprocessor.New(c.Context())
-		if err != nil {
-			log.Error().Err(err).Msg("Failed to create log processor")
-		}
-
 		services, err := db.QueryRows[Service](c.Context(), logprocessor.GetServicesQuery, nil)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to get services")
@@ -39,7 +34,7 @@ func processLogs(c *fiber.Ctx) error {
 		for _, service := range services {
 			processedLogs := logprocessor.ProcessLogs(c.Context(), service.Service)
 			if len(processedLogs) > 0 {
-				p.CreateGithubIssue(c.Context(), processedLogs, service.Service)
+				c.Locals("logProcessor").(*logprocessor.LogProcessor).CreateGithubIssue(c.Context(), processedLogs, service.Service)
 			}
 		}
 	}(c)
