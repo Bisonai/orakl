@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"os"
+	"sync"
 	"time"
 
 	"bisonai.com/orakl/node/pkg/chain/websocketchainreader"
@@ -144,12 +145,15 @@ func (a *App) Init(ctx context.Context, opts ...AppOption) error {
 		StoreInterval: DefaultStoreInterval,
 		LatestFeedDataMap: &types.LatestFeedDataMap{
 			FeedDataMap: make(map[int32]*types.FeedData),
+			Mu:          sync.RWMutex{},
 		},
 	}
 
 	for _, opt := range opts {
 		opt(appConfig)
 	}
+
+	a.latestFeedDataMap = appConfig.LatestFeedDataMap
 
 	if err := a.initializeCex(ctx, *appConfig); err != nil {
 		return err
