@@ -10,7 +10,6 @@ import (
 	"bisonai.com/orakl/node/pkg/admin/config"
 	"bisonai.com/orakl/node/pkg/admin/utils"
 	"bisonai.com/orakl/node/pkg/chain/helper"
-	"bisonai.com/orakl/node/pkg/common/keys"
 
 	"bisonai.com/orakl/node/pkg/bus"
 	"bisonai.com/orakl/node/pkg/db"
@@ -144,13 +143,6 @@ func aggregatorCleanup(ctx context.Context, admin *fiber.App, app *App) func() e
 		err = db.QueryWithoutResult(ctx, DeleteLocalAggregates, nil)
 		if err != nil {
 			return err
-		}
-
-		for i := range app.Aggregators {
-			err = db.Del(ctx, keys.LocalAggregateKey(i))
-			if err != nil {
-				return err
-			}
 		}
 
 		err = admin.Shutdown()
