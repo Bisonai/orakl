@@ -289,7 +289,7 @@ func checkDalTraffic(ctx context.Context, pool *pgxpool.Pool) error {
 	case <-ctx.Done():
 		return nil
 	default:
-		result, err := db.QueryRowTransient[Count](ctx, pool, TrafficCheckQuery, map[string]any{})
+		result, err := db.QueryRowTransient[Count](ctx, pool, getTrafficCheckQuery(), map[string]any{})
 		if err != nil {
 			log.Error().Err(err).Msg("failed to check DAL traffic")
 			return err
@@ -299,4 +299,14 @@ func checkDalTraffic(ctx context.Context, pool *pgxpool.Pool) error {
 		}
 		return nil
 	}
+}
+
+func getTrafficCheckQuery() string {
+	keysToIgnore := strings.Split(IgnoreKeys, ",")
+	modified := []string{}
+	for _, desc := range keysToIgnore {
+		modified = append(modified, fmt.Sprintf("'%s'", desc))
+	}
+
+	return fmt.Sprintf(TrafficCheckQuery, strings.Join(modified, ", "))
 }
