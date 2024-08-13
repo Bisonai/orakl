@@ -18,7 +18,7 @@ const (
 	SelectFeedsByConfigIdQuery            = `SELECT * FROM feeds WHERE config_id = @config_id`
 	InsertLocalAggregateQuery             = `INSERT INTO local_aggregates (config_id, value) VALUES (@config_id, @value)`
 	DECIMALS                              = 8
-	DefaultStreamInterval                 = time.Second * 5
+	DefaultFeedDataDumpInterval           = time.Second * 10
 	ForeignExchangePricePairs             = "GBP-USD,EUR-USD,KRW-USD,JPY-USD,CHF-USD"
 	DefaultMedianRatio                    = 0.05
 )

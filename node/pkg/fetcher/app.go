@@ -418,12 +418,12 @@ func (a *App) initialize(ctx context.Context) error {
 		}
 		a.LocalAggregators[config.ID] = NewLocalAggregator(config, localAggregatorFeeds, a.LocalAggregateBulkWriter.localAggregatesChannel, a.Bus, a.LatestFeedDataMap)
 	}
-	streamIntervalRaw := os.Getenv("FEED_DATA_STREAM_INTERVAL")
-	streamInterval, err := time.ParseDuration(streamIntervalRaw)
+	feedDataDumpIntervalRaw := os.Getenv("FEED_DATA_STREAM_INTERVAL")
+	dumpInterval, err := time.ParseDuration(feedDataDumpIntervalRaw)
 	if err != nil {
-		streamInterval = DefaultStreamInterval
+		dumpInterval = DefaultFeedDataDumpInterval
 	}
-	a.FeedDataBulkWriter = NewFeedDataBulkWriter(streamInterval, a.FeedDataDumpChannel)
+	a.FeedDataBulkWriter = NewFeedDataBulkWriter(dumpInterval, a.FeedDataDumpChannel)
 
 	proxies, getProxyErr := a.getProxies(ctx)
 	if getProxyErr != nil {
