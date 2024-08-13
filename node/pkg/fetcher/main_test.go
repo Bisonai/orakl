@@ -270,13 +270,6 @@ func cleanup(ctx context.Context, testItems *TestItems) func() error {
 			}
 		}
 
-		for _, eachConfig := range testItems.insertedConfigs {
-			err = db.Del(ctx, keys.LocalAggregateKey(eachConfig.ID))
-			if err != nil {
-				return err
-			}
-		}
-
 		err = testItems.app.stopAllFetchers(ctx)
 		if err != nil {
 			return err
