@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -113,6 +114,15 @@ func isConnectionError(err error) bool {
 	if errors.Is(err, redis.Nil) {
 		return false
 	}
+
+	if errors.Is(err, redis.ErrClosed) {
+		return true
+	}
+
+	if strings.Contains(err.Error(), "i/o timeout") {
+		return true
+	}
+
 	return err == redis.TxFailedErr || err.Error() == "redis: connection closed"
 }
 
