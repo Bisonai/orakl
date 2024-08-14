@@ -15,9 +15,6 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-const LocalAggregatesChannelSize = 2_000
-const DefaultLocalAggregateInterval = 200 * time.Millisecond
-
 func New(bus *bus.MessageBus) *App {
 	return &App{
 		Fetchers:         make(map[int32]*Fetcher, 0),
@@ -26,7 +23,7 @@ func New(bus *bus.MessageBus) *App {
 			FeedDataMap: make(map[int32]*FeedData),
 			Mu:          sync.RWMutex{},
 		},
-		FeedDataDumpChannel: make(chan *FeedData, 10000),
+		FeedDataDumpChannel: make(chan *FeedData, DefaultFeedDataDumpChannelSize),
 		Bus:                 bus,
 	}
 }

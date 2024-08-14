@@ -21,6 +21,9 @@ const (
 	DefaultFeedDataDumpInterval           = time.Second * 10
 	ForeignExchangePricePairs             = "GBP-USD,EUR-USD,KRW-USD,JPY-USD,CHF-USD"
 	DefaultMedianRatio                    = 0.05
+	LocalAggregatesChannelSize            = 2_000
+	DefaultLocalAggregateInterval         = 200 * time.Millisecond
+	DefaultFeedDataDumpChannelSize        = 20000
 )
 
 type Feed = types.Feed
