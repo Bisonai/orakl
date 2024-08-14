@@ -74,7 +74,7 @@ func handleSubscribe(h *Hub, client *ThreadSafeClient, msg Subscription, ctx con
 
 	subscriptions, ok := h.clients[client]
 	if !ok {
-		subscriptions = map[string]bool{}
+		subscriptions = map[string]any{}
 	}
 
 	valid := []string{}
@@ -83,7 +83,7 @@ func handleSubscribe(h *Hub, client *ThreadSafeClient, msg Subscription, ctx con
 		if _, ok := h.configs[symbol]; !ok {
 			continue
 		}
-		subscriptions[symbol] = true
+		subscriptions[symbol] = struct{}{}
 		valid = append(valid, param)
 	}
 	h.clients[client] = subscriptions
