@@ -13,6 +13,7 @@ import (
 
 	"bisonai.com/orakl/node/pkg/db"
 	errorsentinel "bisonai.com/orakl/node/pkg/error"
+	"bisonai.com/orakl/node/pkg/secrets"
 	"bisonai.com/orakl/node/pkg/utils/retrier"
 	"github.com/google/go-github/github"
 	"github.com/robfig/cron/v3"
@@ -29,9 +30,9 @@ const (
 )
 
 func New(ctx context.Context, options ...LogProcessingOption) (*LogProcessor, error) {
-	githubToken := os.Getenv("GITHUB_TOKEN")
-	githubOwner := os.Getenv("GITHUB_OWNER")
-	githubRepo := os.Getenv("GITHUB_REPO")
+	githubToken := secrets.GetSecret("GITHUB_TOKEN")
+	githubOwner := secrets.GetSecret("GITHUB_OWNER")
+	githubRepo := secrets.GetSecret("GITHUB_REPO")
 
 	if githubToken == "" || githubOwner == "" || githubRepo == "" {
 		return nil, errorsentinel.ErrLogscribeGithubCredentialsNotFound
