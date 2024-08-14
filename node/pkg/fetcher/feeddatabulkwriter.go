@@ -44,16 +44,9 @@ func (s *FeedDataBulkWriter) Job(ctx context.Context) error {
 		return nil
 	case entry := <-s.FeedDataDumpChannel:
 		result := []*FeedData{entry}
-	loop:
-		for {
-			select {
-			case entry := <-s.FeedDataDumpChannel:
-				result = append(result, entry)
-			default:
-				break loop
-			}
+		for entry := range s.FeedDataDumpChannel {
+			result = append(result, entry)
 		}
-
 		return copyFeedData(ctx, result)
 	default:
 		return nil
