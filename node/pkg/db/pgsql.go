@@ -35,13 +35,27 @@ func getPool(ctx context.Context, once *sync.Once) (*pgxpool.Pool, error) {
 			return
 		}
 		pool, poolErr = connectToPgsql(ctx, connectionString)
+		if poolErr != nil {
+			pool.Close()
+		}
 	})
 
 	return pool, poolErr
 }
 
 func connectToPgsql(ctx context.Context, connectionString string) (*pgxpool.Pool, error) {
-	return pgxpool.New(ctx, connectionString)
+	pool, err := pgxpool.New(ctx, connectionString)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to create connection pool")
+		return nil, err
+	}
+
+	if err = pool.Ping(ctx); err != nil {
+		pool.Close()
+		return nil, err
+	}
+
+	return pool, nil
 }
 
 func loadPgsqlConnectionString() string {
@@ -62,17 +76,6 @@ func QueryWithoutResult(ctx context.Context, queryString string, args map[string
 	}
 	rows.Close()
 	return nil
-}
-
-// Using this raw function is highly unrecommended since rows should be manually closed
-func Query(ctx context.Context, queryString string, args map[string]any) (pgx.Rows, error) {
-	currentPool, err := GetPool(ctx)
-	if err != nil {
-		log.Error().Err(err).Msg("Error getting pool")
-		return nil, err
-	}
-
-	return query(ctx, currentPool, queryString, args)
 }
 
 func QueryRow[T any](ctx context.Context, queryString string, args map[string]any) (T, error) {
@@ -107,12 +110,13 @@ func queryRow[T any](ctx context.Context, pool *pgxpool.Pool, queryString string
 		log.Error().Err(err).Str("query", queryString).Msg("Error querying")
 		return result, err
 	}
+	defer rows.Close()
 
 	result, err = pgx.CollectOneRow(rows, pgx.RowToStructByName[T])
 	if errors.Is(err, pgx.ErrNoRows) {
 		return result, nil
 	}
-	defer rows.Close()
+
 	return result, err
 }
 
@@ -124,12 +128,13 @@ func queryRows[T any](ctx context.Context, pool *pgxpool.Pool, queryString strin
 		log.Error().Err(err).Str("query", queryString).Msg("Error querying")
 		return results, err
 	}
+	defer rows.Close()
 
 	results, err = pgx.CollectRows(rows, pgx.RowToStructByName[T])
 	if errors.Is(err, pgx.ErrNoRows) {
 		return results, nil
 	}
-	defer rows.Close()
+
 	return results, err
 }
 
