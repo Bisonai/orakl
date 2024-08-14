@@ -43,14 +43,16 @@ func Start(ctx context.Context) error {
 	ticker := time.NewTicker(DefaultCheckInterval)
 	defer ticker.Stop()
 
-	select {
-	case <-ctx.Done():
-		log.Info().Msg("context cancelled, shutting down")
-		return ctx.Err()
-	case <-ticker.C:
-		err := cronDBResult(ctx, cronDB)
-		if err != nil {
-			log.Error().Err(err).Msg("failed to get pgsql cron job run result")
+	for {
+		select {
+		case <-ctx.Done():
+			log.Info().Msg("context cancelled, shutting down")
+			return ctx.Err()
+		case <-ticker.C:
+			err := cronDBResult(ctx, cronDB)
+			if err != nil {
+				log.Error().Err(err).Msg("failed to get pgsql cron job run result")
+			}
 		}
 	}
 
