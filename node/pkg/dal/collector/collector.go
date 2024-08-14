@@ -196,7 +196,7 @@ func (c *Collector) compareAndSwapLatestTimestamp(data *aggregator.SubmissionDat
 	defer c.mu.Unlock()
 
 	old, ok := c.LatestTimestamps[data.GlobalAggregate.ConfigID]
-	if !ok || !old.After(data.GlobalAggregate.Timestamp) {
+	if !ok || old.Before(data.GlobalAggregate.Timestamp) {
 		c.LatestTimestamps[data.GlobalAggregate.ConfigID] = data.GlobalAggregate.Timestamp
 		return true
 	}
