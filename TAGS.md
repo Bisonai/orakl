@@ -180,3 +180,4 @@
 - **sentinel** v0.0.1.20240814.0658.fddaeab <br> *`PR`*: Sentinel add missing for loop <br><br> 
 - **dal** v0.0.1.20240814.0947.2706f2a <br> *`PR`*: DAL Update logic to prevent du... <br><br> 
 - **node** v0.0.1.20240814.0951.5efd845 <br> *`PR`*: DAL Update logic to prevent du... <br><br> 
+- **sentinel** v0.0.1.20240814.1305.7c641fe <br> *`PR`*: Sentinel Add missing status co... <br><br> 
