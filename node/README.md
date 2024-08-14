@@ -62,6 +62,8 @@ Check the source code inside `./pkg` for details:
 - **wss**: Helper package for websocket implementation
 - **websocketfetcher**: Fetcher app based on websocket
 - **dal**: Data Availability Layer API
+- **logscribe**: Continuously saves received logs to the logs table. Processes and cleans up the table weekly, creating issues for the most frequent errors in each service.
+- **logscribeconsumer**: Sends logs above specified level to `Logscribe`.
 
 ### Main Elements
 
