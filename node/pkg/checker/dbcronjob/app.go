@@ -16,7 +16,7 @@ import (
 
 const (
 	DefaultCheckInterval   = 6 * time.Hour
-	GetLast6hrsCronjobRuns = "SELECT database, command, status, start_time FROM cron.job_run_details WHERE start_time >= NOW() - interval '6 hour'"
+	GetLast6hrsCronjobRuns = "SELECT database, command, status, start_time FROM cron.job_run_details WHERE start_time >= NOW() - interval '6 hour' AND status = 'failed'"
 )
 
 type CronJobResult struct {
