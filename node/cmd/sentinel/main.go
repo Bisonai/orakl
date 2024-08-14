@@ -10,6 +10,7 @@ import (
 	"bisonai.com/orakl/node/pkg/checker/balance"
 	"bisonai.com/orakl/node/pkg/checker/dal"
 	"bisonai.com/orakl/node/pkg/checker/dalstats"
+	"bisonai.com/orakl/node/pkg/checker/dbcronjob"
 	"bisonai.com/orakl/node/pkg/checker/event"
 	"bisonai.com/orakl/node/pkg/checker/health"
 	"bisonai.com/orakl/node/pkg/checker/peers"
@@ -131,6 +132,16 @@ func main() {
 	}()
 
 	log.Info().Msg("dal stats checker started")
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		err := dbcronjob.Start(ctx)
+		if err != nil {
+			log.Error().Err(err).Msg("error starting dbcronjob checker")
+			os.Exit(1)
+		}
+	}()
 
 	wg.Wait()
 }
