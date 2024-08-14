@@ -44,18 +44,18 @@ func getPool(ctx context.Context, once *sync.Once) (*pgxpool.Pool, error) {
 }
 
 func connectToPgsql(ctx context.Context, connectionString string) (*pgxpool.Pool, error) {
-	pool, err := pgxpool.New(ctx, connectionString)
+	result, err := pgxpool.New(ctx, connectionString)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to create connection pool")
 		return nil, err
 	}
 
-	if err = pool.Ping(ctx); err != nil {
-		pool.Close()
+	if err = result.Ping(ctx); err != nil {
+		result.Close()
 		return nil, err
 	}
 
-	return pool, nil
+	return result, nil
 }
 
 func loadPgsqlConnectionString() string {

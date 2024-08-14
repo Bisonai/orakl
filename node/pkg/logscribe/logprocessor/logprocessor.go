@@ -177,10 +177,10 @@ func (p *LogProcessor) CreateGithubIssue(ctx context.Context, processedLogs []Lo
 		}
 
 		err = retrier.Retry(func() error {
-			_, resp, err := p.githubClient.Issues.Create(ctx, p.githubOwner, p.githubRepo, issueRequest)
-			if err != nil {
-				log.Error().Err(err).Msg("Failed to create github issue")
-				return err
+			_, resp, issueCreateErr := p.githubClient.Issues.Create(ctx, p.githubOwner, p.githubRepo, issueRequest)
+			if issueCreateErr != nil {
+				log.Error().Err(issueCreateErr).Msg("Failed to create github issue")
+				return issueCreateErr
 			}
 			if resp.StatusCode != http.StatusCreated {
 				log.Error().Msgf("Failed to create github issue, status code: %d", resp.StatusCode)
