@@ -2,12 +2,16 @@ package api
 
 import (
 	"sync"
+	"time"
 
 	"bisonai.com/orakl/node/pkg/common/types"
 	dalcommon "bisonai.com/orakl/node/pkg/dal/common"
 )
 
-const MAX_CONNECTIONS = 10
+const (
+	MAX_CONNECTIONS = 10
+	CleanupInterval = time.Hour
+)
 
 type Config = types.Config
 
@@ -18,7 +22,7 @@ type Subscription struct {
 
 type Hub struct {
 	configs    map[string]Config
-	clients    map[*ThreadSafeClient]map[string]bool
+	clients    map[*ThreadSafeClient]map[string]any
 	register   chan *ThreadSafeClient
 	unregister chan *ThreadSafeClient
 	broadcast  map[string]chan *dalcommon.OutgoingSubmissionData

@@ -24,7 +24,7 @@ func HubSetup(ctx context.Context, configs []Config) *Hub {
 func NewHub(configs map[string]Config) *Hub {
 	return &Hub{
 		configs:    configs,
-		clients:    make(map[*ThreadSafeClient]map[string]bool),
+		clients:    make(map[*ThreadSafeClient]map[string]any),
 		register:   make(chan *ThreadSafeClient),
 		unregister: make(chan *ThreadSafeClient),
 		broadcast:  make(map[string]chan *dalcommon.OutgoingSubmissionData),
@@ -40,6 +40,8 @@ func (h *Hub) Start(ctx context.Context, collector *collector.Collector) {
 	for symbol := range h.configs {
 		go h.broadcastDataForSymbol(symbol)
 	}
+
+	go h.cleanupJob(ctx)
 }
 
 func (h *Hub) handleClientRegistration() {
@@ -59,7 +61,7 @@ func (h *Hub) addClient(client *ThreadSafeClient) {
 	if _, ok := h.clients[client]; ok {
 		return
 	}
-	h.clients[client] = make(map[string]bool)
+	h.clients[client] = make(map[string]any)
 
 	ip := client.Conn.IP()
 	if _, ok := h.connPerIP[ip]; !ok {
@@ -133,7 +135,7 @@ func (h *Hub) getClientsSnapshotToNotify(symbol string) []*ThreadSafeClient {
 	defer h.mu.RUnlock()
 	result := []*ThreadSafeClient{}
 	for client, subscriptions := range h.clients {
-		if subscriptions[symbol] {
+		if _, ok := subscriptions[symbol]; ok {
 			result = append(result, client)
 		}
 	}
@@ -182,4 +184,42 @@ func (h *Hub) castSubmissionData(data *dalcommon.OutgoingSubmissionData, symbol 
 		}(client)
 	}
 	wg.Wait()
+}
+
+func (h *Hub) cleanupJob(ctx context.Context) {
+	ticker := time.NewTicker(CleanupInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			h.cleanup()
+		}
+	}
+}
+
+func (h *Hub) cleanup() {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	newClients := make(map[*ThreadSafeClient]map[string]any, len(h.clients))
+	for client, subscriptions := range h.clients {
+		if len(subscriptions) > 0 {
+			newClients[client] = subscriptions
+		} else {
+			h.unregister <- client
+		}
+	}
+	h.clients = newClients
+
+	newConnPerIP := make(map[string][]*ThreadSafeClient, len(h.connPerIP))
+	for ip, clients := range h.connPerIP {
+		if len(clients) == 0 {
+			continue
+		}
+		newConnPerIP[ip] = clients
+	}
+	h.connPerIP = newConnPerIP
 }
