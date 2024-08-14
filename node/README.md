@@ -62,6 +62,8 @@ Check the source code inside `./pkg` for details:
 - **wss**: Helper package for websocket implementation
 - **websocketfetcher**: Fetcher app based on websocket
 - **dal**: Data Availability Layer API
+- **logscribe**: Continuously saves received logs to the logs table. Processes and cleans up the table weekly, creating issues for the most frequent errors in each service.
+- **logscribeconsumer**: Sends logs above specified level to `Logscribe`.
 
 ### Main Elements
 
@@ -139,6 +141,11 @@ BOOT_API_URL=<Your Boot API URL>
 # provider URLs referenced from fetcher, uses public JSON-RPC if not provided
 FETCHER_CYPRESS_PROVIDER_URL=<Your Cypress provider URL>
 FETCHER_ETHEREUM_PROVIDER_URL=<Your Ethereum provider URL>
+
+# Github credentials for creating issues from logscribe
+GITHUB_TOKEN=<Your Github Token>
+GITHUB_OWNER=<Github Account Owner>
+GITHUB_REPO=<Github Repository Name>
 ```
 
 ### Database Initialization
@@ -171,6 +178,16 @@ Wallets are referenced from reporter. If provided, each wallet will take a turn 
 3. JSON-RPCs
 
 JSON-RPCs are referenced from both fetcher and reporter. If provided, it'll try to use provided JSON-RPCs as a fallback in case of JSON-RPC failure.
+
+4. Logscribe and LogscribeConsumer env
+
+```sh
+# log level threshold to send logs to logscribe from consumer, default: error
+LOGSCRIBE_LOG_LEVEL=<Log Level>
+
+# whether logs should be posted to logscribe, default: true
+POST_TO_LOGSCRIBE=<true / false>
+```
 
 ---
 
