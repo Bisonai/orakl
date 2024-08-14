@@ -55,8 +55,6 @@ func Start(ctx context.Context) error {
 			}
 		}
 	}
-
-	return nil
 }
 
 func cronDBResult(ctx context.Context, cronDB *pgxpool.Pool) error {

@@ -151,27 +151,27 @@ func getUrls() (Urls, error) {
 }
 
 func loadWallets(ctx context.Context, urls Urls) ([]Wallet, error) {
-	wallets := []Wallet{}
+	result := []Wallet{}
 
 	apiWallets, err := loadWalletFromOraklApi(ctx, urls.OraklApiUrl)
 	if err != nil {
-		return wallets, err
+		return result, err
 	}
-	wallets = append(wallets, apiWallets...)
+	result = append(result, apiWallets...)
 
 	porWallet, err := loadWalletFromPor(ctx, urls.PorUrl)
 	if err != nil {
-		return wallets, err
+		return result, err
 	}
-	wallets = append(wallets, porWallet)
+	result = append(result, porWallet)
 
 	delegatorWallet, err := loadWalletFromDelegator(ctx, urls.OraklDelegatorUrl)
 	if err != nil {
-		return wallets, err
+		return result, err
 	}
-	wallets = append(wallets, delegatorWallet)
+	result = append(result, delegatorWallet)
 
-	return wallets, nil
+	return result, nil
 }
 
 func loadWalletFromOraklApi(ctx context.Context, url string) ([]Wallet, error) {
@@ -180,10 +180,10 @@ func loadWalletFromOraklApi(ctx context.Context, url string) ([]Wallet, error) {
 		Service string `json:"service"`
 	}
 
-	wallets := []Wallet{}
+	result := []Wallet{}
 	reporters, err := request.Request[[]ReporterModel](request.WithEndpoint(url+oraklApiEndpoint), request.WithTimeout(30*time.Second))
 	if err != nil {
-		return wallets, err
+		return result, err
 	}
 
 	for _, reporter := range reporters {
@@ -205,9 +205,9 @@ func loadWalletFromOraklApi(ctx context.Context, url string) ([]Wallet, error) {
 
 			BalanceHistory: []BalanceHistoryEntry{},
 		}
-		wallets = append(wallets, wallet)
+		result = append(result, wallet)
 	}
-	return wallets, nil
+	return result, nil
 }
 
 func loadWalletFromPor(ctx context.Context, url string) (Wallet, error) {

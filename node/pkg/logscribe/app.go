@@ -29,7 +29,7 @@ func Run(ctx context.Context, logProcessor *logprocessor.LogProcessor) error {
 
 	go logProcessor.BulkCopyLogs(ctx, logsChannel)
 
-	if err := logProcessor.StartProcessingCronJob(ctx); err != nil {
+	if err = logProcessor.StartProcessingCronJob(ctx); err != nil {
 		return err
 	}
 
