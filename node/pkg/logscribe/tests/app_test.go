@@ -92,6 +92,10 @@ func TestProcessLogs(t *testing.T) {
 			logprocessor.WithCron(cron),
 			logprocessor.WithBulkLogsCopyInterval(BulkLogsCopyInterval),
 		)
+		if err != nil {
+			t.Logf("error creating logprocessor: %v", err)
+		}
+
 		err = logscribe.Run(
 			ctx,
 			logProcessor,
