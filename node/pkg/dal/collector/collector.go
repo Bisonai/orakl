@@ -174,6 +174,8 @@ func (c *Collector) receive(ctx context.Context) {
 	go c.baseRediscribe.Start(ctx)
 
 	if c.subRediscribe != nil {
+		// wait for sidecar to be ready
+		time.Sleep(10 * time.Second)
 		go c.subRediscribe.Start(ctx)
 	}
 }

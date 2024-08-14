@@ -33,7 +33,7 @@ type RediscribeConfig struct {
 type RediscribeOption func(*RediscribeConfig)
 
 const (
-	DefaultReconnectInterval   = 30 * time.Second
+	DefaultReconnectInterval   = 5 * time.Second
 	DefaultRedisSubChannelSize = 1000
 )
 
