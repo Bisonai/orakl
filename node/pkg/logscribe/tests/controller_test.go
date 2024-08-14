@@ -9,6 +9,7 @@ import (
 
 	"bisonai.com/orakl/node/pkg/db"
 	"bisonai.com/orakl/node/pkg/logscribe"
+	"bisonai.com/orakl/node/pkg/logscribe/logprocessor"
 	"bisonai.com/orakl/node/pkg/utils/request"
 	"github.com/stretchr/testify/assert"
 )
@@ -25,12 +26,11 @@ func TestInsertLogs(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		logscribe, err := logscribe.New(ctx, logscribe.WithBulkLogsCopyInterval(BulkLogsCopyInterval))
+		logProcessor, err := logprocessor.New(ctx, logprocessor.WithBulkLogsCopyInterval(BulkLogsCopyInterval))
 		if err != nil {
-			t.Logf("error creating logscribe: %v", err)
+			t.Logf("failed to create log processor: %v", err)
 		}
-
-		err = logscribe.Run(ctx)
+		err = logscribe.Run(ctx, logProcessor)
 		if err != nil {
 			t.Logf("error running logscribe: %v", err)
 		}

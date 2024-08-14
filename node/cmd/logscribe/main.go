@@ -20,13 +20,7 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	logscribe, err := logscribe.New(ctx)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to create logscribe")
-		return
-	}
-
-	err = logscribe.Run(ctx)
+	err := logscribe.Run(ctx, nil)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to start logscribe")
 		cancel()

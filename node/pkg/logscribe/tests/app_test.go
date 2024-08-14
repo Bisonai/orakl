@@ -32,15 +32,7 @@ func TestLogscribeRun(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-
-		logscribe, err := logscribe.New(ctx)
-		if err != nil {
-			errChan <- err
-			close(errChan)
-			return
-		}
-
-		err = logscribe.Run(ctx)
+		err := logscribe.Run(ctx, nil)
 		if err != nil {
 			errChan <- err
 		}
@@ -82,7 +74,7 @@ func TestProcessLogs(t *testing.T) {
 		defer wg.Done()
 		cron := cron.New()
 		_, err := cron.AddFunc(fmt.Sprintf("@every %ds", ProcessLogsIntervalSec), func() { // Run once a week, midnight between Sat/Sun
-			services, err := db.QueryRows[logscribe.Service](ctx, logprocessor.GetServicesQuery, nil)
+			services, err := db.QueryRows[logprocessor.Service](ctx, logprocessor.GetServicesQuery, nil)
 			if err != nil {
 				t.Logf("error getting services: %v", err)
 				return
@@ -94,16 +86,16 @@ func TestProcessLogs(t *testing.T) {
 		if err != nil {
 			t.Logf("error adding cron job: %v", err)
 		}
-		logscribe, err := logscribe.New(
-			ctx,
-			logscribe.WithBulkLogsCopyInterval(BulkLogsCopyInterval),
-			logscribe.WithCron(cron),
-		)
-		if err != nil {
-			t.Logf("error creating logscribe: %v", err)
-		}
 
-		err = logscribe.Run(ctx)
+		logProcessor, err := logprocessor.New(
+			ctx,
+			logprocessor.WithCron(cron),
+			logprocessor.WithBulkLogsCopyInterval(BulkLogsCopyInterval),
+		)
+		err = logscribe.Run(
+			ctx,
+			logProcessor,
+		)
 		if err != nil {
 			t.Logf("error running logscribe: %v", err)
 		}

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/google/go-github/github"
+	"github.com/robfig/cron/v3"
 )
 
 type LogInsertModel struct {
@@ -16,10 +17,20 @@ type LogInsertModel struct {
 }
 
 type LogProcessor struct {
-	githubOwner  string
-	githubRepo   string
-	githubClient *github.Client
+	githubOwner          string
+	githubRepo           string
+	githubClient         *github.Client
+	chain                string
+	cron                 *cron.Cron
+	bulkLogsCopyInterval time.Duration
 }
+
+type LogProcessorConfig struct {
+	cron                 *cron.Cron
+	bulkLogsCopyInterval time.Duration
+}
+
+type LogProcessingOption func(c *LogProcessorConfig)
 
 type LogInsertModelWithCount struct {
 	LogInsertModel
@@ -33,4 +44,20 @@ type LogsWithCount struct {
 
 type Count struct {
 	Count int `db:"count"`
+}
+
+type Service struct {
+	Service string `db:"service"`
+}
+
+func WithBulkLogsCopyInterval(interval time.Duration) LogProcessingOption {
+	return func(c *LogProcessorConfig) {
+		c.bulkLogsCopyInterval = interval
+	}
+}
+
+func WithCron(cron *cron.Cron) LogProcessingOption {
+	return func(c *LogProcessorConfig) {
+		c.cron = cron
+	}
 }

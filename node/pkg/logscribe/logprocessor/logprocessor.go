@@ -15,18 +15,20 @@ import (
 	errorsentinel "bisonai.com/orakl/node/pkg/error"
 	"bisonai.com/orakl/node/pkg/utils/retrier"
 	"github.com/google/go-github/github"
+	"github.com/robfig/cron/v3"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/oauth2"
 )
 
 const (
-	maxGithubIssuesPerService = 5
-	readDeleteLogsQuery       = `DELETE FROM logs WHERE service = @service RETURNING service, timestamp, level, message, fields;`
-	logAlreadyProcessedQuery  = `SELECT COUNT(*) FROM processed_logs WHERE log_hash = @hash`
-	GetServicesQuery          = `SELECT DISTINCT service FROM logs;`
+	maxGithubIssuesPerService   = 5
+	readDeleteLogsQuery         = `DELETE FROM logs WHERE service = @service RETURNING service, timestamp, level, message, fields;`
+	logAlreadyProcessedQuery    = `SELECT COUNT(*) FROM processed_logs WHERE log_hash = @hash`
+	GetServicesQuery            = `SELECT DISTINCT service FROM logs;`
+	DefaultBulkLogsCopyInterval = 30 * time.Second
 )
 
-func New(ctx context.Context) (*LogProcessor, error) {
+func New(ctx context.Context, options ...LogProcessingOption) (*LogProcessor, error) {
 	githubToken := os.Getenv("GITHUB_TOKEN")
 	githubOwner := os.Getenv("GITHUB_OWNER")
 	githubRepo := os.Getenv("GITHUB_REPO")
@@ -35,16 +37,31 @@ func New(ctx context.Context) (*LogProcessor, error) {
 		return nil, errorsentinel.ErrLogscribeGithubCredentialsNotFound
 	}
 
+	c := &LogProcessorConfig{
+		bulkLogsCopyInterval: DefaultBulkLogsCopyInterval,
+	}
+	for _, option := range options {
+		option(c)
+	}
+
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: githubToken},
 	)
 	tc := oauth2.NewClient(ctx, ts)
 	client := github.NewClient(tc)
 
+	chain := os.Getenv("CHAIN")
+	if chain == "" {
+		chain = "baobab"
+	}
+
 	return &LogProcessor{
-		githubOwner:  githubOwner,
-		githubRepo:   githubRepo,
-		githubClient: client,
+		githubOwner:          githubOwner,
+		githubRepo:           githubRepo,
+		githubClient:         client,
+		chain:                chain,
+		cron:                 c.cron,
+		bulkLogsCopyInterval: c.bulkLogsCopyInterval,
 	}, nil
 }
 
@@ -153,7 +170,7 @@ func (p *LogProcessor) CreateGithubIssue(ctx context.Context, processedLogs []Lo
 		logsJson += string(entryJson) + "\n"
 		formattedBody := "```go\n" + logsJson + "\n```"
 		issueRequest := &github.IssueRequest{
-			Title:  github.String(fmt.Sprintf("[%s] %s", service, entry.Message)),
+			Title:  github.String(fmt.Sprintf("[%s][%s] %s", service, p.chain, entry.Message)),
 			Body:   github.String(formattedBody),
 			Labels: &[]string{"bug"},
 		}
@@ -185,4 +202,61 @@ func (p *LogProcessor) CreateGithubIssue(ctx context.Context, processedLogs []Lo
 	}
 
 	log.Debug().Msgf("Created %d github issues", issueCount)
+}
+
+func (p *LogProcessor) BulkCopyLogs(ctx context.Context, logsChannel <-chan *[]LogInsertModel) {
+	ticker := time.NewTicker(p.bulkLogsCopyInterval)
+	for {
+		select {
+		case <-ctx.Done():
+			ticker.Stop()
+			return
+		case <-ticker.C:
+			bulkCopyEntries := [][]interface{}{}
+		loop:
+			for {
+				select {
+				case logs := <-logsChannel:
+					for _, log := range *logs {
+						bulkCopyEntries = append(bulkCopyEntries, []interface{}{log.Service, log.Timestamp, log.Level, log.Message, log.Fields})
+					}
+				default:
+					break loop
+				}
+			}
+
+			if len(bulkCopyEntries) > 0 {
+				_, err := db.BulkCopy(ctx, "logs", []string{"service", "timestamp", "level", "message", "fields"}, bulkCopyEntries)
+				if err != nil {
+					log.Error().Err(err).Msg("Failed to bulk copy logs")
+				}
+			}
+		}
+	}
+}
+
+func (p *LogProcessor) StartProcessingCronJob(ctx context.Context) error {
+	if p.cron == nil {
+		cron := cron.New(cron.WithSeconds())
+		_, err := cron.AddFunc("0 0 0 * * 5", func() { // Run once a week, midnight between Thu/Fri
+			services, err := db.QueryRows[Service](ctx, GetServicesQuery, nil)
+			if err != nil {
+				log.Error().Err(err).Msg("Failed to get services")
+				return
+			}
+			for _, service := range services {
+				processedLogs := ProcessLogs(ctx, service.Service)
+				if len(processedLogs) > 0 {
+					p.CreateGithubIssue(ctx, processedLogs, service.Service)
+				}
+			}
+		})
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to start processing cron job")
+			return err
+		}
+		p.cron = cron
+	}
+	p.cron.Start()
+	return nil
 }

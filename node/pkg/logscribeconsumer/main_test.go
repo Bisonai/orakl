@@ -21,15 +21,7 @@ const (
 
 func startLogscribe(ctx context.Context, t *testing.T) {
 	go func() {
-		logscribe, err := logscribe.New(
-			ctx,
-			logscribe.WithBulkLogsCopyInterval(BulkLogsCopyInterval),
-		)
-		if err != nil {
-			t.Errorf("failed to create logscribe app: %v", err)
-		}
-
-		err = logscribe.Run(ctx)
+		err := logscribe.Run(ctx, nil)
 		if err != nil {
 			t.Errorf("failed to start logscribe app: %v", err)
 		}
