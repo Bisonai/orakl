@@ -10,7 +10,12 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func NewLocalAggregator(config Config, feeds []Feed, localAggregatesChannel chan *LocalAggregate, bus *bus.MessageBus) *LocalAggregator {
+func NewLocalAggregator(
+	config Config,
+	feeds []Feed,
+	localAggregatesChannel chan *LocalAggregate,
+	bus *bus.MessageBus,
+	latestFeedDataMap *LatestFeedDataMap) *LocalAggregator {
 	return &LocalAggregator{
 		Config:                 config,
 		Feeds:                  feeds,
@@ -18,6 +23,7 @@ func NewLocalAggregator(config Config, feeds []Feed, localAggregatesChannel chan
 		cancel:                 nil,
 		bus:                    bus,
 		localAggregatesChannel: localAggregatesChannel,
+		latestFeedDataMap:      latestFeedDataMap,
 	}
 }
 
@@ -152,5 +158,5 @@ func (c *LocalAggregator) collect(ctx context.Context) ([]*FeedData, error) {
 	for i, feed := range c.Feeds {
 		feedIds[i] = feed.ID
 	}
-	return getLatestFeedData(ctx, feedIds)
+	return c.latestFeedDataMap.GetLatestFeedData(feedIds)
 }

@@ -10,8 +10,6 @@ import (
 	"net/http"
 
 	"bisonai.com/orakl/node/pkg/admin/tests"
-	"bisonai.com/orakl/node/pkg/common/keys"
-	"bisonai.com/orakl/node/pkg/db"
 	"github.com/elazarl/goproxy"
 	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"
@@ -47,15 +45,6 @@ func TestFetcherRun(t *testing.T) {
 	for _, fetcher := range app.Fetchers {
 		fetcher.cancel()
 	}
-
-	defer func() {
-		db.Del(ctx, keys.FeedDataBufferKey())
-		for _, fetcher := range app.Fetchers {
-			for _, feed := range fetcher.Feeds {
-				db.Del(ctx, keys.LatestFeedDataKey(feed.ID))
-			}
-		}
-	}()
 }
 
 func TestFetcherFetcherJob(t *testing.T) {
@@ -83,24 +72,19 @@ func TestFetcherFetcherJob(t *testing.T) {
 			t.Fatalf("error fetching: %v", jobErr)
 		}
 	}
-	defer db.Del(ctx, keys.FeedDataBufferKey())
 
 	for _, fetcher := range app.Fetchers {
 		for _, feed := range fetcher.Feeds {
-			res, latestFeedDataErr := db.GetObject[*FeedData](ctx, keys.LatestFeedDataKey(feed.ID))
+			res, latestFeedDataErr := app.LatestFeedDataMap.GetLatestFeedData([]int32{feed.ID})
 			if latestFeedDataErr != nil {
 				t.Fatalf("error fetching feed data: %v", latestFeedDataErr)
 			}
 			assert.NotNil(t, res)
-			defer db.Del(ctx, keys.LatestFeedDataKey(feed.ID))
 		}
 	}
 
-	buffer, err := db.LRangeObject[FeedData](ctx, keys.FeedDataBufferKey(), 0, -1)
-	if err != nil {
-		t.Fatalf("error fetching buffer: %v", err)
-	}
-	assert.Greater(t, len(buffer), 0)
+	assert.Greater(t, len(app.FeedDataDumpChannel), 0)
+
 }
 
 func TestFetcherFetch(t *testing.T) {
@@ -265,16 +249,6 @@ func TestRequestFeed(t *testing.T) {
 	}
 }
 
-func TestFetcherRequestWithoutProxy(t *testing.T) {
-	// Being tested in TestFetcherFetch
-	t.Skip()
-}
-
-func TestFetcherRequestWithProxy(t *testing.T) {
-	// Being tested in TestFetcherFetchProxy
-	t.Skip()
-}
-
 func TestFetcherFilterProxyByLocation(t *testing.T) {
 	uk := "uk"
 	us := "us"
@@ -285,7 +259,13 @@ func TestFetcherFilterProxyByLocation(t *testing.T) {
 		{ID: 3, Protocol: "http", Host: "localhost", Port: 8082, Location: &kr},
 	}
 
-	fetcher := NewFetcher(Config{}, []Feed{})
+	testMap := &LatestFeedDataMap{
+		FeedDataMap: make(map[int32]*FeedData),
+	}
+
+	ch := make(chan *FeedData, 1000)
+
+	fetcher := NewFetcher(Config{}, []Feed{}, testMap, ch)
 
 	res := fetcher.filterProxyByLocation(proxies, uk)
 	assert.Greater(t, len(res), 0)

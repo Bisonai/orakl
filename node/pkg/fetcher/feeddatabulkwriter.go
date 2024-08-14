@@ -7,9 +7,10 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func NewFeedDataBulkWriter(interval time.Duration) *FeedDataBulkWriter {
+func NewFeedDataBulkWriter(interval time.Duration, feedDataDumpChannel chan *FeedData) *FeedDataBulkWriter {
 	return &FeedDataBulkWriter{
-		Interval: interval,
+		Interval:            interval,
+		FeedDataDumpChannel: feedDataDumpChannel,
 	}
 }
 
@@ -38,10 +39,24 @@ func (s *FeedDataBulkWriter) Run(ctx context.Context) {
 
 func (s *FeedDataBulkWriter) Job(ctx context.Context) error {
 	log.Debug().Str("Player", "FeedDataBulkWriter").Msg("FeedDataBulkWriterJob")
-	result, err := getFeedDataBuffer(ctx)
-	if err != nil {
-		log.Error().Str("Player", "FeedDataBulkWriter").Err(err).Msg("error in getFeedDataBuffer")
-		return err
+	select {
+	case <-ctx.Done():
+		return nil
+	case entry := <-s.FeedDataDumpChannel:
+		result := []*FeedData{entry}
+	loop:
+		for {
+			select {
+			case entry := <-s.FeedDataDumpChannel:
+				result = append(result, entry)
+			default:
+				break loop
+			}
+		}
+
+		return copyFeedData(ctx, result)
+	default:
+		return nil
 	}
-	return copyFeedData(ctx, result)
+
 }

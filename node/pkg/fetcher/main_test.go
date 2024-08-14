@@ -16,7 +16,6 @@ import (
 	"bisonai.com/orakl/node/pkg/admin/tests"
 	"bisonai.com/orakl/node/pkg/admin/utils"
 	"bisonai.com/orakl/node/pkg/bus"
-	"bisonai.com/orakl/node/pkg/common/keys"
 	"bisonai.com/orakl/node/pkg/db"
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog"
@@ -261,13 +260,6 @@ func cleanup(ctx context.Context, testItems *TestItems) func() error {
 		err = db.QueryWithoutResult(ctx, "DELETE FROM feed_data", nil)
 		if err != nil {
 			return err
-		}
-
-		for _, eachFeed := range testItems.insertedFeeds {
-			err = db.Del(ctx, keys.LatestFeedDataKey(*eachFeed.ID))
-			if err != nil {
-				return err
-			}
 		}
 
 		err = testItems.app.stopAllFetchers(ctx)

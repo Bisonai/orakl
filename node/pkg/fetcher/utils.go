@@ -3,9 +3,7 @@ package fetcher
 import (
 	"context"
 	"strings"
-	"time"
 
-	"bisonai.com/orakl/node/pkg/common/keys"
 	"bisonai.com/orakl/node/pkg/db"
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
 	"bisonai.com/orakl/node/pkg/utils/calculator"
@@ -20,39 +18,6 @@ func FetchSingle(ctx context.Context, definition *Definition) (float64, error) {
 		return 0, err
 	}
 	return reducer.Reduce(rawResult, definition.Reducers)
-}
-
-func setLatestFeedData(ctx context.Context, feedData []*FeedData, expiration time.Duration) error {
-	latestData := make(map[string]any)
-	for _, data := range feedData {
-		latestData[keys.LatestFeedDataKey(data.FeedID)] = data
-	}
-	return db.MSetObjectWithExp(ctx, latestData, expiration)
-}
-
-func getLatestFeedData(ctx context.Context, feedIds []int32) ([]*FeedData, error) {
-	if len(feedIds) == 0 {
-		return []*FeedData{}, nil
-	}
-	keyList := make([]string, len(feedIds))
-	for i, feedId := range feedIds {
-		keyList[i] = keys.LatestFeedDataKey(feedId)
-	}
-	feedData, err := db.MGetObject[*FeedData](ctx, keyList)
-	if err != nil {
-		return nil, err
-	}
-
-	return feedData, nil
-}
-
-func setFeedDataBuffer(ctx context.Context, feedData []*FeedData) error {
-	return db.LPushObject(ctx, keys.FeedDataBufferKey(), feedData)
-}
-
-func getFeedDataBuffer(ctx context.Context) ([]*FeedData, error) {
-	// buffer flushed on pop all
-	return db.PopAllObject[*FeedData](ctx, keys.FeedDataBufferKey())
 }
 
 func copyFeedData(ctx context.Context, feedData []*FeedData) error {

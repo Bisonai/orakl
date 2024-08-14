@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 
-	"bisonai.com/orakl/node/pkg/common/keys"
 	"bisonai.com/orakl/node/pkg/db"
 	"github.com/stretchr/testify/assert"
 )
@@ -106,129 +105,6 @@ func TestFetchSingle(t *testing.T) {
 	assert.Greater(t, result, float64(0))
 }
 
-func TestSetLatestFeedData(t *testing.T) {
-	ctx := context.Background()
-	feedData := []*FeedData{
-		{
-			FeedID: 1,
-			Value:  0.1,
-		},
-		{
-			FeedID: 2,
-			Value:  0.2,
-		},
-	}
-
-	err := setLatestFeedData(ctx, feedData, 1*time.Second)
-	if err != nil {
-		t.Fatalf("error setting latest feed data: %v", err)
-	}
-	keys := []string{keys.LatestFeedDataKey(1), keys.LatestFeedDataKey(2)}
-
-	defer db.Del(ctx, keys[0])
-	defer db.Del(ctx, keys[1])
-
-	result, err := db.MGetObject[*FeedData](ctx, keys)
-	if err != nil {
-		t.Fatalf("error getting latest feed data: %v", err)
-	}
-
-	assert.Equal(t, 2, len(result))
-	assert.Contains(t, result, feedData[0])
-	assert.Contains(t, result, feedData[1])
-}
-
-func TestGetLatestFeedData(t *testing.T) {
-	ctx := context.Background()
-	feedData := []*FeedData{
-		{
-			FeedID: 1,
-			Value:  0.1,
-		},
-		{
-			FeedID: 2,
-			Value:  0.2,
-		},
-	}
-
-	keys := []string{keys.LatestFeedDataKey(1), keys.LatestFeedDataKey(2)}
-	err := setLatestFeedData(ctx, feedData, 1*time.Second)
-	if err != nil {
-		t.Fatalf("error setting latest feed data: %v", err)
-	}
-	defer db.Del(ctx, keys[0])
-	defer db.Del(ctx, keys[1])
-
-	result, err := getLatestFeedData(ctx, []int32{1, 2})
-	if err != nil {
-		t.Fatalf("error getting latest feed data: %v", err)
-	}
-
-	assert.Equal(t, 2, len(result))
-	assert.Contains(t, result, feedData[0])
-	assert.Contains(t, result, feedData[1])
-}
-
-func TestSetFeedDataBuffer(t *testing.T) {
-	ctx := context.Background()
-	feedData := []*FeedData{
-		{
-			FeedID: 1,
-			Value:  0.1,
-		},
-		{
-			FeedID: 2,
-			Value:  0.2,
-		},
-	}
-
-	err := setFeedDataBuffer(ctx, feedData)
-	if err != nil {
-		t.Fatalf("error setting feed data buffer: %v", err)
-	}
-
-	defer db.Del(ctx, keys.FeedDataBufferKey())
-
-	result, err := db.LRangeObject[*FeedData](ctx, keys.FeedDataBufferKey(), 0, -1)
-	if err != nil {
-		t.Fatalf("error getting feed data buffer: %v", err)
-	}
-
-	assert.Equal(t, 2, len(result))
-	assert.Contains(t, result, feedData[0])
-	assert.Contains(t, result, feedData[1])
-}
-
-func TestGetFeedDataBuffer(t *testing.T) {
-	ctx := context.Background()
-	feedData := []*FeedData{
-		{
-			FeedID: 1,
-			Value:  0.1,
-		},
-		{
-			FeedID: 2,
-			Value:  0.2,
-		},
-	}
-
-	err := setFeedDataBuffer(ctx, feedData)
-	if err != nil {
-		t.Fatalf("error setting feed data buffer: %v", err)
-	}
-
-	defer db.Del(ctx, keys.FeedDataBufferKey())
-
-	result, err := getFeedDataBuffer(ctx)
-	if err != nil {
-		t.Fatalf("error getting feed data buffer: %v", err)
-	}
-
-	assert.Equal(t, 2, len(result))
-	assert.Contains(t, result, feedData[0])
-	assert.Contains(t, result, feedData[1])
-}
-
 func TestCopyFeedData(t *testing.T) {
 	ctx := context.Background()
 	clean, testItems, err := setup(ctx)
@@ -252,13 +128,6 @@ func TestCopyFeedData(t *testing.T) {
 			Timestamp: &now,
 		})
 	}
-
-	err = setFeedDataBuffer(ctx, feedData)
-	if err != nil {
-		t.Fatalf("error setting feed data buffer: %v", err)
-	}
-
-	defer db.Del(ctx, keys.FeedDataBufferKey())
 
 	err = copyFeedData(ctx, feedData)
 	if err != nil {

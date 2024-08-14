@@ -3,9 +3,9 @@ package fetcher
 import (
 	"context"
 	"fmt"
-
 	"math/rand"
 	"os"
+	"sync"
 	"time"
 
 	"bisonai.com/orakl/node/pkg/bus"
@@ -15,14 +15,16 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-const LocalAggregatesChannelSize = 2_000
-const DefaultLocalAggregateInterval = 200 * time.Millisecond
-
 func New(bus *bus.MessageBus) *App {
 	return &App{
 		Fetchers:         make(map[int32]*Fetcher, 0),
 		WebsocketFetcher: websocketfetcher.New(),
-		Bus:              bus,
+		LatestFeedDataMap: &LatestFeedDataMap{
+			FeedDataMap: make(map[int32]*FeedData),
+			Mu:          sync.RWMutex{},
+		},
+		FeedDataDumpChannel: make(chan *FeedData, DefaultFeedDataDumpChannelSize),
+		Bus:                 bus,
 	}
 }
 
@@ -403,7 +405,7 @@ func (a *App) initialize(ctx context.Context) error {
 		}
 
 		if len(fetcherFeeds) > 0 {
-			a.Fetchers[config.ID] = NewFetcher(config, fetcherFeeds)
+			a.Fetchers[config.ID] = NewFetcher(config, fetcherFeeds, a.LatestFeedDataMap, a.FeedDataDumpChannel)
 		}
 
 		// for localAggregator it'll get all feeds to be collected
@@ -411,14 +413,14 @@ func (a *App) initialize(ctx context.Context) error {
 		if getFeedsErr != nil {
 			return getFeedsErr
 		}
-		a.LocalAggregators[config.ID] = NewLocalAggregator(config, localAggregatorFeeds, a.LocalAggregateBulkWriter.localAggregatesChannel, a.Bus)
+		a.LocalAggregators[config.ID] = NewLocalAggregator(config, localAggregatorFeeds, a.LocalAggregateBulkWriter.localAggregatesChannel, a.Bus, a.LatestFeedDataMap)
 	}
-	streamIntervalRaw := os.Getenv("FEED_DATA_STREAM_INTERVAL")
-	streamInterval, err := time.ParseDuration(streamIntervalRaw)
+	feedDataDumpIntervalRaw := os.Getenv("FEED_DATA_STREAM_INTERVAL")
+	dumpInterval, err := time.ParseDuration(feedDataDumpIntervalRaw)
 	if err != nil {
-		streamInterval = DefaultStreamInterval
+		dumpInterval = DefaultFeedDataDumpInterval
 	}
-	a.FeedDataBulkWriter = NewFeedDataBulkWriter(streamInterval)
+	a.FeedDataBulkWriter = NewFeedDataBulkWriter(dumpInterval, a.FeedDataDumpChannel)
 
 	proxies, getProxyErr := a.getProxies(ctx)
 	if getProxyErr != nil {
@@ -426,7 +428,7 @@ func (a *App) initialize(ctx context.Context) error {
 	}
 	a.Proxies = proxies
 
-	err = a.WebsocketFetcher.Init(ctx)
+	err = a.WebsocketFetcher.Init(ctx, websocketfetcher.WithLatestFeedDataMap(a.LatestFeedDataMap), websocketfetcher.WithFeedDataDumpChannel(a.FeedDataDumpChannel))
 	if err != nil {
 		return err
 	}

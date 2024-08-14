@@ -14,12 +14,14 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func NewFetcher(config Config, feeds []Feed) *Fetcher {
+func NewFetcher(config Config, feeds []Feed, latestFeedDataMap *LatestFeedDataMap, feedDataDumpChannel chan *FeedData) *Fetcher {
 	return &Fetcher{
-		Config:     config,
-		Feeds:      feeds,
-		fetcherCtx: nil,
-		cancel:     nil,
+		Config:              config,
+		Feeds:               feeds,
+		fetcherCtx:          nil,
+		cancel:              nil,
+		latestFeedDataMap:   latestFeedDataMap,
+		FeedDataDumpChannel: feedDataDumpChannel,
 	}
 }
 
@@ -59,13 +61,16 @@ func (f *Fetcher) fetcherJob(ctx context.Context, proxies []Proxy) error {
 		return errorSentinel.ErrFetcherNoDataFetched
 	}
 
-	err = setLatestFeedData(ctx, result, time.Duration(f.FetchInterval)*time.Millisecond)
+	err = f.latestFeedDataMap.SetLatestFeedData(result)
 	if err != nil {
-		log.Error().Str("Player", "Fetcher").Err(err).Msg("error in setLatestFeedData")
+		log.Error().Str("Player", "Fetcher").Err(err).Msg("error in SetLatestFeedData")
 		return err
 	}
 
-	return setFeedDataBuffer(ctx, result)
+	for _, feedData := range result {
+		f.FeedDataDumpChannel <- feedData
+	}
+	return nil
 }
 
 func (f *Fetcher) fetch(proxies []Proxy) ([]*FeedData, error) {
