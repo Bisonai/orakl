@@ -8,15 +8,25 @@ import (
 
 	"bisonai.com/orakl/node/pkg/db"
 	"bisonai.com/orakl/node/pkg/logscribe"
+	"bisonai.com/orakl/node/pkg/logscribe/logprocessor"
 )
 
 type Count struct {
 	Count int `db:"count"`
 }
 
+const (
+	BulkLogsCopyInterval = 100 * time.Millisecond
+	ProcessLogsInterval  = 100 * time.Millisecond
+)
+
 func startLogscribe(ctx context.Context, t *testing.T) {
 	go func() {
-		err := logscribe.Run(ctx)
+		logProcessor, err := logprocessor.New(ctx, logprocessor.WithBulkLogsCopyInterval(BulkLogsCopyInterval))
+		if err != nil {
+			t.Errorf("failed to create logprocessor: %v", err)
+		}
+		err = logscribe.Run(ctx, logProcessor)
 		if err != nil {
 			t.Errorf("failed to start logscribe app: %v", err)
 		}

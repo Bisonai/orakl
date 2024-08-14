@@ -1,19 +1,16 @@
 package api
 
 import (
-	"encoding/json"
-	"time"
-
+	"bisonai.com/orakl/node/pkg/db"
+	"bisonai.com/orakl/node/pkg/logscribe/logprocessor"
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog/log"
 )
 
-type LogInsertModel struct {
-	Service   string          `db:"service" json:"service"`
-	Timestamp time.Time       `db:"timestamp" json:"timestamp"`
-	Level     int             `db:"level" json:"level"`
-	Message   string          `db:"message" json:"message"`
-	Fields    json.RawMessage `db:"fields" json:"fields"`
+type LogInsertModel = logprocessor.LogInsertModel
+
+type Service struct {
+	Service string `db:"service"`
 }
 
 func insertLogs(c *fiber.Ctx) error {
@@ -25,5 +22,21 @@ func insertLogs(c *fiber.Ctx) error {
 		c.Locals("logsChannel").(chan *[]LogInsertModel) <- logEntries
 	}(c)
 
+	return c.Status(fiber.StatusOK).SendString("Request received successfully")
+}
+
+func processLogs(c *fiber.Ctx) error {
+	defer func(c *fiber.Ctx) {
+		services, err := db.QueryRows[Service](c.Context(), logprocessor.GetServicesQuery, nil)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to get services")
+		}
+		for _, service := range services {
+			processedLogs := logprocessor.ProcessLogs(c.Context(), service.Service)
+			if len(processedLogs) > 0 {
+				c.Locals("logProcessor").(*logprocessor.LogProcessor).CreateGithubIssue(c.Context(), processedLogs, service.Service)
+			}
+		}
+	}(c)
 	return c.Status(fiber.StatusOK).SendString("Request received successfully")
 }

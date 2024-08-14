@@ -1,4 +1,4 @@
-package utils
+package logscribe
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 
 	"bisonai.com/orakl/node/pkg/db"
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
-	"bisonai.com/orakl/node/pkg/logscribe/api"
+	"bisonai.com/orakl/node/pkg/logscribe/logprocessor"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -18,7 +18,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func Setup(appVersion string, logsChannel chan *[]api.LogInsertModel) (*fiber.App, error) {
+func Setup(appVersion string, logsChannel chan *[]LogInsertModel, p *logprocessor.LogProcessor) (*fiber.App, error) {
 	ctx := context.Background()
 	_, err := db.GetPool(ctx)
 	if err != nil {
@@ -41,13 +41,13 @@ func Setup(appVersion string, logsChannel chan *[]api.LogInsertModel) (*fiber.Ap
 
 	app.Use(func(c *fiber.Ctx) error {
 		c.Locals("logsChannel", logsChannel)
+		c.Locals("logProcessor", p)
 		return c.Next()
 	})
 
 	app.Use(cors.New())
 
 	return app, nil
-
 }
 
 func CustomErrorHandler(c *fiber.Ctx, err error) error {

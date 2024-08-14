@@ -20,8 +20,7 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	err := logscribe.Run(ctx)
-
+	err := logscribe.Run(ctx, nil)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to start logscribe")
 		cancel()
