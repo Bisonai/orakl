@@ -178,3 +178,4 @@
 - **logscribe** v0.0.1.20240814.0610.0520a11 <br> *`PR`*: get github credentials using s... <br><br> 
 - **dal** v0.0.1.20240814.0612.0d5b858 <br> *`PR`*: get github credentials using s... <br><br> 
 - **sentinel** v0.0.1.20240814.0658.fddaeab <br> *`PR`*: Sentinel add missing for loop <br><br> 
+- **dal** v0.0.1.20240814.0947.2706f2a <br> *`PR`*: DAL Update logic to prevent du... <br><br> 
