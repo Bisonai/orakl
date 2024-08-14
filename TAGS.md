@@ -172,3 +172,4 @@
 - **node** v0.0.1.20240812.0227.c2b15cb <br> *`PR`*: OraklNode Fix lbank error <br><br> 
 - **node** v0.0.1.20240812.0439.b625a71 <br> *`PR`*: OraklNode Chore send local agg... <br><br> 
 - **dal** v0.0.1.20240812.0444.afcb8fe <br> *`PR`*: OraklNode Chore send local agg... <br><br> 
+- **node** v0.0.1.20240814.0251.6443972 <br> *`PR`*: OraklNode Replace feed data bu... <br><br> 
