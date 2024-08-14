@@ -86,6 +86,7 @@ on:
           - logscribe:v0.0.1.20240814.0542.88ab971:go mod tidy
           - logscribe:v0.0.1.20240814.0610.0520a11:get github credentials using s...
           - dal:v0.0.1.20240814.0612.0d5b858:get github credentials using s...
+          - sentinel:v0.0.1.20240814.0658.fddaeab:Sentinel add missing for loop
 jobs:
   prepare-taskflow:
     name: Prepare
