@@ -175,3 +175,4 @@
 - **node** v0.0.1.20240814.0251.6443972 <br> *`PR`*: OraklNode Replace feed data bu... <br><br> 
 - **sentinel** v0.0.1.20240814.0346.da204fd <br> *`PR`*: OraklNode Replace feed data bu... <br><br> 
 - **logscribe** v0.0.1.20240814.0542.88ab971 <br> *`PR`*: go mod tidy <br><br> 
+- **logscribe** v0.0.1.20240814.0610.0520a11 <br> *`PR`*: get github credentials using s... <br><br> 
