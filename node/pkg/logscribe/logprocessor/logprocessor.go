@@ -8,7 +8,10 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"regexp"
+	"slices"
 	"sort"
+	"strings"
 	"time"
 
 	"bisonai.com/orakl/node/pkg/db"
@@ -141,15 +144,59 @@ func hashLog(log LogInsertModel) string {
 	return hex.EncodeToString(hash.Sum(nil))
 }
 
+func (p *LogProcessor) fetchCurrentIssues(ctx context.Context) ([]string, error) {
+	opts := &github.IssueListByRepoOptions{
+		State: "open",
+		ListOptions: github.ListOptions{
+			PerPage: 30, // max limit
+		},
+	}
+	re := regexp.MustCompile(`\[[^\]]*\]`)
+	issues := make([]string, 0)
+	for {
+		batchIssues, resp, err := p.githubClient.Issues.ListByRepo(ctx, p.githubOwner, p.githubRepo, opts)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to list issues")
+			return nil, err
+		}
+		for _, issue := range batchIssues {
+			if issue.PullRequestLinks == nil {
+				title := issue.GetTitle()
+				processedTitle := strings.TrimSpace(re.ReplaceAllString(title, ""))
+				issues = append(issues, processedTitle)
+			}
+		}
+		if resp.NextPage == 0 {
+			break
+		}
+		opts.Page = resp.NextPage
+		time.Sleep(500 * time.Millisecond) // to avoid being blocked by github
+	}
+
+	log.Info().Msgf("Fetched %d issues", len(issues))
+	return issues, nil
+}
+
 func (p *LogProcessor) CreateGithubIssue(ctx context.Context, processedLogs []LogInsertModelWithCount, service string) {
 	if p.githubOwner == "test" {
 		return
 	}
 
+	currentIssues, err := p.fetchCurrentIssues(ctx)
+	if err != nil {
+		log.Warn().Msg("Failed to fetch current issues")
+	}
+	if len(currentIssues) == 0 {
+		log.Debug().Msg("No existing issues")
+	}
+
 	issueCount := 0
 	processedLogHashes := [][]interface{}{}
 	for _, entry := range processedLogs {
-		logsJson := ""
+		if slices.Contains(currentIssues, entry.Message) {
+			log.Debug().Msgf("Issue already exists, skipping: %s", entry.Message)
+			continue
+		}
 		hash := hashLog(entry.LogInsertModel)
 		res, err := db.QueryRow[Count](ctx, logAlreadyProcessedQuery, map[string]any{
 			"hash": hash,
@@ -168,8 +215,7 @@ func (p *LogProcessor) CreateGithubIssue(ctx context.Context, processedLogs []Lo
 			log.Error().Err(err).Msg("Failed to marshal log")
 			return
 		}
-		logsJson += string(entryJson) + "\n"
-		formattedBody := "```go\n" + logsJson + "\n```"
+		formattedBody := "```go\n" + string(entryJson) + "\n```"
 		issueRequest := &github.IssueRequest{
 			Title:  github.String(fmt.Sprintf("[%s][%s] %s", service, p.chain, entry.Message)),
 			Body:   github.String(formattedBody),
