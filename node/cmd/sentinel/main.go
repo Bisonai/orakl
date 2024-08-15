@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 	"os"
-	"strings"
+	"strconv"
 	"sync"
 
 	"bisonai.com/orakl/node/pkg/checker/balance"
@@ -15,17 +15,26 @@ import (
 	"bisonai.com/orakl/node/pkg/checker/health"
 	"bisonai.com/orakl/node/pkg/checker/peers"
 	"bisonai.com/orakl/node/pkg/checker/signer"
-	"github.com/rs/zerolog"
+	"bisonai.com/orakl/node/pkg/logscribeconsumer"
 	"github.com/rs/zerolog/log"
 )
 
 func main() {
 	ctx := context.Background()
-	logLevel := os.Getenv("LOG_LEVEL")
-	if logLevel == "" {
-		logLevel = "info"
+
+	postToLogscribe, err := strconv.ParseBool(os.Getenv("POST_TO_LOGSCRIBE"))
+	if err != nil {
+		postToLogscribe = true
 	}
-	zerolog.SetGlobalLevel(getLogLevel(logLevel))
+	logscribeconsumer, err := logscribeconsumer.New(
+		logscribeconsumer.WithStoreService("sentinel"),
+		logscribeconsumer.WithPostToLogscribe(postToLogscribe),
+	)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to create a new logscribeconsumer instance")
+		return
+	}
+	go logscribeconsumer.Run(ctx)
 
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -144,23 +153,4 @@ func main() {
 	}()
 
 	wg.Wait()
-}
-
-func getLogLevel(input string) zerolog.Level {
-	switch strings.ToLower(input) {
-	case "debug":
-		return zerolog.DebugLevel
-	case "info":
-		return zerolog.InfoLevel
-	case "warn":
-		return zerolog.WarnLevel
-	case "error":
-		return zerolog.ErrorLevel
-	case "fatal":
-		return zerolog.FatalLevel
-	case "panic":
-		return zerolog.PanicLevel
-	default:
-		return zerolog.InfoLevel
-	}
 }

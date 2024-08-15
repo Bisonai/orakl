@@ -1,8 +1,10 @@
 package main
 
 import (
+	"context"
 	_ "embed"
-	"log"
+	"os"
+	"strconv"
 
 	"bisonai.com/orakl/node/pkg/api/apierr"
 	"bisonai.com/orakl/node/pkg/api/blocks"
@@ -14,17 +16,36 @@ import (
 	"bisonai.com/orakl/node/pkg/api/utils"
 	"bisonai.com/orakl/node/pkg/api/vrf"
 
+	"bisonai.com/orakl/node/pkg/logscribeconsumer"
 	"github.com/gofiber/fiber/v2"
 	"github.com/joho/godotenv"
+	"github.com/rs/zerolog/log"
 )
 
 //go:embed .version
 var version string
 
 func main() {
-	err := godotenv.Load()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	postToLogscribe, err := strconv.ParseBool(os.Getenv("POST_TO_LOGSCRIBE"))
 	if err != nil {
-		log.Println("env file is not found, continuing without .env file")
+		postToLogscribe = true
+	}
+	logscribeconsumer, err := logscribeconsumer.New(
+		logscribeconsumer.WithStoreService("api"),
+		logscribeconsumer.WithPostToLogscribe(postToLogscribe),
+	)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to create a new logscribeconsumer instance")
+		return
+	}
+	go logscribeconsumer.Run(ctx)
+
+	err = godotenv.Load()
+	if err != nil {
+		log.Info().Msg("env file is not found, continuing without .env file")
 	}
 	config, err := utils.LoadEnvVars()
 	if err != nil {

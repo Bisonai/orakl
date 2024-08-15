@@ -3,44 +3,33 @@ package main
 import (
 	"context"
 	"os"
-	"strings"
+	"strconv"
 
 	"bisonai.com/orakl/node/pkg/dal"
-	"github.com/rs/zerolog"
+	"bisonai.com/orakl/node/pkg/logscribeconsumer"
 	"github.com/rs/zerolog/log"
 )
 
 func main() {
-	logLevel := os.Getenv("LOG_LEVEL")
-	if logLevel == "" {
-		logLevel = "info"
-	}
-	zerolog.SetGlobalLevel(getLogLevel(logLevel))
-
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	err := dal.Run(ctx)
+	postToLogscribe, err := strconv.ParseBool(os.Getenv("POST_TO_LOGSCRIBE"))
+	if err != nil {
+		postToLogscribe = true
+	}
+	logscribeconsumer, err := logscribeconsumer.New(
+		logscribeconsumer.WithStoreService("dal"),
+		logscribeconsumer.WithPostToLogscribe(postToLogscribe),
+	)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to create a new logscribeconsumer instance")
+		return
+	}
+	go logscribeconsumer.Run(ctx)
+
+	err = dal.Run(ctx)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to start DAL")
-	}
-}
-
-func getLogLevel(input string) zerolog.Level {
-	switch strings.ToLower(input) {
-	case "debug":
-		return zerolog.DebugLevel
-	case "info":
-		return zerolog.InfoLevel
-	case "warn":
-		return zerolog.WarnLevel
-	case "error":
-		return zerolog.ErrorLevel
-	case "fatal":
-		return zerolog.FatalLevel
-	case "panic":
-		return zerolog.PanicLevel
-	default:
-		return zerolog.InfoLevel
 	}
 }
