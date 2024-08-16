@@ -114,6 +114,7 @@ func checkOffsets(ctx context.Context, serviceDB *pgxpool.Pool) error {
 	}
 
 	for _, result := range localAggregateOffsetResults {
+		log.Debug().Str("name", result.Name).Float64("delay", result.Delay).Msg("local aggregate offset")
 		if result.Delay > Threshold.Seconds() {
 			msg += fmt.Sprintf("(local aggregate offset delayed) %s: %v seconds\n", result.Name, result.Delay)
 		}
@@ -126,6 +127,7 @@ func checkOffsets(ctx context.Context, serviceDB *pgxpool.Pool) error {
 	}
 
 	for _, result := range globalAggregateOffsetResults {
+		log.Debug().Str("name", result.Name).Float64("delay", result.Delay).Msg("global aggregate offset")
 		if result.Delay > Threshold.Seconds() {
 			msg += fmt.Sprintf("(global aggregate offset delayed) %s: %v seconds\n", result.Name, result.Delay)
 		}
