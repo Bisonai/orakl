@@ -8,8 +8,8 @@ import (
 	"runtime/debug"
 	"strings"
 
-	"bisonai.com/orakl/node/pkg/dal/api"
 	"bisonai.com/orakl/node/pkg/dal/collector"
+	"bisonai.com/orakl/node/pkg/dal/hub"
 	"bisonai.com/orakl/node/pkg/dal/utils/keycache"
 	"bisonai.com/orakl/node/pkg/dal/utils/stats"
 	"bisonai.com/orakl/node/pkg/db"
@@ -22,11 +22,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-type DBKeyResult struct {
-	Exist bool `db:"exists"`
-}
-
-func Setup(ctx context.Context, collector *collector.Collector, hub *api.Hub, keyCache *keycache.KeyCache) (*fiber.App, error) {
+func Setup(ctx context.Context, collector *collector.Collector, hub *hub.Hub, keyCache *keycache.KeyCache) (*fiber.App, error) {
 	if collector == nil || hub == nil || keyCache == nil {
 		return nil, errors.New("collector, hub, or keyCache is nil in Setup")
 	}
@@ -138,24 +134,19 @@ func validator(c *fiber.Ctx, s string) (bool, error) {
 		return false, fmt.Errorf("missing api key")
 	}
 
-	keyCache, ok := c.Locals("keyCache").(*keycache.KeyCache)
+	localKeyCache, ok := c.Locals("keyCache").(*keycache.KeyCache)
 	if !ok {
 		return false, fmt.Errorf("key cache not found")
 	}
 
-	if keyCache.Get(s) {
+	if localKeyCache.Get(s) {
 		return true, nil
 	}
 
-	if validateApiKeyFromDB(c.Context(), s) {
-		keyCache.Set(s)
+	if keycache.ValidateApiKeyFromDB(c.Context(), s) {
+		localKeyCache.Set(s)
 		return true, nil
 	}
 
 	return false, fmt.Errorf("invalid api key")
-}
-
-func validateApiKeyFromDB(ctx context.Context, apiKey string) bool {
-	res, err := db.QueryRow[DBKeyResult](ctx, "SELECT true as exists FROM keys WHERE key = @key", map[string]any{"key": apiKey})
-	return res.Exist && err == nil
 }

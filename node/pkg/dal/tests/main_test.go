@@ -15,6 +15,7 @@ import (
 	"bisonai.com/orakl/node/pkg/common/types"
 	"bisonai.com/orakl/node/pkg/dal/api"
 	"bisonai.com/orakl/node/pkg/dal/collector"
+	"bisonai.com/orakl/node/pkg/dal/hub"
 	"bisonai.com/orakl/node/pkg/dal/utils/initializer"
 	"bisonai.com/orakl/node/pkg/dal/utils/keycache"
 	"bisonai.com/orakl/node/pkg/db"
@@ -28,7 +29,7 @@ type Config = types.Config
 type TestItems struct {
 	App        *fiber.App
 	Collector  *collector.Collector
-	Controller *api.Hub
+	Controller *hub.Hub
 	TmpConfig  Config
 	MockAdmin  *httptest.Server
 	ApiKey     string
@@ -109,7 +110,7 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 		return nil, nil, err
 	}
 
-	hub := api.HubSetup(ctx, configs)
+	hub := hub.HubSetup(ctx, configs)
 
 	app, err := initializer.Setup(ctx, collector, hub, keyCache)
 	if err != nil {

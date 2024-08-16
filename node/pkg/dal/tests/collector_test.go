@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"bisonai.com/orakl/node/pkg/dal/api"
 	"bisonai.com/orakl/node/pkg/dal/common"
+	"bisonai.com/orakl/node/pkg/dal/hub"
 	wsfcommon "bisonai.com/orakl/node/pkg/websocketfetcher/common"
 	"bisonai.com/orakl/node/pkg/wss"
 	"github.com/rs/zerolog/log"
@@ -66,7 +66,7 @@ func TestCollectorStream(t *testing.T) {
 		t.Fatalf("error dialing websocket: %v", err)
 	}
 
-	err = conn.Write(ctx, api.Subscription{
+	err = conn.Write(ctx, hub.Subscription{
 		Method: "SUBSCRIBE",
 		Params: []string{"submission@test-aggregate"},
 	})

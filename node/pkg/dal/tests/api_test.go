@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"bisonai.com/orakl/node/pkg/dal/api"
 	"bisonai.com/orakl/node/pkg/dal/common"
+	"bisonai.com/orakl/node/pkg/dal/hub"
 	"bisonai.com/orakl/node/pkg/utils/request"
 	wsfcommon "bisonai.com/orakl/node/pkg/websocketfetcher/common"
 	"bisonai.com/orakl/node/pkg/wss"
@@ -176,7 +176,7 @@ func TestApiWebsocket(t *testing.T) {
 			t.Fatalf("error dialing websocket: %v", err)
 		}
 
-		err = conn.Write(ctx, api.Subscription{
+		err = conn.Write(ctx, hub.Subscription{
 			Method: "SUBSCRIBE",
 			Params: []string{"submission@test-aggregate"},
 		})
@@ -282,7 +282,7 @@ func TestApiWebsocket(t *testing.T) {
 					}
 				}()
 
-				err = conn.Write(ctx, api.Subscription{
+				err = conn.Write(ctx, hub.Subscription{
 					Method: "SUBSCRIBE",
 					Params: subscriptions,
 				})

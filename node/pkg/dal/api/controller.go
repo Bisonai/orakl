@@ -1,111 +1,108 @@
 package api
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"strings"
 
 	"bisonai.com/orakl/node/pkg/dal/collector"
 	dalcommon "bisonai.com/orakl/node/pkg/dal/common"
-	"bisonai.com/orakl/node/pkg/dal/utils/stats"
-	"github.com/gofiber/contrib/websocket"
+	"bisonai.com/orakl/node/pkg/dal/hub"
 	"github.com/gofiber/fiber/v2"
-	"github.com/rs/zerolog/log"
 )
 
-func HandleWebsocket(conn *websocket.Conn) {
-	h, ok := conn.Locals("hub").(*Hub)
-	if !ok {
-		log.Error().Msg("hub not found")
-		return
-	}
+// func HandleWebsocket(conn *websocket.Conn) {
+// 	h, ok := conn.Locals("hub").(*Hub)
+// 	if !ok {
+// 		log.Error().Msg("hub not found")
+// 		return
+// 	}
 
-	threadSafeClient := NewThreadSafeClient(conn)
+// 	threadSafeClient := NewThreadSafeClient(conn)
 
-	closeHandler := conn.CloseHandler()
-	conn.SetCloseHandler(func(code int, text string) error {
-		h.unregister <- threadSafeClient
-		return closeHandler(code, text)
-	})
+// 	closeHandler := conn.CloseHandler()
+// 	conn.SetCloseHandler(func(code int, text string) error {
+// 		h.unregister <- threadSafeClient
+// 		return closeHandler(code, text)
+// 	})
 
-	ctx, ok := conn.Locals("context").(*context.Context)
-	if !ok {
-		log.Error().Msg("ctx not found")
-		return
-	}
+// 	ctx, ok := conn.Locals("context").(*context.Context)
+// 	if !ok {
+// 		log.Error().Msg("ctx not found")
+// 		return
+// 	}
 
-	h.register <- threadSafeClient
-	apiKey := conn.Headers("X-Api-Key")
+// 	h.register <- threadSafeClient
+// 	apiKey := conn.Headers("X-Api-Key")
 
-	id, err := stats.InsertWebsocketConnection(*ctx, apiKey)
-	if err != nil {
-		log.Error().Err(err).Msg("failed to insert websocket connection")
-		return
-	}
-	log.Info().Int32("id", id).Msg("inserted websocket connection")
+// 	id, err := stats.InsertWebsocketConnection(*ctx, apiKey)
+// 	if err != nil {
+// 		log.Error().Err(err).Msg("failed to insert websocket connection")
+// 		return
+// 	}
+// 	log.Info().Int32("id", id).Msg("inserted websocket connection")
 
-	defer func() {
-		h.unregister <- threadSafeClient
-		err = stats.UpdateWebsocketConnection(*ctx, id)
-		if err != nil {
-			log.Error().Err(err).Msg("failed to update websocket connection")
-			return
-		}
-		log.Info().Int32("id", id).Msg("updated websocket connection")
-	}()
+// 	defer func() {
+// 		h.unregister <- threadSafeClient
+// 		err = stats.UpdateWebsocketConnection(*ctx, id)
+// 		if err != nil {
+// 			log.Error().Err(err).Msg("failed to update websocket connection")
+// 			return
+// 		}
+// 		log.Info().Int32("id", id).Msg("updated websocket connection")
+// 	}()
 
-	for {
-		var msg Subscription
-		if err = threadSafeClient.ReadJSON(&msg); err != nil {
-			log.Error().Err(err).Msg("failed to read message")
-			return
-		}
+// 	for {
+// 		var msg Subscription
+// 		if err = threadSafeClient.ReadJSON(&msg); err != nil {
+// 			log.Error().Err(err).Msg("failed to read message")
+// 			return
+// 		}
 
-		if msg.Method == "SUBSCRIBE" {
-			handleSubscribe(h, threadSafeClient, msg, *ctx, id)
-		}
-	}
-}
+// 		if msg.Method == "SUBSCRIBE" {
+// 			handleSubscribe(h, threadSafeClient, msg, *ctx, id)
+// 		}
+// 	}
+// }
 
-func handleSubscribe(h *Hub, client *ThreadSafeClient, msg Subscription, ctx context.Context, id int32) {
-	h.mu.Lock()
-	defer h.mu.Unlock()
+// func handleSubscribe(h *Hub, client *ThreadSafeClient, msg Subscription, ctx context.Context, id int32) {
+// 	h.mu.Lock()
+// 	defer h.mu.Unlock()
 
-	subscriptions, ok := h.clients[client]
-	if !ok {
-		subscriptions = map[string]any{}
-	}
+// 	subscriptions, ok := h.clients[client]
+// 	if !ok {
+// 		subscriptions = map[string]any{}
+// 	}
 
-	valid := []string{}
-	for _, param := range msg.Params {
-		symbol := strings.TrimPrefix(param, "submission@")
-		if _, ok := h.configs[symbol]; !ok {
-			continue
-		}
-		subscriptions[symbol] = struct{}{}
-		valid = append(valid, param)
-	}
-	h.clients[client] = subscriptions
+// 	valid := []string{}
+// 	for _, param := range msg.Params {
+// 		symbol := strings.TrimPrefix(param, "submission@")
+// 		if _, ok := h.configs[symbol]; !ok {
+// 			continue
+// 		}
+// 		subscriptions[symbol] = struct{}{}
+// 		valid = append(valid, param)
+// 	}
+// 	h.clients[client] = subscriptions
 
-	defer func(subscribed []string) {
-		if len(valid) == 0 {
-			return
-		}
-		if err := stats.InsertWebsocketSubscriptions(ctx, id, valid); err != nil {
-			log.Error().Err(err).Msg("failed to insert websocket subscription log")
-		}
-	}(valid)
-}
+// 	defer func(subscribed []string) {
+// 		if len(valid) == 0 {
+// 			return
+// 		}
+// 		if err := stats.InsertWebsocketSubscriptions(ctx, id, valid); err != nil {
+// 			log.Error().Err(err).Msg("failed to insert websocket subscription log")
+// 		}
+// 	}(valid)
+// }
 
 func getSymbols(c *fiber.Ctx) error {
-	hub, ok := c.Locals("hub").(*Hub)
+	localHub, ok := c.Locals("hub").(*hub.Hub)
 	if !ok {
 		return errors.New("hub not found")
 	}
 
 	result := []string{}
-	for key := range hub.configs {
+	for key := range localHub.Configs {
 		result = append(result, key)
 	}
 	return c.JSON(result)
