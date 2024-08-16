@@ -1,0 +1,9 @@
+{
+  "address": "0xd9dbbb92a6ecb8b8d3e386b8d0ad8284bd816ef1",
+  "updateProxyBulk": [
+    {
+      "feedName": "PEPE-USDT",
+      "proxyAddress": "0x4ca0c8b81fe8a6d7709b98720e50abe9855a5cfb"
+    }
+  ]
+}
