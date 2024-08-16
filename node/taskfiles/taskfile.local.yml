@@ -82,6 +82,10 @@ tasks:
     dotenv: [".env"]
     cmds:
       - go run ./script/test_single_fetch/main.go
+  script-inspector:
+    dotenv: [".env"]
+    cmds:
+      - go run ./script/inspector/main.go
 
   test-db:
     dotenv: [".env"]
