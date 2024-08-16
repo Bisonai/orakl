@@ -313,7 +313,7 @@ func handleFeedSubmissionDelay(offset time.Duration, feed *FeedToCheck) string {
 		log.Warn().Str("feed", feed.FeedName).Msg(fmt.Sprintf("%s delayed by %s", feed.FeedName, offset-time.Duration(feed.ExpectedInterval)*time.Millisecond))
 		feed.LatencyChecked++
 		if feed.LatencyChecked > AlarmOffset {
-			msg += fmt.Sprintf("%s delayed by %s\n", feed.FeedName, offset-time.Duration(feed.ExpectedInterval)*time.Millisecond)
+			msg += fmt.Sprintf("(REPORTER) %s delayed by %s\n", feed.FeedName, offset-time.Duration(feed.ExpectedInterval)*time.Millisecond)
 			feed.LatencyChecked = 0
 		}
 	} else {
