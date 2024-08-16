@@ -151,6 +151,14 @@ func (p *LogProcessor) fetchCurrentIssues(ctx context.Context) ([]string, error)
 			PerPage: 30, // max limit
 		},
 	}
+	user, _, err := p.githubClient.Users.Get(ctx, "")
+	if err == nil && user != nil {
+		creator := user.GetLogin()
+		opts.Creator = creator
+	} else {
+		log.Info().Msg("Failed to get github user from token")
+	}
+
 	re := regexp.MustCompile(`\[[^\]]*\]`)
 	issues := make([]string, 0)
 	for {
