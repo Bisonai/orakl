@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	errorsentinel "bisonai.com/orakl/node/pkg/error"
@@ -16,11 +17,16 @@ import (
 func New(options ...AppOption) (*App, error) {
 	consoleWriter := zerolog.ConsoleWriter{Out: os.Stdout}
 
+	postToLogscribe, err := strconv.ParseBool(os.Getenv("POST_TO_LOGSCRIBE"))
+	if err != nil {
+		postToLogscribe = true
+	}
+
 	c := &AppConfig{
 		StoreInterval:     DefaultLogStoreInterval,
 		Buffer:            DefaultBufferSize,
 		Level:             os.Getenv("LOGSCRIBE_LOG_LEVEL"),
-		PostToLogscribe:   true,
+		PostToLogscribe:   postToLogscribe,
 		LogscribeEndpoint: DefaultLogscribeEndpoint,
 	}
 	for _, option := range options {
@@ -82,6 +88,15 @@ func (a *App) Write(p []byte) (n int, err error) {
 	a.buffer <- res
 
 	return len(p), nil
+}
+
+func Start(ctx context.Context, service string) error {
+	a, err := New(WithStoreService(service))
+	if err != nil {
+		return err
+	}
+	go a.Run(ctx)
+	return nil
 }
 
 func (a *App) Run(ctx context.Context) {

@@ -1,9 +1,11 @@
 package main
 
 import (
+	"context"
 	_ "embed"
-	"log"
 	"os"
+
+	"bisonai.com/orakl/node/pkg/logscribeconsumer"
 
 	"bisonai.com/orakl/node/pkg/delegator/contract"
 	"bisonai.com/orakl/node/pkg/delegator/function"
@@ -14,15 +16,25 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/joho/godotenv"
+	"github.com/rs/zerolog/log"
 )
 
 //go:embed .version
 var version string
 
 func main() {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	err := godotenv.Load()
 	if err != nil {
-		log.Println("env file is not found, continuing without .env file")
+		log.Info().Msg("env file is not found, continuing without .env file")
+	}
+
+	err = logscribeconsumer.Start(ctx, "delegator")
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to start logscribe consumer")
+		return
 	}
 
 	appConfig, err := utils.Setup(version)

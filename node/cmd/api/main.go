@@ -1,8 +1,8 @@
 package main
 
 import (
+	"context"
 	_ "embed"
-	"log"
 
 	"bisonai.com/orakl/node/pkg/api/apierr"
 	"bisonai.com/orakl/node/pkg/api/blocks"
@@ -14,18 +14,30 @@ import (
 	"bisonai.com/orakl/node/pkg/api/utils"
 	"bisonai.com/orakl/node/pkg/api/vrf"
 
+	"bisonai.com/orakl/node/pkg/logscribeconsumer"
 	"github.com/gofiber/fiber/v2"
 	"github.com/joho/godotenv"
+	"github.com/rs/zerolog/log"
 )
 
 //go:embed .version
 var version string
 
 func main() {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	err := godotenv.Load()
 	if err != nil {
-		log.Println("env file is not found, continuing without .env file")
+		log.Info().Msg("env file is not found, continuing without .env file")
 	}
+
+	err = logscribeconsumer.Start(ctx, "api")
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to start logscribe consumer")
+		return
+	}
+
 	config, err := utils.LoadEnvVars()
 	if err != nil {
 		panic(err)

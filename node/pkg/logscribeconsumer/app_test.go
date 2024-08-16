@@ -28,10 +28,12 @@ const (
 
 func TestNew(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	cleanUp := startLogscribe(ctx, t)
 
-	startLogscribe(ctx, t)
-	defer cleanup(ctx)
+	defer func() {
+		cleanUp()
+		cancel()
+	}()
 
 	tests := []struct {
 		name    string
@@ -113,10 +115,12 @@ func TestNew(t *testing.T) {
 
 func TestLogscribeConsumerWrite(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	cleanUp := startLogscribe(ctx, t)
 
-	startLogscribe(ctx, t)
-	defer cleanup(ctx)
+	defer func() {
+		cleanUp()
+		cancel()
+	}()
 
 	tests := []struct {
 		name    string
@@ -160,10 +164,12 @@ func TestLogscribeConsumerWrite(t *testing.T) {
 
 func TestBulkCopyLogEntries(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	cleanUp := startLogscribe(ctx, t)
 
-	startLogscribe(ctx, t)
-	defer cleanup(ctx)
+	defer func() {
+		cleanUp()
+		cancel()
+	}()
 
 	app, _ := New(WithLogscribeEndpoint("http://localhost:3000/api/v1/"), WithStoreService("node"))
 
@@ -208,10 +214,12 @@ func TestBulkCopyLogEntries(t *testing.T) {
 
 func TestExtractLogscribeEntry(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	cleanUp := startLogscribe(ctx, t)
 
-	startLogscribe(ctx, t)
-	defer cleanup(ctx)
+	defer func() {
+		cleanUp()
+		cancel()
+	}()
 
 	tests := []struct {
 		name     string
@@ -294,10 +302,12 @@ func TestExtractLogscribeEntry(t *testing.T) {
 
 func TestPostToLogscribe(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	cleanUp := startLogscribe(ctx, t)
 
-	startLogscribe(ctx, t)
-	defer cleanup(ctx)
+	defer func() {
+		cleanUp()
+		cancel()
+	}()
 
 	app, err := New(
 		WithStoreInterval(100*time.Millisecond),
@@ -321,10 +331,12 @@ func TestPostToLogscribe(t *testing.T) {
 
 func TestNotPostToLogscribe(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	cleanUp := startLogscribe(ctx, t)
 
-	startLogscribe(ctx, t)
-	defer cleanup(ctx)
+	defer func() {
+		cleanUp()
+		cancel()
+	}()
 
 	app, err := New(
 		WithStoreInterval(100*time.Millisecond),
@@ -349,10 +361,12 @@ func TestNotPostToLogscribe(t *testing.T) {
 
 func TestCustomLogLevel(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	cleanUp := startLogscribe(ctx, t)
 
-	startLogscribe(ctx, t)
-	defer cleanup(ctx)
+	defer func() {
+		cleanUp()
+		cancel()
+	}()
 
 	zerologLevel := zerolog.InfoLevel
 	app, err := New(
