@@ -99,6 +99,7 @@ on:
           - boot-api:v0.0.1.20240816.0551.4e79ea6:API Add missing version file
           - dal:v0.0.1.20240816.0556.f41bf29:API Add missing version file
           - reporter:v0.0.1.20240816.0600.682fdf5:API Add missing version file
+          - node:v0.0.1.20240816.0628.8614a4b:API Add missing version file
 jobs:
   prepare-taskflow:
     name: Prepare
