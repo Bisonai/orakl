@@ -7,19 +7,12 @@ import (
 	"bisonai.com/orakl/node/pkg/admin"
 	"bisonai.com/orakl/node/pkg/bus"
 	"bisonai.com/orakl/node/pkg/fetcher"
-	"bisonai.com/orakl/node/pkg/logscribeconsumer"
 	"github.com/rs/zerolog/log"
 )
 
 func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-
-	err := logscribeconsumer.Start(ctx, "fetcher")
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to start logscribe consumer")
-		return
-	}
 
 	mb := bus.New(10)
 	var wg sync.WaitGroup
@@ -35,7 +28,7 @@ func main() {
 	}()
 
 	log.Info().Msg("Syncing orakl config")
-	err = admin.SyncOraklConfig(ctx)
+	err := admin.SyncOraklConfig(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to sync orakl config")
 		return
