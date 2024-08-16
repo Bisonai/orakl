@@ -95,22 +95,19 @@ func Start(ctx context.Context) error {
 			log.Info().Msg("context cancelled, shutting down")
 			return ctx.Err()
 		case <-ticker.C:
-			err := checkOffsets(ctx, serviceDB)
-			if err != nil {
-				log.Error().Err(err).Msg("failed to get pgsql offset result")
-			}
+			checkOffsets(ctx, serviceDB)
 		}
 	}
 
 }
 
-func checkOffsets(ctx context.Context, serviceDB *pgxpool.Pool) error {
+func checkOffsets(ctx context.Context, serviceDB *pgxpool.Pool) {
 	msg := ""
 
 	localAggregateOffsetResults, err := db.QueryRowsTransient[OffsetResult](ctx, serviceDB, GetLocalAggregateOffsets, nil)
 	if err != nil {
 		log.Error().Err(err).Msg("Error getting local aggregate offsets")
-		return err
+		return
 	}
 
 	for _, result := range localAggregateOffsetResults {
@@ -123,7 +120,7 @@ func checkOffsets(ctx context.Context, serviceDB *pgxpool.Pool) error {
 	globalAggregateOffsetResults, err := db.QueryRowsTransient[OffsetResult](ctx, serviceDB, GetGlobalAggregateOffsets, nil)
 	if err != nil {
 		log.Error().Err(err).Msg("Error getting global aggregate offsets")
-		return err
+		return
 	}
 
 	for _, result := range globalAggregateOffsetResults {
@@ -136,6 +133,4 @@ func checkOffsets(ctx context.Context, serviceDB *pgxpool.Pool) error {
 	if msg != "" {
 		alert.SlackAlert(msg)
 	}
-
-	return nil
 }
