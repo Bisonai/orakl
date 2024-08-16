@@ -18,7 +18,7 @@ const (
 
 	GetRestCallsPerKey              = "SELECT COUNT(1) FROM rest_calls WHERE api_key = @key AND timestamp >= NOW() - interval '7 day'"
 	GetWebsocketConnectionsPerKey   = "SELECT COUNT(1) FROM websocket_connections WHERE api_key = @key AND timestamp >= NOW() - interval '7 day'"
-	GetWebsocketSubscriptionsPerKey = "SELECT COUNT(1) FROM websocket_subscriptions WHERE id IN (SELECT id FROM websocket_connections WHERE api_key = @key AND timestamp >= NOW() - interval '7 day') AND timestamp >= NOW() - interval '7 day'"
+	GetWebsocketSubscriptionsPerKey = "SELECT COUNT(1) FROM websocket_subscriptions WHERE id IN (SELECT id FROM websocket_connections WHERE api_key = @key AND timestamp >= NOW() - interval '7 day')"
 )
 
 type Key struct {
