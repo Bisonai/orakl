@@ -21,14 +21,11 @@ import (
 func main() {
 	ctx := context.Background()
 
-	logscribeconsumer, err := logscribeconsumer.New(
-		logscribeconsumer.WithStoreService("sentinel"),
-	)
+	err := logscribeconsumer.Start(ctx, "sentinel")
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to create a new logscribeconsumer instance")
+		log.Error().Err(err).Msg("Failed to start logscribe consumer")
 		return
 	}
-	go logscribeconsumer.Run(ctx)
 
 	var wg sync.WaitGroup
 	wg.Add(1)

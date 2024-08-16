@@ -27,19 +27,17 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	logscribeconsumer, err := logscribeconsumer.New(
-		logscribeconsumer.WithStoreService("api"),
-	)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to create a new logscribeconsumer instance")
-		return
-	}
-	go logscribeconsumer.Run(ctx)
-
-	err = godotenv.Load()
+	err := godotenv.Load()
 	if err != nil {
 		log.Info().Msg("env file is not found, continuing without .env file")
 	}
+
+	err = logscribeconsumer.Start(ctx, "api")
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to start logscribe consumer")
+		return
+	}
+
 	config, err := utils.LoadEnvVars()
 	if err != nil {
 		panic(err)

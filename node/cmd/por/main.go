@@ -11,14 +11,11 @@ import (
 func main() {
 	ctx := context.Background()
 
-	logscribeconsumer, err := logscribeconsumer.New(
-		logscribeconsumer.WithStoreService("por"),
-	)
+	err := logscribeconsumer.Start(ctx, "por")
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to create a new logscribeconsumer instance")
+		log.Error().Err(err).Msg("Failed to start logscribe consumer")
 		return
 	}
-	go logscribeconsumer.Run(ctx)
 
 	app, err := por.New(ctx)
 	if err != nil {

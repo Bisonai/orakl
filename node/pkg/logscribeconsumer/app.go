@@ -90,6 +90,15 @@ func (a *App) Write(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
+func Start(ctx context.Context, service string) error {
+	a, err := New(WithStoreService(service))
+	if err != nil {
+		return err
+	}
+	go a.Run(ctx)
+	return nil
+}
+
 func (a *App) Run(ctx context.Context) {
 	a.setup()
 

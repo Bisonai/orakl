@@ -15,14 +15,11 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	logscribeconsumer, err := logscribeconsumer.New(
-		logscribeconsumer.WithStoreService("fetcher"),
-	)
+	err := logscribeconsumer.Start(ctx, "fetcher")
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to create a new logscribeconsumer instance")
+		log.Error().Err(err).Msg("Failed to start logscribe consumer")
 		return
 	}
-	go logscribeconsumer.Run(ctx)
 
 	mb := bus.New(10)
 	var wg sync.WaitGroup

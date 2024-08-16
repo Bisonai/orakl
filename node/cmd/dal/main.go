@@ -12,14 +12,11 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	logscribeconsumer, err := logscribeconsumer.New(
-		logscribeconsumer.WithStoreService("dal"),
-	)
+	err := logscribeconsumer.Start(ctx, "dal")
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to create a new logscribeconsumer instance")
+		log.Error().Err(err).Msg("Failed to start logscribe consumer")
 		return
 	}
-	go logscribeconsumer.Run(ctx)
 
 	err = dal.Run(ctx)
 	if err != nil {
