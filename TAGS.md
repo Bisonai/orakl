@@ -184,3 +184,4 @@
 - **sentinel** v0.0.1.20240816.0429.b14407c <br> *`PR`*: health check for logscribe <br><br> 
 - **logscribe** v0.0.1.20240816.0436.b420ff4 <br> *`PR`*: health check for logscribe <br><br> 
 - **api** v0.0.1.20240816.0524.ed93e4c <br> *`PR`*: API Add missing version file <br><br> 
+- **delegator** v0.0.1.20240816.0529.a570456 <br> *`PR`*: API Add missing version file <br><br> 

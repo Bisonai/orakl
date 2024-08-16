@@ -93,6 +93,7 @@ on:
           - sentinel:v0.0.1.20240816.0429.b14407c:health check for logscribe
           - logscribe:v0.0.1.20240816.0436.b420ff4:health check for logscribe
           - api:v0.0.1.20240816.0524.ed93e4c:API Add missing version file
+          - delegator:v0.0.1.20240816.0529.a570456:API Add missing version file
 jobs:
   prepare-taskflow:
     name: Prepare
