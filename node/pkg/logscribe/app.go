@@ -57,7 +57,6 @@ func Run(ctx context.Context, logProcessor *logprocessor.LogProcessor) error {
 	}()
 
 	<-ctx.Done()
-	log.Info().Msg("Shutting down logscribe server")
 
 	if err := fiberApp.Shutdown(); err != nil {
 		log.Error().Err(err).Msg("Failed to shutdown logscribe server")
