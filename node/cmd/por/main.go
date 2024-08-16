@@ -2,8 +2,6 @@ package main
 
 import (
 	"context"
-	"os"
-	"strconv"
 
 	"bisonai.com/orakl/node/pkg/logscribeconsumer"
 	"bisonai.com/orakl/node/pkg/por"
@@ -13,13 +11,8 @@ import (
 func main() {
 	ctx := context.Background()
 
-	postToLogscribe, err := strconv.ParseBool(os.Getenv("POST_TO_LOGSCRIBE"))
-	if err != nil {
-		postToLogscribe = true
-	}
 	logscribeconsumer, err := logscribeconsumer.New(
 		logscribeconsumer.WithStoreService("por"),
-		logscribeconsumer.WithPostToLogscribe(postToLogscribe),
 	)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to create a new logscribeconsumer instance")

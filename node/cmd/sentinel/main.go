@@ -4,7 +4,6 @@ import (
 	"context"
 	"net/http"
 	"os"
-	"strconv"
 	"sync"
 
 	"bisonai.com/orakl/node/pkg/checker/balance"
@@ -22,13 +21,8 @@ import (
 func main() {
 	ctx := context.Background()
 
-	postToLogscribe, err := strconv.ParseBool(os.Getenv("POST_TO_LOGSCRIBE"))
-	if err != nil {
-		postToLogscribe = true
-	}
 	logscribeconsumer, err := logscribeconsumer.New(
 		logscribeconsumer.WithStoreService("sentinel"),
-		logscribeconsumer.WithPostToLogscribe(postToLogscribe),
 	)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to create a new logscribeconsumer instance")
