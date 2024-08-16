@@ -101,6 +101,7 @@ on:
           - reporter:v0.0.1.20240816.0600.682fdf5:API Add missing version file
           - node:v0.0.1.20240816.0628.8614a4b:API Add missing version file
           - sentinel:v0.0.1.20240816.0639.71fe82c:API Add missing version file
+          - node:v0.0.1.20240816.0727.3a913ee:HOTFIX Hotfix sync error
 jobs:
   prepare-taskflow:
     name: Prepare
