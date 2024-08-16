@@ -193,10 +193,6 @@ func (p *LogProcessor) CreateGithubIssue(ctx context.Context, processedLogs []Lo
 	issueCount := 0
 	processedLogHashes := [][]interface{}{}
 	for _, entry := range processedLogs {
-		if slices.Contains(currentIssues, entry.Message) {
-			log.Debug().Msgf("Issue already exists, skipping: %s", entry.Message)
-			continue
-		}
 		hash := hashLog(entry.LogInsertModel)
 		res, err := db.QueryRow[Count](ctx, logAlreadyProcessedQuery, map[string]any{
 			"hash": hash,
@@ -207,6 +203,10 @@ func (p *LogProcessor) CreateGithubIssue(ctx context.Context, processedLogs []Lo
 		}
 		if res.Count > 0 {
 			log.Debug().Msg("Log already processed, skipping creation of github issue")
+			continue
+		}
+		if slices.Contains(currentIssues, entry.Message) {
+			log.Debug().Msgf("Issue already exists, skipping: %s", entry.Message)
 			continue
 		}
 
@@ -248,7 +248,7 @@ func (p *LogProcessor) CreateGithubIssue(ctx context.Context, processedLogs []Lo
 		}
 	}
 
-	log.Debug().Msgf("Created %d github issues", issueCount)
+	log.Info().Msgf("Created %d github issues", issueCount)
 }
 
 func (p *LogProcessor) BulkCopyLogs(ctx context.Context, logsChannel <-chan *[]LogInsertModel) {
