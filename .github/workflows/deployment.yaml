@@ -91,6 +91,7 @@ on:
           - node:v0.0.1.20240814.0951.5efd845:DAL Update logic to prevent du...
           - sentinel:v0.0.1.20240814.1305.7c641fe:Sentinel Add missing status co...
           - sentinel:v0.0.1.20240816.0429.b14407c:health check for logscribe
+          - logscribe:v0.0.1.20240816.0436.b420ff4:health check for logscribe
 jobs:
   prepare-taskflow:
     name: Prepare

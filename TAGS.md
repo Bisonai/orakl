@@ -182,3 +182,4 @@
 - **node** v0.0.1.20240814.0951.5efd845 <br> *`PR`*: DAL Update logic to prevent du... <br><br> 
 - **sentinel** v0.0.1.20240814.1305.7c641fe <br> *`PR`*: Sentinel Add missing status co... <br><br> 
 - **sentinel** v0.0.1.20240816.0429.b14407c <br> *`PR`*: health check for logscribe <br><br> 
+- **logscribe** v0.0.1.20240816.0436.b420ff4 <br> *`PR`*: health check for logscribe <br><br> 
