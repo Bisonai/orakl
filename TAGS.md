@@ -191,3 +191,4 @@
 - **dal** v0.0.1.20240816.0556.f41bf29 <br> *`PR`*: API Add missing version file <br><br> 
 - **reporter** v0.0.1.20240816.0600.682fdf5 <br> *`PR`*: API Add missing version file <br><br> 
 - **node** v0.0.1.20240816.0628.8614a4b <br> *`PR`*: API Add missing version file <br><br> 
+- **sentinel** v0.0.1.20240816.0639.71fe82c <br> *`PR`*: API Add missing version file <br><br> 
