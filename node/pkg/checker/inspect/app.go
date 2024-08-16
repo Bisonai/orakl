@@ -116,16 +116,14 @@ func (i *Inspector) Inspect(ctx context.Context) (string, error) {
 	inspectVRFResult, err := i.inspectVRF(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed VRF inspection")
-		msg += "failed from VRF inspection\nerror: " + err.Error()
-		return msg, err
+		return "", err
 	}
 	msg += inspectVRFResult
 
 	inspectRRResult, err := i.inspectRR(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed RR inspection")
-		msg += "failed from RR inspection\nerror: " + err.Error()
-		return msg, err
+		return "", err
 	}
 
 	msg += inspectRRResult
