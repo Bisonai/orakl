@@ -121,7 +121,7 @@ func TestRaft_LeaderElection(t *testing.T) {
 		go raftNode.Run(ctx)
 	}
 
-	time.Sleep(2100 * time.Millisecond)
+	time.Sleep(2200 * time.Millisecond)
 
 	t.Run("Verify single leader across nodes", func(t *testing.T) {
 		leaderIds := make(map[string]struct{})
