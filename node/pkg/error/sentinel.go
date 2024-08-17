@@ -207,6 +207,10 @@ var (
 	ErrDalInvalidProofLength   = &CustomError{Service: Dal, Code: InvalidInputError, Message: "Invalid proof length"}
 	ErrDalSignerNotWhitelisted = &CustomError{Service: Dal, Code: InternalError, Message: "Signer not whitelisted"}
 	ErrDalEmptyValidProofs     = &CustomError{Service: Dal, Code: InternalError, Message: "Empty valid proofs"}
+	ErrDalPortNotFound         = &CustomError{Service: Dal, Code: InternalError, Message: "Port not found"}
+	ErrDalCollectorNotFound    = &CustomError{Service: Dal, Code: InternalError, Message: "Collector not found"}
+	ErrDalHubNotFound          = &CustomError{Service: Dal, Code: InternalError, Message: "Hub not found"}
+	ErrDalKeyCacheNotFound     = &CustomError{Service: Dal, Code: InternalError, Message: "Key cache not found"}
 
 	ErrReducerCastToFloatFail          = &CustomError{Service: Others, Code: InternalError, Message: "Failed to cast to float"}
 	ErrReducerIndexCastToInterfaceFail = &CustomError{Service: Others, Code: InternalError, Message: "Failed to cast to interface from INDEX"}

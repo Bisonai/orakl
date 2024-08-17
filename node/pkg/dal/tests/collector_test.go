@@ -47,7 +47,6 @@ func TestCollectorStream(t *testing.T) {
 			t.Logf("Cleanup failed: %v", cleanupErr)
 		}
 	}()
-	go testItems.App.Listen(":8090")
 
 	time.Sleep(20 * time.Millisecond)
 
@@ -56,7 +55,7 @@ func TestCollectorStream(t *testing.T) {
 	assert.True(t, collector.IsRunning)
 
 	headers := map[string]string{"X-API-Key": testItems.ApiKey}
-	conn, err := wss.NewWebsocketHelper(ctx, wss.WithEndpoint("ws://localhost:8090/ws"), wss.WithRequestHeaders(headers))
+	conn, err := wss.NewWebsocketHelper(ctx, wss.WithEndpoint(testItems.MockDal.URL+"/ws"), wss.WithRequestHeaders(headers))
 	if err != nil {
 		t.Fatalf("error creating websocket helper: %v", err)
 	}
