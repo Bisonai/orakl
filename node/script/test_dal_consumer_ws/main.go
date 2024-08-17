@@ -23,8 +23,8 @@ type Subscription struct {
 
 func main() {
 	ctx := context.Background()
-	// chain := "baobab"
-	key := "testApiKey"
+	chain := "baobab"
+	key := ""
 	configs, err := fetchConfigs()
 	if err != nil {
 		panic(err)
@@ -38,8 +38,7 @@ func main() {
 		subscription.Params = append(subscription.Params, "submission@"+configs.Name)
 	}
 
-	// wsEndpoint := fmt.Sprintf("ws://dal.%s.orakl.network/ws", chain)
-	wsEndpoint := "ws://localhost:8090/ws"
+	wsEndpoint := fmt.Sprintf("ws://dal.%s.orakl.network/ws", chain)
 
 	wsHelper, err := wss.NewWebsocketHelper(
 		ctx,
@@ -91,12 +90,11 @@ func handleWsMessage(ctx context.Context, data map[string]interface{}) error {
 	}
 
 	t := time.UnixMilli(timestamp)
-	diff := time.Since(t)
-	log.Info().Str("Player", "Reporter").Str("Symbol", wsData.Symbol).Str("delay", fmt.Sprintf("%f", diff.Seconds())).Msg("ws message")
 
-	// if diff > time.Second {
-	// 	log.Info().Str("Player", "Reporter").Str("Symbol", wsData.Symbol).Str("delay", fmt.Sprintf("%f", diff.Seconds())).Msg("ws message")
-	// }
+	diff := time.Since(t)
+	if diff > time.Second {
+		log.Info().Str("Player", "Reporter").Str("Symbol", wsData.Symbol).Str("delay", fmt.Sprintf("%f", diff.Seconds())).Msg("ws message")
+	}
 
 	return nil
 }
