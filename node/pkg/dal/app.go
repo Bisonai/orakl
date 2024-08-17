@@ -3,8 +3,6 @@ package dal
 import (
 	"context"
 	"errors"
-	"net"
-	"net/http"
 	"os"
 	"sync"
 	"time"
@@ -80,18 +78,12 @@ func Run(ctx context.Context) error {
 		}
 	}(app)
 
-	l, err := net.Listen("tcp", ":8091")
-	wss := wsserver.NewWSServer(keyCache, hub)
-	s := &http.Server{
-		Handler: wss,
-	}
-
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		err = s.Serve(l)
+		err := wsserver.Start(ctx, hub, keyCache)
 		if err != nil {
-			log.Error().Err(err).Msg("Failed to start WebSocket server")
+			log.Error().Err(err).Msg("Failed to start DAL WS server")
 			return
 		}
 	}()

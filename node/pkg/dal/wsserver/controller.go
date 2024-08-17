@@ -2,7 +2,9 @@ package wsserver
 
 import (
 	"context"
+	"net"
 	"net/http"
+	"os"
 
 	"bisonai.com/orakl/node/pkg/dal/hub"
 	"bisonai.com/orakl/node/pkg/dal/utils/keycache"
@@ -16,6 +18,33 @@ type WsServer struct {
 	hub      *hub.Hub
 	keyCache *keycache.KeyCache
 	serveMux http.ServeMux
+}
+
+func Start(ctx context.Context, hub *hub.Hub, keyCache *keycache.KeyCache) error {
+	port := os.Getenv("DAL_WS_PORT")
+	if port == "" {
+		port = "8091"
+	}
+
+	l, err := net.Listen("tcp", ":"+port)
+	if err != nil {
+		return err
+	}
+
+	wsServer := NewWSServer(keyCache, hub)
+	httpServer := &http.Server{
+		Handler: wsServer,
+		BaseContext: func(_ net.Listener) context.Context {
+			return ctx
+		},
+	}
+
+	err = httpServer.Serve(l)
+	if err != nil && err != http.ErrServerClosed {
+		return err
+	}
+
+	return nil
 }
 
 func NewWSServer(keyCache *keycache.KeyCache, hub *hub.Hub) *WsServer {
