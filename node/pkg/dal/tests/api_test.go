@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"bisonai.com/orakl/node/pkg/dal/apiv2"
 	"bisonai.com/orakl/node/pkg/dal/common"
 	"bisonai.com/orakl/node/pkg/dal/hub"
 	"bisonai.com/orakl/node/pkg/utils/request"
@@ -29,6 +30,47 @@ func TestApiControllerRun(t *testing.T) {
 
 	time.Sleep(10 * time.Millisecond)
 	assert.True(t, testItems.Collector.IsRunning)
+}
+
+func TestApiGetHealthCheck(t *testing.T) {
+	ctx := context.Background()
+	clean, testItems, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer func() {
+		if cleanupErr := clean(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
+		}
+	}()
+
+	result, err := request.RequestRaw(request.WithEndpoint(testItems.MockDal.URL))
+	if err != nil {
+		t.Fatalf("error getting latest data: %v", err)
+	}
+
+	assert.Equal(t, 200, result.StatusCode)
+}
+
+func TestApiGetSymbols(t *testing.T) {
+	ctx := context.Background()
+	clean, testItems, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer func() {
+		if cleanupErr := clean(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
+		}
+	}()
+
+	result, err := request.Request[[]string](request.WithEndpoint(testItems.MockDal.URL+"/symbols"), request.WithHeaders(map[string]string{"X-API-Key": testItems.ApiKey}))
+	if err != nil {
+		t.Fatalf("error getting latest data: %v", err)
+	}
+
+	assert.Greater(t, len(result), 0)
+	assert.NotEmpty(t, result)
 }
 
 func TestApiGetLatestAll(t *testing.T) {
@@ -59,7 +101,7 @@ func TestApiGetLatestAll(t *testing.T) {
 		t.Fatalf("error publishing sample submission data: %v", err)
 	}
 
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(10 * time.Millisecond) // should wait for redis data to be published
 	result, err := request.Request[[]common.OutgoingSubmissionData](request.WithEndpoint(testItems.MockDal.URL+"/latest-data-feeds/all"), request.WithHeaders(map[string]string{"X-API-Key": testItems.ApiKey}))
 	if err != nil {
 		t.Fatalf("error getting latest data: %v", err)
@@ -142,6 +184,102 @@ func TestApiGetLatest(t *testing.T) {
 		t.Fatalf("error converting sample submission data to outgoing data: %v", err)
 	}
 	assert.Equal(t, *expected, result[0])
+}
+
+func TestApiGetLatestTransposeAll(t *testing.T) {
+	ctx := context.Background()
+	clean, testItems, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer func() {
+		if cleanupErr := clean(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
+		}
+	}()
+
+	sampleSubmissionData, err := generateSampleSubmissionData(
+		testItems.TmpConfig.ID,
+		int64(15),
+		time.Now(),
+		1,
+		"test-aggregate",
+	)
+	if err != nil {
+		t.Fatalf("error generating sample submission data: %v", err)
+	}
+
+	err = testPublishData(ctx, *sampleSubmissionData)
+	if err != nil {
+		t.Fatalf("error publishing sample submission data: %v", err)
+	}
+
+	time.Sleep(10 * time.Millisecond)
+
+	result, err := request.Request[apiv2.BulkResponse](request.WithEndpoint(testItems.MockDal.URL+"/latest-data-feeds/transpose/all"), request.WithHeaders(map[string]string{"X-API-Key": testItems.ApiKey}))
+	if err != nil {
+		t.Fatalf("error getting latest data: %v", err)
+	}
+	expected, err := testItems.Collector.IncomingDataToOutgoingData(ctx, sampleSubmissionData)
+	if err != nil {
+		t.Fatalf("error converting sample submission data to outgoing data: %v", err)
+	}
+	assert.NotNil(t, result)
+
+	assert.Equal(t, expected.Symbol, result.Symbols[0])
+	assert.Equal(t, expected.Value, result.Values[0])
+	assert.Equal(t, expected.AggregateTime, result.AggregateTimes[0])
+	assert.Equal(t, expected.Proof, result.Proofs[0])
+	assert.Equal(t, expected.FeedHash, result.FeedHashes[0])
+	assert.Equal(t, expected.Decimals, result.Decimals[0])
+}
+
+func TestApiGetLatestTranspose(t *testing.T) {
+	ctx := context.Background()
+	clean, testItems, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer func() {
+		if cleanupErr := clean(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
+		}
+	}()
+
+	sampleSubmissionData, err := generateSampleSubmissionData(
+		testItems.TmpConfig.ID,
+		int64(15),
+		time.Now(),
+		1,
+		"test-aggregate",
+	)
+	if err != nil {
+		t.Fatalf("error generating sample submission data: %v", err)
+	}
+
+	err = testPublishData(ctx, *sampleSubmissionData)
+	if err != nil {
+		t.Fatalf("error publishing sample submission data: %v", err)
+	}
+
+	time.Sleep(10 * time.Millisecond)
+
+	result, err := request.Request[apiv2.BulkResponse](request.WithEndpoint(testItems.MockDal.URL+"/latest-data-feeds/transpose/test-aggregate"), request.WithHeaders(map[string]string{"X-API-Key": testItems.ApiKey}))
+	if err != nil {
+		t.Fatalf("error getting latest data: %v", err)
+	}
+	expected, err := testItems.Collector.IncomingDataToOutgoingData(ctx, sampleSubmissionData)
+	if err != nil {
+		t.Fatalf("error converting sample submission data to outgoing data: %v", err)
+	}
+	assert.NotNil(t, result)
+
+	assert.Equal(t, expected.Symbol, result.Symbols[0])
+	assert.Equal(t, expected.Value, result.Values[0])
+	assert.Equal(t, expected.AggregateTime, result.AggregateTimes[0])
+	assert.Equal(t, expected.Proof, result.Proofs[0])
+	assert.Equal(t, expected.FeedHash, result.FeedHashes[0])
+	assert.Equal(t, expected.Decimals, result.Decimals[0])
 }
 
 func TestApiWebsocket(t *testing.T) {
@@ -253,6 +391,7 @@ func TestApiWebsocket(t *testing.T) {
 
 		// Create a channel to collect all results
 		resultsChan := make(chan common.OutgoingSubmissionData, connCount*len(subscriptions))
+		readyChan := make(chan any, connCount)
 
 		for i := 0; i < connCount; i++ {
 			wg.Add(1)
@@ -292,20 +431,29 @@ func TestApiWebsocket(t *testing.T) {
 
 				// Read messages from the channel and store the results
 				for j := 0; j < len(subscriptions); j++ {
-					select {
-					case sample := <-ch:
-						result, err := wsfcommon.MessageToStruct[common.OutgoingSubmissionData](sample.(map[string]any))
-						if err != nil {
-							t.Errorf("error converting sample to struct for client %d: %v", clientID, err)
+					go func() {
+						select {
+						case sample := <-ch:
+							result, err := wsfcommon.MessageToStruct[common.OutgoingSubmissionData](sample.(map[string]any))
+							if err != nil {
+								t.Errorf("error converting sample to struct for client %d: %v", clientID, err)
+								return
+							}
+							resultsChan <- result
+						case <-time.After(10 * time.Second): // Timeout if no message is received
+							t.Errorf("timeout waiting for message for client %d", clientID)
 							return
 						}
-						resultsChan <- result
-					case <-time.After(10 * time.Second): // Timeout if no message is received
-						t.Errorf("timeout waiting for message for client %d", clientID)
-						return
-					}
+					}()
 				}
+
+				readyChan <- struct{}{} // Indicate this connection is ready
 			}(i)
+		}
+
+		// Wait until readyChan receives connCount (10) signals
+		for i := 0; i < connCount; i++ {
+			<-readyChan
 		}
 
 		// Simulate data publication
@@ -343,4 +491,5 @@ func TestApiWebsocket(t *testing.T) {
 			}
 		}
 	})
+
 }
