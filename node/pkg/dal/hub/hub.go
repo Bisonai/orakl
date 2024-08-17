@@ -175,7 +175,10 @@ func (h *Hub) castSubmissionData(ctx context.Context, data *dalcommon.OutgoingSu
 			wg.Add(1)
 			go func(entry *websocket.Conn) {
 				defer wg.Done()
-				wsjson.Write(ctx, entry, data)
+				err := wsjson.Write(ctx, entry, data)
+				if err != nil {
+					log.Warn().Err(err).Msg("failed to write message to client")
+				}
 			}(client)
 		}
 	}

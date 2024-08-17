@@ -89,7 +89,10 @@ func (s *ServerV2) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	if r.RequestURI != "/" && !s.checkAPIKey(r.Context(), key) {
 		w.WriteHeader(http.StatusUnauthorized)
-		w.Write([]byte("Unauthorized"))
+		_, err := w.Write([]byte("Unauthorized"))
+		if err != nil {
+			log.Error().Err(err).Msg("failed to write response")
+		}
 		return
 	}
 
@@ -156,7 +159,10 @@ func (s *ServerV2) WSHandler(w http.ResponseWriter, r *http.Request) {
 
 func (s *ServerV2) HealthCheckHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Orakl Node DAL API"))
+	_, err := w.Write([]byte("Orakl Node DAL API"))
+	if err != nil {
+		log.Error().Err(err).Msg("failed to write response")
+	}
 }
 
 func (s *ServerV2) SymbolsHandler(w http.ResponseWriter, r *http.Request) {
@@ -167,14 +173,20 @@ func (s *ServerV2) SymbolsHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(result)
+	err := json.NewEncoder(w).Encode(result)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to encode response")
+	}
 }
 
 func (s *ServerV2) AllLatestFeedsHandler(w http.ResponseWriter, r *http.Request) {
 	result := s.collector.GetAllLatestData()
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(result)
+	err := json.NewEncoder(w).Encode(result)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to encode response")
+	}
 }
 
 func (s *ServerV2) AllLatestFeedsTransposedHandler(w http.ResponseWriter, r *http.Request) {
@@ -197,7 +209,10 @@ func (s *ServerV2) AllLatestFeedsTransposedHandler(w http.ResponseWriter, r *htt
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(bulk)
+	err := json.NewEncoder(w).Encode(bulk)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to encode response")
+	}
 }
 
 func (s *ServerV2) TransposedLatestFeedsHandler(w http.ResponseWriter, r *http.Request) {
@@ -205,7 +220,10 @@ func (s *ServerV2) TransposedLatestFeedsHandler(w http.ResponseWriter, r *http.R
 
 	if symbolsStr == "" {
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("invalid symbol: empty symbol"))
+		_, err := w.Write([]byte("invalid symbol: empty symbol"))
+		if err != nil {
+			log.Error().Err(err).Msg("failed to write response")
+		}
 		return
 	}
 
@@ -220,7 +238,10 @@ func (s *ServerV2) TransposedLatestFeedsHandler(w http.ResponseWriter, r *http.R
 
 		if !strings.Contains(symbol, "-") {
 			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte(fmt.Sprintf("wrong symbol format: %s, symbol should be in {BASE}-{QUOTE} format", symbol)))
+			_, err := w.Write([]byte(fmt.Sprintf("wrong symbol format: %s, symbol should be in {BASE}-{QUOTE} format", symbol)))
+			if err != nil {
+				log.Error().Err(err).Msg("failed to write response")
+			}
 			return
 		}
 
@@ -230,8 +251,12 @@ func (s *ServerV2) TransposedLatestFeedsHandler(w http.ResponseWriter, r *http.R
 
 		result, err := s.collector.GetLatestData(symbol)
 		if err != nil {
+			log.Error().Err(err).Msg("failed to get latest data")
 			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(err.Error()))
+			_, err = w.Write([]byte(err.Error()))
+			if err != nil {
+				log.Error().Err(err).Msg("failed to write response")
+			}
 			return
 		}
 
@@ -245,14 +270,20 @@ func (s *ServerV2) TransposedLatestFeedsHandler(w http.ResponseWriter, r *http.R
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(bulk)
+	err := json.NewEncoder(w).Encode(bulk)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to encode response")
+	}
 }
 
 func (s *ServerV2) LatestFeedsHandler(w http.ResponseWriter, r *http.Request) {
 	symbolsStr := r.PathValue("symbols")
 	if symbolsStr == "" {
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("invalid symbol: empty symbol"))
+		_, err := w.Write([]byte("invalid symbol: empty symbol"))
+		if err != nil {
+			log.Error().Err(err).Msg("failed to write response")
+		}
 		return
 	}
 
@@ -267,7 +298,10 @@ func (s *ServerV2) LatestFeedsHandler(w http.ResponseWriter, r *http.Request) {
 
 		if !strings.Contains(symbol, "-") {
 			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte(fmt.Sprintf("wrong symbol format: %s, symbol should be in {BASE}-{QUOTE} format", symbol)))
+			_, err := w.Write([]byte(fmt.Sprintf("wrong symbol format: %s, symbol should be in {BASE}-{QUOTE} format", symbol)))
+			if err != nil {
+				log.Error().Err(err).Msg("failed to write response")
+			}
 			return
 		}
 
@@ -277,8 +311,12 @@ func (s *ServerV2) LatestFeedsHandler(w http.ResponseWriter, r *http.Request) {
 
 		result, err := s.collector.GetLatestData(symbol)
 		if err != nil {
+			log.Error().Err(err).Msg("failed to get latest data")
 			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(err.Error()))
+			_, err = w.Write([]byte(err.Error()))
+			if err != nil {
+				log.Error().Err(err).Msg("failed to write response")
+			}
 			return
 		}
 
@@ -287,5 +325,8 @@ func (s *ServerV2) LatestFeedsHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(results)
+	err := json.NewEncoder(w).Encode(results)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to encode response")
+	}
 }
