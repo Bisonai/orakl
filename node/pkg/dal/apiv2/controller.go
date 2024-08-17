@@ -179,14 +179,21 @@ func (s *ServerV2) AllLatestFeedsHandler(w http.ResponseWriter, r *http.Request)
 
 func (s *ServerV2) AllLatestFeedsTransposedHandler(w http.ResponseWriter, r *http.Request) {
 	result := s.collector.GetAllLatestData()
-	bulk := BulkResponse{}
-	for _, data := range result {
-		bulk.Symbols = append(bulk.Symbols, data.Symbol)
-		bulk.Values = append(bulk.Values, data.Value)
-		bulk.AggregateTimes = append(bulk.AggregateTimes, data.AggregateTime)
-		bulk.Proofs = append(bulk.Proofs, data.Proof)
-		bulk.FeedHashes = append(bulk.FeedHashes, data.FeedHash)
-		bulk.Decimals = append(bulk.Decimals, data.Decimals)
+	bulk := BulkResponse{
+		Symbols:        make([]string, len(result)),
+		Values:         make([]string, len(result)),
+		AggregateTimes: make([]string, len(result)),
+		Proofs:         make([]string, len(result)),
+		FeedHashes:     make([]string, len(result)),
+		Decimals:       make([]string, len(result)),
+	}
+	for i, data := range result {
+		bulk.Symbols[i] = data.Symbol
+		bulk.Values[i] = data.Value
+		bulk.AggregateTimes[i] = data.AggregateTime
+		bulk.Proofs[i] = data.Proof
+		bulk.FeedHashes[i] = data.FeedHash
+		bulk.Decimals[i] = data.Decimals
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)

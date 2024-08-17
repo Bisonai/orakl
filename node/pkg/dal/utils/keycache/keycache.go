@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"bisonai.com/orakl/node/pkg/db"
+	"github.com/rs/zerolog/log"
 )
 
 type KeyCache struct {
@@ -61,5 +62,8 @@ func (c *KeyCache) Cleanup() {
 
 func ValidateApiKeyFromDB(ctx context.Context, apiKey string) bool {
 	res, err := db.QueryRow[DBKeyResult](ctx, "SELECT true as exists FROM keys WHERE key = @key", map[string]any{"key": apiKey})
+	if err != nil {
+		log.Error().Err(err).Msg("Error validating API key")
+	}
 	return res.Exist && err == nil
 }
