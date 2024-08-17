@@ -365,7 +365,7 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 }
 
 func (r *Raft) getRandomElectionTimeout() time.Duration {
-	baseTimeout := r.HeartbeatTimeout * 10
+	baseTimeout := r.HeartbeatTimeout * 9
 	jitter := time.Duration(rand.Int63n(int64(r.HeartbeatTimeout * 3)))
 	return baseTimeout + jitter
 }
