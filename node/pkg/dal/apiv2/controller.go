@@ -70,16 +70,22 @@ func NewServer(collector *collector.Collector, keyCache *keycache.KeyCache, hub 
 		collector: collector,
 		keyCache:  keyCache,
 		hub:       hub,
-		serveMux:  http.NewServeMux(),
 	}
-	s.serveMux.HandleFunc("/", s.HealthCheckHandler)
-	s.serveMux.HandleFunc("/ws", s.WSHandler)
+	serveMux := http.NewServeMux()
 
-	s.serveMux.HandleFunc("GET /symbols", s.SymbolsHandler)
-	s.serveMux.HandleFunc("GET /latest-data-feeds/all", s.AllLatestFeedsHandler)
-	s.serveMux.HandleFunc("GET /latest-data-feeds/transpose/all", s.AllLatestFeedsTransposedHandler)
-	s.serveMux.HandleFunc("GET /latest-data-feeds/transpose/{symbols}", s.TransposedLatestFeedsHandler)
-	s.serveMux.HandleFunc("GET /latest-data-feeds/{symbols}", s.LatestFeedsHandler)
+	serveMux.HandleFunc("/", s.HealthCheckHandler)
+	serveMux.HandleFunc("/ws", s.WSHandler)
+
+	serveMux.HandleFunc("GET /symbols", s.SymbolsHandler)
+	serveMux.HandleFunc("GET /latest-data-feeds/all", s.AllLatestFeedsHandler)
+	serveMux.HandleFunc("GET /latest-data-feeds/transpose/all", s.AllLatestFeedsTransposedHandler)
+	serveMux.HandleFunc("GET /latest-data-feeds/transpose/{symbols}", s.TransposedLatestFeedsHandler)
+	serveMux.HandleFunc("GET /latest-data-feeds/{symbols}", s.LatestFeedsHandler)
+
+	// Apply the RequestLoggerMiddleware to the ServeMux
+	loggedMux := stats.RequestLoggerMiddleware(serveMux)
+
+	s.handler = loggedMux
 
 	return s
 }
@@ -96,7 +102,7 @@ func (s *ServerV2) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.serveMux.ServeHTTP(w, r)
+	s.handler.ServeHTTP(w, r)
 }
 
 func (s *ServerV2) checkAPIKey(ctx context.Context, key string) bool {

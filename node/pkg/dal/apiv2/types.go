@@ -21,7 +21,7 @@ type ServerV2 struct {
 	collector *collector.Collector
 	hub       *hub.Hub
 	keyCache  *keycache.KeyCache
-	serveMux  *http.ServeMux
+	handler   http.Handler
 }
 
 type ServerV2Config struct {

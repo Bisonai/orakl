@@ -1,11 +1,15 @@
 package stats
 
 import (
+	"bufio"
+	"bytes"
 	"context"
+	"errors"
+	"net"
+	"net/http"
 	"time"
 
 	"bisonai.com/orakl/node/pkg/db"
-	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog/log"
 )
 
@@ -67,35 +71,68 @@ func InsertWebsocketSubscriptions(ctx context.Context, connectionId int32, topic
 	return db.BulkInsert(ctx, "websocket_subscriptions", []string{"connection_id", "topic"}, entries)
 }
 
-func StatsMiddleware(c *fiber.Ctx) error {
-	start := time.Now()
-	if err := c.Next(); err != nil {
-		return err
-	}
-	duration := time.Since(start)
+func RequestLoggerMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		sl := NewStatsLogger(w)
+		w.Header()
+		defer func() {
+			key := r.Header.Get("X-API-Key")
+			if key == "" {
+				log.Warn().Msg("X-API-Key header is empty")
+				return
+			}
 
-	if c.Path() == "/" {
-		return nil
-	}
+			endpoint := r.RequestURI
+			if endpoint == "/" {
+				return
+			}
 
-	headers := c.GetReqHeaders()
-	apiKeyRaw, ok := headers["X-Api-Key"]
+			statusCode := sl.statusCode
+			duration := time.Since(start)
+			if err := InsertRestCall(r.Context(), key, endpoint, *statusCode, duration); err != nil {
+				log.Error().Err(err).Msg("failed to insert rest call")
+			}
+		}()
+		next.ServeHTTP(sl, r)
+	})
+}
+
+type StatsLogger struct {
+	w          *http.ResponseWriter
+	body       *bytes.Buffer
+	statusCode *int
+}
+
+func NewStatsLogger(w http.ResponseWriter) StatsLogger {
+	var buf bytes.Buffer
+	var statusCode int = 200
+	return StatsLogger{
+		w:          &w,
+		body:       &buf,
+		statusCode: &statusCode,
+	}
+}
+
+func (sl StatsLogger) Write(buf []byte) (int, error) {
+	sl.body.Write(buf)
+	return (*sl.w).Write(buf)
+}
+
+func (sl StatsLogger) Header() http.Header {
+	return (*sl.w).Header()
+
+}
+
+func (sl StatsLogger) WriteHeader(statusCode int) {
+	(*sl.statusCode) = statusCode
+	(*sl.w).WriteHeader(statusCode)
+}
+
+func (sl StatsLogger) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	h, ok := (*sl.w).(http.Hijacker)
 	if !ok {
-		log.Warn().Str("ip", c.IP()).
-			Str("method", c.Method()).
-			Str("path", c.Path()).Msg("X-Api-Key header not found")
-		return nil
+		return nil, nil, errors.New("hijack not supported")
 	}
-	apiKey := apiKeyRaw[0]
-	if apiKey == "" {
-		log.Warn().Msg("X-Api-Key header is empty")
-		return nil
-	}
-
-	endpoint := c.Path()
-	statusCode := c.Response().StatusCode()
-	if err := InsertRestCall(c.Context(), apiKey, endpoint, statusCode, duration); err != nil {
-		log.Error().Err(err).Msg("failed to insert rest call")
-	}
-	return nil
+	return h.Hijack()
 }
