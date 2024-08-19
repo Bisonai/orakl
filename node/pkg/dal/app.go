@@ -22,7 +22,7 @@ type Config = types.Config
 func Run(ctx context.Context) error {
 	log.Debug().Msg("Starting DAL API server")
 
-	stats.Start(ctx)
+	go stats.Start(ctx)
 
 	keyCache := keycache.NewAPIKeyCache(1 * time.Hour)
 	keyCache.CleanupLoop(10 * time.Minute)
