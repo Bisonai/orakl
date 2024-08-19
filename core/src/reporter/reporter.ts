@@ -83,6 +83,8 @@ export function reporter(state: State, logger: Logger) {
 
       txParams.nonce = localNonce
     }
+
+    logger.info(`Transaction sent to ${to} with nonce ${localNonce}`)
   }
 
   logger.debug('Reporter job built')
