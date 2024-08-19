@@ -1,5 +1,6 @@
 import { Job, Queue, Worker } from 'bullmq'
 import { ethers } from 'ethers'
+import { performance } from 'perf_hooks'
 import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
 import { BULLMQ_CONNECTION, LISTENER_JOB_SETTINGS } from '../settings'
@@ -358,6 +359,7 @@ function processEventJob({
   const _logger = logger.child({ name: 'processEventJob', file: FILE_NAME })
 
   async function wrapper(job: Job) {
+    const start = performance.now()
     const inData: IProcessEventListenerJob = job.data
     const { events, blockNumber } = inData
 
@@ -383,6 +385,11 @@ function processEventJob({
         blockNumber,
         service,
       })
+
+      if (events.length > 0) {
+        const endTime = performance.now()
+        _logger.info(`Passed ${events.length} events in ${endTime - start} ms`)
+      }
     } catch (e) {
       _logger.error(e, 'Error in user defined listener processing function')
       throw e

@@ -284,6 +284,7 @@ export class State {
   async getAndIncrementNonce(oracleAddress: string): Promise<number> {
     return await this.mutex.runExclusive(async () => {
       const nonce = this.nonces[oracleAddress]
+      this.logger.info(`nonce for ${oracleAddress} is ${nonce}`)
       this.nonces[oracleAddress] = nonce + 1
 
       return nonce
