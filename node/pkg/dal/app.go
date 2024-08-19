@@ -7,13 +7,12 @@ import (
 	"time"
 
 	"bisonai.com/orakl/node/pkg/common/types"
-	"bisonai.com/orakl/node/pkg/dal/api"
+	"bisonai.com/orakl/node/pkg/dal/apiv2"
 	"bisonai.com/orakl/node/pkg/dal/collector"
-	"bisonai.com/orakl/node/pkg/dal/utils/initializer"
+	"bisonai.com/orakl/node/pkg/dal/hub"
 	"bisonai.com/orakl/node/pkg/dal/utils/keycache"
 	"bisonai.com/orakl/node/pkg/utils/request"
 
-	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog/log"
 )
 
@@ -41,30 +40,18 @@ func Run(ctx context.Context) error {
 		log.Error().Err(err).Msg("Failed to setup collector")
 		return err
 	}
+	collector.Start(ctx)
 
-	hub := api.HubSetup(ctx, configs)
+	hub := hub.HubSetup(ctx, configs)
+	go hub.Start(ctx, collector)
 
-	app, err := initializer.Setup(ctx, collector, hub, keyCache)
+	err = apiv2.Start(ctx, apiv2.WithCollector(collector), apiv2.WithHub(hub), apiv2.WithKeyCache(keyCache))
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to setup DAL API server")
+		log.Error().Err(err).Msg("Failed to start DAL WS server")
 		return err
 	}
-	defer func() {
-		_ = app.Shutdown()
-	}()
 
-	v1 := app.Group("")
-	v1.Get("/", func(c *fiber.Ctx) error {
-		return c.SendString("Orakl Node DAL API")
-	})
-	api.Routes(v1)
-
-	port := os.Getenv("DAL_API_PORT")
-	if port == "" {
-		port = "8090"
-	}
-
-	return app.Listen(":" + port)
+	return nil
 }
 
 func fetchConfigs(ctx context.Context, endpoint string) ([]Config, error) {

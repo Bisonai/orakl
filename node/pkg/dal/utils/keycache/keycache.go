@@ -1,14 +1,22 @@
 package keycache
 
 import (
+	"context"
 	"sync"
 	"time"
+
+	"bisonai.com/orakl/node/pkg/db"
+	"github.com/rs/zerolog/log"
 )
 
 type KeyCache struct {
 	mu   sync.RWMutex
 	keys map[string]time.Time
 	ttl  time.Duration
+}
+
+type DBKeyResult struct {
+	Exist bool `db:"exists"`
 }
 
 func NewAPIKeyCache(ttl time.Duration) *KeyCache {
@@ -50,4 +58,12 @@ func (c *KeyCache) Cleanup() {
 			delete(c.keys, key)
 		}
 	}
+}
+
+func ValidateApiKeyFromDB(ctx context.Context, apiKey string) bool {
+	res, err := db.QueryRow[DBKeyResult](ctx, "SELECT true as exists FROM keys WHERE key = @key", map[string]any{"key": apiKey})
+	if err != nil {
+		log.Error().Err(err).Msg("Error validating API key")
+	}
+	return res.Exist && err == nil
 }

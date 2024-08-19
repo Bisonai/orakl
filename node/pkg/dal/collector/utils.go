@@ -86,20 +86,12 @@ func orderProof(ctx context.Context, proof []byte, value int64, timestamp time.T
 	}
 
 	hash := chainutils.Value2HashForSign(value, timestamp.UnixMilli(), symbol)
-	log.Debug().Int("len", len(proofChunks)).Any("chunks", proofChunks).Msg("proof chunks")
 
 	signers, err := getSignerListFromProofs(hash, proofChunks)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to get signer list from proofs in orderProof")
 		return nil, err
 	}
-
-	signersHex := make([]string, 0, len(signers))
-	for _, signer := range signers {
-		signersHex = append(signersHex, signer.Hex())
-	}
-
-	log.Debug().Int("len", len(signers)).Any("signers", signersHex).Msg("signers")
 
 	err = checkForNonWhitelistedSigners(signers, cachedWhitelist)
 	if err != nil {

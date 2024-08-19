@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"bisonai.com/orakl/node/pkg/dal/api"
 	"bisonai.com/orakl/node/pkg/dal/common"
+	"bisonai.com/orakl/node/pkg/dal/hub"
 	wsfcommon "bisonai.com/orakl/node/pkg/websocketfetcher/common"
 	"bisonai.com/orakl/node/pkg/wss"
 	"github.com/rs/zerolog/log"
@@ -47,7 +47,6 @@ func TestCollectorStream(t *testing.T) {
 			t.Logf("Cleanup failed: %v", cleanupErr)
 		}
 	}()
-	go testItems.App.Listen(":8090")
 
 	time.Sleep(20 * time.Millisecond)
 
@@ -56,7 +55,7 @@ func TestCollectorStream(t *testing.T) {
 	assert.True(t, collector.IsRunning)
 
 	headers := map[string]string{"X-API-Key": testItems.ApiKey}
-	conn, err := wss.NewWebsocketHelper(ctx, wss.WithEndpoint("ws://localhost:8090/ws"), wss.WithRequestHeaders(headers))
+	conn, err := wss.NewWebsocketHelper(ctx, wss.WithEndpoint(testItems.MockDal.URL+"/ws"), wss.WithRequestHeaders(headers))
 	if err != nil {
 		t.Fatalf("error creating websocket helper: %v", err)
 	}
@@ -66,7 +65,7 @@ func TestCollectorStream(t *testing.T) {
 		t.Fatalf("error dialing websocket: %v", err)
 	}
 
-	err = conn.Write(ctx, api.Subscription{
+	err = conn.Write(ctx, hub.Subscription{
 		Method: "SUBSCRIBE",
 		Params: []string{"submission@test-aggregate"},
 	})

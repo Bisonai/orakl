@@ -13,12 +13,11 @@ import (
 	"bisonai.com/orakl/node/pkg/chain/helper"
 	"bisonai.com/orakl/node/pkg/common/keys"
 	"bisonai.com/orakl/node/pkg/common/types"
-	"bisonai.com/orakl/node/pkg/dal/api"
+	"bisonai.com/orakl/node/pkg/dal/apiv2"
 	"bisonai.com/orakl/node/pkg/dal/collector"
-	"bisonai.com/orakl/node/pkg/dal/utils/initializer"
+	"bisonai.com/orakl/node/pkg/dal/hub"
 	"bisonai.com/orakl/node/pkg/dal/utils/keycache"
 	"bisonai.com/orakl/node/pkg/db"
-	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
@@ -26,11 +25,12 @@ import (
 type Config = types.Config
 
 type TestItems struct {
-	App        *fiber.App
+	App        *apiv2.ServerV2
 	Collector  *collector.Collector
-	Controller *api.Hub
+	Controller *hub.Hub
 	TmpConfig  Config
 	MockAdmin  *httptest.Server
+	MockDal    *httptest.Server
 	ApiKey     string
 }
 
@@ -108,34 +108,27 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 		log.Error().Err(err).Msg("Failed to setup DAL API server")
 		return nil, nil, err
 	}
+	collector.Start(ctx)
 
-	hub := api.HubSetup(ctx, configs)
+	hub := hub.HubSetup(ctx, configs)
+	go hub.Start(ctx, collector)
 
-	app, err := initializer.Setup(ctx, collector, hub, keyCache)
-	if err != nil {
-		return nil, nil, err
-	}
-	testItems.App = app
+	server := apiv2.NewServer(collector, keyCache, hub)
+
+	mockDal := httptest.NewServer(server)
+
+	testItems.App = server
 	testItems.Collector = collector
 	testItems.Controller = hub
 	testItems.MockAdmin = mockAdminServer
-
-	v1 := app.Group("")
-	v1.Get("/", func(c *fiber.Ctx) error {
-		return c.SendString("Orakl Node DAL API")
-	})
-	api.Routes(v1)
+	testItems.MockDal = mockDal
 
 	return cleanup(ctx, testItems), testItems, nil
 }
 
 func cleanup(ctx context.Context, testItems *TestItems) func() error {
 	return func() error {
-		err := testItems.App.Shutdown()
-		if err != nil {
-			log.Error().Err(err).Msg("error shutting down app")
-			return err
-		}
+		testItems.MockDal.Close()
 
 		testItems.Collector.Stop()
 		testItems.Controller = nil
