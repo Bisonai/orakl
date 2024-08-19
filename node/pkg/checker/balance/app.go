@@ -320,18 +320,18 @@ func alarm(wallets []Wallet) {
 			continue
 		}
 
-		latestDrainage := wallet.BalanceHistory[len(wallet.BalanceHistory)-1].Balance - wallet.BalanceHistory[len(wallet.BalanceHistory)-2].Balance
-		averageDrainage := getAverageDrainage(wallet.BalanceHistory)
+		// latestDrainage := wallet.BalanceHistory[len(wallet.BalanceHistory)-1].Balance - wallet.BalanceHistory[len(wallet.BalanceHistory)-2].Balance
+		// averageDrainage := getAverageDrainage(wallet.BalanceHistory)
 
-		if latestDrainage > averageDrainage || averageDrainage == 0 {
-			continue
-		}
+		// if latestDrainage > averageDrainage || averageDrainage == 0 {
+		// 	continue
+		// }
 
-		drainageChangeRatio := (averageDrainage - latestDrainage) / math.Abs(averageDrainage)
-		if drainageChangeRatio > MinimalIncreaseThreshold {
-			log.Warn().Str("address", wallet.Address.Hex()).Float64("latestDrainage", latestDrainage).Float64("averageDrainage", averageDrainage).Msg("Increased balance")
-			alarmMessage += fmt.Sprintf("%s balance drained faster by %.2f%% | %s\n", wallet.Address.Hex(), drainageChangeRatio*100, wallet.Tag)
-		}
+		// drainageChangeRatio := (averageDrainage - latestDrainage) / math.Abs(averageDrainage)
+		// if drainageChangeRatio > MinimalIncreaseThreshold {
+		// 	log.Warn().Str("address", wallet.Address.Hex()).Float64("latestDrainage", latestDrainage).Float64("averageDrainage", averageDrainage).Msg("Increased balance")
+		// 	alarmMessage += fmt.Sprintf("%s balance drained faster by %.2f%% | %s\n", wallet.Address.Hex(), drainageChangeRatio*100, wallet.Tag)
+		// }
 	}
 
 	if alarmMessage != "" {
