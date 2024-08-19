@@ -12,6 +12,7 @@ import (
 	"bisonai.com/orakl/node/pkg/checker/dbcronjob"
 	"bisonai.com/orakl/node/pkg/checker/event"
 	"bisonai.com/orakl/node/pkg/checker/health"
+	"bisonai.com/orakl/node/pkg/checker/inspect"
 	"bisonai.com/orakl/node/pkg/checker/offset"
 	"bisonai.com/orakl/node/pkg/checker/peers"
 	"bisonai.com/orakl/node/pkg/checker/signer"
@@ -157,6 +158,18 @@ func main() {
 	}()
 
 	log.Info().Msg("offset checker started")
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		err := inspect.Start(ctx)
+		if err != nil {
+			log.Error().Err(err).Msg("error starting inspect checker")
+			os.Exit(1)
+		}
+	}()
+
+	log.Info().Msg("inspect checker started")
 
 	wg.Wait()
 }

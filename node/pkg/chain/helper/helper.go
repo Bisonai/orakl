@@ -172,6 +172,10 @@ func (t *ChainHelper) MakeDirectTx(ctx context.Context, contractAddressHex strin
 	return result, err
 }
 
+func (t *ChainHelper) Submit(ctx context.Context, tx *types.Transaction) error {
+	return utils.SubmitRawTx(ctx, t.clients[0], tx)
+}
+
 func (t *ChainHelper) MakeFeeDelegatedTx(ctx context.Context, contractAddressHex string, functionString string, nonce uint64, args ...interface{}) (*types.Transaction, error) {
 	var result *types.Transaction
 	job := func(c utils.ClientInterface) error {
