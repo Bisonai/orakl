@@ -11,6 +11,7 @@ import (
 	"bisonai.com/orakl/node/pkg/dal/collector"
 	"bisonai.com/orakl/node/pkg/dal/hub"
 	"bisonai.com/orakl/node/pkg/dal/utils/keycache"
+	"bisonai.com/orakl/node/pkg/dal/utils/stats"
 	"bisonai.com/orakl/node/pkg/utils/request"
 
 	"github.com/rs/zerolog/log"
@@ -20,6 +21,8 @@ type Config = types.Config
 
 func Run(ctx context.Context) error {
 	log.Debug().Msg("Starting DAL API server")
+
+	stats.Start(ctx)
 
 	keyCache := keycache.NewAPIKeyCache(1 * time.Hour)
 	keyCache.CleanupLoop(10 * time.Minute)
