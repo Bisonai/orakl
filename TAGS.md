@@ -200,3 +200,4 @@
 - **sentinel** v0.0.1.20240819.0806.a1a0c72 <br> *`PR`*: Sentinel Disable offset checke... <br><br> 
 - **request-response** v0.5.1.20240819.1054.d8c7769 <br> *`PR`*: make rr use nonce manager and ... <br><br> 
 - **request-response** v0.5.1.20240819.1120.e3bc4a9 <br> *`PR`*: add rr logs <br><br> 
+- **sentinel** v0.0.1.20240819.1326.d2988e4 <br> *`PR`*: Sentinel Disable drainage chec... <br><br> 
