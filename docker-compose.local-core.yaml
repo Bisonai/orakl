@@ -70,7 +70,7 @@ services:
   json-rpc:
     build:
       context: .
-      dockerfile: dockerfiles/local-data-feed/contracts.Dockerfile
+      dockerfile: dockerfiles/local-vrf-rr/json-rpc.Dockerfile
     image: json-rpc
     expose:
       - "8545"
@@ -88,11 +88,10 @@ services:
     build:
       context: .
       dockerfile: dockerfiles/local-vrf-rr/core-cli-contracts.Dockerfile
+      args:
+        SERVICE: ${SERVICE}
     image: core-cli-contracts
-    volumes:
-      - ./dockerfiles/local-vrf-rr/scripts/setup-${SERVICE}.sh:/setup.sh
     depends_on:
       api:
         condition: service_healthy
     env_file: dockerfiles/local-vrf-rr/envs/.core-cli-contracts.env
-    command: /bin/sh -c "/setup.sh"
