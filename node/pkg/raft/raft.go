@@ -132,15 +132,18 @@ func (r *Raft) handleHeartbeat(msg Message) error {
 	currentRole := r.Role
 	currentTerm := r.Term
 
-	if heartbeatMessage.Term >= currentTerm {
+	if r.Role == Follower {
+		r.startElectionTimer()
+	}
+
+	if heartbeatMessage.Term > currentTerm {
 		if currentRole == Leader {
 			r.ResignLeader()
 		}
-
-		r.Term = max(heartbeatMessage.Term, currentTerm)
+		r.Term = heartbeatMessage.Term
 		r.Role = Follower
 		r.LeaderID = heartbeatMessage.LeaderID
-		r.startElectionTimer()
+
 		return nil
 	}
 
@@ -362,8 +365,8 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 }
 
 func (r *Raft) getRandomElectionTimeout() time.Duration {
-	baseTimeout := r.HeartbeatTimeout * 9
-	jitter := time.Duration(rand.Int63n(int64(baseTimeout / 10))) // 10% jitter
+	baseTimeout := r.HeartbeatTimeout * 5
+	jitter := time.Duration(rand.Int63n(int64(r.HeartbeatTimeout * 5)))
 	return baseTimeout + jitter
 }
 

@@ -72,8 +72,6 @@ func (n *Aggregator) Run(ctx context.Context) {
 }
 
 func (n *Aggregator) LeaderJob(ctx context.Context) error {
-	n.Raft.IncreaseTerm()
-
 	n.mu.Lock()
 	defer n.mu.Unlock()
 	n.RoundID += 1
