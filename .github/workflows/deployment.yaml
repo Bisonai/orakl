@@ -103,6 +103,7 @@ on:
           - sentinel:v0.0.1.20240816.0639.71fe82c:API Add missing version file
           - node:v0.0.1.20240816.0727.3a913ee:HOTFIX Hotfix sync error
           - node:v0.0.1.20240819.0130.f2bd8e4:OraklNode Update raft implemen...
+          - dal:v0.0.1.20240819.0334.4efcb62:OraklNode Update raft implemen...
 jobs:
   prepare-taskflow:
     name: Prepare
