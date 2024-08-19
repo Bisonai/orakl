@@ -153,8 +153,14 @@ func (t *ChainHelper) GetSignedFromDelegator(tx *types.Transaction) (*types.Tran
 	return utils.HashToTx(*result.SignedRawTx)
 }
 
-func (t *ChainHelper) MakeDirectTx(ctx context.Context, contractAddressHex string, functionString string, nonce uint64, args ...interface{}) (*types.Transaction, error) {
+func (t *ChainHelper) MakeDirectTx(ctx context.Context, contractAddressHex string, functionString string, args ...interface{}) (*types.Transaction, error) {
 	var result *types.Transaction
+
+	nonce, err := noncemanager.GetAndIncrementNonce(t.wallet)
+	if err != nil {
+		return result, err
+	}
+
 	job := func(c utils.ClientInterface) error {
 		tmp, err := utils.MakeDirectTx(ctx, c, contractAddressHex, t.wallet, functionString, t.chainID, nonce, args...)
 		if err == nil {
@@ -162,7 +168,7 @@ func (t *ChainHelper) MakeDirectTx(ctx context.Context, contractAddressHex strin
 		}
 		return err
 	}
-	err := t.retryOnJsonRpcFailure(ctx, job)
+	err = t.retryOnJsonRpcFailure(ctx, job)
 	return result, err
 }
 

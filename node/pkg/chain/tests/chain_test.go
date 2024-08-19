@@ -140,7 +140,7 @@ func TestMakeDirectTx(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		directTx, err := kaiaHelper.MakeDirectTx(ctx, test.contractAddress, test.functionString, 0)
+		directTx, err := kaiaHelper.MakeDirectTx(ctx, test.contractAddress, test.functionString)
 		if err != nil {
 			if err.Error() != test.expectedError.Error() {
 				t.Errorf("Test case %s: Expected error '%v', but got '%v'", test.name, test.expectedError, err)
