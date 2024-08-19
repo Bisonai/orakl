@@ -193,3 +193,4 @@
 - **node** v0.0.1.20240816.0628.8614a4b <br> *`PR`*: API Add missing version file <br><br> 
 - **sentinel** v0.0.1.20240816.0639.71fe82c <br> *`PR`*: API Add missing version file <br><br> 
 - **node** v0.0.1.20240816.0727.3a913ee <br> *`PR`*: HOTFIX Hotfix sync error <br><br> 
+- **node** v0.0.1.20240819.0130.f2bd8e4 <br> *`PR`*: OraklNode Update raft implemen... <br><br> 
