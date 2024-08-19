@@ -39,6 +39,6 @@
     "monitor": "yarn workspace @bisonai/orakl-monitor",
     "vrf": "yarn workspace @bisonai/orakl-vrf",
     "util": "yarn workspace @bisonai/orakl-util",
-    "prepare": "husky install && chmod +x .husky/pre-commit"
+    "prepare": "husky && chmod +x .husky/pre-commit"
   }
 }

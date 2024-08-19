@@ -28,10 +28,10 @@ const FILE_NAME = import.meta.url
 
 export async function worker(redisClient: RedisClientType, _logger: Logger) {
   const logger = _logger.child({ name: 'worker', file: FILE_NAME })
-  const queue = new Queue(NONCE_MANAGER_REQUEST_RESPONSE_QUEUE_NAME, BULLMQ_CONNECTION)
+  const nonceManagerQueue = new Queue(NONCE_MANAGER_REQUEST_RESPONSE_QUEUE_NAME, BULLMQ_CONNECTION)
   const worker = new Worker(
     WORKER_REQUEST_RESPONSE_QUEUE_NAME,
-    await job(queue, _logger),
+    await job(nonceManagerQueue, _logger),
     BULLMQ_CONNECTION,
   )
 
@@ -45,7 +45,7 @@ export async function worker(redisClient: RedisClientType, _logger: Logger) {
   process.on('SIGTERM', handleExit)
 }
 
-export async function job(reporterQueue: QueueType, _logger: Logger) {
+export async function job(nonceManagerQueue: QueueType, _logger: Logger) {
   const logger = _logger.child({ name: 'job', file: FILE_NAME })
   const iface = new ethers.utils.Interface(RequestResponseCoordinator__factory.abi)
 
@@ -78,7 +78,7 @@ export async function job(reporterQueue: QueueType, _logger: Logger) {
       )
       logger.debug(tx, 'tx')
 
-      await reporterQueue.add('request-response', tx, {
+      await nonceManagerQueue.add('request-response', tx, {
         jobId: inData.requestId,
         ...WORKER_JOB_SETTINGS,
       })

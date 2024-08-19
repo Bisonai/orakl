@@ -1,6 +1,7 @@
 import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
 import {
+  CONCURRENCY,
   NONCE_MANAGER_REQUEST_RESPONSE_QUEUE_NAME,
   REPORTER_REQUEST_RESPONSE_QUEUE_NAME,
   REQUEST_RESPONSE_REPORTER_STATE_NAME,
@@ -15,7 +16,7 @@ export async function buildReporter(redisClient: RedisClientType, logger: Logger
     service: REQUEST_RESPONSE_SERVICE_NAME,
     nonceManagerQueueName: NONCE_MANAGER_REQUEST_RESPONSE_QUEUE_NAME,
     reporterQueueName: REPORTER_REQUEST_RESPONSE_QUEUE_NAME,
-    concurrency: 1,
+    concurrency: CONCURRENCY,
     delegatedFee: false,
     _logger: logger,
   })
