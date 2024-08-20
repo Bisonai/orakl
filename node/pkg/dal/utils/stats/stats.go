@@ -36,7 +36,30 @@ const (
 	DefaultBufferSize           = 20000
 )
 
-var restEntryBuffer chan *RestEntry
+type StatsAppConfig struct {
+	BulkLogsCopyInterval time.Duration
+	BufferSize           int
+}
+
+type StatsOption func(*StatsAppConfig)
+
+func WithBulkLogsCopyInterval(interval time.Duration) StatsOption {
+	return func(config *StatsAppConfig) {
+		config.BulkLogsCopyInterval = interval
+	}
+}
+
+func WithBufferSize(size int) StatsOption {
+	return func(config *StatsAppConfig) {
+		config.BufferSize = size
+	}
+}
+
+type StatsApp struct {
+	BulkLogsCopyInterval time.Duration
+	RestEntryBuffer      chan *RestEntry
+	Cancel               context.CancelFunc
+}
 
 type WebsocketId struct {
 	Id int32 `db:"id"`
@@ -49,10 +72,39 @@ type RestEntry struct {
 	ResponseTime time.Duration
 }
 
-func Start(ctx context.Context) {
-	restEntryBuffer = make(chan *RestEntry, DefaultBufferSize)
-	ticker := time.NewTicker(DefaultBufferSize)
+func NewStatsApp(ctx context.Context, opts ...StatsOption) *StatsApp {
+	_, cancel := context.WithCancel(ctx)
+
+	config := &StatsAppConfig{
+		BulkLogsCopyInterval: DefaultBulkLogsCopyInterval,
+		BufferSize:           DefaultBufferSize,
+	}
+
+	for _, opt := range opts {
+		opt(config)
+	}
+
+	return &StatsApp{
+		BulkLogsCopyInterval: config.BulkLogsCopyInterval,
+		RestEntryBuffer:      make(chan *RestEntry, config.BufferSize),
+		Cancel:               cancel,
+	}
+}
+
+func Start(ctx context.Context) *StatsApp {
+	app := NewStatsApp(ctx)
+	go app.Run(ctx)
+	return app
+}
+
+func (a *StatsApp) Stop() {
+	a.Cancel()
+}
+
+func (a *StatsApp) Run(ctx context.Context) {
+	ticker := time.NewTicker(a.BulkLogsCopyInterval)
 	defer ticker.Stop()
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -62,7 +114,7 @@ func Start(ctx context.Context) {
 		loop:
 			for {
 				select {
-				case entry := <-restEntryBuffer:
+				case entry := <-a.RestEntryBuffer:
 					bulkCopyEntries = append(bulkCopyEntries, []any{entry.ApiKey, entry.Endpoint, entry.StatusCode, entry.ResponseTime.Microseconds()})
 				default:
 					break loop
@@ -77,6 +129,37 @@ func Start(ctx context.Context) {
 			}
 		}
 	}
+}
+
+func (a *StatsApp) RequestLoggerMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		sl := NewStatsLogger(w)
+		w.Header()
+		defer func() {
+			key := r.Header.Get("X-API-Key")
+			if key == "" {
+				log.Warn().Msg("X-API-Key header is empty")
+				return
+			}
+
+			endpoint := r.RequestURI
+			if endpoint == "/" {
+				return
+			}
+
+			statusCode := sl.statusCode
+			responseTime := time.Since(start)
+
+			a.RestEntryBuffer <- &RestEntry{
+				ApiKey:       key,
+				Endpoint:     endpoint,
+				StatusCode:   *statusCode,
+				ResponseTime: responseTime,
+			}
+		}()
+		next.ServeHTTP(sl, r)
+	})
 }
 
 func InsertRestCall(ctx context.Context, apiKey string, endpoint string, statusCode int, responseTime time.Duration) error {
@@ -112,37 +195,6 @@ func InsertWebsocketSubscriptions(ctx context.Context, connectionId int32, topic
 	}
 
 	return db.BulkInsert(ctx, "websocket_subscriptions", []string{"connection_id", "topic"}, entries)
-}
-
-func RequestLoggerMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		start := time.Now()
-		sl := NewStatsLogger(w)
-		w.Header()
-		defer func() {
-			key := r.Header.Get("X-API-Key")
-			if key == "" {
-				log.Warn().Msg("X-API-Key header is empty")
-				return
-			}
-
-			endpoint := r.RequestURI
-			if endpoint == "/" {
-				return
-			}
-
-			statusCode := sl.statusCode
-			responseTime := time.Since(start)
-
-			restEntryBuffer <- &RestEntry{
-				ApiKey:       key,
-				Endpoint:     endpoint,
-				StatusCode:   *statusCode,
-				ResponseTime: responseTime,
-			}
-		}()
-		next.ServeHTTP(sl, r)
-	})
 }
 
 type StatsLogger struct {

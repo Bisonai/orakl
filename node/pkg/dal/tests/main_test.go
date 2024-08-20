@@ -17,6 +17,7 @@ import (
 	"bisonai.com/orakl/node/pkg/dal/collector"
 	"bisonai.com/orakl/node/pkg/dal/hub"
 	"bisonai.com/orakl/node/pkg/dal/utils/keycache"
+	"bisonai.com/orakl/node/pkg/dal/utils/stats"
 	"bisonai.com/orakl/node/pkg/db"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -32,6 +33,7 @@ type TestItems struct {
 	MockAdmin  *httptest.Server
 	MockDal    *httptest.Server
 	ApiKey     string
+	StatsApp   *stats.StatsApp
 }
 
 func testPublishData(ctx context.Context, submissionData aggregator.SubmissionData) error {
@@ -113,7 +115,10 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 	hub := hub.HubSetup(ctx, configs)
 	go hub.Start(ctx, collector)
 
-	server := apiv2.NewServer(collector, keyCache, hub)
+	statsApp := stats.NewStatsApp(ctx, stats.WithBulkLogsCopyInterval(1*time.Second))
+	go statsApp.Run(ctx)
+
+	server := apiv2.NewServer(collector, keyCache, hub, statsApp)
 
 	mockDal := httptest.NewServer(server)
 
@@ -122,6 +127,7 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 	testItems.Controller = hub
 	testItems.MockAdmin = mockAdminServer
 	testItems.MockDal = mockDal
+	testItems.StatsApp = statsApp
 
 	return cleanup(ctx, testItems), testItems, nil
 }
@@ -129,6 +135,7 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 func cleanup(ctx context.Context, testItems *TestItems) func() error {
 	return func() error {
 		testItems.MockDal.Close()
+		testItems.StatsApp.Stop()
 
 		testItems.Collector.Stop()
 		testItems.Controller = nil

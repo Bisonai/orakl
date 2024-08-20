@@ -49,7 +49,7 @@ func Start(ctx context.Context, opts ...ServerV2Option) error {
 		return err
 	}
 
-	wsServer := NewServer(config.Collector, config.KeyCache, config.Hub)
+	wsServer := NewServer(config.Collector, config.KeyCache, config.Hub, config.StatsApp)
 	httpServer := &http.Server{
 		Handler: wsServer,
 		BaseContext: func(_ net.Listener) context.Context {
@@ -65,7 +65,7 @@ func Start(ctx context.Context, opts ...ServerV2Option) error {
 	return nil
 }
 
-func NewServer(collector *collector.Collector, keyCache *keycache.KeyCache, hub *hub.Hub) *ServerV2 {
+func NewServer(collector *collector.Collector, keyCache *keycache.KeyCache, hub *hub.Hub, statsApp *stats.StatsApp) *ServerV2 {
 	s := &ServerV2{
 		collector: collector,
 		keyCache:  keyCache,
@@ -83,7 +83,7 @@ func NewServer(collector *collector.Collector, keyCache *keycache.KeyCache, hub 
 	serveMux.HandleFunc("GET /latest-data-feeds/{symbols}", s.LatestFeedsHandler)
 
 	// Apply the RequestLoggerMiddleware to the ServeMux
-	loggedMux := stats.RequestLoggerMiddleware(serveMux)
+	loggedMux := statsApp.RequestLoggerMiddleware(serveMux)
 
 	s.handler = loggedMux
 
