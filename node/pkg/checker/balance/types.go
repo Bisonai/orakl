@@ -12,8 +12,8 @@ const (
 	oraklDelegatorEndpoint   = "/sign/feePayer"
 	porEndpoint              = "/address"
 	DefaultRRMinimum         = 1
-	BalanceHistoryTTL        = 10 * time.Minute
-	MinimalIncreaseThreshold = 0.05
+	BalanceHistoryTTL        = 60 * time.Minute
+	MinimalIncreaseThreshold = 0.5
 )
 
 var SubmitterAlarmAmount float64
