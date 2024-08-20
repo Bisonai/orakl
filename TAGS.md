@@ -204,3 +204,4 @@
 - **node** v0.0.1.20240820.0233.893d589 <br> *`PR`*: OraklNode Update cryptocom end... <br><br> 
 - **node** v0.0.1.20240820.0501.06be7a6 <br> *`PR`*: OraklNode fix wrong quantity f... <br><br> 
 - **logscribe** v0.0.1.20240820.0623.3140765 <br> *`PR`*: decrease copy logs interval an... <br><br> 
+- **reporter** v0.0.1.20240820.0624.3140765 <br> *`PR`*: decrease copy logs interval an... <br><br> 
