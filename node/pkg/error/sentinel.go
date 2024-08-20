@@ -233,7 +233,7 @@ var (
 	ErrLogEmptyLogByte      = &CustomError{Service: Others, Code: InvalidInputError, Message: "Empty log byte"}
 
 	ErrLogscribeDbPoolNotFound            = &CustomError{Service: Logscribe, Code: InternalError, Message: "db pool not found"}
-	ErrLogscribeInsertFailed              = &CustomError{Service: Logscribe, Code: DatabaseError, Message: "Failed to insert logs to Logscribe"}
+	ErrLogscribeInsertFailed              = &CustomError{Service: Logscribe, Code: InternalError, Message: "Failed to insert logs to Logscribe"}
 	ErrLogscribeServiceNotExist           = &CustomError{Service: Logscribe, Code: InvalidInputError, Message: "Service field not found in log entry"}
 	ErrLogscribeGithubCredentialsNotFound = &CustomError{Service: Logscribe, Code: InternalError, Message: "Github credentials not found"}
 	ErrLogscribeFailedToCreateGithubIssue = &CustomError{Service: Logscribe, Code: InternalError, Message: "Failed to create github issue"}

@@ -29,7 +29,7 @@ const (
 	readDeleteLogsQuery         = `DELETE FROM logs WHERE service = @service RETURNING service, timestamp, level, message, fields;`
 	logAlreadyProcessedQuery    = `SELECT COUNT(*) FROM processed_logs WHERE log_hash = @hash`
 	GetServicesQuery            = `SELECT DISTINCT service FROM logs;`
-	DefaultBulkLogsCopyInterval = 10 * time.Minute
+	DefaultBulkLogsCopyInterval = 1 * time.Minute
 )
 
 func New(ctx context.Context, options ...LogProcessingOption) (*LogProcessor, error) {

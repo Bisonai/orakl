@@ -113,7 +113,6 @@ func (a *App) Run(ctx context.Context) {
 			for _, err := range errors {
 				log.Err(err).Msg("log batch process failure")
 			}
-
 		}
 	}
 }
@@ -196,9 +195,10 @@ func (a *App) bulkPostLogEntries(logEntries []map[string]any) error {
 			return err
 		}
 		if res.StatusCode != http.StatusOK {
+			log.Error().Msgf("Failed to insert log entries, status code: %d", res.StatusCode)
 			return errorsentinel.ErrLogscribeInsertFailed
 		}
-		log.Debug().Msg("Log entries inserted successfully")
+		log.Info().Msgf("%d log entries inserted successfully", len(bulkPostEntries))
 	}
 	return nil
 }
