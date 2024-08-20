@@ -207,3 +207,4 @@
 - **reporter** v0.0.1.20240820.0624.3140765 <br> *`PR`*: decrease copy logs interval an... <br><br> 
 - **logscribe** v0.0.1.20240820.0715.5aab78e <br> *`PR`*: add more logs to reporter and ... <br><br> 
 - **reporter** v0.0.1.20240820.0715.5aab78e <br> *`PR`*: add more logs to reporter and ... <br><br> 
+- **reporter** v0.0.1.20240820.0827.9fc9b65 <br> *`PR`*: provide default error logscrib... <br><br> 
