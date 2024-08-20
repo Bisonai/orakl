@@ -3,6 +3,7 @@ package fetcher
 import (
 	"context"
 	"fmt"
+	"math"
 	"os"
 	"time"
 
@@ -89,7 +90,13 @@ func (c *LocalAggregator) processFXPricePair(ctx context.Context, feeds []*FeedD
 }
 
 func (c *LocalAggregator) processVolumeWeightedFeeds(ctx context.Context, feeds []*FeedData) error {
-	volumeWeightedFeeds, medianFeeds := partitionFeeds(feeds)
+	filtered, err := filterOutliers(feeds)
+	if err != nil {
+		log.Error().Err(err).Str("Player", "LocalAggregator").Msg("error in filterOutliers in localAggregator")
+		return err
+	}
+
+	volumeWeightedFeeds, medianFeeds := partitionFeeds(filtered)
 	vwap, err := calculateVWAP(volumeWeightedFeeds)
 	if err != nil {
 		log.Error().Err(err).Str("Player", "LocalAggregator").Msg("error in calculateVWAP in localAggregator")
@@ -104,6 +111,24 @@ func (c *LocalAggregator) processVolumeWeightedFeeds(ctx context.Context, feeds 
 	log.Debug().Str("Player", "LocalAggregator").Msg(fmt.Sprintf("VWAP: %f Median: %f", vwap, median))
 	aggregated := calculateAggregatedPrice(vwap, median)
 	return c.streamLocalAggregate(ctx, aggregated)
+}
+
+func filterOutliers(feeds []*FeedData) ([]*FeedData, error) {
+	median, err := calculateMedian(feeds)
+	if err != nil {
+		return nil, err
+	}
+
+	var filteredFeeds []*FeedData
+	for _, feed := range feeds {
+		price := feed.Value
+		priceDifference := math.Abs((median - price) / median)
+		if priceDifference > OutlierThreshold {
+			continue
+		}
+		filteredFeeds = append(filteredFeeds, feed)
+	}
+	return filteredFeeds, nil
 }
 
 func partitionFeeds(feeds []*FeedData) ([]*FeedData, []*FeedData) {
