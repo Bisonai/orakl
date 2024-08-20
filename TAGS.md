@@ -208,3 +208,4 @@
 - **logscribe** v0.0.1.20240820.0715.5aab78e <br> *`PR`*: add more logs to reporter and ... <br><br> 
 - **reporter** v0.0.1.20240820.0715.5aab78e <br> *`PR`*: add more logs to reporter and ... <br><br> 
 - **reporter** v0.0.1.20240820.0827.9fc9b65 <br> *`PR`*: provide default error logscrib... <br><br> 
+- **reporter** v0.0.1.20240820.0933.6582edb <br> *`PR`*: cleanup reporter and logscribe... <br><br> 
