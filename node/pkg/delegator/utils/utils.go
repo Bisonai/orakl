@@ -5,7 +5,7 @@ import (
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
-	"log"
+
 	"os"
 	"runtime/debug"
 	"strconv"
@@ -21,6 +21,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/klaytn/klaytn/crypto"
+	"github.com/rs/zerolog/log"
 )
 
 type FeePayer struct {
@@ -118,7 +119,7 @@ func CustomErrorHandler(c *fiber.Ctx, err error) error {
 
 	// Return status code with error message
 	// | ${status} | ${ip} | ${method} | ${path} | ${error}",
-	log.Printf("| %d | %s | %s | %s | %s\n", code, c.IP(), c.Method(), c.Path(), err.Error())
+	log.Error().Err(err).Str("call info", fmt.Sprintf("| %d | %s | %s | %s | %s\n", code, c.IP(), c.Method(), c.Path(), err.Error()))
 	return c.Status(code).SendString(err.Error())
 }
 
@@ -135,7 +136,7 @@ func CustomStackTraceHandler(_ *fiber.Ctx, e interface{}) {
 			break
 		}
 	}
-	log.Printf("| (%s) panic: %v \n", failPoint, e)
+	log.Debug().Any("stacktrace", stackTrace).Str("failPoint", failPoint).Msgf("panic: %v", e)
 	_, _ = os.Stderr.WriteString(fmt.Sprintf("%s\n", debug.Stack())) //nolint:errcheck // This will never fail
 }
 
