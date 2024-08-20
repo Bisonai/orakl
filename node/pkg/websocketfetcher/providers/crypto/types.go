@@ -1,6 +1,6 @@
 package crypto
 
-const URL = "wss://stream.crypto.com/v2/market"
+const URL = "wss://stream.crypto.com/exchange/v1/market"
 
 type Subscription struct {
 	Method string `json:"method"`
