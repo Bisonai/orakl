@@ -22,10 +22,14 @@ func New(options ...AppOption) (*App, error) {
 		postToLogscribe = true
 	}
 
+	logscribeLevelStr := os.Getenv("LOGSCRIBE_LOG_LEVEL")
+	if logscribeLevelStr == "" {
+		logscribeLevelStr = "error"
+	}
 	c := &AppConfig{
 		StoreInterval:     DefaultLogStoreInterval,
 		Buffer:            DefaultBufferSize,
-		Level:             os.Getenv("LOGSCRIBE_LOG_LEVEL"),
+		Level:             logscribeLevelStr,
 		PostToLogscribe:   postToLogscribe,
 		LogscribeEndpoint: DefaultLogscribeEndpoint,
 	}
