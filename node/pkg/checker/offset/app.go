@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 
 	"bisonai.com/orakl/node/pkg/alert"
 	"bisonai.com/orakl/node/pkg/db"
@@ -19,57 +20,71 @@ import (
 )
 
 const (
-	Threshold                = 5 * time.Second
+	PriceDifferenceThreshold = 0.1
+	DelayThreshold           = 5 * time.Second
 	DefaultCheckInterval     = 5 * time.Minute
-	GetLocalAggregateOffsets = `WITH latest_local_aggregate AS (
+
+	GetSingleLocalAggregateOffset = `SELECT
+	EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - timestamp)) AS delay_in_seconds
+FROM
+	local_aggregates
+WHERE
+	config_id = '%d'
+ORDER BY timestamp DESC
+LIMIT 1`
+
+	GetSingleGlobalAggregateOffset = `SELECT
+	EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - timestamp)) AS delay_in_seconds
+FROM
+	global_aggregates
+WHERE
+	config_id = '%d'
+ORDER BY timestamp DESC
+LIMIT 1`
+
+	GetSingleLatestAggregates = `WITH latest_local_aggregate AS (
 	SELECT
 		la.config_id,
-		MAX(la.timestamp) AS latest_timestamp
+		la.value AS local_aggregate
 	FROM
 		local_aggregates la
-	GROUP BY
-		la.config_id
+	WHERE
+		la.config_id = '%d'
+	ORDER BY
+		la.timestamp DESC
+	LIMIT 1
 ),
-aggregates_with_configs AS (
+latest_global_aggregate AS (
 	SELECT
-		c.name,
-		lca.latest_timestamp
-	FROM
-		latest_local_aggregate lca
-		JOIN configs c ON lca.config_id = c.id
-)
-SELECT
-	awc.name,
-	EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - awc.latest_timestamp)) AS delay_in_seconds
-FROM
-	aggregates_with_configs awc`
-	GetGlobalAggregateOffsets = `WITH latest_global_aggregate AS (
-	SELECT
-		ga.config_id,
-		MAX(ga.timestamp) AS latest_timestamp
+	 ga.config_id,
+	 ga.value AS global_aggregate
 	FROM
 		global_aggregates ga
-	GROUP BY
-		ga.config_id
-),
-aggregates_with_configs AS (
-	SELECT
-		c.name,
-		lga.latest_timestamp
-	FROM
-		latest_global_aggregate lga
-		JOIN configs c ON lga.config_id = c.id
+	WHERE
+		ga.config_id = '%d'
+	ORDER BY ga.timestamp DESC
+	LIMIT 1
 )
 SELECT
-	awc.name,
-	EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - awc.latest_timestamp)) AS delay_in_seconds
+ la.local_aggregate,
+ ga.global_aggregate
 FROM
-	aggregates_with_configs awc`
+ latest_local_aggregate la
+ JOIN latest_global_aggregate ga on la.config_id = ga.config_id`
 )
 
-type OffsetResult struct {
-	Name  string  `db:"name"`
+type Config struct {
+	ID   int32  `db:"id"`
+	Name string `db:"name"`
+}
+
+type OffsetResultEach struct {
 	Delay float64 `db:"delay_in_seconds"`
+}
+
+type LatestAggregateEach struct {
+	LocalAggregate  float64 `db:"local_aggregate"`
+	GlobalAggregate float64 `db:"global_aggregate"`
 }
 
 func Start(ctx context.Context) error {
@@ -104,30 +119,43 @@ func Start(ctx context.Context) error {
 func checkOffsets(ctx context.Context, serviceDB *pgxpool.Pool) {
 	msg := ""
 
-	localAggregateOffsetResults, err := db.QueryRowsTransient[OffsetResult](ctx, serviceDB, GetLocalAggregateOffsets, nil)
+	loadedConfigs, err := db.QueryRowsTransient[Config](ctx, serviceDB, "SELECT id, name FROM configs", nil)
 	if err != nil {
-		log.Error().Err(err).Msg("Error getting local aggregate offsets")
+		log.Error().Err(err).Msg("Error getting configs")
 		return
 	}
 
-	for _, result := range localAggregateOffsetResults {
-		log.Debug().Str("name", result.Name).Float64("delay", result.Delay).Msg("local aggregate offset")
-		if result.Delay > Threshold.Seconds() {
-			msg += fmt.Sprintf("(local aggregate offset delayed) %s: %v seconds\n", result.Name, result.Delay)
+	for _, config := range loadedConfigs {
+		log.Debug().Int32("id", config.ID).Str("name", config.Name).Msg("checking config offset")
+		localAggregateOffsetResult, err := db.QueryRowTransient[OffsetResultEach](ctx, serviceDB, fmt.Sprintf(GetSingleLocalAggregateOffset, config.ID), nil)
+		if err != nil {
+			log.Error().Err(err).Msg("Error getting local aggregate offset")
+			return
 		}
-	}
-
-	globalAggregateOffsetResults, err := db.QueryRowsTransient[OffsetResult](ctx, serviceDB, GetGlobalAggregateOffsets, nil)
-	if err != nil {
-		log.Error().Err(err).Msg("Error getting global aggregate offsets")
-		return
-	}
-
-	for _, result := range globalAggregateOffsetResults {
-		log.Debug().Str("name", result.Name).Float64("delay", result.Delay).Msg("global aggregate offset")
-		if result.Delay > Threshold.Seconds() {
-			msg += fmt.Sprintf("(global aggregate offset delayed) %s: %v seconds\n", result.Name, result.Delay)
+		if localAggregateOffsetResult.Delay > DelayThreshold.Seconds() {
+			msg += fmt.Sprintf("(local aggregate offset delayed) %s: %v seconds\n", config.Name, localAggregateOffsetResult.Delay)
 		}
+
+		globalAggregateOffsetResult, err := db.QueryRowTransient[OffsetResultEach](ctx, serviceDB, fmt.Sprintf(GetSingleGlobalAggregateOffset, config.ID), nil)
+		if err != nil {
+			log.Error().Err(err).Msg("Error getting global aggregate offset")
+			return
+		}
+		if globalAggregateOffsetResult.Delay > DelayThreshold.Seconds() {
+			msg += fmt.Sprintf("(global aggregate offset delayed) %s: %v seconds\n", config.Name, globalAggregateOffsetResult.Delay)
+		}
+
+		latestAggregateResult, err := db.QueryRowTransient[LatestAggregateEach](ctx, serviceDB, fmt.Sprintf(GetSingleLatestAggregates, config.ID, config.ID), nil)
+		if err != nil {
+			log.Error().Err(err).Msg("Error getting latest aggregate")
+			return
+		}
+
+		if math.Abs(latestAggregateResult.LocalAggregate-latestAggregateResult.GlobalAggregate)/latestAggregateResult.LocalAggregate > PriceDifferenceThreshold {
+			msg += fmt.Sprintf("(latest aggregate price difference) %s: %v (globalAggregate: %v, localAggregate: %v)\n", config.Name, latestAggregateResult.LocalAggregate-latestAggregateResult.GlobalAggregate, latestAggregateResult.GlobalAggregate, latestAggregateResult.LocalAggregate)
+		}
+
+		time.Sleep(500 * time.Millisecond) // sleep to reduce pgsql stress
 	}
 
 	if msg != "" {
