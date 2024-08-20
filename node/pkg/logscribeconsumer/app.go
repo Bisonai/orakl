@@ -194,7 +194,7 @@ func (a *App) bulkPostLogEntries(logEntries []map[string]any) error {
 		bulkPostEntries = append(bulkPostEntries, *res)
 	}
 
-	log.Info().Msgf("Inserting %d log entries", len(bulkPostEntries))
+	log.Debug().Msgf("Inserting %d log entries", len(bulkPostEntries))
 	if len(bulkPostEntries) > 0 {
 		res, err := request.RequestRaw(request.WithEndpoint(a.LogscribeEndpoint), request.WithBody(bulkPostEntries), request.WithMethod("POST"))
 		if err != nil {
@@ -204,7 +204,7 @@ func (a *App) bulkPostLogEntries(logEntries []map[string]any) error {
 			log.Error().Msgf("Failed to insert log entries, status code: %d", res.StatusCode)
 			return errorsentinel.ErrLogscribeInsertFailed
 		}
-		log.Info().Msgf("%d log entries inserted successfully", len(bulkPostEntries))
+		log.Debug().Msgf("%d log entries inserted successfully", len(bulkPostEntries))
 	}
 	return nil
 }

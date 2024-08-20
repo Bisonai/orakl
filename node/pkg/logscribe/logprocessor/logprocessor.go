@@ -181,7 +181,7 @@ func (p *LogProcessor) fetchCurrentIssues(ctx context.Context) ([]string, error)
 		time.Sleep(500 * time.Millisecond) // to avoid being blocked by github
 	}
 
-	log.Info().Msgf("Fetched %d issues", len(issues))
+	log.Debug().Msgf("Fetched %d issues", len(issues))
 	return issues, nil
 }
 
