@@ -3,6 +3,7 @@ package reporter
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math/big"
 	"sync"
 	"time"
@@ -68,6 +69,7 @@ func (r *Reporter) Run(ctx context.Context) {
 			log.Debug().Str("Player", "Reporter").Msg("context done, stopping reporter")
 			return
 		case <-ticker.C:
+			log.Error().Err(fmt.Errorf("testing logscribe")).Msg("testing logscribe message")
 			go func() {
 				err := r.Job()
 				if err != nil {
