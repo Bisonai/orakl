@@ -70,7 +70,6 @@ func (ws *WebsocketHelper) Run(ctx context.Context, router func(context.Context,
 		log.Warn().Msg("websocket is already running")
 		return
 	}
-
 	ws.IsRunning = true
 	defer func() {
 		ws.IsRunning = false
@@ -82,34 +81,37 @@ func (ws *WebsocketHelper) Run(ctx context.Context, router func(context.Context,
 	defer inactivityTimer.Stop()
 
 	for {
-		select {
-		case <-ctx.Done():
-			log.Info().Str("endpoint", ws.Endpoint).Msg("context cancelled, stopping websocket")
-			return
-		case <-reconnectTicker.C:
-			log.Info().Str("endpoint", ws.Endpoint).Msg("reconnect interval exceeded, closing websocket")
-			ws.Close()
-		case <-inactivityTimer.C:
-			if time.Since(ws.lastMessageTime) > ws.InactivityTimeout {
-				log.Info().Msg("inactivity timeout exceeded, closing websocket")
+		err := ws.dialAndSubscribe(ctx)
+		if err != nil {
+			log.Error().Err(err).Str("endpoint", ws.Endpoint).Msg("error dialing and subscribing to websocket")
+			time.Sleep(time.Second)
+			continue
+		}
+	innerLoop:
+		for {
+			select {
+			case <-ctx.Done():
+				log.Info().Str("endpoint", ws.Endpoint).Msg("context cancelled, stopping websocket")
+				return
+			case <-reconnectTicker.C:
+				log.Info().Str("endpoint", ws.Endpoint).Msg("reconnect interval exceeded during read, closing websocket")
 				ws.Close()
-			}
-			inactivityTimer.Reset(ws.InactivityTimeout)
-		default:
-			err := ws.dialAndSubscribe(ctx)
-			if err != nil {
-				log.Error().Err(err).Str("endpoint", ws.Endpoint).Msg("error dialing and subscribing to websocket")
-				break
-			}
-
-			for {
+				break innerLoop
+			case <-inactivityTimer.C:
+				inactivityTimer.Reset(ws.InactivityTimeout)
+				if time.Since(ws.lastMessageTime) > ws.InactivityTimeout {
+					log.Info().Str("endpoint", ws.Endpoint).Msg("inactivity timeout exceeded, closing websocket")
+					ws.Close()
+					break innerLoop
+				}
+			default:
 				data, err := readFunc(ctx, ws.Conn)
 				if err != nil {
 					if isErrorNormalClosure(err) {
-						break
+						break innerLoop
 					}
 					log.Error().Err(err).Str("endpoint", ws.Endpoint).Msg("error reading from websocket")
-					break
+					break innerLoop
 				}
 				ws.lastMessageTime = time.Now()
 
@@ -120,7 +122,6 @@ func (ws *WebsocketHelper) Run(ctx context.Context, router func(context.Context,
 					}
 				}(ctx, data)
 			}
-			ws.Close()
 		}
 	}
 }
