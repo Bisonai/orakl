@@ -15,6 +15,6 @@ type Response struct {
 		Symbol string `json:"s"`
 		Time   int64  `json:"t"`
 		Price  string `json:"c"`
-		Volume string `json:"v"`
+		Volume string `json:"q"`
 	} `json:"data"`
 }
