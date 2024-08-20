@@ -20,6 +20,7 @@ func insertLogs(c *fiber.Ctx) error {
 			log.Error().Err(err).Msg("Failed to parse request body")
 		}
 		c.Locals("logsChannel").(chan *[]LogInsertModel) <- logEntries
+		log.Info().Msgf("%d logs inserted successfully", len(*logEntries))
 	}(c)
 
 	return c.Status(fiber.StatusOK).SendString("Request received successfully")
