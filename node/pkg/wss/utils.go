@@ -13,121 +13,6 @@ import (
 	"nhooyr.io/websocket/wsjson"
 )
 
-type WebsocketHelper struct {
-	Conn           *websocket.Conn
-	Endpoint       string
-	Subscriptions  []any
-	Proxy          string
-	IsRunning      bool
-	Compression    bool
-	CustomDialFunc *func(context.Context, string, *websocket.DialOptions) (*websocket.Conn, *http.Response, error)
-	CustomReadFunc *func(context.Context, *websocket.Conn) (map[string]interface{}, error)
-	RequestHeaders map[string]string
-	ReadLimit      int64
-}
-
-type ConnectionConfig struct {
-	Endpoint       string
-	Proxy          string
-	Subscriptions  []any
-	Compression    bool
-	DialFunc       func(context.Context, string, *websocket.DialOptions) (*websocket.Conn, *http.Response, error)
-	ReadFunc       func(context.Context, *websocket.Conn) (map[string]interface{}, error)
-	RequestHeaders map[string]string
-	ReadLimit      int64
-}
-
-type ConnectionOption func(*ConnectionConfig)
-
-func WithEndpoint(endpoint string) ConnectionOption {
-	return func(c *ConnectionConfig) {
-		c.Endpoint = endpoint
-	}
-}
-
-func WithProxyUrl(proxyUrl string) ConnectionOption {
-	return func(c *ConnectionConfig) {
-		if proxyUrl == "" {
-			return
-		}
-		c.Proxy = proxyUrl
-	}
-}
-
-func WithSubscriptions(subscriptions []any) ConnectionOption {
-	return func(c *ConnectionConfig) {
-		c.Subscriptions = subscriptions
-	}
-}
-
-func WithCustomDialFunc(dialFunc func(context.Context, string, *websocket.DialOptions) (*websocket.Conn, *http.Response, error)) ConnectionOption {
-	return func(c *ConnectionConfig) {
-		c.DialFunc = dialFunc
-	}
-}
-
-func WithCustomReadFunc(readFunc func(context.Context, *websocket.Conn) (map[string]interface{}, error)) ConnectionOption {
-	return func(c *ConnectionConfig) {
-		c.ReadFunc = readFunc
-	}
-}
-
-func WithCompressionMode() ConnectionOption {
-	return func(c *ConnectionConfig) {
-		c.Compression = true
-	}
-}
-
-func WithRequestHeaders(headers map[string]string) ConnectionOption {
-	return func(c *ConnectionConfig) {
-		c.RequestHeaders = headers
-	}
-}
-
-func WithReadLimit(readLimit int64) ConnectionOption {
-	return func(c *ConnectionConfig) {
-		c.ReadLimit = readLimit
-	}
-}
-
-func NewWebsocketHelper(ctx context.Context, opts ...ConnectionOption) (*WebsocketHelper, error) {
-	config := &ConnectionConfig{}
-	for _, opt := range opts {
-		opt(config)
-	}
-
-	if config.Endpoint == "" {
-		log.Error().Msg("endpoint is required")
-		return nil, fmt.Errorf("endpoint is required")
-	}
-
-	if config.Subscriptions == nil {
-		log.Warn().Msg("no subscriptions provided")
-	}
-
-	ws := &WebsocketHelper{
-		Endpoint:       config.Endpoint,
-		Subscriptions:  config.Subscriptions,
-		Proxy:          config.Proxy,
-		Compression:    config.Compression,
-		RequestHeaders: config.RequestHeaders,
-	}
-
-	if config.DialFunc != nil {
-		ws.CustomDialFunc = &config.DialFunc
-	}
-
-	if config.ReadFunc != nil {
-		ws.CustomReadFunc = &config.ReadFunc
-	}
-
-	if config.ReadLimit > 0 {
-		ws.ReadLimit = config.ReadLimit
-	}
-
-	return ws, nil
-}
-
 func (ws *WebsocketHelper) Dial(ctx context.Context) error {
 	dialOption := &websocket.DialOptions{}
 	if ws.Proxy != "" {
@@ -185,44 +70,35 @@ func (ws *WebsocketHelper) Run(ctx context.Context, router func(context.Context,
 		log.Warn().Msg("websocket is already running")
 		return
 	}
+
 	ws.IsRunning = true
 	defer func() {
 		ws.IsRunning = false
 	}()
 
-	dialJob := func() error {
-		return ws.Dial(ctx)
-	}
-
-	subscribeJob := func() error {
-		for _, subscription := range ws.Subscriptions {
-			err := ws.Write(ctx, subscription)
-			if err != nil {
-				log.Error().Err(err).Str("endpoint", ws.Endpoint).Msg("error writing subscription to websocket")
-				return err
-			}
-		}
-		return nil
-	}
+	reconnectTicker := time.NewTicker(ws.ReconnectInterval)
+	inactivityTimer := time.NewTimer(ws.InactivityTimeout)
+	defer reconnectTicker.Stop()
+	defer inactivityTimer.Stop()
 
 	for {
 		select {
 		case <-ctx.Done():
-			log.Info().Msg("context cancelled, stopping websocket")
+			log.Info().Str("endpoint", ws.Endpoint).Msg("context cancelled, stopping websocket")
 			return
-		default:
-			err := retrier.Retry(dialJob, 3, 1, 10)
-			if err != nil {
-				log.Error().Err(err).Str("endpoint", ws.Endpoint).Msg("error dialing websocket")
-				break
+		case <-reconnectTicker.C:
+			log.Info().Str("endpoint", ws.Endpoint).Msg("reconnect interval exceeded, closing websocket")
+			ws.Close()
+		case <-inactivityTimer.C:
+			if time.Since(ws.lastMessageTime) > ws.InactivityTimeout {
+				log.Info().Msg("inactivity timeout exceeded, closing websocket")
+				ws.Close()
 			}
-
-			// Some providers block immediate subscription after dialing
-			time.Sleep(time.Second)
-
-			err = retrier.Retry(subscribeJob, 3, 1, 10)
+			inactivityTimer.Reset(ws.InactivityTimeout)
+		default:
+			err := ws.dialAndSubscribe(ctx)
 			if err != nil {
-				log.Error().Err(err).Str("endpoint", ws.Endpoint).Msg("error subscribing to websocket")
+				log.Error().Err(err).Str("endpoint", ws.Endpoint).Msg("error dialing and subscribing to websocket")
 				break
 			}
 
@@ -232,10 +108,10 @@ func (ws *WebsocketHelper) Run(ctx context.Context, router func(context.Context,
 					if isErrorNormalClosure(err) {
 						break
 					}
-
 					log.Error().Err(err).Str("endpoint", ws.Endpoint).Msg("error reading from websocket")
 					break
 				}
+				ws.lastMessageTime = time.Now()
 
 				go func(context.Context, map[string]any) {
 					routerErr := router(ctx, data)
@@ -247,6 +123,37 @@ func (ws *WebsocketHelper) Run(ctx context.Context, router func(context.Context,
 			ws.Close()
 		}
 	}
+}
+
+func (ws *WebsocketHelper) dialAndSubscribe(ctx context.Context) error {
+	dialJob := func() error {
+		return ws.Dial(ctx)
+	}
+
+	subscribeJob := func() error {
+		for _, subscription := range ws.Subscriptions {
+			err := ws.Write(ctx, subscription)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
+	err := retrier.Retry(dialJob, 3, 1, 10)
+	if err != nil {
+		return err
+	}
+
+	// Some providers block immediate subscription after dialing
+	time.Sleep(time.Second)
+
+	err = retrier.Retry(subscribeJob, 3, 1, 10)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (ws *WebsocketHelper) Write(ctx context.Context, message interface{}) error {
