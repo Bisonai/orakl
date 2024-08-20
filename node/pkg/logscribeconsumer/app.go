@@ -91,6 +91,7 @@ func (a *App) Write(p []byte) (n int, err error) {
 }
 
 func Start(ctx context.Context, service string) error {
+	log.Info().Msg("Starting logscribe consumer")
 	a, err := New(WithStoreService(service))
 	if err != nil {
 		return err
@@ -189,6 +190,7 @@ func (a *App) bulkPostLogEntries(logEntries []map[string]any) error {
 		bulkPostEntries = append(bulkPostEntries, *res)
 	}
 
+	log.Info().Msgf("Inserting %d log entries", len(bulkPostEntries))
 	if len(bulkPostEntries) > 0 {
 		res, err := request.RequestRaw(request.WithEndpoint(a.LogscribeEndpoint), request.WithBody(bulkPostEntries), request.WithMethod("POST"))
 		if err != nil {
