@@ -116,14 +116,13 @@ func (c *LocalAggregator) processVolumeWeightedFeeds(ctx context.Context, feeds 
 }
 
 func filterOutliers(feeds []*FeedData) ([]*FeedData, error) {
+	if len(feeds) < 5 {
+		return feeds, nil
+	}
+
 	data := make([]float64, len(feeds))
 	for i, feed := range feeds {
 		data[i] = feed.Value
-	}
-
-	if len(data) < 5 {
-		// skip quartileOutlier removal if not enough data
-		return feeds, nil
 	}
 
 	outliers, err := stats.QuartileOutliers(data)
