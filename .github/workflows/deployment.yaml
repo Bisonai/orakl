@@ -119,6 +119,7 @@ on:
           - reporter:v0.0.1.20240820.0827.9fc9b65:provide default error logscrib...
           - reporter:v0.0.1.20240820.0933.6582edb:cleanup reporter and logscribe...
           - api:v0.0.1.20240821.0452.cad85cb:Delegator delegator zerologs
+          - delegator:v0.0.1.20240821.0459.9eaee01:Delegator delegator zerologs
 jobs:
   prepare-taskflow:
     name: Prepare

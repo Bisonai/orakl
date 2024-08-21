@@ -210,3 +210,4 @@
 - **reporter** v0.0.1.20240820.0827.9fc9b65 <br> *`PR`*: provide default error logscrib... <br><br> 
 - **reporter** v0.0.1.20240820.0933.6582edb <br> *`PR`*: cleanup reporter and logscribe... <br><br> 
 - **api** v0.0.1.20240821.0452.cad85cb <br> *`PR`*: Delegator delegator zerologs <br><br> 
+- **delegator** v0.0.1.20240821.0459.9eaee01 <br> *`PR`*: Delegator delegator zerologs <br><br> 
