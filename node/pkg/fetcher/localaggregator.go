@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"slices"
 	"time"
 
 	"bisonai.com/orakl/node/pkg/bus"
+	"github.com/montanaflynn/stats"
 	"github.com/rs/zerolog/log"
 )
 
@@ -114,21 +116,68 @@ func (c *LocalAggregator) processVolumeWeightedFeeds(ctx context.Context, feeds 
 }
 
 func filterOutliers(feeds []*FeedData) ([]*FeedData, error) {
-	median, err := calculateMedian(feeds)
+	if len(feeds) < 5 {
+		return feeds, nil
+	}
+
+	data := make([]float64, len(feeds))
+	for i, feed := range feeds {
+		data[i] = feed.Value
+	}
+
+	outliers, err := stats.QuartileOutliers(data)
 	if err != nil {
 		return nil, err
 	}
 
-	var filteredFeeds []*FeedData
-	for _, feed := range feeds {
-		price := feed.Value
-		priceDifference := math.Abs((median - price) / median)
-		if priceDifference > OutlierThreshold {
-			continue
-		}
-		filteredFeeds = append(filteredFeeds, feed)
+	if outliers.Mild.Len() == 0 && outliers.Extreme.Len() == 0 {
+		return feeds, nil
 	}
-	return filteredFeeds, nil
+
+	median, err := stats.Median(data)
+	if err != nil {
+		return nil, err
+	}
+
+	maxOutliersToRemove := int(float64(len(feeds)) * MaxOutlierRemovalRatio)
+
+	filtered := feeds
+	var extremes stats.Float64Data
+	if outliers.Extreme.Len() > 0 {
+		slices.SortFunc(outliers.Extreme, func(a, b float64) int {
+			if math.Abs(median-a) < math.Abs(median-b) {
+				return 1
+			} else if math.Abs(median-a) > math.Abs(median-b) {
+				return -1
+			} else {
+				return 0
+			}
+		})
+
+		extremes = outliers.Extreme[:min(maxOutliersToRemove, outliers.Extreme.Len())]
+		filtered = slices.DeleteFunc(feeds, func(feed *FeedData) bool {
+			return slices.Contains(extremes, feed.Value)
+		})
+	}
+
+	if extremes.Len() < maxOutliersToRemove && outliers.Mild.Len() > 0 {
+		slices.SortFunc(outliers.Mild, func(a, b float64) int {
+			if math.Abs(median-a) < math.Abs(median-b) {
+				return 1
+			} else if math.Abs(median-a) > math.Abs(median-b) {
+				return -1
+			} else {
+				return 0
+			}
+		})
+
+		milds := outliers.Mild[:min(maxOutliersToRemove-extremes.Len(), outliers.Mild.Len())]
+		filtered = slices.DeleteFunc(filtered, func(feed *FeedData) bool {
+			return slices.Contains(milds, feed.Value)
+		})
+	}
+
+	return filtered, nil
 }
 
 func partitionFeeds(feeds []*FeedData) ([]*FeedData, []*FeedData) {
