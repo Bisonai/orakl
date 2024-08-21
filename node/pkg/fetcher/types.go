@@ -24,6 +24,7 @@ const (
 	LocalAggregatesChannelSize            = 2_000
 	DefaultLocalAggregateInterval         = 200 * time.Millisecond
 	DefaultFeedDataDumpChannelSize        = 20000
+	MaxOutlierRemovalRatio                = 0.25
 )
 
 type Feed = types.Feed

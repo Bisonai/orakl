@@ -3,6 +3,7 @@ package fetcher
 import (
 	"context"
 	"fmt"
+	"math"
 	"os"
 	"slices"
 	"time"
@@ -123,6 +124,33 @@ func filterOutliers(feeds []*FeedData) ([]*FeedData, error) {
 	outliers, err := stats.QuartileOutliers(data)
 	if err != nil {
 		return nil, err
+	}
+
+	maxOutliersToRemove := int(float64(len(feeds)) * MaxOutlierRemovalRatio)
+	totalOutliers := len(outliers.Extreme) + len(outliers.Mild)
+
+	if totalOutliers > maxOutliersToRemove {
+		median, err := stats.Median(data)
+		if err != nil {
+			return nil, err
+		}
+
+		sortedOutliers := append(outliers.Extreme, outliers.Mild...)
+		slices.SortFunc(sortedOutliers, func(a, b float64) int {
+			if math.Abs(median-a) < math.Abs(median-b) {
+				return 1
+			} else if math.Abs(median-a) > math.Abs(median-b) {
+				return -1
+			} else {
+				return 0
+			}
+		})
+
+		sortedOutliers = sortedOutliers[:maxOutliersToRemove]
+
+		return slices.DeleteFunc(feeds, func(feed *FeedData) bool {
+			return slices.Contains(sortedOutliers, feed.Value)
+		}), nil
 	}
 
 	return slices.DeleteFunc(feeds, func(feed *FeedData) bool {
