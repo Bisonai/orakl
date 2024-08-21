@@ -3,11 +3,12 @@ package fetcher
 import (
 	"context"
 	"fmt"
-	"math"
 	"os"
+	"slices"
 	"time"
 
 	"bisonai.com/orakl/node/pkg/bus"
+	"github.com/montanaflynn/stats"
 	"github.com/rs/zerolog/log"
 )
 
@@ -114,21 +115,28 @@ func (c *LocalAggregator) processVolumeWeightedFeeds(ctx context.Context, feeds 
 }
 
 func filterOutliers(feeds []*FeedData) ([]*FeedData, error) {
-	median, err := calculateMedian(feeds)
+	copied := make([]*FeedData, len(feeds))
+	copy(copied, feeds)
+
+	data := make([]float64, len(copied))
+	for i, feed := range copied {
+		data[i] = feed.Value
+	}
+
+	outliers, err := stats.QuartileOutliers(data)
 	if err != nil {
 		return nil, err
 	}
 
-	var filteredFeeds []*FeedData
-	for _, feed := range feeds {
-		price := feed.Value
-		priceDifference := math.Abs((median - price) / median)
-		if priceDifference > OutlierThreshold {
-			continue
-		}
-		filteredFeeds = append(filteredFeeds, feed)
-	}
-	return filteredFeeds, nil
+	slices.DeleteFunc(copied, func(feed *FeedData) bool {
+		return slices.ContainsFunc(outliers.Extreme, func(n float64) bool {
+			return n == feed.Value
+		}) || slices.ContainsFunc(outliers.Mild, func(n float64) bool {
+			return n == feed.Value
+		})
+	})
+
+	return copied, nil
 }
 
 func partitionFeeds(feeds []*FeedData) ([]*FeedData, []*FeedData) {

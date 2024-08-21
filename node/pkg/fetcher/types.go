@@ -24,7 +24,6 @@ const (
 	LocalAggregatesChannelSize            = 2_000
 	DefaultLocalAggregateInterval         = 200 * time.Millisecond
 	DefaultFeedDataDumpChannelSize        = 20000
-	OutlierThreshold                      = 0.5 // 50% price difference is considered an outlier
 )
 
 type Feed = types.Feed
