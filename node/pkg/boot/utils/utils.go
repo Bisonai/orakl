@@ -25,7 +25,7 @@ func Setup(ctx context.Context, h *host.Host) (*fiber.App, error) {
 	}
 
 	app := fiber.New(fiber.Config{
-		AppName:           "Orakl BootNode API 0.0.1",
+		AppName:           "Miko BootNode API 0.0.1",
 		EnablePrintRoutes: true,
 		ErrorHandler:      CustomErrorHandler,
 	})

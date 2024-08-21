@@ -59,7 +59,7 @@ func Start() error {
 			log.Error().Err(err).Msg("Failed to check peer count")
 			failCount++
 			if failCount > 10 {
-				alert.SlackAlert(fmt.Sprintf("failed to check peer count %d times. Check orakl Sentinel logs", failCount))
+				alert.SlackAlert(fmt.Sprintf("failed to check peer count %d times. Check miko Sentinel logs", failCount))
 				failCount = 0
 			}
 			continue
@@ -75,12 +75,12 @@ func Start() error {
 }
 
 func checkPeerCounts() (int, error) {
-	oraklNodeAdminUrl := os.Getenv("ORAKL_NODE_ADMIN_URL")
-	if oraklNodeAdminUrl == "" {
+	mikoNodeAdminUrl := os.Getenv("ORAKL_NODE_ADMIN_URL")
+	if mikoNodeAdminUrl == "" {
 		return 0, errors.New("ORAKL_NODE_ADMIN_URL not found")
 	}
 
-	resp, err := request.Request[peerCountResponse](request.WithEndpoint(oraklNodeAdminUrl+peerCountEndpoint), request.WithTimeout(10*time.Second))
+	resp, err := request.Request[peerCountResponse](request.WithEndpoint(mikoNodeAdminUrl+peerCountEndpoint), request.WithTimeout(10*time.Second))
 	if err != nil {
 		return 0, err
 	}

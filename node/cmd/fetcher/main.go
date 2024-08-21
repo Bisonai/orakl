@@ -28,7 +28,7 @@ func main() {
 	}()
 
 	log.Info().Msg("Syncing orakl config")
-	err := admin.SyncOraklConfig(ctx)
+	err := admin.SyncMikoConfig(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to sync orakl config")
 		return

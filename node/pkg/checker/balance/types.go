@@ -8,8 +8,8 @@ import (
 )
 
 const (
-	oraklApiEndpoint         = "/reporter"
-	oraklDelegatorEndpoint   = "/sign/feePayer"
+	mikoApiEndpoint          = "/reporter"
+	mikoDelegatorEndpoint    = "/sign/feePayer"
 	porEndpoint              = "/address"
 	DefaultRRMinimum         = 1
 	BalanceHistoryTTL        = 60 * time.Minute
@@ -26,11 +26,11 @@ var klaytnClient *client.Client
 var wallets []Wallet
 
 type Urls struct {
-	JsonRpcUrl        string
-	OraklApiUrl       string
-	OraklNodeAdminUrl string
-	OraklDelegatorUrl string
-	PorUrl            string
+	JsonRpcUrl       string
+	MikoApiUrl       string
+	MikoNodeAdminUrl string
+	MikoDelegatorUrl string
+	PorUrl           string
 }
 
 type Wallet struct {

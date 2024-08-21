@@ -19,14 +19,14 @@ const (
 	testAddressWithFixedKlay = "0x2138824ef8741add09E8680F968e1d5D0AC155E0"
 )
 
-func TestLoadWalletFromOraklApi(t *testing.T) {
+func TestLoadWalletFromMikoApi(t *testing.T) {
 	ctx := context.Background()
 	mockServer := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		rw.Write([]byte(`[{"pk":"abc", "address":"` + testAddr0 + `", "service":"REQUEST_RESPONSE"},{"pk":"def", "address":"` + testAddr1 + `", "service":"VRF"}]`))
 	}))
 	defer mockServer.Close()
 
-	wallets, err := loadWalletFromOraklApi(ctx, mockServer.URL)
+	wallets, err := loadWalletFromMikoApi(ctx, mockServer.URL)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
