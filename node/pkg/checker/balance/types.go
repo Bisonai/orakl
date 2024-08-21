@@ -14,6 +14,7 @@ const (
 	DefaultRRMinimum         = 1
 	BalanceHistoryTTL        = 60 * time.Minute
 	MinimalIncreaseThreshold = 0.5
+	ChunkSize                = 10
 )
 
 var SubmitterAlarmAmount float64

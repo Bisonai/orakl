@@ -320,7 +320,7 @@ func alarm(wallets []Wallet) {
 			continue
 		}
 
-		latestDrainage := wallet.BalanceHistory[len(wallet.BalanceHistory)-1].Balance - wallet.BalanceHistory[len(wallet.BalanceHistory)-10].Balance
+		latestDrainage := wallet.BalanceHistory[len(wallet.BalanceHistory)-1].Balance - wallet.BalanceHistory[len(wallet.BalanceHistory)-ChunkSize].Balance
 		averageDrainage := getAverageDrainage(wallet.BalanceHistory)
 
 		if latestDrainage > averageDrainage || averageDrainage == 0 {
@@ -346,11 +346,11 @@ func isNumber(s string) bool {
 
 func getAverageDrainage(history []BalanceHistoryEntry) float64 {
 	drainageList := []float64{}
-	for i := 0; i < len(history); i += 10 {
-		if i+9 >= len(history) {
+	for i := 0; i < len(history); i += ChunkSize {
+		if i+ChunkSize-1 >= len(history) {
 			break
 		}
-		drainage := history[i+9].Balance - history[i].Balance
+		drainage := history[i+ChunkSize-1].Balance - history[i].Balance
 		if drainage < 0 { // Only consider negative drainage
 			drainageList = append(drainageList, drainage)
 		}
