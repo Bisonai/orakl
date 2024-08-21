@@ -115,11 +115,8 @@ func (c *LocalAggregator) processVolumeWeightedFeeds(ctx context.Context, feeds 
 }
 
 func filterOutliers(feeds []*FeedData) ([]*FeedData, error) {
-	copied := make([]*FeedData, len(feeds))
-	copy(copied, feeds)
-
-	data := make([]float64, len(copied))
-	for i, feed := range copied {
+	data := make([]float64, len(feeds))
+	for i, feed := range feeds {
 		data[i] = feed.Value
 	}
 
@@ -128,15 +125,9 @@ func filterOutliers(feeds []*FeedData) ([]*FeedData, error) {
 		return nil, err
 	}
 
-	slices.DeleteFunc(copied, func(feed *FeedData) bool {
-		return slices.ContainsFunc(outliers.Extreme, func(n float64) bool {
-			return n == feed.Value
-		}) || slices.ContainsFunc(outliers.Mild, func(n float64) bool {
-			return n == feed.Value
-		})
-	})
-
-	return copied, nil
+	return slices.DeleteFunc(feeds, func(feed *FeedData) bool {
+		return slices.Contains(outliers.Extreme, feed.Value) || slices.Contains(outliers.Mild, feed.Value)
+	}), nil
 }
 
 func partitionFeeds(feeds []*FeedData) ([]*FeedData, []*FeedData) {
