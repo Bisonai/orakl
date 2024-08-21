@@ -316,22 +316,22 @@ func alarm(wallets []Wallet) {
 			alarmMessage += fmt.Sprintf("%s balance(%f) is lower than minimum(%f) | %s\n", wallet.Address.Hex(), wallet.Balance, wallet.Minimum, wallet.Tag)
 		}
 
-		if len(wallet.BalanceHistory) < 2 {
+		if len(wallet.BalanceHistory) < 30 {
 			continue
 		}
 
-		// latestDrainage := wallet.BalanceHistory[len(wallet.BalanceHistory)-1].Balance - wallet.BalanceHistory[len(wallet.BalanceHistory)-2].Balance
-		// averageDrainage := getAverageDrainage(wallet.BalanceHistory)
+		latestDrainage := wallet.BalanceHistory[len(wallet.BalanceHistory)-1].Balance - wallet.BalanceHistory[len(wallet.BalanceHistory)-ChunkSize].Balance
+		averageDrainage := getAverageDrainage(wallet.BalanceHistory)
 
-		// if latestDrainage > averageDrainage || averageDrainage == 0 {
-		// 	continue
-		// }
+		if latestDrainage > averageDrainage || averageDrainage == 0 {
+			continue
+		}
 
-		// drainageChangeRatio := (averageDrainage - latestDrainage) / math.Abs(averageDrainage)
-		// if drainageChangeRatio > MinimalIncreaseThreshold {
-		// 	log.Warn().Str("address", wallet.Address.Hex()).Float64("latestDrainage", latestDrainage).Float64("averageDrainage", averageDrainage).Msg("Increased balance")
-		// 	alarmMessage += fmt.Sprintf("%s balance drained faster by %.2f%% | %s\n", wallet.Address.Hex(), drainageChangeRatio*100, wallet.Tag)
-		// }
+		drainageChangeRatio := (averageDrainage - latestDrainage) / math.Abs(averageDrainage)
+		if drainageChangeRatio > MinimalIncreaseThreshold {
+			log.Warn().Str("address", wallet.Address.Hex()).Float64("latestDrainage", latestDrainage).Float64("averageDrainage", averageDrainage).Msg("Increased balance")
+			alarmMessage += fmt.Sprintf("%s balance drained faster by %.2f%% | %s\n", wallet.Address.Hex(), drainageChangeRatio*100, wallet.Tag)
+		}
 	}
 
 	if alarmMessage != "" {
@@ -345,12 +345,12 @@ func isNumber(s string) bool {
 }
 
 func getAverageDrainage(history []BalanceHistoryEntry) float64 {
-	if len(history) < 2 {
-		return 0
-	}
 	drainageList := []float64{}
-	for i := 1; i < len(history)-1; i++ {
-		drainage := history[i].Balance - history[i-1].Balance
+	for i := 0; i < len(history); i += ChunkSize {
+		if i+ChunkSize-1 >= len(history) {
+			break
+		}
+		drainage := history[i+ChunkSize-1].Balance - history[i].Balance
 		if drainage < 0 { // Only consider negative drainage
 			drainageList = append(drainageList, drainage)
 		}
