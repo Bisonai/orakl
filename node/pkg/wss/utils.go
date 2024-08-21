@@ -95,13 +95,11 @@ func (ws *WebsocketHelper) Run(ctx context.Context, router func(context.Context,
 				return
 			case <-reconnectTicker.C:
 				log.Info().Str("endpoint", ws.Endpoint).Msg("reconnect interval exceeded during read, closing websocket")
-				ws.Close()
 				break innerLoop
 			case <-inactivityTimer.C:
 				inactivityTimer.Reset(ws.InactivityTimeout)
 				if time.Since(ws.lastMessageTime) > ws.InactivityTimeout {
 					log.Info().Str("endpoint", ws.Endpoint).Msg("inactivity timeout exceeded, closing websocket")
-					ws.Close()
 					break innerLoop
 				}
 			default:
@@ -123,6 +121,7 @@ func (ws *WebsocketHelper) Run(ctx context.Context, router func(context.Context,
 				}(ctx, data)
 			}
 		}
+		ws.Close()
 	}
 }
 
