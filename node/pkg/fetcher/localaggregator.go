@@ -130,17 +130,21 @@ func filterOutliers(feeds []*FeedData) ([]*FeedData, error) {
 		return nil, err
 	}
 
+	if outliers.Mild.Len() == 0 && outliers.Extreme.Len() == 0 {
+		return feeds, nil
+	}
+
+	median, err := stats.Median(data)
+	if err != nil {
+		return nil, err
+	}
+
 	maxOutliersToRemove := int(float64(len(feeds)) * MaxOutlierRemovalRatio)
-	totalOutliers := len(outliers.Extreme) + len(outliers.Mild)
 
-	if totalOutliers > maxOutliersToRemove {
-		median, err := stats.Median(data)
-		if err != nil {
-			return nil, err
-		}
-
-		sortedOutliers := append(outliers.Extreme, outliers.Mild...)
-		slices.SortFunc(sortedOutliers, func(a, b float64) int {
+	filtered := feeds
+	var extremes stats.Float64Data
+	if outliers.Extreme.Len() > 0 {
+		slices.SortFunc(outliers.Extreme, func(a, b float64) int {
 			if math.Abs(median-a) < math.Abs(median-b) {
 				return 1
 			} else if math.Abs(median-a) > math.Abs(median-b) {
@@ -150,16 +154,30 @@ func filterOutliers(feeds []*FeedData) ([]*FeedData, error) {
 			}
 		})
 
-		sortedOutliers = sortedOutliers[:maxOutliersToRemove]
-
-		return slices.DeleteFunc(feeds, func(feed *FeedData) bool {
-			return slices.Contains(sortedOutliers, feed.Value)
-		}), nil
+		extremes = outliers.Extreme[:min(maxOutliersToRemove, outliers.Extreme.Len())]
+		filtered = slices.DeleteFunc(feeds, func(feed *FeedData) bool {
+			return slices.Contains(extremes, feed.Value)
+		})
 	}
 
-	return slices.DeleteFunc(feeds, func(feed *FeedData) bool {
-		return slices.Contains(outliers.Extreme, feed.Value) || slices.Contains(outliers.Mild, feed.Value)
-	}), nil
+	if extremes.Len() < maxOutliersToRemove && outliers.Mild.Len() > 0 {
+		slices.SortFunc(outliers.Mild, func(a, b float64) int {
+			if math.Abs(median-a) < math.Abs(median-b) {
+				return 1
+			} else if math.Abs(median-a) > math.Abs(median-b) {
+				return -1
+			} else {
+				return 0
+			}
+		})
+
+		milds := outliers.Mild[:min(maxOutliersToRemove-extremes.Len(), outliers.Mild.Len())]
+		filtered = slices.DeleteFunc(filtered, func(feed *FeedData) bool {
+			return slices.Contains(milds, feed.Value)
+		})
+	}
+
+	return filtered, nil
 }
 
 func partitionFeeds(feeds []*FeedData) ([]*FeedData, []*FeedData) {
