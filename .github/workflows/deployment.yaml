@@ -124,6 +124,7 @@ on:
           - boot-api:v0.0.1.20240821.0518.50268c9:Delegator delegator zerologs
           - sentinel:v0.0.1.20240821.0521.1dbabef:Delegator delegator zerologs
           - dal:v0.0.1.20240821.0526.fb2baaf:Delegator delegator zerologs
+          - sentinel:v0.0.1.20240821.0550.a113494:Sentinel Disable DAL checks
 jobs:
   prepare-taskflow:
     name: Prepare
