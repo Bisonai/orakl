@@ -212,3 +212,4 @@
 - **api** v0.0.1.20240821.0452.cad85cb <br> *`PR`*: Delegator delegator zerologs <br><br> 
 - **delegator** v0.0.1.20240821.0459.9eaee01 <br> *`PR`*: Delegator delegator zerologs <br><br> 
 - **por** v0.0.1.20240821.0508.827c422 <br> *`PR`*: Delegator delegator zerologs <br><br> 
+- **boot-api** v0.0.1.20240821.0518.50268c9 <br> *`PR`*: Delegator delegator zerologs <br><br> 
