@@ -6,7 +6,7 @@ import (
 
 	"testing"
 
-	"bisonai.com/orakl/node/pkg/bus"
+	"bisonai.com/miko/node/pkg/bus"
 	"github.com/stretchr/testify/assert"
 )
 

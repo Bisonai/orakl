@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
-	errorSentinel "bisonai.com/orakl/node/pkg/error"
-	"bisonai.com/orakl/node/pkg/utils/retrier"
+	errorSentinel "bisonai.com/miko/node/pkg/error"
+	"bisonai.com/miko/node/pkg/utils/retrier"
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
 )

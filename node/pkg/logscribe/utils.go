@@ -8,9 +8,9 @@ import (
 	"runtime/debug"
 	"strings"
 
-	"bisonai.com/orakl/node/pkg/db"
-	errorSentinel "bisonai.com/orakl/node/pkg/error"
-	"bisonai.com/orakl/node/pkg/logscribe/logprocessor"
+	"bisonai.com/miko/node/pkg/db"
+	errorSentinel "bisonai.com/miko/node/pkg/error"
+	"bisonai.com/miko/node/pkg/logscribe/logprocessor"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"

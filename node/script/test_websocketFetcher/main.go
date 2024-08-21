@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"bisonai.com/orakl/node/pkg/websocketfetcher/common"
-	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/bybit"
+	"bisonai.com/miko/node/pkg/websocketfetcher/common"
+	"bisonai.com/miko/node/pkg/websocketfetcher/providers/bybit"
 	"github.com/rs/zerolog/log"
 )
 

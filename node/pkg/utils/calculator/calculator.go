@@ -4,7 +4,7 @@ import (
 	"math/rand"
 	"sort"
 
-	errorSentinel "bisonai.com/orakl/node/pkg/error"
+	errorSentinel "bisonai.com/miko/node/pkg/error"
 )
 
 func RandomNumberGenerator() int {

@@ -6,7 +6,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 
-	"bisonai.com/orakl/node/pkg/secrets"
+	"bisonai.com/miko/node/pkg/secrets"
 	"golang.org/x/crypto/scrypt"
 )
 

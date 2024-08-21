@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"bisonai.com/orakl/node/pkg/alert"
-	"bisonai.com/orakl/node/pkg/chain/helper"
-	"bisonai.com/orakl/node/pkg/secrets"
+	"bisonai.com/miko/node/pkg/alert"
+	"bisonai.com/miko/node/pkg/chain/helper"
+	"bisonai.com/miko/node/pkg/secrets"
 
 	klaytncommon "github.com/klaytn/klaytn/common"
 	"github.com/robfig/cron/v3"

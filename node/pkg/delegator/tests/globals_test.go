@@ -10,12 +10,12 @@ import (
 	"strings"
 	"time"
 
-	"bisonai.com/orakl/node/pkg/delegator/contract"
-	"bisonai.com/orakl/node/pkg/delegator/function"
-	"bisonai.com/orakl/node/pkg/delegator/organization"
-	"bisonai.com/orakl/node/pkg/delegator/reporter"
-	"bisonai.com/orakl/node/pkg/delegator/sign"
-	"bisonai.com/orakl/node/pkg/delegator/utils"
+	"bisonai.com/miko/node/pkg/delegator/contract"
+	"bisonai.com/miko/node/pkg/delegator/function"
+	"bisonai.com/miko/node/pkg/delegator/organization"
+	"bisonai.com/miko/node/pkg/delegator/reporter"
+	"bisonai.com/miko/node/pkg/delegator/sign"
+	"bisonai.com/miko/node/pkg/delegator/utils"
 
 	"github.com/joho/godotenv"
 	"github.com/klaytn/klaytn/blockchain/types"

@@ -12,7 +12,7 @@ import (
 	"strings"
 	"sync"
 
-	"bisonai.com/orakl/node/pkg/delegator/secrets"
+	"bisonai.com/miko/node/pkg/delegator/secrets"
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
 	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
 	"github.com/gofiber/fiber/v2"

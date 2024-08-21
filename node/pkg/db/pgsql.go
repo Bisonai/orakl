@@ -7,8 +7,8 @@ import (
 	"strings"
 	"sync"
 
-	errorSentinel "bisonai.com/orakl/node/pkg/error"
-	"bisonai.com/orakl/node/pkg/secrets"
+	errorSentinel "bisonai.com/miko/node/pkg/error"
+	"bisonai.com/miko/node/pkg/secrets"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog/log"

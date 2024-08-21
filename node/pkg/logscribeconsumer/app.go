@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"time"
 
-	errorsentinel "bisonai.com/orakl/node/pkg/error"
-	"bisonai.com/orakl/node/pkg/utils/request"
+	errorsentinel "bisonai.com/miko/node/pkg/error"
+	"bisonai.com/miko/node/pkg/utils/request"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )

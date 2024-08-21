@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"bisonai.com/orakl/node/pkg/utils/pool"
+	"bisonai.com/miko/node/pkg/utils/pool"
 )
 
 const POOL_WORKER_COUNT = 3

@@ -5,8 +5,8 @@ import (
 	"math/big"
 	"time"
 
-	"bisonai.com/orakl/node/pkg/chain/helper"
-	"bisonai.com/orakl/node/pkg/fetcher"
+	"bisonai.com/miko/node/pkg/chain/helper"
+	"bisonai.com/miko/node/pkg/fetcher"
 )
 
 const (

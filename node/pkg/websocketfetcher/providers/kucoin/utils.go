@@ -3,7 +3,7 @@ package kucoin
 import (
 	"time"
 
-	"bisonai.com/orakl/node/pkg/websocketfetcher/common"
+	"bisonai.com/miko/node/pkg/websocketfetcher/common"
 )
 
 func RawDataToFeedData(raw SymbolSnapshotRaw, feedMap map[string]int32) *common.FeedData {

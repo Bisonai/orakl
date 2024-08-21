@@ -1,7 +1,7 @@
 package providerUrl
 
 import (
-	"bisonai.com/orakl/node/pkg/db"
+	"bisonai.com/miko/node/pkg/db"
 	"github.com/go-playground/validator"
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog/log"

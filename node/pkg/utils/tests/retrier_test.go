@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"bisonai.com/orakl/node/pkg/utils/retrier"
+	"bisonai.com/miko/node/pkg/utils/retrier"
 )
 
 func TestRetry_MaxAttemptsReached(t *testing.T) {

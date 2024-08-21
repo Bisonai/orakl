@@ -5,9 +5,9 @@ import (
 	"os"
 	"time"
 
-	"bisonai.com/orakl/node/pkg/libp2p/utils"
-	"bisonai.com/orakl/node/pkg/utils/request"
-	"bisonai.com/orakl/node/pkg/utils/retrier"
+	"bisonai.com/miko/node/pkg/libp2p/utils"
+	"bisonai.com/miko/node/pkg/utils/request"
+	"bisonai.com/miko/node/pkg/utils/retrier"
 
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/rs/zerolog/log"

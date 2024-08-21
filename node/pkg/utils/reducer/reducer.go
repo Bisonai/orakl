@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	errorSentinel "bisonai.com/orakl/node/pkg/error"
+	errorSentinel "bisonai.com/miko/node/pkg/error"
 )
 
 type Reducer struct {

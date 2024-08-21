@@ -7,7 +7,7 @@ import (
 	"net/url"
 	"time"
 
-	"bisonai.com/orakl/node/pkg/utils/retrier"
+	"bisonai.com/miko/node/pkg/utils/retrier"
 	"github.com/rs/zerolog/log"
 	"nhooyr.io/websocket"
 	"nhooyr.io/websocket/wsjson"

@@ -3,7 +3,7 @@ package mexc
 import (
 	"time"
 
-	"bisonai.com/orakl/node/pkg/websocketfetcher/common"
+	"bisonai.com/miko/node/pkg/websocketfetcher/common"
 )
 
 func ResponseToFeedDataList(response BatchResponse, feedMap map[string]int32) ([]*common.FeedData, error) {

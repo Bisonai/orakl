@@ -4,8 +4,8 @@ package tests
 import (
 	"testing"
 
-	"bisonai.com/orakl/node/pkg/delegator/function"
-	"bisonai.com/orakl/node/pkg/delegator/utils"
+	"bisonai.com/miko/node/pkg/delegator/function"
+	"bisonai.com/miko/node/pkg/delegator/utils"
 
 	"github.com/stretchr/testify/assert"
 )

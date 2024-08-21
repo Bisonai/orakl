@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"bisonai.com/orakl/node/pkg/db"
+	"bisonai.com/miko/node/pkg/db"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"

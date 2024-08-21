@@ -3,7 +3,7 @@ package feed
 import (
 	"encoding/json"
 
-	"bisonai.com/orakl/node/pkg/db"
+	"bisonai.com/miko/node/pkg/db"
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog/log"
 )

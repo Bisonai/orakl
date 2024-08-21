@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	libp2psetup "bisonai.com/orakl/node/pkg/libp2p/setup"
+	libp2psetup "bisonai.com/miko/node/pkg/libp2p/setup"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/peer"

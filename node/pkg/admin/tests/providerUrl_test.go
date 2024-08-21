@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"testing"
 
-	"bisonai.com/orakl/node/pkg/admin/providerUrl"
-	"bisonai.com/orakl/node/pkg/db"
+	"bisonai.com/miko/node/pkg/admin/providerUrl"
+	"bisonai.com/miko/node/pkg/db"
 	"github.com/stretchr/testify/assert"
 )
 

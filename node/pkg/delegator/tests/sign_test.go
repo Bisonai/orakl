@@ -10,8 +10,8 @@ import (
 	"strconv"
 	"testing"
 
-	"bisonai.com/orakl/node/pkg/delegator/sign"
-	"bisonai.com/orakl/node/pkg/delegator/utils"
+	"bisonai.com/miko/node/pkg/delegator/sign"
+	"bisonai.com/miko/node/pkg/delegator/utils"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/klaytn/klaytn"

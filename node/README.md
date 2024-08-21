@@ -563,7 +563,7 @@ go test ./tests -v
 
 ## Run docker-compose from local environment
 
-- Change api service's docker image into bisonai.com/orakl/apis
+- Change api service's docker image into bisonai.com/miko/apis
 - And if there's `schema={}` in DB connection url in .api.env file update it into keyword `search_path={}`
 
 # How to use DB migration tool
@@ -578,7 +578,7 @@ brew install golang-migrate
 
 ## Migrate commands
 
-- Run commands from bisonai.com/orakl/api folder
+- Run commands from bisonai.com/miko/api folder
 - Write appropriate db connection url for each usecases
 - Be careful on adding `sslmode=disbale`, if it has other option such as `?schema=public` add `&sslmode=disable` else add `?sslmode=disable`
 

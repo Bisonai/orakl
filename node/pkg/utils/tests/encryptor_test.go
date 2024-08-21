@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"bisonai.com/orakl/node/pkg/utils/encryptor"
+	"bisonai.com/miko/node/pkg/utils/encryptor"
 )
 
 func TestEncryptDecryptText(t *testing.T) {

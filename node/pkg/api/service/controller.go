@@ -1,7 +1,7 @@
 package service
 
 import (
-	"bisonai.com/orakl/node/pkg/api/utils"
+	"bisonai.com/miko/node/pkg/api/utils"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"

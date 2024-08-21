@@ -5,9 +5,9 @@ import (
 	"math/big"
 	"time"
 
-	"bisonai.com/orakl/node/pkg/chain/eth_client"
-	"bisonai.com/orakl/node/pkg/chain/utils"
-	errorSentinel "bisonai.com/orakl/node/pkg/error"
+	"bisonai.com/miko/node/pkg/chain/eth_client"
+	"bisonai.com/miko/node/pkg/chain/utils"
+	errorSentinel "bisonai.com/miko/node/pkg/error"
 	"github.com/klaytn/klaytn"
 	"github.com/klaytn/klaytn/blockchain/types"
 	"github.com/klaytn/klaytn/client"

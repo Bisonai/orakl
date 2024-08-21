@@ -5,8 +5,8 @@ import (
 	"context"
 	"testing"
 
-	"bisonai.com/orakl/node/pkg/libp2p/setup"
-	"bisonai.com/orakl/node/pkg/libp2p/utils"
+	"bisonai.com/miko/node/pkg/libp2p/setup"
+	"bisonai.com/miko/node/pkg/libp2p/utils"
 )
 
 func TestMakeHost(t *testing.T) {

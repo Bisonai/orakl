@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"bisonai.com/orakl/node/pkg/db"
-	"bisonai.com/orakl/node/pkg/logscribe"
-	"bisonai.com/orakl/node/pkg/logscribe/api"
-	"bisonai.com/orakl/node/pkg/logscribe/logprocessor"
+	"bisonai.com/miko/node/pkg/db"
+	"bisonai.com/miko/node/pkg/logscribe"
+	"bisonai.com/miko/node/pkg/logscribe/api"
+	"bisonai.com/miko/node/pkg/logscribe/logprocessor"
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog/log"
 )

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"bisonai.com/orakl/node/pkg/utils/reducer"
+	"bisonai.com/miko/node/pkg/utils/reducer"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"bisonai.com/orakl/node/pkg/api/apierr"
-	"bisonai.com/orakl/node/pkg/api/utils"
+	"bisonai.com/miko/node/pkg/api/apierr"
+	"bisonai.com/miko/node/pkg/api/utils"
 
 	"github.com/joho/godotenv"
 	"github.com/stretchr/testify/assert"

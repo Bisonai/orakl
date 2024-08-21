@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"time"
 
-	"bisonai.com/orakl/node/pkg/secrets"
+	"bisonai.com/miko/node/pkg/secrets"
 	"github.com/rs/zerolog/log"
 )
 

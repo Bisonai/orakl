@@ -3,7 +3,7 @@ package tests
 import (
 	"testing"
 
-	"bisonai.com/orakl/node/pkg/utils/calculator"
+	"bisonai.com/miko/node/pkg/utils/calculator"
 )
 
 func TestFloatAvgOddLength(t *testing.T) {

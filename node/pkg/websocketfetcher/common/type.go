@@ -7,9 +7,9 @@ import (
 	"time"
 	"unicode"
 
-	"bisonai.com/orakl/node/pkg/chain/websocketchainreader"
-	"bisonai.com/orakl/node/pkg/common/types"
-	"bisonai.com/orakl/node/pkg/wss"
+	"bisonai.com/miko/node/pkg/chain/websocketchainreader"
+	"bisonai.com/miko/node/pkg/common/types"
+	"bisonai.com/miko/node/pkg/wss"
 )
 
 const (

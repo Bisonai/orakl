@@ -4,7 +4,7 @@ import (
 	"context"
 	"os"
 
-	"bisonai.com/orakl/node/pkg/checker/inspect"
+	"bisonai.com/miko/node/pkg/checker/inspect"
 	"github.com/rs/zerolog/log"
 )
 

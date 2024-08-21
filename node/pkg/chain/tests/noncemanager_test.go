@@ -5,7 +5,7 @@ import (
 	"sync"
 	"testing"
 
-	"bisonai.com/orakl/node/pkg/chain/noncemanager"
+	"bisonai.com/miko/node/pkg/chain/noncemanager"
 )
 
 func TestNonceManager(t *testing.T) {

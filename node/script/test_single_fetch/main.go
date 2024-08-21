@@ -3,8 +3,8 @@ package main
 import (
 	"encoding/json"
 
-	"bisonai.com/orakl/node/pkg/utils/reducer"
-	"bisonai.com/orakl/node/pkg/utils/request"
+	"bisonai.com/miko/node/pkg/utils/reducer"
+	"bisonai.com/miko/node/pkg/utils/request"
 	"github.com/rs/zerolog/log"
 )
 

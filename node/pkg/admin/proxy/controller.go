@@ -1,7 +1,7 @@
 package proxy
 
 import (
-	"bisonai.com/orakl/node/pkg/db"
+	"bisonai.com/miko/node/pkg/db"
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog/log"

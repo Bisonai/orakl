@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"bisonai.com/orakl/node/pkg/db"
-	"bisonai.com/orakl/node/pkg/logscribe/api"
+	"bisonai.com/miko/node/pkg/db"
+	"bisonai.com/miko/node/pkg/logscribe/api"
 	"github.com/rs/zerolog"
 )
 
