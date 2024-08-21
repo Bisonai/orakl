@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"strings"
 	"sync"
-	"time"
 
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
 	"bisonai.com/orakl/node/pkg/secrets"
@@ -14,8 +13,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog/log"
 )
-
-const BasicTimeout = 10 * time.Second
 
 // singleton pattern
 // make sure env is loaded from main before calling this
@@ -103,9 +100,7 @@ func QueryRows[T any](ctx context.Context, queryString string, args map[string]a
 }
 
 func query(ctx context.Context, pool *pgxpool.Pool, query string, args map[string]any) (pgx.Rows, error) {
-	ctxWithTimeout, cancel := context.WithTimeout(ctx, BasicTimeout)
-	defer cancel()
-	return pool.Query(ctxWithTimeout, query, pgx.NamedArgs(args))
+	return pool.Query(ctx, query, pgx.NamedArgs(args))
 }
 
 func queryRow[T any](ctx context.Context, pool *pgxpool.Pool, queryString string, args map[string]any) (T, error) {
@@ -368,15 +363,9 @@ func GetTransientPool(ctx context.Context, connectionString string) (*pgxpool.Po
 }
 
 func QueryRowTransient[T any](ctx context.Context, pool *pgxpool.Pool, queryString string, args map[string]any) (T, error) {
-	ctxWithTimeout, cancel := context.WithTimeout(ctx, BasicTimeout)
-	defer cancel()
-
-	return queryRow[T](ctxWithTimeout, pool, queryString, args)
+	return queryRow[T](ctx, pool, queryString, args)
 }
 
 func QueryRowsTransient[T any](ctx context.Context, pool *pgxpool.Pool, queryString string, args map[string]any) ([]T, error) {
-	ctxWithTimeout, cancel := context.WithTimeout(ctx, BasicTimeout)
-	defer cancel()
-
-	return queryRows[T](ctxWithTimeout, pool, queryString, args)
+	return queryRows[T](ctx, pool, queryString, args)
 }
