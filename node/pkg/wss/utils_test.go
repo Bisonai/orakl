@@ -4,6 +4,7 @@ package wss
 import (
 	"context"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -37,31 +38,14 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func TestReadWriteAndClose(t *testing.T) {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/ws", echoHandler)
-	// Create an http.Server object
-	srv := &http.Server{
-		Addr:    ":8088",
-		Handler: mux,
-	}
-	// Start the server in a goroutine
-	go func() {
-		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
-			// unexpected error
-			log.Fatal().Err(err).Msg("failed to start server")
-		}
-	}()
-	defer func() {
-		if err := srv.Close(); err != nil {
-			// unexpected error
-			t.Fatalf("Server Shutdown: %v", err)
-		}
-	}()
+	server := httptest.NewServer(http.HandlerFunc(echoHandler))
+	defer server.Close()
+	wsURL := "ws" + server.URL[len("http"):] + "/ws"
 
 	time.Sleep(time.Second)
 
 	// Create a WebSocket connection
-	conn, err := NewWebsocketHelper(context.Background(), WithEndpoint("ws://localhost:8088/ws"))
+	conn, err := NewWebsocketHelper(context.Background(), WithEndpoint(wsURL))
 	assert.NoError(t, err)
 	assert.NotNil(t, conn)
 
@@ -79,6 +63,70 @@ func TestReadWriteAndClose(t *testing.T) {
 	assert.Equal(t, "Hello", <-ch)
 
 	// Test Close
+	err = conn.Close()
+	assert.NoError(t, err)
+}
+
+func TestReconnectTicker(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(echoHandler))
+	defer server.Close()
+	wsURL := "ws" + server.URL[len("http"):] + "/ws"
+
+	// Create a WebSocket connection with a short reconnect interval
+	conn, err := NewWebsocketHelper(
+		context.Background(),
+		WithEndpoint(wsURL),
+		WithReconnectInterval(100*time.Millisecond), // Short interval for testing
+	)
+	assert.NoError(t, err)
+	assert.NotNil(t, conn)
+
+	// Run the WebSocket helper in a separate goroutine
+	go conn.Run(context.Background(), func(ctx context.Context, data map[string]any) error {
+		// Handle data if necessary
+		return nil
+	})
+
+	// Give it some time to reconnect
+	time.Sleep(500 * time.Millisecond)
+
+	// Test if the connection has been re-established
+	assert.NotNil(t, conn.Conn) // Assuming that `conn.Conn` should not be nil
+	assert.True(t, conn.IsRunning)
+
+	// Close the WebSocket helper
+	err = conn.Close()
+	assert.NoError(t, err)
+}
+
+func TestInactivityTimer(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(echoHandler))
+	defer server.Close()
+	wsURL := "ws" + server.URL[len("http"):] + "/ws"
+
+	// Create a WebSocket connection with a short inactivity timeout
+	conn, err := NewWebsocketHelper(
+		context.Background(),
+		WithEndpoint(wsURL),
+		WithInactivityTimeout(50*time.Millisecond), // Short timeout for testing
+	)
+	assert.NoError(t, err)
+	assert.NotNil(t, conn)
+
+	// Run the WebSocket helper in a separate goroutine
+	go conn.Run(context.Background(), func(ctx context.Context, data map[string]any) error {
+		// Handle data if necessary
+		return nil
+	})
+
+	// Wait longer than the inactivity timeout
+	time.Sleep(500 * time.Millisecond)
+
+	// Verify if the connection has been closed due to inactivity
+	assert.NotNil(t, conn.Conn) // Assuming that `conn.Conn` should be nil if closed
+	assert.True(t, conn.IsRunning)
+
+	// Close the WebSocket helper
 	err = conn.Close()
 	assert.NoError(t, err)
 }
