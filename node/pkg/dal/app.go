@@ -11,6 +11,7 @@ import (
 	"bisonai.com/orakl/node/pkg/dal/collector"
 	"bisonai.com/orakl/node/pkg/dal/hub"
 	"bisonai.com/orakl/node/pkg/dal/utils/keycache"
+	"bisonai.com/orakl/node/pkg/dal/utils/stats"
 	"bisonai.com/orakl/node/pkg/utils/request"
 
 	"github.com/rs/zerolog/log"
@@ -20,6 +21,9 @@ type Config = types.Config
 
 func Run(ctx context.Context) error {
 	log.Debug().Msg("Starting DAL API server")
+
+	statsApp := stats.Start(ctx)
+	defer statsApp.Stop()
 
 	keyCache := keycache.NewAPIKeyCache(1 * time.Hour)
 	keyCache.CleanupLoop(10 * time.Minute)
@@ -45,7 +49,7 @@ func Run(ctx context.Context) error {
 	hub := hub.HubSetup(ctx, configs)
 	go hub.Start(ctx, collector)
 
-	err = apiv2.Start(ctx, apiv2.WithCollector(collector), apiv2.WithHub(hub), apiv2.WithKeyCache(keyCache))
+	err = apiv2.Start(ctx, apiv2.WithCollector(collector), apiv2.WithHub(hub), apiv2.WithKeyCache(keyCache), apiv2.WithStatsApp(statsApp))
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to start DAL WS server")
 		return err

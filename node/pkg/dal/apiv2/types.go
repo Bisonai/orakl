@@ -6,6 +6,7 @@ import (
 	"bisonai.com/orakl/node/pkg/dal/collector"
 	"bisonai.com/orakl/node/pkg/dal/hub"
 	"bisonai.com/orakl/node/pkg/dal/utils/keycache"
+	"bisonai.com/orakl/node/pkg/dal/utils/stats"
 )
 
 type BulkResponse struct {
@@ -21,7 +22,7 @@ type ServerV2 struct {
 	collector *collector.Collector
 	hub       *hub.Hub
 	keyCache  *keycache.KeyCache
-	serveMux  *http.ServeMux
+	handler   http.Handler
 }
 
 type ServerV2Config struct {
@@ -29,6 +30,7 @@ type ServerV2Config struct {
 	Collector *collector.Collector
 	Hub       *hub.Hub
 	KeyCache  *keycache.KeyCache
+	StatsApp  *stats.StatsApp
 }
 
 type ServerV2Option func(*ServerV2Config)
@@ -48,6 +50,12 @@ func WithCollector(c *collector.Collector) ServerV2Option {
 func WithHub(h *hub.Hub) ServerV2Option {
 	return func(config *ServerV2Config) {
 		config.Hub = h
+	}
+}
+
+func WithStatsApp(s *stats.StatsApp) ServerV2Option {
+	return func(config *ServerV2Config) {
+		config.StatsApp = s
 	}
 }
 
