@@ -92,6 +92,7 @@ func (ws *WebsocketHelper) Run(ctx context.Context, router func(context.Context,
 			select {
 			case <-ctx.Done():
 				log.Info().Str("endpoint", ws.Endpoint).Msg("context cancelled, stopping websocket")
+				ws.Close()
 				return
 			case <-reconnectTicker.C:
 				log.Info().Str("endpoint", ws.Endpoint).Msg("reconnect interval exceeded during read, closing websocket")
