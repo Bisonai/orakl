@@ -120,6 +120,7 @@ on:
           - reporter:v0.0.1.20240820.0933.6582edb:cleanup reporter and logscribe...
           - api:v0.0.1.20240821.0452.cad85cb:Delegator delegator zerologs
           - delegator:v0.0.1.20240821.0459.9eaee01:Delegator delegator zerologs
+          - por:v0.0.1.20240821.0508.827c422:Delegator delegator zerologs
 jobs:
   prepare-taskflow:
     name: Prepare
