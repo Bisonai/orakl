@@ -121,6 +121,11 @@ func filterOutliers(feeds []*FeedData) ([]*FeedData, error) {
 		data[i] = feed.Value
 	}
 
+	if len(data) < 5 {
+		// skip quartileOutlier removal if not enough data
+		return feeds, nil
+	}
+
 	outliers, err := stats.QuartileOutliers(data)
 	if err != nil {
 		return nil, err
