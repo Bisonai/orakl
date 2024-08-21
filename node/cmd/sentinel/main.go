@@ -7,8 +7,8 @@ import (
 	"sync"
 
 	"bisonai.com/orakl/node/pkg/checker/balance"
-	"bisonai.com/orakl/node/pkg/checker/dal"
-	"bisonai.com/orakl/node/pkg/checker/dalstats"
+	// "bisonai.com/orakl/node/pkg/checker/dal"
+	// "bisonai.com/orakl/node/pkg/checker/dalstats"
 	"bisonai.com/orakl/node/pkg/checker/dbcronjob"
 	"bisonai.com/orakl/node/pkg/checker/event"
 	"bisonai.com/orakl/node/pkg/checker/health"
@@ -111,29 +111,29 @@ func main() {
 
 	log.Info().Msg("peers checker started")
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		err := dal.Start(ctx)
-		if err != nil {
-			log.Error().Err(err).Msg("error starting dal checker")
-			os.Exit(1)
-		}
-	}()
+	// wg.Add(1)
+	// go func() {
+	// 	defer wg.Done()
+	// 	err := dal.Start(ctx)
+	// 	if err != nil {
+	// 		log.Error().Err(err).Msg("error starting dal checker")
+	// 		os.Exit(1)
+	// 	}
+	// }()
 
-	log.Info().Msg("dal checker started")
+	// log.Info().Msg("dal checker started")
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		err := dalstats.Start(ctx)
-		if err != nil {
-			log.Error().Err(err).Msg("error starting dalstats checker")
-			os.Exit(1)
-		}
-	}()
+	// wg.Add(1)
+	// go func() {
+	// 	defer wg.Done()
+	// 	err := dalstats.Start(ctx)
+	// 	if err != nil {
+	// 		log.Error().Err(err).Msg("error starting dalstats checker")
+	// 		os.Exit(1)
+	// 	}
+	// }()
 
-	log.Info().Msg("dal stats checker started")
+	// log.Info().Msg("dal stats checker started")
 
 	wg.Add(1)
 	go func() {
