@@ -11,7 +11,7 @@ import (
 
 const (
 	DefaultPingerTimeout     = 2 * time.Second
-	DefaultMaxDelay          = 150 * time.Millisecond
+	DefaultMaxDelay          = 100 * time.Millisecond
 	DefaultMaxFails          = 2
 	DefaultBufferSize        = 500
 	DefaultReconnectInterval = 2 * time.Second
