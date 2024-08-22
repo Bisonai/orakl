@@ -289,24 +289,29 @@ func checkDalTraffic(ctx context.Context, pool *pgxpool.Pool) error {
 	case <-ctx.Done():
 		return nil
 	default:
-		result, err := db.QueryRowTransient[Count](ctx, pool, getTrafficCheckQuery(), map[string]any{})
+		prev, err := db.QueryRowTransient[Count](ctx, pool, getTrafficCheckQuery(TrafficOldOffset), map[string]any{})
 		if err != nil {
 			log.Error().Err(err).Msg("failed to check DAL traffic")
 			return err
 		}
-		if result.Count > TrafficThreshold {
-			alert.SlackAlert(fmt.Sprintf("DAL traffic exceeded threshold: %d", result.Count))
+		recent, err := db.QueryRowTransient[Count](ctx, pool, getTrafficCheckQuery(TrafficRecentOffset), map[string]any{})
+		if err != nil {
+			log.Error().Err(err).Msg("failed to check DAL traffic")
+			return err
+		}
+		if recent.Count > prev.Count {
+			alert.SlackAlert(fmt.Sprintf("DAL traffic alert: last 10seconds call count %d exceeded last 10 minutes call count %d", recent.Count, prev.Count))
 		}
 		return nil
 	}
 }
 
-func getTrafficCheckQuery() string {
+func getTrafficCheckQuery(offset int) string {
 	keysToIgnore := strings.Split(IgnoreKeys, ",")
 	modified := []string{}
 	for _, desc := range keysToIgnore {
 		modified = append(modified, fmt.Sprintf("'%s'", desc))
 	}
 
-	return fmt.Sprintf(TrafficCheckQuery, strings.Join(modified, ", "))
+	return fmt.Sprintf(TrafficCheckQuery, offset, strings.Join(modified, ", "))
 }
