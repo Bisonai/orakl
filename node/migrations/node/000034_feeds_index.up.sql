@@ -1,1 +1,1 @@
-DROP INDEX IF EXISTS feeds_config_id_idx;
+CREATE INDEX IF NOT EXISTS feeds_config_id_idx ON feeds(config_id);
