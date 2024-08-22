@@ -26,6 +26,45 @@ type TestItems struct {
 
 const topicString = "orakl-raft-test-topic"
 
+func WaitForCondition(ctx context.Context, t *testing.T, condition func() bool) {
+	t.Helper()
+	timer := time.NewTimer(time.Second * 60)
+	defer timer.Stop()
+	for {
+		if condition() {
+			return
+		}
+		select {
+		case <-ctx.Done():
+			t.Fatalf("context cancelled")
+		case <-timer.C:
+			t.Fatalf("wait for condition timed out")
+		default:
+			time.Sleep(time.Millisecond * 500)
+		}
+	}
+}
+
+func allNodesHaveSameTerm(nodes []*Raft) bool {
+	for i := 1; i < len(nodes); i++ {
+		if nodes[0].GetCurrentTerm() < 1 || nodes[0].GetCurrentTerm() != nodes[i].GetCurrentTerm() {
+			return false
+		}
+	}
+	fmt.Println("all nodes have same term: ", nodes[0].GetCurrentTerm())
+	return true
+}
+
+func allNodesHaveSameTermMin(nodes []*Raft, min int) bool {
+	for i := 1; i < len(nodes); i++ {
+		if nodes[0].GetCurrentTerm() <= min || nodes[0].GetCurrentTerm() != nodes[i].GetCurrentTerm() {
+			return false
+		}
+	}
+	fmt.Println("all nodes have same term: ", nodes[0].GetCurrentTerm())
+	return true
+}
+
 func setup(ctx context.Context, cancel context.CancelFunc) (func() error, *TestItems, error) {
 
 	hosts := make([]host.Host, 0)
@@ -65,7 +104,7 @@ func setup(ctx context.Context, cancel context.CancelFunc) (func() error, *TestI
 		node := NewRaftNode(hosts[i], pss[i], topics[i], 100, time.Second)
 		node.LeaderJob = func(context.Context) error {
 			log.Debug().Int("subscribers", node.SubscribersCount()).Int("Term", node.GetCurrentTerm()).Msg("Leader job")
-			node.IncreaseTerm()
+			// node.IncreaseTerm()
 			return nil
 		}
 		node.HandleCustomMessage = func(ctx context.Context, message Message) error {
@@ -121,9 +160,15 @@ func TestRaft_LeaderElection(t *testing.T) {
 		go raftNode.Run(ctx)
 	}
 
-	time.Sleep(3300 * time.Millisecond)
+	WaitForCondition(ctx, t, func() bool {
+		return allNodesHaveSameTerm(testItems.RaftNodes)
+	})
 
 	t.Run("Verify single leader across nodes", func(t *testing.T) {
+		WaitForCondition(ctx, t, func() bool {
+			return allNodesHaveSameTerm(testItems.RaftNodes)
+		})
+
 		leaderIds := make(map[string]struct{})
 		for _, node := range testItems.RaftNodes {
 			leader := node.GetLeader()
@@ -153,34 +198,6 @@ func TestRaft_LeaderElection(t *testing.T) {
 	})
 }
 
-func TestRaft_TermIncrease(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	cleanup, testItems := setupRaftCluster(ctx, cancel, t)
-	defer func() {
-		if cleanupErr := cleanup(); cleanupErr != nil {
-			t.Logf("Cleanup failed: %v", cleanupErr)
-		}
-	}()
-
-	for _, raftNode := range testItems.RaftNodes {
-		go raftNode.Run(ctx)
-	}
-
-	time.Sleep(3100 * time.Millisecond)
-
-	t.Run("Term should increase over time", func(t *testing.T) {
-		termsBefore := getTerms(testItems.RaftNodes)
-		time.Sleep(1100 * time.Millisecond)
-		termsAfter := getTerms(testItems.RaftNodes)
-
-		for i := range termsBefore {
-			assert.Greater(t, termsAfter[i], termsBefore[i])
-		}
-	})
-}
-
 func TestRaft_LeaderResignAndReelection(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -196,16 +213,22 @@ func TestRaft_LeaderResignAndReelection(t *testing.T) {
 		go raftNode.Run(ctx)
 	}
 
-	time.Sleep(3100 * time.Millisecond)
+	WaitForCondition(ctx, t, func() bool {
+		return allNodesHaveSameTerm(testItems.RaftNodes)
+	})
 
 	t.Run("Leader resign and reelection", func(t *testing.T) {
+		var lastTerm int
 		for _, node := range testItems.RaftNodes {
 			if node.GetRole() == Leader {
+				lastTerm = node.GetCurrentTerm()
 				node.ResignLeader()
 				break
 			}
 		}
-		time.Sleep(3100 * time.Millisecond)
+		WaitForCondition(ctx, t, func() bool {
+			return allNodesHaveSameTermMin(testItems.RaftNodes, lastTerm)
+		})
 
 		leaderIds := make(map[string]struct{})
 		for _, node := range testItems.RaftNodes {
@@ -232,13 +255,23 @@ func TestRaft_NewNodeJoin(t *testing.T) {
 		go raftNode.Run(ctx)
 	}
 
-	time.Sleep(2 * time.Second)
+	WaitForCondition(ctx, t, func() bool {
+		return allNodesHaveSameTerm(testItems.RaftNodes)
+	})
 
 	t.Run("New node join and expected behavior", func(t *testing.T) {
 		newNode := joinNewNode(ctx, testItems, t)
 		defer newNode.Host.Close()
 
-		time.Sleep(3100 * time.Millisecond)
+		newList := []*Raft{
+			newNode}
+		for _, node := range testItems.RaftNodes {
+			newList = append(newList, node)
+		}
+
+		WaitForCondition(ctx, t, func() bool {
+			return allNodesHaveSameTerm(newList)
+		})
 
 		leaderIds := make(map[string]struct{})
 		terms := make(map[int]struct{})
@@ -273,14 +306,18 @@ func TestRaft_LeaderDisconnect(t *testing.T) {
 		go raftNode.Run(ctx)
 	}
 
-	time.Sleep(3100 * time.Millisecond)
+	WaitForCondition(ctx, t, func() bool {
+		return allNodesHaveSameTerm(testItems.RaftNodes)
+	})
 
 	t.Run("Leader disconnect and reelection", func(t *testing.T) {
 		var prevLeaderID string
 		var oldLeaderIndex int
+		var lastTerm int
 		for i, node := range testItems.RaftNodes {
 			if node.GetRole() == Leader {
 				oldLeaderIndex = i
+				lastTerm = node.GetCurrentTerm()
 				prevLeaderID = node.GetHostId()
 				testItems.Hosts[i].Close()
 				break
@@ -288,7 +325,17 @@ func TestRaft_LeaderDisconnect(t *testing.T) {
 		}
 		assert.NotEmpty(t, prevLeaderID)
 
-		time.Sleep(3100 * time.Millisecond)
+		newList := []*Raft{}
+		for i, node := range testItems.RaftNodes {
+			if i == oldLeaderIndex {
+				continue
+			}
+			newList = append(newList, node)
+		}
+
+		WaitForCondition(ctx, t, func() bool {
+			return allNodesHaveSameTermMin(newList, lastTerm)
+		})
 
 		var newLeaderID string
 		for i, node := range testItems.RaftNodes {
@@ -305,15 +352,6 @@ func TestRaft_LeaderDisconnect(t *testing.T) {
 		assert.NotEmpty(t, newLeaderID)
 		assert.NotEqual(t, prevLeaderID, newLeaderID)
 	})
-}
-
-// Helper functions
-func getTerms(nodes []*Raft) []int {
-	terms := make([]int, len(nodes))
-	for i, node := range nodes {
-		terms[i] = node.GetCurrentTerm()
-	}
-	return terms
 }
 
 func joinNewNode(ctx context.Context, testItems *TestItems, t *testing.T) *Raft {

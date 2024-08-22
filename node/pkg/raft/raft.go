@@ -314,6 +314,7 @@ func (r *Raft) ResignLeader() {
 func (r *Raft) setLeaderState() {
 	r.Resign = make(chan interface{})
 	r.ElectionTimer.Stop()
+	r.Term++
 	r.Role = Leader
 	r.LeaderID = r.GetHostId()
 	r.HeartbeatTicker = time.NewTicker(r.HeartbeatTimeout)
