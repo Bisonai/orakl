@@ -13,10 +13,12 @@ const (
 	WsDelayThreshold        = 9 * time.Second
 	WsPushThreshold         = 5 * time.Second
 	IgnoreKeys              = "test,sentinel,orakl_reporter"
-	TrafficCheckQuery       = `select count(1) from rest_calls where
-timestamp > current_timestamp - INTERVAL '10 seconds' AND
+
+	TrafficCheckQuery = `select count(1) from rest_calls where
+timestamp > current_timestamp - INTERVAL '%d seconds' AND
 api_key NOT IN (SELECT key from keys WHERE description IN (%s))`
-	TrafficThreshold = 100
+	TrafficOldOffset    = 600
+	TrafficRecentOffset = 10
 )
 
 var (
