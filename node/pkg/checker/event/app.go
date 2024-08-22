@@ -15,7 +15,6 @@ import (
 
 const AlarmOffset = 3
 const VRF_EVENT = "vrf_random_words_fulfilled"
-const MaxFeedSubmissionCount = 2 // 2 times within the specified feed.ExpectedInterval will be considered oversubmission
 
 var EventCheckInterval time.Duration
 var POR_BUFFER = 60 * time.Second
@@ -162,12 +161,6 @@ func checkEachFeed(ctx context.Context, feed *FeedToCheck) string {
 		log.Error().Err(err).Str("feed", feed.FeedName).Msg("Failed to check feed")
 	}
 
-	count, err := countLastIntervalFeedEvents(ctx, *feed)
-	if err == nil {
-		result += handleFeedOverSubmission(count, feed)
-	} else {
-		log.Error().Err(err).Str("feed", feed.FeedName).Msg("Failed to count last minute feed events")
-	}
 	return result
 }
 
@@ -241,20 +234,6 @@ func timeSinceLastFeedEvent(ctx context.Context, feed FeedToCheck) (time.Duratio
 	return time.Since(lastEventTime), nil
 }
 
-func countLastIntervalFeedEvents(ctx context.Context, feed FeedToCheck) (int, error) {
-	type Count struct {
-		Count int `db:"count"`
-	}
-	query := feedLastIntervalEventQuery(feed.SchemaName, feed.ExpectedInterval)
-	count, err := db.QueryRow[Count](ctx, query, nil)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to query last minute event count")
-		return 0, err
-	}
-	return count.Count, nil
-
-}
-
 func timeSinceLastPorEvent(ctx context.Context, feed FeedToCheck) (time.Duration, error) {
 	type QueriedTime struct {
 		UnixTime int64 `db:"time"`
@@ -318,21 +297,6 @@ func handleFeedSubmissionDelay(offset time.Duration, feed *FeedToCheck) string {
 		}
 	} else {
 		feed.LatencyChecked = 0
-	}
-	return msg
-}
-
-func handleFeedOverSubmission(count int, feed *FeedToCheck) string {
-	msg := ""
-	if count >= MaxFeedSubmissionCount {
-		log.Warn().Str("feed", feed.FeedName).Msg(fmt.Sprintf("%s submitted %d times in %d seconds", feed.FeedName, count, feed.ExpectedInterval/1000))
-		feed.OversubmissionCount++
-		if feed.OversubmissionCount > AlarmOffset {
-			msg += fmt.Sprintf("%s made %dx more submissions, %d times consecutively\n", feed.FeedName, MaxFeedSubmissionCount, AlarmOffset+1)
-			feed.OversubmissionCount = 0
-		}
-	} else {
-		feed.OversubmissionCount = 0
 	}
 	return msg
 }
