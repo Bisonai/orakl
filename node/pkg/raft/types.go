@@ -24,7 +24,7 @@ const (
 	Candidate RoleType = "candidate"
 	Follower  RoleType = "follower"
 
-	MaxMissedHeartbeats = 3
+	MaxMissedHeartbeats = 2
 )
 
 type Message struct {

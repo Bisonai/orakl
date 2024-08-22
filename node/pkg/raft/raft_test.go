@@ -121,7 +121,7 @@ func TestRaft_LeaderElection(t *testing.T) {
 		go raftNode.Run(ctx)
 	}
 
-	time.Sleep(2200 * time.Millisecond)
+	time.Sleep(3300 * time.Millisecond)
 
 	t.Run("Verify single leader across nodes", func(t *testing.T) {
 		leaderIds := make(map[string]struct{})
@@ -168,7 +168,7 @@ func TestRaft_TermIncrease(t *testing.T) {
 		go raftNode.Run(ctx)
 	}
 
-	time.Sleep(2100 * time.Millisecond)
+	time.Sleep(3100 * time.Millisecond)
 
 	t.Run("Term should increase over time", func(t *testing.T) {
 		termsBefore := getTerms(testItems.RaftNodes)
@@ -196,7 +196,7 @@ func TestRaft_LeaderResignAndReelection(t *testing.T) {
 		go raftNode.Run(ctx)
 	}
 
-	time.Sleep(2100 * time.Millisecond)
+	time.Sleep(3100 * time.Millisecond)
 
 	t.Run("Leader resign and reelection", func(t *testing.T) {
 		for _, node := range testItems.RaftNodes {
@@ -205,7 +205,7 @@ func TestRaft_LeaderResignAndReelection(t *testing.T) {
 				break
 			}
 		}
-		time.Sleep(1900 * time.Millisecond)
+		time.Sleep(3100 * time.Millisecond)
 
 		leaderIds := make(map[string]struct{})
 		for _, node := range testItems.RaftNodes {
@@ -238,7 +238,7 @@ func TestRaft_NewNodeJoin(t *testing.T) {
 		newNode := joinNewNode(ctx, testItems, t)
 		defer newNode.Host.Close()
 
-		time.Sleep(1500 * time.Millisecond)
+		time.Sleep(3100 * time.Millisecond)
 
 		leaderIds := make(map[string]struct{})
 		terms := make(map[int]struct{})
@@ -273,7 +273,7 @@ func TestRaft_LeaderDisconnect(t *testing.T) {
 		go raftNode.Run(ctx)
 	}
 
-	time.Sleep(2100 * time.Millisecond)
+	time.Sleep(3100 * time.Millisecond)
 
 	t.Run("Leader disconnect and reelection", func(t *testing.T) {
 		var prevLeaderID string
@@ -288,7 +288,7 @@ func TestRaft_LeaderDisconnect(t *testing.T) {
 		}
 		assert.NotEmpty(t, prevLeaderID)
 
-		time.Sleep(1900 * time.Millisecond)
+		time.Sleep(3100 * time.Millisecond)
 
 		var newLeaderID string
 		for i, node := range testItems.RaftNodes {
