@@ -222,3 +222,4 @@
 - **node** v0.0.1.20240822.0553.a28e062 <br> *`PR`*: OraklNode Increase db timeout ... <br><br> 
 - **node** v0.0.1.20240822.0603.231c655 <br> *`PR`*: fix rollback db timeout <br><br> 
 - **sentinel** v0.0.1.20240822.0712.cea2662 <br> *`PR`*: fix rollback db timeout <br><br> 
+- **sentinel** v0.0.1.20240822.0748.0d4e613 <br> *`PR`*: remove old tags for helm chart... <br><br> 

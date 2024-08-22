@@ -131,6 +131,7 @@ on:
           - node:v0.0.1.20240822.0553.a28e062:OraklNode Increase db timeout ...
           - node:v0.0.1.20240822.0603.231c655:fix rollback db timeout
           - sentinel:v0.0.1.20240822.0712.cea2662:fix rollback db timeout
+          - sentinel:v0.0.1.20240822.0748.0d4e613:remove old tags for helm chart...
 jobs:
   prepare-taskflow:
     name: Prepare
