@@ -2,8 +2,6 @@ package db
 
 import (
 	"context"
-	"errors"
-	"os"
 	"reflect"
 	"testing"
 )
@@ -501,65 +499,4 @@ func TestBulkSelect(t *testing.T) {
 		}
 	})
 
-}
-
-func TestQueryTimeout(t *testing.T) {
-	t.Skip("")
-	// Setting up the context with a short timeout
-	ctx := context.Background()
-
-	pool, err := GetPool(ctx)
-	if err != nil {
-		t.Fatalf("GetPool failed: %v", err)
-	}
-
-	// Create a temporary table (optional, depending on your test needs)
-	_, err = pool.Exec(ctx, `CREATE TEMPORARY TABLE test_timeout (id SERIAL PRIMARY KEY, name TEXT)`)
-	if err != nil {
-		t.Fatalf("Failed to create temporary table: %v", err)
-	}
-
-	// Simulate a long-running query using pg_sleep (2 seconds)
-	_, err = QueryRow[struct {
-		Name string `db:"name"`
-	}](ctx, `SELECT pg_sleep(16)`, nil)
-
-	// Check for context.DeadlineExceeded error
-	if err == nil {
-		t.Fatalf("Expected timeout error but got none")
-	}
-	if !errors.Is(err, context.DeadlineExceeded) {
-		t.Fatalf("Expected context.DeadlineExceeded error, but got: %v", err)
-	}
-}
-
-func TestQueryTimeoutTransient(t *testing.T) {
-	t.Skip("")
-	ctx := context.Background()
-
-	dbUrl := os.Getenv("DATABASE_URL")
-	pool, err := GetTransientPool(ctx, dbUrl)
-	if err != nil {
-		t.Fatalf("GetPool failed: %v", err)
-	}
-	defer pool.Close()
-
-	// Create a temporary table (optional, depending on your test needs)
-	_, err = pool.Exec(ctx, `CREATE TEMPORARY TABLE test_timeout (id SERIAL PRIMARY KEY, name TEXT)`)
-	if err != nil {
-		t.Fatalf("Failed to create temporary table: %v", err)
-	}
-
-	// Simulate a long-running query using pg_sleep (2 seconds)
-	_, err = QueryRow[struct {
-		Name string `db:"name"`
-	}](ctx, `SELECT pg_sleep(16)`, nil)
-
-	// Check for context.DeadlineExceeded error
-	if err == nil {
-		t.Fatalf("Expected timeout error but got none")
-	}
-	if !errors.Is(err, context.DeadlineExceeded) {
-		t.Fatalf("Expected context.DeadlineExceeded error, but got: %v", err)
-	}
 }

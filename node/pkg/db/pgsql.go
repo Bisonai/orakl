@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"strings"
 	"sync"
-	"time"
 
 	errorSentinel "bisonai.com/miko/node/pkg/error"
 	"bisonai.com/miko/node/pkg/secrets"
@@ -22,8 +21,6 @@ var (
 	pool        *pgxpool.Pool
 	poolErr     error
 )
-
-const DefaultDBTimeout = 60 * time.Second
 
 func GetPool(ctx context.Context) (*pgxpool.Pool, error) {
 	return getPool(ctx, &initPgxOnce)
@@ -103,10 +100,7 @@ func QueryRows[T any](ctx context.Context, queryString string, args map[string]a
 }
 
 func query(ctx context.Context, pool *pgxpool.Pool, query string, args map[string]any) (pgx.Rows, error) {
-	ctxWithTimeout, cancel := context.WithTimeout(ctx, DefaultDBTimeout)
-	defer cancel()
-
-	return pool.Query(ctxWithTimeout, query, pgx.NamedArgs(args))
+	return pool.Query(ctx, query, pgx.NamedArgs(args))
 }
 
 func queryRow[T any](ctx context.Context, pool *pgxpool.Pool, queryString string, args map[string]any) (T, error) {
