@@ -9,6 +9,7 @@ import (
 	"bisonai.com/miko/node/pkg/admin"
 	"bisonai.com/miko/node/pkg/aggregator"
 	"bisonai.com/miko/node/pkg/bus"
+	"bisonai.com/miko/node/pkg/checker/ping"
 	"bisonai.com/miko/node/pkg/fetcher"
 	"bisonai.com/miko/node/pkg/libp2p/helper"
 	libp2pSetup "bisonai.com/miko/node/pkg/libp2p/setup"
@@ -19,6 +20,14 @@ import (
 
 func main() {
 	ctx := context.Background()
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	go func() {
+		time.Sleep(5 * time.Second) // give some buffer until the app is ready
+		ping.Run(ctx)
+		cancel()
+	}()
 
 	err := logscribeconsumer.Start(ctx, "node")
 	if err != nil {
