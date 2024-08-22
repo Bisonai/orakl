@@ -23,6 +23,8 @@ const (
 	Leader    RoleType = "leader"
 	Candidate RoleType = "candidate"
 	Follower  RoleType = "follower"
+
+	MaxMissedHeartbeats = 3
 )
 
 type Message struct {
@@ -67,4 +69,6 @@ type Raft struct {
 	LeaderJobTicker     *time.Ticker
 	HandleCustomMessage func(context.Context, Message) error
 	LeaderJob           func(context.Context) error
+
+	MissedHeartbeats int
 }

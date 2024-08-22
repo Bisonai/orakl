@@ -40,6 +40,7 @@ func NewRaftNode(
 		HeartbeatTimeout: HEARTBEAT_TIMEOUT,
 
 		LeaderJobTimeout: leaderJobTimeout,
+		MissedHeartbeats: 0,
 	}
 	return r
 }
@@ -128,6 +129,8 @@ func (r *Raft) handleHeartbeat(msg Message) error {
 
 	r.Mutex.Lock()
 	defer r.Mutex.Unlock()
+
+	r.MissedHeartbeats = 0
 
 	currentRole := r.Role
 	currentTerm := r.Term
@@ -387,13 +390,22 @@ func (r *Raft) startElectionTimer() {
 }
 
 func (r *Raft) startElection(ctx context.Context) {
-	log.Debug().Msg("start election")
 	r.Mutex.Lock()
 	defer r.Mutex.Unlock()
+
+	if r.MissedHeartbeats < MaxMissedHeartbeats {
+		r.MissedHeartbeats++
+		log.Debug().Int("missed heartbeats", r.MissedHeartbeats).Msg("missed heartbeats")
+		r.startElectionTimer()
+		return
+	}
+
+	log.Debug().Msg("start election")
 	r.Term++
 	r.VotesReceived = 0
 	r.Role = Candidate
 	r.VotedFor = r.GetHostId()
+	r.MissedHeartbeats = 0
 
 	r.startElectionTimer()
 
