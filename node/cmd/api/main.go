@@ -20,9 +20,6 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-//go:embed .version
-var version string
-
 func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -43,7 +40,7 @@ func main() {
 		panic(err)
 	}
 
-	appConfig, err := utils.Setup(version)
+	appConfig, err := utils.Setup("0.0.1")
 	if err != nil {
 		panic(err)
 	}
