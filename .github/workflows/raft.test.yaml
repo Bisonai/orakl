@@ -4,8 +4,8 @@ on:
   push:
     branches-ignore:
       - "master"
-  paths:
-    - "node/pkg/raft/**"
+    paths:
+      - "node/pkg/raft/**"
   workflow_dispatch:
 
 jobs:
