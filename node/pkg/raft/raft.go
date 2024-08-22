@@ -41,6 +41,8 @@ func NewRaftNode(
 
 		LeaderJobTimeout: leaderJobTimeout,
 		MissedHeartbeats: 0,
+		CooldownPeriod:   DefaultCooldownPeriod,
+		LastElectionTime: time.Time{},
 	}
 	return r
 }
@@ -400,12 +402,20 @@ func (r *Raft) startElection(ctx context.Context) {
 		return
 	}
 
+	if !r.LastElectionTime.IsZero() && time.Since(r.LastElectionTime) < r.CooldownPeriod {
+		log.Debug().Msg("Election cooldown period active, skipping election.")
+		r.startElectionTimer()
+		return
+	}
+
 	log.Debug().Msg("start election")
 	r.Term++
 	r.VotesReceived = 0
 	r.Role = Candidate
 	r.VotedFor = r.GetHostId()
 	r.MissedHeartbeats = 0
+
+	r.LastElectionTime = time.Now()
 
 	r.startElectionTimer()
 
