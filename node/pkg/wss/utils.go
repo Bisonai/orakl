@@ -98,11 +98,11 @@ func (ws *WebsocketHelper) Run(ctx context.Context, router func(context.Context,
 				log.Info().Str("endpoint", ws.Endpoint).Msg("reconnect interval exceeded during read, closing websocket")
 				break innerLoop
 			case <-inactivityTimer.C:
-				inactivityTimer.Reset(ws.InactivityTimeout)
 				if time.Since(ws.lastMessageTime) > ws.InactivityTimeout {
 					log.Info().Str("endpoint", ws.Endpoint).Msg("inactivity timeout exceeded, closing websocket")
 					break innerLoop
 				}
+				inactivityTimer.Reset(ws.InactivityTimeout - time.Since(ws.lastMessageTime))
 			default:
 				data, err := readFunc(ctx, ws.Conn)
 				if err != nil {
