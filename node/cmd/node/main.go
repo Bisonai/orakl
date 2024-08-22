@@ -20,13 +20,11 @@ import (
 
 func main() {
 	ctx := context.Background()
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
 
 	go func() {
 		time.Sleep(5 * time.Second) // give some buffer until the app is ready
 		ping.Run(ctx)
-		cancel()
+		os.Exit(1)
 	}()
 
 	err := logscribeconsumer.Start(ctx, "node")
