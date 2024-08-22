@@ -6,10 +6,10 @@ import (
 	"os"
 	"sync"
 
-	"bisonai.com/orakl/node/pkg/chain/helper"
-	errorSentinel "bisonai.com/orakl/node/pkg/error"
-	"bisonai.com/orakl/node/pkg/secrets"
-	"bisonai.com/orakl/node/pkg/utils/request"
+	"bisonai.com/miko/node/pkg/chain/helper"
+	errorSentinel "bisonai.com/miko/node/pkg/error"
+	"bisonai.com/miko/node/pkg/secrets"
+	"bisonai.com/miko/node/pkg/utils/request"
 	"github.com/klaytn/klaytn/common"
 	"github.com/rs/zerolog/log"
 )

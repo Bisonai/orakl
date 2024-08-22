@@ -1,8 +1,8 @@
 package peer
 
 import (
-	"bisonai.com/orakl/node/pkg/db"
-	libp2pUtils "bisonai.com/orakl/node/pkg/libp2p/utils"
+	"bisonai.com/miko/node/pkg/db"
+	libp2pUtils "bisonai.com/miko/node/pkg/libp2p/utils"
 	"github.com/go-playground/validator"
 	"github.com/gofiber/fiber/v2"
 	"github.com/libp2p/go-libp2p/core/host"

@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	"bisonai.com/orakl/node/pkg/alert"
+	"bisonai.com/miko/node/pkg/alert"
 	"github.com/rs/zerolog/log"
 )
 

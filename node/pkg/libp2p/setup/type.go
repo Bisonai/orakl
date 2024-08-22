@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"time"
 
-	"bisonai.com/orakl/node/pkg/secrets"
+	"bisonai.com/miko/node/pkg/secrets"
 
 	"github.com/libp2p/go-libp2p"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"

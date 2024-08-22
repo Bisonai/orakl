@@ -6,8 +6,8 @@ import (
 	"flag"
 	"time"
 
-	libp2pSetup "bisonai.com/orakl/node/pkg/libp2p/setup"
-	"bisonai.com/orakl/node/pkg/raft"
+	libp2pSetup "bisonai.com/miko/node/pkg/libp2p/setup"
+	"bisonai.com/miko/node/pkg/raft"
 	"github.com/rs/zerolog/log"
 )
 

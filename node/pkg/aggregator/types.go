@@ -5,10 +5,10 @@ import (
 	"sync"
 	"time"
 
-	"bisonai.com/orakl/node/pkg/bus"
-	"bisonai.com/orakl/node/pkg/chain/helper"
-	"bisonai.com/orakl/node/pkg/common/types"
-	"bisonai.com/orakl/node/pkg/raft"
+	"bisonai.com/miko/node/pkg/bus"
+	"bisonai.com/miko/node/pkg/chain/helper"
+	"bisonai.com/miko/node/pkg/common/types"
+	"bisonai.com/miko/node/pkg/raft"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/host"
 )

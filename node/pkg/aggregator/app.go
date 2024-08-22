@@ -7,11 +7,11 @@ import (
 	"strconv"
 	"time"
 
-	"bisonai.com/orakl/node/pkg/bus"
-	"bisonai.com/orakl/node/pkg/chain/helper"
-	"bisonai.com/orakl/node/pkg/db"
+	"bisonai.com/miko/node/pkg/bus"
+	"bisonai.com/miko/node/pkg/chain/helper"
+	"bisonai.com/miko/node/pkg/db"
 
-	errorSentinel "bisonai.com/orakl/node/pkg/error"
+	errorSentinel "bisonai.com/miko/node/pkg/error"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/rs/zerolog/log"

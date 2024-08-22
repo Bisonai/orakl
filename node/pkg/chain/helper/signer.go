@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"bisonai.com/orakl/node/pkg/chain/utils"
-	errorSentinel "bisonai.com/orakl/node/pkg/error"
-	"bisonai.com/orakl/node/pkg/secrets"
+	"bisonai.com/miko/node/pkg/chain/utils"
+	errorSentinel "bisonai.com/miko/node/pkg/error"
+	"bisonai.com/miko/node/pkg/secrets"
 	"github.com/klaytn/klaytn/common"
 	"github.com/klaytn/klaytn/crypto"
 	"github.com/rs/zerolog/log"

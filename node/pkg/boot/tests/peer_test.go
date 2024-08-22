@@ -5,12 +5,12 @@ import (
 	"context"
 	"testing"
 
-	adminTests "bisonai.com/orakl/node/pkg/admin/tests"
-	"bisonai.com/orakl/node/pkg/boot"
-	"bisonai.com/orakl/node/pkg/boot/peer"
-	"bisonai.com/orakl/node/pkg/db"
-	libp2pSetup "bisonai.com/orakl/node/pkg/libp2p/setup"
-	libp2pUtils "bisonai.com/orakl/node/pkg/libp2p/utils"
+	adminTests "bisonai.com/miko/node/pkg/admin/tests"
+	"bisonai.com/miko/node/pkg/boot"
+	"bisonai.com/miko/node/pkg/boot/peer"
+	"bisonai.com/miko/node/pkg/db"
+	libp2pSetup "bisonai.com/miko/node/pkg/libp2p/setup"
+	libp2pUtils "bisonai.com/miko/node/pkg/libp2p/utils"
 
 	"github.com/stretchr/testify/assert"
 )

@@ -4,9 +4,9 @@ import (
 	"errors"
 	"time"
 
-	errorSentinel "bisonai.com/orakl/node/pkg/error"
+	errorSentinel "bisonai.com/miko/node/pkg/error"
 
-	"bisonai.com/orakl/node/pkg/websocketfetcher/common"
+	"bisonai.com/miko/node/pkg/websocketfetcher/common"
 	"github.com/rs/zerolog/log"
 )
 

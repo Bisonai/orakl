@@ -9,9 +9,9 @@ import (
 	"fmt"
 	"math"
 
-	"bisonai.com/orakl/node/pkg/alert"
-	"bisonai.com/orakl/node/pkg/db"
-	"bisonai.com/orakl/node/pkg/secrets"
+	"bisonai.com/miko/node/pkg/alert"
+	"bisonai.com/miko/node/pkg/db"
+	"bisonai.com/miko/node/pkg/secrets"
 
 	"time"
 

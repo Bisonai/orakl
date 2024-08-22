@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 
-	"bisonai.com/orakl/node/pkg/logscribeconsumer"
-	"bisonai.com/orakl/node/pkg/por"
+	"bisonai.com/miko/node/pkg/logscribeconsumer"
+	"bisonai.com/miko/node/pkg/por"
 	"github.com/rs/zerolog/log"
 )
 

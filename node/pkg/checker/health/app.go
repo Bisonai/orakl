@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"bisonai.com/orakl/node/pkg/alert"
-	"bisonai.com/orakl/node/pkg/secrets"
+	"bisonai.com/miko/node/pkg/alert"
+	"bisonai.com/miko/node/pkg/secrets"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"

@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"bisonai.com/orakl/node/pkg/db"
-	"bisonai.com/orakl/node/pkg/logscribe"
-	"bisonai.com/orakl/node/pkg/logscribe/logprocessor"
-	"bisonai.com/orakl/node/pkg/utils/request"
+	"bisonai.com/miko/node/pkg/db"
+	"bisonai.com/miko/node/pkg/logscribe"
+	"bisonai.com/miko/node/pkg/logscribe/logprocessor"
+	"bisonai.com/miko/node/pkg/utils/request"
 	"github.com/stretchr/testify/assert"
 )
 

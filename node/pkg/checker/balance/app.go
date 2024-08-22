@@ -16,8 +16,8 @@ import (
 	"github.com/klaytn/klaytn/common"
 	"github.com/rs/zerolog/log"
 
-	"bisonai.com/orakl/node/pkg/alert"
-	"bisonai.com/orakl/node/pkg/utils/request"
+	"bisonai.com/miko/node/pkg/alert"
+	"bisonai.com/miko/node/pkg/utils/request"
 )
 
 func init() {

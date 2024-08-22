@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"bisonai.com/orakl/node/pkg/bus"
+	"bisonai.com/miko/node/pkg/bus"
 	"github.com/rs/zerolog/log"
 
 	"github.com/gofiber/fiber/v2"

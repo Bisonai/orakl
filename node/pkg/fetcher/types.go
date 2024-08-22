@@ -5,10 +5,10 @@ import (
 	"math/big"
 	"time"
 
-	"bisonai.com/orakl/node/pkg/bus"
-	"bisonai.com/orakl/node/pkg/common/types"
-	"bisonai.com/orakl/node/pkg/utils/reducer"
-	"bisonai.com/orakl/node/pkg/websocketfetcher"
+	"bisonai.com/miko/node/pkg/bus"
+	"bisonai.com/miko/node/pkg/common/types"
+	"bisonai.com/miko/node/pkg/utils/reducer"
+	"bisonai.com/miko/node/pkg/websocketfetcher"
 )
 
 const (

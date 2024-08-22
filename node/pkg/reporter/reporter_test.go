@@ -6,7 +6,7 @@ import (
 	"os"
 	"testing"
 
-	"bisonai.com/orakl/node/pkg/chain/helper"
+	"bisonai.com/miko/node/pkg/chain/helper"
 	"github.com/stretchr/testify/assert"
 )
 

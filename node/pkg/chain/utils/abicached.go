@@ -3,7 +3,7 @@ package utils
 import (
 	"sync"
 
-	errorsentinel "bisonai.com/orakl/node/pkg/error"
+	errorsentinel "bisonai.com/miko/node/pkg/error"
 	"github.com/klaytn/klaytn/accounts/abi"
 )
 

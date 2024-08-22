@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"bisonai.com/orakl/node/pkg/websocketfetcher/common"
+	"bisonai.com/miko/node/pkg/websocketfetcher/common"
 )
 
 const layout = "2006-01-02T15:04:05.000"

@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"bisonai.com/orakl/node/pkg/logscribe"
+	"bisonai.com/miko/node/pkg/logscribe"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )

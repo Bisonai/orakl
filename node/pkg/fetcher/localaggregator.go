@@ -8,7 +8,7 @@ import (
 	"slices"
 	"time"
 
-	"bisonai.com/orakl/node/pkg/bus"
+	"bisonai.com/miko/node/pkg/bus"
 	"github.com/montanaflynn/stats"
 	"github.com/rs/zerolog/log"
 )

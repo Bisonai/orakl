@@ -5,14 +5,14 @@ import (
 	_ "embed"
 	"os"
 
-	"bisonai.com/orakl/node/pkg/logscribeconsumer"
+	"bisonai.com/miko/node/pkg/logscribeconsumer"
 
-	"bisonai.com/orakl/node/pkg/delegator/contract"
-	"bisonai.com/orakl/node/pkg/delegator/function"
-	"bisonai.com/orakl/node/pkg/delegator/organization"
-	"bisonai.com/orakl/node/pkg/delegator/reporter"
-	"bisonai.com/orakl/node/pkg/delegator/sign"
-	"bisonai.com/orakl/node/pkg/delegator/utils"
+	"bisonai.com/miko/node/pkg/delegator/contract"
+	"bisonai.com/miko/node/pkg/delegator/function"
+	"bisonai.com/miko/node/pkg/delegator/organization"
+	"bisonai.com/miko/node/pkg/delegator/reporter"
+	"bisonai.com/miko/node/pkg/delegator/sign"
+	"bisonai.com/miko/node/pkg/delegator/utils"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/joho/godotenv"

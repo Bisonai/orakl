@@ -7,8 +7,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"bisonai.com/orakl/node/pkg/logscribeconsumer"
-	"bisonai.com/orakl/node/pkg/reporter"
+	"bisonai.com/miko/node/pkg/logscribeconsumer"
+	"bisonai.com/miko/node/pkg/reporter"
 	"github.com/rs/zerolog/log"
 )
 

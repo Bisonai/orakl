@@ -9,7 +9,7 @@ import (
 
 	"net/http"
 
-	"bisonai.com/orakl/node/pkg/admin/tests"
+	"bisonai.com/miko/node/pkg/admin/tests"
 	"github.com/elazarl/goproxy"
 	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"

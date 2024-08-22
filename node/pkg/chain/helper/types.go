@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"bisonai.com/orakl/node/pkg/chain/eth_client"
-	"bisonai.com/orakl/node/pkg/chain/utils"
+	"bisonai.com/miko/node/pkg/chain/eth_client"
+	"bisonai.com/miko/node/pkg/chain/utils"
 	"github.com/klaytn/klaytn/client"
 )
 

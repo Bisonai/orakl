@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"strings"
 
-	errorSentinel "bisonai.com/orakl/node/pkg/error"
-	"bisonai.com/orakl/node/pkg/websocketfetcher/common"
-	"bisonai.com/orakl/node/pkg/wss"
+	errorSentinel "bisonai.com/miko/node/pkg/error"
+	"bisonai.com/miko/node/pkg/websocketfetcher/common"
+	"bisonai.com/miko/node/pkg/wss"
 	"github.com/rs/zerolog/log"
 	"nhooyr.io/websocket"
 )

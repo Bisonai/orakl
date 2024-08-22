@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	errorsentinel "bisonai.com/orakl/node/pkg/error"
+	errorsentinel "bisonai.com/miko/node/pkg/error"
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
 )

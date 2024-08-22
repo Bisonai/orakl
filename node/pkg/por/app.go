@@ -9,13 +9,13 @@ import (
 	"os"
 	"time"
 
-	"bisonai.com/orakl/node/pkg/chain/helper"
-	chainUtils "bisonai.com/orakl/node/pkg/chain/utils"
-	errorSentinel "bisonai.com/orakl/node/pkg/error"
-	"bisonai.com/orakl/node/pkg/fetcher"
-	"bisonai.com/orakl/node/pkg/secrets"
-	"bisonai.com/orakl/node/pkg/utils/request"
-	"bisonai.com/orakl/node/pkg/utils/retrier"
+	"bisonai.com/miko/node/pkg/chain/helper"
+	chainUtils "bisonai.com/miko/node/pkg/chain/utils"
+	errorSentinel "bisonai.com/miko/node/pkg/error"
+	"bisonai.com/miko/node/pkg/fetcher"
+	"bisonai.com/miko/node/pkg/secrets"
+	"bisonai.com/miko/node/pkg/utils/request"
+	"bisonai.com/miko/node/pkg/utils/retrier"
 	"github.com/rs/zerolog/log"
 )
 

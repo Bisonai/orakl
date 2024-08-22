@@ -5,9 +5,9 @@ import (
 	"context"
 	"testing"
 
-	"bisonai.com/orakl/node/pkg/bus"
-	"bisonai.com/orakl/node/pkg/libp2p/helper"
-	"bisonai.com/orakl/node/pkg/libp2p/setup"
+	"bisonai.com/miko/node/pkg/bus"
+	"bisonai.com/miko/node/pkg/libp2p/helper"
+	"bisonai.com/miko/node/pkg/libp2p/setup"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/assert"
 )

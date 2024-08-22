@@ -3,7 +3,7 @@ package logscribeconsumer
 import (
 	"time"
 
-	"bisonai.com/orakl/node/pkg/logscribe/api"
+	"bisonai.com/miko/node/pkg/logscribe/api"
 	"github.com/rs/zerolog"
 )
 

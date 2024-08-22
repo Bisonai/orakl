@@ -7,10 +7,10 @@ import (
 
 	"time"
 
-	"bisonai.com/orakl/node/pkg/chain/helper"
-	errorSentinel "bisonai.com/orakl/node/pkg/error"
-	"bisonai.com/orakl/node/pkg/raft"
-	"bisonai.com/orakl/node/pkg/utils/calculator"
+	"bisonai.com/miko/node/pkg/chain/helper"
+	errorSentinel "bisonai.com/miko/node/pkg/error"
+	"bisonai.com/miko/node/pkg/raft"
+	"bisonai.com/miko/node/pkg/utils/calculator"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/rs/zerolog/log"
