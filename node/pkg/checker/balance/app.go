@@ -116,18 +116,18 @@ func loadEnvs() {
 }
 
 func getUrls() (Urls, error) {
-	oraklApiUrl := os.Getenv("ORAKL_API_URL")
-	if oraklApiUrl == "" {
+	mikoApiUrl := os.Getenv("ORAKL_API_URL")
+	if mikoApiUrl == "" {
 		return Urls{}, errors.New("ORAKL_API_URL not found")
 	}
 
-	oraklNodeAdminUrl := os.Getenv("ORAKL_NODE_ADMIN_URL")
-	if oraklNodeAdminUrl == "" {
+	mikoNodeAdminUrl := os.Getenv("ORAKL_NODE_ADMIN_URL")
+	if mikoNodeAdminUrl == "" {
 		return Urls{}, errors.New("ORAKL_NODE_ADMIN_URL not found")
 	}
 
-	oraklDelegatorUrl := os.Getenv("ORAKL_DELEGATOR_URL")
-	if oraklDelegatorUrl == "" {
+	mikoDelegatorUrl := os.Getenv("ORAKL_DELEGATOR_URL")
+	if mikoDelegatorUrl == "" {
 		return Urls{}, errors.New("ORAKL_DELEGATOR_URL not found")
 	}
 
@@ -142,18 +142,18 @@ func getUrls() (Urls, error) {
 	}
 
 	return Urls{
-		JsonRpcUrl:        jsonRpcUrl,
-		OraklApiUrl:       oraklApiUrl,
-		OraklNodeAdminUrl: oraklNodeAdminUrl,
-		OraklDelegatorUrl: oraklDelegatorUrl,
-		PorUrl:            porUrl,
+		JsonRpcUrl:       jsonRpcUrl,
+		MikoApiUrl:       mikoApiUrl,
+		MikoNodeAdminUrl: mikoNodeAdminUrl,
+		MikoDelegatorUrl: mikoDelegatorUrl,
+		PorUrl:           porUrl,
 	}, nil
 }
 
 func loadWallets(ctx context.Context, urls Urls) ([]Wallet, error) {
 	result := []Wallet{}
 
-	apiWallets, err := loadWalletFromOraklApi(ctx, urls.OraklApiUrl)
+	apiWallets, err := loadWalletFromMikoApi(ctx, urls.MikoApiUrl)
 	if err != nil {
 		return result, err
 	}
@@ -165,7 +165,7 @@ func loadWallets(ctx context.Context, urls Urls) ([]Wallet, error) {
 	}
 	result = append(result, porWallet)
 
-	delegatorWallet, err := loadWalletFromDelegator(ctx, urls.OraklDelegatorUrl)
+	delegatorWallet, err := loadWalletFromDelegator(ctx, urls.MikoDelegatorUrl)
 	if err != nil {
 		return result, err
 	}
@@ -174,14 +174,14 @@ func loadWallets(ctx context.Context, urls Urls) ([]Wallet, error) {
 	return result, nil
 }
 
-func loadWalletFromOraklApi(ctx context.Context, url string) ([]Wallet, error) {
+func loadWalletFromMikoApi(ctx context.Context, url string) ([]Wallet, error) {
 	type ReporterModel struct {
 		Address string `json:"address"`
 		Service string `json:"service"`
 	}
 
 	result := []Wallet{}
-	reporters, err := request.Request[[]ReporterModel](request.WithEndpoint(url+oraklApiEndpoint), request.WithTimeout(30*time.Second))
+	reporters, err := request.Request[[]ReporterModel](request.WithEndpoint(url+mikoApiEndpoint), request.WithTimeout(30*time.Second))
 	if err != nil {
 		return result, err
 	}
@@ -201,7 +201,7 @@ func loadWalletFromOraklApi(ctx context.Context, url string) ([]Wallet, error) {
 			Address: address,
 			Balance: 0,
 			Minimum: minimumBalance,
-			Tag:     "reporter loaded from orakl api",
+			Tag:     "reporter loaded from miko api",
 
 			BalanceHistory: []BalanceHistoryEntry{},
 		}
@@ -245,7 +245,7 @@ func loadWalletFromPor(ctx context.Context, url string) (Wallet, error) {
 
 func loadWalletFromDelegator(ctx context.Context, url string) (Wallet, error) {
 	wallet := Wallet{}
-	feePayer, err := request.Request[string](request.WithEndpoint(url + oraklDelegatorEndpoint))
+	feePayer, err := request.Request[string](request.WithEndpoint(url + mikoDelegatorEndpoint))
 	if err != nil {
 		return wallet, err
 	}

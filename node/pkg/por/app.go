@@ -98,7 +98,7 @@ func (a *App) Run(ctx context.Context) error {
 
 		http.HandleFunc("/api/v1", func(w http.ResponseWriter, r *http.Request) {
 			// Respond with a simple string
-			_, err := w.Write([]byte("Orakl POR"))
+			_, err := w.Write([]byte("Miko POR"))
 			if err != nil {
 				log.Error().Err(err).Msg("failed to write response")
 			}

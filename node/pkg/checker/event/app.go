@@ -250,7 +250,7 @@ func timeSinceLastPorEvent(ctx context.Context, feed FeedToCheck) (time.Duration
 
 func loadExpectedEventIntervals() ([]Config, error) {
 	chain := os.Getenv("CHAIN")
-	url := loadOraklConfigUrl(chain)
+	url := loadMikoConfigUrl(chain)
 	return request.Request[[]Config](request.WithEndpoint(url))
 }
 

@@ -128,7 +128,7 @@ func Setup(options ...string) (AppConfig, error) {
 	}
 
 	app := fiber.New(fiber.Config{
-		AppName:           "Orakl API " + version,
+		AppName:           "Miko API " + version,
 		EnablePrintRoutes: true,
 		ErrorHandler:      CustomErrorHandler,
 	})

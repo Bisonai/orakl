@@ -35,7 +35,7 @@ func TestConfigSync(t *testing.T) {
 	}
 	assert.Greater(t, len(readResult), 1)
 
-	// should remove previously inserted config and feed which doesn't exist in orakl-config
+	// should remove previously inserted config and feed which doesn't exist in miko-config
 	readTmpConfigResult, err := GetRequest[config.ConfigModel](testItems.app, "/api/v1/config/"+strconv.Itoa(int(testItems.tmpData.config.ID)), nil)
 	if err != nil {
 		t.Fatalf("error getting config: %v", err)

@@ -37,7 +37,7 @@ func Run(ctx context.Context) error {
 
 	v1 := app.Group("/api/v1")
 	v1.Get("/", func(c *fiber.Ctx) error {
-		return c.SendString("Orakl Node Boot API")
+		return c.SendString("Miko Node Boot API")
 	})
 	peer.Routes(v1)
 

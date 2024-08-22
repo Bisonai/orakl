@@ -82,7 +82,7 @@ func loadUnfullfilledVRFEventQuery(schemaName string, eventName string) string {
 	return fmt.Sprintf(`SELECT block$, id, time FROM %s.%s WHERE success = false ORDER BY time DESC;`, schemaName, eventName)
 }
 
-func loadOraklConfigUrl(chain string) string {
+func loadMikoConfigUrl(chain string) string {
 	return fmt.Sprintf("https://config.orakl.network/%s_configs.json", chain)
 }
 

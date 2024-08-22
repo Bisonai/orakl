@@ -32,7 +32,7 @@ func Run(ctx context.Context, bus *bus.MessageBus) error {
 
 	v1 := app.Group("/api/v1")
 	v1.Get("/", func(c *fiber.Ctx) error {
-		return c.SendString("Orakl Node Admin API")
+		return c.SendString("Miko Node Admin API")
 	})
 
 	feed.Routes(v1)
@@ -57,6 +57,6 @@ func Run(ctx context.Context, bus *bus.MessageBus) error {
 	return nil
 }
 
-func SyncOraklConfig(ctx context.Context) error {
+func SyncMikoConfig(ctx context.Context) error {
 	return config.InitSyncDb(ctx)
 }
