@@ -1,0 +1,65 @@
+name: "raft test"
+
+on:
+  push:
+    branches-ignore:
+      - "master"
+  paths:
+    - "node/pkg/raft/**"
+  workflow_dispatch:
+
+jobs:
+  core-build:
+    strategy:
+      fail-fast: false
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: orakl-test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      redis:
+        image: redis
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22.3"
+          check-latest: true
+          cache-dependency-path: |
+            ./node/go.sum
+
+      - name: Install dependencies
+        run: |
+          cd ./node
+          go mod tidy
+
+      - name: Install Task
+        uses: arduino/setup-task@v2
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run test
+        run: |
+          cd ./node
+          task local:test-raft
+        env:
+          ENCRYPT_PASSWORD: "anything"
