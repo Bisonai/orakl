@@ -1,0 +1,1 @@
+DROP INDEX IF EXISTS feeds_config_id_idx;
