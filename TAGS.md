@@ -220,3 +220,4 @@
 - **request-response** v0.5.1.20240821.0841.95983b2 <br> *`PR`*: Revert feat implement db query... <br><br> 
 - **node** v0.0.1.20240822.0448.747251b <br> *`PR`*: OraklNode Update timer relativ... <br><br> 
 - **node** v0.0.1.20240822.0553.a28e062 <br> *`PR`*: OraklNode Increase db timeout ... <br><br> 
+- **node** v0.0.1.20240822.0603.231c655 <br> *`PR`*: fix rollback db timeout <br><br> 
