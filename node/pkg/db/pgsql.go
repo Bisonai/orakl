@@ -23,7 +23,7 @@ var (
 	poolErr     error
 )
 
-const DefaultDBTimeout = 15 * time.Second
+const DefaultDBTimeout = 60 * time.Second
 
 func GetPool(ctx context.Context) (*pgxpool.Pool, error) {
 	return getPool(ctx, &initPgxOnce)
