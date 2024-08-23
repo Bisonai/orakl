@@ -44,9 +44,7 @@ func TestWsDataHandling(t *testing.T) {
 	}
 
 	app.WsHelper = conn
-
-	app.startReporters(ctx)
-
+	go app.WsHelper.Run(ctx, app.HandleWsMessage)
 	time.Sleep(100 * time.Millisecond)
 
 	err = conn.Write(ctx, hub.Subscription{
@@ -89,13 +87,11 @@ func TestWsDataHandling(t *testing.T) {
 					}
 				}
 				if submissionDataCount == len(configs) {
-					conn.Close()
 					return
 				}
 			}
 		case <-timeout:
 			if submissionDataCount != len(configs) {
-				conn.Close()
 				t.Fatal("not all submission data received from websocket")
 			}
 		}
