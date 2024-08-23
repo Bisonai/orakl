@@ -226,3 +226,4 @@
 - **api** v0.0.1.20240822.0934.5206f51 <br> *`PR`*: remove old tags for helm chart... <br><br> 
 - **delegator** v0.0.1.20240822.0936.8e96e14 <br> *`PR`*: remove old tags for helm chart... <br><br> 
 - **sentinel** v0.0.1.20240823.0710.ff71895 <br> *`PR`*: DAL Remove conditional reconne... <br><br> 
+- **sentinel** v0.0.1.20240823.0720.f81d2c5 <br> *`PR`*: Hotfix fix cronjob definition <br><br> 
