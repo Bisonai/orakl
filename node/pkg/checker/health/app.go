@@ -134,7 +134,7 @@ func checkUrl(ctx context.Context, healthCheckUrl HealthCheckUrl) bool {
 func checkHttp(url string) bool {
 	resp, err := http.Get(url)
 	if err != nil {
-		log.Error().Err(err).Msgf("Failed to check URL: %s", url)
+		log.Info().Err(err).Msgf("Failed to check URL: %s", url)
 		return false
 	}
 	defer resp.Body.Close()
@@ -148,7 +148,7 @@ func checkRedis(ctx context.Context, url string) bool {
 	defer redisConnection.Close()
 	_, err := redisConnection.Ping(ctx).Result()
 	if err != nil {
-		log.Error().Err(err).Msgf("Failed to check Redis URL: %s", url)
+		log.Info().Err(err).Msgf("Failed to check Redis URL: %s", url)
 		return false
 	}
 	return true
@@ -157,14 +157,14 @@ func checkRedis(ctx context.Context, url string) bool {
 func checkPgs(ctx context.Context, url string) bool {
 	pool, err := pgxpool.New(ctx, url)
 	if err != nil {
-		log.Error().Err(err).Msgf("Failed to check PostgreSQL URL: %s", url)
+		log.Info().Err(err).Msgf("Failed to check PostgreSQL URL: %s", url)
 		return false
 	}
 	defer pool.Close()
 
 	err = pool.Ping(ctx)
 	if err != nil {
-		log.Error().Err(err).Msgf("Failed to check PostgreSQL URL: %s", url)
+		log.Info().Err(err).Msgf("Failed to check PostgreSQL URL: %s", url)
 		return false
 	}
 	return true
