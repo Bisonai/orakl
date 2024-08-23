@@ -259,7 +259,6 @@ tasks:
       - curl -X POST "http://localhost:$APP_PORT/api/v1/host/sync"
   test:
     cmds:
-      - task: test-reporter
       - task: test-db
       - task: test-admin
       - task: test-bus

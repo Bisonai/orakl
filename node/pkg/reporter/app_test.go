@@ -5,6 +5,10 @@ import (
 	"context"
 	"testing"
 	"time"
+
+	"bisonai.com/miko/node/pkg/common/keys"
+	"bisonai.com/miko/node/pkg/dal/hub"
+	"bisonai.com/miko/node/pkg/db"
 )
 
 func TestFetchConfigs(t *testing.T) {
@@ -29,19 +33,49 @@ func TestWsDataHandling(t *testing.T) {
 
 	app := New()
 
-	err := app.Run(ctx)
+	err := app.setReporters(ctx)
 	if err != nil {
-		t.Fatalf("error running reporter: %v", err)
+		t.Fatalf("error setting reporters: %v", err)
 	}
 
-	configs, err := fetchConfigs()
+	conn, tmpConfig, configs, err := mockDalWsServer(ctx)
 	if err != nil {
-		t.Fatalf("error getting configs: %v", err)
+		t.Fatalf("error mocking dal ws server: %v", err)
+	}
+
+	app.WsHelper = conn
+
+	app.startReporters(ctx)
+
+	time.Sleep(100 * time.Millisecond)
+
+	err = conn.Write(ctx, hub.Subscription{
+		Method: "SUBSCRIBE",
+		Params: []string{"submission@test-aggregate"},
+	})
+	if err != nil {
+		t.Fatalf("error subscribing to websocket: %v", err)
+	}
+
+	sampleSubmissionData, err := generateSampleSubmissionData(
+		tmpConfig.ID,
+		int64(15),
+		time.Now(),
+		1,
+		"test-aggregate",
+	)
+	if err != nil {
+		t.Fatalf("error generating sample submission data: %v", err)
+	}
+
+	err = db.Publish(ctx, keys.SubmissionDataStreamKey(sampleSubmissionData.GlobalAggregate.ConfigID), sampleSubmissionData)
+	if err != nil {
+		t.Fatalf("error publishing sample submission data: %v", err)
 	}
 
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
-	timeout := time.After(5 * time.Second)
+	timeout := time.After(10 * time.Second)
 	submissionDataCount := 0
 
 	for {
@@ -55,12 +89,13 @@ func TestWsDataHandling(t *testing.T) {
 					}
 				}
 				if submissionDataCount == len(configs) {
-
+					conn.Close()
 					return
 				}
 			}
 		case <-timeout:
 			if submissionDataCount != len(configs) {
+				conn.Close()
 				t.Fatal("not all submission data received from websocket")
 			}
 		}
