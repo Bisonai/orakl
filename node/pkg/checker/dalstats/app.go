@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	GetAllValidKeys = "SELECT * FROM keys WHERE description"
+	GetAllValidKeys = "SELECT * FROM keys"
 
 	GetRestCallsPerKey              = "SELECT COUNT(1) FROM rest_calls WHERE api_key = @key AND timestamp >= NOW() - interval '7 day'"
 	GetWebsocketConnectionsPerKey   = "SELECT COUNT(1) FROM websocket_connections WHERE api_key = @key AND timestamp >= NOW() - interval '7 day'"
