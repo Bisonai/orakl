@@ -21,17 +21,6 @@ import (
 func main() {
 	ctx := context.Background()
 
-	go func() {
-		defer func() {
-			if r := recover(); r != nil {
-				log.Error().Any("panic", r).Msg("panic recovered from network checks")
-			}
-		}()
-		time.Sleep(5 * time.Second) // give some buffer until the app is ready
-		ping.Run(ctx)
-		os.Exit(1)
-	}()
-
 	err := logscribeconsumer.Start(ctx, "node")
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to start logscribe consumer")
@@ -58,6 +47,17 @@ func main() {
 		log.Error().Err(err).Msg("Failed to setup libp2p")
 		return
 	}
+
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Error().Any("panic", r).Msg("panic recovered from network checks")
+			}
+		}()
+		time.Sleep(5 * time.Second) // give some buffer until the app is ready
+		ping.Run(ctx)
+		os.Exit(1)
+	}()
 
 	wg.Add(1)
 	go func() {
