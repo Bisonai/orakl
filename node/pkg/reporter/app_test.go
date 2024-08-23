@@ -33,20 +33,13 @@ func TestWsDataHandling(t *testing.T) {
 
 	app := New()
 
-	err := app.setReporters(ctx)
-	if err != nil {
-		t.Fatalf("error setting reporters: %v", err)
-	}
-
 	conn, tmpConfig, configs, err := mockDalWsServer(ctx)
 	if err != nil {
 		t.Fatalf("error mocking dal ws server: %v", err)
 	}
 
 	app.WsHelper = conn
-
-	app.startReporters(ctx)
-
+	go app.WsHelper.Run(ctx, app.HandleWsMessage)
 	time.Sleep(100 * time.Millisecond)
 
 	err = conn.Write(ctx, hub.Subscription{
@@ -89,13 +82,11 @@ func TestWsDataHandling(t *testing.T) {
 					}
 				}
 				if submissionDataCount == len(configs) {
-					conn.Close()
 					return
 				}
 			}
 		case <-timeout:
 			if submissionDataCount != len(configs) {
-				conn.Close()
 				t.Fatal("not all submission data received from websocket")
 			}
 		}

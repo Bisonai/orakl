@@ -119,7 +119,7 @@ func (a *App) setReporters(ctx context.Context) error {
 }
 
 func (a *App) startReporters(ctx context.Context) {
-	go a.WsHelper.Run(ctx, a.handleWsMessage)
+	go a.WsHelper.Run(ctx, a.HandleWsMessage)
 
 	for _, reporter := range a.Reporters {
 		go reporter.Run(ctx)
@@ -152,7 +152,7 @@ func groupConfigsBySubmitIntervals(reporterConfigs []Config) map[int][]Config {
 	return grouped
 }
 
-func (a *App) handleWsMessage(ctx context.Context, data map[string]interface{}) error {
+func (a *App) HandleWsMessage(ctx context.Context, data map[string]interface{}) error {
 	submissionData, err := ProcessDalWsRawData(data)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to process dal ws raw data")
