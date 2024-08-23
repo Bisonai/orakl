@@ -23,6 +23,9 @@ const (
 	Leader    RoleType = "leader"
 	Candidate RoleType = "candidate"
 	Follower  RoleType = "follower"
+
+	MaxMissedHeartbeats   = 2
+	DefaultCooldownPeriod = 3 * time.Second
 )
 
 type Message struct {
@@ -67,4 +70,9 @@ type Raft struct {
 	LeaderJobTicker     *time.Ticker
 	HandleCustomMessage func(context.Context, Message) error
 	LeaderJob           func(context.Context) error
+
+	MissedHeartbeats int
+
+	CooldownPeriod   time.Duration
+	LastElectionTime time.Time
 }

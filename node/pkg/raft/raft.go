@@ -40,6 +40,9 @@ func NewRaftNode(
 		HeartbeatTimeout: HEARTBEAT_TIMEOUT,
 
 		LeaderJobTimeout: leaderJobTimeout,
+		MissedHeartbeats: 0,
+		CooldownPeriod:   DefaultCooldownPeriod,
+		LastElectionTime: time.Time{},
 	}
 	return r
 }
@@ -128,6 +131,8 @@ func (r *Raft) handleHeartbeat(msg Message) error {
 
 	r.Mutex.Lock()
 	defer r.Mutex.Unlock()
+
+	r.MissedHeartbeats = 0
 
 	currentRole := r.Role
 	currentTerm := r.Term
@@ -309,6 +314,7 @@ func (r *Raft) ResignLeader() {
 func (r *Raft) setLeaderState() {
 	r.Resign = make(chan interface{})
 	r.ElectionTimer.Stop()
+	r.Term++
 	r.Role = Leader
 	r.LeaderID = r.GetHostId()
 	r.HeartbeatTicker = time.NewTicker(r.HeartbeatTimeout)
@@ -387,13 +393,30 @@ func (r *Raft) startElectionTimer() {
 }
 
 func (r *Raft) startElection(ctx context.Context) {
-	log.Debug().Msg("start election")
 	r.Mutex.Lock()
 	defer r.Mutex.Unlock()
+
+	if r.MissedHeartbeats < MaxMissedHeartbeats {
+		r.MissedHeartbeats++
+		log.Debug().Int("missed heartbeats", r.MissedHeartbeats).Msg("missed heartbeats")
+		r.startElectionTimer()
+		return
+	}
+
+	if !r.LastElectionTime.IsZero() && time.Since(r.LastElectionTime) < r.CooldownPeriod {
+		log.Debug().Msg("Election cooldown period active, skipping election.")
+		r.startElectionTimer()
+		return
+	}
+
+	log.Debug().Msg("start election")
 	r.Term++
 	r.VotesReceived = 0
 	r.Role = Candidate
 	r.VotedFor = r.GetHostId()
+	r.MissedHeartbeats = 0
+
+	r.LastElectionTime = time.Now()
 
 	r.startElectionTimer()
 
