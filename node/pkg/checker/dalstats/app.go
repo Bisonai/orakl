@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 
 	"bisonai.com/miko/node/pkg/alert"
 	"bisonai.com/miko/node/pkg/db"
@@ -14,21 +15,24 @@ import (
 )
 
 const (
-	GetAllValidKeys = "SELECT key, description FROM keys WHERE description NOT IN ('test', 'sentinel', 'orakl_reporter')"
+	GetAllValidKeys = "SELECT * FROM keys"
 
 	GetRestCallsPerKey              = "SELECT COUNT(1) FROM rest_calls WHERE api_key = @key AND timestamp >= NOW() - interval '7 day'"
 	GetWebsocketConnectionsPerKey   = "SELECT COUNT(1) FROM websocket_connections WHERE api_key = @key AND timestamp >= NOW() - interval '7 day'"
 	GetWebsocketSubscriptionsPerKey = "SELECT COUNT(1) FROM websocket_subscriptions WHERE connection_id IN (SELECT id FROM websocket_connections WHERE api_key = @key AND timestamp >= NOW() - interval '7 day')"
 )
 
-type Key struct {
-	key         string `db:"key"`
-	description string `db:"description"`
+type DBKey struct {
+	ID          int     `db:"id"`
+	key         string  `db:"key"`
+	description *string `db:"description"`
 }
 
 type Count struct {
 	count int `db:"count"`
 }
+
+var skippingKeys = []string{"test", "sentinel", "orakl_reporter"}
 
 // DAL Statistics report sent every friday
 func Start(ctx context.Context) error {
@@ -45,7 +49,7 @@ func Start(ctx context.Context) error {
 	}
 	defer dalDB.Close()
 
-	c := cron.New()
+	c := cron.New(cron.WithSeconds())
 	_, err = c.AddFunc("0 1 * * 5", func() {
 		statsErr := dalDBStats(ctx, dalDB)
 		if statsErr != nil {
@@ -63,7 +67,7 @@ func Start(ctx context.Context) error {
 }
 
 func dalDBStats(ctx context.Context, dalDB *pgxpool.Pool) error {
-	keys, err := db.QueryRowsTransient[Key](ctx, dalDB, GetAllValidKeys, nil)
+	keys, err := db.QueryRowsTransient[DBKey](ctx, dalDB, GetAllValidKeys, nil)
 	if err != nil {
 		log.Error().Err(err).Msg("Error getting keys")
 		return err
@@ -75,6 +79,10 @@ func dalDBStats(ctx context.Context, dalDB *pgxpool.Pool) error {
 	msg := ""
 
 	for _, key := range keys {
+		if slices.Contains(skippingKeys, *key.description) {
+			continue
+		}
+
 		restCalls, err := db.QueryRowTransient[Count](ctx, dalDB, GetRestCallsPerKey, map[string]interface{}{"key": key.key})
 		if err != nil {
 			log.Error().Err(err).Msg("Error getting rest calls")
@@ -91,7 +99,7 @@ func dalDBStats(ctx context.Context, dalDB *pgxpool.Pool) error {
 			return err
 		}
 
-		msg += fmt.Sprintf("(DAL 7 days calls) client: %s, rest calls: %v, websocket connections: %v, websocket subscriptions: %v\n", key.description, restCalls.count, websocketConnections.count, websocketSubscriptions.count)
+		msg += fmt.Sprintf("(DAL 7 days calls) client: %s, rest calls: %v, websocket connections: %v, websocket subscriptions: %v\n", *key.description, restCalls.count, websocketConnections.count, websocketSubscriptions.count)
 	}
 
 	if msg != "" {
