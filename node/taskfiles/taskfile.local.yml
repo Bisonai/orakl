@@ -115,9 +115,9 @@ tasks:
     cmds:
       - go test ./pkg/libp2p/tests -v
   test-reporter:
-    dotenv: [".env.test"]
+    dotenv: [".env"]
     cmds:
-      - go test ./pkg/reporter -v -count=1
+      - go test ./pkg/reporter -v
   test-boot:
     dotenv: [".env"]
     cmds:
