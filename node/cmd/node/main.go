@@ -54,7 +54,7 @@ func main() {
 				log.Error().Any("panic", r).Msg("panic recovered from network checks")
 			}
 		}()
-		time.Sleep(5 * time.Second) // give some buffer until the app is ready
+		time.Sleep(10 * time.Second) // give some buffer until the app is ready
 		ping.Run(ctx)
 		os.Exit(1)
 	}()
