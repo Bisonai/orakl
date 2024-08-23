@@ -19,6 +19,8 @@ timestamp > current_timestamp - INTERVAL '%d seconds' AND
 api_key NOT IN (SELECT key from keys WHERE description IN (%s))`
 	TrafficOldOffset    = 600
 	TrafficRecentOffset = 10
+
+	RestTimeout = 10 * time.Second
 )
 
 var (
