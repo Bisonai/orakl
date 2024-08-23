@@ -81,6 +81,8 @@ func TestStartAggregator(t *testing.T) {
 		t.Fatal("error initializing app")
 	}
 
+	testItems.app.LatestLocalAggregates.Store(testItems.tmpData.config.ID, &LocalAggregate{})
+
 	err = testItems.app.startAggregator(ctx, testItems.app.Aggregators[testItems.tmpData.config.ID])
 	if err != nil {
 		t.Fatal("error starting aggregator")
@@ -115,6 +117,8 @@ func TestStartAggregatorById(t *testing.T) {
 		t.Fatal("Aggregator should not be running before test")
 	}
 
+	testItems.app.LatestLocalAggregates.Store(testItems.tmpData.config.ID, &LocalAggregate{})
+
 	err = testItems.app.startAggregatorById(ctx, testItems.app.Aggregators[testItems.tmpData.config.ID].Config.ID)
 	if err != nil {
 		t.Fatal("error starting aggregator")
@@ -143,6 +147,8 @@ func TestStopAggregator(t *testing.T) {
 	if err != nil {
 		t.Fatal("error initializing app")
 	}
+
+	testItems.app.LatestLocalAggregates.Store(testItems.tmpData.config.ID, &LocalAggregate{})
 
 	err = testItems.app.startAggregator(ctx, testItems.app.Aggregators[testItems.tmpData.config.ID])
 	if err != nil {
@@ -178,6 +184,8 @@ func TestStopAggregatorById(t *testing.T) {
 	if err != nil {
 		t.Fatal("error initializing app")
 	}
+
+	testItems.app.LatestLocalAggregates.Store(testItems.tmpData.config.ID, &LocalAggregate{})
 
 	err = testItems.app.startAggregator(ctx, testItems.app.Aggregators[testItems.tmpData.config.ID])
 	if err != nil {
@@ -215,6 +223,8 @@ func TestActivateAggregatorByAdmin(t *testing.T) {
 		t.Fatal("error initializing app")
 	}
 
+	testItems.app.LatestLocalAggregates.Store(testItems.tmpData.config.ID, &LocalAggregate{})
+
 	_, err = tests.RawPostRequest(testItems.admin, "/api/v1/aggregator/activate/"+strconv.Itoa(int(testItems.tmpData.config.ID)), nil)
 	if err != nil {
 		t.Fatalf("error activating aggregator: %v", err)
@@ -249,6 +259,8 @@ func TestDeactivateAggregatorByAdmin(t *testing.T) {
 	if err != nil {
 		t.Fatal("error initializing app")
 	}
+
+	testItems.app.LatestLocalAggregates.Store(testItems.tmpData.config.ID, &LocalAggregate{})
 
 	err = testItems.app.startAggregatorById(ctx, testItems.app.Aggregators[testItems.tmpData.config.ID].Config.ID)
 	if err != nil {
@@ -290,6 +302,8 @@ func TestStartAppByAdmin(t *testing.T) {
 		t.Fatal("error initializing app")
 	}
 
+	testItems.app.LatestLocalAggregates.Store(testItems.tmpData.config.ID, &LocalAggregate{})
+
 	_, err = tests.RawPostRequest(testItems.admin, "/api/v1/aggregator/start", nil)
 	if err != nil {
 		t.Fatalf("error starting app: %v", err)
@@ -322,6 +336,8 @@ func TestStopAppByAdmin(t *testing.T) {
 	if err != nil {
 		t.Fatal("error initializing app")
 	}
+
+	testItems.app.LatestLocalAggregates.Store(testItems.tmpData.config.ID, &LocalAggregate{})
 
 	_, err = tests.RawPostRequest(testItems.admin, "/api/v1/aggregator/start", nil)
 	if err != nil {
@@ -365,6 +381,8 @@ func TestRefreshAppByAdmin(t *testing.T) {
 
 	lengthBefore := len(testItems.app.Aggregators)
 
+	testItems.app.LatestLocalAggregates.Store(testItems.tmpData.config.ID, &LocalAggregate{})
+
 	_, err = tests.RawPostRequest(testItems.admin, "/api/v1/aggregator/start", nil)
 	if err != nil {
 		t.Fatalf("error starting app: %v", err)
@@ -372,10 +390,16 @@ func TestRefreshAppByAdmin(t *testing.T) {
 
 	time.Sleep(time.Second)
 
-	_, err = tests.RawPostRequest(testItems.admin, "/api/v1/config", map[string]any{"name": "test_pair_2", "fetch_interval": 2000, "aggregate_interval": 5000, "submit_interval": 15000})
+	type ConfigModel struct {
+		ID int32 `db:"id" json:"id"`
+	}
+
+	result, err := tests.PostRequest[ConfigModel](testItems.admin, "/api/v1/config", map[string]any{"name": "test_pair_2", "fetch_interval": 2000, "aggregate_interval": 5000, "submit_interval": 15000})
 	if err != nil {
 		t.Fatalf("error creating new aggregator: %v", err)
 	}
+
+	testItems.app.LatestLocalAggregates.Store(result.ID, &LocalAggregate{})
 
 	_, err = tests.RawPostRequest(testItems.admin, "/api/v1/aggregator/refresh", nil)
 	if err != nil {
