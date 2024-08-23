@@ -228,3 +228,4 @@
 - **sentinel** v0.0.1.20240823.0710.ff71895 <br> *`PR`*: DAL Remove conditional reconne... <br><br> 
 - **sentinel** v0.0.1.20240823.0720.f81d2c5 <br> *`PR`*: Hotfix fix cronjob definition <br><br> 
 - **node** v0.0.1.20240823.0801.a5b5218 <br> *`PR`*: Hotfix fix cronjob definition <br><br> 
+- **node** v0.0.1.20240823.0815.68e21ba <br> *`PR`*: OraklNode run ICMP checker aft... <br><br> 
