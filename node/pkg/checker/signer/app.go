@@ -28,7 +28,7 @@ func setUp(ctx context.Context) error {
 	signerCheckInterval, err = time.ParseDuration(os.Getenv("SIGNER_CHECK_INTERVAL"))
 	if err != nil {
 		signerCheckInterval = DEFAULT_SIGNER_CHECK_INTERVAL_HOUR * time.Hour
-		log.Error().Err(err).Msgf("Using default signer check interval of %d hours", DEFAULT_SIGNER_CHECK_INTERVAL_HOUR)
+		log.Info().Err(err).Msgf("Using default signer check interval of %d hours", DEFAULT_SIGNER_CHECK_INTERVAL_HOUR)
 	}
 
 	jsonRpcUrl = os.Getenv("JSON_RPC_URL")
