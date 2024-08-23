@@ -3,7 +3,6 @@ package websocketfetcher
 import (
 	"context"
 	"errors"
-	"fmt"
 	"os"
 	"sync"
 	"time"
@@ -107,7 +106,6 @@ type App struct {
 	chainReader         *websocketchainreader.ChainReader
 	latestFeedDataMap   *types.LatestFeedDataMap
 	feedDataDumpChannel chan *common.FeedData
-	proxies             []types.Proxy
 }
 
 func New() *App {
@@ -115,12 +113,7 @@ func New() *App {
 }
 
 func (a *App) Init(ctx context.Context, opts ...AppOption) error {
-	proxies, err := db.QueryRows[types.Proxy](ctx, "SELECT * FROM proxies", nil)
-	if err != nil {
-		return err
-	}
-	a.proxies = proxies
-
+	// TODO: Proxy support
 	cexFactories := map[string]func(context.Context, ...common.FetcherOption) (common.FetcherInterface, error){
 		"binance":  binance.New,
 		"coinbase": coinbase.New,
@@ -202,14 +195,7 @@ func (a *App) initializeCex(ctx context.Context, appConfig AppConfig) error {
 	a.buffer = make(chan *common.FeedData, appConfig.BufferSize)
 	a.storeInterval = appConfig.StoreInterval
 
-	index := 0
 	for name, factory := range appConfig.CexFactories {
-		proxyUrl := ""
-		if len(a.proxies) != 0 {
-			proxy := a.proxies[index%len(a.proxies)]
-			proxyUrl = fmt.Sprintf("%s://%s:%d", proxy.Protocol, proxy.Host, proxy.Port)
-		}
-
 		if _, ok := feedMap[name]; !ok {
 			log.Warn().Msgf("no feeds for %s", name)
 			continue
@@ -218,15 +204,12 @@ func (a *App) initializeCex(ctx context.Context, appConfig AppConfig) error {
 			ctx,
 			common.WithFeedDataBuffer(a.buffer),
 			common.WithFeedMaps(feedMap[name]),
-			common.WithProxy(proxyUrl),
 		)
 		if err != nil {
 			log.Error().Err(err).Msgf("error in creating %s fetcher", name)
 			return err
 		}
 		a.fetchers = append(a.fetchers, fetcher)
-
-		index++
 	}
 	return nil
 }
