@@ -1,32 +1,12 @@
-name: "miko node test"
+name: "miko reporter test"
 
 on:
   push:
     branches-ignore:
       - "master"
     paths:
-      - "node/**"
-      - "!node/**.md"
-      - "!node/pkg/dal/**"
-      - "!node/migrations/dal/**"
-      - "!node/pkg/boot/**"
-      - "!node/migrations/boot/**"
-      - "!node/pkg/logscribe/**"
-      - "!node/migrations/logscribe/**"
-      - "!node/pkg/logscribeconsumer/**"
-      - "!node/pkg/checker/**"
-      - "!node/pkg/delegator/**"
-      - "!node/migrations/delegator/**"
-      - "!node/pkg/api/**"
-      - "!node/migrations/api/**"
-      - "!node/cmd/dal/**"
-      - "!node/cmd/boot_api/**"
-      - "!node/cmd/logscribe/**"
-      - "!node/cmd/delegator/**"
-      - "!node/cmd/api/**"
-      - "!node/cmd/sentinel/**"
-      - "!node/cmd/reporter/**"
-      - "!node/pkg/reporter/**"
+      - "node/pkg/reporter/**"
+      - "node/cmd/reporter/**"
   workflow_dispatch:
 
 jobs:
@@ -34,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
 
     services:
       postgres:
@@ -76,7 +56,7 @@ jobs:
       - name: Migrate up
         run: |
           cd ./node
-          migrate -database "postgresql://postgres:postgres@localhost:5432/orakl-test?search_path=public&sslmode=disable" -verbose -path ./migrations/node up
+          migrate -database "postgresql://postgres:postgres@localhost:5432/orakl-test?search_path=public&sslmode=disable" -verbose -path ./migrations/dal up
 
       - name: Install dependencies
         run: |
@@ -91,19 +71,15 @@ jobs:
       - name: Run test
         run: |
           cd ./node
-          task local:test
+          task local:test-reporter
         env:
           DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/orakl-test?search_path=public"
           REDIS_HOST: "localhost"
           REDIS_PORT: "6379"
-          ENCRYPT_PASSWORD: "anything"
           KAIA_WEBSOCKET_URL: "wss://public-en-cypress.klaytn.net/ws"
           ETH_WEBSOCKET_URL: "wss://ethereum-rpc.publicnode.com"
           KAIA_PROVIDER_URL: "https://public-en-kairos.node.kaia.io"
           KAIA_REPORTER_PK: ${{ secrets.TEST_DELEGATOR_REPORTER_PK}}
-          ETH_PROVIDER_URL: "https://rpc.sepolia.org"
-          ETH_REPORTER_PK: ${{ secrets.TEST_DELEGATOR_REPORTER_PK}}
-          TEST_FEE_PAYER_PK: ${{ secrets.DELEGATOR_FEEPAYER_PK}}
           SUBMISSION_PROXY_CONTRACT: "0xE2bA32d006e6FEd86AeA2502C561540c28CF65e9"
           CHAIN: "test"
           SIGNER_PK: ${{ secrets.TEST_DELEGATOR_REPORTER_PK}}

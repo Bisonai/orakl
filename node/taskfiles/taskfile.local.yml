@@ -115,9 +115,9 @@ tasks:
     cmds:
       - go test ./pkg/libp2p/tests -v
   test-reporter:
-    dotenv: [".env"]
+    dotenv: [".env.test"]
     cmds:
-      - go test ./pkg/reporter -v
+      - go test ./pkg/reporter -v -count=1
   test-boot:
     dotenv: [".env"]
     cmds:
@@ -259,7 +259,6 @@ tasks:
       - curl -X POST "http://localhost:$APP_PORT/api/v1/host/sync"
   test:
     cmds:
-      - task: test-reporter
       - task: test-db
       - task: test-admin
       - task: test-bus
