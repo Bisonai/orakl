@@ -36,4 +36,7 @@ COPY dockerfiles/start-go.sh .
 
 RUN chmod +x start-go.sh
 
+# Grant the binary the capability to use raw sockets (required for ping).
+RUN setcap cap_net_raw=+ep /usr/bin/nodebin
+
 CMD ["./start-go.sh", "nodebin"]
