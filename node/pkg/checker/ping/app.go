@@ -98,7 +98,6 @@ func New(opts ...AppOption) (*App, error) {
 		}
 
 		pinger.Timeout = DefaultPingerTimeout
-		pinger.Count = 0
 		pinger.SetPrivileged(true)
 
 		pinger.OnRecv = func(pkt *probing.Packet) {
