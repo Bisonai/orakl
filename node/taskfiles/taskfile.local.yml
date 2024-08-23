@@ -86,6 +86,10 @@ tasks:
     dotenv: [".env"]
     cmds:
       - go run ./script/inspector/main.go
+  script-pinger:
+    dotenv: [".env"]
+    cmds:
+      - go run ./script/test_pinger/main.go
 
   test-db:
     dotenv: [".env"]

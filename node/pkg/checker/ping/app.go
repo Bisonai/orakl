@@ -9,7 +9,6 @@ import (
 )
 
 const (
-	DefaultPingerTimeout     = 2 * time.Second
 	DefaultMaxDelay          = 100 * time.Millisecond
 	DefaultMaxFails          = 2
 	DefaultBufferSize        = 500
@@ -97,7 +96,6 @@ func New(opts ...AppOption) (*App, error) {
 			return nil, err
 		}
 
-		pinger.Timeout = DefaultPingerTimeout
 		pinger.SetPrivileged(true)
 
 		pinger.OnRecv = func(pkt *probing.Packet) {
@@ -147,6 +145,7 @@ func (app *App) Start(ctx context.Context) {
 					time.Sleep(DefaultReconnectInterval)
 					continue
 				}
+
 			}
 		}(endpoint)
 	}
@@ -157,6 +156,7 @@ func (app *App) Start(ctx context.Context) {
 			return
 		case result := <-app.ResultsBuffer:
 			if result.Success && result.Delay < app.MaxDelay {
+				log.Info().Any("result", result).Msg("ping success")
 				app.FailCount[result.Address] = 0
 			} else {
 				log.Error().Any("result", result).Msg("failed to ping endpoint")
