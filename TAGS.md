@@ -233,3 +233,4 @@
 - **node** v0.0.1.20240823.0920.ef2d951 <br> *`PR`*: OraklNode attempt to enable IC... <br><br> 
 - **node** v0.0.1.20240823.0938.8b9bb7a <br> *`PR`*: OraklNode attempt to enable IC... <br><br> 
 - **node** v0.0.1.20240823.1006.dc56667 <br> *`PR`*: Revert feat implement proxy fo... <br><br> 
+- **node** v0.0.1.20240823.1023.6234edc <br> *`PR`*: OraklNode Fix pinger <br><br> 
