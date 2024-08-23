@@ -137,6 +137,7 @@ func checkDal(endpoint string, key string, alarmCount map[string]int) error {
 	resp, err := request.Request[[]OutgoingSubmissionData](
 		request.WithEndpoint(endpoint+"/latest-data-feeds/all"),
 		request.WithHeaders(map[string]string{"X-API-Key": key}),
+		request.WithTimeout(RestTimeout),
 	)
 	networkDelay := time.Since(now)
 
