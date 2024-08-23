@@ -156,7 +156,7 @@ func (app *App) Start(ctx context.Context) {
 			return
 		case result := <-app.ResultsBuffer:
 			if result.Success && result.Delay < app.MaxDelay {
-				log.Info().Any("result", result).Msg("ping success")
+				log.Debug().Any("result", result).Msg("ping success")
 				app.FailCount[result.Address] = 0
 			} else {
 				log.Error().Any("result", result).Msg("failed to ping endpoint")
