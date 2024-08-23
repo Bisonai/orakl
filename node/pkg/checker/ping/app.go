@@ -157,7 +157,7 @@ func (app *App) Start(ctx context.Context) {
 			return
 		case result := <-app.ResultsBuffer:
 			if result.Success && result.Delay < app.MaxDelay {
-				log.Error().Any("result", result).Msg("failed due to slow response")
+				log.Error().Any("result", result).Dur("delay", result.Delay).Msg("failed due to slow response")
 				app.FailCount[result.Address] = 0
 			} else {
 				app.FailCount[result.Address] += 1
