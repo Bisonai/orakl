@@ -232,3 +232,4 @@
 - **node** v0.0.1.20240823.0828.fd6f658 <br> *`PR`*: OraklNode Pinger add logs incr... <br><br> 
 - **node** v0.0.1.20240823.0920.ef2d951 <br> *`PR`*: OraklNode attempt to enable IC... <br><br> 
 - **node** v0.0.1.20240823.0938.8b9bb7a <br> *`PR`*: OraklNode attempt to enable IC... <br><br> 
+- **node** v0.0.1.20240823.1006.dc56667 <br> *`PR`*: Revert feat implement proxy fo... <br><br> 
