@@ -3,6 +3,7 @@ package fetcher
 import (
 	"context"
 	"strings"
+	"time"
 
 	"bisonai.com/miko/node/pkg/db"
 	errorSentinel "bisonai.com/miko/node/pkg/error"
@@ -13,7 +14,11 @@ import (
 )
 
 func FetchSingle(ctx context.Context, definition *Definition) (float64, error) {
-	rawResult, err := request.Request[interface{}](request.WithEndpoint(*definition.Url), request.WithHeaders(definition.Headers))
+	rawResult, err := request.Request[interface{}](
+		request.WithEndpoint(*definition.Url),
+		request.WithHeaders(definition.Headers),
+		request.WithTimeout(10*time.Second),
+	)
 	if err != nil {
 		return 0, err
 	}
