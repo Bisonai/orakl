@@ -146,11 +146,8 @@ func (r *Rediscribe) reconnect(ctx context.Context) error {
 		default:
 			err := r.connect(ctx)
 			if err != nil {
-				if isConnectionError(err) {
-					time.Sleep(r.reconnectInterval)
-					continue
-				}
-				return err
+				time.Sleep(r.reconnectInterval)
+				continue
 			}
 			return nil
 		}
