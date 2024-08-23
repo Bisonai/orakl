@@ -134,7 +134,7 @@ func checkUrl(ctx context.Context, healthCheckUrl HealthCheckUrl) bool {
 func checkHttp(url string) bool {
 	resp, err := http.Get(url)
 	if err != nil {
-		log.Error().Err(err).Msgf("Failed to check URL: %s", url)
+		log.Warn().Err(err).Msgf("Failed to check URL: %s", url)
 		return false
 	}
 	defer resp.Body.Close()
