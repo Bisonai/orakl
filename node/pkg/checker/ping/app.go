@@ -2,7 +2,6 @@ package ping
 
 import (
 	"context"
-	"sync"
 	"time"
 
 	probing "github.com/prometheus-community/pro-bing"
@@ -70,7 +69,6 @@ type App struct {
 	Endpoints     []PingEndpoint
 	FailCount     map[string]int
 	ResultsBuffer chan PingResult
-	mu            sync.Mutex
 }
 
 func (pe *PingEndpoint) run() error {
@@ -157,7 +155,6 @@ func (app *App) Start(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case result := <-app.ResultsBuffer:
-			app.mu.Lock()
 			if result.Success && result.Delay < app.MaxDelay {
 				app.FailCount[result.Address] = 0
 			} else {
@@ -174,10 +171,8 @@ func (app *App) Start(ctx context.Context) {
 			// shuts down if all endpoints fails pinging 2 times in a row
 			if failedCount == len(app.Endpoints) {
 				log.Error().Msg("All pings failed, shutting down")
-				app.mu.Unlock()
 				return
 			}
-			app.mu.Unlock()
 		}
 	}
 

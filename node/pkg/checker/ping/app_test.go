@@ -47,8 +47,6 @@ func TestApp_Start_SuccessfulPing(t *testing.T) {
 
 	app.Start(ctx)
 
-	app.mu.Lock()
-	defer app.mu.Unlock()
 	assert.Equal(t, 0, app.FailCount["8.8.8.8"])
 }
 
@@ -69,8 +67,6 @@ func TestApp_Start_FailedPing(t *testing.T) {
 	app.Start(ctx)
 
 	// Ensure FailCount incremented due to failure
-	app.mu.Lock()
-	defer app.mu.Unlock()
 	assert.Equal(t, 1, app.FailCount["8.8.8.8"])
 }
 
@@ -91,9 +87,6 @@ func TestApp_Start_ShutdownOnAllFailures(t *testing.T) {
 	defer cancel()
 
 	app.Start(ctx)
-
-	app.mu.Lock()
-	defer app.mu.Unlock()
 
 	// Check that FailCount for all endpoints has reached DefaultMaxFails
 	for _, endpoint := range app.Endpoints {
