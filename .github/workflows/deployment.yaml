@@ -138,6 +138,7 @@ on:
           - sentinel:v0.0.1.20240823.0720.f81d2c5:Hotfix fix cronjob definition
           - node:v0.0.1.20240823.0801.a5b5218:Hotfix fix cronjob definition
           - node:v0.0.1.20240823.0815.68e21ba:OraklNode run ICMP checker aft...
+          - node:v0.0.1.20240823.0828.fd6f658:OraklNode Pinger add logs incr...
 jobs:
   prepare-taskflow:
     name: Prepare
