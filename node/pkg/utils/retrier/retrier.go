@@ -19,13 +19,11 @@ func Retry(job func() error, maxAttempts int, initialTimeout time.Duration, maxT
 
 		err = job()
 		if err != nil {
-			log.Error().Err(err).Msg("job failed, retrying")
 			time.Sleep(failureTimeout)
 			continue
 		}
 		return nil
 	}
-	log.Error().Msg("job failed")
 	return err
 }
 
