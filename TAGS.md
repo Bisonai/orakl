@@ -230,3 +230,4 @@
 - **node** v0.0.1.20240823.0801.a5b5218 <br> *`PR`*: Hotfix fix cronjob definition <br><br> 
 - **node** v0.0.1.20240823.0815.68e21ba <br> *`PR`*: OraklNode run ICMP checker aft... <br><br> 
 - **node** v0.0.1.20240823.0828.fd6f658 <br> *`PR`*: OraklNode Pinger add logs incr... <br><br> 
+- **node** v0.0.1.20240823.0920.ef2d951 <br> *`PR`*: OraklNode attempt to enable IC... <br><br> 
