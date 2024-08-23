@@ -9,6 +9,7 @@ import (
 	"bisonai.com/miko/node/pkg/admin"
 	"bisonai.com/miko/node/pkg/aggregator"
 	"bisonai.com/miko/node/pkg/bus"
+	"bisonai.com/miko/node/pkg/checker/ping"
 	"bisonai.com/miko/node/pkg/fetcher"
 	"bisonai.com/miko/node/pkg/libp2p/helper"
 	libp2pSetup "bisonai.com/miko/node/pkg/libp2p/setup"
@@ -19,6 +20,17 @@ import (
 
 func main() {
 	ctx := context.Background()
+
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Error().Any("panic", r).Msg("panic recovered from network checks")
+			}
+		}()
+		time.Sleep(5 * time.Second) // give some buffer until the app is ready
+		ping.Run(ctx)
+		os.Exit(1)
+	}()
 
 	err := logscribeconsumer.Start(ctx, "node")
 	if err != nil {
