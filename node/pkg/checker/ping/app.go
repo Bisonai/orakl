@@ -99,6 +99,7 @@ func New(opts ...AppOption) (*App, error) {
 
 		pinger.Timeout = DefaultPingerTimeout
 		pinger.Count = 0
+		pinger.SetPrivileged(true)
 
 		pinger.OnRecv = func(pkt *probing.Packet) {
 			app.ResultsBuffer <- PingResult{
@@ -137,7 +138,7 @@ func (app *App) Start(ctx context.Context) {
 					log.Debug().Msg("connecting ICMP Pinger")
 					err := endpoint.run()
 					if err != nil {
-						log.Error().Msg("failed to ping endpoint")
+						log.Error().Err(err).Msg("failed to ping endpoint")
 						app.ResultsBuffer <- PingResult{
 							Address: endpoint.Address,
 							Success: false,
@@ -157,9 +158,9 @@ func (app *App) Start(ctx context.Context) {
 			return
 		case result := <-app.ResultsBuffer:
 			if result.Success && result.Delay < app.MaxDelay {
-				log.Error().Any("result", result).Dur("delay", result.Delay).Msg("failed due to slow response")
 				app.FailCount[result.Address] = 0
 			} else {
+				log.Error().Any("result", result).Msg("failed to ping endpoint")
 				app.FailCount[result.Address] += 1
 			}
 
