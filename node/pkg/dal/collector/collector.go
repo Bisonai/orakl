@@ -107,7 +107,7 @@ func NewCollector(ctx context.Context, configs []Config) (*Collector, error) {
 		collector.OutgoingStream[config.ID] = make(chan *dalcommon.OutgoingSubmissionData, 1000)
 		collector.Symbols[config.ID] = config.Name
 		collector.FeedHashes[config.ID] = crypto.Keccak256([]byte(config.Name))
-		redisTopics = append(redisTopics, keys.SubmissionDataStreamKeyV2(config.Name))
+		redisTopics = append(redisTopics, keys.SubmissionDataStreamKey(config.Name))
 	}
 
 	baseRediscribe, err := db.NewRediscribe(

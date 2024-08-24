@@ -121,7 +121,7 @@ func TestPublishGlobalAggregateAndProof(t *testing.T) {
 	}
 
 	ch := make(chan SubmissionData)
-	err = db.Subscribe(ctx, keys.SubmissionDataStreamKeyV2(node.Name), ch)
+	err = db.Subscribe(ctx, keys.SubmissionDataStreamKey(node.Name), ch)
 	if err != nil {
 		t.Fatal("error subscribing to stream")
 	}

@@ -108,7 +108,7 @@ func (s *GlobalAggregateBulkWriter) receive(ctx context.Context) {
 }
 
 func (s *GlobalAggregateBulkWriter) receiveEach(ctx context.Context, configName string) {
-	err := db.Subscribe(ctx, keys.SubmissionDataStreamKeyV2(configName), s.ReceiveChannels[configName])
+	err := db.Subscribe(ctx, keys.SubmissionDataStreamKey(configName), s.ReceiveChannels[configName])
 	if err != nil {
 		log.Error().Err(err).Str("Player", "Aggregator").Msg("failed to subscribe to submission stream")
 	}

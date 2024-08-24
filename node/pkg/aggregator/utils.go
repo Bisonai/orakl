@@ -26,7 +26,7 @@ func PublishGlobalAggregateAndProof(ctx context.Context, name string, globalAggr
 		GlobalAggregate: globalAggregate,
 		Proof:           proof,
 	}
-	return db.Publish(ctx, keys.SubmissionDataStreamKeyV2(name), data)
+	return db.Publish(ctx, keys.SubmissionDataStreamKey(name), data)
 }
 
 func getLatestRoundId(ctx context.Context, configId int32) (int32, error) {

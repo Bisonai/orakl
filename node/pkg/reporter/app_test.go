@@ -61,7 +61,7 @@ func TestWsDataHandling(t *testing.T) {
 		t.Fatalf("error generating sample submission data: %v", err)
 	}
 
-	err = db.Publish(ctx, keys.SubmissionDataStreamKeyV2("test-aggregate"), sampleSubmissionData)
+	err = db.Publish(ctx, keys.SubmissionDataStreamKey("test-aggregate"), sampleSubmissionData)
 	if err != nil {
 		t.Fatalf("error publishing sample submission data: %v", err)
 	}

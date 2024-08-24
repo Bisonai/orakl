@@ -1,5 +1,5 @@
 package keys
 
-func SubmissionDataStreamKeyV2(name string) string {
-	return "submissionDataSteram:" + name
+func SubmissionDataStreamKey(name string) string {
+	return "submissionDataStream:" + name
 }
