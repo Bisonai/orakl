@@ -139,23 +139,9 @@ func (h *Hub) removeClient(client *websocket.Conn) {
 }
 
 func (h *Hub) initializeBroadcastChannels(collector *collector.Collector) {
-	for configId, stream := range collector.OutgoingStream {
-		symbol := h.configIdToSymbol(configId)
-		if symbol == "" {
-			continue
-		}
-
+	for symbol, stream := range collector.OutgoingStream {
 		h.broadcast[symbol] = stream
 	}
-}
-
-func (h *Hub) configIdToSymbol(id int32) string {
-	for symbol, config := range h.Configs {
-		if config.ID == id {
-			return symbol
-		}
-	}
-	return ""
 }
 
 func (h *Hub) broadcastDataForSymbol(ctx context.Context, symbol string) {
