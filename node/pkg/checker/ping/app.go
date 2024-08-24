@@ -2,6 +2,8 @@ package ping
 
 import (
 	"context"
+	"os"
+	"strconv"
 	"time"
 
 	probing "github.com/prometheus-community/pro-bing"
@@ -96,7 +98,10 @@ func New(opts ...AppOption) (*App, error) {
 			return nil, err
 		}
 
-		pinger.SetPrivileged(true)
+		withoutPriviliged, err := strconv.ParseBool(os.Getenv("WITHOUT_PING_PRIVILIGED"))
+		if !withoutPriviliged || err != nil {
+			pinger.SetPrivileged(true)
+		}
 
 		pinger.OnRecv = func(pkt *probing.Packet) {
 			app.ResultsBuffer <- PingResult{
