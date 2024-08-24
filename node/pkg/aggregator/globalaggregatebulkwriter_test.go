@@ -22,7 +22,7 @@ func TestNewGlobalAggregateBulkWriter(t *testing.T) {
 		}
 	}()
 
-	_ = NewGlobalAggregateBulkWriter(WithConfigIds([]int32{testItems.tmpData.config.ID}))
+	_ = NewGlobalAggregateBulkWriter(WithConfigNames([]string{testItems.tmpData.config.Name}))
 	if err != nil {
 		t.Fatal("error creating new node")
 	}
@@ -40,7 +40,7 @@ func TestGlobalAggregateBulkWriterStart(t *testing.T) {
 		}
 	}()
 
-	bulkWriter := NewGlobalAggregateBulkWriter(WithConfigIds([]int32{testItems.tmpData.config.ID}))
+	bulkWriter := NewGlobalAggregateBulkWriter(WithConfigNames([]string{testItems.tmpData.config.Name}))
 
 	bulkWriter.Start(ctx)
 
@@ -59,7 +59,7 @@ func TestGlobalAggregateBulkWriterStop(t *testing.T) {
 		}
 	}()
 
-	bulkWriter := NewGlobalAggregateBulkWriter(WithConfigIds([]int32{testItems.tmpData.config.ID}))
+	bulkWriter := NewGlobalAggregateBulkWriter(WithConfigNames([]string{testItems.tmpData.config.Name}))
 
 	bulkWriter.Start(ctx)
 
@@ -80,7 +80,7 @@ func TestGlobalAggregateBulkWriterDataStore(t *testing.T) {
 		}
 	}()
 
-	bulkWriter := NewGlobalAggregateBulkWriter(WithConfigIds([]int32{testItems.tmpData.globalAggregate.ConfigID}))
+	bulkWriter := NewGlobalAggregateBulkWriter(WithConfigNames([]string{testItems.tmpData.config.Name}))
 
 	bulkWriter.Start(ctx)
 	defer bulkWriter.Stop()
@@ -109,7 +109,7 @@ func TestGlobalAggregateBulkWriterDataStore(t *testing.T) {
 	}
 
 	time.Sleep(time.Millisecond * 50)
-	err = PublishGlobalAggregateAndProof(ctx, testItems.tmpData.globalAggregate, proof)
+	err = PublishGlobalAggregateAndProof(ctx, "test_pair", testItems.tmpData.globalAggregate, proof)
 	if err != nil {
 		t.Fatal("error publishing global aggregate and proof")
 	}

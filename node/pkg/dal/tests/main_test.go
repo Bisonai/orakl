@@ -36,8 +36,8 @@ type TestItems struct {
 	StatsApp   *stats.StatsApp
 }
 
-func testPublishData(ctx context.Context, submissionData aggregator.SubmissionData) error {
-	return db.Publish(ctx, keys.SubmissionDataStreamKey(submissionData.GlobalAggregate.ConfigID), submissionData)
+func testPublishData(ctx context.Context, name string, submissionData aggregator.SubmissionData) error {
+	return db.Publish(ctx, keys.SubmissionDataStreamKeyV2(name), submissionData)
 }
 
 func generateSampleSubmissionData(configId int32, value int64, timestamp time.Time, round int32, symbol string) (*aggregator.SubmissionData, error) {

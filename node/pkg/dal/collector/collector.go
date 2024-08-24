@@ -107,17 +107,24 @@ func NewCollector(ctx context.Context, configs []Config) (*Collector, error) {
 		collector.OutgoingStream[config.ID] = make(chan *dalcommon.OutgoingSubmissionData, 1000)
 		collector.Symbols[config.ID] = config.Name
 		collector.FeedHashes[config.ID] = crypto.Keccak256([]byte(config.Name))
-		redisTopics = append(redisTopics, keys.SubmissionDataStreamKey(config.ID))
+		redisTopics = append(redisTopics, keys.SubmissionDataStreamKeyV2(config.Name))
 	}
 
-	baseRediscribe, err := db.NewRediscribe(ctx, db.WithRedisHost(baseRedisHost), db.WithRedisPort(baseRedisPort), db.WithRedisTopics(redisTopics), db.WithRedisRouter(collector.redisRouter))
+	baseRediscribe, err := db.NewRediscribe(
+		ctx,
+		db.WithRedisHost(baseRedisHost),
+		db.WithRedisPort(baseRedisPort),
+		db.WithRedisTopics(redisTopics),
+		db.WithRedisRouter(collector.redisRouter))
 	if err != nil {
 		return nil, err
 	}
 	collector.baseRediscribe = baseRediscribe
 
 	if subRedisHost != "" && subRedisPort != "" {
-		subRediscribe, err := db.NewRediscribe(ctx, db.WithRedisHost(subRedisHost), db.WithRedisPort(subRedisPort), db.WithRedisTopics(redisTopics), db.WithRedisRouter(collector.redisRouter))
+		subRediscribe, err := db.NewRediscribe(
+			ctx,
+			db.WithRedisHost(subRedisHost), db.WithRedisPort(subRedisPort), db.WithRedisTopics(redisTopics), db.WithRedisRouter(collector.redisRouter))
 		if err != nil {
 			return nil, err
 		}

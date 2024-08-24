@@ -14,7 +14,7 @@ bulk insert proofs and aggregates into pgsql
 */
 
 type GlobalAggregateBulkWriter struct {
-	ReceiveChannels map[int32]chan SubmissionData
+	ReceiveChannels map[string]chan SubmissionData
 	Buffer          chan SubmissionData
 
 	LatestDataUpdateInterval time.Duration
@@ -30,7 +30,7 @@ const DefaultBufferSize = 2000
 type GlobalAggregateBulkWriterConfig struct {
 	PgsqlBulkInsertInterval time.Duration
 	BufferSize              int
-	ConfigIds               []int32
+	ConfigNames             []string
 }
 
 type GlobalAggregateBulkWriterOption func(*GlobalAggregateBulkWriterConfig)
@@ -47,9 +47,9 @@ func WithBufferSize(size int) GlobalAggregateBulkWriterOption {
 	}
 }
 
-func WithConfigIds(configIds []int32) GlobalAggregateBulkWriterOption {
+func WithConfigNames(configNames []string) GlobalAggregateBulkWriterOption {
 	return func(config *GlobalAggregateBulkWriterConfig) {
-		config.ConfigIds = configIds
+		config.ConfigNames = configNames
 	}
 }
 
@@ -63,14 +63,14 @@ func NewGlobalAggregateBulkWriter(opts ...GlobalAggregateBulkWriterOption) *Glob
 	}
 
 	result := &GlobalAggregateBulkWriter{
-		ReceiveChannels: make(map[int32]chan SubmissionData, len(config.ConfigIds)),
+		ReceiveChannels: make(map[string]chan SubmissionData, len(config.ConfigNames)),
 		Buffer:          make(chan SubmissionData, config.BufferSize),
 
 		PgsqlBulkInsertInterval: config.PgsqlBulkInsertInterval,
 	}
 
-	for _, configId := range config.ConfigIds {
-		result.ReceiveChannels[configId] = make(chan SubmissionData)
+	for _, configName := range config.ConfigNames {
+		result.ReceiveChannels[configName] = make(chan SubmissionData)
 	}
 
 	return result
@@ -102,13 +102,13 @@ func (s *GlobalAggregateBulkWriter) Stop() {
 }
 
 func (s *GlobalAggregateBulkWriter) receive(ctx context.Context) {
-	for id := range s.ReceiveChannels {
-		go s.receiveEach(ctx, id)
+	for name := range s.ReceiveChannels {
+		go s.receiveEach(ctx, name)
 	}
 }
 
-func (s *GlobalAggregateBulkWriter) receiveEach(ctx context.Context, configId int32) {
-	err := db.Subscribe(ctx, keys.SubmissionDataStreamKey(configId), s.ReceiveChannels[configId])
+func (s *GlobalAggregateBulkWriter) receiveEach(ctx context.Context, configName string) {
+	err := db.Subscribe(ctx, keys.SubmissionDataStreamKeyV2(configName), s.ReceiveChannels[configName])
 	if err != nil {
 		log.Error().Err(err).Str("Player", "Aggregator").Msg("failed to subscribe to submission stream")
 	}
@@ -116,7 +116,7 @@ func (s *GlobalAggregateBulkWriter) receiveEach(ctx context.Context, configId in
 		select {
 		case <-ctx.Done():
 			return
-		case data := <-s.ReceiveChannels[configId]:
+		case data := <-s.ReceiveChannels[configName]:
 			s.Buffer <- data
 		}
 	}

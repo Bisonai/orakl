@@ -1,9 +1,5 @@
 package keys
 
-import (
-	"strconv"
-)
-
-func SubmissionDataStreamKey(configId int32) string {
-	return "submissionDataStream:" + strconv.Itoa(int(configId))
+func SubmissionDataStreamKeyV2(name string) string {
+	return "submissionDataSteram:" + name
 }
