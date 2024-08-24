@@ -138,6 +138,9 @@ BOOT_API_PORT=<Your Boot API Port>
 # Boot API connection URL
 BOOT_API_URL=<Your Boot API URL>
 
+# Pinger priviliged set, not required from built image
+WITHOUT_PING_PRIVILIGED=<Set true if running local>
+
 # provider URLs referenced from fetcher, uses public JSON-RPC if not provided
 FETCHER_CYPRESS_PROVIDER_URL=<Your Cypress provider URL>
 FETCHER_ETHEREUM_PROVIDER_URL=<Your Ethereum provider URL>
