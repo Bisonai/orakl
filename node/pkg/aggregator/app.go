@@ -2,7 +2,6 @@ package aggregator
 
 import (
 	"context"
-	"math/rand"
 	"os"
 	"strconv"
 	"time"
@@ -178,15 +177,15 @@ func (a *App) startAggregatorById(ctx context.Context, id int32) error {
 }
 
 func (a *App) startAllAggregators(ctx context.Context) error {
+	cnt := 0
 	for _, aggregator := range a.Aggregators {
 		err := a.startAggregator(ctx, aggregator)
 		if err != nil {
 			log.Error().Str("Player", "Aggregator").Err(err).Str("name", aggregator.Name).Msg("failed to start aggregator")
 			return err
 		}
-		// starts with random sleep to avoid all aggregators starting at the same time
-		jitter := time.Duration(rand.Intn(100)) * time.Millisecond
-		time.Sleep(time.Millisecond*50 + jitter)
+		log.Info().Int("cnt", cnt).Msg("aggregator started successfully")
+		cnt++
 	}
 	return nil
 }
