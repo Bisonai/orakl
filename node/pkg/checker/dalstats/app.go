@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	GetAllValidKeys = "SELECT * FROM keys"
+	GetAllValidKeys = "SELECT key, description FROM keys"
 
 	GetRestCallsPerKey              = "SELECT COUNT(1) FROM rest_calls WHERE api_key = @key AND timestamp >= NOW() - interval '7 day'"
 	GetWebsocketConnectionsPerKey   = "SELECT COUNT(1) FROM websocket_connections WHERE api_key = @key AND timestamp >= NOW() - interval '7 day'"
@@ -23,13 +23,12 @@ const (
 )
 
 type DBKey struct {
-	ID          int     `db:"id"`
-	key         string  `db:"key"`
-	description *string `db:"description"`
+	Key         string  `db:"key"`
+	Description *string `db:"description"`
 }
 
 type Count struct {
-	count int `db:"count"`
+	Count int `db:"count"`
 }
 
 var skippingKeys = []string{"test", "sentinel", "orakl_reporter"}
@@ -79,27 +78,27 @@ func dalDBStats(ctx context.Context, dalDB *pgxpool.Pool) error {
 	msg := ""
 
 	for _, key := range keys {
-		if slices.Contains(skippingKeys, *key.description) {
+		if slices.Contains(skippingKeys, *key.Description) {
 			continue
 		}
 
-		restCalls, err := db.QueryRowTransient[Count](ctx, dalDB, GetRestCallsPerKey, map[string]interface{}{"key": key.key})
+		restCalls, err := db.QueryRowTransient[Count](ctx, dalDB, GetRestCallsPerKey, map[string]interface{}{"key": key.Key})
 		if err != nil {
 			log.Error().Err(err).Msg("Error getting rest calls")
 			return err
 		}
-		websocketConnections, err := db.QueryRowTransient[Count](ctx, dalDB, GetWebsocketConnectionsPerKey, map[string]interface{}{"key": key.key})
+		websocketConnections, err := db.QueryRowTransient[Count](ctx, dalDB, GetWebsocketConnectionsPerKey, map[string]interface{}{"key": key.Key})
 		if err != nil {
 			log.Error().Err(err).Msg("Error getting websocket connections")
 			return err
 		}
-		websocketSubscriptions, err := db.QueryRowTransient[Count](ctx, dalDB, GetWebsocketSubscriptionsPerKey, map[string]interface{}{"key": key.key})
+		websocketSubscriptions, err := db.QueryRowTransient[Count](ctx, dalDB, GetWebsocketSubscriptionsPerKey, map[string]interface{}{"key": key.Key})
 		if err != nil {
 			log.Error().Err(err).Msg("Error getting websocket subscriptions")
 			return err
 		}
 
-		msg += fmt.Sprintf("(DAL 7 days calls) client: %s, rest calls: %v, websocket connections: %v, websocket subscriptions: %v\n", *key.description, restCalls.count, websocketConnections.count, websocketSubscriptions.count)
+		msg += fmt.Sprintf("(DAL 7 days calls) client: %s, rest calls: %v, websocket connections: %v, websocket subscriptions: %v\n", *key.Description, restCalls.Count, websocketConnections.Count, websocketSubscriptions.Count)
 	}
 
 	if msg != "" {
