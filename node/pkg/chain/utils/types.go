@@ -79,6 +79,7 @@ type ClientInterface interface {
 	TransactionReceipt(ctx context.Context, txHash common.Hash) (*types.Receipt, error)
 	BlockNumber(ctx context.Context) (*big.Int, error)
 	SubscribeFilterLogs(ctx context.Context, q klaytn.FilterQuery, ch chan<- types.Log) (klaytn.Subscription, error)
+	SubscribeNewHead(ctx context.Context, ch chan<- *types.Header) (klaytn.Subscription, error)
 }
 
 type JsonRpcError interface {

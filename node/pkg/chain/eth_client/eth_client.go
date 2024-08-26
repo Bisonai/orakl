@@ -244,7 +244,7 @@ func (ec *EthClient) SyncProgress(ctx context.Context) (*klaytn.SyncProgress, er
 }
 
 func (ec *EthClient) SubscribeNewHead(ctx context.Context, ch chan<- *types.Header) (klaytn.Subscription, error) {
-	return ec.c.KlaySubscribe(ctx, ch, "newHeads")
+	return ec.c.Subscribe(ctx, "eth", ch, "newHeads")
 }
 
 func (ec *EthClient) NetworkID(ctx context.Context) (*big.Int, error) {
