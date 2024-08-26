@@ -87,7 +87,6 @@ func (r *Reporter) regularReporterJob(ctx context.Context) error {
 
 	err = r.report(ctx, pairsMap)
 	if err != nil {
-		log.Error().Str("Player", "Reporter").Err(err).Msg("Reporter")
 		return err
 	}
 	return nil
@@ -102,7 +101,6 @@ func (r *Reporter) deviationJob(ctx context.Context) error {
 
 	err := r.report(ctx, deviatingAggregates)
 	if err != nil {
-		log.Error().Str("Player", "Reporter").Err(err).Msg("DeviationReport")
 		return err
 	}
 	return nil
@@ -139,7 +137,6 @@ func (r *Reporter) report(ctx context.Context, pairs map[string]SubmissionData) 
 			defer wg.Done()
 			err := r.KaiaHelper.SubmitDelegatedFallbackDirect(ctx, r.contractAddress, SUBMIT_WITH_PROOFS, batchFeedHashes, batchValues, batchTimestamps, batchProofs)
 			if err != nil {
-				log.Error().Str("Player", "Reporter").Err(err).Msg("splitReport")
 				errorsChan <- err
 			}
 		}()
