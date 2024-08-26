@@ -10,6 +10,8 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+const maxTxSubmissionRetries = 3
+
 func testContractFeeDelegatedCall(ctx context.Context, contractAddress string, contractFunction string, args ...interface{}) error {
 	kaiaHelper, err := helper.NewChainHelper(ctx)
 	if err != nil {
@@ -17,7 +19,7 @@ func testContractFeeDelegatedCall(ctx context.Context, contractAddress string, c
 		return err
 	}
 
-	return kaiaHelper.SubmitDelegatedFallbackDirect(ctx, contractAddress, contractFunction, args...)
+	return kaiaHelper.SubmitDelegatedFallbackDirect(ctx, contractAddress, contractFunction, maxTxSubmissionRetries, args...)
 }
 
 func main() {

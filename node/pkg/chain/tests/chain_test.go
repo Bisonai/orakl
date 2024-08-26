@@ -25,6 +25,7 @@ import (
 
 var (
 	InsertProviderUrlQuery = "INSERT INTO provider_urls (chain_id, url, priority) VALUES (@chain_id, @url, @priority)"
+	maxTxSubmissionRetries = 3
 )
 
 func TestNewKaiaHelper(t *testing.T) {
@@ -267,7 +268,7 @@ func TestSubmitDelegetedFallbackDirect(t *testing.T) {
 	}
 	defer kaiaHelper.Close()
 
-	err = kaiaHelper.SubmitDelegatedFallbackDirect(ctx, "0x93120927379723583c7a0dd2236fcb255e96949f", "increment()")
+	err = kaiaHelper.SubmitDelegatedFallbackDirect(ctx, "0x93120927379723583c7a0dd2236fcb255e96949f", "increment()", maxTxSubmissionRetries)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -291,7 +292,7 @@ func TestSubmitDelegetedFallbackDirectConcurrent(t *testing.T) {
 
 	submitTx := func() {
 		defer wg.Done()
-		err := kaiaHelper.SubmitDelegatedFallbackDirect(ctx, "0x93120927379723583c7a0dd2236fcb255e96949f", "increment()")
+		err := kaiaHelper.SubmitDelegatedFallbackDirect(ctx, "0x93120927379723583c7a0dd2236fcb255e96949f", "increment()", maxTxSubmissionRetries)
 		errCh <- err
 	}
 
@@ -770,12 +771,12 @@ func TestSignerRenew(t *testing.T) {
 	addOracleFunctionSignature := "addOracle(address _oracle) external returns (uint256)"
 	removeOracleFunctionSignature := "function removeOracle(address _oracle) external"
 
-	err = chainHelperForCleanup.SubmitDelegatedFallbackDirect(ctx, contractAddr, addOracleFunctionSignature, common.HexToAddress(oldSignerAddr))
+	err = chainHelperForCleanup.SubmitDelegatedFallbackDirect(ctx, contractAddr, addOracleFunctionSignature, maxTxSubmissionRetries, common.HexToAddress(oldSignerAddr))
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
 
-	err = chainHelperForCleanup.SubmitDelegatedFallbackDirect(ctx, contractAddr, removeOracleFunctionSignature, common.HexToAddress(newSignerAddr))
+	err = chainHelperForCleanup.SubmitDelegatedFallbackDirect(ctx, contractAddr, removeOracleFunctionSignature, maxTxSubmissionRetries, common.HexToAddress(newSignerAddr))
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
