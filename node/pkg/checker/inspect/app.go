@@ -67,6 +67,8 @@ func Start(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+
+	c.Start()
 	<-ctx.Done()
 
 	return nil
