@@ -235,3 +235,4 @@
 - **node** v0.0.1.20240823.1006.dc56667 <br> *`PR`*: Revert feat implement proxy fo... <br><br> 
 - **node** v0.0.1.20240823.1023.6234edc <br> *`PR`*: OraklNode Fix pinger <br><br> 
 - **dal** v0.0.1.20240823.1037.23055da <br> *`PR`*: OraklNode Fix pinger <br><br> 
+- **node** v0.0.1.20240826.0432.9d138dc <br> *`PR`*: OraklNode Add env for local ru... <br><br> 

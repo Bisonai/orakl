@@ -144,6 +144,7 @@ on:
           - node:v0.0.1.20240823.1006.dc56667:Revert feat implement proxy fo...
           - node:v0.0.1.20240823.1023.6234edc:OraklNode Fix pinger
           - dal:v0.0.1.20240823.1037.23055da:OraklNode Fix pinger
+          - node:v0.0.1.20240826.0432.9d138dc:OraklNode Add env for local ru...
 jobs:
   prepare-taskflow:
     name: Prepare
