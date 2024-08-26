@@ -1,4 +1,4 @@
-name: "orakl dal test"
+name: "miko dal test"
 
 on:
   push:

@@ -1,4 +1,4 @@
-name: "orakl logscribe test"
+name: "miko logscribe test"
 
 on:
   push:
