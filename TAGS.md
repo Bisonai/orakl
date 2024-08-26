@@ -237,3 +237,4 @@
 - **dal** v0.0.1.20240823.1037.23055da <br> *`PR`*: OraklNode Fix pinger <br><br> 
 - **node** v0.0.1.20240826.0432.9d138dc <br> *`PR`*: OraklNode Add env for local ru... <br><br> 
 - **dal** v0.0.1.20240826.0436.ec9742f <br> *`PR`*: OraklNode Add env for local ru... <br><br> 
+- **node** v0.0.1.20240826.0511.f51c98f <br> *`PR`*: OraklNode Update aggregator st... <br><br> 
