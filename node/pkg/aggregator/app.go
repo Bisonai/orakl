@@ -59,12 +59,12 @@ func (a *App) setGlobalAggregateBulkWriter(configs []Config) {
 		a.stopGlobalAggregateBulkWriter()
 	}
 
-	configIds := make([]int32, len(configs))
+	configNames := make([]string, len(configs))
 	for i, config := range configs {
-		configIds[i] = config.ID
+		configNames[i] = config.Name
 	}
 
-	a.GlobalAggregateBulkWriter = NewGlobalAggregateBulkWriter(WithConfigIds(configIds))
+	a.GlobalAggregateBulkWriter = NewGlobalAggregateBulkWriter(WithConfigNames(configNames))
 }
 
 func (a *App) startGlobalAggregateBulkWriter(ctx context.Context) {

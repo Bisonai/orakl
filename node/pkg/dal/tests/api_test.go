@@ -96,7 +96,7 @@ func TestApiGetLatestAll(t *testing.T) {
 		t.Fatalf("error generating sample submission data: %v", err)
 	}
 
-	err = testPublishData(ctx, *sampleSubmissionData)
+	err = testPublishData(ctx, "test-aggregate", *sampleSubmissionData)
 	if err != nil {
 		t.Fatalf("error publishing sample submission data: %v", err)
 	}
@@ -168,7 +168,7 @@ func TestApiGetLatest(t *testing.T) {
 		t.Fatalf("error generating sample submission data: %v", err)
 	}
 
-	err = testPublishData(ctx, *sampleSubmissionData)
+	err = testPublishData(ctx, "test-aggregate", *sampleSubmissionData)
 	if err != nil {
 		t.Fatalf("error publishing sample submission data: %v", err)
 	}
@@ -209,7 +209,7 @@ func TestApiGetLatestTransposeAll(t *testing.T) {
 		t.Fatalf("error generating sample submission data: %v", err)
 	}
 
-	err = testPublishData(ctx, *sampleSubmissionData)
+	err = testPublishData(ctx, "test-aggregate", *sampleSubmissionData)
 	if err != nil {
 		t.Fatalf("error publishing sample submission data: %v", err)
 	}
@@ -257,7 +257,7 @@ func TestApiGetLatestTranspose(t *testing.T) {
 		t.Fatalf("error generating sample submission data: %v", err)
 	}
 
-	err = testPublishData(ctx, *sampleSubmissionData)
+	err = testPublishData(ctx, "test-aggregate", *sampleSubmissionData)
 	if err != nil {
 		t.Fatalf("error publishing sample submission data: %v", err)
 	}
@@ -327,7 +327,7 @@ func TestApiWebsocket(t *testing.T) {
 			t.Fatalf("error generating sample submission data: %v", err)
 		}
 
-		err = testPublishData(ctx, *sampleSubmissionData)
+		err = testPublishData(ctx, "test-aggregate", *sampleSubmissionData)
 		if err != nil {
 			t.Fatalf("error publishing sample submission data: %v", err)
 		}
@@ -473,7 +473,7 @@ func TestApiWebsocket(t *testing.T) {
 		}
 
 		// Publish data
-		err = testPublishData(ctx, *expectedData)
+		err = testPublishData(ctx, "test-aggregate", *expectedData)
 		if err != nil {
 			t.Fatalf("error publishing sample submission data: %v", err)
 		}

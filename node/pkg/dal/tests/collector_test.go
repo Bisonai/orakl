@@ -85,7 +85,7 @@ func TestCollectorStream(t *testing.T) {
 	}
 
 	log.Debug().Msg("Publishing data")
-	err = testPublishData(ctx, *sampleSubmissionData)
+	err = testPublishData(ctx, "test-aggregate", *sampleSubmissionData)
 	if err != nil {
 		t.Fatalf("error publishing data: %v", err)
 	}

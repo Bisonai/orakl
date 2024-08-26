@@ -18,7 +18,7 @@ func FilterNegative(values []int64) []int64 {
 	return result
 }
 
-func PublishGlobalAggregateAndProof(ctx context.Context, globalAggregate GlobalAggregate, proof Proof) error {
+func PublishGlobalAggregateAndProof(ctx context.Context, name string, globalAggregate GlobalAggregate, proof Proof) error {
 	if globalAggregate.Value == 0 || globalAggregate.Timestamp.IsZero() {
 		return nil
 	}
@@ -26,8 +26,7 @@ func PublishGlobalAggregateAndProof(ctx context.Context, globalAggregate GlobalA
 		GlobalAggregate: globalAggregate,
 		Proof:           proof,
 	}
-
-	return db.Publish(ctx, keys.SubmissionDataStreamKey(globalAggregate.ConfigID), data)
+	return db.Publish(ctx, keys.SubmissionDataStreamKey(name), data)
 }
 
 func getLatestRoundId(ctx context.Context, configId int32) (int32, error) {
