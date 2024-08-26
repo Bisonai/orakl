@@ -98,7 +98,7 @@ func New(opts ...AppOption) (*App, error) {
 			return nil, err
 		}
 
-		withoutPriviliged, err := strconv.ParseBool(os.Getenv("WITHOUT_PING_PRIVILIGED"))
+		withoutPriviliged, err := strconv.ParseBool(os.Getenv("WITHOUT_PING_PRIVILEGED"))
 		if !withoutPriviliged || err != nil {
 			pinger.SetPrivileged(true)
 		}
