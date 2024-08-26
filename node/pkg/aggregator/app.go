@@ -184,8 +184,8 @@ func (a *App) startAllAggregators(ctx context.Context) error {
 			log.Error().Str("Player", "Aggregator").Err(err).Str("name", aggregator.Name).Msg("failed to start aggregator")
 			return err
 		}
-		log.Info().Int("cnt", cnt).Msg("aggregator started successfully")
 		cnt++
+		log.Info().Int("cnt", cnt).Msg("aggregator started successfully")
 	}
 	return nil
 }
