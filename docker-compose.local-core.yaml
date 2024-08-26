@@ -41,8 +41,8 @@ services:
   api:
     build:
       context: .
-      dockerfile: dockerfiles/orakl-api.Dockerfile
-    image: orakl-api
+      dockerfile: dockerfiles/miko-api.Dockerfile
+    image: miko-api
     expose:
       - "3000"
     ports:

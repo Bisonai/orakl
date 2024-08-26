@@ -236,7 +236,7 @@ jobs:
             ./${{ needs.prepare.outputs.service }}/go.mod
         if: ${{ needs.prepare.outputs.service != 'core' || needs.prepare.outputs.service != 'fetcher' || needs.prepare.outputs.service != 'cli' }}
       - name: docker build ${{ github.event.inputs.application }}
-        run: SERVICE_NAME=orakl-${{ needs.prepare.outputs.service }} docker compose -f docker-compose.build.yaml build
+        run: SERVICE_NAME=miko-${{ needs.prepare.outputs.service }} docker compose -f docker-compose.build.yaml build
       - name: configure aws credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -249,7 +249,7 @@ jobs:
           registry-type: public
       - name: publish image to ecr
         run: |
-          docker tag orakl-${{ needs.prepare.outputs.service }} ${{ needs.prepare.outputs.ecr_url }}:latest
+          docker tag miko-${{ needs.prepare.outputs.service }} ${{ needs.prepare.outputs.ecr_url }}:latest
           docker push ${{ needs.prepare.outputs.ecr_url }}:latest
           docker tag ${{ needs.prepare.outputs.ecr_url }}:latest ${{ needs.prepare.outputs.ecr_url }}:v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
           docker push ${{ needs.prepare.outputs.ecr_url }}:v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
