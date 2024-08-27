@@ -158,6 +158,7 @@ on:
           - por:v0.0.1.20240827.0407.8741a13:OraklNode Remove aggregator wa...
           - sentinel:v0.0.1.20240827.0556.defe2b1:fetch all GitHub issues
           - logscribe:v0.0.1.20240827.0559.35de62d:fetch all GitHub issues
+          - logscribe:v0.0.1.20240827.0757.3486519:OraklNode consume channel to f...
 jobs:
   prepare-taskflow:
     name: Prepare
