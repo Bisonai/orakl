@@ -18,7 +18,7 @@ jobs:
         image: postgres
         env:
           POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: orakl-test
+          POSTGRES_DB: miko-test
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -78,7 +78,7 @@ jobs:
 
       - name: Api db migrate
         working-directory: ./api
-        run: migrate -database "postgresql://postgres:postgres@localhost:5432/orakl-test?search_path=public&sslmode=disable" -verbose -path ./migrations up
+        run: migrate -database "postgresql://postgres:postgres@localhost:5432/miko-test?search_path=public&sslmode=disable" -verbose -path ./migrations up
 
       - name: Run delegator
         working-directory: ./delegator
@@ -92,7 +92,7 @@ jobs:
         working-directory: ./api
         run: go run main.go &
         env:
-          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/orakl-test?search_path=public"
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/miko-test?search_path=public"
           ENCRYPT_PASSWORD: "abc123"
           APP_PORT: "3000"
           REDIS_HOST: "localhost"

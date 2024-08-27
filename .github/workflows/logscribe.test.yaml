@@ -1,4 +1,4 @@
-name: "orakl logscribe test"
+name: "miko logscribe test"
 
 on:
   push:
@@ -21,7 +21,7 @@ jobs:
         image: postgres
         env:
           POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: orakl-test
+          POSTGRES_DB: miko-test
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -47,7 +47,7 @@ jobs:
       - name: Migrate up
         run: |
           cd ./node
-          migrate -database "postgresql://postgres:postgres@localhost:5432/orakl-test?search_path=public&sslmode=disable" -verbose -path ./migrations/logscribe up
+          migrate -database "postgresql://postgres:postgres@localhost:5432/miko-test?search_path=public&sslmode=disable" -verbose -path ./migrations/logscribe up
 
       - name: Install dependencies
         run: |
@@ -65,7 +65,7 @@ jobs:
           task local:test-logscribe
           task local:test-logscribeconsumer
         env:
-          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/orakl-test?search_path=public"
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/miko-test?search_path=public"
           LOG_LEVEL: "info"
           LOGSCRIBE_LOG_LEVEL: "error"
           GITHUB_TOKEN: "test"

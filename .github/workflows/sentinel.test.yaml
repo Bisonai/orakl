@@ -1,4 +1,4 @@
-name: "orakl sentinel test"
+name: "miko sentinel test"
 
 on:
   push:

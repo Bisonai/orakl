@@ -3,7 +3,7 @@ name: Build and Deploy
 on:
   push:
     tags:
-      - "**"      
+      - "**"
 
 jobs:
   prepare:
@@ -12,8 +12,8 @@ jobs:
 
     outputs:
       tag_date: ${{ steps.hash.outputs.date }}
-      tag_git_hash: ${{ steps.hash.outputs.git_hash }}    
-      service: ${{ steps.extract_tags.outputs.service }}      
+      tag_git_hash: ${{ steps.hash.outputs.git_hash }}
+      service: ${{ steps.extract_tags.outputs.service }}
       version: ${{ steps.extract_tags.outputs.version }}
       ecr_url: ${{ steps.extract_tags.outputs.ecr_url }}
       app_name: ${{ steps.extract_tags.outputs.app_name }}
@@ -42,7 +42,7 @@ jobs:
         run: |
           tag_ref=${GITHUB_REF#refs/tags/}
           echo "Tag: $tag_ref"
-          
+
           # Extract service name and version from the tag (e.g., service_name/v1.2.3)
           if [[ $tag_ref =~ ^([a-zA-Z0-9]+-?[a-zA-Z0-9]+)/v([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
             service="${BASH_REMATCH[1]}"
@@ -52,7 +52,7 @@ jobs:
             echo "app_name=${service}" >> $GITHUB_OUTPUT
             if [[ "$service" == "vrf" || "$service" == "request-response" || "$service" == "aggregator" ]]; then
               service="core"
-            fi            
+            fi
 
             echo "service=${service}" >> $GITHUB_OUTPUT
             echo "version=${version}" >> $GITHUB_OUTPUT
@@ -78,7 +78,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: docker build ${{ needs.prepare.outputs.service }}
-        run: SERVICE_NAME=orakl-${{ needs.prepare.outputs.service }} docker compose -f docker-compose.build.yaml build
+        run: SERVICE_NAME=miko-${{ needs.prepare.outputs.service }} docker compose -f docker-compose.build.yaml build
 
       - name: configure aws credentials
         uses: aws-actions/configure-aws-credentials@v2
@@ -94,7 +94,7 @@ jobs:
 
       - name: publish image to ecr
         run: |
-          docker tag orakl-${{ needs.prepare.outputs.service }} ${{ needs.prepare.outputs.ecr_url }}:latest
+          docker tag miko-${{ needs.prepare.outputs.service }} ${{ needs.prepare.outputs.ecr_url }}:latest
           docker push ${{ needs.prepare.outputs.ecr_url }}:latest
           docker tag ${{ needs.prepare.outputs.ecr_url }}:latest ${{ needs.prepare.outputs.ecr_url }}:v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
           docker push ${{ needs.prepare.outputs.ecr_url }}:v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
@@ -104,15 +104,15 @@ jobs:
         run: echo "img_tag=v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}" >> $GITHUB_OUTPUT
 
   post-slack-image-upload:
-    name: Slack message for image upload 
+    name: Slack message for image upload
     needs: [prepare, build]
     uses: ./.github/workflows/post.slack.yaml
     with:
       status: "Success"
       slack-message: "*${{ needs.prepare.outputs.app_name }}* : *${{ needs.prepare.outputs.service }}* ${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }} is uploaded"
     secrets:
-      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}  
-    if: ${{ success() }}    
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+    if: ${{ success() }}
 
   image-update:
     name: Update image tag
@@ -127,7 +127,7 @@ jobs:
       tag_git_hash: ${{ needs.prepare.outputs.tag_git_hash }}
     secrets:
       PAT: ${{ secrets.PAT }}
-    if: ${{ success() }}  
+    if: ${{ success() }}
 
   post-slack-tag-update-success:
     name: Post slack message for tag update success
@@ -138,7 +138,7 @@ jobs:
       status: "Success"
       slack-message: "*${{ needs.prepare.outputs.app_name }}* : *${{ needs.prepare.outputs.service }}* new image tag ${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }} is updated"
     secrets:
-      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}        
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
 
   post-slack-tag-update-failure:
     name: Post to a slack message for tag update failure
@@ -149,4 +149,4 @@ jobs:
       status: "Failed"
       slack-message: "*${{ needs.prepare.outputs.app_name }}* git action failed"
     secrets:
-      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}           
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}

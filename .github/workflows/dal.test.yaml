@@ -1,4 +1,4 @@
-name: "orakl dal test"
+name: "miko dal test"
 
 on:
   push:
@@ -20,7 +20,7 @@ jobs:
         image: postgres
         env:
           POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: orakl-test
+          POSTGRES_DB: miko-test
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -57,7 +57,7 @@ jobs:
       - name: Migrate up
         run: |
           cd ./node
-          migrate -database "postgresql://postgres:postgres@localhost:5432/orakl-test?search_path=public&sslmode=disable" -verbose -path ./migrations/dal up
+          migrate -database "postgresql://postgres:postgres@localhost:5432/miko-test?search_path=public&sslmode=disable" -verbose -path ./migrations/dal up
 
       - name: Install dependencies
         run: |
@@ -74,7 +74,7 @@ jobs:
           cd ./node
           task local:test-dal
         env:
-          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/orakl-test?search_path=public"
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/miko-test?search_path=public"
           REDIS_HOST: "localhost"
           REDIS_PORT: "6379"
           KAIA_PROVIDER_URL: "https://public-en-kairos.node.kaia.io"
