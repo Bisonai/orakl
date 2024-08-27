@@ -52,39 +52,3 @@ func refresh(c *fiber.Ctx) error {
 	}
 	return c.SendString("fetcher refreshed: " + strconv.FormatBool(resp.Success))
 }
-
-func activate(c *fiber.Ctx) error {
-	id := c.Params("id")
-
-	msg, err := utils.SendMessage(c, bus.FETCHER, bus.ACTIVATE_FETCHER, map[string]any{"id": id})
-	if err != nil {
-		log.Error().Err(err).Str("Player", "Admin").Msg("failed to send message to fetcher")
-		return c.Status(fiber.StatusInternalServerError).SendString("failed to send activate message to fetcher: " + err.Error())
-	}
-
-	resp := <-msg.Response
-	if !resp.Success {
-		log.Error().Str("Player", "Admin").Msg("failed to activate fetcher")
-		return c.Status(fiber.StatusInternalServerError).SendString("failed to activate adapter: " + resp.Args["error"].(string))
-	}
-
-	return c.JSON(resp)
-}
-
-func deactivate(c *fiber.Ctx) error {
-	id := c.Params("id")
-
-	msg, err := utils.SendMessage(c, bus.FETCHER, bus.DEACTIVATE_FETCHER, map[string]any{"id": id})
-	if err != nil {
-		log.Error().Err(err).Str("Player", "Admin").Msg("failed to send message to fetcher")
-		return c.Status(fiber.StatusInternalServerError).SendString("failed to send deactivate message to fetcher: " + err.Error())
-	}
-
-	resp := <-msg.Response
-	if !resp.Success {
-		log.Error().Str("Player", "Admin").Msg("failed to deactivate fetcher")
-		return c.Status(fiber.StatusInternalServerError).SendString("failed to deactivate adapter: " + resp.Args["error"].(string))
-	}
-
-	return c.JSON(resp)
-}

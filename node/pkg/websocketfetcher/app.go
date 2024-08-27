@@ -106,6 +106,7 @@ type App struct {
 	chainReader         *websocketchainreader.ChainReader
 	latestFeedDataMap   *types.LatestFeedDataMap
 	feedDataDumpChannel chan *common.FeedData
+	cancel              context.CancelFunc
 }
 
 func New() *App {
@@ -250,19 +251,28 @@ func (a *App) initializeDex(ctx context.Context, appConfig AppConfig) error {
 }
 
 func (a *App) Start(ctx context.Context) {
+	ctxWithCancel, cancel := context.WithCancel(ctx)
+	a.cancel = cancel
+
 	for _, fetcher := range a.fetchers {
-		go fetcher.Run(ctx)
+		go fetcher.Run(ctxWithCancel)
 	}
 
 	ticker := time.NewTicker(a.storeInterval)
 	for {
 		select {
-		case <-ctx.Done():
+		case <-ctxWithCancel.Done():
 			ticker.Stop()
 			return
 		case <-ticker.C:
-			go a.storeFeedData(ctx)
+			go a.storeFeedData(ctxWithCancel)
 		}
+	}
+}
+
+func (a *App) Stop() {
+	if a.cancel != nil {
+		a.cancel()
 	}
 }
 
