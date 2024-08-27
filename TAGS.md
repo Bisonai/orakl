@@ -241,3 +241,4 @@
 - **sentinel** v0.0.1.20240826.0718.4d5081b <br> *`PR`*: Sentinel Add missing cron job ... <br><br> 
 - **reporter** v0.0.1.20240826.0828.fc77e8b <br> *`PR`*: handle context deadline exceed... <br><br> 
 - **node** v0.0.1.20240827.0156.9c7ee3b <br> *`PR`*: OraklNode Remove aggregator wa... <br><br> 
+- **cli** v1.0.0.20240827.0226.84ed44d <br> *`PR`*: OraklNode Remove aggregator wa... <br><br> 
