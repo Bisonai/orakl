@@ -248,3 +248,4 @@
 - **reporter** v0.0.1.20240827.0358.a9d6c98 <br> *`PR`*: OraklNode Remove aggregator wa... <br><br> 
 - **por** v0.0.1.20240827.0407.8741a13 <br> *`PR`*: OraklNode Remove aggregator wa... <br><br> 
 - **sentinel** v0.0.1.20240827.0556.defe2b1 <br> *`PR`*: fetch all GitHub issues <br><br> 
+- **logscribe** v0.0.1.20240827.0559.35de62d <br> *`PR`*: fetch all GitHub issues <br><br> 
