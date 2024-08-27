@@ -246,3 +246,4 @@
 - **sentinel** v0.0.1.20240827.0235.e07e04a <br> *`PR`*: OraklNode Remove aggregator wa... <br><br> 
 - **node** v0.0.1.20240827.0258.ef342b5 <br> *`PR`*: OraklNode Remove aggregator wa... <br><br> 
 - **reporter** v0.0.1.20240827.0358.a9d6c98 <br> *`PR`*: OraklNode Remove aggregator wa... <br><br> 
+- **por** v0.0.1.20240827.0407.8741a13 <br> *`PR`*: OraklNode Remove aggregator wa... <br><br> 
