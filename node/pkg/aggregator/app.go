@@ -11,7 +11,6 @@ import (
 	"bisonai.com/miko/node/pkg/db"
 
 	errorSentinel "bisonai.com/miko/node/pkg/error"
-	"bisonai.com/miko/node/pkg/utils/condition"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/rs/zerolog/log"
@@ -152,11 +151,6 @@ func (a *App) startAggregator(ctx context.Context, aggregator *Aggregator) error
 		log.Debug().Str("Player", "Aggregator").Str("name", aggregator.Name).Msg("aggregator already running")
 		return nil
 	}
-
-	isReady := func() bool {
-		return a.isLocalAggregateReady(aggregator.ID)
-	}
-	condition.WaitForCondition(ctx, isReady)
 
 	nodeCtx, cancel := context.WithCancel(ctx)
 	aggregator.nodeCtx = nodeCtx
@@ -364,9 +358,4 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 		bus.HandleMessageError(errorSentinel.ErrBusUnknownCommand, msg, "aggregator received unknown command")
 		return
 	}
-}
-
-func (a *App) isLocalAggregateReady(confidId int32) bool {
-	_, ok := a.LatestLocalAggregates.Load(confidId)
-	return ok
 }

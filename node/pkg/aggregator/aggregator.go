@@ -136,7 +136,7 @@ func (n *Aggregator) HandleTriggerMessage(ctx context.Context, msg raft.Message)
 	var value int64
 	localAggregate, ok := n.LatestLocalAggregates.Load(n.ID)
 	if !ok {
-		log.Error().Str("Player", "Aggregator").Msg("failed to get latest local aggregate")
+		log.Warn().Str("Player", "Aggregator").Msg("failed to get latest local aggregate")
 		// set value to -1 rather than returning error
 		// it is to proceed further steps even if current node fails to get latest local aggregate
 		// if not enough messages collected from HandleSyncReplyMessage, it will hang in certain round
