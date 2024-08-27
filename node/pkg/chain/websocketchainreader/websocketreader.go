@@ -115,6 +115,14 @@ func (c *ChainReader) handleSubscription(ctx context.Context, config *SubscribeC
 			Addresses: []common.Address{common.HexToAddress(config.Address)},
 		}
 
+		// Subscribe to new head just to keep connection alive (ignoring the results)
+		subNewHead, err := c.client(config.ChainType).SubscribeNewHead(ctx, make(chan *types.Header))
+		if err != nil {
+			log.Warn().Err(err).Msg("Failed to subscribe to new head")
+		} else {
+			defer subNewHead.Unsubscribe()
+		}
+
 		logs := make(chan types.Log)
 		sub, err := c.client(config.ChainType).SubscribeFilterLogs(ctx, query, logs)
 		if err != nil {
@@ -172,7 +180,7 @@ func processLogs(ctx context.Context, sub klaytn.Subscription, logs <-chan types
 	for {
 		select {
 		case err := <-sub.Err():
-			log.Error().Err(err).Msg("Error in subscription")
+			log.Warn().Err(err).Msg("Error in subscription")
 			return false
 		case vLog := <-logs:
 			select {
