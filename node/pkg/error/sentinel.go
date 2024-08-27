@@ -156,6 +156,7 @@ var (
 	ErrFetcherFailedToGetDexResultSlice       = &CustomError{Service: Fetcher, Code: InternalError, Message: "Failed to get dex result slice"}
 	ErrFetcherFailedBigIntConvert             = &CustomError{Service: Fetcher, Code: InternalError, Message: "Failed to convert to fetched data to big.Int"}
 	ErrFetcherFeedNotFound                    = &CustomError{Service: Fetcher, Code: InvalidInputError, Message: "Feed not found"}
+	ErrFetcherRefreshCooldown                 = &CustomError{Service: Fetcher, Code: InternalError, Message: "Failed to refresh data: cooldown period not over"}
 
 	ErrLibP2pEmptyNonLocalAddress = &CustomError{Service: Others, Code: InternalError, Message: "Host has no non-local addresses"}
 	ErrLibP2pAddressSplitFail     = &CustomError{Service: Others, Code: InternalError, Message: "Failed to split address"}

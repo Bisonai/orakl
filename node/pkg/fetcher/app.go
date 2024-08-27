@@ -25,6 +25,7 @@ func New(bus *bus.MessageBus) *App {
 		},
 		FeedDataDumpChannel: make(chan *FeedData, DefaultFeedDataDumpChannelSize),
 		Bus:                 bus,
+		LastRefreshTime:     time.Time{},
 	}
 }
 
@@ -63,7 +64,7 @@ func (a *App) subscribe(ctx context.Context) {
 }
 
 func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
-	if msg.From != bus.ADMIN {
+	if msg.From != bus.ADMIN || msg.From != bus.ACTIVATE_AGGREGATOR {
 		log.Debug().Str("Player", "Fetcher").Msg("fetcher received message from non-admin")
 		return
 	}
@@ -93,6 +94,11 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 		}
 		msg.Response <- bus.MessageResponse{Success: true}
 	case bus.REFRESH_FETCHER_APP:
+		if !a.LastRefreshTime.IsZero() && time.Since(a.LastRefreshTime) < RefreshCooldownInterval {
+			bus.HandleMessageError(errorSentinel.ErrFetcherRefreshCooldown, msg, "refresh on cooldown")
+			return
+		}
+		a.LastRefreshTime = time.Now()
 		err := a.stopAll(ctx)
 		if err != nil {
 			log.Error().Err(err).Str("Player", "Fetcher").Msg("failed to stop all fetchers")

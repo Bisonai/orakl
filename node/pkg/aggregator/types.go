@@ -186,10 +186,12 @@ type Aggregator struct {
 	Raft *raft.Raft
 
 	LatestLocalAggregates *LatestLocalAggregates
-	roundTriggers         *RoundTriggers
-	roundPrices           *RoundPrices
-	roundPriceFixes       *RoundPriceFixes
-	roundProofs           *RoundProofs
+	roundLocalAggregate   map[int32]int64
+
+	roundTriggers   *RoundTriggers
+	roundPrices     *RoundPrices
+	roundPriceFixes *RoundPriceFixes
+	roundProofs     *RoundProofs
 
 	RoundID int32
 	Signer  *helper.Signer
@@ -198,7 +200,8 @@ type Aggregator struct {
 	nodeCancel context.CancelFunc
 	isRunning  bool
 
-	mu sync.RWMutex
+	mu  sync.RWMutex
+	bus *bus.MessageBus
 }
 
 type PriceDataMessage struct {

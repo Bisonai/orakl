@@ -4,9 +4,10 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-
+	"math"
 	"time"
 
+	"bisonai.com/miko/node/pkg/bus"
 	"bisonai.com/miko/node/pkg/chain/helper"
 	errorSentinel "bisonai.com/miko/node/pkg/error"
 	"bisonai.com/miko/node/pkg/raft"
@@ -16,7 +17,15 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string, config Config, signHelper *helper.Signer, latestLocalAggregates *LatestLocalAggregates) (*Aggregator, error) {
+func NewAggregator(
+	h host.Host,
+	ps *pubsub.PubSub,
+	topicString string,
+	config Config,
+	signHelper *helper.Signer,
+	latestLocalAggregates *LatestLocalAggregates,
+	mb *bus.MessageBus,
+) (*Aggregator, error) {
 	if h == nil || ps == nil || topicString == "" {
 		return nil, errorSentinel.ErrAggregatorInvalidInitValue
 	}
@@ -53,6 +62,7 @@ func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string, config Co
 		RoundID:               1,
 		Signer:                signHelper,
 		LatestLocalAggregates: latestLocalAggregates,
+		bus:                   mb,
 	}
 	aggregator.Raft.LeaderJob = aggregator.LeaderJob
 	aggregator.Raft.HandleCustomMessage = aggregator.HandleCustomMessage
@@ -102,16 +112,14 @@ func (n *Aggregator) HandleTriggerMessage(ctx context.Context, msg raft.Message)
 		return err
 	}
 	defer n.leaveOnlyLast10Entries(triggerMessage.RoundID)
-
+	n.mu.Lock()
+	defer n.mu.Unlock()
 	if msg.SentFrom != n.Raft.GetHostId() {
 		// follower can be changed into leader unexpectedly before recieving the message
 		// increase round id before checking the message sent from leader
 		// so that the next round will be triggered with larger round id
 		// prevents already handled message error
-
-		n.mu.Lock()
 		n.RoundID = max(triggerMessage.RoundID, n.RoundID)
-		n.mu.Unlock()
 	}
 
 	if triggerMessage.RoundID == 0 {
@@ -142,6 +150,7 @@ func (n *Aggregator) HandleTriggerMessage(ctx context.Context, msg raft.Message)
 		// if not enough messages collected from HandleSyncReplyMessage, it will hang in certain round
 		value = -1
 	} else {
+		n.roundLocalAggregate[triggerMessage.RoundID] = localAggregate.Value
 		value = localAggregate.Value
 	}
 
@@ -282,11 +291,29 @@ func (n *Aggregator) HandleProofMessage(ctx context.Context, msg raft.Message) e
 		concatProof := bytes.Join(n.roundProofs.proofs[proofMessage.RoundID], nil)
 		proof := Proof{ConfigID: n.ID, Round: proofMessage.RoundID, Proof: concatProof}
 
+		n.mu.Lock()
+		defer n.mu.Unlock()
+		if math.Abs(float64(n.roundLocalAggregate[proofMessage.RoundID]-globalAggregate.Value))/float64(globalAggregate.Value) > 0.3 {
+			log.Warn().Str("Player", "Aggregator").Str("Name", n.Name).Int32("roundId", proofMessage.RoundID).Int64("localAggregate", n.roundLocalAggregate[proofMessage.RoundID]).Int64("globalAggregate", globalAggregate.Value).Msg("local aggregate and global aggregate mismatch")
+			msg := bus.Message{
+				From: bus.AGGREGATOR,
+				To:   bus.FETCHER,
+				Content: bus.MessageContent{
+					Command: bus.REFRESH_FETCHER_APP,
+					Args:    nil,
+				},
+			}
+			err = n.bus.Publish(msg)
+			if err != nil {
+				log.Warn().Str("Player", "Aggregator").Err(err).Msg("failed to publish fetcher refresh bus message")
+			}
+		}
+
 		err := PublishGlobalAggregateAndProof(ctx, n.Name, globalAggregate, proof)
 		if err != nil {
 			log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to publish global aggregate and proof")
 		}
-
+		delete(n.roundLocalAggregate, proofMessage.RoundID)
 	}
 	return nil
 }

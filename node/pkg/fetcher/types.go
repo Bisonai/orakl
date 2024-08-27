@@ -25,6 +25,7 @@ const (
 	DefaultLocalAggregateInterval         = 200 * time.Millisecond
 	DefaultFeedDataDumpChannelSize        = 20000
 	MaxOutlierRemovalRatio                = 0.25
+	RefreshCooldownInterval               = 5 * time.Minute
 )
 
 type Feed = types.Feed
@@ -91,6 +92,7 @@ type App struct {
 	LatestFeedDataMap        *LatestFeedDataMap
 	Proxies                  []Proxy
 	FeedDataDumpChannel      chan *FeedData
+	LastRefreshTime          time.Time
 }
 
 type Definition struct {

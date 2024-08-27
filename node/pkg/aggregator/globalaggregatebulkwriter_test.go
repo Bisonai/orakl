@@ -86,7 +86,7 @@ func TestGlobalAggregateBulkWriterDataStore(t *testing.T) {
 	defer bulkWriter.Stop()
 	assert.NotEqual(t, nil, bulkWriter.ctx)
 
-	node, err := NewAggregator(testItems.app.Host, testItems.app.Pubsub, testItems.topicString, testItems.tmpData.config, testItems.signer, testItems.latestLocalAggMap)
+	node, err := NewAggregator(testItems.app.Host, testItems.app.Pubsub, testItems.topicString, testItems.tmpData.config, testItems.signer, testItems.latestLocalAggMap, testItems.app.Bus)
 	if err != nil {
 		t.Fatal("error creating new node")
 	}

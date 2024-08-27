@@ -127,7 +127,7 @@ func (a *App) initializeLoadedAggregators(ctx context.Context, loadedConfigs []C
 		}
 
 		topicString := config.Name + "-global-aggregator-topic-" + strconv.Itoa(int(config.AggregateInterval))
-		tmpNode, err := NewAggregator(h, ps, topicString, config, signer, a.LatestLocalAggregates)
+		tmpNode, err := NewAggregator(h, ps, topicString, config, signer, a.LatestLocalAggregates, a.Bus)
 		if err != nil {
 			return err
 		}
