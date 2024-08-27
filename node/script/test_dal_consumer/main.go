@@ -16,7 +16,8 @@ import (
 const (
 	// SINGLE_PAIR        = "ADA-USDT"
 	// SUBMIT_WITH_PROOFS = "submit(bytes32[] calldata _feedHashes, int256[] calldata _answers, uint256[] calldata _timestamps, bytes[] calldata _proofs)"
-	SUBMIT_STRICT = "submitStrict(bytes32[] calldata _feedHashes, int256[] calldata _answers, uint256[] calldata _timestamps, bytes[] calldata _proofs)"
+	SUBMIT_STRICT          = "submitStrict(bytes32[] calldata _feedHashes, int256[] calldata _answers, uint256[] calldata _timestamps, bytes[] calldata _proofs)"
+	maxTxSubmissionRetries = 3
 )
 
 func main() {
@@ -73,7 +74,7 @@ func main() {
 			proofs = append(proofs, klaytncommon.Hex2Bytes(strings.TrimPrefix(entry.Proof, "0x")))
 
 			if len(feedHashes) >= 50 {
-				err = kaiaHelper.SubmitDelegatedFallbackDirect(ctx, contractAddr, SUBMIT_STRICT, feedHashes, values, timestamps, proofs)
+				err = kaiaHelper.SubmitDelegatedFallbackDirect(ctx, contractAddr, SUBMIT_STRICT, maxTxSubmissionRetries, feedHashes, values, timestamps, proofs)
 				if err != nil {
 					log.Error().Err(err).Msg("MakeDirect")
 					panic(err)
@@ -86,7 +87,7 @@ func main() {
 			}
 		}
 
-		err = kaiaHelper.SubmitDelegatedFallbackDirect(ctx, contractAddr, SUBMIT_STRICT, feedHashes, values, timestamps, proofs)
+		err = kaiaHelper.SubmitDelegatedFallbackDirect(ctx, contractAddr, SUBMIT_STRICT, maxTxSubmissionRetries, feedHashes, values, timestamps, proofs)
 		if err != nil {
 			log.Error().Err(err).Msg("MakeDirect")
 			panic(err)

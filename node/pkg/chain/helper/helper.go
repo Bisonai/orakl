@@ -242,11 +242,10 @@ func (t *ChainHelper) PublicAddressString() (string, error) {
 	return address.Hex(), nil
 }
 
-func (t *ChainHelper) SubmitDelegatedFallbackDirect(ctx context.Context, contractAddress string, functionString string, args ...interface{}) error {
+func (t *ChainHelper) SubmitDelegatedFallbackDirect(ctx context.Context, contractAddress string, functionString string, maxRetrial int, args ...interface{}) error {
 	var err error
 	var tx *types.Transaction
 
-	maxRetrial := 3
 	clientIndex := 0
 
 	nonce, err := noncemanager.GetAndIncrementNonce(t.wallet)
@@ -266,7 +265,7 @@ func (t *ChainHelper) SubmitDelegatedFallbackDirect(ctx context.Context, contrac
 
 			tx, err = t.GetSignedFromDelegator(tx)
 			if err != nil {
-				continue
+				break // if delegator signing fails, try direct transaction
 			}
 
 			err = utils.SubmitRawTx(ctx, t.clients[clientIndex], tx)

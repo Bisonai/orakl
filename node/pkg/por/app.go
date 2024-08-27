@@ -19,6 +19,8 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+const maxTxSubmissionRetries = 3
+
 func New(ctx context.Context) (*App, error) {
 	// TODO: updates for multiple PORs
 	chain := os.Getenv("POR_CHAIN")
@@ -209,7 +211,7 @@ func (a *App) report(ctx context.Context, submissionValue float64, latestRoundId
 
 	latestRoundIdParam := new(big.Int).SetUint64(uint64(latestRoundId))
 
-	return a.KaiaHelper.SubmitDelegatedFallbackDirect(ctx, a.ContractAddress, SUBMIT_FUNCTION_STRING, latestRoundIdParam, submissionValueParam)
+	return a.KaiaHelper.SubmitDelegatedFallbackDirect(ctx, a.ContractAddress, SUBMIT_FUNCTION_STRING, maxTxSubmissionRetries, latestRoundIdParam, submissionValueParam)
 }
 
 func (a *App) DeviationCheck(oldValue float64, newValue float64) bool {

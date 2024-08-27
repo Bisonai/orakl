@@ -16,6 +16,8 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+const maxTxSubmissionRetries = 3
+
 type SignerConfig struct {
 	pk             string
 	renewInterval  time.Duration
@@ -235,6 +237,6 @@ func (s *Signer) Renew(ctx context.Context, newPK *ecdsa.PrivateKey, newPkHex st
 }
 
 func (s *Signer) signerUpdate(ctx context.Context, newAddr common.Address) error {
-	return s.chainHelper.SubmitDelegatedFallbackDirect(ctx, s.submissionProxyContractAddr, UpdateSignerFuncSignature, newAddr)
+	return s.chainHelper.SubmitDelegatedFallbackDirect(ctx, s.submissionProxyContractAddr, UpdateSignerFuncSignature, maxTxSubmissionRetries, newAddr)
 
 }
