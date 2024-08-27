@@ -146,7 +146,7 @@ func hashLog(log LogInsertModel) string {
 
 func (p *LogProcessor) fetchCurrentIssues(ctx context.Context) ([]string, error) {
 	opts := &github.IssueListByRepoOptions{
-		State: "open",
+		State: "all",
 		ListOptions: github.ListOptions{
 			PerPage: 30, // max limit
 		},
