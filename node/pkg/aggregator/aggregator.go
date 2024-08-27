@@ -293,19 +293,21 @@ func (n *Aggregator) HandleProofMessage(ctx context.Context, msg raft.Message) e
 
 		n.mu.Lock()
 		defer n.mu.Unlock()
-		if math.Abs(float64(n.roundLocalAggregate[proofMessage.RoundID]-globalAggregate.Value))/float64(globalAggregate.Value) > 0.3 {
-			log.Warn().Str("Player", "Aggregator").Str("Name", n.Name).Int32("roundId", proofMessage.RoundID).Int64("localAggregate", n.roundLocalAggregate[proofMessage.RoundID]).Int64("globalAggregate", globalAggregate.Value).Msg("local aggregate and global aggregate mismatch")
-			msg := bus.Message{
-				From: bus.AGGREGATOR,
-				To:   bus.FETCHER,
-				Content: bus.MessageContent{
-					Command: bus.REFRESH_FETCHER_APP,
-					Args:    nil,
-				},
-			}
-			err = n.bus.Publish(msg)
-			if err != nil {
-				log.Warn().Str("Player", "Aggregator").Err(err).Msg("failed to publish fetcher refresh bus message")
+		if localAggregate, ok := n.roundLocalAggregate[proofMessage.RoundID]; ok {
+			if math.Abs(float64(localAggregate-globalAggregate.Value))/float64(globalAggregate.Value) > 0.3 {
+				log.Warn().Str("Player", "Aggregator").Str("Name", n.Name).Int32("roundId", proofMessage.RoundID).Int64("localAggregate", localAggregate).Int64("globalAggregate", globalAggregate.Value).Msg("local aggregate and global aggregate mismatch")
+				msg := bus.Message{
+					From: bus.AGGREGATOR,
+					To:   bus.FETCHER,
+					Content: bus.MessageContent{
+						Command: bus.REFRESH_FETCHER_APP,
+						Args:    nil,
+					},
+				}
+				err = n.bus.Publish(msg)
+				if err != nil {
+					log.Warn().Str("Player", "Aggregator").Err(err).Msg("failed to publish fetcher refresh bus message")
+				}
 			}
 		}
 
