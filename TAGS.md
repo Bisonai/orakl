@@ -243,3 +243,4 @@
 - **node** v0.0.1.20240827.0156.9c7ee3b <br> *`PR`*: OraklNode Remove aggregator wa... <br><br> 
 - **cli** v1.0.0.20240827.0226.84ed44d <br> *`PR`*: OraklNode Remove aggregator wa... <br><br> 
 - **api** v0.0.1.20240827.0230.5fc28f3 <br> *`PR`*: OraklNode Remove aggregator wa... <br><br> 
+- **sentinel** v0.0.1.20240827.0235.e07e04a <br> *`PR`*: OraklNode Remove aggregator wa... <br><br> 
