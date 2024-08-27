@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"math/big"
+	"math/rand"
 	"os"
 	"strconv"
 	"strings"
@@ -114,6 +115,10 @@ func NewInspector(chainHelper *helper.ChainHelper, address string, accountID str
 }
 
 func (i *Inspector) Inspect(ctx context.Context) (string, error) {
+	log.Info().Str("Player", "Inspector").Msg("Inspecting...")
+	duration := time.Duration(rand.Intn(30)) * time.Second // sleep randomly so that rr doesn't request at the same time
+	time.Sleep(duration)
+
 	msg := "[Inspector]\n"
 	inspectVRFResult, err := i.inspectVRF(ctx)
 	if err != nil {
