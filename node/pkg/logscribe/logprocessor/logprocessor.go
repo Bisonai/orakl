@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"bisonai.com/miko/node/pkg/alert"
 	"bisonai.com/miko/node/pkg/db"
 	errorsentinel "bisonai.com/miko/node/pkg/error"
 	"bisonai.com/miko/node/pkg/secrets"
@@ -299,11 +300,16 @@ func (p *LogProcessor) StartProcessingCronJob(ctx context.Context) error {
 				log.Error().Err(err).Msg("Failed to get services")
 				return
 			}
+			slackMessage := ""
 			for _, service := range services {
 				processedLogs := ProcessLogs(ctx, service.Service)
 				if len(processedLogs) > 0 {
+					addLogsToSlackMessage(&slackMessage, processedLogs)
 					p.CreateGithubIssue(ctx, processedLogs, service.Service)
 				}
+			}
+			if slackMessage != "" {
+				alert.SlackAlert("Logscribe report:\n" + slackMessage)
 			}
 		})
 		if err != nil {
@@ -314,4 +320,15 @@ func (p *LogProcessor) StartProcessingCronJob(ctx context.Context) error {
 	}
 	p.cron.Start()
 	return nil
+}
+
+func addLogsToSlackMessage(slackMessage *string, processedLogs []LogInsertModelWithCount) {
+	for _, entry := range processedLogs {
+		entryJson, err := json.MarshalIndent(entry, "", "  ")
+		if err != nil {
+			log.Warn().Err(err).Msg("Failed to marshal log")
+			continue
+		}
+		*slackMessage += string(entryJson) + "\n"
+	}
 }
