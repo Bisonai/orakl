@@ -116,6 +116,7 @@ func (c *ChainReader) handleSubscription(ctx context.Context, config *SubscribeC
 		}
 
 		headerSubChan := make(chan *types.Header, 1)
+		defer close(headerSubChan)
 		// Subscribe to new head just to keep connection alive (ignoring the results)
 		subNewHead, err := c.client(config.ChainType).SubscribeNewHead(ctx, headerSubChan)
 		if err != nil {
