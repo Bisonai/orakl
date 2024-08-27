@@ -119,7 +119,7 @@ func isConnectionError(err error) bool {
 		return true
 	}
 
-	if strings.Contains(err.Error(), "i/o timeout") {
+	if strings.Contains(err.Error(), "i/o timeout") || strings.Contains(err.Error(), "connect: connection refused") {
 		return true
 	}
 
