@@ -20,6 +20,9 @@ import (
 )
 
 const (
+	AlarmOffsetPerPair = 10
+	AlarmOffsetInTotal = 3
+
 	PriceDifferenceThreshold = 0.1
 	DelayThreshold           = 5 * time.Second
 	DefaultCheckInterval     = 5 * time.Minute
@@ -87,7 +90,13 @@ type LatestAggregateEach struct {
 	GlobalAggregate float64 `db:"global_aggregate"`
 }
 
+var localAggregateAlarmCount map[int32]int
+var globalAggregateAlarmCount map[int32]int
+
 func Start(ctx context.Context) error {
+	localAggregateAlarmCount = make(map[int32]int)
+	globalAggregateAlarmCount = make(map[int32]int)
+
 	serviceDBUrl := secrets.GetSecret("SERVICE_DB_URL")
 	if serviceDBUrl == "" {
 		log.Error().Msg("Missing SERVICE_DB_URL")
@@ -113,7 +122,6 @@ func Start(ctx context.Context) error {
 			checkOffsets(ctx, serviceDB)
 		}
 	}
-
 }
 
 func checkOffsets(ctx context.Context, serviceDB *pgxpool.Pool) {
@@ -125,6 +133,8 @@ func checkOffsets(ctx context.Context, serviceDB *pgxpool.Pool) {
 		return
 	}
 
+	localAggregateDelayedOffsetCount := 0
+	globalAggregateDelayedOffsetCount := 0
 	for _, config := range loadedConfigs {
 		log.Debug().Int32("id", config.ID).Str("name", config.Name).Msg("checking config offset")
 		localAggregateOffsetResult, err := db.QueryRowTransient[OffsetResultEach](ctx, serviceDB, fmt.Sprintf(GetSingleLocalAggregateOffset, config.ID), nil)
@@ -133,7 +143,15 @@ func checkOffsets(ctx context.Context, serviceDB *pgxpool.Pool) {
 			return
 		}
 		if localAggregateOffsetResult.Delay > DelayThreshold.Seconds() {
-			msg += fmt.Sprintf("(local aggregate offset delayed) %s: %v seconds\n", config.Name, localAggregateOffsetResult.Delay)
+			localAggregateAlarmCount[config.ID]++
+			if localAggregateAlarmCount[config.ID] > AlarmOffsetPerPair {
+				msg += fmt.Sprintf("(local aggregate offset delayed) %s: %v seconds\n", config.Name, localAggregateOffsetResult.Delay)
+				localAggregateAlarmCount[config.ID] = 0
+			} else if localAggregateAlarmCount[config.ID] > AlarmOffsetInTotal {
+				localAggregateDelayedOffsetCount++
+			}
+		} else {
+			localAggregateAlarmCount[config.ID] = 0
 		}
 
 		globalAggregateOffsetResult, err := db.QueryRowTransient[OffsetResultEach](ctx, serviceDB, fmt.Sprintf(GetSingleGlobalAggregateOffset, config.ID), nil)
@@ -142,7 +160,15 @@ func checkOffsets(ctx context.Context, serviceDB *pgxpool.Pool) {
 			return
 		}
 		if globalAggregateOffsetResult.Delay > DelayThreshold.Seconds() {
-			msg += fmt.Sprintf("(global aggregate offset delayed) %s: %v seconds\n", config.Name, globalAggregateOffsetResult.Delay)
+			globalAggregateAlarmCount[config.ID]++
+			if globalAggregateAlarmCount[config.ID] > AlarmOffsetPerPair {
+				msg += fmt.Sprintf("(global aggregate offset delayed) %s: %v seconds\n", config.Name, globalAggregateOffsetResult.Delay)
+				globalAggregateAlarmCount[config.ID] = 0
+			} else if globalAggregateAlarmCount[config.ID] > AlarmOffsetInTotal {
+				globalAggregateDelayedOffsetCount++
+			}
+		} else {
+			globalAggregateAlarmCount[config.ID] = 0
 		}
 
 		latestAggregateResult, err := db.QueryRowTransient[LatestAggregateEach](ctx, serviceDB, fmt.Sprintf(GetSingleLatestAggregates, config.ID, config.ID), nil)
@@ -156,6 +182,14 @@ func checkOffsets(ctx context.Context, serviceDB *pgxpool.Pool) {
 		}
 
 		time.Sleep(500 * time.Millisecond) // sleep to reduce pgsql stress
+	}
+
+	if localAggregateDelayedOffsetCount > 0 {
+		msg += fmt.Sprintf("%d local aggregate offsets delayed\n", localAggregateDelayedOffsetCount)
+	}
+
+	if globalAggregateDelayedOffsetCount > 0 {
+		msg += fmt.Sprintf("%d global aggregate offsets delayed\n", globalAggregateDelayedOffsetCount)
 	}
 
 	if msg != "" {

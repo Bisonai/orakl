@@ -9,7 +9,8 @@ import (
 const (
 	DefaultDalCheckInterval = 10 * time.Second
 	DelayOffset             = 5 * time.Second
-	AlarmOffset             = 3
+	AlarmOffsetPerPair      = 10
+	AlarmOffsetInTotal      = 3
 	WsDelayThreshold        = 9 * time.Second
 	WsPushThreshold         = 5 * time.Second
 	IgnoreKeys              = "test,sentinel,orakl_reporter"

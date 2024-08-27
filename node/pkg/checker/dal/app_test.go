@@ -35,8 +35,8 @@ func TestExtractWsAlarms(t *testing.T) {
 				wsMsgChan <- msg
 			}
 			alarmCountMap := map[string]int{
-				"BTC": 3,
-				"ETH": 3,
+				"BTC": 10,
+				"ETH": 10,
 			}
 
 			// Call the function
