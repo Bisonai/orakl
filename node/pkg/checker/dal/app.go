@@ -29,20 +29,28 @@ func (u *UpdateTimes) CheckLastUpdateOffsets(alarmCount map[string]int) []string
 	u.mu.RLock()
 	defer u.mu.RUnlock()
 
+	websocketNotPushedCount := 0
 	var messages []string
 	for symbol, updateTime := range u.lastUpdates {
 		elapsedTime := time.Since(updateTime)
 		if elapsedTime > WsPushThreshold {
 			alarmCount[symbol]++
-			if alarmCount[symbol] > AlarmOffset {
-				message := fmt.Sprintf("(%s) WebSocket not pushed for %v seconds", symbol, elapsedTime.Seconds())
+			if alarmCount[symbol] > AlarmOffsetPerPair {
+				message := fmt.Sprintf("(%s) Websocket not pushed for %v seconds", symbol, elapsedTime.Seconds())
 				messages = append(messages, message)
 				alarmCount[symbol] = 0
+			} else if alarmCount[symbol] > AlarmOffsetInTotal {
+				websocketNotPushedCount++
 			}
 		} else {
 			alarmCount[symbol] = 0
 		}
 	}
+
+	if websocketNotPushedCount > 0 {
+		messages = append(messages, fmt.Sprintf("Websocket not being pushed for %d symbols", websocketNotPushedCount))
+	}
+
 	return messages
 }
 
@@ -145,6 +153,7 @@ func checkDal(endpoint string, key string, alarmCount map[string]int) error {
 		return err
 	}
 
+	totalDelayed := 0
 	for _, data := range resp {
 		rawTimestamp, err := strconv.ParseInt(data.AggregateTime, 10, 64)
 		if err != nil {
@@ -162,14 +171,20 @@ func checkDal(endpoint string, key string, alarmCount map[string]int) error {
 
 		if offset > DelayOffset+networkDelay {
 			alarmCount[data.Symbol]++
-			if alarmCount[data.Symbol] > AlarmOffset {
+			if alarmCount[data.Symbol] > AlarmOffsetPerPair {
 				msg += fmt.Sprintf("(DAL) %s price update delayed by %s\n", data.Symbol, offset)
 				alarmCount[data.Symbol] = 0
+			} else if alarmCount[data.Symbol] > AlarmOffsetInTotal {
+				totalDelayed++
 			}
 		} else {
 			alarmCount[data.Symbol] = 0
 		}
 
+	}
+
+	if totalDelayed > 0 {
+		msg += fmt.Sprintf("DAL price update delayed by %d symbols\n", totalDelayed)
 	}
 
 	if msg != "" {
@@ -222,7 +237,7 @@ func extractWsDelayAlarms(ctx context.Context, alarmCount map[string]int) []stri
 		symbol := match[1]
 		delayedSymbols[symbol] = struct{}{}
 		alarmCount[symbol]++
-		if alarmCount[symbol] > AlarmOffset {
+		if alarmCount[symbol] > AlarmOffsetPerPair {
 			resultMsgs = append(resultMsgs, entry)
 			alarmCount[symbol] = 0
 		}
