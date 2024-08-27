@@ -64,7 +64,7 @@ func (a *App) subscribe(ctx context.Context) {
 }
 
 func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
-	if msg.From != bus.ADMIN || msg.From != bus.ACTIVATE_AGGREGATOR {
+	if msg.From != bus.ADMIN && msg.From != bus.ACTIVATE_AGGREGATOR {
 		log.Debug().Str("Player", "Fetcher").Msg("fetcher received message from non-admin")
 		return
 	}
