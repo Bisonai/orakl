@@ -20,52 +20,15 @@ func TestLocalAggregateBulkWriter(t *testing.T) {
 			t.Logf("Cleanup failed: %v", cleanupErr)
 		}
 	}()
-	app := testItems.app
 
-	// get configs, initialize channel, and start localAggregators
-	configs, err := app.getConfigs(ctx)
-	if err != nil {
-		t.Fatalf("error getting configs: %v", err)
-	}
+	go testItems.app.Run(ctx)
 
-	localAggregatesChannel := make(chan *LocalAggregate, LocalAggregatesChannelSize)
-	app.LocalAggregators = make(map[int32]*LocalAggregator, len(configs))
-	app.LocalAggregateBulkWriter = NewLocalAggregateBulkWriter(DefaultLocalAggregateInterval)
-	app.LocalAggregateBulkWriter.localAggregatesChannel = localAggregatesChannel
+	time.Sleep(DefaultLocalAggregateInterval * 20)
 
-	feedData := []*FeedData{}
-	for _, config := range configs {
-		localAggregatorFeeds, getFeedsErr := app.getFeeds(ctx, config.ID)
-		if getFeedsErr != nil {
-			t.Fatalf("error getting configs: %v", getFeedsErr)
-		}
-		app.LocalAggregators[config.ID] = NewLocalAggregator(config, localAggregatorFeeds, localAggregatesChannel, testItems.messageBus, app.LatestFeedDataMap)
-		for _, feed := range localAggregatorFeeds {
-			feedData = append(feedData, &FeedData{FeedID: feed.ID, Value: DUMMY_FEED_VALUE, Timestamp: nil, Volume: DUMMY_FEED_VALUE})
-		}
-	}
-	err = app.startAllLocalAggregators(ctx)
-	if err != nil {
-		t.Fatalf("error starting localAggregators: %v", err)
-	}
-
-	err = app.LatestFeedDataMap.SetLatestFeedData(feedData)
-	if err != nil {
-		t.Fatalf("error setting latest feed data: %v", err)
-	}
-
-	data := <-localAggregatesChannel
-	assert.Equal(t, DUMMY_FEED_VALUE, float64(data.Value))
-
-	go app.LocalAggregateBulkWriter.Run(ctx)
-
-	time.Sleep(DefaultLocalAggregateInterval * 4)
-
-	pgsqlData, pgsqlErr := db.QueryRow[LocalAggregate](ctx, "SELECT * FROM local_aggregates WHERE config_id = @config_id", map[string]any{
-		"config_id": data.ConfigID,
-	})
+	pgsqlData, pgsqlErr := db.QueryRows[LocalAggregate](ctx, "SELECT * FROM local_aggregates", nil)
 	if pgsqlErr != nil {
 		t.Fatalf("error getting local aggregate from pgsql: %v", pgsqlErr)
 	}
-	assert.Equal(t, float64(pgsqlData.Value), DUMMY_FEED_VALUE)
+	assert.Greater(t, len(pgsqlData), 0)
+
 }

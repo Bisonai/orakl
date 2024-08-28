@@ -117,6 +117,8 @@ func TestCopyFeedData(t *testing.T) {
 		}
 	}()
 
+	testItems.app.initialize(ctx)
+
 	feeds := testItems.insertedFeeds
 	feedData := []*FeedData{}
 
