@@ -74,40 +74,6 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 	}
 
 	switch msg.Content.Command {
-	case bus.ACTIVATE_FETCHER:
-		log.Debug().Str("Player", "Fetcher").Msg("activate fetcher msg received")
-		configId, err := bus.ParseInt32MsgParam(msg, "id")
-		if err != nil {
-			log.Error().Err(err).Str("Player", "Fetcher").Msg("failed to parse configId")
-			bus.HandleMessageError(err, msg, "failed to parse configId")
-			return
-		}
-
-		log.Debug().Str("Player", "Fetcher").Int32("configId", configId).Msg("activating fetcher")
-		err = a.startFetcherById(ctx, configId)
-		if err != nil {
-			log.Error().Err(err).Str("Player", "Fetcher").Msg("failed to start fetcher")
-			bus.HandleMessageError(err, msg, "failed to start fetcher")
-			return
-		}
-		msg.Response <- bus.MessageResponse{Success: true}
-	case bus.DEACTIVATE_FETCHER:
-		log.Debug().Str("Player", "Fetcher").Msg("deactivate fetcher msg received")
-		configId, err := bus.ParseInt32MsgParam(msg, "id")
-		if err != nil {
-			log.Error().Err(err).Str("Player", "Fetcher").Msg("failed to parse configId")
-			bus.HandleMessageError(err, msg, "failed to parse configId")
-			return
-		}
-
-		log.Debug().Str("Player", "Fetcher").Int32("configId", configId).Msg("deactivating fetcher")
-		err = a.stopFetcherById(ctx, configId)
-		if err != nil {
-			log.Error().Err(err).Str("Player", "Fetcher").Msg("failed to stop fetcher")
-			bus.HandleMessageError(err, msg, "failed to stop fetcher")
-			return
-		}
-		msg.Response <- bus.MessageResponse{Success: true}
 	case bus.STOP_FETCHER_APP:
 		log.Debug().Str("Player", "Fetcher").Msg("stopping all fetchers")
 		err := a.stopAll(ctx)
@@ -170,6 +136,8 @@ func (a *App) startAll(ctx context.Context) error {
 }
 
 func (a *App) stopAll(ctx context.Context) error {
+	a.WebsocketFetcher.Stop()
+
 	err := a.stopAllFetchers(ctx)
 	if err != nil {
 		return err
@@ -232,14 +200,6 @@ func (a *App) startLocalAggregateBulkWriter(ctx context.Context) {
 	go a.LocalAggregateBulkWriter.Run(ctx)
 
 	log.Debug().Str("Player", "Fetcher").Msg("LocalAggregateBulkWriter started")
-}
-
-func (a *App) startFetcherById(ctx context.Context, configId int32) error {
-	if fetcher, ok := a.Fetchers[configId]; ok {
-		return a.startFetcher(ctx, fetcher)
-	}
-	log.Error().Str("Player", "Fetcher").Int32("adapterId", configId).Msg("fetcher not found")
-	return errorSentinel.ErrFetcherNotFound
 }
 
 func (a *App) startAllFetchers(ctx context.Context) error {
@@ -322,13 +282,6 @@ func (a *App) stopLocalAggregateBulkWriter() error {
 	a.LocalAggregateBulkWriter.cancel()
 	a.LocalAggregateBulkWriter.isRunning = false
 	return nil
-}
-
-func (a *App) stopFetcherById(ctx context.Context, configId int32) error {
-	if fetcher, ok := a.Fetchers[configId]; ok {
-		return a.stopFetcher(ctx, fetcher)
-	}
-	return errorSentinel.ErrFetcherNotFound
 }
 
 func (a *App) stopAllFetchers(ctx context.Context) error {

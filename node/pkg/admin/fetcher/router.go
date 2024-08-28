@@ -10,6 +10,4 @@ func Routes(router fiber.Router) {
 	fetcher.Post("/start", start)
 	fetcher.Post("/stop", stop)
 	fetcher.Post("/refresh", refresh)
-	fetcher.Post("/activate/:id", activate)
-	fetcher.Post("/deactivate/:id", deactivate)
 }
