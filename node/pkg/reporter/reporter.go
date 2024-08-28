@@ -83,7 +83,6 @@ func (r *Reporter) Run(ctx context.Context) {
 func (r *Reporter) regularReporterJob(ctx context.Context) error {
 	pairsMap, err := GetLatestDataRest(ctx, r.Pairs)
 	if err != nil {
-		log.Error().Str("Player", "Reporter").Err(err).Msg("GetLatestDataRest")
 		return err
 	}
 
