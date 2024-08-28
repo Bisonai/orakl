@@ -243,25 +243,25 @@ func (t *ChainHelper) PublicAddressString() (string, error) {
 }
 
 func (t *ChainHelper) SubmitDelegatedFallbackDirect(ctx context.Context, contractAddress string, functionString string, maxRetrial int, args ...interface{}) error {
-	nonce, err := noncemanager.GetAndIncrementNonce(t.wallet)
-	if err != nil {
-		return err
-	}
-
 	if t.delegatorUrl != "" {
-		err, tryDirect := t.submitDelegated(ctx, contractAddress, functionString, maxRetrial, nonce, args...)
+		err, tryDirect := t.submitDelegated(ctx, contractAddress, functionString, maxRetrial, args...)
 		if !tryDirect {
 			return err
 		}
 	}
 
-	return t.submitDirect(ctx, contractAddress, functionString, maxRetrial, nonce, args...)
+	return t.submitDirect(ctx, contractAddress, functionString, maxRetrial, args...)
 }
 
-func (t *ChainHelper) submitDelegated(ctx context.Context, contractAddress string, functionString string, maxRetrial int, nonce uint64, args ...interface{}) (error, bool) {
+func (t *ChainHelper) submitDelegated(ctx context.Context, contractAddress string, functionString string, maxRetrial int, args ...interface{}) (error, bool) {
 	var err error
 	var tx *types.Transaction
 	clientIndex := 0
+
+	nonce, err := noncemanager.GetAndIncrementNonce(t.wallet)
+	if err != nil {
+		return err, false
+	}
 
 	for i := 0; i < maxRetrial; i++ {
 		tx, err = utils.MakeFeeDelegatedTx(ctx, t.clients[clientIndex], contractAddress, t.wallet, functionString, t.chainID, nonce, args...)
@@ -296,10 +296,15 @@ func (t *ChainHelper) submitDelegated(ctx context.Context, contractAddress strin
 	return err, true
 }
 
-func (t *ChainHelper) submitDirect(ctx context.Context, contractAddress string, functionString string, maxRetrial int, nonce uint64, args ...interface{}) error {
+func (t *ChainHelper) submitDirect(ctx context.Context, contractAddress string, functionString string, maxRetrial int, args ...interface{}) error {
 	var err error
 	var tx *types.Transaction
 	clientIndex := 0
+
+	nonce, err := noncemanager.GetAndIncrementNonce(t.wallet)
+	if err != nil {
+		return err
+	}
 
 	for i := 0; i < maxRetrial; i++ {
 		tx, err = utils.MakeDirectTx(ctx, t.clients[clientIndex], contractAddress, t.wallet, functionString, t.chainID, nonce, args...)
