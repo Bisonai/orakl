@@ -258,3 +258,4 @@
 - **reporter** v0.0.1.20240828.0644.6618afb <br> *`PR`*: add logs to submit tx func <br><br> 
 - **sentinel** v0.0.1.20240828.0654.f4d1d08 <br> *`PR`*: Sentinel Add missing check inc... <br><br> 
 - **dal** v0.0.1.20240828.0820.12378ae <br> *`PR`*: fetch latest data rest with ti... <br><br> 
+- **dal** v0.0.1.20240828.0900.a7dc3ae <br> *`PR`*: Revert DAL Pooling broadcast 2... <br><br> 
