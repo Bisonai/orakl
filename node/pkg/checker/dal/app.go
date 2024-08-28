@@ -230,6 +230,7 @@ func extractWsDelayAlarms(ctx context.Context, alarmCount map[string]int) []stri
 		return nil
 	}
 
+	delayedSymbolCount := 0
 	delayedSymbols := map[string]any{}
 	resultMsgs := []string{}
 	for _, entry := range rawMsgs {
@@ -240,7 +241,13 @@ func extractWsDelayAlarms(ctx context.Context, alarmCount map[string]int) []stri
 		if alarmCount[symbol] > AlarmOffsetPerPair {
 			resultMsgs = append(resultMsgs, entry)
 			alarmCount[symbol] = 0
+		} else if alarmCount[symbol] > AlarmOffsetInTotal {
+			delayedSymbolCount++
 		}
+	}
+
+	if delayedSymbolCount > 0 {
+		resultMsgs = append(resultMsgs, fmt.Sprintf("Websocket delayed for %d symbols", delayedSymbolCount))
 	}
 
 	for symbol := range alarmCount {
