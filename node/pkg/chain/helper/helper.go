@@ -283,6 +283,8 @@ func (t *ChainHelper) submitDelegated(ctx context.Context, contractAddress strin
 				clientIndex = (clientIndex + 1) % len(t.clients)
 			} else if errors.Is(err, errorSentinel.ErrChainTransactionFail) {
 				return err, false // if transaction fails, the data will probably be too old to retry
+			} else if i == maxRetrial-1 {
+				return err, true // dont get new nonce if it's the last iteration, instead try direct transaction
 			} else if utils.IsNonceError(err) || err == context.DeadlineExceeded {
 				nonce, err = noncemanager.GetAndIncrementNonce(t.wallet)
 				if err != nil {
@@ -321,6 +323,8 @@ func (t *ChainHelper) submitDirect(ctx context.Context, contractAddress string, 
 				clientIndex = (clientIndex + 1) % len(t.clients)
 			} else if errors.Is(err, errorSentinel.ErrChainTransactionFail) {
 				return err // if transaction fails, the data will probably be too old to retry
+			} else if i == maxRetrial-1 {
+				return err // dont get new nonce if it's the last iteration
 			} else if utils.IsNonceError(err) || err == context.DeadlineExceeded {
 				nonce, err = noncemanager.GetAndIncrementNonce(t.wallet)
 				if err != nil {
