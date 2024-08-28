@@ -26,7 +26,7 @@ func NewAggregator(
 	latestLocalAggregates *LatestLocalAggregates,
 	mb *bus.MessageBus,
 ) (*Aggregator, error) {
-	if h == nil || ps == nil || topicString == "" {
+	if h == nil || ps == nil || topicString == "" || mb == nil {
 		return nil, errorSentinel.ErrAggregatorInvalidInitValue
 	}
 
@@ -152,8 +152,8 @@ func (n *Aggregator) HandleTriggerMessage(ctx context.Context, msg raft.Message)
 		// if not enough messages collected from HandleSyncReplyMessage, it will hang in certain round
 		value = -1
 	} else {
-		n.roundLocalAggregate[triggerMessage.RoundID] = localAggregate.Value
 		value = localAggregate.Value
+		n.roundLocalAggregate[triggerMessage.RoundID] = value
 	}
 
 	return n.PublishPriceDataMessage(ctx, triggerMessage.RoundID, value, triggerMessage.Timestamp)
@@ -297,7 +297,7 @@ func (n *Aggregator) HandleProofMessage(ctx context.Context, msg raft.Message) e
 		defer n.mu.Unlock()
 		defer delete(n.roundLocalAggregate, proofMessage.RoundID)
 		if localAggregate, ok := n.roundLocalAggregate[proofMessage.RoundID]; ok {
-			if math.Abs(float64(localAggregate-globalAggregate.Value))/float64(globalAggregate.Value) > 0.3 {
+			if math.Abs(float64(localAggregate-globalAggregate.Value))/float64(globalAggregate.Value) > GLOBAL_AGGREGATE_ERR_THRESHOLD {
 				log.Warn().Str("Player", "Aggregator").Str("Name", n.Name).Int32("roundId", proofMessage.RoundID).Int64("localAggregate", localAggregate).Int64("globalAggregate", globalAggregate.Value).Msg("local aggregate and global aggregate mismatch")
 				msg := bus.Message{
 					From: bus.AGGREGATOR,

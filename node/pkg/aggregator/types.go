@@ -14,7 +14,8 @@ import (
 )
 
 const (
-	AGREEMENT_QUORUM = 0.5
+	GLOBAL_AGGREGATE_ERR_THRESHOLD = 0.3
+	AGREEMENT_QUORUM               = 0.5
 
 	Trigger   raft.MessageType = "trigger"
 	PriceData raft.MessageType = "priceData"
