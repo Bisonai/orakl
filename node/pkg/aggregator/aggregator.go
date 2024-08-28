@@ -63,6 +63,8 @@ func NewAggregator(
 		Signer:                signHelper,
 		LatestLocalAggregates: latestLocalAggregates,
 		bus:                   mb,
+
+		roundLocalAggregate: map[int32]int64{},
 	}
 	aggregator.Raft.LeaderJob = aggregator.LeaderJob
 	aggregator.Raft.HandleCustomMessage = aggregator.HandleCustomMessage
@@ -308,6 +310,8 @@ func (n *Aggregator) HandleProofMessage(ctx context.Context, msg raft.Message) e
 				if err != nil {
 					log.Warn().Str("Player", "Aggregator").Err(err).Msg("failed to publish fetcher refresh bus message")
 				}
+
+				return errorSentinel.ErrAggregatorGlobalLocalPriceMismatch
 			}
 		}
 

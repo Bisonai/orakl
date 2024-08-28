@@ -92,6 +92,7 @@ var (
 	ErrAggregatorNotFound                 = &CustomError{Service: Aggregator, Code: InternalError, Message: "Aggregator not found"}
 	ErrAggregatorCancelNotFound           = &CustomError{Service: Aggregator, Code: InternalError, Message: "Aggregator cancel function not found"}
 	ErrAggregatorEmptyProof               = &CustomError{Service: Aggregator, Code: InternalError, Message: "Empty proof"}
+	ErrAggregatorGlobalLocalPriceMismatch = &CustomError{Service: Aggregator, Code: InternalError, Message: "Global and local price mismatch"}
 
 	ErrBootAPIDbPoolNotFound = &CustomError{Service: BootAPI, Code: InternalError, Message: "db pool not found"}
 
