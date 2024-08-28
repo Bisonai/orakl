@@ -56,7 +56,7 @@ func Start() error {
 		newPeerCount, err := checkPeerCounts()
 		log.Debug().Int("peer count", newPeerCount).Msg("peer count")
 		if err != nil {
-			log.Error().Err(err).Msg("Failed to check peer count")
+			log.Warn().Err(err).Msg("Failed to check peer count")
 			failCount++
 			if failCount > 10 {
 				alert.SlackAlert(fmt.Sprintf("failed to check peer count %d times. Check miko Sentinel logs", failCount))
