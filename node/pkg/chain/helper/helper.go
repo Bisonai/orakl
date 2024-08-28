@@ -244,13 +244,20 @@ func (t *ChainHelper) PublicAddressString() (string, error) {
 
 func (t *ChainHelper) SubmitDelegatedFallbackDirect(ctx context.Context, contractAddress string, functionString string, maxRetrial int, args ...interface{}) error {
 	if t.delegatorUrl != "" {
+		log.Debug().Msg("trying to submit a transaction with delegator")
 		err, tryDirect := t.submitDelegated(ctx, contractAddress, functionString, maxRetrial, args...)
 		if !tryDirect {
+			log.Debug().Msg("failed submitting transaction with delegator, will not try direct")
 			return err
 		}
 	}
 
-	return t.submitDirect(ctx, contractAddress, functionString, maxRetrial, args...)
+	log.Debug().Msg("trying to submit a transaction directly")
+	err := t.submitDirect(ctx, contractAddress, functionString, maxRetrial, args...)
+	if err != nil {
+		log.Debug().Err(err).Msg("failed submitting transaction directly")
+	}
+	return err
 }
 
 func (t *ChainHelper) submitDelegated(ctx context.Context, contractAddress string, functionString string, maxRetrial int, args ...interface{}) (error, bool) {
