@@ -295,6 +295,7 @@ func (n *Aggregator) HandleProofMessage(ctx context.Context, msg raft.Message) e
 
 		n.mu.Lock()
 		defer n.mu.Unlock()
+		defer delete(n.roundLocalAggregate, proofMessage.RoundID)
 		if localAggregate, ok := n.roundLocalAggregate[proofMessage.RoundID]; ok {
 			if math.Abs(float64(localAggregate-globalAggregate.Value))/float64(globalAggregate.Value) > 0.3 {
 				log.Warn().Str("Player", "Aggregator").Str("Name", n.Name).Int32("roundId", proofMessage.RoundID).Int64("localAggregate", localAggregate).Int64("globalAggregate", globalAggregate.Value).Msg("local aggregate and global aggregate mismatch")
@@ -319,7 +320,6 @@ func (n *Aggregator) HandleProofMessage(ctx context.Context, msg raft.Message) e
 		if err != nil {
 			log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to publish global aggregate and proof")
 		}
-		delete(n.roundLocalAggregate, proofMessage.RoundID)
 	}
 	return nil
 }
