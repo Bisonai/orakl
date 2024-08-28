@@ -24,11 +24,11 @@ func (p *Pool) Run(ctx context.Context) {
 	p.IsRunning = true
 
 	for i := 0; i < p.workerCount; i++ {
-		go p.worker(poolCtx)
+		go p.work(poolCtx)
 	}
 }
 
-func (p *Pool) worker(ctx context.Context) {
+func (p *Pool) work(ctx context.Context) {
 	for {
 		select {
 		case job := <-p.jobChannel:
