@@ -144,10 +144,10 @@ func checkGroupedFeeds(ctx context.Context, feedsByInterval map[int][]FeedToChec
 }
 
 func checkFeeds(ctx context.Context, feedsToCheck []FeedToCheck) {
+	log.Debug().Msg("Checking feed submissions")
 	msg := ""
 	totalDelayed := 0
 	for i := range feedsToCheck {
-		// msg += checkEachFeed(ctx, &feedsToCheck[i])
 		offset, err := timeSinceLastFeedEvent(ctx, feedsToCheck[i])
 		if err != nil {
 			log.Error().Err(err).Str("feed", feedsToCheck[i].FeedName).Msg("Failed to check feed")
@@ -155,6 +155,8 @@ func checkFeeds(ctx context.Context, feedsToCheck []FeedToCheck) {
 		}
 
 		if offset > time.Duration(feedsToCheck[i].ExpectedInterval)*time.Millisecond*2 {
+			feedsToCheck[i].LatencyChecked++
+
 			log.Warn().Str("feed", feedsToCheck[i].FeedName).Msg(fmt.Sprintf("%s delayed by %s", feedsToCheck[i].FeedName, offset-time.Duration(feedsToCheck[i].ExpectedInterval)*time.Millisecond))
 			if feedsToCheck[i].LatencyChecked > AlarmOffsetPerPair {
 				msg += fmt.Sprintf("(REPORTER) %s delayed by %s\n", feedsToCheck[i].FeedName, offset-time.Duration(feedsToCheck[i].ExpectedInterval)*time.Millisecond)
@@ -174,6 +176,7 @@ func checkFeeds(ctx context.Context, feedsToCheck []FeedToCheck) {
 	if msg != "" {
 		alert.SlackAlert(msg)
 	}
+	log.Debug().Msg("Checked feed submission delays")
 }
 
 func checkPorAndVrf(ctx context.Context, checkList *CheckList) {
@@ -296,20 +299,4 @@ func loadSubgraphInfoMap(ctx context.Context) (map[string]SubgraphInfo, error) {
 	}
 
 	return subgraphInfoMap, nil
-}
-
-func handleFeedSubmissionDelay(offset time.Duration, feed *FeedToCheck) string {
-	msg := ""
-	if offset > time.Duration(feed.ExpectedInterval)*time.Millisecond*2 {
-		log.Warn().Str("feed", feed.FeedName).Msg(fmt.Sprintf("%s delayed by %s", feed.FeedName, offset-time.Duration(feed.ExpectedInterval)*time.Millisecond))
-		feed.LatencyChecked++
-		if feed.LatencyChecked > AlarmOffsetPerPair {
-			msg += fmt.Sprintf("(REPORTER) %s delayed by %s\n", feed.FeedName, offset-time.Duration(feed.ExpectedInterval)*time.Millisecond)
-			feed.LatencyChecked = 0
-		}
-	} else {
-		feed.LatencyChecked = 0
-	}
-
-	return msg
 }
