@@ -262,7 +262,7 @@ func cleanup(ctx context.Context, testItems *TestItems) func() error {
 			return err
 		}
 
-		err = testItems.app.stopAllFetchers(ctx)
+		err = testItems.app.stopAll(ctx)
 		if err != nil {
 			return err
 		}

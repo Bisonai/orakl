@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"bisonai.com/miko/node/pkg/bus"
 	"bisonai.com/miko/node/pkg/db"
 	"github.com/stretchr/testify/assert"
 )
@@ -112,4 +113,129 @@ func TestAppRun(t *testing.T) {
 		t.Fatalf("error querying local aggregates: %v", err)
 	}
 	assert.Greater(t, len(localAggregateResult), 0)
+}
+
+func TestAppRefresh(t *testing.T) {
+	ctx := context.Background()
+	clean, testItems, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer func() {
+		if cleanupErr := clean(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
+		}
+	}()
+
+	app := testItems.app
+
+	err = app.initialize(ctx)
+	if err != nil {
+		t.Fatalf("error initializing fetcher: %v", err)
+	}
+
+	err = app.Run(ctx)
+	if err != nil {
+		t.Fatalf("error running fetcher: %v", err)
+	}
+	for _, fetcher := range app.Fetchers {
+		assert.True(t, fetcher.isRunning)
+	}
+	for _, localAggregator := range app.LocalAggregators {
+		assert.True(t, localAggregator.isRunning)
+	}
+	assert.True(t, app.FeedDataBulkWriter.isRunning)
+
+	time.Sleep(WAIT_SECONDS)
+
+	resp := make(chan bus.MessageResponse)
+	err = testItems.messageBus.Publish(
+		bus.Message{
+			From: bus.AGGREGATOR,
+			To:   bus.FETCHER,
+			Content: bus.MessageContent{
+				Command: bus.REFRESH_FETCHER_APP,
+				Args:    nil,
+			},
+			Response: resp,
+		},
+	)
+	if err != nil {
+		t.Fatalf("error publishing message: %v", err)
+	}
+
+	result := <-resp
+	assert.Equal(t, result.Success, true)
+}
+
+func TestAppRefreshCooldown(t *testing.T) {
+	ctx := context.Background()
+	clean, testItems, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer func() {
+		if cleanupErr := clean(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
+		}
+	}()
+
+	app := testItems.app
+
+	err = app.initialize(ctx)
+	if err != nil {
+		t.Fatalf("error initializing fetcher: %v", err)
+	}
+
+	err = app.Run(ctx)
+	if err != nil {
+		t.Fatalf("error running fetcher: %v", err)
+	}
+	for _, fetcher := range app.Fetchers {
+		assert.True(t, fetcher.isRunning)
+	}
+	for _, localAggregator := range app.LocalAggregators {
+		assert.True(t, localAggregator.isRunning)
+	}
+	assert.True(t, app.FeedDataBulkWriter.isRunning)
+
+	time.Sleep(WAIT_SECONDS)
+
+	resp := make(chan bus.MessageResponse)
+	err = testItems.messageBus.Publish(
+		bus.Message{
+			From: bus.AGGREGATOR,
+			To:   bus.FETCHER,
+			Content: bus.MessageContent{
+				Command: bus.REFRESH_FETCHER_APP,
+				Args:    nil,
+			},
+			Response: resp,
+		},
+	)
+	if err != nil {
+		t.Fatalf("error publishing message: %v", err)
+	}
+
+	result := <-resp
+	assert.Equal(t, result.Success, true)
+
+	resp2 := make(chan bus.MessageResponse)
+	err = testItems.messageBus.Publish(
+		bus.Message{
+			From: bus.AGGREGATOR,
+			To:   bus.FETCHER,
+			Content: bus.MessageContent{
+				Command: bus.REFRESH_FETCHER_APP,
+				Args:    nil,
+			},
+			Response: resp2,
+		},
+	)
+	if err != nil {
+		t.Fatalf("error publishing message: %v", err)
+	}
+
+	result2 := <-resp2
+	assert.False(t, result2.Success)
 }
