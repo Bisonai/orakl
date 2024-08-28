@@ -243,48 +243,63 @@ func (t *ChainHelper) PublicAddressString() (string, error) {
 }
 
 func (t *ChainHelper) SubmitDelegatedFallbackDirect(ctx context.Context, contractAddress string, functionString string, maxRetrial int, args ...interface{}) error {
-	var err error
-	var tx *types.Transaction
-
-	clientIndex := 0
-
 	nonce, err := noncemanager.GetAndIncrementNonce(t.wallet)
 	if err != nil {
 		return err
 	}
 
 	if t.delegatorUrl != "" {
-		for i := 0; i < maxRetrial; i++ {
-			tx, err = utils.MakeFeeDelegatedTx(ctx, t.clients[clientIndex], contractAddress, t.wallet, functionString, t.chainID, nonce, args...)
-			if err != nil {
-				if utils.ShouldRetryWithSwitchedJsonRPC(err) {
-					clientIndex = (clientIndex + 1) % len(t.clients)
-				}
-				continue
-			}
-
-			tx, err = t.GetSignedFromDelegator(tx)
-			if err != nil {
-				break // if delegator signing fails, try direct transaction
-			}
-
-			err = utils.SubmitRawTx(ctx, t.clients[clientIndex], tx)
-			if err != nil {
-				if utils.ShouldRetryWithSwitchedJsonRPC(err) {
-					clientIndex = (clientIndex + 1) % len(t.clients)
-				} else if errors.Is(err, errorSentinel.ErrChainTransactionFail) {
-					return err // if transaction fails, the data will probably be too old to retry
-				} else if utils.IsNonceError(err) || err == context.DeadlineExceeded {
-					nonce, err = noncemanager.GetAndIncrementNonce(t.wallet)
-					if err != nil {
-						return err
-					}
-				}
-				continue
-			}
-			return nil
+		err, tryDirect := t.submitDelegated(ctx, contractAddress, functionString, maxRetrial, nonce, args...)
+		if !tryDirect {
+			return err
 		}
 	}
+
+	return t.submitDirect(ctx, contractAddress, functionString, maxRetrial, nonce, args...)
+}
+
+func (t *ChainHelper) submitDelegated(ctx context.Context, contractAddress string, functionString string, maxRetrial int, nonce uint64, args ...interface{}) (error, bool) {
+	var err error
+	var tx *types.Transaction
+	clientIndex := 0
+
+	for i := 0; i < maxRetrial; i++ {
+		tx, err = utils.MakeFeeDelegatedTx(ctx, t.clients[clientIndex], contractAddress, t.wallet, functionString, t.chainID, nonce, args...)
+		if err != nil {
+			if utils.ShouldRetryWithSwitchedJsonRPC(err) {
+				clientIndex = (clientIndex + 1) % len(t.clients)
+			}
+			continue
+		}
+
+		tx, err = t.GetSignedFromDelegator(tx)
+		if err != nil {
+			return nil, true // if delegator signing fails, try direct transaction
+		}
+
+		err = utils.SubmitRawTx(ctx, t.clients[clientIndex], tx)
+		if err != nil {
+			if utils.ShouldRetryWithSwitchedJsonRPC(err) {
+				clientIndex = (clientIndex + 1) % len(t.clients)
+			} else if errors.Is(err, errorSentinel.ErrChainTransactionFail) {
+				return err, false // if transaction fails, the data will probably be too old to retry
+			} else if utils.IsNonceError(err) || err == context.DeadlineExceeded {
+				nonce, err = noncemanager.GetAndIncrementNonce(t.wallet)
+				if err != nil {
+					return err, false
+				}
+			}
+			continue
+		}
+		return nil, false
+	}
+	return err, true
+}
+
+func (t *ChainHelper) submitDirect(ctx context.Context, contractAddress string, functionString string, maxRetrial int, nonce uint64, args ...interface{}) error {
+	var err error
+	var tx *types.Transaction
+	clientIndex := 0
 
 	for i := 0; i < maxRetrial; i++ {
 		tx, err = utils.MakeDirectTx(ctx, t.clients[clientIndex], contractAddress, t.wallet, functionString, t.chainID, nonce, args...)
@@ -311,7 +326,6 @@ func (t *ChainHelper) SubmitDelegatedFallbackDirect(ctx context.Context, contrac
 		}
 		return nil
 	}
-
 	return err
 }
 
