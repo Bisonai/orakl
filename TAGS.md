@@ -255,3 +255,4 @@
 - **por** v0.0.1.20240828.0244.055b603 <br> *`PR`*: handle context deadline exceed... <br><br> 
 - **por** v0.0.1.20240828.0540.ce5ebf0 <br> *`PR`*: encapsulate SubmitDelegatedFal... <br><br> 
 - **reporter** v0.0.1.20240828.0541.ce5ebf0 <br> *`PR`*: encapsulate SubmitDelegatedFal... <br><br> 
+- **reporter** v0.0.1.20240828.0644.6618afb <br> *`PR`*: add logs to submit tx func <br><br> 
