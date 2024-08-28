@@ -35,7 +35,7 @@ type Hub struct {
 
 const (
 	MAX_CONNECTIONS = 10
-	WORKER_COUNT    = 20
+	WORKER_COUNT    = 100
 	CleanupInterval = time.Hour
 )
 
