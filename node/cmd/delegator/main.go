@@ -28,7 +28,7 @@ func main() {
 		log.Info().Msg("env file is not found, continuing without .env file")
 	}
 
-	err = logscribeconsumer.Start(ctx, "delegator")
+	err = logscribeconsumer.Start(ctx, logscribeconsumer.WithStoreService("delegator"))
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to start logscribe consumer")
 		return
