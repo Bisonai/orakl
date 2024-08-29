@@ -186,9 +186,9 @@ func (p *LogProcessor) fetchCurrentIssues(ctx context.Context) ([]string, error)
 	return issues, nil
 }
 
-func (p *LogProcessor) CreateGithubIssue(ctx context.Context, processedLogs []LogInsertModelWithCount, service string) {
+func (p *LogProcessor) CreateGithubIssue(ctx context.Context, processedLogs []LogInsertModelWithCount, service string) []LogInsertModelWithCount {
 	if p.githubOwner == "test" {
-		return
+		return nil
 	}
 
 	currentIssues, err := p.fetchCurrentIssues(ctx)
@@ -201,6 +201,7 @@ func (p *LogProcessor) CreateGithubIssue(ctx context.Context, processedLogs []Lo
 
 	issueCount := 0
 	processedLogHashes := [][]interface{}{}
+	nonprocessedLogs := []LogInsertModelWithCount{}
 	for _, entry := range processedLogs {
 		hash := hashLog(entry.LogInsertModel)
 		res, err := db.QueryRow[Count](ctx, logAlreadyProcessedQuery, map[string]any{
@@ -208,21 +209,25 @@ func (p *LogProcessor) CreateGithubIssue(ctx context.Context, processedLogs []Lo
 		})
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to check if log already processed")
+			nonprocessedLogs = append(nonprocessedLogs, entry)
 			continue
 		}
 		if res.Count > 0 {
 			log.Debug().Msg("Log already processed, skipping creation of github issue")
+			nonprocessedLogs = append(nonprocessedLogs, entry)
 			continue
 		}
 		if slices.Contains(currentIssues, entry.Message) {
 			log.Debug().Msgf("Issue already exists, skipping: %s", entry.Message)
+			nonprocessedLogs = append(nonprocessedLogs, entry)
 			continue
 		}
 
 		entryJson, err := json.MarshalIndent(entry, "", "  ")
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to marshal log")
-			return
+			nonprocessedLogs = append(nonprocessedLogs, entry)
+			continue
 		}
 		formattedBody := "```go\n" + string(entryJson) + "\n```"
 		issueRequest := &github.IssueRequest{
@@ -247,6 +252,8 @@ func (p *LogProcessor) CreateGithubIssue(ctx context.Context, processedLogs []Lo
 		if err == nil {
 			processedLogHashes = append(processedLogHashes, []interface{}{hash})
 			issueCount++
+		} else {
+			nonprocessedLogs = append(nonprocessedLogs, entry)
 		}
 	}
 
@@ -258,6 +265,8 @@ func (p *LogProcessor) CreateGithubIssue(ctx context.Context, processedLogs []Lo
 	}
 
 	log.Info().Msgf("Created %d github issues", issueCount)
+
+	return nonprocessedLogs
 }
 
 func (p *LogProcessor) BulkCopyLogs(ctx context.Context, logsChannel <-chan *[]LogInsertModel) {
@@ -304,8 +313,10 @@ func (p *LogProcessor) StartProcessingCronJob(ctx context.Context) error {
 			for _, service := range services {
 				processedLogs := ProcessLogs(ctx, service.Service)
 				if len(processedLogs) > 0 {
-					addLogsToSlackMessage(&slackMessage, processedLogs)
-					p.CreateGithubIssue(ctx, processedLogs, service.Service)
+					duplicateOrLogsWithIssues := p.CreateGithubIssue(ctx, processedLogs, service.Service)
+					if len(duplicateOrLogsWithIssues) > 0 {
+						addLogsToSlackMessage(&slackMessage, duplicateOrLogsWithIssues)
+					}
 				}
 			}
 			if slackMessage.Len() > 0 {
