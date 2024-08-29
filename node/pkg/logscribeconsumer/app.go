@@ -94,9 +94,9 @@ func (a *App) Write(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
-func Start(ctx context.Context, service string) error {
+func Start(ctx context.Context, options ...AppOption) error {
 	log.Info().Msg("Starting logscribe consumer")
-	a, err := New(WithStoreService(service))
+	a, err := New(options...)
 	if err != nil {
 		return err
 	}

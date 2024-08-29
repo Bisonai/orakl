@@ -12,7 +12,7 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	err := logscribeconsumer.Start(ctx, "dal")
+	err := logscribeconsumer.Start(ctx, logscribeconsumer.WithStoreService("dal"))
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to start logscribe consumer")
 		return

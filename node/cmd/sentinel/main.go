@@ -23,7 +23,7 @@ import (
 func main() {
 	ctx := context.Background()
 
-	err := logscribeconsumer.Start(ctx, "sentinel")
+	err := logscribeconsumer.Start(ctx, logscribeconsumer.WithStoreService("sentinel"))
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to start logscribe consumer")
 		return
