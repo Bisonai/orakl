@@ -260,3 +260,4 @@
 - **dal** v0.0.1.20240828.0820.12378ae <br> *`PR`*: fetch latest data rest with ti... <br><br> 
 - **dal** v0.0.1.20240828.0900.a7dc3ae <br> *`PR`*: Revert DAL Pooling broadcast 2... <br><br> 
 - **reporter** v0.0.1.20240829.0827.b5eff49 <br> *`PR`*: rollback tx submission encapsu... <br><br> 
+- **logscribe** v0.0.1.20240830.0536.d7fcdf0 <br> *`PR`*: rollback tx submission encapsu... <br><br> 
