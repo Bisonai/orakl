@@ -127,6 +127,8 @@ func (i *Inspector) Inspect(ctx context.Context) (string, error) {
 	}
 	msg += inspectVRFResult
 
+	time.Sleep(5 * time.Second) // sleep to prevent nonce reuse read from onchain
+
 	inspectRRResult, err := i.inspectRR(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed RR inspection")
