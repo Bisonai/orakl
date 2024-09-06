@@ -201,7 +201,7 @@ func (p *LogProcessor) CreateGithubIssue(ctx context.Context, processedLogs []Lo
 
 	issueCount := 0
 	processedLogHashes := [][]interface{}{}
-	nonprocessedLogs := []LogInsertModelWithCount{}
+	excludedLogs := []LogInsertModelWithCount{}
 	for _, entry := range processedLogs {
 		hash := hashLog(entry.LogInsertModel)
 		res, err := db.QueryRow[Count](ctx, logAlreadyProcessedQuery, map[string]any{
@@ -209,24 +209,24 @@ func (p *LogProcessor) CreateGithubIssue(ctx context.Context, processedLogs []Lo
 		})
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to check if log already processed")
-			nonprocessedLogs = append(nonprocessedLogs, entry)
+			excludedLogs = append(excludedLogs, entry)
 			continue
 		}
 		if res.Count > 0 {
 			log.Debug().Msg("Log already processed, skipping creation of github issue")
-			nonprocessedLogs = append(nonprocessedLogs, entry)
+			excludedLogs = append(excludedLogs, entry)
 			continue
 		}
 		if slices.Contains(currentIssues, entry.Message) {
 			log.Debug().Msgf("Issue already exists, skipping: %s", entry.Message)
-			nonprocessedLogs = append(nonprocessedLogs, entry)
+			excludedLogs = append(excludedLogs, entry)
 			continue
 		}
 
 		entryJson, err := json.MarshalIndent(entry, "", "  ")
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to marshal log")
-			nonprocessedLogs = append(nonprocessedLogs, entry)
+			excludedLogs = append(excludedLogs, entry)
 			continue
 		}
 		formattedBody := "```go\n" + string(entryJson) + "\n```"
@@ -253,7 +253,7 @@ func (p *LogProcessor) CreateGithubIssue(ctx context.Context, processedLogs []Lo
 			processedLogHashes = append(processedLogHashes, []interface{}{hash})
 			issueCount++
 		} else {
-			nonprocessedLogs = append(nonprocessedLogs, entry)
+			excludedLogs = append(excludedLogs, entry)
 		}
 	}
 
@@ -266,7 +266,7 @@ func (p *LogProcessor) CreateGithubIssue(ctx context.Context, processedLogs []Lo
 
 	log.Info().Msgf("Created %d github issues", issueCount)
 
-	return nonprocessedLogs
+	return excludedLogs
 }
 
 func (p *LogProcessor) BulkCopyLogs(ctx context.Context, logsChannel <-chan *[]LogInsertModel) {
