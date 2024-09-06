@@ -29,7 +29,7 @@ func setUp() error {
 	peerCheckInterval, err = time.ParseDuration(os.Getenv("PEER_CHECK_INTERVAL"))
 	if err != nil {
 		peerCheckInterval = DEFAULT_PEER_CHECK_INTERVAL
-		log.Error().Err(err).Dur("peerCheckInterval", peerCheckInterval).Msg("Using default peer check interval of 10s")
+		log.Info().Err(err).Dur("peerCheckInterval", peerCheckInterval).Msg("Using default peer check interval of 10s")
 	}
 
 	initialCount, err := checkPeerCounts()
