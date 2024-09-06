@@ -214,7 +214,7 @@ jobs:
     with:
       status: "Success"
       slack-message: "${{ github.event.inputs.network }} ${{ github.event.inputs.application }}* : *${{ needs.prepare-taskflow.outputs.img_tag}}* is updated"
-      channel: "orakl-notification"
+      channel: "miko-notification"
     secrets:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
     if: ${{ github.event.inputs.network == 'Baobab' && success() }}
@@ -289,7 +289,7 @@ jobs:
     with:
       status: "Success"
       slack-message: "${{ github.event.inputs.network }} ${{ github.event.inputs.application }}* : *${{ needs.prepare.outputs.service }}* ${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }} is uploaded"
-      channel: "orakl-notification"
+      channel: "miko-notification"
     secrets:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
     if: ${{ github.event.inputs.network == 'Baobab' && success() }}
@@ -314,7 +314,7 @@ jobs:
     with:
       status: "Success"
       slack-message: "${{ github.event.inputs.network }} *${{ github.event.inputs.application }}* : *${{ needs.prepare.outputs.service }}* new image tag ${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }} is updated"
-      channel: "orakl-notification"
+      channel: "miko-notification"
     secrets:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
     if: ${{ github.event.inputs.network == 'Baobab' && github.event.inputs.image == 'new' && success() }}
@@ -334,7 +334,7 @@ jobs:
     with:
       status: "Success"
       slack-message: "${{ github.event.inputs.network }} *${{ github.event.inputs.application }}* is updated"
-      channel: "orakl-notification"
+      channel: "miko-notification"
     secrets:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
     if: ${{ github.event.inputs.network == 'Cypress' && success() }}
@@ -345,7 +345,7 @@ jobs:
     with:
       status: "Failed"
       slack-message: "${{ github.event.inputs.network }} *${{ github.event.inputs.application }}* git action failed"
-      channel: "orakl-notification"
+      channel: "miko-notification"
     secrets:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
     if: ${{ github.event.inputs.network == 'Baobab' && github.event.inputs.image == 'new' && failure() }}
