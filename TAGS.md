@@ -264,3 +264,4 @@
 - **sentinel** v0.0.1.20240903.0618.463ce9d <br> *`PR`*: OraklNode Fix possible cause f... <br><br> 
 - **node** v0.0.1.20240903.0621.d4ef741 <br> *`PR`*: OraklNode Fix possible cause f... <br><br> 
 - **node** v0.0.1.20240906.0137.a2f4a5e <br> *`PR`*: OraklNode Fix possible cause f... <br><br> 
+- **por** v0.0.1.20240906.0210.44681b4 <br> *`PR`*: POR Remove manual nonce manage... <br><br> 
