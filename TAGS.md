@@ -263,3 +263,4 @@
 - **logscribe** v0.0.1.20240830.0536.d7fcdf0 <br> *`PR`*: rollback tx submission encapsu... <br><br> 
 - **sentinel** v0.0.1.20240903.0618.463ce9d <br> *`PR`*: OraklNode Fix possible cause f... <br><br> 
 - **node** v0.0.1.20240903.0621.d4ef741 <br> *`PR`*: OraklNode Fix possible cause f... <br><br> 
+- **node** v0.0.1.20240906.0137.a2f4a5e <br> *`PR`*: OraklNode Fix possible cause f... <br><br> 
