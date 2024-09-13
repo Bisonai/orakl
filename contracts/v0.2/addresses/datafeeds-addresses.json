@@ -626,26 +626,6 @@
       "feed": "0x605a57dd4fcf6b3cb12aee26b84f982b9c182700"
     }
   },
-  "MATIC-KRW": {
-    "baobab": {
-      "proxy": "0xf69b5c2c82932fbf0e2674623cfef9da533e8253",
-      "feed": "0x8ff45dac3caa448c3594ebf0c787ea34e3ede20b"
-    },
-    "cypress": {
-      "proxy": "0x05a1e40d99dde567c9892c9fdbef6d557b8a31d5",
-      "feed": "0x6f4b9dd8c7459f39c037920b30322e4e8616f378"
-    }
-  },
-  "MATIC-USDT": {
-    "baobab": {
-      "proxy": "0xa829309e98add53df0e90cbdc6291b5a9ccf2ab0",
-      "feed": "0xfa712fedad654b7087c245c0e1765fae24b1fd01"
-    },
-    "cypress": {
-      "proxy": "0x713fc15ad95457f6ae936ce10426914ea6ca31b5",
-      "feed": "0x8adbaecd8fa6ad3228823fad3fa896842b6a1c25"
-    }
-  },
   "MBL-KRW": {
     "baobab": {
       "proxy": "0x8c0e3c0329d35a038d460aae792333b8baab3e3c",
