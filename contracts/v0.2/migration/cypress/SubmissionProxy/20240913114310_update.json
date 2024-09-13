@@ -1,0 +1,9 @@
+{
+  "address": "0x3a251c738e19806a546815eb6065e139a8d65b4b",
+  "deployFeed": {
+    "feedNames": ["POL-KRW"]
+  },
+  "feedRouter": {
+    "address": "0x653078f0d3a230416a59aa6486466470db0190a2"
+  }
+}
