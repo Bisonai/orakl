@@ -1,0 +1,9 @@
+{
+  "address": "0x6646dd4d529fa1625f279951b9af74b77392f75d",
+  "deployFeed": {
+    "feedNames": ["POL-USDT"]
+  },
+  "feedRouter": {
+    "address": "0xd9dbbb92a6ecb8b8d3e386b8d0ad8284bd816ef1"
+  }
+}
