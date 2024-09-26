@@ -117,7 +117,7 @@ func New(opts ...AppOption) (*App, error) {
 			return nil, err
 		}
 
-		if !withoutPrivileged || err != nil {
+		if !withoutPrivileged {
 			pinger.SetPrivileged(true)
 		}
 
@@ -181,7 +181,7 @@ func (app *App) Start(ctx context.Context) {
 				if _, exists := app.RTTAvg[result.Address]; !exists {
 					app.RTTAvg[result.Address] = float64(result.Delay)
 				} else {
-					app.RTTAvg[result.Address] = app.RTTAvg[result.Address]*app.Alpha + float64(result.Delay)*(1-app.Alpha)
+					app.RTTAvg[result.Address] = app.Alpha*float64(result.Delay) + (1-app.Alpha)*app.RTTAvg[result.Address]
 				}
 
 				if result.Delay > time.Duration(app.ThresholdFactor*app.RTTAvg[result.Address]) {
