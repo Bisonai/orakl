@@ -150,6 +150,17 @@ func (r *Raft) handleHeartbeat(msg Message) error {
 		r.LeaderID = heartbeatMessage.LeaderID
 
 		return nil
+	} else if heartbeatMessage.Term == currentTerm {
+		if currentRole == Leader {
+			if r.GetHostId() < heartbeatMessage.LeaderID {
+				r.ResignLeader()
+				r.LeaderID = heartbeatMessage.LeaderID
+			} else {
+				return nil
+			}
+		} else {
+			r.LeaderID = heartbeatMessage.LeaderID
+		}
 	}
 
 	return nil
