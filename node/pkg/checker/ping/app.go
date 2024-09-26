@@ -11,7 +11,8 @@ import (
 )
 
 const (
-	DefaultMaxDelay          = 100 * time.Millisecond
+	DefaultAlpha             = 0.3
+	DefaultThresholdFactor   = 1.3
 	DefaultMaxFails          = 2
 	DefaultBufferSize        = 500
 	DefaultReconnectInterval = 2 * time.Second
@@ -40,18 +41,13 @@ type PingEndpoint struct {
 }
 
 type AppConfig struct {
-	MaxDelay   time.Duration
-	Endpoints  []string
-	BufferSize int
+	Endpoints       []string
+	BufferSize      int
+	Alpha           float64
+	ThresholdFactor float64
 }
 
 type AppOption func(*AppConfig)
-
-func WithMaxDelay(duration time.Duration) AppOption {
-	return func(c *AppConfig) {
-		c.MaxDelay = duration
-	}
-}
 
 func WithEndpoints(endpoints []string) AppOption {
 	return func(c *AppConfig) {
@@ -65,11 +61,25 @@ func WithResultBuffer(size int) AppOption {
 	}
 }
 
+func WithAlpha(alpha float64) AppOption {
+	return func(c *AppConfig) {
+		c.Alpha = alpha
+	}
+}
+
+func WithThresholdFactor(factor float64) AppOption {
+	return func(c *AppConfig) {
+		c.ThresholdFactor = factor
+	}
+}
+
 type App struct {
-	MaxDelay      time.Duration
-	Endpoints     []PingEndpoint
-	FailCount     map[string]int
-	ResultsBuffer chan PingResult
+	RTTAvg          map[string]float64
+	Alpha           float64 // smoothing factor for the EMA
+	ThresholdFactor float64
+	Endpoints       []PingEndpoint
+	ResultsBuffer   chan PingResult
+	FailCount       map[string]int
 }
 
 func (pe *PingEndpoint) run() error {
@@ -77,12 +87,16 @@ func (pe *PingEndpoint) run() error {
 }
 
 func New(opts ...AppOption) (*App, error) {
-	app := &App{}
+	app := &App{
+		RTTAvg:    make(map[string]float64),
+		FailCount: make(map[string]int),
+	}
 
 	c := AppConfig{
-		MaxDelay:   DefaultMaxDelay,
-		Endpoints:  GlobalEndpoints,
-		BufferSize: DefaultBufferSize,
+		Endpoints:       GlobalEndpoints,
+		BufferSize:      DefaultBufferSize,
+		Alpha:           DefaultAlpha,
+		ThresholdFactor: DefaultThresholdFactor,
 	}
 
 	for _, opt := range opts {
@@ -91,6 +105,11 @@ func New(opts ...AppOption) (*App, error) {
 
 	app.ResultsBuffer = make(chan PingResult, c.BufferSize)
 
+	withoutPrivileged, err := strconv.ParseBool(os.Getenv("WITHOUT_PING_PRIVILEGED"))
+	if err != nil {
+		withoutPrivileged = false
+	}
+
 	endpoints := []PingEndpoint{}
 	for _, endpoint := range c.Endpoints {
 		pinger, err := probing.NewPinger(endpoint)
@@ -98,8 +117,7 @@ func New(opts ...AppOption) (*App, error) {
 			return nil, err
 		}
 
-		withoutPriviliged, err := strconv.ParseBool(os.Getenv("WITHOUT_PING_PRIVILEGED"))
-		if !withoutPriviliged || err != nil {
+		if !withoutPrivileged || err != nil {
 			pinger.SetPrivileged(true)
 		}
 
@@ -114,9 +132,9 @@ func New(opts ...AppOption) (*App, error) {
 		endpoints = append(endpoints, PingEndpoint{endpoint, pinger})
 	}
 
-	app.MaxDelay = c.MaxDelay
 	app.Endpoints = endpoints
-	app.FailCount = make(map[string]int)
+	app.Alpha = c.Alpha
+	app.ThresholdFactor = c.ThresholdFactor
 
 	return app, nil
 }
@@ -148,9 +166,7 @@ func (app *App) Start(ctx context.Context) {
 						}
 					}
 					time.Sleep(DefaultReconnectInterval)
-					continue
 				}
-
 			}
 		}(endpoint)
 	}
@@ -158,11 +174,23 @@ func (app *App) Start(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
+			close(app.ResultsBuffer)
 			return
 		case result := <-app.ResultsBuffer:
-			if result.Success && result.Delay < app.MaxDelay {
-				log.Debug().Any("result", result).Msg("ping success")
-				app.FailCount[result.Address] = 0
+			if result.Success {
+				if _, exists := app.RTTAvg[result.Address]; !exists {
+					app.RTTAvg[result.Address] = float64(result.Delay)
+				} else {
+					app.RTTAvg[result.Address] = app.RTTAvg[result.Address]*app.Alpha + float64(result.Delay)*(1-app.Alpha)
+				}
+
+				if result.Delay > time.Duration(app.ThresholdFactor*app.RTTAvg[result.Address]) {
+					log.Error().Any("result", result).Msg("ping failed")
+					app.FailCount[result.Address] += 1
+				} else {
+					log.Debug().Any("result", result).Msg("ping success")
+					app.FailCount[result.Address] = 0
+				}
 			} else {
 				log.Error().Any("result", result).Msg("failed to ping endpoint")
 				app.FailCount[result.Address] += 1
@@ -182,5 +210,4 @@ func (app *App) Start(ctx context.Context) {
 			}
 		}
 	}
-
 }
