@@ -266,3 +266,4 @@
 - **node** v0.0.1.20240906.0137.a2f4a5e <br> *`PR`*: OraklNode Fix possible cause f... <br><br> 
 - **por** v0.0.1.20240906.0210.44681b4 <br> *`PR`*: POR Remove manual nonce manage... <br><br> 
 - **logscribe** v0.0.1.20240906.0439.7b8f678 <br> *`PR`*: CICD Fix pipeline slack channe... <br><br> 
+- **node** v0.0.1.20240926.0516.ba891a0 <br> *`PR`*: Node Remove max delay logic in... <br><br> 
