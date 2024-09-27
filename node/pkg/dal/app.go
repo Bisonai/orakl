@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"os"
+	"strings"
 	"time"
 
 	"bisonai.com/miko/node/pkg/common/types"
@@ -28,25 +29,25 @@ func Run(ctx context.Context) error {
 	keyCache := keycache.NewAPIKeyCache(1 * time.Hour)
 	keyCache.CleanupLoop(10 * time.Minute)
 
-	adminEndpoint := os.Getenv("ORAKL_NODE_ADMIN_URL")
-	if adminEndpoint == "" {
-		return errors.New("ORAKL_NODE_ADMIN_URL is not set")
+	chain := os.Getenv("CHAIN")
+	if chain == "" {
+		return errors.New("CHAIN is not set")
 	}
 
-	configs, err := fetchConfigs(ctx, adminEndpoint)
+	symbols, err := fetchSymbols(chain)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to fetch configs")
+		log.Error().Err(err).Msg("Failed to fetch symbols")
 		return err
 	}
 
-	collector, err := collector.NewCollector(ctx, configs)
+	collector, err := collector.NewCollector(ctx, symbols)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to setup collector")
 		return err
 	}
 	collector.Start(ctx)
 
-	hub := hub.HubSetup(ctx, configs)
+	hub := hub.HubSetup(ctx, symbols)
 	go hub.Start(ctx, collector)
 
 	err = apiv2.Start(ctx, apiv2.WithCollector(collector), apiv2.WithHub(hub), apiv2.WithKeyCache(keyCache), apiv2.WithStatsApp(statsApp))
@@ -58,6 +59,23 @@ func Run(ctx context.Context) error {
 	return nil
 }
 
-func fetchConfigs(ctx context.Context, endpoint string) ([]Config, error) {
-	return request.Request[[]Config](request.WithEndpoint(endpoint + "/config"))
+func fetchSymbols(chain string) ([]string, error) {
+	type ConfigEntry struct {
+		Name string `json:"name"`
+	}
+
+	url := "https://config.orakl.network/" + strings.ToLower(chain) + "_configs.json"
+
+	results, err := request.Request[[]ConfigEntry](request.WithEndpoint(url), request.WithTimeout(5*time.Second))
+	if err != nil {
+		return nil, err
+	}
+
+	var symbols []string
+
+	for _, result := range results {
+		symbols = append(symbols, result.Name)
+	}
+
+	return symbols, nil
 }

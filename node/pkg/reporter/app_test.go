@@ -33,7 +33,7 @@ func TestWsDataHandling(t *testing.T) {
 
 	app := New()
 
-	conn, tmpConfig, configs, err := mockDalWsServer(ctx)
+	conn, tmpConfig, symbols, err := mockDalWsServer(ctx)
 	if err != nil {
 		t.Fatalf("error mocking dal ws server: %v", err)
 	}
@@ -76,17 +76,17 @@ func TestWsDataHandling(t *testing.T) {
 		case <-ticker.C:
 			if app.WsHelper != nil && app.WsHelper.IsRunning {
 				submissionDataCount = 0
-				for _, config := range configs {
-					if _, ok := app.LatestDataMap.Load(config.Name); ok {
+				for _, symbol := range symbols {
+					if _, ok := app.LatestDataMap.Load(symbol); ok {
 						submissionDataCount++
 					}
 				}
-				if submissionDataCount == len(configs) {
+				if submissionDataCount == len(symbols) {
 					return
 				}
 			}
 		case <-timeout:
-			if submissionDataCount != len(configs) {
+			if submissionDataCount != len(symbols) {
 				t.Fatal("not all submission data received from websocket")
 			}
 		}

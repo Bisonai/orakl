@@ -6,7 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"bisonai.com/miko/node/pkg/common/types"
 	"bisonai.com/miko/node/pkg/dal/collector"
 	dalcommon "bisonai.com/miko/node/pkg/dal/common"
 	"bisonai.com/miko/node/pkg/dal/utils/stats"
@@ -15,15 +14,13 @@ import (
 	"nhooyr.io/websocket/wsjson"
 )
 
-type Config = types.Config
-
 type Subscription struct {
 	Method string   `json:"method"`
 	Params []string `json:"params"`
 }
 
 type Hub struct {
-	Configs    map[string]Config
+	Symbols    map[string]any
 	Clients    map[*websocket.Conn]map[string]any
 	Register   chan *websocket.Conn
 	Unregister chan *websocket.Conn
@@ -36,19 +33,19 @@ const (
 	CleanupInterval = time.Hour
 )
 
-func HubSetup(ctx context.Context, configs []Config) *Hub {
-	configMap := make(map[string]Config)
-	for _, config := range configs {
-		configMap[config.Name] = config
+func HubSetup(ctx context.Context, symbols []string) *Hub {
+	symbolsMap := make(map[string]any)
+	for _, symbol := range symbols {
+		symbolsMap[symbol] = struct{}{}
 	}
 
-	hub := NewHub(configMap)
+	hub := NewHub(symbolsMap)
 	return hub
 }
 
-func NewHub(configs map[string]Config) *Hub {
+func NewHub(symbols map[string]any) *Hub {
 	return &Hub{
-		Configs:    configs,
+		Symbols:    symbols,
 		Clients:    make(map[*websocket.Conn]map[string]any),
 		Register:   make(chan *websocket.Conn),
 		Unregister: make(chan *websocket.Conn),
@@ -61,7 +58,7 @@ func (h *Hub) Start(ctx context.Context, collector *collector.Collector) {
 
 	h.initializeBroadcastChannels(collector)
 
-	for symbol := range h.Configs {
+	for symbol := range h.Symbols {
 		go h.broadcastDataForSymbol(ctx, symbol)
 	}
 
@@ -80,7 +77,7 @@ func (h *Hub) HandleSubscription(ctx context.Context, client *websocket.Conn, ms
 	valid := []string{}
 	for _, param := range msg.Params {
 		symbol := strings.TrimPrefix(param, "submission@")
-		if _, ok := h.Configs[symbol]; !ok {
+		if _, ok := h.Symbols[symbol]; !ok {
 			continue
 		}
 		subscriptions[symbol] = struct{}{}
