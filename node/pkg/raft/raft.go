@@ -36,13 +36,15 @@ func NewRaftNode(
 		Mutex:         sync.Mutex{},
 
 		MessageBuffer:    make(chan *pubsub.Message, messageBuffer),
-		Resign:           make(chan interface{}),
 		HeartbeatTimeout: HEARTBEAT_TIMEOUT,
 
 		LeaderJobTimeout: leaderJobTimeout,
 		MissedHeartbeats: 0,
 		CooldownPeriod:   DefaultCooldownPeriod,
 		LastElectionTime: time.Time{},
+
+		blacklist:     make(map[string]struct{}),
+		isDelayedNode: false,
 	}
 	return r
 }
@@ -102,6 +104,11 @@ func (r *Raft) subscribe(ctx context.Context) {
 // handler for incoming messages
 
 func (r *Raft) handleMessage(ctx context.Context, msg Message) error {
+	if _, ok := r.blacklist[msg.SentFrom]; ok {
+		// blacklist for testing to simulate network partition
+		return nil
+	}
+
 	switch msg.Type {
 	case Heartbeat:
 		return r.handleHeartbeat(msg)
@@ -137,7 +144,7 @@ func (r *Raft) handleHeartbeat(msg Message) error {
 	currentRole := r.Role
 	currentTerm := r.Term
 
-	if r.Role == Follower {
+	if r.Role != Leader {
 		r.startElectionTimer()
 	}
 
@@ -162,7 +169,6 @@ func (r *Raft) handleHeartbeat(msg Message) error {
 			r.LeaderID = heartbeatMessage.LeaderID
 		}
 	}
-
 	return nil
 }
 
@@ -239,6 +245,10 @@ func (r *Raft) PublishMessage(ctx context.Context, msg Message) error {
 	if err != nil {
 		return err
 	}
+
+	if r.isDelayedNode {
+		time.Sleep(500 * time.Millisecond)
+	}
 	return r.Topic.Publish(ctx, data)
 }
 
@@ -313,17 +323,16 @@ func (r *Raft) sendRequestVote(ctx context.Context) error {
 // utility functions
 
 func (r *Raft) ResignLeader() {
-	if r.Resign != nil {
-		close(r.Resign)
-		r.Resign = nil
-		r.Role = Follower
-		r.LeaderID = ""
-		r.startElectionTimer()
-	}
+	r.Role = Follower
+	r.LeaderID = ""
+
+	r.HeartbeatTicker.Stop()
+	r.LeaderJobTicker.Stop()
+
+	r.startElectionTimer()
 }
 
 func (r *Raft) setLeaderState() {
-	r.Resign = make(chan interface{})
 	r.ElectionTimer.Stop()
 	r.Term++
 	r.Role = Leader
@@ -343,13 +352,6 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 
 		for {
 			select {
-			case <-r.Resign:
-				r.Mutex.Lock()
-				r.HeartbeatTicker.Stop()
-				r.LeaderJobTicker.Stop()
-				r.Mutex.Unlock()
-				return
-
 			case <-r.HeartbeatTicker.C:
 				err := r.sendHeartbeat(ctx)
 				if err != nil {
@@ -444,4 +446,25 @@ func (r *Raft) unmarshalMessage(data []byte) (Message, error) {
 		return Message{}, err
 	}
 	return m, nil
+}
+
+func (r *Raft) addBlacklist(id string) {
+	// used for testing purposes
+	r.Mutex.Lock()
+	defer r.Mutex.Unlock()
+	r.blacklist[id] = struct{}{}
+}
+
+func (r *Raft) removeBlacklist(id string) {
+	// used for testing purposes
+	r.Mutex.Lock()
+	defer r.Mutex.Unlock()
+	delete(r.blacklist, id)
+}
+
+func (r *Raft) setDelayedNode(isDelayed bool) {
+	// used for testing purposes
+	r.Mutex.Lock()
+	defer r.Mutex.Unlock()
+	r.isDelayedNode = isDelayed
 }
