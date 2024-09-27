@@ -68,6 +68,7 @@ func generateSampleSubmissionData(configId int32, value int64, timestamp time.Ti
 	}
 
 	return &aggregator.SubmissionData{
+		Symbol:          symbol,
 		GlobalAggregate: sampleGlobalAggregate,
 		Proof:           proof,
 	}, nil
