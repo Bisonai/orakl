@@ -2,9 +2,8 @@ package dal
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"os"
-	"strings"
 	"time"
 
 	"bisonai.com/miko/node/pkg/common/types"
@@ -13,12 +12,15 @@ import (
 	"bisonai.com/miko/node/pkg/dal/hub"
 	"bisonai.com/miko/node/pkg/dal/utils/keycache"
 	"bisonai.com/miko/node/pkg/dal/utils/stats"
+	errorsentinel "bisonai.com/miko/node/pkg/error"
 	"bisonai.com/miko/node/pkg/utils/request"
 
 	"github.com/rs/zerolog/log"
 )
 
 type Config = types.Config
+
+const baseMikoConfigUrl = "https://config.orakl.network/%s_configs.json"
 
 func Run(ctx context.Context) error {
 	log.Debug().Msg("Starting DAL API server")
@@ -31,7 +33,8 @@ func Run(ctx context.Context) error {
 
 	chain := os.Getenv("CHAIN")
 	if chain == "" {
-		return errors.New("CHAIN is not set")
+		log.Error().Msg("CHAIN environment variable not set")
+		return errorsentinel.ErrDalChainEnvNotFound
 	}
 
 	symbols, err := fetchSymbols(chain)
@@ -64,15 +67,18 @@ func fetchSymbols(chain string) ([]string, error) {
 		Name string `json:"name"`
 	}
 
-	url := "https://config.orakl.network/" + strings.ToLower(chain) + "_configs.json"
-
-	results, err := request.Request[[]ConfigEntry](request.WithEndpoint(url), request.WithTimeout(5*time.Second))
+	results, err := request.Request[[]ConfigEntry](
+		request.WithEndpoint(fmt.Sprintf(baseMikoConfigUrl, chain)),
+		request.WithTimeout(5*time.Second))
 	if err != nil {
 		return nil, err
 	}
 
-	var symbols []string
+	if len(results) == 0 {
+		return nil, errorsentinel.ErrDalSymbolsNotFound
+	}
 
+	var symbols []string
 	for _, result := range results {
 		symbols = append(symbols, result.Name)
 	}

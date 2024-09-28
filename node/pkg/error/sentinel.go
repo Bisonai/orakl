@@ -211,6 +211,9 @@ var (
 	ErrDalCollectorNotFound    = &CustomError{Service: Dal, Code: InternalError, Message: "Collector not found"}
 	ErrDalHubNotFound          = &CustomError{Service: Dal, Code: InternalError, Message: "Hub not found"}
 	ErrDalKeyCacheNotFound     = &CustomError{Service: Dal, Code: InternalError, Message: "Key cache not found"}
+	ErrDalFeedHashNotFound     = &CustomError{Service: Dal, Code: InternalError, Message: "Feed hash not found"}
+	ErrDalSymbolsNotFound      = &CustomError{Service: Dal, Code: InternalError, Message: "Symbols not found"}
+	ErrDalChainEnvNotFound     = &CustomError{Service: Dal, Code: InternalError, Message: "Chain env not found"}
 
 	ErrReducerCastToFloatFail          = &CustomError{Service: Others, Code: InternalError, Message: "Failed to cast to float"}
 	ErrReducerIndexCastToInterfaceFail = &CustomError{Service: Others, Code: InternalError, Message: "Failed to cast to interface from INDEX"}

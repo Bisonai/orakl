@@ -239,6 +239,12 @@ func (c *Collector) IncomingDataToOutgoingData(ctx context.Context, data *aggreg
 	c.mu.RLock()
 	whitelist := c.CachedWhitelist
 	c.mu.RUnlock()
+
+	feedHashBytes, ok := c.FeedHashes[data.Symbol]
+	if !ok {
+		return nil, errorsentinel.ErrDalFeedHashNotFound
+	}
+
 	orderedProof, err := orderProof(
 		ctx,
 		data.Proof.Proof,
@@ -267,7 +273,7 @@ func (c *Collector) IncomingDataToOutgoingData(ctx context.Context, data *aggreg
 		Value:         strconv.FormatInt(data.GlobalAggregate.Value, 10),
 		AggregateTime: strconv.FormatInt(data.GlobalAggregate.Timestamp.UnixMilli(), 10),
 		Proof:         formatBytesToHex(orderedProof),
-		FeedHash:      formatBytesToHex(c.FeedHashes[data.Symbol]),
+		FeedHash:      formatBytesToHex(feedHashBytes),
 		Decimals:      DefaultDecimals,
 	}, nil
 }
