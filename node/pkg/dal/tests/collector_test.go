@@ -31,7 +31,7 @@ func TestCollectorStartAndStop(t *testing.T) {
 	collector := testItems.Collector
 	assert.True(t, collector.IsRunning)
 
-	assert.Greater(t, len(collector.Symbols), 0)
+	assert.Greater(t, len(collector.FeedHashes), 0)
 	collector.Stop()
 	assert.False(t, collector.IsRunning)
 }
@@ -51,7 +51,7 @@ func TestCollectorStream(t *testing.T) {
 	time.Sleep(20 * time.Millisecond)
 
 	collector := testItems.Collector
-	assert.Greater(t, len(collector.Symbols), 0)
+	assert.Greater(t, len(collector.FeedHashes), 0)
 	assert.True(t, collector.IsRunning)
 
 	headers := map[string]string{"X-API-Key": testItems.ApiKey}

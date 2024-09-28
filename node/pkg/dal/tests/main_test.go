@@ -68,6 +68,7 @@ func generateSampleSubmissionData(configId int32, value int64, timestamp time.Ti
 	}
 
 	return &aggregator.SubmissionData{
+		Symbol:          symbol,
 		GlobalAggregate: sampleGlobalAggregate,
 		Proof:           proof,
 	}, nil
@@ -100,19 +101,19 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 		SubmitInterval:    15000,
 	}
 
-	configs := []Config{testItems.TmpConfig}
+	symbols := []string{testItems.TmpConfig.Name}
 
 	keyCache := keycache.NewAPIKeyCache(1 * time.Hour)
 	keyCache.CleanupLoop(10 * time.Minute)
 
-	collector, err := collector.NewCollector(ctx, configs)
+	collector, err := collector.NewCollector(ctx, symbols)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to setup DAL API server")
 		return nil, nil, err
 	}
 	collector.Start(ctx)
 
-	hub := hub.HubSetup(ctx, configs)
+	hub := hub.HubSetup(ctx, symbols)
 	go hub.Start(ctx, collector)
 
 	statsApp := stats.NewStatsApp(ctx, stats.WithBulkLogsCopyInterval(1*time.Second))

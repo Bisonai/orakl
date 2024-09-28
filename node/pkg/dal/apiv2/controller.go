@@ -172,8 +172,8 @@ func (s *ServerV2) HealthCheckHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *ServerV2) SymbolsHandler(w http.ResponseWriter, r *http.Request) {
-	result := make([]string, 0, len(s.hub.Configs))
-	for key := range s.hub.Configs {
+	result := make([]string, 0, len(s.hub.Symbols))
+	for key := range s.hub.Symbols {
 		result = append(result, key)
 	}
 

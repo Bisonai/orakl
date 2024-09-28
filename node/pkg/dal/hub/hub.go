@@ -6,7 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"bisonai.com/miko/node/pkg/common/types"
 	"bisonai.com/miko/node/pkg/dal/collector"
 	dalcommon "bisonai.com/miko/node/pkg/dal/common"
 	"bisonai.com/miko/node/pkg/dal/utils/stats"
@@ -15,16 +14,14 @@ import (
 	"nhooyr.io/websocket/wsjson"
 )
 
-type Config = types.Config
-
 type Subscription struct {
 	Method string   `json:"method"`
 	Params []string `json:"params"`
 }
 
 type Hub struct {
-	Configs    map[string]Config
-	Clients    map[*websocket.Conn]map[string]any
+	Symbols    map[string]struct{}
+	Clients    map[*websocket.Conn]map[string]struct{}
 	Register   chan *websocket.Conn
 	Unregister chan *websocket.Conn
 	broadcast  map[string]chan *dalcommon.OutgoingSubmissionData
@@ -36,20 +33,20 @@ const (
 	CleanupInterval = time.Hour
 )
 
-func HubSetup(ctx context.Context, configs []Config) *Hub {
-	configMap := make(map[string]Config)
-	for _, config := range configs {
-		configMap[config.Name] = config
+func HubSetup(ctx context.Context, symbols []string) *Hub {
+	symbolsMap := make(map[string]struct{})
+	for _, symbol := range symbols {
+		symbolsMap[symbol] = struct{}{}
 	}
 
-	hub := NewHub(configMap)
+	hub := NewHub(symbolsMap)
 	return hub
 }
 
-func NewHub(configs map[string]Config) *Hub {
+func NewHub(symbols map[string]struct{}) *Hub {
 	return &Hub{
-		Configs:    configs,
-		Clients:    make(map[*websocket.Conn]map[string]any),
+		Symbols:    symbols,
+		Clients:    make(map[*websocket.Conn]map[string]struct{}),
 		Register:   make(chan *websocket.Conn),
 		Unregister: make(chan *websocket.Conn),
 		broadcast:  make(map[string]chan *dalcommon.OutgoingSubmissionData),
@@ -61,8 +58,9 @@ func (h *Hub) Start(ctx context.Context, collector *collector.Collector) {
 
 	h.initializeBroadcastChannels(collector)
 
-	for symbol := range h.Configs {
-		go h.broadcastDataForSymbol(ctx, symbol)
+	for symbol := range h.Symbols {
+		sym := symbol // Capture loop variable to avoid potential race condition
+		go h.broadcastDataForSymbol(ctx, sym)
 	}
 
 	go h.cleanupJob(ctx)
@@ -74,13 +72,13 @@ func (h *Hub) HandleSubscription(ctx context.Context, client *websocket.Conn, ms
 
 	subscriptions, ok := h.Clients[client]
 	if !ok {
-		subscriptions = map[string]any{}
+		subscriptions = map[string]struct{}{}
 	}
 
 	valid := []string{}
 	for _, param := range msg.Params {
 		symbol := strings.TrimPrefix(param, "submission@")
-		if _, ok := h.Configs[symbol]; !ok {
+		if _, ok := h.Symbols[symbol]; !ok {
 			continue
 		}
 		subscriptions[symbol] = struct{}{}
@@ -116,7 +114,7 @@ func (h *Hub) addClient(client *websocket.Conn) {
 	if _, ok := h.Clients[client]; ok {
 		return
 	}
-	h.Clients[client] = make(map[string]any)
+	h.Clients[client] = make(map[string]struct{})
 }
 
 func (h *Hub) removeClient(client *websocket.Conn) {
@@ -146,18 +144,18 @@ func (h *Hub) initializeBroadcastChannels(collector *collector.Collector) {
 
 func (h *Hub) broadcastDataForSymbol(ctx context.Context, symbol string) {
 	for data := range h.broadcast[symbol] {
-		go h.castSubmissionData(ctx, data, &symbol)
+		go h.castSubmissionData(ctx, data, symbol)
 	}
 }
 
-func (h *Hub) castSubmissionData(ctx context.Context, data *dalcommon.OutgoingSubmissionData, symbol *string) {
+func (h *Hub) castSubmissionData(ctx context.Context, data *dalcommon.OutgoingSubmissionData, symbol string) {
 	var wg sync.WaitGroup
 
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 
 	for client, subscriptions := range h.Clients {
-		if _, ok := subscriptions[*symbol]; ok {
+		if _, ok := subscriptions[symbol]; ok {
 			wg.Add(1)
 			go func(entry *websocket.Conn) {
 				defer wg.Done()
@@ -189,7 +187,7 @@ func (h *Hub) cleanup() {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
-	newClients := make(map[*websocket.Conn]map[string]any, len(h.Clients))
+	newClients := make(map[*websocket.Conn]map[string]struct{}, len(h.Clients))
 	for client, subscriptions := range h.Clients {
 		if len(subscriptions) > 0 {
 			newClients[client] = subscriptions

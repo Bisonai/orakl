@@ -31,10 +31,10 @@ const (
 type Config = types.Config
 
 type Collector struct {
-	OutgoingStream   map[string]chan *dalcommon.OutgoingSubmissionData
-	Symbols          map[int32]string
-	FeedHashes       map[int32][]byte
-	LatestTimestamps map[int32]time.Time
+	OutgoingStream map[string]chan *dalcommon.OutgoingSubmissionData
+
+	FeedHashes       map[string][]byte
+	LatestTimestamps map[string]time.Time
 	LatestData       map[string]*dalcommon.OutgoingSubmissionData
 	CachedWhitelist  []klaytncommon.Address
 
@@ -50,7 +50,7 @@ type Collector struct {
 	mu sync.RWMutex
 }
 
-func NewCollector(ctx context.Context, configs []Config) (*Collector, error) {
+func NewCollector(ctx context.Context, symbols []string) (*Collector, error) {
 	kaiaWebsocketUrl := os.Getenv("KAIA_WEBSOCKET_URL")
 	if kaiaWebsocketUrl == "" {
 		return nil, errors.New("KAIA_WEBSOCKET_URL is not set")
@@ -92,10 +92,9 @@ func NewCollector(ctx context.Context, configs []Config) (*Collector, error) {
 	}
 
 	collector := &Collector{
-		OutgoingStream:              make(map[string]chan *dalcommon.OutgoingSubmissionData, len(configs)),
-		Symbols:                     make(map[int32]string, len(configs)),
-		FeedHashes:                  make(map[int32][]byte, len(configs)),
-		LatestTimestamps:            make(map[int32]time.Time),
+		OutgoingStream:              make(map[string]chan *dalcommon.OutgoingSubmissionData, len(symbols)),
+		FeedHashes:                  make(map[string][]byte, len(symbols)),
+		LatestTimestamps:            make(map[string]time.Time),
 		LatestData:                  make(map[string]*dalcommon.OutgoingSubmissionData),
 		chainReader:                 chainReader,
 		CachedWhitelist:             initialWhitelist,
@@ -103,11 +102,10 @@ func NewCollector(ctx context.Context, configs []Config) (*Collector, error) {
 	}
 
 	redisTopics := []string{}
-	for _, config := range configs {
-		collector.OutgoingStream[config.Name] = make(chan *dalcommon.OutgoingSubmissionData, 1000)
-		collector.Symbols[config.ID] = config.Name
-		collector.FeedHashes[config.ID] = crypto.Keccak256([]byte(config.Name))
-		redisTopics = append(redisTopics, keys.SubmissionDataStreamKey(config.Name))
+	for _, symbol := range symbols {
+		collector.OutgoingStream[symbol] = make(chan *dalcommon.OutgoingSubmissionData, 1000)
+		collector.FeedHashes[symbol] = crypto.Keccak256([]byte(symbol))
+		redisTopics = append(redisTopics, keys.SubmissionDataStreamKey(symbol))
 	}
 
 	baseRediscribe, err := db.NewRediscribe(
@@ -162,7 +160,7 @@ func (c *Collector) GetLatestData(symbol string) (*dalcommon.OutgoingSubmissionD
 func (c *Collector) GetAllLatestData() []dalcommon.OutgoingSubmissionData {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	result := make([]dalcommon.OutgoingSubmissionData, 0, len(c.Symbols))
+	result := make([]dalcommon.OutgoingSubmissionData, 0, len(c.FeedHashes))
 	for _, value := range c.LatestData {
 		result = append(result, *value)
 	}
@@ -202,9 +200,9 @@ func (c *Collector) compareAndSwapLatestTimestamp(data *aggregator.SubmissionDat
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	old, ok := c.LatestTimestamps[data.GlobalAggregate.ConfigID]
+	old, ok := c.LatestTimestamps[data.Symbol]
 	if !ok || data.GlobalAggregate.Timestamp.After(old) {
-		c.LatestTimestamps[data.GlobalAggregate.ConfigID] = data.GlobalAggregate.Timestamp
+		c.LatestTimestamps[data.Symbol] = data.GlobalAggregate.Timestamp
 		return true
 	}
 
@@ -218,7 +216,7 @@ func (c *Collector) processIncomingData(ctx context.Context, data *aggregator.Su
 	default:
 		valid := c.compareAndSwapLatestTimestamp(data)
 		if !valid {
-			log.Debug().Str("Player", "DalCollector").Str("Symbol", c.Symbols[data.GlobalAggregate.ConfigID]).Msg("old data recieved")
+			log.Debug().Str("Player", "DalCollector").Str("Symbol", data.Symbol).Msg("old data recieved")
 			return
 		}
 
@@ -241,15 +239,21 @@ func (c *Collector) IncomingDataToOutgoingData(ctx context.Context, data *aggreg
 	c.mu.RLock()
 	whitelist := c.CachedWhitelist
 	c.mu.RUnlock()
+
+	feedHashBytes, ok := c.FeedHashes[data.Symbol]
+	if !ok {
+		return nil, errorsentinel.ErrDalFeedHashNotFound
+	}
+
 	orderedProof, err := orderProof(
 		ctx,
 		data.Proof.Proof,
 		data.GlobalAggregate.Value,
 		data.GlobalAggregate.Timestamp,
-		c.Symbols[data.GlobalAggregate.ConfigID],
+		data.Symbol,
 		whitelist)
 	if err != nil {
-		log.Error().Err(err).Str("Player", "DalCollector").Str("Symbol", c.Symbols[data.GlobalAggregate.ConfigID]).Msg("failed to order proof")
+		log.Error().Err(err).Str("Player", "DalCollector").Str("Symbol", data.Symbol).Msg("failed to order proof")
 		if errors.Is(err, errorsentinel.ErrDalSignerNotWhitelisted) {
 			go func(ctx context.Context, chainHelper *websocketchainreader.ChainReader, contractAddress string) {
 				newList, getAllOraclesErr := getAllOracles(ctx, chainHelper, contractAddress)
@@ -265,11 +269,11 @@ func (c *Collector) IncomingDataToOutgoingData(ctx context.Context, data *aggreg
 		return nil, err
 	}
 	return &dalcommon.OutgoingSubmissionData{
-		Symbol:        c.Symbols[data.GlobalAggregate.ConfigID],
+		Symbol:        data.Symbol,
 		Value:         strconv.FormatInt(data.GlobalAggregate.Value, 10),
 		AggregateTime: strconv.FormatInt(data.GlobalAggregate.Timestamp.UnixMilli(), 10),
 		Proof:         formatBytesToHex(orderedProof),
-		FeedHash:      formatBytesToHex(c.FeedHashes[data.GlobalAggregate.ConfigID]),
+		FeedHash:      formatBytesToHex(feedHashBytes),
 		Decimals:      DefaultDecimals,
 	}, nil
 }

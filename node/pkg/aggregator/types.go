@@ -33,6 +33,7 @@ type Proof = types.Proof
 type GlobalAggregate = types.GlobalAggregate
 
 type SubmissionData struct {
+	Symbol          string
 	GlobalAggregate GlobalAggregate
 	Proof           Proof
 }

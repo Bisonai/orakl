@@ -23,6 +23,7 @@ func PublishGlobalAggregateAndProof(ctx context.Context, name string, globalAggr
 		return nil
 	}
 	data := SubmissionData{
+		Symbol:          name,
 		GlobalAggregate: globalAggregate,
 		Proof:           proof,
 	}

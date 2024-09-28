@@ -56,12 +56,13 @@ func generateSampleSubmissionData(configId int32, value int64, timestamp time.Ti
 	}
 
 	return &aggregator.SubmissionData{
+		Symbol:          symbol,
 		GlobalAggregate: sampleGlobalAggregate,
 		Proof:           proof,
 	}, nil
 }
 
-func mockDalWsServer(ctx context.Context) (*wss.WebsocketHelper, *types.Config, []types.Config, error) {
+func mockDalWsServer(ctx context.Context) (*wss.WebsocketHelper, *types.Config, []string, error) {
 	apiKey := "testApiKey"
 	err := db.QueryWithoutResult(
 		ctx,
@@ -80,18 +81,18 @@ func mockDalWsServer(ctx context.Context) (*wss.WebsocketHelper, *types.Config, 
 		SubmitInterval:    15000,
 	}
 
-	configs := []types.Config{tmpConfig}
+	symbols := []string{tmpConfig.Name}
 
 	keyCache := keycache.NewAPIKeyCache(1 * time.Hour)
 	keyCache.CleanupLoop(10 * time.Minute)
 
-	collector, err := collector.NewCollector(ctx, configs)
+	collector, err := collector.NewCollector(ctx, symbols)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 	collector.Start(ctx)
 
-	h := hub.HubSetup(ctx, configs)
+	h := hub.HubSetup(ctx, symbols)
 	go h.Start(ctx, collector)
 
 	statsApp := stats.NewStatsApp(ctx, stats.WithBulkLogsCopyInterval(1*time.Second))
@@ -108,5 +109,5 @@ func mockDalWsServer(ctx context.Context) (*wss.WebsocketHelper, *types.Config, 
 		return nil, nil, nil, err
 	}
 
-	return conn, &tmpConfig, configs, nil
+	return conn, &tmpConfig, symbols, nil
 }
