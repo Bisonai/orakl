@@ -270,3 +270,4 @@
 - **node** v0.0.1.20240928.0535.1bc27b2 <br> *`PR`*: DAL Remove config id reference <br><br> 
 - **dal** v0.0.1.20240928.0541.a9006e1 <br> *`PR`*: DAL Remove config id reference <br><br> 
 - **node** v0.0.1.20240928.1555.bd6313d <br> *`PR`*: Node Add more logs <br><br> 
+- **node** v0.0.1.20240929.0552.8a9b540 <br> *`PR`*: Node Timeout for aggregator ms... <br><br> 
