@@ -162,21 +162,26 @@ func (n *Aggregator) HandlePriceDataMessage(ctx context.Context, msg raft.Messag
 	n.roundPrices.mu.Lock()
 	defer n.roundPrices.mu.Unlock()
 
-	if n.roundPrices.locked[priceDataMessage.RoundID] || n.roundPrices.isReplay(priceDataMessage.RoundID, msg.SentFrom) {
-		log.Warn().Str("Player", "Aggregator").Int32("RoundID", priceDataMessage.RoundID).Msg("price data message already processed")
+	if n.roundPrices.locked[priceDataMessage.RoundID] {
+		log.Warn().Str("Player", "Aggregator").Str("transmissionDelay", time.Since(msg.Timestamp).String()).Int32("RoundID", priceDataMessage.RoundID).Msg("price data message already processed")
+		return nil
+	}
+
+	if n.roundPrices.isReplay(priceDataMessage.RoundID, msg.SentFrom) {
+		log.Warn().Str("Player", "Aggregator").Int32("RoundID", priceDataMessage.RoundID).Msg("price data message replayed")
 		return nil
 	}
 
 	n.storeRoundPriceData(priceDataMessage.RoundID, priceDataMessage.PriceData, msg.SentFrom)
 
-	if len(n.roundPrices.prices[priceDataMessage.RoundID]) == 1 {
-		// if it's first message for the round
-		go n.startPriceCollectionTimeout(ctx, priceDataMessage.RoundID, priceDataMessage.Timestamp)
-	}
-
 	if len(n.roundPrices.prices[priceDataMessage.RoundID]) == n.Raft.SubscribersCount()+1 {
 		// if all messsages received for the round
 		return n.processCollectedPrices(ctx, priceDataMessage.RoundID, priceDataMessage.Timestamp)
+	}
+
+	if len(n.roundPrices.prices[priceDataMessage.RoundID]) == 1 {
+		// if it's first message for the round
+		go n.startPriceCollectionTimeout(ctx, priceDataMessage.RoundID, priceDataMessage.Timestamp)
 	}
 
 	return nil
@@ -291,19 +296,24 @@ func (n *Aggregator) HandleProofMessage(ctx context.Context, msg raft.Message) e
 	n.roundProofs.mu.Lock()
 	defer n.roundProofs.mu.Unlock()
 
-	if n.roundProofs.locked[proofMessage.RoundID] || n.roundProofs.isReplay(proofMessage.RoundID, msg.SentFrom) {
-		log.Warn().Str("Player", "Aggregator").Int32("RoundID", proofMessage.RoundID).Msg("proof message already processed")
+	if n.roundProofs.locked[proofMessage.RoundID] {
+		log.Warn().Str("Player", "Aggregator").Str("transmissionDelay", time.Since(msg.Timestamp).String()).Int32("RoundID", proofMessage.RoundID).Msg("proof message already processed")
+		return nil
+	}
+
+	if n.roundProofs.isReplay(proofMessage.RoundID, msg.SentFrom) {
+		log.Warn().Str("Player", "Aggregator").Int32("RoundID", proofMessage.RoundID).Msg("proof message replayed")
 		return nil
 	}
 
 	n.storeRoundProofData(proofMessage.RoundID, proofMessage.Proof, msg.SentFrom)
 
-	if len(n.roundProofs.proofs[proofMessage.RoundID]) == 1 {
-		go n.startProofCollectionTimeout(ctx, proofMessage)
-	}
-
 	if len(n.roundProofs.proofs[proofMessage.RoundID]) == n.Raft.SubscribersCount()+1 {
 		return n.processCollectedProofs(ctx, proofMessage)
+	}
+
+	if len(n.roundProofs.proofs[proofMessage.RoundID]) == 1 {
+		go n.startProofCollectionTimeout(ctx, proofMessage)
 	}
 
 	return nil
