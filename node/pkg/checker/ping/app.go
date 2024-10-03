@@ -158,7 +158,7 @@ func (app *App) Start(ctx context.Context) {
 					log.Debug().Msg("connecting ICMP Pinger")
 					err := endpoint.run()
 					if err != nil {
-						log.Error().Err(err).Msg("failed to ping endpoint")
+						log.Info().Err(err).Msg("failed to ping endpoint")
 						app.ResultsBuffer <- PingResult{
 							Address: endpoint.Address,
 							Success: false,
@@ -185,14 +185,14 @@ func (app *App) Start(ctx context.Context) {
 				}
 
 				if result.Delay > time.Duration(app.ThresholdFactor*app.RTTAvg[result.Address]) {
-					log.Error().Any("result", result).Msg("ping failed")
+					log.Info().Any("result", result).Msg("ping failed")
 					app.FailCount[result.Address] += 1
 				} else {
 					log.Debug().Any("result", result).Msg("ping success")
 					app.FailCount[result.Address] = 0
 				}
 			} else {
-				log.Error().Any("result", result).Msg("failed to ping endpoint")
+				log.Info().Any("result", result).Msg("failed to ping endpoint")
 				app.FailCount[result.Address] += 1
 			}
 
