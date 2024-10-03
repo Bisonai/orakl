@@ -275,6 +275,10 @@ func (t *ChainHelper) SubmitDelegatedFallbackDirect(ctx context.Context, contrac
 				} else if errors.Is(err, errorSentinel.ErrChainTransactionFail) {
 					return err // if transaction fails, the data will probably be too old to retry
 				} else if utils.IsNonceError(err) || err == context.DeadlineExceeded {
+					err = noncemanager.ResetNonce(ctx, t.wallet, t.clients[clientIndex])
+					if err != nil {
+						return err
+					}
 					nonce, err = noncemanager.GetAndIncrementNonce(t.wallet)
 					if err != nil {
 						return err
@@ -302,6 +306,10 @@ func (t *ChainHelper) SubmitDelegatedFallbackDirect(ctx context.Context, contrac
 			} else if errors.Is(err, errorSentinel.ErrChainTransactionFail) {
 				return err // if transaction fails, the data will probably be too old to retry
 			} else if utils.IsNonceError(err) || err == context.DeadlineExceeded {
+				err = noncemanager.ResetNonce(ctx, t.wallet, t.clients[clientIndex])
+				if err != nil {
+					return err
+				}
 				nonce, err = noncemanager.GetAndIncrementNonce(t.wallet)
 				if err != nil {
 					return err
