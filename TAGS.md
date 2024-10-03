@@ -273,3 +273,4 @@
 - **node** v0.0.1.20240929.0552.8a9b540 <br> *`PR`*: Node Timeout for aggregator ms... <br><br> 
 - **node** v0.0.1.20240929.0628.993e18e <br> *`PR`*: Node Increase timeout <br><br> 
 - **node** v0.0.1.20241003.0445.ff77019 <br> *`PR`*: Node Reduce ping error logging... <br><br> 
+- **reporter** v0.0.1.20241003.0448.13cc9ed <br> *`PR`*: Node Reduce ping error logging... <br><br> 
