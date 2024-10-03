@@ -235,6 +235,7 @@ func (r *Raft) handleReplyVote(ctx context.Context, msg Message) error {
 // publishing messages
 
 func (r *Raft) PublishMessage(ctx context.Context, msg Message) error {
+	msg.Timestamp = time.Now()
 	data, err := json.Marshal(msg)
 	if err != nil {
 		return err

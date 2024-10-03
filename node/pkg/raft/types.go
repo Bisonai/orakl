@@ -29,9 +29,10 @@ const (
 )
 
 type Message struct {
-	Type     MessageType     `json:"type"`
-	SentFrom string          `json:"sentFrom"`
-	Data     json.RawMessage `json:"data"`
+	Type      MessageType     `json:"type"`
+	SentFrom  string          `json:"sentFrom"`
+	Data      json.RawMessage `json:"data"`
+	Timestamp time.Time       `json:"timestamp"`
 }
 
 type RequestVoteMessage struct {
