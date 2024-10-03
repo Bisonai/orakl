@@ -47,7 +47,7 @@ const config = {
       ..._baobab,
     },
     cypress: {
-      url: 'https://public-en-cypress.klaytn.net',
+      url: 'https://public-en.node.kaia.io',
       ...commonConfig,
       gasPrice: 250_000_000_000,
     },
