@@ -1,8 +1,11 @@
 package noncemanager
 
 import (
+	"context"
 	"fmt"
 	"sync"
+
+	"bisonai.com/miko/node/pkg/chain/utils"
 )
 
 type NonceManager struct {
@@ -25,12 +28,27 @@ func Get() *NonceManager {
 	return Manager
 }
 
+func ResetNonce(ctx context.Context, address string, client utils.ClientInterface) error {
+	return Get().ResetNonce(ctx, address, client)
+}
+
 func Set(address string, nonce uint64) {
 	Get().SetNonce(address, nonce)
 }
 
 func GetAndIncrementNonce(address string) (uint64, error) {
 	return Get().GetAndIncrementNonce(address)
+}
+
+func (m *NonceManager) ResetNonce(ctx context.Context, address string, client utils.ClientInterface) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	nonce, err := utils.GetNonceFromPk(ctx, address, client)
+	if err != nil {
+		return err
+	}
+	m.nonces[address] = nonce
+	return nil
 }
 
 func (m *NonceManager) SetNonce(address string, nonce uint64) {
