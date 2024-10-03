@@ -6,7 +6,7 @@ readonly OUR_KAIROS_JSON_RPC="http://100.93.31.29:8551"
 readonly OUR_KAIA_JSON_RPC="http://100.75.43.49:8551"
 
 readonly PUBLIC_KAIROS_JSON_RPC="https://public-en-kairos.node.kaia.io"
-readonly PUBLIC_KAIA_JSON_RPC="https://public-en-cypress.klaytn.net"
+readonly PUBLIC_KAIA_JSON_RPC="https://public-en.node.kaia.io"
 
 check_klay_sync_baobab() {
     our_block_hex=$(get_our_klay_block $OUR_KAIROS_JSON_RPC)

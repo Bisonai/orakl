@@ -99,7 +99,7 @@ describe('Reporter', function () {
 
 describe('Filter invalid reporters inside of State', function () {
   const PROVIDER_URL = process.env.GITHUB_ACTIONS
-    ? 'https://public-en-cypress.klaytn.net'
+    ? 'https://public-en.node.kaia.io'
     : 'https://public-en-kairos.node.kaia.io'
   const redisClient: RedisClientType = createClient({ url: '' })
 
