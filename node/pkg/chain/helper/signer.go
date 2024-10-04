@@ -127,7 +127,7 @@ func (s *Signer) MakeGlobalAggregateProof(val int64, timestamp time.Time, name s
 
 func (s *Signer) autoRenew(ctx context.Context) {
 	autoRenewTicker := time.NewTicker(s.renewInterval)
-
+	_ = s.CheckAndUpdateSignerPK(ctx)
 	for {
 		select {
 		case <-ctx.Done():

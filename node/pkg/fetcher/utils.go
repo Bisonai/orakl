@@ -60,7 +60,7 @@ func calculateVWAP(feedData []*FeedData) (float64, error) {
 
 func calculateMedian(feedData []*FeedData) (float64, error) {
 	if len(feedData) == 0 {
-		log.Debug().Str("Player", "Fetcher").Msg("no feed data to calculate median")
+		log.Debug().Str("Player", "Fetcher").Msg("no feed data to calculate median, probably because there are only vwap feeds")
 		return 0, nil
 	}
 
