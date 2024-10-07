@@ -2,7 +2,7 @@
 
 # Dependencies: jq, curl
 
-readonly OUR_KAIROS_JSON_RPC="http://100.93.31.29:8551"
+readonly OUR_KAIROS_JSON_RPC="http://210.109.55.179:8551"
 readonly OUR_KAIA_JSON_RPC="http://100.75.43.49:8551"
 
 readonly PUBLIC_KAIROS_JSON_RPC="https://public-en-kairos.node.kaia.io"
