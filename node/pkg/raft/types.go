@@ -63,7 +63,6 @@ type Raft struct {
 
 	HeartbeatTicker  *time.Ticker
 	ElectionTimer    *time.Timer
-	Resign           chan interface{}
 	MessageBuffer    chan *pubsub.Message
 	HeartbeatTimeout time.Duration
 
@@ -76,4 +75,7 @@ type Raft struct {
 
 	CooldownPeriod   time.Duration
 	LastElectionTime time.Time
+
+	blacklist     map[string]struct{} // used from testing
+	isDelayedNode bool                // used from testing
 }
