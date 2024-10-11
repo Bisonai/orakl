@@ -133,9 +133,15 @@ func (ws *WebsocketHelper) dialAndSubscribe(ctx context.Context) error {
 
 	subscribeJob := func() error {
 		for _, subscription := range ws.Subscriptions {
-			err := ws.Write(ctx, subscription)
-			if err != nil {
-				return err
+			switch casted := subscription.(type) {
+			case []byte:
+				if err := ws.RawWrite(ctx, string(casted)); err != nil {
+					return err
+				}
+			default:
+				if err := ws.Write(ctx, casted); err != nil {
+					return err
+				}
 			}
 		}
 		return nil
@@ -163,6 +169,10 @@ func (ws *WebsocketHelper) Write(ctx context.Context, message interface{}) error
 		return err
 	}
 	return nil
+}
+
+func (ws *WebsocketHelper) RawByteWrite(ctx context.Context, message []byte) error {
+	return ws.Conn.Write(ctx, websocket.MessageBinary, message)
 }
 
 func (ws *WebsocketHelper) RawWrite(ctx context.Context, message string) error {
