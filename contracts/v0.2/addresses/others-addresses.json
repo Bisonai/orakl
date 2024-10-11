@@ -1,10 +1,10 @@
 {
-  "baobab": {
-    "FeedRouter": "0xd9dbbb92a6ecb8b8d3e386b8d0ad8284bd816ef1",
-    "SubmissionProxy": "0x6646dd4d529fa1625f279951b9af74b77392f75d"
-  },
   "cypress": {
     "FeedRouter": "0x653078f0d3a230416a59aa6486466470db0190a2",
     "SubmissionProxy": "0x3a251c738e19806a546815eb6065e139a8d65b4b"
+  },
+  "baobab": {
+    "FeedRouter": "0xd9dbbb92a6ecb8b8d3e386b8d0ad8284bd816ef1",
+    "SubmissionProxy": "0x6646dd4d529fa1625f279951b9af74b77392f75d"
   }
 }
