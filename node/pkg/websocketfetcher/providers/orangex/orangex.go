@@ -113,6 +113,11 @@ func (f *OrangeXFetcher) handleMessage(ctx context.Context, message map[string]a
 		log.Error().Str("Player", "OrangeX").Err(err).Msg("error in orangex.handleMessage")
 		return err
 	}
+
+	if feedData == nil {
+		return nil
+	}
+
 	f.FeedDataBuffer <- feedData
 	return nil
 }

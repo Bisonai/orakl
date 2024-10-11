@@ -171,10 +171,6 @@ func (ws *WebsocketHelper) Write(ctx context.Context, message interface{}) error
 	return nil
 }
 
-func (ws *WebsocketHelper) RawByteWrite(ctx context.Context, message []byte) error {
-	return ws.Conn.Write(ctx, websocket.MessageBinary, message)
-}
-
 func (ws *WebsocketHelper) RawWrite(ctx context.Context, message string) error {
 	return ws.Conn.Write(ctx, websocket.MessageText, []byte(message))
 }
