@@ -78,7 +78,7 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 
 	log.Debug().Any("subscription", subscription).Msg("subscription generated")
 
-	// since wsjson.Write didn't for orangex, had to pass marshalled byte instead
+	// since wsjson.Write didn't work for orangex, had to pass marshalled byte instead
 	raw, err := json.Marshal(subscription)
 	if err != nil {
 		log.Error().Str("Player", "OrangeX").Err(err).Msg("error in orangex.New")
