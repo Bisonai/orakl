@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"reflect"
 	"strconv"
 	"strings"
 
@@ -14,6 +15,13 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog/log"
 )
+
+type WsFeedDefinition struct {
+	Type     string `json:"type"`
+	Provider string `json:"provider"`
+	Base     string `json:"base"`
+	Quote    string `json:"quote"`
+}
 
 type BulkConfigs struct {
 	Configs []ConfigInsertModel `json:"result"`
@@ -108,6 +116,28 @@ func sync(ctx context.Context) error {
 			log.Info().Str("Player", "Config").Str("Feed", dbFeed.Name).Msg("Feed not found in config")
 			removingFeeds = append(removingFeeds, strconv.Itoa(int(*dbFeed.ID)))
 		}
+
+		if strings.Contains(dbFeed.Name, "wss") {
+			var feedDefinitionFromDB, feedDefinitonFromConfig WsFeedDefinition
+
+			err = json.Unmarshal(dbFeed.Definition, &feedDefinitionFromDB)
+			if err != nil {
+				log.Error().Err(err).Str("Player", "Admin").Msg("failed to unmarshal feed definition from db")
+				return err
+			}
+
+			err = json.Unmarshal(loadedFeedMap[dbFeed.Name].Definition, &feedDefinitonFromConfig)
+			if err != nil {
+				log.Error().Err(err).Str("Player", "Admin").Msg("failed to unmarshal feed definition from config")
+				return err
+			}
+
+			if !reflect.DeepEqual(feedDefinitionFromDB, feedDefinitonFromConfig) {
+				log.Info().Str("Player", "Config").Str("Feed", dbFeed.Name).Msg("Feed definition not found in config")
+				removingFeeds = append(removingFeeds, strconv.Itoa(int(*dbFeed.ID)))
+			}
+		}
+
 	}
 	log.Debug().Str("Player", "Admin").Msg("removingFeeds: " + strings.Join(removingFeeds, ","))
 
