@@ -63,13 +63,15 @@ func (f *BitstampFetcher) handleMessage(ctx context.Context, message map[string]
 		return nil
 	}
 
-	feedData, err := TradeEventToFeedData(response, f.FeedMap, &f.VolumeCacheMap)
+	feedDataList, err := TradeEventToFeedData(response, f.FeedMap, &f.VolumeCacheMap)
 	if err != nil {
 		log.Error().Str("Player", "Bitstamp").Err(err).Msg("error in TradeEventToFeedData")
 		return err
 	}
 
-	f.FeedDataBuffer <- feedData
+	for _, feedData := range feedDataList {
+		f.FeedDataBuffer <- feedData
+	}
 
 	return nil
 }

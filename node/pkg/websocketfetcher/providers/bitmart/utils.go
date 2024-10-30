@@ -8,11 +8,11 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func ResponseToFeedData(response Response, feedMap map[string]int32) []*common.FeedData {
+func ResponseToFeedData(response Response, feedMap map[string][]int32) []*common.FeedData {
 	feedDataList := []*common.FeedData{}
 	for _, data := range response.Data {
 		symbol := strings.ReplaceAll(data.Symbol, "_", "-")
-		id, exists := feedMap[symbol]
+		ids, exists := feedMap[symbol]
 		if !exists {
 			log.Warn().Str("Player", "Bitmart").Str("key", symbol).Msg("feed not found")
 			continue
@@ -29,11 +29,14 @@ func ResponseToFeedData(response Response, feedMap map[string]int32) []*common.F
 			continue
 		}
 		timestamp := time.UnixMilli(data.Time)
-		feedData.FeedID = id
-		feedData.Value = value
-		feedData.Timestamp = &timestamp
-		feedData.Volume = volume
-		feedDataList = append(feedDataList, feedData)
+
+		for _, id := range ids {
+			feedData.FeedID = id
+			feedData.Value = value
+			feedData.Timestamp = &timestamp
+			feedData.Volume = volume
+			feedDataList = append(feedDataList, feedData)
+		}
 	}
 	return feedDataList
 }

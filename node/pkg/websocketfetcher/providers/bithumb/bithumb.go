@@ -65,13 +65,15 @@ func (f *BithumbFetcher) handleMessage(ctx context.Context, message map[string]a
 		return err
 	}
 
-	feedData, err := TickerResponseToFeedData(tickerResponse, f.FeedMap)
+	feedDataList, err := TickerResponseToFeedData(tickerResponse, f.FeedMap)
 	if err != nil {
 		log.Error().Str("Player", "Bithumb").Err(err).Msg("error in bithumb.handleMessage")
 		return err
 	}
 
-	f.FeedDataBuffer <- feedData
+	for _, feedData := range feedDataList {
+		f.FeedDataBuffer <- feedData
+	}
 
 	return nil
 }

@@ -8,10 +8,10 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func ResponseToFeedDataList(data Response, feedMap map[string]int32) []*common.FeedData {
+func ResponseToFeedDataList(data Response, feedMap map[string][]int32) []*common.FeedData {
 	feedDataList := []*common.FeedData{}
 	for _, tick := range data.Data {
-		id, exists := feedMap[tick.InstId]
+		ids, exists := feedMap[tick.InstId]
 		if !exists {
 			log.Error().Str("instId", tick.InstId).Msg("feed not found")
 			continue
@@ -32,13 +32,16 @@ func ResponseToFeedDataList(data Response, feedMap map[string]int32) []*common.F
 			continue
 		}
 		timestamp := time.UnixMilli(timestampRaw)
-		feedData := &common.FeedData{
-			FeedID:    id,
-			Value:     value,
-			Timestamp: &timestamp,
-			Volume:    volume,
+
+		for _, id := range ids {
+			feedData := &common.FeedData{
+				FeedID:    id,
+				Value:     value,
+				Timestamp: &timestamp,
+				Volume:    volume,
+			}
+			feedDataList = append(feedDataList, feedData)
 		}
-		feedDataList = append(feedDataList, feedData)
 	}
 	return feedDataList
 }

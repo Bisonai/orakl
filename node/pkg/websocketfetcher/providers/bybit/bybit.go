@@ -62,13 +62,16 @@ func (f *BybitFetcher) handleMessage(ctx context.Context, message map[string]any
 		return nil
 	}
 
-	feedData, err := ResponseToFeedData(response, f.FeedMap)
+	feedDataList, err := ResponseToFeedData(response, f.FeedMap)
 	if err != nil {
 		log.Error().Str("Player", "Bybit").Err(err).Msg("error in bybit.handleMessage")
 		return err
 	}
 
-	f.FeedDataBuffer <- feedData
+	for _, feedData := range feedDataList {
+		f.FeedDataBuffer <- feedData
+	}
+
 	return nil
 }
 

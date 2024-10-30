@@ -36,12 +36,15 @@ func GetWssFeedMap(feeds []Feed) map[string]FeedMaps {
 
 		if _, exists := feedMaps[provider]; !exists {
 			feedMaps[provider] = FeedMaps{
-				Combined:  make(map[string]int32),
-				Separated: make(map[string]int32),
+				Combined:  make(map[string][]int32),
+				Separated: make(map[string][]int32),
 			}
+			feedMaps[provider].Combined[combinedName] = []int32{}
+			feedMaps[provider].Separated[separatedName] = []int32{}
+
 		}
-		feedMaps[provider].Combined[combinedName] = feed.ID
-		feedMaps[provider].Separated[separatedName] = feed.ID
+		feedMaps[provider].Combined[combinedName] = append(feedMaps[provider].Combined[combinedName], feed.ID)
+		feedMaps[provider].Separated[separatedName] = append(feedMaps[provider].Separated[separatedName], feed.ID)
 	}
 	return feedMaps
 }

@@ -70,13 +70,15 @@ func (f *BingxFetcher) handleMessage(ctx context.Context, message map[string]any
 			log.Error().Str("Player", "Bingx").Err(err).Msg("error in bingx.handleMessage, failed to parse response")
 			return err
 		}
-		feedData, err := ResponseToFeedData(raw, f.FeedMap)
+		feedDataList, err := ResponseToFeedData(raw, f.FeedMap)
 		if err != nil {
 			log.Error().Str("Player", "Bingx").Err(err).Msg("error in bingx.handleMessage, failed to convert response to feed data")
 			return err
 		}
 
-		f.FeedDataBuffer <- feedData
+		for _, feedData := range feedDataList {
+			f.FeedDataBuffer <- feedData
+		}
 	}
 	return nil
 

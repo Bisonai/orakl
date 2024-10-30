@@ -8,12 +8,12 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func ResponseToFeedDataList(data Response, feedMap map[string]int32, volumeCacheMap *common.VolumeCacheMap) ([]*common.FeedData, error) {
+func ResponseToFeedDataList(data Response, feedMap map[string][]int32, volumeCacheMap *common.VolumeCacheMap) ([]*common.FeedData, error) {
 	feedData := make([]*common.FeedData, 0, len(data.Data))
 
 	for _, ticker := range data.Data {
 		symbol := ticker.Symbol
-		id, ok := feedMap[symbol]
+		ids, ok := feedMap[symbol]
 		if !ok {
 			log.Warn().Str("Player", "btse").Str("symbol", symbol).Msg("feed not found")
 			continue
@@ -22,26 +22,28 @@ func ResponseToFeedDataList(data Response, feedMap map[string]int32, volumeCache
 		timestamp := time.UnixMilli(ticker.Timestamp)
 		price := common.FormatFloat64Price(ticker.Price)
 
-		entry := common.FeedData{
-			FeedID:    id,
-			Value:     price,
-			Timestamp: &timestamp,
-		}
+		for _, id := range ids {
+			entry := common.FeedData{
+				FeedID:    id,
+				Value:     price,
+				Timestamp: &timestamp,
+			}
 
-		volumeData, ok := volumeCacheMap.Map[id]
-		if !ok || volumeData.UpdatedAt.Before(time.Now().Add(-common.VolumeCacheLifespan)) {
-			entry.Volume = 0
-		} else {
-			entry.Volume = volumeData.Volume
-		}
+			volumeData, ok := volumeCacheMap.Map[id]
+			if !ok || volumeData.UpdatedAt.Before(time.Now().Add(-common.VolumeCacheLifespan)) {
+				entry.Volume = 0
+			} else {
+				entry.Volume = volumeData.Volume
+			}
 
-		feedData = append(feedData, &entry)
+			feedData = append(feedData, &entry)
+		}
 	}
 
 	return feedData, nil
 }
 
-func FetchVolumes(feedMap map[string]int32, volumeCacheMap *common.VolumeCacheMap) error {
+func FetchVolumes(feedMap map[string][]int32, volumeCacheMap *common.VolumeCacheMap) error {
 	result, err := request.Request[[]MarketSummary](request.WithEndpoint(MARKET_SUMMARY_ENDPOINT), request.WithTimeout(common.VolumeFetchTimeout))
 	if err != nil {
 		log.Error().Str("Player", "btse").Err(err).Msg("error in FetchVolumes")
@@ -51,18 +53,20 @@ func FetchVolumes(feedMap map[string]int32, volumeCacheMap *common.VolumeCacheMa
 	for i := range result {
 		entry := &result[i]
 		symbol := entry.Symbol
-		id, exists := feedMap[symbol]
+		ids, exists := feedMap[symbol]
 		if !exists {
 			continue
 		}
 		volume := entry.Size
 
-		volumeCacheMap.Mutex.Lock()
-		volumeCacheMap.Map[id] = common.VolumeCache{
-			UpdatedAt: time.Now(),
-			Volume:    volume,
+		for _, id := range ids {
+			volumeCacheMap.Mutex.Lock()
+			volumeCacheMap.Map[id] = common.VolumeCache{
+				UpdatedAt: time.Now(),
+				Volume:    volume,
+			}
+			volumeCacheMap.Mutex.Unlock()
 		}
-		volumeCacheMap.Mutex.Unlock()
 	}
 	return nil
 }

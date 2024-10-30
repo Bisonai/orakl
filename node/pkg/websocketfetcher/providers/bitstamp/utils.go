@@ -11,39 +11,46 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func TradeEventToFeedData(data TradeEvent, feedMap map[string]int32, volumeCacheMap *common.VolumeCacheMap) (*common.FeedData, error) {
-	feedData := new(common.FeedData)
+func TradeEventToFeedData(data TradeEvent, feedMap map[string][]int32, volumeCacheMap *common.VolumeCacheMap) ([]*common.FeedData, error) {
+
 	rawTimestamp, err := strconv.ParseInt(data.Data.Microtimestamp, 10, 64)
 	if err != nil {
-		return feedData, err
+		return nil, err
 	}
 
 	timestamp := time.Unix(0, rawTimestamp*int64(time.Microsecond))
 	value := common.FormatFloat64Price(data.Data.Price)
 	splitted := strings.Split(data.Channel, "_")
 	if len(splitted) < 3 {
-		return feedData, fmt.Errorf("invalid feed name")
+		return nil, fmt.Errorf("invalid feed name")
 	}
 	rawSymbol := splitted[2]
-	id, exists := feedMap[strings.ToUpper(rawSymbol)]
+	ids, exists := feedMap[strings.ToUpper(rawSymbol)]
 	if !exists {
-		return feedData, fmt.Errorf("feed not found")
-	}
-	feedData.FeedID = id
-	feedData.Value = value
-	feedData.Timestamp = &timestamp
-
-	volumeData, exists := volumeCacheMap.Map[id]
-	if !exists || volumeData.UpdatedAt.Before(time.Now().Add(-common.VolumeCacheLifespan)) {
-		feedData.Volume = 0
-	} else {
-		feedData.Volume = volumeData.Volume
+		return nil, fmt.Errorf("feed not found")
 	}
 
-	return feedData, nil
+	result := []*common.FeedData{}
+
+	for _, id := range ids {
+		feedData := new(common.FeedData)
+		feedData.FeedID = id
+		feedData.Value = value
+		feedData.Timestamp = &timestamp
+
+		volumeData, exists := volumeCacheMap.Map[id]
+		if !exists || volumeData.UpdatedAt.Before(time.Now().Add(-common.VolumeCacheLifespan)) {
+			feedData.Volume = 0
+		} else {
+			feedData.Volume = volumeData.Volume
+		}
+		result = append(result, feedData)
+	}
+
+	return result, nil
 }
 
-func FetchVolumes(feedMap map[string]int32, volumeCacheMap *common.VolumeCacheMap) error {
+func FetchVolumes(feedMap map[string][]int32, volumeCacheMap *common.VolumeCacheMap) error {
 	result, err := request.Request[[]VolumeEntry](request.WithEndpoint(ALL_CURRENCY_PAIR_TICKER_ENDPOINT), request.WithTimeout(common.VolumeFetchTimeout))
 	if err != nil {
 		log.Error().Str("Player", "Bitstamp").Err(err).Msg("error in FetchVolumes")
@@ -53,7 +60,7 @@ func FetchVolumes(feedMap map[string]int32, volumeCacheMap *common.VolumeCacheMa
 	for i := range result {
 		entry := &result[i]
 		symbol := strings.ReplaceAll(entry.Pair, "/", "")
-		id, exists := feedMap[symbol]
+		ids, exists := feedMap[symbol]
 		if !exists {
 			continue
 		}
@@ -64,12 +71,14 @@ func FetchVolumes(feedMap map[string]int32, volumeCacheMap *common.VolumeCacheMa
 			continue
 		}
 
-		volumeCacheMap.Mutex.Lock()
-		volumeCacheMap.Map[id] = common.VolumeCache{
-			UpdatedAt: time.Now(),
-			Volume:    volume,
+		for _, id := range ids {
+			volumeCacheMap.Mutex.Lock()
+			volumeCacheMap.Map[id] = common.VolumeCache{
+				UpdatedAt: time.Now(),
+				Volume:    volume,
+			}
+			volumeCacheMap.Mutex.Unlock()
 		}
-		volumeCacheMap.Mutex.Unlock()
 	}
 
 	return nil
