@@ -10,10 +10,10 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func InitialResponseToFeedData(initialData InitialResponse, feedMap map[string]int32) []*common.FeedData {
-	feedDataList := []*common.FeedData{}
+func InitialResponseToFeedData(initialData InitialResponse, feedMap map[string][]int32) []*common.FeedData {
+	result := []*common.FeedData{}
 	for _, data := range initialData.Data {
-		feedData, err := TickerToFeedData(data, feedMap)
+		feedDataList, err := TickerToFeedData(data, feedMap)
 		if err != nil {
 			if !errors.Is(err, errorSentinel.ErrFetcherFeedNotFound) {
 				log.Warn().Str("Player", "Gopax").Err(err).Msg("error in TickerToFeedData")
@@ -21,26 +21,29 @@ func InitialResponseToFeedData(initialData InitialResponse, feedMap map[string]i
 			continue
 		}
 
-		feedDataList = append(feedDataList, feedData)
+		result = append(result, feedDataList...)
 	}
 
-	return feedDataList
+	return result
 }
 
-func TickerToFeedData(ticker Ticker, feedMap map[string]int32) (*common.FeedData, error) {
-	feedData := new(common.FeedData)
-
-	id, exists := feedMap[ticker.Name]
+func TickerToFeedData(ticker Ticker, feedMap map[string][]int32) ([]*common.FeedData, error) {
+	ids, exists := feedMap[ticker.Name]
 	if !exists {
-		return feedData, errorSentinel.ErrFetcherFeedNotFound
+		return nil, errorSentinel.ErrFetcherFeedNotFound
 	}
-	feedData.FeedID = id
 	timestamp := time.UnixMilli(ticker.Timestamp)
-	feedData.Timestamp = &timestamp
-
 	value := common.FormatFloat64Price(ticker.Price)
-	feedData.Value = value
-	feedData.Volume = ticker.Volume
 
-	return feedData, nil
+	result := []*common.FeedData{}
+	for _, id := range ids {
+		feedData := new(common.FeedData)
+		feedData.FeedID = id
+		feedData.Timestamp = &timestamp
+		feedData.Value = value
+		feedData.Volume = ticker.Volume
+		result = append(result, feedData)
+	}
+
+	return result, nil
 }

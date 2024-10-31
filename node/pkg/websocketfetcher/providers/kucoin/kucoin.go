@@ -65,9 +65,15 @@ func (f *KucoinFetcher) handleMessage(ctx context.Context, message map[string]an
 		return nil
 	}
 
-	feedData := RawDataToFeedData(raw, f.FeedMap)
+	feedDataList, err := RawDataToFeedData(raw, f.FeedMap)
+	if err != nil {
+		log.Error().Str("Player", "Kucoin").Err(err).Msg("error in kucoin.handleMessage")
+		return err
+	}
 
-	f.FeedDataBuffer <- feedData
+	for _, feedData := range feedDataList {
+		f.FeedDataBuffer <- feedData
+	}
 
 	return nil
 }

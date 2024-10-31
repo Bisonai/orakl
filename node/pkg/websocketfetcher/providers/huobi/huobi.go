@@ -72,13 +72,15 @@ func (f *HuobiFetcher) handleMessage(ctx context.Context, message map[string]any
 			log.Error().Str("Player", "Huobi").Err(err).Msg("error in huobi.handleMessage, failed to parse response")
 			return err
 		}
-		feedData, err := ResponseToFeedData(response, f.FeedMap)
+		feedDataList, err := ResponseToFeedData(response, f.FeedMap)
 		if err != nil {
 			log.Error().Str("Player", "Huobi").Err(err).Msg("error in huobi.handleMessage, failed to convert response to feed data")
 			return err
 		}
 
-		f.FeedDataBuffer <- feedData
+		for _, feedData := range feedDataList {
+			f.FeedDataBuffer <- feedData
+		}
 	}
 
 	return nil

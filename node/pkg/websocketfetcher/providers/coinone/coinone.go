@@ -66,13 +66,16 @@ func (c *CoinoneFetcher) handleMessage(ctx context.Context, message map[string]a
 	if raw.ResponseType != "DATA" {
 		return nil
 	}
-	feedData, err := DataToFeedData(raw.Data, c.FeedMap)
+	feedDataList, err := DataToFeedData(raw.Data, c.FeedMap)
 	if err != nil {
 		log.Error().Str("Player", "Coinone").Err(err).Msg("error in DataToFeedData")
 		return err
 	}
 
-	c.FeedDataBuffer <- feedData
+	for _, feedData := range feedDataList {
+		c.FeedDataBuffer <- feedData
+	}
+
 	return nil
 }
 

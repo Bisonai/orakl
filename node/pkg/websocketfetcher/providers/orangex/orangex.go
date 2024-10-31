@@ -108,17 +108,16 @@ func (f *OrangeXFetcher) handleMessage(ctx context.Context, message map[string]a
 		return nil
 	}
 
-	feedData, err := TickerResponseToFeedData(raw, f.FeedMap)
+	feedDataList, err := TickerResponseToFeedData(raw, f.FeedMap)
 	if err != nil {
 		log.Error().Str("Player", "OrangeX").Err(err).Msg("error in orangex.handleMessage")
 		return err
 	}
 
-	if feedData == nil {
-		return nil
+	for _, feedData := range feedDataList {
+		f.FeedDataBuffer <- feedData
 	}
 
-	f.FeedDataBuffer <- feedData
 	return nil
 }
 
@@ -126,14 +125,13 @@ func (f *OrangeXFetcher) Run(ctx context.Context) {
 	f.Ws.Run(ctx, f.handleMessage)
 }
 
-func TickerResponseToFeedData(data TickerResponse, feedMap map[string]int32) (*common.FeedData, error) {
-	id, exists := feedMap[data.Params.Data.InstrumentName]
+func TickerResponseToFeedData(data TickerResponse, feedMap map[string][]int32) ([]*common.FeedData, error) {
+	ids, exists := feedMap[data.Params.Data.InstrumentName]
 	if !exists {
 		log.Warn().Str("Player", "OrangeX").Any("data", data).Str("key", data.Params.Data.InstrumentName).Msg("feed not found")
 		return nil, nil
 	}
 
-	feedData := new(common.FeedData)
 	value, err := common.PriceStringToFloat64(data.Params.Data.LastPrice)
 	if err != nil {
 		log.Error().Str("Player", "OrangeX").Err(err).Msg("error in PriceStringToFloat64")
@@ -152,9 +150,15 @@ func TickerResponseToFeedData(data TickerResponse, feedMap map[string]int32) (*c
 		return nil, err
 	}
 
-	feedData.FeedID = id
-	feedData.Value = value
-	feedData.Timestamp = &timestamp
-	feedData.Volume = volume
-	return feedData, nil
+	result := []*common.FeedData{}
+	for _, id := range ids {
+		feedData := new(common.FeedData)
+		feedData.FeedID = id
+		feedData.Value = value
+		feedData.Timestamp = &timestamp
+		feedData.Volume = volume
+		result = append(result, feedData)
+	}
+
+	return result, nil
 }

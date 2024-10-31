@@ -14,7 +14,7 @@ const dateLayout = "20060102"
 const timeLayout = "150405"
 
 // currently not referenced since Transaction api does not support volume data
-func TransactionResponseToFeedDataList(data TransactionResponse, feedMap map[string]int32) ([]*common.FeedData, error) {
+func TransactionResponseToFeedDataList(data TransactionResponse, feedMap map[string][]int32) ([]*common.FeedData, error) {
 	feedData := []*common.FeedData{}
 	loc, err := time.LoadLocation("Asia/Seoul")
 	if err != nil {
@@ -41,18 +41,21 @@ func TransactionResponseToFeedDataList(data TransactionResponse, feedMap map[str
 		splitted := strings.Split(transaction.Symbol, "_")
 		symbol := splitted[0] + "-" + splitted[1]
 
-		id, exists := feedMap[symbol]
+		ids, exists := feedMap[symbol]
 		if !exists {
 			log.Warn().Str("Player", "bithumb").Str("symbol", symbol).Msg("feed not found")
 			continue
 		}
 
-		feedData = append(feedData, &common.FeedData{
-			FeedID:    id,
-			Value:     price,
-			Timestamp: &timestamp,
-		})
+		for _, id := range ids {
+			feedData = append(feedData, &common.FeedData{
+				FeedID:    id,
+				Value:     price,
+				Timestamp: &timestamp,
+			})
+		}
 	}
+
 	return feedData, nil
 }
 

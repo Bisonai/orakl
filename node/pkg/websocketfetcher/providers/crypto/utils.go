@@ -8,7 +8,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func ResponseToFeedDataList(data Response, feedMap map[string]int32) ([]*common.FeedData, error) {
+func ResponseToFeedDataList(data Response, feedMap map[string][]int32) ([]*common.FeedData, error) {
 	feedData := []*common.FeedData{}
 
 	for _, tick := range data.Result.Data {
@@ -36,18 +36,20 @@ func ResponseToFeedDataList(data Response, feedMap map[string]int32) ([]*common.
 
 		base := rawSymbol[0]
 		quote := rawSymbol[1]
-		id, exists := feedMap[base+"-"+quote]
+		ids, exists := feedMap[base+"-"+quote]
 		if !exists {
 			log.Warn().Str("Player", "cryptodotcom").Str("symbol", base+"-"+quote).Msg("feed not found")
 			continue
 		}
 
-		feedData = append(feedData, &common.FeedData{
-			FeedID:    id,
-			Value:     value,
-			Timestamp: &timestamp,
-			Volume:    volume,
-		})
+		for _, id := range ids {
+			feedData = append(feedData, &common.FeedData{
+				FeedID:    id,
+				Value:     value,
+				Timestamp: &timestamp,
+				Volume:    volume,
+			})
+		}
 	}
 
 	return feedData, nil

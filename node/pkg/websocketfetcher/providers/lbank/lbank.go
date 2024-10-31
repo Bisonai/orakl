@@ -65,13 +65,15 @@ func (f *LbankFetcher) handleMessage(ctx context.Context, message map[string]any
 	if response.Type != "tick" {
 		return nil
 	}
-	feedData, err := ResponseToFeedData(response, f.FeedMap)
+	feedDataList, err := ResponseToFeedData(response, f.FeedMap)
 	if err != nil {
 		log.Error().Str("Player", "Lbank").Err(err).Msg("error in ResponseToFeedData")
 		return err
 	}
 
-	f.FeedDataBuffer <- feedData
+	for _, feedData := range feedDataList {
+		f.FeedDataBuffer <- feedData
+	}
 
 	return nil
 }

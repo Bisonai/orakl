@@ -53,12 +53,14 @@ func (c *CoinbaseFetcher) handleMessage(ctx context.Context, message map[string]
 		return nil
 	}
 
-	feedData, err := TickerToFeedData(ticker, c.FeedMap)
+	feedDataList, err := TickerToFeedData(ticker, c.FeedMap)
 	if err != nil {
 		return err
 	}
 
-	c.FeedDataBuffer <- feedData
+	for _, feedData := range feedDataList {
+		c.FeedDataBuffer <- feedData
+	}
 
 	return nil
 }

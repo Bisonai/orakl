@@ -62,13 +62,16 @@ func (k *KorbitFetcher) handleMessage(ctx context.Context, message map[string]an
 		return nil
 	}
 
-	feedData, err := DataToFeedData(raw.Data, k.FeedMap)
+	feedDataList, err := DataToFeedData(raw.Data, k.FeedMap)
 	if err != nil {
 		log.Error().Str("Player", "Korbit").Err(err).Msg("error in DataToFeedData")
 		return err
 	}
 
-	k.FeedDataBuffer <- feedData
+	for _, feedData := range feedDataList {
+		k.FeedDataBuffer <- feedData
+	}
+
 	return nil
 }
 

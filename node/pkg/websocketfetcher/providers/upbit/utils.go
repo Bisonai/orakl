@@ -8,8 +8,7 @@ import (
 	"bisonai.com/miko/node/pkg/websocketfetcher/common"
 )
 
-func ResponseToFeedData(data Response, feedMap map[string]int32) (*common.FeedData, error) {
-	feedData := new(common.FeedData)
+func ResponseToFeedData(data Response, feedMap map[string][]int32) ([]*common.FeedData, error) {
 
 	timestamp := time.UnixMilli(data.TradeTimestamp)
 	price := common.FormatFloat64Price(data.TradePrice)
@@ -20,13 +19,21 @@ func ResponseToFeedData(data Response, feedMap map[string]int32) (*common.FeedDa
 	base := splitted[1]
 	quote := splitted[0]
 
-	id, exists := feedMap[strings.ToUpper(base)+"-"+strings.ToUpper(quote)]
+	ids, exists := feedMap[strings.ToUpper(base)+"-"+strings.ToUpper(quote)]
 	if !exists {
-		return feedData, fmt.Errorf("feed not found")
+		return nil, fmt.Errorf("feed not found")
 	}
-	feedData.FeedID = id
-	feedData.Value = price
-	feedData.Timestamp = &timestamp
-	feedData.Volume = *volume
-	return feedData, nil
+
+	result := []*common.FeedData{}
+	for _, id := range ids {
+		feedData := new(common.FeedData)
+		feedData.FeedID = id
+		feedData.Value = price
+		feedData.Timestamp = &timestamp
+		feedData.Volume = *volume
+
+		result = append(result, feedData)
+	}
+
+	return result, nil
 }

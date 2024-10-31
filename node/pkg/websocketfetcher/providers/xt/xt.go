@@ -68,13 +68,16 @@ func (f *XtFetcher) handleMessage(ctx context.Context, message map[string]any) e
 		return nil
 	}
 
-	feedData, err := ResponseToFeedData(raw, f.FeedMap)
+	feedDataList, err := ResponseToFeedData(raw, f.FeedMap)
 	if err != nil {
 		log.Error().Str("Player", "Xt").Err(err).Msg("error in xt.handleMessage, failed to convert response to feed data")
 		return err
 	}
 
-	f.FeedDataBuffer <- feedData
+	for _, feedData := range feedDataList {
+		f.FeedDataBuffer <- feedData
+	}
+
 	return nil
 }
 
