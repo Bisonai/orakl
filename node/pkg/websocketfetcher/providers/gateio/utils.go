@@ -24,7 +24,7 @@ func ResponseToFeedData(data Response, feedMap map[string][]int32) ([]*common.Fe
 	key := strings.Replace(data.Result.CurrencyPair, "_", "-", 1)
 	ids, exists := feedMap[key]
 	if !exists {
-		return nil, fmt.Errorf("feed not found")
+		return nil, fmt.Errorf("feed not found from gateio for symbol: %s", key)
 	}
 
 	result := []*common.FeedData{}

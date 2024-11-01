@@ -8,7 +8,6 @@ import (
 )
 
 func ResponseToFeedData(response Response, feedMap map[string][]int32) ([]*common.FeedData, error) {
-
 	symbol := response.Data.Symbol
 	ids, exists := feedMap[symbol]
 	if !exists {

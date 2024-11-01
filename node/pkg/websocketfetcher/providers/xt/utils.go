@@ -6,13 +6,15 @@ import (
 	"time"
 
 	"bisonai.com/miko/node/pkg/websocketfetcher/common"
+	"github.com/rs/zerolog/log"
 )
 
 func ResponseToFeedData(response Response, feedMap map[string][]int32) ([]*common.FeedData, error) {
 	symbol := strings.ToUpper(strings.ReplaceAll(response.Data.Symbol, "_", "-"))
 	ids, exists := feedMap[symbol]
 	if !exists {
-		return nil, fmt.Errorf("feed not found")
+		log.Error().Str("Player", "xt").Str("key", symbol).Msg("feed not found")
+		return nil, fmt.Errorf("feed not found from xt for symbol: %s", symbol)
 	}
 	timestamp := time.UnixMilli(response.Data.Time)
 	value, err := common.PriceStringToFloat64(response.Data.Price)

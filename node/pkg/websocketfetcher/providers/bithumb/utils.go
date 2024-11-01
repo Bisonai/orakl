@@ -1,6 +1,7 @@
 package bithumb
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
@@ -60,6 +61,15 @@ func TransactionResponseToFeedDataList(data TransactionResponse, feedMap map[str
 }
 
 func TickerResponseToFeedData(data TickerResponse, feedMap map[string][]int32) ([]*common.FeedData, error) {
+	splitted := strings.Split(data.Content.Symbol, "_")
+	symbol := splitted[0] + "-" + splitted[1]
+
+	ids, exists := feedMap[symbol]
+	if !exists {
+		log.Warn().Str("Player", "bithumb").Str("symbol", symbol).Msg("feed not found")
+		return nil, fmt.Errorf("feed not found from bithumb")
+	}
+
 	loc, _ := time.LoadLocation("Asia/Seoul")
 
 	date, err := time.ParseInLocation(dateLayout, data.Content.Date, loc)
@@ -86,15 +96,7 @@ func TickerResponseToFeedData(data TickerResponse, feedMap map[string][]int32) (
 	volume, err := common.VolumeStringToFloat64(data.Content.Volume)
 	if err != nil {
 		log.Error().Err(err).Msg("error in bithumb.TickerResponseToFeedData, failed to convert volume string to float64")
-	}
-
-	splitted := strings.Split(data.Content.Symbol, "_")
-	symbol := splitted[0] + "-" + splitted[1]
-
-	ids, exists := feedMap[symbol]
-	if !exists {
-		log.Warn().Str("Player", "bithumb").Str("symbol", symbol).Msg("feed not found")
-		return nil, nil
+		return nil, err
 	}
 
 	result := []*common.FeedData{}

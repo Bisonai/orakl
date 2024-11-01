@@ -9,7 +9,7 @@ import (
 )
 
 func ResponseToFeedDataList(data Response, feedMap map[string][]int32, volumeCacheMap *common.VolumeCacheMap) ([]*common.FeedData, error) {
-	feedData := make([]*common.FeedData, 0, len(data.Data))
+	feedData := []*common.FeedData{}
 
 	for _, ticker := range data.Data {
 		symbol := ticker.Symbol
@@ -59,14 +59,14 @@ func FetchVolumes(feedMap map[string][]int32, volumeCacheMap *common.VolumeCache
 		}
 		volume := entry.Size
 
+		volumeCacheMap.Mutex.Lock()
 		for _, id := range ids {
-			volumeCacheMap.Mutex.Lock()
 			volumeCacheMap.Map[id] = common.VolumeCache{
 				UpdatedAt: time.Now(),
 				Volume:    volume,
 			}
-			volumeCacheMap.Mutex.Unlock()
 		}
+		volumeCacheMap.Mutex.Unlock()
 	}
 	return nil
 }

@@ -14,7 +14,7 @@ func RawDataToFeedData(raw SymbolSnapshotRaw, feedMap map[string][]int32) ([]*co
 	ids, ok := feedMap[symbol]
 	if !ok {
 		log.Warn().Str("Player", "Kucoin").Str("symbol", symbol).Msg("feed not found")
-		return nil, fmt.Errorf("feed not found")
+		return nil, fmt.Errorf("feed not found from kucoin for symbol: %s", symbol)
 	}
 
 	timestamp := time.UnixMilli(snapshot.Time)

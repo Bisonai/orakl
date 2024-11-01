@@ -30,7 +30,11 @@ func ResponseToFeedData(data Response, feedMap map[string][]int32) ([]*common.Fe
 		feedData.FeedID = id
 		feedData.Value = price
 		feedData.Timestamp = &timestamp
-		feedData.Volume = *volume
+		if volume != nil {
+			feedData.Volume = *volume
+		} else {
+			feedData.Volume = 0
+		}
 
 		result = append(result, feedData)
 	}

@@ -11,7 +11,10 @@ import (
 const layout = "2006-01-02T15:04:05.000"
 
 func ResponseToFeedData(data Response, feedMap map[string][]int32) ([]*common.FeedData, error) {
-	loc, _ := time.LoadLocation("Asia/Shanghai")
+	loc, err := time.LoadLocation("Asia/Shanghai")
+	if err != nil {
+		return nil, err
+	}
 
 	timestampRaw, err := time.ParseInLocation(layout, data.TS, loc)
 	if err != nil {

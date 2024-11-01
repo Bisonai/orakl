@@ -17,7 +17,7 @@ func ResponseToFeedData(response Response, feedMap map[string][]int32) []*common
 			log.Warn().Str("Player", "Bitmart").Str("key", symbol).Msg("feed not found")
 			continue
 		}
-		feedData := new(common.FeedData)
+
 		value, err := common.PriceStringToFloat64(data.Price)
 		if err != nil {
 			log.Warn().Str("Player", "Bitmart").Err(err).Msg("error in PriceStringToFloat64")
@@ -31,10 +31,12 @@ func ResponseToFeedData(response Response, feedMap map[string][]int32) []*common
 		timestamp := time.UnixMilli(data.Time)
 
 		for _, id := range ids {
+			feedData := new(common.FeedData)
 			feedData.FeedID = id
 			feedData.Value = value
 			feedData.Timestamp = &timestamp
 			feedData.Volume = volume
+
 			feedDataList = append(feedDataList, feedData)
 		}
 	}

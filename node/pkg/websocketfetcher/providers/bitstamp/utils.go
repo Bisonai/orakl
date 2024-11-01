@@ -38,7 +38,9 @@ func TradeEventToFeedData(data TradeEvent, feedMap map[string][]int32, volumeCac
 		feedData.Value = value
 		feedData.Timestamp = &timestamp
 
+		volumeCacheMap.Mutex.Lock()
 		volumeData, exists := volumeCacheMap.Map[id]
+		volumeCacheMap.Mutex.Unlock()
 		if !exists || volumeData.UpdatedAt.Before(time.Now().Add(-common.VolumeCacheLifespan)) {
 			feedData.Volume = 0
 		} else {

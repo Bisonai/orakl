@@ -22,7 +22,7 @@ func TickerToFeedData(miniTicker MiniTicker, feedMap map[string][]int32) ([]*com
 
 	ids, exists := feedMap[miniTicker.Symbol]
 	if !exists {
-		return nil, fmt.Errorf("feed not found")
+		return nil, fmt.Errorf("feed not found from binance for symbol: %s", miniTicker.Symbol)
 	}
 
 	result := []*common.FeedData{}
