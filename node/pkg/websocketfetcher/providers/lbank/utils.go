@@ -27,7 +27,7 @@ func ResponseToFeedData(data Response, feedMap map[string][]int32) ([]*common.Fe
 
 	ids, exists := feedMap[symbol]
 	if !exists {
-		return nil, fmt.Errorf("feed not found")
+		return nil, fmt.Errorf("feed not found from lbank for symbol: %s", symbol)
 	}
 
 	result := []*common.FeedData{}
