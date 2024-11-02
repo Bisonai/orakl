@@ -115,7 +115,7 @@ func New() *App {
 }
 
 func (a *App) Init(ctx context.Context, opts ...AppOption) error {
-	// TODO: Proxy support
+
 	cexFactories := map[string]func(context.Context, ...common.FetcherOption) (common.FetcherInterface, error){
 		"binance":  binance.New,
 		"coinbase": coinbase.New,
@@ -198,6 +198,8 @@ func (a *App) initializeCex(ctx context.Context, appConfig AppConfig) error {
 	a.buffer = make(chan *common.FeedData, appConfig.BufferSize)
 	a.storeInterval = appConfig.StoreInterval
 
+	wsProxy := os.Getenv("WS_PROXY")
+
 	for name, factory := range appConfig.CexFactories {
 		if _, ok := feedMap[name]; !ok {
 			log.Warn().Msgf("no feeds for %s", name)
@@ -207,6 +209,7 @@ func (a *App) initializeCex(ctx context.Context, appConfig AppConfig) error {
 			ctx,
 			common.WithFeedDataBuffer(a.buffer),
 			common.WithFeedMaps(feedMap[name]),
+			common.WithProxy(wsProxy),
 		)
 		if err != nil {
 			log.Error().Err(err).Msgf("error in creating %s fetcher", name)
