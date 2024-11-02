@@ -9,8 +9,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func ResponseToFeedData(response Response, feedMap map[string]int32) (*common.FeedData, error) {
-	feedData := new(common.FeedData)
+func ResponseToFeedData(response Response, feedMap map[string][]int32) ([]*common.FeedData, error) {
 
 	timestamp := time.UnixMilli(response.Ts)
 	price := common.FormatFloat64Price(response.Tick.LastPrice)
@@ -18,19 +17,27 @@ func ResponseToFeedData(response Response, feedMap map[string]int32) (*common.Fe
 	splitted := strings.Split(response.Ch, ".")
 	if len(splitted) < 3 || splitted[2] != "ticker" {
 		log.Error().Str("Ch", response.Ch).Msg("invalid response")
-		return feedData, fmt.Errorf("invalid response")
+		return nil, fmt.Errorf("invalid response")
 	}
 
 	rawSymbol := splitted[1]
 	symbol := strings.ToUpper(rawSymbol)
 
-	id, exists := feedMap[symbol]
+	ids, exists := feedMap[symbol]
 	if !exists {
-		return feedData, fmt.Errorf("feed not found")
+		return nil, fmt.Errorf("feed not found")
 	}
-	feedData.FeedID = id
-	feedData.Value = price
-	feedData.Timestamp = &timestamp
-	feedData.Volume = response.Tick.Amount
-	return feedData, nil
+
+	result := []*common.FeedData{}
+	for _, id := range ids {
+		feedData := new(common.FeedData)
+		feedData.FeedID = id
+		feedData.Value = price
+		feedData.Timestamp = &timestamp
+		feedData.Volume = response.Tick.Amount
+
+		result = append(result, feedData)
+	}
+
+	return result, nil
 }

@@ -8,15 +8,14 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func ResponseToFeedData(response Response, feedMap map[string]int32) []*common.FeedData {
+func ResponseToFeedData(response Response, feedMap map[string][]int32) []*common.FeedData {
 	feedDataList := []*common.FeedData{}
 	for _, data := range response.Data {
-		id, exists := feedMap[data.InstId]
+		ids, exists := feedMap[data.InstId]
 		if !exists {
 			continue
 		}
 
-		feedData := new(common.FeedData)
 		value, err := common.PriceStringToFloat64(data.Price)
 		if err != nil {
 			log.Error().Err(err).Str("Player", "OKX").Msg("error in PriceStringToFloat64")
@@ -34,11 +33,16 @@ func ResponseToFeedData(response Response, feedMap map[string]int32) []*common.F
 			continue
 		}
 
-		feedData.FeedID = id
-		feedData.Value = value
-		feedData.Timestamp = &timestamp
-		feedData.Volume = volume
-		feedDataList = append(feedDataList, feedData)
+		for _, id := range ids {
+			feedData := new(common.FeedData)
+
+			feedData.FeedID = id
+			feedData.Value = value
+			feedData.Timestamp = &timestamp
+			feedData.Volume = volume
+
+			feedDataList = append(feedDataList, feedData)
+		}
 	}
 	return feedDataList
 }

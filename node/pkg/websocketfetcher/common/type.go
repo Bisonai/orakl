@@ -60,8 +60,8 @@ type DexFetcherConfig struct {
 }
 
 type FeedMaps struct {
-	Combined  map[string]int32
-	Separated map[string]int32
+	Combined  map[string][]int32
+	Separated map[string][]int32
 }
 
 type FetcherOption func(*FetcherConfig)
@@ -105,7 +105,7 @@ func WithDexFeedDataBuffer(feedDataBuffer chan *FeedData) DexFetcherOption {
 }
 
 type Fetcher struct {
-	FeedMap        map[string]int32
+	FeedMap        map[string][]int32
 	Ws             *wss.WebsocketHelper
 	FeedDataBuffer chan *FeedData
 	VolumeCacheMap VolumeCacheMap

@@ -74,7 +74,7 @@ func (f *GopaxFetcher) handleMessage(ctx context.Context, message map[string]any
 			return fmt.Errorf("failed to parse response: %v", response)
 		}
 		for _, ticker := range tickers {
-			feedData, err := TickerToFeedData(ticker, f.FeedMap)
+			feedDataList, err := TickerToFeedData(ticker, f.FeedMap)
 			if err != nil {
 				if errors.Is(err, errorSentinel.ErrFetcherFeedNotFound) {
 					continue
@@ -82,7 +82,10 @@ func (f *GopaxFetcher) handleMessage(ctx context.Context, message map[string]any
 				log.Error().Err(err).Str("Player", "Gopax").Msg("error in gopax.handleMessage, failed to convert ticker to feed data")
 				continue
 			}
-			f.FeedDataBuffer <- feedData
+
+			for _, feedData := range feedDataList {
+				f.FeedDataBuffer <- feedData
+			}
 		}
 
 		return nil

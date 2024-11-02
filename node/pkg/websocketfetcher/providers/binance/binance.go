@@ -52,13 +52,16 @@ func (b *BinanceFetcher) handleMessage(ctx context.Context, message map[string]a
 		return nil
 	}
 
-	feedData, err := TickerToFeedData(ticker, b.FeedMap)
+	feedDataList, err := TickerToFeedData(ticker, b.FeedMap)
 	if err != nil {
 		log.Error().Str("Player", "Binance").Err(err).Msg("error in MiniTickerToFeedData")
 		return err
 	}
 
-	b.FeedDataBuffer <- feedData
+	for _, feedData := range feedDataList {
+		b.FeedDataBuffer <- feedData
+	}
+
 	return nil
 }
 

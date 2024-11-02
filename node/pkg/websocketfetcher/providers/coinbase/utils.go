@@ -9,8 +9,11 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func TickerToFeedData(ticker Ticker, feedMap map[string]int32) (*common.FeedData, error) {
-	feedData := new(common.FeedData)
+func TickerToFeedData(ticker Ticker, feedMap map[string][]int32) ([]*common.FeedData, error) {
+	ids, exists := feedMap[strings.ToUpper(ticker.ProductID)]
+	if !exists {
+		return nil, fmt.Errorf("feed not found")
+	}
 
 	timestamp, err := time.Parse(time.RFC3339Nano, ticker.Time)
 	if err != nil {
@@ -18,26 +21,25 @@ func TickerToFeedData(ticker Ticker, feedMap map[string]int32) (*common.FeedData
 		timestamp = time.Now()
 	}
 
-	id, exists := feedMap[strings.ToUpper(ticker.ProductID)]
-	if !exists {
-		return feedData, fmt.Errorf("feed not found")
-	}
-
 	value, err := common.PriceStringToFloat64(ticker.Price)
 	if err != nil {
-		return feedData, err
+		return nil, err
 	}
 
 	volume, err := common.VolumeStringToFloat64(ticker.Volume24h)
 	if err != nil {
-		return feedData, err
+		return nil, err
 	}
 
-	feedData.FeedID = id
-	feedData.Value = value
-	feedData.Timestamp = &timestamp
-	feedData.Volume = volume
+	result := []*common.FeedData{}
+	for _, id := range ids {
+		feedData := new(common.FeedData)
+		feedData.FeedID = id
+		feedData.Value = value
+		feedData.Timestamp = &timestamp
+		feedData.Volume = volume
+		result = append(result, feedData)
+	}
 
-	return feedData, nil
-
+	return result, nil
 }

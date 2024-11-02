@@ -86,6 +86,10 @@ func (m *LatestFeedDataMap) SetLatestFeedData(feedData []*FeedData) error {
 	m.Mu.Lock()
 	defer m.Mu.Unlock()
 	for _, data := range feedData {
+		if data == nil {
+			continue
+		}
+
 		prev, ok := m.FeedDataMap[data.FeedID]
 		if ok && prev.Timestamp.After(*data.Timestamp) {
 			continue
