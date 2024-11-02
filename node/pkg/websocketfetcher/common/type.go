@@ -23,7 +23,6 @@ const (
 	VolumeFetchTimeout  = 6 * time.Second
 )
 
-type Proxy = types.Proxy
 type Feed = types.Feed
 type FeedData = types.FeedData
 

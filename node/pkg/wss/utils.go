@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"bisonai.com/miko/node/pkg/utils/retrier"
@@ -16,6 +17,10 @@ import (
 func (ws *WebsocketHelper) Dial(ctx context.Context) error {
 	dialOption := &websocket.DialOptions{}
 	if ws.Proxy != "" {
+		if strings.HasPrefix(ws.Endpoint, "wss") {
+			ws.Endpoint = strings.Replace(ws.Endpoint, "wss", "ws", 1)
+		}
+
 		proxyURL, err := url.Parse(ws.Proxy)
 		if err != nil {
 			return err
