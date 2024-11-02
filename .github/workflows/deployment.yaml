@@ -185,6 +185,7 @@ on:
           - reporter:v0.0.1.20241003.0448.13cc9ed:Node Reduce ping error logging...
           - node:v0.0.1.20241003.1010.bd40cbc:Node update logs update logic ...
           - node:v0.0.1.20241011.0500.374eee0:Node Support orangex
+          - node:v0.0.1.20241102.0401.61aea60:ws proxy support
 jobs:
   prepare-taskflow:
     name: Prepare
