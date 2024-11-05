@@ -279,3 +279,4 @@
 - **node** v0.0.1.20241102.0401.61aea60 <br> *`PR`*: ws proxy support <br><br> 
 - **node** v0.0.1.20241102.0547.147f90b <br> *`PR`*: ws proxy support <br><br> 
 - **node** v0.0.1.20241105.0317.a4aece2 <br> *`PR`*: Node Check conflict not only w... <br><br> 
+- **node** v0.0.1.20241105.0445.a515407 <br> *`PR`*: Node Update contraint for feed... <br><br> 
