@@ -153,7 +153,7 @@ func sync(ctx context.Context) error {
 		}
 	}
 
-	return db.BulkUpsert(ctx, "feeds", []string{"name", "definition", "config_id"}, upsertRows, []string{"name"}, []string{"definition", "config_id"})
+	return db.BulkUpsert(ctx, "feeds", []string{"name", "definition", "config_id"}, upsertRows, []string{"name", "config_id"}, []string{"definition", "config_id"})
 }
 
 func Insert(c *fiber.Ctx) error {
