@@ -187,6 +187,7 @@ on:
           - node:v0.0.1.20241011.0500.374eee0:Node Support orangex
           - node:v0.0.1.20241102.0401.61aea60:ws proxy support
           - node:v0.0.1.20241102.0547.147f90b:ws proxy support
+          - node:v0.0.1.20241105.0317.a4aece2:Node Check conflict not only w...
 jobs:
   prepare-taskflow:
     name: Prepare

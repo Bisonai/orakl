@@ -278,3 +278,4 @@
 - **node** v0.0.1.20241011.0500.374eee0 <br> *`PR`*: Node Support orangex <br><br> 
 - **node** v0.0.1.20241102.0401.61aea60 <br> *`PR`*: ws proxy support <br><br> 
 - **node** v0.0.1.20241102.0547.147f90b <br> *`PR`*: ws proxy support <br><br> 
+- **node** v0.0.1.20241105.0317.a4aece2 <br> *`PR`*: Node Check conflict not only w... <br><br> 
