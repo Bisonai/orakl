@@ -445,59 +445,6 @@ contract SubmissionProxy is Ownable {
         }
     }
 
-    function submitOnlyNew(
-          bytes32[] calldata _feedHashes,
-        int256[] calldata _answers,
-        uint256[] calldata _timestamps,
-        bytes[] calldata _proofs
-    ) external {
-        if (
-            _feedHashes.length != _answers.length || _answers.length != _proofs.length
-                || _proofs.length != _timestamps.length || _feedHashes.length > maxSubmission
-        ) {
-            revert InvalidSubmissionLength();
-        }
-
-        uint256 feedsLength_ = _feedHashes.length;
-        for (uint256 i = 0; i < feedsLength_; i++) {
-            submitSingleIfNew(_feedHashes[i], _answers[i], _timestamps[i], _proofs[i]);
-        }
-    }
-
-    function submitSingleIfNew(bytes32 _feedHash, int256 _answer, uint256 _timestamp, bytes calldata _proof) public {
-        if (lastSubmissionTimes[_feedHash] >= _timestamp) {
-            return;
-        }
-
-        if (_timestamp <= (block.timestamp - dataFreshness) * 1000 ) {
-            revert AnswerTooOld();
-        }
-
-        (bytes[] memory proofs_, bool success_) = splitProofs(_proof);
-        if (!success_) {
-            // splitting proofs failed -> do not submit!
-            revert InvalidProofFormat();
-        }
-
-        if (address(feeds[_feedHash]) == address(0)) {
-            // feedHash not registered -> do not submit!
-            revert FeedHashNotFound();
-        }
-
-        if (keccak256(abi.encodePacked(feeds[_feedHash].name())) != _feedHash) {
-            // feedHash not matching with registered feed -> do not submit!
-            revert InvalidFeedHash();
-        }
-
-        bytes32 message_ = keccak256(abi.encodePacked(_answer, _timestamp, _feedHash));
-        if (validateProof(_feedHash, message_, proofs_)) {
-            feeds[_feedHash].submit(_answer);
-            lastSubmissionTimes[_feedHash] = _timestamp;
-        } else {
-            revert InvalidProof();
-        }
-    }
-
     /**
      * @notice Return the version and type of the feed.
      * @return typeAndVersion The type and version of the feed.
