@@ -483,7 +483,7 @@ contract SubmissionProxy is Ownable {
         int256[] calldata _answers,
         uint256[] calldata _timestamps,
         bytes[] calldata _proofs
-    ) public {
+    ) external {
         if (
             _feedHashes.length != _answers.length || _answers.length != _proofs.length
                 || _proofs.length != _timestamps.length || _feedHashes.length > maxSubmission
