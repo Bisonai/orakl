@@ -37,8 +37,8 @@ contract SubmissionProxy is Ownable {
 
     mapping(address => OracleInfo) public whitelist;
     mapping(bytes32 feedHash => IFeed feed) public feeds;
-    mapping(bytes32 feedHash => uint8 threshold) thresholds;
-    mapping(bytes32 feedHash => uint256 lastSubmissionTime) lastSubmissionTimes;
+    mapping(bytes32 feedHash => uint8 threshold) public thresholds;
+    mapping(bytes32 feedHash => uint256 lastSubmissionTime) public lastSubmissionTimes;
 
     event OracleAdded(address oracle, uint256 expirationTime);
     event OracleRemoved(address oracle);
@@ -61,7 +61,8 @@ contract SubmissionProxy is Ownable {
     error InvalidSignatureLength();
     error InvalidFeed();
     error ZeroAddressGiven();
-    error AnswerTooOld();
+    error AnswerOutdated();
+    error AnswerSuperseded();
     error InvalidProofFormat();
     error InvalidProof();
     error FeedHashNotFound();
@@ -396,6 +397,15 @@ contract SubmissionProxy is Ownable {
         }
     }
 
+    /**
+     * @notice Submit a batch of answers to multiple feeds. If any
+     * of the answers do not meet required conditions the
+     * whole batch is reverted.
+     * @param _feedHashes The hashes of the feeds
+     * @param _answers The submissions
+     * @param _timestamps The unixmilli timestamps of the proofs
+     * @param _proofs The proofs
+     */
     function submitStrict(
         bytes32[] calldata _feedHashes,
         int256[] calldata _answers,
@@ -411,13 +421,105 @@ contract SubmissionProxy is Ownable {
 
         uint256 feedsLength_ = _feedHashes.length;
         for (uint256 i = 0; i < feedsLength_; i++) {
-            submitSingle(_feedHashes[i], _answers[i], _timestamps[i], _proofs[i]);
+            submitStrictSingle(_feedHashes[i], _answers[i], _timestamps[i], _proofs[i]);
         }
     }
 
-    function submitSingle(bytes32 _feedHash, int256 _answer, uint256 _timestamp, bytes calldata _proof) public {
-        if (_timestamp <= (block.timestamp - dataFreshness) * 1000 || lastSubmissionTimes[_feedHash] >= _timestamp) {
-            revert AnswerTooOld();
+    /**
+     * @notice Submit a single answer to a feed. The answer is
+     * reverted if any of the required conditions are not met.
+     * @param _feedHash The hash of the feed
+     * @param _answer The submission
+     * @param _timestamp The unixmilli timestamp of the proof
+     * @param _proof The proof
+     */
+    function submitStrictSingle(bytes32 _feedHash, int256 _answer, uint256 _timestamp, bytes calldata _proof) public {
+        if (_timestamp <= (block.timestamp - dataFreshness) * 1000) {
+            // answer is not fresh -> do not submit!
+            revert AnswerOutdated();
+        }
+
+        if (lastSubmissionTimes[_feedHash] >= _timestamp) {
+            // answer is superseded -> do not submit!
+            revert AnswerSuperseded();
+        }
+
+        (bytes[] memory proofs_, bool success_) = splitProofs(_proof);
+        if (!success_) {
+            // splitting proofs failed -> do not submit!
+            revert InvalidProofFormat();
+        }
+
+        if (address(feeds[_feedHash]) == address(0)) {
+            // feedHash not registered -> do not submit!
+            revert FeedHashNotFound();
+        }
+
+        if (keccak256(abi.encodePacked(feeds[_feedHash].name())) != _feedHash) {
+            // feedHash not matching with registered feed -> do not submit!
+            revert InvalidFeedHash();
+        }
+
+        bytes32 message_ = keccak256(abi.encodePacked(_answer, _timestamp, _feedHash));
+        if (validateProof(_feedHash, message_, proofs_)) {
+            feeds[_feedHash].submit(_answer);
+            lastSubmissionTimes[_feedHash] = _timestamp;
+        } else {
+            revert InvalidProof();
+        }
+    }
+
+    /**
+     * @notice Submit a batch of answers to multiple feeds. The answers are
+     * ignored if they have been superseded. If any of the answers do not
+     * meet the rest of required conditions the whole batch is reverted.
+     * @param _feedHashes The hashes of the feeds
+     * @param _answers The submissions
+     * @param _timestamps The unixmilli timestamps of the proofs
+     * @param _proofs The proofs
+     */
+    function submitWithoutSupersedValidation(
+        bytes32[] calldata _feedHashes,
+        int256[] calldata _answers,
+        uint256[] calldata _timestamps,
+        bytes[] calldata _proofs
+    ) external {
+        if (
+            _feedHashes.length != _answers.length || _answers.length != _proofs.length
+                || _proofs.length != _timestamps.length || _feedHashes.length > maxSubmission
+        ) {
+            revert InvalidSubmissionLength();
+        }
+
+        uint256 feedsLength_ = _feedHashes.length;
+        for (uint256 i = 0; i < feedsLength_; i++) {
+            submitSingleWithoutSupersedValidation(_feedHashes[i], _answers[i], _timestamps[i], _proofs[i]);
+        }
+    }
+
+    /**
+     * @notice Submit a single submission to a feed. The submission is
+     * ignored if it has been superseded. If the submission does not
+     * meet the rest of required conditions the submission is reverted.
+     * @param _feedHash The hash of the feed
+     * @param _answer The submission
+     * @param _timestamp The unixmilli timestamp of the proof
+     * @param _proof The proof
+     */
+    function submitSingleWithoutSupersedValidation(
+        bytes32 _feedHash,
+        int256 _answer,
+        uint256 _timestamp,
+        bytes calldata _proof
+    ) public {
+        if (lastSubmissionTimes[_feedHash] >= _timestamp) {
+            // answer is superseded -> skip submission
+            return;
+        }
+
+        if (_timestamp <= (block.timestamp - dataFreshness) * 1000) {
+            // answer is not fresh -> do not submit!
+            revert AnswerOutdated();
         }
 
         (bytes[] memory proofs_, bool success_) = splitProofs(_proof);
