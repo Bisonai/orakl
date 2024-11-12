@@ -61,7 +61,8 @@ contract SubmissionProxy is Ownable {
     error InvalidSignatureLength();
     error InvalidFeed();
     error ZeroAddressGiven();
-    error AnswerTooOld();
+    error AnswerOutdated();
+    error AnswerSuperseded();
     error InvalidProofFormat();
     error InvalidProof();
     error FeedHashNotFound();
@@ -416,8 +417,12 @@ contract SubmissionProxy is Ownable {
     }
 
     function submitSingle(bytes32 _feedHash, int256 _answer, uint256 _timestamp, bytes calldata _proof) public {
-        if (_timestamp <= (block.timestamp - dataFreshness) * 1000 || lastSubmissionTimes[_feedHash] >= _timestamp) {
-            revert AnswerTooOld();
+        if (_timestamp <= (block.timestamp - dataFreshness) * 1000 ) {
+            revert AnswerOutdated();
+        }
+
+        if (lastSubmissionTimes[_feedHash] >= _timestamp) {
+            revert AnswerSuperseded();
         }
 
         (bytes[] memory proofs_, bool success_) = splitProofs(_proof);
