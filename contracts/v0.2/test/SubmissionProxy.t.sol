@@ -463,7 +463,7 @@ contract SubmissionProxyTest is Test {
         IFeed(feeds_[0]).latestRoundData();
     }
 
-    function test_submitWithoutSupersededValidation() public {
+    function test_submitWithoutSupersedValidation() public {
         (address alice_, uint256 aliceSk_) = makeAddrAndKey("alice");
         (address bob_, uint256 bobSk_) = makeAddrAndKey("bob");
         (address celine_, uint256 celineSk_) = makeAddrAndKey("celine");
@@ -493,7 +493,7 @@ contract SubmissionProxyTest is Test {
         IFeed(feeds_[0]).latestRoundData();
     }
 
-       function test_submitWithoutSupersededValidationIgnoreLateSubmission() public {
+       function test_submitWithoutSupersedValidationIgnoreLateSubmission() public {
 
 
         (address alice_, uint256 aliceSk_) = makeAddrAndKey("alice");
