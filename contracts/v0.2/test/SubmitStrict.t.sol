@@ -27,7 +27,7 @@ contract SubmitStrictTest is Test {
 	console.logBytes(proofs[0]);
 
 	SubmissionProxy sp = SubmissionProxy(0x3a251c738e19806A546815eb6065e139A8D65B4b);
-	sp.submitStrict(
+	sp.submitStrictBatch(
 	    feedHashes,
 	    valuesInt,
 	    timestampsInt,
