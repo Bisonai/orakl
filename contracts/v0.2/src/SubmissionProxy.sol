@@ -406,7 +406,7 @@ contract SubmissionProxy is Ownable {
      * @param _timestamps The unixmilli timestamps of the proofs
      * @param _proofs The proofs
      */
-    function submitStrictBatch(
+    function submitStrict(
         bytes32[] calldata _feedHashes,
         int256[] calldata _answers,
         uint256[] calldata _timestamps,
@@ -471,14 +471,14 @@ contract SubmissionProxy is Ownable {
 
     /**
      * @notice Submit a batch of answers to multiple feeds. The answers are
-     * ignored if they have been superseeded. If any of the answers do not
+     * ignored if they have been superseded. If any of the answers do not
      * meet the rest of required conditions the whole batch is reverted.
      * @param _feedHashes The hashes of the feeds
      * @param _answers The submissions
      * @param _timestamps The unixmilli timestamps of the proofs
      * @param _proofs The proofs
      */
-    function updatePrices(
+    function submitWithoutSupersedValidation(
         bytes32[] calldata _feedHashes,
         int256[] calldata _answers,
         uint256[] calldata _timestamps,
@@ -493,7 +493,7 @@ contract SubmissionProxy is Ownable {
 
         uint256 feedsLength_ = _feedHashes.length;
         for (uint256 i = 0; i < feedsLength_; i++) {
-            updatePrice(_feedHashes[i], _answers[i], _timestamps[i], _proofs[i]);
+            submitSingleWithoutSupersedValidation(_feedHashes[i], _answers[i], _timestamps[i], _proofs[i]);
         }
     }
 
@@ -506,7 +506,12 @@ contract SubmissionProxy is Ownable {
      * @param _timestamp The unixmilli timestamp of the proof
      * @param _proof The proof
      */
-    function updatePrice(bytes32 _feedHash, int256 _answer, uint256 _timestamp, bytes calldata _proof) public {
+    function submitSingleWithoutSupersedValidation(
+        bytes32 _feedHash,
+        int256 _answer,
+        uint256 _timestamp,
+        bytes calldata _proof
+    ) public {
         if (lastSubmissionTimes[_feedHash] >= _timestamp) {
             // answer is superseeded -> skip submission
             return;

@@ -433,6 +433,106 @@ contract SubmissionProxyTest is Test {
         IFeed(feeds_[0]).latestRoundData();
     }
 
+    function test_SubmitStrict() public {
+        (address alice_, uint256 aliceSk_) = makeAddrAndKey("alice");
+        (address bob_, uint256 bobSk_) = makeAddrAndKey("bob");
+        (address celine_, uint256 celineSk_) = makeAddrAndKey("celine");
+        (, uint256 dummySk_) = makeAddrAndKey("dummy");
+
+        submissionProxy.addOracle(alice_);
+        submissionProxy.addOracle(bob_);
+        submissionProxy.addOracle(celine_);
+
+        uint256 numOracles_ = 1;
+        int256 submissionValue_ = 10;
+        (
+            bytes32[] memory feedHashes_,
+            int256[] memory submissions_,
+            bytes[] memory proofs_,
+            uint256[] memory timestamps_,
+            address[] memory feeds_
+        ) = prepareFeedsSubmissions(numOracles_, submissionValue_, dummySk_);
+        bytes32 hash_ = keccak256(abi.encodePacked(submissions_[0], timestamps_[0], feedHashes_[0]));
+        proofs_[0] =
+            abi.encodePacked(createProof(aliceSk_, hash_), createProof(bobSk_, hash_), createProof(celineSk_, hash_));
+
+        submissionProxy.setProofThreshold(feedHashes_[0], 100); // 100 % of the oracles must submit a valid proof
+        submissionProxy.submitStrict(feedHashes_, submissions_, timestamps_, proofs_);
+
+        // don't raise `NoDataPresent`
+        IFeed(feeds_[0]).latestRoundData();
+    }
+
+    function test_submitWithoutSupersededValidation() public {
+        (address alice_, uint256 aliceSk_) = makeAddrAndKey("alice");
+        (address bob_, uint256 bobSk_) = makeAddrAndKey("bob");
+        (address celine_, uint256 celineSk_) = makeAddrAndKey("celine");
+        (, uint256 dummySk_) = makeAddrAndKey("dummy");
+
+        submissionProxy.addOracle(alice_);
+        submissionProxy.addOracle(bob_);
+        submissionProxy.addOracle(celine_);
+
+        uint256 numOracles_ = 1;
+        int256 submissionValue_ = 10;
+        (
+            bytes32[] memory feedHashes_,
+            int256[] memory submissions_,
+            bytes[] memory proofs_,
+            uint256[] memory timestamps_,
+            address[] memory feeds_
+        ) = prepareFeedsSubmissions(numOracles_, submissionValue_, dummySk_);
+        bytes32 hash_ = keccak256(abi.encodePacked(submissions_[0], timestamps_[0], feedHashes_[0]));
+        proofs_[0] =
+            abi.encodePacked(createProof(aliceSk_, hash_), createProof(bobSk_, hash_), createProof(celineSk_, hash_));
+
+        submissionProxy.setProofThreshold(feedHashes_[0], 100); // 100 % of the oracles must submit a valid proof
+        submissionProxy.submitWithoutSupersedValidation(feedHashes_, submissions_, timestamps_, proofs_);
+
+        // don't raise `NoDataPresent`
+        IFeed(feeds_[0]).latestRoundData();
+    }
+
+       function test_submitWithoutSupersededValidationIgnoreLateSubmission() public {
+
+
+        (address alice_, uint256 aliceSk_) = makeAddrAndKey("alice");
+        (address bob_, uint256 bobSk_) = makeAddrAndKey("bob");
+        (address celine_, uint256 celineSk_) = makeAddrAndKey("celine");
+        (, uint256 dummySk_) = makeAddrAndKey("dummy");
+
+        submissionProxy.addOracle(alice_);
+        submissionProxy.addOracle(bob_);
+        submissionProxy.addOracle(celine_);
+
+        uint256 numOracles_ = 1;
+        int256 submissionValue_ = 10;
+
+        (
+            bytes32[] memory feedHashes_,
+            int256[] memory submissions_,
+            bytes[] memory proofs_,
+            uint256[] memory timestamps_,
+            address[] memory feeds_
+        ) = prepareFeedsSubmissions(numOracles_, submissionValue_, dummySk_);
+        bytes32 hash_ = keccak256(abi.encodePacked(submissions_[0], timestamps_[0], feedHashes_[0]));
+        proofs_[0] =
+            abi.encodePacked(createProof(aliceSk_, hash_), createProof(bobSk_, hash_), createProof(celineSk_, hash_));
+
+        submissionProxy.setProofThreshold(feedHashes_[0], 100); // 100 % of the oracles must submit a valid proof
+        submissionProxy.submitWithoutSupersedValidation(feedHashes_, submissions_, timestamps_, proofs_);
+
+        uint256[] memory oldTimestamps = new uint256[](timestamps_.length);
+        for (uint256 i = 0; i < timestamps_.length; i++) {
+            oldTimestamps[i] = timestamps_[i] -1;
+        }
+        // should not revert
+        submissionProxy.submitWithoutSupersedValidation(feedHashes_, submissions_, oldTimestamps, proofs_);
+
+        // don't raise `NoDataPresent`
+        IFeed(feeds_[0]).latestRoundData();
+    }
+
     function prepareFeedsSubmissions(uint256 _numOracles, int256 _submissionValue, uint256 _oracleSk)
         private
         returns (bytes32[] memory, int256[] memory, bytes[] memory, uint256[] memory, address[] memory)
