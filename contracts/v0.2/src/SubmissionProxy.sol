@@ -440,7 +440,7 @@ contract SubmissionProxy is Ownable {
         }
 
         if (lastSubmissionTimes[_feedHash] >= _timestamp) {
-            // answer is superseeded -> do not submit!
+            // answer is superseded -> do not submit!
             revert AnswerSuperseded();
         }
 
@@ -499,7 +499,7 @@ contract SubmissionProxy is Ownable {
 
     /**
      * @notice Submit a single submission to a feed. The submission is
-     * ignored if it has been superseeded. If the submission does not
+     * ignored if it has been superseded. If the submission does not
      * meet the rest of required conditions the submission is reverted.
      * @param _feedHash The hash of the feed
      * @param _answer The submission
@@ -513,7 +513,7 @@ contract SubmissionProxy is Ownable {
         bytes calldata _proof
     ) public {
         if (lastSubmissionTimes[_feedHash] >= _timestamp) {
-            // answer is superseeded -> skip submission
+            // answer is superseded -> skip submission
             return;
         }
 
