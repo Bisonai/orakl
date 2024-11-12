@@ -535,9 +535,6 @@ contract SubmissionProxy is Ownable {
 
         bytes32 message_ = keccak256(abi.encodePacked(_answer, _timestamp, _feedHash));
         if (validateProof(_feedHash, message_, proofs_)) {
-            if (lastSubmissionTimes[_feedHash] >= _timestamp) {
-                return;
-            }
             feeds[_feedHash].submit(_answer);
             lastSubmissionTimes[_feedHash] = _timestamp;
         } else {
