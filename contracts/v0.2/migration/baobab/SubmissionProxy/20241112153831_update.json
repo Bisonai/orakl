@@ -1,0 +1,448 @@
+{
+  "deploy": {},
+  "addOracle": {
+    "oracles": ["0xC09A746c596752518261fD7AFB5549FEdED95E2B"]
+  },
+  "updateFeed": [
+    {
+      "name": "AAVE-KRW",
+      "address": "0x0cd85fe36ba9f47adfb2a0ad8ae001ca168f8ca6"
+    },
+    {
+      "name": "ADA-KRW",
+      "address": "0xd7357b44a332f791ca8aca0cb3c9af350c027a7d"
+    },
+    {
+      "name": "AKT-KRW",
+      "address": "0xd14db120649ebff73a1af470dfbc144f2cdb4d6b"
+    },
+    {
+      "name": "APT-KRW",
+      "address": "0xa4da8a00227112a1b274bdf4b2fc9211232aa5b9"
+    },
+    {
+      "name": "ADA-USDT",
+      "address": "0x2390c83f1bb3be9bfcfde1de3fa1e736bc2e502a"
+    },
+    {
+      "name": "ARB-KRW",
+      "address": "0xf07317ae5eccb16edc1cf5ab256f68ee4a18da95"
+    },
+    {
+      "name": "ASTR-KRW",
+      "address": "0xe0600c512aa8d679b4b770f645bc3b265e4b9e3e"
+    },
+    {
+      "name": "APT-USDT",
+      "address": "0x12c4ebed23115e9661d49ac2140ad306d79f7ff3"
+    },
+    {
+      "name": "ATOM-USDT",
+      "address": "0xa9b691f8028278cad132971ad689bfcece398d8c"
+    },
+    {
+      "name": "AVAX-KRW",
+      "address": "0x0c68eaf5fb3a589fc38ebfb6ccf337bebecfe29d"
+    },
+    {
+      "name": "AUCTION-KRW",
+      "address": "0xaa6d36e7d952b3cbf4047ea6cf3b5ad0eebc1498"
+    },
+    {
+      "name": "AVAX-USDT",
+      "address": "0x33df6c4c6e2c667e5333f58fcc2a7312c37d57ae"
+    },
+    {
+      "name": "BCH-KRW",
+      "address": "0x8bad5882c25cfe9db246002caae87860d2ac9351"
+    },
+    {
+      "name": "AXS-KRW",
+      "address": "0x14266bb2c4badc82e3d7843e028b0426f42d67a3"
+    },
+    {
+      "name": "BLUR-KRW",
+      "address": "0x4baad42af1aea73d1c39c8402c9040192774dfa4"
+    },
+    {
+      "name": "BLAST-KRW",
+      "address": "0x72270af970a41fbac5bf59c9336e6d60c495491c"
+    },
+    {
+      "name": "BNB-USDT",
+      "address": "0xf57d542327fe92f624c35f81b5ab4dc3f24b4b3f"
+    },
+    {
+      "name": "BORA-KRW",
+      "address": "0x48cc97f2d086c22686e0fc6a5c88fa6878fe3136"
+    },
+    {
+      "name": "BSV-KRW",
+      "address": "0xd5602b5d859e9b33e4bda6e310cace76fc8235ed"
+    },
+    {
+      "name": "BTC-KRW",
+      "address": "0xb40f4b8589a1063d7584de6d3ec9e72c2e7bb130"
+    },
+    {
+      "name": "BTC-USDT",
+      "address": "0x229fbc2252e2da530ecc7b1d727de71e9e217a28"
+    },
+    {
+      "name": "BTG-KRW",
+      "address": "0x3c2863a1ef059fd90853b2a2a8d169b84d952424"
+    },
+    {
+      "name": "BTT-KRW",
+      "address": "0x60bf2d192ea99067a7a40a41a295af9e4b88fe2d"
+    },
+    {
+      "name": "CHF-USD",
+      "address": "0xb49872685415d82b54e9cb1e26eff86651d5ae63"
+    },
+    {
+      "name": "BONK-KRW",
+      "address": "0x77c8c1df59384c2c05d7b0368a5e3bb4bfbb44e2"
+    },
+    {
+      "name": "CTC-KRW",
+      "address": "0x4b2e4fce87ca7b65b44b9ace968802402876caf9"
+    },
+    {
+      "name": "DOGE-KRW",
+      "address": "0x0e4339c97a5dfce88f2f102e00a177c55d963944"
+    },
+    {
+      "name": "DAI-USDT",
+      "address": "0x6d3498921f9c87e8a190c09cb88f5aa169a29838"
+    },
+    {
+      "name": "DOT-KRW",
+      "address": "0xc79d499a1c69a5d46f2ab3d67c8783257db4ee31"
+    },
+    {
+      "name": "DOGE-USDT",
+      "address": "0xa97f5c2a3c892c1d3cd4df6bcd5338c8b444d1d0"
+    },
+    {
+      "name": "DOT-USDT",
+      "address": "0x29b5d8c4f299a7ca5f0ff293bd4bff4171fa64b8"
+    },
+    {
+      "name": "ENS-KRW",
+      "address": "0xc6fa4e24398fe13fbb50a762636a6fb0945980a6"
+    },
+    {
+      "name": "EOS-KRW",
+      "address": "0xb38f9624c8f46f4e539118003f81c04bf7897c12"
+    },
+    {
+      "name": "ETH-KRW",
+      "address": "0x6135a6c88f9ab7a8f1c27aea9a02cb384a55f047"
+    },
+    {
+      "name": "ETH-USDT",
+      "address": "0xf79b2b590db916ecd6f35e9f80a7f8f7d9663d24"
+    },
+    {
+      "name": "EUR-USD",
+      "address": "0x7e4afddb9c42d7b2c10bded23b943212c314ee60"
+    },
+    {
+      "name": "FET-KRW",
+      "address": "0x04ad16c7fb13589c949c5abdcd96157b927a3917"
+    },
+    {
+      "name": "FLOW-KRW",
+      "address": "0x60b8263b7ceea8e673433d69fade822375a615a8"
+    },
+    {
+      "name": "FTM-USDT",
+      "address": "0xf434a181f43c220816c5fca2620db60f9c4a5633"
+    },
+    {
+      "name": "GAS-KRW",
+      "address": "0xc84cf34d9a3bdf9412a5ef9858e1204774f0632c"
+    },
+    {
+      "name": "GBP-USD",
+      "address": "0x9ae9d156ca39e04e9f592eb728e78946a8e70370"
+    },
+    {
+      "name": "CHZ-KRW",
+      "address": "0x3f24bd546a18d196fc29e69be88cec1febf53b6c"
+    },
+    {
+      "name": "GRND-KRW",
+      "address": "0x3cc2b4331a22ae80a2cdac3d81517d475af640c5"
+    },
+    {
+      "name": "GRND-USDT",
+      "address": "0x8010014b092278e12a995e3c29530015af94cdc8"
+    },
+    {
+      "name": "GRT-KRW",
+      "address": "0xf61b99589a7c1ef32801de9eedb181197cdd7c8f"
+    },
+    {
+      "name": "HPO-KRW",
+      "address": "0x63887981dd1898a922b2049cee641deccb871928"
+    },
+    {
+      "name": "ETC-KRW",
+      "address": "0x2949d1938ab7a3fc3d11e2c01b5edc8151ce96f6"
+    },
+    {
+      "name": "HBAR-KRW",
+      "address": "0xd7d8e25743edbd5927659389dfcd3680ef133449"
+    },
+    {
+      "name": "IMX-KRW",
+      "address": "0xfea1d2f063576ca705fdfc1b6c53e0619dc6b1de"
+    },
+    {
+      "name": "GLM-KRW",
+      "address": "0xd656db10900b3de934fb826b4a540904e6603cf4"
+    },
+    {
+      "name": "IQ-KRW",
+      "address": "0x82e74e43ff94f8d088bffe393f202e9d0e1c7ec0"
+    },
+    {
+      "name": "KAIA-KRW",
+      "address": "0xa3e7db99c527d6aaab447197ba901939fbc002f5"
+    },
+    {
+      "name": "KLAY-KRW",
+      "address": "0x9dfb887500b68e982bebacb50e3ed292fd5cc23c"
+    },
+    {
+      "name": "JOY-USDT",
+      "address": "0x905d3535285ea692a2ec0a6b135c6841033dab4b"
+    },
+    {
+      "name": "JPY-USD",
+      "address": "0xb3a00af3a209a9f86f89741b35ec34293d8d4476"
+    },
+    {
+      "name": "KNC-KRW",
+      "address": "0x10e6c87af68596e18123e6013ef5da14ea5eabb9"
+    },
+    {
+      "name": "KAIA-USDT",
+      "address": "0x7f9a888dd135927b66da692803f5f52b1a9a5cb4"
+    },
+    {
+      "name": "KLAY-USDT",
+      "address": "0x7c688130c185929eb5163cddc4681f357db91efb"
+    },
+    {
+      "name": "KRW-USD",
+      "address": "0x64e33713cf64cf384accbb12a925130b311d0ea5"
+    },
+    {
+      "name": "LINK-KRW",
+      "address": "0x1cd728af990d6366cb3e01bf886c933d601861cd"
+    },
+    {
+      "name": "LTC-USDT",
+      "address": "0xa7333364d913d6a58092fd7d2aa57765ffdaab43"
+    },
+    {
+      "name": "MBL-KRW",
+      "address": "0x98b134a4873f1f9ba73106c3337d263e52be8e36"
+    },
+    {
+      "name": "MBX-KRW",
+      "address": "0xc852fc6975f6c1fa228dd4f1b77e7f870677d736"
+    },
+    {
+      "name": "MED-KRW",
+      "address": "0x4dea13c160e38deda543f5849893d74a3fe94d1c"
+    },
+    {
+      "name": "MINA-KRW",
+      "address": "0x95aa745bb06c2b9fb3f674c4d1a89d7389873ce6"
+    },
+    {
+      "name": "MTL-KRW",
+      "address": "0x1f589e696bec4ae3b3cba200faa9b74fbb61aa9e"
+    },
+    {
+      "name": "MLK-KRW",
+      "address": "0xacb80bc2e34424a47193efeeb8f4227cef1d96e3"
+    },
+    {
+      "name": "KSP-KRW",
+      "address": "0xd6ab32aba7b33a10dec2f8555303ea5a9147bf36"
+    },
+    {
+      "name": "MNR-KRW",
+      "address": "0x3aff90e71807e68b1c21425f75fba0c46cf0b59e"
+    },
+    {
+      "name": "ONDO-KRW",
+      "address": "0x53800a7d2b91a21275e013118fddae1ddc053749"
+    },
+    {
+      "name": "PAXG-USDT",
+      "address": "0x97fb85225c4f21c271eedd1fd96306f81eb60604"
+    },
+    {
+      "name": "PEPE-KRW",
+      "address": "0x4e03f7dcbf7cbb73feeed71b7db3ab79d7476dc1"
+    },
+    {
+      "name": "ONG-KRW",
+      "address": "0xae3ac5a03aa2e4cdf5f26bd452b4fee89270fcc9"
+    },
+    {
+      "name": "NEAR-KRW",
+      "address": "0xde88e34d2703ac828c632f457d1fba8277b77958"
+    },
+    {
+      "name": "PEPE-USDT",
+      "address": "0x3f027b0155e24c761e1e04ec43094fdbeb2ceaf9"
+    },
+    {
+      "name": "PYTH-KRW",
+      "address": "0x890aa5ea977e480f1d8b3a74def60cd85c78cb9b"
+    },
+    {
+      "name": "POL-KRW",
+      "address": "0x2dc942e4f27ccc87f24b9692d3db28ed43141ca6"
+    },
+    {
+      "name": "POL-USDT",
+      "address": "0x2cd885ce2d8f262dec904a101c99353c7984db27"
+    },
+    {
+      "name": "SHIB-KRW",
+      "address": "0x4d3e6e001d0905fed62947e7c2347de16707049b"
+    },
+    {
+      "name": "SAND-KRW",
+      "address": "0xf97b93fda39c3d9fabafc17bb00374d8c4da34d3"
+    },
+    {
+      "name": "PER-KLAY",
+      "address": "0x6633bab27d6c4a7beab2f3b6c1cab5d1aa922734"
+    },
+    {
+      "name": "SEI-KRW",
+      "address": "0x09adb09cc0143928d539dc3c9149ce9e486c159b"
+    },
+    {
+      "name": "SNT-KRW",
+      "address": "0xb7f05e09f88e87dccb08dc8a9b1264bd863fc1b9"
+    },
+    {
+      "name": "SEI-USDT",
+      "address": "0x4ef4a0fa3aeba86e3c7234ac65ecf9b5f98cc5f2"
+    },
+    {
+      "name": "SHIB-USDT",
+      "address": "0x2e1bc9d02f2f8bd64c51af5509ebbaa5be48c073"
+    },
+    {
+      "name": "STG-KRW",
+      "address": "0xb5d21487704499cd56838f5e8740f0bb6e458f9a"
+    },
+    {
+      "name": "STPT-KRW",
+      "address": "0x201f9bb0290789d4e76f72d0a7ac3ae14d1efc07"
+    },
+    {
+      "name": "SOL-KRW",
+      "address": "0xde36eb06fa8ee7f081a5910a5f33681a4314a383"
+    },
+    {
+      "name": "SOL-USDT",
+      "address": "0x721c8beee58c900a5e467d6a28c45b8c7522d7a9"
+    },
+    {
+      "name": "STRK-KRW",
+      "address": "0xd0dc9d92c02fee0de6134b9716fb084b7e3487f7"
+    },
+    {
+      "name": "STX-KRW",
+      "address": "0x0f89ddb459573dc922771a7de59b6a7fde45f6c5"
+    },
+    {
+      "name": "SUI-KRW",
+      "address": "0xd505dab41a687668cad1b9fc593cd94b974b5df7"
+    },
+    {
+      "name": "TRX-KRW",
+      "address": "0x3981c84e882e141e44363fff58e71f7a36bc6b1b"
+    },
+    {
+      "name": "SUI-USDT",
+      "address": "0xde98eeca36500676bef1ff8cb5b385f05fc31742"
+    },
+    {
+      "name": "TRX-USDT",
+      "address": "0xbe5bc3a7c9877cabe3279c86301604dc1cf441d6"
+    },
+    {
+      "name": "UNI-USDT",
+      "address": "0xcbb74476ee780c4a889cafa65217c267d651ef83"
+    },
+    {
+      "name": "USDT-USD",
+      "address": "0x1dab991618663d8c4b27ae6a1e0837f53d933f6a"
+    },
+    {
+      "name": "USDC-USDT",
+      "address": "0xaa622bea10e59fe082b192804ba1512174a50349"
+    },
+    {
+      "name": "WEMIX-KRW",
+      "address": "0xc2507479d4783e407f0b760bcad0660b434641e1"
+    },
+    {
+      "name": "USDT-KRW",
+      "address": "0x472e03707c2edb70a4e93ef928fedf8f280534a9"
+    },
+    {
+      "name": "WAVES-KRW",
+      "address": "0xc76cee442b9657243c123d4bcd81b0702589a6c8"
+    },
+    {
+      "name": "WLD-KRW",
+      "address": "0x01b9158704dce74cf02a29792bf144b5b72f7f3a"
+    },
+    {
+      "name": "WEMIX-USDT",
+      "address": "0xb71148adcb9c1c31bb5b5d4c23843ccb694108a5"
+    },
+    {
+      "name": "XEC-KRW",
+      "address": "0x4e9ec96c9d981ad3ed7252d2de96107c178863b6"
+    },
+    {
+      "name": "XLM-KRW",
+      "address": "0x80e5092c54340eff5e3adb2f58ae3c555adb7ab7"
+    },
+    {
+      "name": "XRP-KRW",
+      "address": "0xda673aa72ba5ad894452c61548a7cc0408648261"
+    },
+    {
+      "name": "ZRO-KRW",
+      "address": "0x314ced8b0490dee3b5fb01d4355377bbb47c4ea0"
+    },
+    {
+      "name": "ZK-KRW",
+      "address": "0xc0914e9e4f157aaa3d5a02cf172a8437c5ae1a87"
+    },
+    {
+      "name": "ZETA-KRW",
+      "address": "0x82322393c6fec0f7105e62fc7c7636646b661458"
+    },
+    {
+      "name": "XRP-USDT",
+      "address": "0x9a1e0fb734ee49be847f7c417d00e3be1e08dfc3"
+    }
+  ]
+}
