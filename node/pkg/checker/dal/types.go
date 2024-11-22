@@ -1,7 +1,6 @@
 package dal
 
 import (
-	"regexp"
 	"sync"
 	"time"
 )
@@ -26,11 +25,9 @@ api_key NOT IN (SELECT key from keys WHERE description IN (%s))`
 
 var (
 	wsChan      = make(chan WsResponse, 30000)
-	wsMsgChan   = make(chan string, 10000)
 	updateTimes = &UpdateTimes{
 		lastUpdates: make(map[string]time.Time),
 	}
-	re = regexp.MustCompile(`\(([^)]+)\)`)
 )
 
 type WsResponse struct {
