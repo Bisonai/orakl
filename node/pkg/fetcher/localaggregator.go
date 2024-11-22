@@ -232,5 +232,11 @@ func (c *LocalAggregator) collect(ctx context.Context) ([]*FeedData, error) {
 	for i, feed := range c.Feeds {
 		feedIds[i] = feed.ID
 	}
-	return c.latestFeedDataMap.GetLatestFeedData(feedIds)
+
+	result, err := c.latestFeedDataMap.GetLatestFeedData(feedIds)
+	if err != nil || len(result) == 0 {
+		return c.latestFeedDataMap.GetLatestFeedDataFromCache(ctx, feedIds)
+	}
+
+	return result, nil
 }

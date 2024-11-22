@@ -1,10 +1,14 @@
 package types
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
+
+	"bisonai.com/miko/node/pkg/common/keys"
+	"bisonai.com/miko/node/pkg/db"
 )
 
 type Proxy struct {
@@ -75,6 +79,28 @@ func (m *LatestFeedDataMap) GetLatestFeedData(feedIds []int32) ([]*FeedData, err
 			result = append(result, feedData)
 		}
 	}
+
+	return result, nil
+}
+
+func (m *LatestFeedDataMap) GetLatestFeedDataFromCache(ctx context.Context, feedIds []int32) ([]*FeedData, error) {
+	queryingKeys := make([]string, 0, len(feedIds))
+	for _, feedId := range feedIds {
+		queryingKeys = append(queryingKeys, keys.FeedData(feedId))
+	}
+
+	result, err := db.MGetObject[*FeedData](ctx, queryingKeys)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(result) != 0 {
+		err = m.SetLatestFeedData(result)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return result, nil
 }
 
