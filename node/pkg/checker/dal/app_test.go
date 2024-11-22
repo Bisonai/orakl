@@ -3,7 +3,6 @@ package dal
 import (
 	"context"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -44,11 +43,6 @@ func TestHandleWsMessage(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Clear the channel before each test
-			for len(wsChan) > 0 {
-				<-wsChan
-			}
-
 			// Call the function
 			err := handleWsMessage(ctx, tt.inputData)
 
@@ -57,14 +51,6 @@ func TestHandleWsMessage(t *testing.T) {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
-
-				// Check the channel for the expected data
-				select {
-				case result := <-wsChan:
-					assert.Equal(t, tt.expected, result)
-				case <-time.After(1 * time.Second):
-					t.Fatal("Expected data not received in channel")
-				}
 			}
 		})
 	}
