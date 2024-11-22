@@ -44,7 +44,7 @@ import (
 const (
 	DefaultStoreInterval = 200 * time.Millisecond
 	DefaultBufferSize    = 3000
-	warmCacheTTL         = 15 * time.Second
+	warmCacheTTL         = time.Minute
 )
 
 type AppConfig struct {

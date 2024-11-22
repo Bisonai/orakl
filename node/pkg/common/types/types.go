@@ -84,6 +84,10 @@ func (m *LatestFeedDataMap) GetLatestFeedData(feedIds []int32) ([]*FeedData, err
 }
 
 func (m *LatestFeedDataMap) GetLatestFeedDataFromCache(ctx context.Context, feedIds []int32) ([]*FeedData, error) {
+	if len(feedIds) == 0 {
+		return nil, nil
+	}
+
 	queryingKeys := make([]string, 0, len(feedIds))
 	for _, feedId := range feedIds {
 		queryingKeys = append(queryingKeys, keys.FeedData(feedId))
