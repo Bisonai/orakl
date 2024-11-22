@@ -105,6 +105,10 @@ func (m *LatestFeedDataMap) GetLatestFeedDataFromCache(ctx context.Context, feed
 		}
 	}
 
+	if result == nil {
+		result = []*FeedData{}
+	}
+
 	return result, nil
 }
 
