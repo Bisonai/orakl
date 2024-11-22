@@ -1,0 +1,23 @@
+{
+  "address": "0xcb56b163e545a3870ca04c6ae2401f2405fb29a9",
+  "deployFeed": {
+    "feedNames": [
+      "BONK-USDT",
+      "ENA-USDT",
+      "INJ-USDT",
+      "ONDO-USDT",
+      "PENDLE-USDT",
+      "PNUT-USDT",
+      "POPCAT-USDT",
+      "TIA-USDT",
+      "TAO-USDT",
+      "TON-USDT",
+      "WIF-USDT",
+      "WLD-USDT",
+      "ZRO-USDT"
+    ]
+  },
+  "feedRouter": {
+    "address": "0x653078f0d3a230416a59aa6486466470db0190a2"
+  }
+}
