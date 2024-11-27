@@ -114,7 +114,7 @@ func Start(ctx context.Context) error {
 	wsDelayAlarmCount := map[string]int{}
 
 	for range ticker.C {
-		err := checkDal(endpoint, key, alarmCount, networkDelayAlarmCount)
+		err := checkDal(endpoint, key, alarmCount, &networkDelayAlarmCount)
 		if err != nil {
 			log.Error().Str("Player", "DalChecker").Err(err).Msg("error in checkDal")
 		}
@@ -137,7 +137,7 @@ func buildSubscriptionParams(configs []Config) []string {
 	return params
 }
 
-func checkDal(endpoint string, key string, alarmCount map[string]int, networkDelayAlarmCount int) error {
+func checkDal(endpoint string, key string, alarmCount map[string]int, networkDelayAlarmCount *int) error {
 	msg := ""
 
 	now := time.Now()
@@ -149,13 +149,13 @@ func checkDal(endpoint string, key string, alarmCount map[string]int, networkDel
 	networkDelay := time.Since(now)
 
 	if networkDelay > NetworkDelayThreshold {
-		networkDelayAlarmCount++
-		if networkDelayAlarmCount > AlarmOffsetInTotal {
+		*networkDelayAlarmCount++
+		if *networkDelayAlarmCount > AlarmOffsetInTotal {
 			msg += fmt.Sprintf("(DAL) network delay: %s\n", networkDelay)
-			networkDelayAlarmCount = 0
+			*networkDelayAlarmCount = 0
 		}
 	} else {
-		networkDelayAlarmCount = 0
+		*networkDelayAlarmCount = 0
 	}
 
 	if err != nil {
