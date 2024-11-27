@@ -281,3 +281,4 @@
 - **node** v0.0.1.20241105.0317.a4aece2 <br> *`PR`*: Node Check conflict not only w... <br><br> 
 - **node** v0.0.1.20241105.0445.a515407 <br> *`PR`*: Node Update contraint for feed... <br><br> 
 - **sentinel** v0.0.1.20241122.0446.86dbb99 <br> *`PR`*: Sentinel Remove ws delay check... <br><br> 
+- **sentinel** v0.0.1.20241127.0150.cf6be1b <br> *`PR`*: Sentinel DAL rest network dela... <br><br> 
