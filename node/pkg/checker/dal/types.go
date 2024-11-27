@@ -12,6 +12,7 @@ const (
 	AlarmOffsetInTotal      = 3
 	WsDelayThreshold        = 9 * time.Second
 	WsPushThreshold         = 5 * time.Second
+	NetworkDelayThreshold   = 6 * time.Second
 	IgnoreKeys              = "test,sentinel,orakl_reporter"
 
 	TrafficCheckQuery = `select count(1) from rest_calls where
