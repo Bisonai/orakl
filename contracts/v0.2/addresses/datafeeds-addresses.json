@@ -1351,11 +1351,5 @@
       "proxy": "0xd052953fe5be46bd125944383bf555e6f451184d",
       "feed": "0xe4c199c5f409f36c4861b2929ee5f974665278d3"
     }
-  },
-  "PNUT-UDST": {
-    "baobab": {
-      "proxy": "0x457df1a88a066bc9ddd929d83e5d598d53147774",
-      "feed": "0x23acf7a327d8b118aa48ee09f930d9e5d3ac3e50"
-    }
   }
 }
