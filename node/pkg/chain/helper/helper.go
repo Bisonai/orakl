@@ -193,10 +193,6 @@ func (t *ChainHelper) SubmitDelegatedFallbackDirect(ctx context.Context, contrac
 		return err
 	}
 
-	if t.delegatorUrl == "" {
-		return errorSentinel.ErrChainDelegatorUrlNotFound
-	}
-
 	tx, err := utils.MakeFeeDelegatedTx(ctx, t.client, contractAddress, t.wallet, functionString, t.chainID, nonce, args...)
 	if err != nil {
 		return err
