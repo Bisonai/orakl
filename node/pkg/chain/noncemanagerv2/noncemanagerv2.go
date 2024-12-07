@@ -2,6 +2,7 @@ package noncemanagerv2
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"time"
 
@@ -17,11 +18,19 @@ type NonceManagerV2 struct {
 
 const (
 	poolSize               = 100
-	minimumNoncePoolSize   = 5
+	minimumNoncePoolSize   = 10
 	poolAutoRefillInterval = time.Minute
 )
 
 func New(ctx context.Context, client utils.ClientInterface, wallet string) (*NonceManagerV2, error) {
+	if client == nil {
+		return nil, errors.New("empty client")
+	}
+
+	if wallet == "" {
+		return nil, errors.New("empty wallet")
+	}
+
 	pool := make(chan uint64, poolSize)
 	currentNonce, err := utils.GetNonceFromPk(ctx, wallet, client)
 	if err != nil {
@@ -70,9 +79,11 @@ func (m *NonceManagerV2) Reset(ctx context.Context) error {
 
 func (m *NonceManagerV2) fillPool() {
 	nonce := <-m.noncePool
-	for i := 0; i < poolSize-len(m.noncePool); i++ {
-		m.noncePool <- nonce + uint64(i)
+	pool := make(chan uint64, poolSize)
+	for i := 0; i < poolSize; i++ {
+		pool <- nonce + uint64(i)
 	}
+	m.noncePool = pool
 }
 
 func (m *NonceManagerV2) flushPool() {
