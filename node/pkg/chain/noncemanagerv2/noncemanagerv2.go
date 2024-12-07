@@ -16,7 +16,7 @@ type NonceManagerV2 struct {
 }
 
 const (
-	poolSize               = 30 // expect maximum 15 submission per minute
+	poolSize               = 100 // expect maximum 15 submission per minute
 	minimumNoncePoolSize   = 5
 	poolAutoRefillInterval = time.Minute
 )
