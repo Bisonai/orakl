@@ -47,6 +47,12 @@ func (m *NonceManagerV2) GetNonce(ctx context.Context, address string) (uint64, 
 	return nonce, nil
 }
 
+func (m *NonceManagerV2) Refill(ctx context.Context, address string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.unsafeRefill(ctx, address)
+}
+
 func (m *NonceManagerV2) unsafeRefill(ctx context.Context, address string) error {
 	currentNonce, err := utils.GetNonceFromPk(ctx, address, m.client)
 	if err != nil {

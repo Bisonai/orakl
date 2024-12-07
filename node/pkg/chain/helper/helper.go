@@ -218,3 +218,7 @@ func (t *ChainHelper) SubmitDirect(ctx context.Context, contractAddress, functio
 
 	return utils.SubmitRawTx(ctx, t.client, tx)
 }
+
+func (t *ChainHelper) FlushNoncePool(ctx context.Context) error {
+	return t.noncemanager.Refill(ctx, t.wallet)
+}
