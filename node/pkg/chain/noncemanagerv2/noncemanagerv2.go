@@ -35,13 +35,14 @@ func (m *NonceManagerV2) GetNonce(ctx context.Context, address string) (uint64, 
 
 	if _, ok := m.noncePool[address]; !ok {
 		log.Debug().Msgf("Initializing nonce pool for address %s", address)
-		m.noncePool[address] = make(chan uint64, 10)
+		m.noncePool[address] = make(chan uint64, 30)
 		if err := m.unsafeRefill(ctx, address); err != nil {
 			return 0, err
 		}
 		log.Debug().Msgf("Nonce pool initialized for address %s", address)
 	}
 
+	log.Debug().Msgf("Checking nonce pool for address %s", address)
 	if len(m.noncePool[address]) < minimumNoncePoolSize {
 		log.Debug().Msgf("Low nonce pool size for address %s, refilling...", address)
 		if err := m.unsafeRefill(ctx, address); err != nil {
@@ -50,31 +51,38 @@ func (m *NonceManagerV2) GetNonce(ctx context.Context, address string) (uint64, 
 		log.Debug().Msgf("Nonce pool refilled for address %s", address)
 	}
 
+	log.Debug().Msgf("Getting nonce from pool for address %s", address)
+
 	nonce := <-m.noncePool[address]
 	return nonce, nil
 }
 
-func (m *NonceManagerV2) unsafeFlushPool(address string) {
-	if pool, exists := m.noncePool[address]; exists {
-		for len(pool) > 0 {
-			<-pool
-		}
-	} else {
-		m.noncePool[address] = make(chan uint64, 10)
-	}
-}
-
 func (m *NonceManagerV2) unsafeRefill(ctx context.Context, address string) error {
+	log.Debug().Msgf("refilling nonce pool for address %s", address)
 	currentNonce, err := utils.GetNonceFromPk(ctx, address, m.client)
 	if err != nil {
 		return err
 	}
 
+	log.Debug().Msgf("current nonce for address %s: %d", address, currentNonce)
+
 	m.unsafeFlushPool(address)
 	for i := uint64(0); i < poolSize; i++ {
 		m.noncePool[address] <- currentNonce + i
+		log.Debug().Msgf("added nonce %d to pool for address %s", currentNonce+i, address)
 	}
 	return nil
+}
+
+func (m *NonceManagerV2) unsafeFlushPool(address string) {
+	log.Debug().Msgf("flushing nonce pool for address %s", address)
+	if pool, exists := m.noncePool[address]; exists {
+		for len(pool) > 0 {
+			<-pool
+		}
+	}
+
+	log.Debug().Msgf("nonce pool flushed for address %s", address)
 }
 
 func (m *NonceManagerV2) refillAll(ctx context.Context) error {
