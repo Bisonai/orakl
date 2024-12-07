@@ -34,7 +34,7 @@ func (m *NonceManagerV2) GetNonce(ctx context.Context, address string) (uint64, 
 	defer m.mu.Unlock()
 
 	if _, ok := m.noncePool[address]; !ok {
-		m.noncePool[address] = make(chan uint64, 30)
+		m.noncePool[address] = make(chan uint64, poolSize)
 	}
 
 	if len(m.noncePool[address]) < minimumNoncePoolSize {
