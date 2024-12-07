@@ -127,7 +127,7 @@ func (t *ChainHelper) GetSignedFromDelegator(tx *types.Transaction) (*types.Tran
 }
 
 func (t *ChainHelper) MakeDirectTx(ctx context.Context, contractAddressHex string, functionString string, args ...interface{}) (*types.Transaction, error) {
-	nonce, err := t.noncemanager.GetNonce(ctx, t.wallet)
+	nonce, err := utils.GetNonceFromPk(ctx, t.wallet, t.client)
 	if err != nil {
 		return nil, err
 	}
