@@ -200,7 +200,12 @@ func (t *ChainHelper) SubmitDelegatedFallbackDirect(ctx context.Context, contrac
 
 	tx, err = t.GetSignedFromDelegator(tx)
 	if err != nil {
-		return t.SubmitDirect(ctx, contractAddress, functionString, args...)
+		tx, err = utils.MakeDirectTx(ctx, t.client, contractAddress, t.wallet, functionString, t.chainID, nonce, args...)
+		if err != nil {
+			return err
+		}
+
+		return utils.SubmitRawTx(ctx, t.client, tx)
 	}
 
 	return utils.SubmitRawTx(ctx, t.client, tx)

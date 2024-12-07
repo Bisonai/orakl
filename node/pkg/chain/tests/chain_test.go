@@ -240,7 +240,6 @@ func TestGenerateViewABI(t *testing.T) {
 }
 
 func TestSubmitDelegeted(t *testing.T) {
-	t.Skip()
 	ctx := context.Background()
 
 	kaiaHelper, err := helper.NewChainHelper(ctx)

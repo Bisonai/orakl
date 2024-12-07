@@ -74,7 +74,7 @@ func main() {
 			proofs = append(proofs, klaytncommon.Hex2Bytes(strings.TrimPrefix(entry.Proof, "0x")))
 
 			if len(feedHashes) >= 50 {
-				err = kaiaHelper.SubmitDelegatedFallbackDirect(ctx, contractAddr, SUBMIT_STRICT, maxTxSubmissionRetries, feedHashes, values, timestamps, proofs)
+				err = kaiaHelper.SubmitDelegatedFallbackDirect(ctx, contractAddr, SUBMIT_STRICT, feedHashes, values, timestamps, proofs)
 				if err != nil {
 					log.Error().Err(err).Msg("MakeDirect")
 					panic(err)
@@ -87,7 +87,7 @@ func main() {
 			}
 		}
 
-		err = kaiaHelper.SubmitDelegatedFallbackDirect(ctx, contractAddr, SUBMIT_STRICT, maxTxSubmissionRetries, feedHashes, values, timestamps, proofs)
+		err = kaiaHelper.SubmitDelegatedFallbackDirect(ctx, contractAddr, SUBMIT_STRICT, feedHashes, values, timestamps, proofs)
 		if err != nil {
 			log.Error().Err(err).Msg("MakeDirect")
 			panic(err)
