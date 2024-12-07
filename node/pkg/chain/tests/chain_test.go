@@ -749,12 +749,12 @@ func TestSignerRenew(t *testing.T) {
 	addOracleFunctionSignature := "addOracle(address _oracle) external returns (uint256)"
 	removeOracleFunctionSignature := "function removeOracle(address _oracle) external"
 
-	err = chainHelperForCleanup.SubmitDelegatedFallbackDirect(ctx, contractAddr, addOracleFunctionSignature, maxTxSubmissionRetries, common.HexToAddress(oldSignerAddr))
+	err = chainHelperForCleanup.SubmitDelegatedFallbackDirect(ctx, contractAddr, addOracleFunctionSignature, common.HexToAddress(oldSignerAddr))
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
 
-	err = chainHelperForCleanup.SubmitDelegatedFallbackDirect(ctx, contractAddr, removeOracleFunctionSignature, maxTxSubmissionRetries, common.HexToAddress(newSignerAddr))
+	err = chainHelperForCleanup.SubmitDelegatedFallbackDirect(ctx, contractAddr, removeOracleFunctionSignature, common.HexToAddress(newSignerAddr))
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
