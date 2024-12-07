@@ -2,7 +2,6 @@ package noncemanagerv2
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"time"
 
@@ -10,73 +9,74 @@ import (
 )
 
 type NonceManagerV2 struct {
-	mu        sync.Mutex
-	noncePool map[string]chan uint64 // address -> nonce pool channel
+	noncePool chan uint64
 	client    utils.ClientInterface
+	wallet    string
+	mu        sync.Mutex
 }
 
 const (
-	poolSize               = 100 // expect maximum 15 submission per minute
+	poolSize               = 100
 	minimumNoncePoolSize   = 5
 	poolAutoRefillInterval = time.Minute
 )
 
-func New(client utils.ClientInterface) *NonceManagerV2 {
+func New(ctx context.Context, client utils.ClientInterface, wallet string) (*NonceManagerV2, error) {
+	pool := make(chan uint64, poolSize)
+	currentNonce, err := utils.GetNonceFromPk(ctx, wallet, client)
+	if err != nil {
+		return nil, err
+	}
+
+	for i := uint64(0); i < poolSize; i++ {
+		pool <- currentNonce + i
+	}
+
 	return &NonceManagerV2{
-		noncePool: make(map[string]chan uint64),
+		noncePool: pool,
 		client:    client,
-	}
+		wallet:    wallet,
+	}, nil
 }
 
-func (m *NonceManagerV2) GetNonce(ctx context.Context, address string) (uint64, error) {
+func (m *NonceManagerV2) GetNonce() uint64 {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	if _, ok := m.noncePool[address]; !ok {
-		m.noncePool[address] = make(chan uint64, poolSize)
-		if err := m.unsafeInitPool(ctx, address); err != nil {
-			return 0, fmt.Errorf("failed to refill nonce pool: %w", err)
-		}
+	if len(m.noncePool) < minimumNoncePoolSize {
+		m.fillPool()
 	}
 
-	if len(m.noncePool[address]) < minimumNoncePoolSize {
-		m.unsafeFillPool(address)
-	}
-
-	nonce := <-m.noncePool[address]
-	return nonce, nil
+	nonce := <-m.noncePool
+	return nonce
 }
 
-func (m *NonceManagerV2) Reset(ctx context.Context, address string) error {
+func (m *NonceManagerV2) Reset(ctx context.Context) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	return m.unsafeInitPool(ctx, address)
-}
 
-func (m *NonceManagerV2) unsafeFillPool(address string) {
-	nonce := <-m.noncePool[address]
-	for i := 0; i < poolSize-len(m.noncePool[address]); i++ {
-		m.noncePool[address] <- nonce + uint64(i)
-	}
-}
-
-func (m *NonceManagerV2) unsafeInitPool(ctx context.Context, address string) error {
-	currentNonce, err := utils.GetNonceFromPk(ctx, address, m.client)
+	currentNonce, err := utils.GetNonceFromPk(ctx, m.wallet, m.client)
 	if err != nil {
 		return err
 	}
 
-	m.unsafeFlushPool(address)
+	m.flushPool()
+
 	for i := uint64(0); i < poolSize; i++ {
-		m.noncePool[address] <- currentNonce + i
+		m.noncePool <- currentNonce + i
 	}
 	return nil
 }
 
-func (m *NonceManagerV2) unsafeFlushPool(address string) {
-	if pool, exists := m.noncePool[address]; exists {
-		for len(pool) > 0 {
-			<-pool
-		}
+func (m *NonceManagerV2) fillPool() {
+	nonce := <-m.noncePool
+	for i := 0; i < poolSize-len(m.noncePool); i++ {
+		m.noncePool <- nonce + uint64(i)
+	}
+}
+
+func (m *NonceManagerV2) flushPool() {
+	for len(m.noncePool) > 0 {
+		<-m.noncePool
 	}
 }

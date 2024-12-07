@@ -83,7 +83,10 @@ func NewChainHelper(ctx context.Context, opts ...ChainHelperOption) (*ChainHelpe
 
 	wallet := strings.TrimPrefix(config.ReporterPk, "0x")
 
-	nonceManager := noncemanagerv2.New(primaryClient)
+	nonceManager, err := noncemanagerv2.New(ctx, primaryClient, wallet)
+	if err != nil {
+		return nil, err
+	}
 
 	delegatorUrl := os.Getenv(EnvDelegatorUrl)
 
@@ -184,10 +187,7 @@ func (t *ChainHelper) PublicAddressString() (string, error) {
 }
 
 func (t *ChainHelper) SubmitDelegatedFallbackDirect(ctx context.Context, contractAddress, functionString string, args ...interface{}) error {
-	nonce, err := t.noncemanager.GetNonce(ctx, t.wallet)
-	if err != nil {
-		return err
-	}
+	nonce := t.noncemanager.GetNonce()
 	log.Debug().Uint64("nonce", nonce).Msg("nonce")
 
 	tx, err := utils.MakeFeeDelegatedTx(ctx, t.client, contractAddress, t.wallet, functionString, t.chainID, nonce, args...)
@@ -218,5 +218,5 @@ func (t *ChainHelper) SubmitDirect(ctx context.Context, contractAddress, functio
 }
 
 func (t *ChainHelper) FlushNoncePool(ctx context.Context) error {
-	return t.noncemanager.Reset(ctx, t.wallet)
+	return t.noncemanager.Reset(ctx)
 }
