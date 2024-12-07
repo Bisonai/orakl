@@ -7,15 +7,17 @@ import (
 	"time"
 
 	"bisonai.com/miko/node/pkg/chain/eth_client"
+	"bisonai.com/miko/node/pkg/chain/noncemanagerv2"
 	"bisonai.com/miko/node/pkg/chain/utils"
 	"github.com/klaytn/klaytn/client"
 )
 
 type ChainHelper struct {
-	clients      []utils.ClientInterface
+	client       utils.ClientInterface
 	wallet       string
 	chainID      *big.Int
 	delegatorUrl string
+	noncemanager *noncemanagerv2.NonceManagerV2
 }
 
 type ChainHelperConfig struct {
@@ -42,12 +44,6 @@ func WithReporterPk(pk string) ChainHelperOption {
 func WithBlockchainType(t BlockchainType) ChainHelperOption {
 	return func(c *ChainHelperConfig) {
 		c.BlockchainType = t
-	}
-}
-
-func WithoutAdditionalProviderUrls() ChainHelperOption {
-	return func(c *ChainHelperConfig) {
-		c.UseAdditionalProviderUrls = false
 	}
 }
 

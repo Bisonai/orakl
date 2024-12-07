@@ -19,7 +19,7 @@ func testContractFeeDelegatedCall(ctx context.Context, contractAddress string, c
 		return err
 	}
 
-	return kaiaHelper.SubmitDelegatedFallbackDirect(ctx, contractAddress, contractFunction, maxTxSubmissionRetries, args...)
+	return kaiaHelper.SubmitDelegatedFallbackDirect(ctx, contractAddress, contractFunction, args...)
 }
 
 func main() {

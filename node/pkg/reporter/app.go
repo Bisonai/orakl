@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"sync"
+	"time"
 
 	"bisonai.com/miko/node/pkg/chain/helper"
 	errorSentinel "bisonai.com/miko/node/pkg/error"
@@ -50,7 +51,7 @@ func (a *App) setReporters(ctx context.Context) error {
 		return errorSentinel.ErrReporterSubmissionProxyContractNotFound
 	}
 
-	chainHelper, err := helper.NewChainHelper(ctx, helper.WithoutAdditionalProviderUrls())
+	chainHelper, err := helper.NewChainHelper(ctx)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to create chain helper")
 		return err
@@ -123,6 +124,7 @@ func (a *App) startReporters(ctx context.Context) {
 
 	for _, reporter := range a.Reporters {
 		go reporter.Run(ctx)
+		time.Sleep(2 * time.Second) // sleep for less concurrency
 	}
 }
 

@@ -136,7 +136,7 @@ func (r *Reporter) report(ctx context.Context, pairs map[string]SubmissionData) 
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			err := r.KaiaHelper.SubmitDelegatedFallbackDirect(ctx, r.contractAddress, SUBMIT_WITH_PROOFS, maxTxSubmissionRetries, batchFeedHashes, batchValues, batchTimestamps, batchProofs)
+			err := r.KaiaHelper.SubmitDelegatedFallbackDirect(ctx, r.contractAddress, SUBMIT_WITH_PROOFS, batchFeedHashes, batchValues, batchTimestamps, batchProofs)
 			if err != nil {
 				errorsChan <- err
 			}

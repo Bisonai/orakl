@@ -75,7 +75,6 @@ func New(ctx context.Context) (*App, error) {
 		helper.WithBlockchainType(helper.Kaia),
 		helper.WithReporterPk(porReporterPk),
 		helper.WithProviderUrl(providerUrl),
-		helper.WithoutAdditionalProviderUrls(),
 	)
 	if err != nil {
 		return nil, err

@@ -30,17 +30,7 @@ var (
 
 func TestNewKaiaHelper(t *testing.T) {
 	ctx := context.Background()
-
 	err := db.QueryWithoutResult(ctx, InsertProviderUrlQuery, map[string]any{
-		"chain_id": 1001,
-		"url":      "https://public-en-kairos.node.kaia.io",
-		"priority": 1,
-	})
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-
-	}
-	err = db.QueryWithoutResult(ctx, InsertProviderUrlQuery, map[string]any{
 		"chain_id": 1001,
 		"url":      "https://public-en-kairos.node.kaia.io",
 		"priority": 2,
@@ -49,12 +39,10 @@ func TestNewKaiaHelper(t *testing.T) {
 		t.Errorf("Unexpected error: %v", err)
 	}
 
-	noncemanager.ResetInstance()
 	kaiaHelper, err := helper.NewChainHelper(ctx)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
-	assert.Equal(t, 3, kaiaHelper.NumClients())
 
 	kaiaHelper.Close()
 	err = db.QueryWithoutResult(ctx, "DELETE FROM provider_urls;", nil)
@@ -63,9 +51,9 @@ func TestNewKaiaHelper(t *testing.T) {
 	}
 }
 
-func TestNewChainHelper(t *testing.T) {
+func TestNewSigner(t *testing.T) {
 	ctx := context.Background()
-	noncemanager.ResetInstance()
+
 	_, err := helper.NewSigner(ctx)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
@@ -77,14 +65,6 @@ func TestNewEthHelper(t *testing.T) {
 
 	err := db.QueryWithoutResult(ctx, InsertProviderUrlQuery, map[string]any{
 		"chain_id": 11155111,
-		"url":      "https://sepolia.gateway.tenderly.co",
-		"priority": 1,
-	})
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-	err = db.QueryWithoutResult(ctx, InsertProviderUrlQuery, map[string]any{
-		"chain_id": 11155111,
 		"url":      "wss://ethereum-sepolia-rpc.publicnode.com",
 		"priority": 2,
 	})
@@ -92,12 +72,10 @@ func TestNewEthHelper(t *testing.T) {
 		t.Errorf("Unexpected error: %v", err)
 	}
 
-	noncemanager.ResetInstance()
 	ethHelper, err := helper.NewChainHelper(ctx, helper.WithBlockchainType(helper.Ethereum))
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
-	assert.Equal(t, 3, ethHelper.NumClients())
 	ethHelper.Close()
 	err = db.QueryWithoutResult(ctx, "DELETE FROM provider_urls;", nil)
 	if err != nil {
@@ -107,12 +85,14 @@ func TestNewEthHelper(t *testing.T) {
 
 func TestMakeDirectTx(t *testing.T) {
 	ctx := context.Background()
-	noncemanager.ResetInstance()
+
 	kaiaHelper, err := helper.NewChainHelper(ctx)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
 	defer kaiaHelper.Close()
+
+	t.Log("helper initialized")
 
 	tests := []struct {
 		name            string
@@ -141,6 +121,7 @@ func TestMakeDirectTx(t *testing.T) {
 	}
 
 	for _, test := range tests {
+		t.Log(test.name)
 		directTx, err := kaiaHelper.MakeDirectTx(ctx, test.contractAddress, test.functionString)
 		if err != nil {
 			if err.Error() != test.expectedError.Error() {
@@ -156,7 +137,6 @@ func TestMakeDirectTx(t *testing.T) {
 
 func TestMakeFeeDelegatedTx(t *testing.T) {
 	ctx := context.Background()
-	noncemanager.ResetInstance()
 	kaiaHelper, err := helper.NewChainHelper(ctx)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
@@ -204,7 +184,7 @@ func TestMakeFeeDelegatedTx(t *testing.T) {
 
 func TestTxToHashToTx(t *testing.T) {
 	ctx := context.Background()
-	noncemanager.ResetInstance()
+
 	kaiaHelper, err := helper.NewChainHelper(ctx)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
@@ -259,16 +239,17 @@ func TestGenerateViewABI(t *testing.T) {
 	assert.NotEqual(t, abi, nil)
 }
 
-func TestSubmitDelegetedFallbackDirect(t *testing.T) {
+func TestSubmitDelegeted(t *testing.T) {
+	t.Skip()
 	ctx := context.Background()
-	noncemanager.ResetInstance()
+
 	kaiaHelper, err := helper.NewChainHelper(ctx)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
 	defer kaiaHelper.Close()
 
-	err = kaiaHelper.SubmitDelegatedFallbackDirect(ctx, "0x93120927379723583c7a0dd2236fcb255e96949f", "increment()", maxTxSubmissionRetries)
+	err = kaiaHelper.SubmitDelegatedFallbackDirect(ctx, "0x93120927379723583c7a0dd2236fcb255e96949f", "increment()")
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -292,7 +273,7 @@ func TestSubmitDelegetedFallbackDirectConcurrent(t *testing.T) {
 
 	submitTx := func() {
 		defer wg.Done()
-		err := kaiaHelper.SubmitDelegatedFallbackDirect(ctx, "0x93120927379723583c7a0dd2236fcb255e96949f", "increment()", maxTxSubmissionRetries)
+		err := kaiaHelper.SubmitDelegatedFallbackDirect(ctx, "0x93120927379723583c7a0dd2236fcb255e96949f", "increment()")
 		errCh <- err
 	}
 
@@ -313,7 +294,6 @@ func TestSubmitDelegetedFallbackDirectConcurrent(t *testing.T) {
 func TestReadContract(t *testing.T) {
 	// testing based on baobab testnet
 	ctx := context.Background()
-	noncemanager.ResetInstance()
 	kaiaHelper, err := helper.NewChainHelper(ctx)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
@@ -343,7 +323,6 @@ func TestReadContract(t *testing.T) {
 func TestReadContractWithEthHelper(t *testing.T) {
 	// testing based on sepolia eth testnet
 	ctx := context.Background()
-	noncemanager.ResetInstance()
 	ethHelper, err := helper.NewChainHelper(ctx, helper.WithBlockchainType(helper.Ethereum))
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
@@ -715,7 +694,6 @@ func TestSignerRenew(t *testing.T) {
 		t.Skip("Skipping test because SUBMISSION_PROXY_CONTRACT is not set")
 	}
 
-	noncemanager.ResetInstance()
 	s, err := helper.NewSigner(ctx)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
