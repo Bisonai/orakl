@@ -84,7 +84,6 @@ func NewChainHelper(ctx context.Context, opts ...ChainHelperOption) (*ChainHelpe
 	wallet := strings.TrimPrefix(config.ReporterPk, "0x")
 
 	nonceManager := noncemanagerv2.New(primaryClient)
-	go nonceManager.StartAutoRefill(ctx)
 
 	delegatorUrl := os.Getenv(EnvDelegatorUrl)
 
@@ -219,5 +218,5 @@ func (t *ChainHelper) SubmitDirect(ctx context.Context, contractAddress, functio
 }
 
 func (t *ChainHelper) FlushNoncePool(ctx context.Context) error {
-	return t.noncemanager.Refill(ctx, t.wallet)
+	return t.noncemanager.Reset(ctx, t.wallet)
 }

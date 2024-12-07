@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"bisonai.com/miko/node/pkg/chain/utils"
-	"github.com/rs/zerolog/log"
 )
 
 type NonceManagerV2 struct {
@@ -17,8 +16,8 @@ type NonceManagerV2 struct {
 }
 
 const (
-	poolSize               = 15 // expect maximum 15 submission per minute
-	minimumNoncePoolSize   = 3
+	poolSize               = 30 // expect maximum 15 submission per minute
+	minimumNoncePoolSize   = 5
 	poolAutoRefillInterval = time.Minute
 )
 
@@ -35,25 +34,33 @@ func (m *NonceManagerV2) GetNonce(ctx context.Context, address string) (uint64, 
 
 	if _, ok := m.noncePool[address]; !ok {
 		m.noncePool[address] = make(chan uint64, poolSize)
+		if err := m.unsafeInitPool(ctx, address); err != nil {
+			return 0, fmt.Errorf("failed to refill nonce pool: %w", err)
+		}
 	}
 
 	if len(m.noncePool[address]) < minimumNoncePoolSize {
-		if err := m.unsafeRefill(ctx, address); err != nil {
-			return 0, fmt.Errorf("failed to refill nonce pool: %w", err)
-		}
+		m.unsafeFillPool(address)
 	}
 
 	nonce := <-m.noncePool[address]
 	return nonce, nil
 }
 
-func (m *NonceManagerV2) Refill(ctx context.Context, address string) error {
+func (m *NonceManagerV2) Reset(ctx context.Context, address string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	return m.unsafeRefill(ctx, address)
+	return m.unsafeInitPool(ctx, address)
 }
 
-func (m *NonceManagerV2) unsafeRefill(ctx context.Context, address string) error {
+func (m *NonceManagerV2) unsafeFillPool(address string) {
+	nonce := <-m.noncePool[address]
+	for i := 0; i < poolSize-len(m.noncePool[address]); i++ {
+		m.noncePool[address] <- nonce + uint64(i)
+	}
+}
+
+func (m *NonceManagerV2) unsafeInitPool(ctx context.Context, address string) error {
 	currentNonce, err := utils.GetNonceFromPk(ctx, address, m.client)
 	if err != nil {
 		return err
@@ -70,32 +77,6 @@ func (m *NonceManagerV2) unsafeFlushPool(address string) {
 	if pool, exists := m.noncePool[address]; exists {
 		for len(pool) > 0 {
 			<-pool
-		}
-	}
-}
-
-func (m *NonceManagerV2) refillAll(ctx context.Context) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	for address := range m.noncePool {
-		if err := m.unsafeRefill(ctx, address); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (m *NonceManagerV2) StartAutoRefill(ctx context.Context) {
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-time.After(poolAutoRefillInterval):
-			err := m.refillAll(ctx)
-			if err != nil {
-				log.Error().Err(err).Msg("Failed to refill nonce pool")
-			}
 		}
 	}
 }
