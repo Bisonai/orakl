@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"sync"
-	"time"
 
 	"bisonai.com/miko/node/pkg/chain/utils"
 )
@@ -17,9 +16,8 @@ type NonceManagerV2 struct {
 }
 
 const (
-	poolSize               = 100
-	minimumNoncePoolSize   = 10
-	poolAutoRefillInterval = time.Minute
+	poolSize             = 100
+	minimumNoncePoolSize = 10
 )
 
 func New(ctx context.Context, client utils.ClientInterface, wallet string) (*NonceManagerV2, error) {
