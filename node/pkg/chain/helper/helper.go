@@ -87,9 +87,6 @@ func NewChainHelper(ctx context.Context, opts ...ChainHelperOption) (*ChainHelpe
 	go nonceManager.StartAutoRefill(ctx)
 
 	delegatorUrl := os.Getenv(EnvDelegatorUrl)
-	if delegatorUrl == "" {
-		log.Warn().Msg("delegator url not set")
-	}
 
 	return &ChainHelper{
 		client:       primaryClient,
@@ -192,6 +189,8 @@ func (t *ChainHelper) SubmitDelegatedFallbackDirect(ctx context.Context, contrac
 	if err != nil {
 		return err
 	}
+
+	log.Debug().Int("nonce", int(nonce)).Msg("nonce")
 
 	tx, err := utils.MakeFeeDelegatedTx(ctx, t.client, contractAddress, t.wallet, functionString, t.chainID, nonce, args...)
 	if err != nil {

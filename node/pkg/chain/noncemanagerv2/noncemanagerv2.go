@@ -35,10 +35,8 @@ func (m *NonceManagerV2) GetNonce(ctx context.Context, address string) (uint64, 
 
 	if _, ok := m.noncePool[address]; !ok {
 		m.noncePool[address] = make(chan uint64, 30)
-		if err := m.unsafeRefill(ctx, address); err != nil {
-			return 0, err
-		}
 	}
+
 	if len(m.noncePool[address]) < minimumNoncePoolSize {
 		if err := m.unsafeRefill(ctx, address); err != nil {
 			return 0, fmt.Errorf("failed to refill nonce pool: %w", err)
