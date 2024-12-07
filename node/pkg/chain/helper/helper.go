@@ -189,8 +189,7 @@ func (t *ChainHelper) SubmitDelegatedFallbackDirect(ctx context.Context, contrac
 	if err != nil {
 		return err
 	}
-
-	log.Debug().Int("nonce", int(nonce)).Msg("nonce")
+	log.Debug().Uint64("nonce", nonce).Msg("nonce")
 
 	tx, err := utils.MakeFeeDelegatedTx(ctx, t.client, contractAddress, t.wallet, functionString, t.chainID, nonce, args...)
 	if err != nil {
