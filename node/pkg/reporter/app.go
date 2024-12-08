@@ -50,7 +50,7 @@ func (a *App) setReporters(ctx context.Context) error {
 		return errorSentinel.ErrReporterSubmissionProxyContractNotFound
 	}
 
-	chainHelper, err := helper.NewChainHelper(ctx, helper.WithoutAdditionalProviderUrls())
+	chainHelper, err := helper.NewChainHelper(ctx)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to create chain helper")
 		return err

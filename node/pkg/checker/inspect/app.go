@@ -96,7 +96,7 @@ func Setup(ctx context.Context) (*Inspector, error) {
 		return nil, errors.New("missing INSPECT_CONSUMER_ADDRESS")
 	}
 
-	chainHelper, err := helper.NewChainHelper(ctx, helper.WithReporterPk(pk), helper.WithoutAdditionalProviderUrls())
+	chainHelper, err := helper.NewChainHelper(ctx, helper.WithReporterPk(pk))
 	if err != nil {
 		return nil, err
 	}

@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"bisonai.com/miko/node/pkg/chain/utils"
 	errorSentinel "bisonai.com/miko/node/pkg/error"
 
 	"github.com/rs/zerolog/log"
@@ -136,7 +137,7 @@ func (r *Reporter) report(ctx context.Context, pairs map[string]SubmissionData) 
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			err := r.KaiaHelper.SubmitDelegatedFallbackDirect(ctx, r.contractAddress, SUBMIT_WITH_PROOFS, maxTxSubmissionRetries, batchFeedHashes, batchValues, batchTimestamps, batchProofs)
+			err := r.KaiaHelper.SubmitDelegatedFallbackDirect(ctx, r.contractAddress, SUBMIT_WITH_PROOFS, batchFeedHashes, batchValues, batchTimestamps, batchProofs)
 			if err != nil {
 				errorsChan <- err
 			}
@@ -145,11 +146,17 @@ func (r *Reporter) report(ctx context.Context, pairs map[string]SubmissionData) 
 	wg.Wait()
 	close(errorsChan)
 
+	isNonceErrorIncluded := false
+
 	for err := range errorsChan {
 		tmp := []error{}
 		tmp = append(tmp, err)
 		if len(tmp) > 0 {
 			return mergeErrors(tmp)
+		}
+
+		if utils.IsNonceError(err) {
+			isNonceErrorIncluded = true
 		}
 	}
 
@@ -158,6 +165,10 @@ func (r *Reporter) report(ctx context.Context, pairs map[string]SubmissionData) 
 	}
 
 	log.Debug().Str("Player", "Reporter").Msgf("reporting done for reporter with interval: %v", r.SubmissionInterval)
+
+	if isNonceErrorIncluded {
+		return r.KaiaHelper.FlushNoncePool(ctx)
+	}
 
 	return nil
 }
