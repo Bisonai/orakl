@@ -146,7 +146,7 @@ func (r *Reporter) report(ctx context.Context, pairs map[string]SubmissionData) 
 	wg.Wait()
 	close(errorsChan)
 
-	isNonceErrorIncluded := false
+	shouldRefreshNonce := false
 
 	for err := range errorsChan {
 		tmp := []error{}
@@ -155,8 +155,8 @@ func (r *Reporter) report(ctx context.Context, pairs map[string]SubmissionData) 
 			return mergeErrors(tmp)
 		}
 
-		if utils.IsNonceError(err) {
-			isNonceErrorIncluded = true
+		if utils.IsNonceError(err) || errors.Is(err, context.DeadlineExceeded) {
+			shouldRefreshNonce = true
 		}
 	}
 
@@ -166,7 +166,7 @@ func (r *Reporter) report(ctx context.Context, pairs map[string]SubmissionData) 
 
 	log.Debug().Str("Player", "Reporter").Msgf("reporting done for reporter with interval: %v", r.SubmissionInterval)
 
-	if isNonceErrorIncluded {
+	if shouldRefreshNonce {
 		return r.KaiaHelper.FlushNoncePool(ctx)
 	}
 
