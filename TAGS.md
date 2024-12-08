@@ -283,3 +283,4 @@
 - **sentinel** v0.0.1.20241122.0446.86dbb99 <br> *`PR`*: Sentinel Remove ws delay check... <br><br> 
 - **sentinel** v0.0.1.20241127.0150.cf6be1b <br> *`PR`*: Sentinel DAL rest network dela... <br><br> 
 - **node** v0.0.1.20241128.0230.5c56212 <br> *`PR`*: Chore Add log <br><br> 
+- **reporter** v0.0.1.20241208.0239.da98ae7 <br> *`PR`*: ChainHelper reduce complexity ... <br><br> 
