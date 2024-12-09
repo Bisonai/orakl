@@ -194,6 +194,7 @@ on:
           - node:v0.0.1.20241128.0230.5c56212:Chore Add log
           - reporter:v0.0.1.20241208.0239.da98ae7:ChainHelper reduce complexity ...
           - reporter:v0.0.1.20241209.0109.372d616:Reporter Refresh nonce on cont...
+          - reporter:v0.0.1.20241209.0531.563bd73:Reporter log on reporter error
 jobs:
   prepare-taskflow:
     name: Prepare

@@ -285,3 +285,4 @@
 - **node** v0.0.1.20241128.0230.5c56212 <br> *`PR`*: Chore Add log <br><br> 
 - **reporter** v0.0.1.20241208.0239.da98ae7 <br> *`PR`*: ChainHelper reduce complexity ... <br><br> 
 - **reporter** v0.0.1.20241209.0109.372d616 <br> *`PR`*: Reporter Refresh nonce on cont... <br><br> 
+- **reporter** v0.0.1.20241209.0531.563bd73 <br> *`PR`*: Reporter log on reporter error <br><br> 
