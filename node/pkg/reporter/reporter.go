@@ -156,6 +156,7 @@ func (r *Reporter) report(ctx context.Context, pairs map[string]SubmissionData) 
 		}
 
 		if utils.IsNonceError(err) || errors.Is(err, context.DeadlineExceeded) {
+			log.Debug().Err(err).Str("Player", "Reporter").Msg("should refresh nonce")
 			shouldRefreshNonce = true
 		}
 	}
@@ -164,11 +165,12 @@ func (r *Reporter) report(ctx context.Context, pairs map[string]SubmissionData) 
 		r.LatestSubmittedDataMap.Store(pair, values[i].Int64())
 	}
 
-	log.Debug().Str("Player", "Reporter").Msgf("reporting done for reporter with interval: %v", r.SubmissionInterval)
-
 	if shouldRefreshNonce {
+		log.Debug().Str("Player", "Reporter").Msg("refreshing nonce pool")
 		return r.KaiaHelper.FlushNoncePool(ctx)
 	}
+
+	log.Debug().Str("Player", "Reporter").Msgf("reporting done for reporter with interval: %v", r.SubmissionInterval)
 
 	return nil
 }
