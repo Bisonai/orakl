@@ -286,3 +286,4 @@
 - **reporter** v0.0.1.20241208.0239.da98ae7 <br> *`PR`*: ChainHelper reduce complexity ... <br><br> 
 - **reporter** v0.0.1.20241209.0109.372d616 <br> *`PR`*: Reporter Refresh nonce on cont... <br><br> 
 - **reporter** v0.0.1.20241209.0531.563bd73 <br> *`PR`*: Reporter log on reporter error <br><br> 
+- **reporter** v0.0.1.20241209.0816.d4bbdc0 <br> *`PR`*: Reporter Fix refresh nonce not... <br><br> 
