@@ -148,13 +148,9 @@ func (r *Reporter) report(ctx context.Context, pairs map[string]SubmissionData) 
 
 	shouldRefreshNonce := false
 
+	tmp := []error{}
 	for err := range errorsChan {
-		tmp := []error{}
 		tmp = append(tmp, err)
-		if len(tmp) > 0 {
-			return mergeErrors(tmp)
-		}
-
 		if utils.IsNonceError(err) || errors.Is(err, context.DeadlineExceeded) {
 			log.Debug().Err(err).Str("Player", "Reporter").Msg("should refresh nonce")
 			shouldRefreshNonce = true
@@ -168,6 +164,10 @@ func (r *Reporter) report(ctx context.Context, pairs map[string]SubmissionData) 
 	if shouldRefreshNonce {
 		log.Debug().Str("Player", "Reporter").Msg("refreshing nonce pool")
 		return r.KaiaHelper.FlushNoncePool(ctx)
+	}
+
+	if len(tmp) > 0 {
+		return mergeErrors(tmp)
 	}
 
 	log.Debug().Str("Player", "Reporter").Msgf("reporting done for reporter with interval: %v", r.SubmissionInterval)
