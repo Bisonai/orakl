@@ -214,8 +214,6 @@ func (c *Collector) processIncomingData(ctx context.Context, data *aggregator.Su
 	case <-ctx.Done():
 		return
 	default:
-		log.Debug().Any("data", data).Str("Player", "DalCollector").Msg("received data")
-
 		valid := c.compareAndSwapLatestTimestamp(data)
 		if !valid {
 			log.Debug().Str("Player", "DalCollector").Str("Symbol", data.Symbol).Msg("old data recieved")
