@@ -289,3 +289,4 @@
 - **reporter** v0.0.1.20241209.0816.d4bbdc0 <br> *`PR`*: Reporter Fix refresh nonce not... <br><br> 
 - **dal** v0.0.1.20241210.0815.4e13ee6 <br> *`PR`*: DAL Hotfix addr comparison <br><br> 
 - **dal** v0.0.1.20241210.0828.235e2b5 <br> *`PR`*: more logs <br><br> 
+- **dal** v0.0.1.20241210.0835.a3be57c <br> *`PR`*: more logs <br><br> 
