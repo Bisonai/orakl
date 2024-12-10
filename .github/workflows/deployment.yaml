@@ -196,6 +196,7 @@ on:
           - reporter:v0.0.1.20241209.0109.372d616:Reporter Refresh nonce on cont...
           - reporter:v0.0.1.20241209.0531.563bd73:Reporter log on reporter error
           - reporter:v0.0.1.20241209.0816.d4bbdc0:Reporter Fix refresh nonce not...
+          - dal:v0.0.1.20241210.0815.4e13ee6:DAL Hotfix addr comparison
 jobs:
   prepare-taskflow:
     name: Prepare

@@ -287,3 +287,4 @@
 - **reporter** v0.0.1.20241209.0109.372d616 <br> *`PR`*: Reporter Refresh nonce on cont... <br><br> 
 - **reporter** v0.0.1.20241209.0531.563bd73 <br> *`PR`*: Reporter log on reporter error <br><br> 
 - **reporter** v0.0.1.20241209.0816.d4bbdc0 <br> *`PR`*: Reporter Fix refresh nonce not... <br><br> 
+- **dal** v0.0.1.20241210.0815.4e13ee6 <br> *`PR`*: DAL Hotfix addr comparison <br><br> 
