@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"strings"
 	"time"
 
 	"bisonai.com/miko/node/pkg/chain/websocketchainreader"
