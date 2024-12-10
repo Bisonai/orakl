@@ -156,7 +156,7 @@ func getSignerListFromProofs(hash []byte, proofChunks [][]byte) ([]klaytncommon.
 func checkForNonWhitelistedSigners(signers []klaytncommon.Address, whitelist []klaytncommon.Address) error {
 	for _, signer := range signers {
 		if !isWhitelisted(signer, whitelist) {
-			log.Error().Str("Player", "DAL").Any("signers", signers).Str("signer", signer.Hex()).Msg("non-whitelisted signer")
+			log.Error().Str("Player", "DAL").Any("signers", signers).Any("signer", signer).Msg("non-whitelisted signer")
 			return errorsentinel.ErrDalSignerNotWhitelisted
 		}
 	}
@@ -165,7 +165,7 @@ func checkForNonWhitelistedSigners(signers []klaytncommon.Address, whitelist []k
 
 func isWhitelisted(signer klaytncommon.Address, whitelist []klaytncommon.Address) bool {
 	for _, w := range whitelist {
-		if strings.EqualFold(w.Hex(), signer.Hex()) {
+		if w == signer {
 			return true
 		}
 	}
