@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"strings"
 	"time"
 
 	"bisonai.com/miko/node/pkg/chain/websocketchainreader"
@@ -164,7 +165,7 @@ func checkForNonWhitelistedSigners(signers []klaytncommon.Address, whitelist []k
 
 func isWhitelisted(signer klaytncommon.Address, whitelist []klaytncommon.Address) bool {
 	for _, w := range whitelist {
-		if w == signer {
+		if strings.EqualFold(w.Hex(), signer.Hex()) {
 			return true
 		}
 	}
