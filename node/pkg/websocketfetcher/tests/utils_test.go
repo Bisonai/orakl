@@ -489,46 +489,39 @@ func TestMessageToStruct(t *testing.T) {
 
 	t.Run("TestMessageToStructCoinex", func(t *testing.T) {
 		jsonStr := `{
-			"method": "state.update",
-			"params": [
-			  {
-				"BTCUSDT": {
-				  "open": "68217.41",
-				  "last": "67649.41",
-				  "high": "69037.30",
-				  "low": "66678.34",
-				  "deal": "12707367.97477132400000000000",
-				  "volume": "187.73201806",
-				  "sell_total": "4.47703848",
-				  "buy_total": "2.37157686",
-				  "period": 86400
-				},
-				"ETHUSDT": {
-				  "open": "3781.50",
-				  "last": "3786.55",
-				  "high": "3844.89",
-				  "low": "3725.78",
-				  "deal": "5307095.72019325730000000000",
-				  "volume": "1402.85217886",
-				  "sell_total": "68.74665541",
-				  "buy_total": "76.70077360",
-				  "period": 86400
-				},
-				"MATICUSDT": {
-				  "open": "0.6971",
-				  "last": "0.6975",
-				  "high": "0.709000000000",
-				  "low": "0.6832",
-				  "deal": "184896.63142549148200000000",
-				  "volume": "265725.85573677",
-				  "sell_total": "8251.71403154",
-				  "buy_total": "8521.89898481",
-				  "period": 86400
-				}
-			  }
-			],
-			"id": null
-		  }`
+    "method": "state.update",
+    "data": {
+        "state_list": [
+            {
+                "market": "LATUSDT",
+                "last": "0.008157",
+                "open": "0.008286",
+                "close": "0.008157",
+                "high": "0.008390",
+                "low": "0.008106",
+                "volume": "807714.49139758",
+                "volume_sell": "286170.69645599",
+                "volume_buy": "266161.23236408",
+                "value": "6689.21644207",
+                "period": 86400
+            },
+            {
+                "market": "ELONUSDT",
+                "last": "0.000000152823",
+                "open": "0.000000158650",
+                "close": "0.000000152823",
+                "high": "0.000000159474",
+                "low": "0.000000147026",
+                "volume": "88014042237.15",
+                "volume_sell": "11455578769.13",
+                "volume_buy": "17047669612.10",
+                "value": "13345.65122447",
+                "period": 86400
+            }
+        ]
+    },
+    "id": null
+}`
 		var txResult map[string]any
 		err := json.Unmarshal([]byte(jsonStr), &txResult)
 		if err != nil {
@@ -541,7 +534,7 @@ func TestMessageToStruct(t *testing.T) {
 		}
 
 		assert.Equal(t, "state.update", txData.Method)
-		assert.Equal(t, "67649.41", txData.Params[0]["BTCUSDT"].Last)
+		assert.Equal(t, "0.008157", txData.Data.StateList[0].Last)
 	})
 
 	t.Run("TestMessageToStructBitstamp", func(t *testing.T) {

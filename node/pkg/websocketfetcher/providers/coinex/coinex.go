@@ -2,10 +2,12 @@ package coinex
 
 import (
 	"context"
+	"encoding/json"
 
 	"bisonai.com/miko/node/pkg/websocketfetcher/common"
 	"bisonai.com/miko/node/pkg/wss"
 	"github.com/rs/zerolog/log"
+	"nhooyr.io/websocket"
 )
 
 type CoinexFetcher common.Fetcher
@@ -28,14 +30,18 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 
 	subscription := Subscription{
 		Method: "state.subscribe",
-		Params: params,
-		ID:     1,
+		Params: SubscribeParams{
+			MarketList: params,
+		},
+		ID: 1,
 	}
 
 	ws, err := wss.NewWebsocketHelper(ctx,
 		wss.WithEndpoint(URL),
 		wss.WithSubscriptions([]any{subscription}),
-		wss.WithProxyUrl(config.Proxy))
+		wss.WithProxyUrl(config.Proxy),
+		wss.WithCustomReadFunc(fetcher.customReadFunc),
+	)
 	if err != nil {
 		log.Error().Str("Player", "Coinex").Err(err).Msg("error in coinex.New")
 		return nil, err
@@ -68,4 +74,27 @@ func (f *CoinexFetcher) handleMessage(ctx context.Context, message map[string]an
 
 func (f *CoinexFetcher) Run(ctx context.Context) {
 	f.Ws.Run(ctx, f.handleMessage)
+}
+
+func (f *CoinexFetcher) customReadFunc(ctx context.Context, conn *websocket.Conn) (map[string]interface{}, error) {
+	var result map[string]interface{}
+	_, data, err := conn.Read(ctx)
+	if err != nil {
+		log.Error().Str("Player", "coinex").Err(err).Msg("error in coinex.customReadFunc, failed to read from websocket")
+		return nil, err
+	}
+
+	decompressed, err := common.DecompressGzip(data)
+	if err != nil {
+		log.Error().Str("Player", "coinex").Err(err).Msg("error in coinex.customReadFunc, failed to decompress data")
+		return nil, err
+	}
+
+	err = json.Unmarshal(decompressed, &result)
+	if err != nil {
+		log.Error().Str("Player", "coinex").Err(err).Msg("error in coinex.customReadFunc, failed to unmarshal data")
+		return nil, err
+	}
+
+	return result, nil
 }
