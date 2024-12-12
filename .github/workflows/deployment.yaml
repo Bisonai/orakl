@@ -199,6 +199,7 @@ on:
           - dal:v0.0.1.20241210.0815.4e13ee6:DAL Hotfix addr comparison
           - dal:v0.0.1.20241210.0828.235e2b5:more logs
           - dal:v0.0.1.20241210.0835.a3be57c:more logs
+          - node:v0.0.1.20241212.0915.28f78c5:Migrate to coinex v2
 jobs:
   prepare-taskflow:
     name: Prepare

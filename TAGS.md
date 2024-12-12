@@ -290,3 +290,4 @@
 - **dal** v0.0.1.20241210.0815.4e13ee6 <br> *`PR`*: DAL Hotfix addr comparison <br><br> 
 - **dal** v0.0.1.20241210.0828.235e2b5 <br> *`PR`*: more logs <br><br> 
 - **dal** v0.0.1.20241210.0835.a3be57c <br> *`PR`*: more logs <br><br> 
+- **node** v0.0.1.20241212.0915.28f78c5 <br> *`PR`*: Migrate to coinex v2 <br><br> 
