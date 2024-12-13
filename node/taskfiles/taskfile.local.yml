@@ -25,6 +25,10 @@ tasks:
     dotenv: [".env"]
     cmds:
       - go run ./cmd/dal/main.go
+  dal-build:
+    cmds:
+      - mkdir -p ~/bin
+      - go build -v -o ~/bin/dal ./cmd/dal
   reporter:
     dotenv: [".env"]
     cmds:
