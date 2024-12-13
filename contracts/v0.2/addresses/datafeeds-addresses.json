@@ -868,17 +868,6 @@
       "feed": "0x484f0d4dfa19ba3f47620236b772db8b88122b0f"
     }
   },
-  "MNR-KRW": {
-    "baobab": {
-      "proxy": "0xee085f11e9549325b1122876d2e9e70aa67a7696",
-      "feed": "0x3aff90e71807e68b1c21425f75fba0c46cf0b59e"
-    },
-    "tag": "basic",
-    "cypress": {
-      "proxy": "0x669b00079f1e451d62a2f35bf0f2b377d7f5bde5",
-      "feed": "0x07be342841a01cadcc849f877832369c137e05e2"
-    }
-  },
   "PENDLE-USDT": {
     "baobab": {
       "proxy": "0xaa646db57956afdf685771e4816eb5e3d12a4f18",
