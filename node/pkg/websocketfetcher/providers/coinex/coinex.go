@@ -80,7 +80,7 @@ func (f *CoinexFetcher) customReadFunc(ctx context.Context, conn *websocket.Conn
 	var result map[string]interface{}
 	_, data, err := conn.Read(ctx)
 	if err != nil {
-		log.Error().Str("Player", "coinex").Err(err).Msg("error in coinex.customReadFunc, failed to read from websocket")
+		log.Warn().Str("Player", "coinex").Err(err).Msg("error in coinex.customReadFunc, failed to read from websocket")
 		return nil, err
 	}
 

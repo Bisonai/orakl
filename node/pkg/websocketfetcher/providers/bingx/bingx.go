@@ -92,7 +92,7 @@ func (f *BingxFetcher) customReadFunc(ctx context.Context, conn *websocket.Conn)
 	var result map[string]interface{}
 	_, data, err := conn.Read(ctx)
 	if err != nil {
-		log.Error().Str("Player", "Bingx").Err(err).Msg("error in bingx.customReadFunc, failed to read from websocket")
+		log.Warn().Str("Player", "Bingx").Err(err).Msg("error in bingx.customReadFunc, failed to read from websocket")
 		return nil, err
 	}
 
