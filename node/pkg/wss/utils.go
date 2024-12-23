@@ -53,7 +53,7 @@ func (ws *WebsocketHelper) Dial(ctx context.Context) error {
 	}
 	conn, _, err := dialFunc(ctx, ws.Endpoint, dialOption)
 	if err != nil {
-		log.Error().Err(err).Str("endpoint", ws.Endpoint).Msg("error opening websocket connection")
+		log.Warn().Err(err).Str("endpoint", ws.Endpoint).Msg("error opening websocket connection")
 		return err
 	}
 
