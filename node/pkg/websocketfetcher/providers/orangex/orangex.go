@@ -37,14 +37,14 @@ type TickerResponse struct {
 				Turnover    string `json:"turnover"`
 				High        string `json:"high"`
 			} `json:"stats"`
-			State          string `json:"state"`
-			LastPrice      string `json:"last_price"`
-			InstrumentName string `json:"instrument_name"`
-			MarkPrice      string `json:"mark_price"`
-			BestBidPrice   string `json:"best_bid_price"`
-			BestBidAmount  string `json:"best_bid_amount"`
-			BestAskPrice   string `json:"best_ask_price"`
-			BestAskAmount  string `json:"best_ask_amount"`
+			State          string  `json:"state"`
+			LastPrice      string  `json:"last_price"`
+			InstrumentName string  `json:"instrument_name"`
+			MarkPrice      string  `json:"mark_price"`
+			BestBidPrice   float64 `json:"best_bid_price"`
+			BestBidAmount  float64 `json:"best_bid_amount"`
+			BestAskPrice   float64 `json:"best_ask_price"`
+			BestAskAmount  float64 `json:"best_ask_amount"`
 		} `json:"data"`
 		Channel string `json:"channel"`
 	} `json:"params"`
