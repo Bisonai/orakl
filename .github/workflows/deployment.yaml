@@ -201,6 +201,7 @@ on:
           - dal:v0.0.1.20241210.0835.a3be57c:more logs
           - node:v0.0.1.20241212.0915.28f78c5:Migrate to coinex v2
           - node:v0.0.1.20241223.0235.08b79cd:Node Reduce logs
+          - node:v0.0.1.20241223.0247.5b3e7c5:Node Fix orangex formatting
 jobs:
   prepare-taskflow:
     name: Prepare

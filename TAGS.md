@@ -292,3 +292,4 @@
 - **dal** v0.0.1.20241210.0835.a3be57c <br> *`PR`*: more logs <br><br> 
 - **node** v0.0.1.20241212.0915.28f78c5 <br> *`PR`*: Migrate to coinex v2 <br><br> 
 - **node** v0.0.1.20241223.0235.08b79cd <br> *`PR`*: Node Reduce logs <br><br> 
+- **node** v0.0.1.20241223.0247.5b3e7c5 <br> *`PR`*: Node Fix orangex formatting <br><br> 
