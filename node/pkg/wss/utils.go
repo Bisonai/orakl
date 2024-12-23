@@ -88,7 +88,7 @@ func (ws *WebsocketHelper) Run(ctx context.Context, router func(context.Context,
 	for {
 		err := ws.dialAndSubscribe(ctx)
 		if err != nil {
-			log.Error().Err(err).Str("endpoint", ws.Endpoint).Msg("error dialing and subscribing to websocket")
+			log.Warn().Err(err).Str("endpoint", ws.Endpoint).Msg("error dialing and subscribing to websocket")
 			time.Sleep(time.Second)
 			continue
 		}
