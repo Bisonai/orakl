@@ -36,7 +36,6 @@ type Response struct {
 	MarketState        *string  `json:"ms"`
 	MarketStateForIos  *string  `json:"msfi"`
 	IsTradingSuspended *bool    `json:"its"`
-	DelistingDate      *string  `json:"dd"`
 	MarketWarning      *string  `json:"mw"`
 	Timestamp          int64    `json:"tms"`
 	StreamType         string   `json:"st"`
