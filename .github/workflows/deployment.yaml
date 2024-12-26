@@ -202,6 +202,7 @@ on:
           - node:v0.0.1.20241212.0915.28f78c5:Migrate to coinex v2
           - node:v0.0.1.20241223.0235.08b79cd:Node Reduce logs
           - node:v0.0.1.20241223.0247.5b3e7c5:Node Fix orangex formatting
+          - node:v0.0.1.20241226.0128.1b919e8:Remove upbit ticker dd propert...
 jobs:
   prepare-taskflow:
     name: Prepare
