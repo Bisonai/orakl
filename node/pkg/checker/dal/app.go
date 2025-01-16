@@ -6,11 +6,13 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
 
 	"bisonai.com/miko/node/pkg/alert"
+	"bisonai.com/miko/node/pkg/checker"
 	"bisonai.com/miko/node/pkg/db"
 	"bisonai.com/miko/node/pkg/secrets"
 	"bisonai.com/miko/node/pkg/utils/request"
@@ -32,6 +34,10 @@ func (u *UpdateTimes) CheckLastUpdateOffsets(alarmCount map[string]int) []string
 	websocketNotPushedCount := 0
 	var messages []string
 	for symbol, updateTime := range u.lastUpdates {
+		if slices.Contains(checker.SymbolsToBeDelisted, symbol) {
+			continue
+		}
+
 		elapsedTime := time.Since(updateTime)
 		if elapsedTime > WsPushThreshold {
 			alarmCount[symbol]++
@@ -164,6 +170,10 @@ func checkDal(endpoint string, key string, alarmCount map[string]int, networkDel
 
 	totalDelayed := 0
 	for _, data := range resp {
+		if slices.Contains(checker.SymbolsToBeDelisted, data.Symbol) {
+			continue
+		}
+
 		rawTimestamp, err := strconv.ParseInt(data.AggregateTime, 10, 64)
 		if err != nil {
 			log.Error().Str("Player", "DalChecker").Err(err).Msg("failed to convert timestamp string to int64")
