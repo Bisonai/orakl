@@ -8,8 +8,10 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"slices"
 
 	"bisonai.com/miko/node/pkg/alert"
+	"bisonai.com/miko/node/pkg/checker"
 	"bisonai.com/miko/node/pkg/db"
 	"bisonai.com/miko/node/pkg/secrets"
 
@@ -136,6 +138,10 @@ func checkOffsets(ctx context.Context, serviceDB *pgxpool.Pool) {
 	localAggregateDelayedOffsetCount := 0
 	globalAggregateDelayedOffsetCount := 0
 	for _, config := range loadedConfigs {
+		if slices.Contains(checker.SymbolsToBeDelisted, config.Name) {
+			continue
+		}
+
 		log.Debug().Int32("id", config.ID).Str("name", config.Name).Msg("checking config offset")
 		localAggregateOffsetResult, err := db.QueryRowTransient[OffsetResultEach](ctx, serviceDB, fmt.Sprintf(GetSingleLocalAggregateOffset, config.ID), nil)
 		if err != nil {
