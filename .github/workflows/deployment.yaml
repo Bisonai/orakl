@@ -204,6 +204,7 @@ on:
           - node:v0.0.1.20241223.0247.5b3e7c5:Node Fix orangex formatting
           - node:v0.0.1.20241226.0128.1b919e8:Remove upbit ticker dd propert...
           - sentinel:v0.0.1.20250116.0401.c12b978:Health Reduce alert spamming
+          - sentinel:v0.0.1.20250116.0439.a0748c9:Health add missing skips
 jobs:
   prepare-taskflow:
     name: Prepare

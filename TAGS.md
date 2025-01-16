@@ -295,3 +295,4 @@
 - **node** v0.0.1.20241223.0247.5b3e7c5 <br> *`PR`*: Node Fix orangex formatting <br><br> 
 - **node** v0.0.1.20241226.0128.1b919e8 <br> *`PR`*: Remove upbit ticker dd propert... <br><br> 
 - **sentinel** v0.0.1.20250116.0401.c12b978 <br> *`PR`*: Health Reduce alert spamming <br><br> 
+- **sentinel** v0.0.1.20250116.0439.a0748c9 <br> *`PR`*: Health add missing skips <br><br> 
