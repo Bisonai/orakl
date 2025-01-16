@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
 	"bisonai.com/miko/node/pkg/alert"
+	"bisonai.com/miko/node/pkg/checker"
 	"bisonai.com/miko/node/pkg/db"
 	"bisonai.com/miko/node/pkg/utils/request"
 	"github.com/rs/zerolog/log"
@@ -53,6 +55,10 @@ func setUp(ctx context.Context) (*CheckList, error) {
 
 	FeedsToCheck := []FeedToCheck{}
 	for _, config := range configs {
+		if slices.Contains(checker.DelistedSymbols, config.Name) {
+			continue
+		}
+
 		subgraphInfo, ok := subgraphInfoMap[config.Name]
 		if !ok {
 			continue
