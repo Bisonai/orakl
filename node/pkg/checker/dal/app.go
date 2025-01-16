@@ -34,7 +34,7 @@ func (u *UpdateTimes) CheckLastUpdateOffsets(alarmCount map[string]int) []string
 	websocketNotPushedCount := 0
 	var messages []string
 	for symbol, updateTime := range u.lastUpdates {
-		if slices.Contains(checker.DelistedSymbols, symbol) {
+		if slices.Contains(checker.SymbolsToBeDelisted, symbol) {
 			continue
 		}
 
@@ -170,7 +170,7 @@ func checkDal(endpoint string, key string, alarmCount map[string]int, networkDel
 
 	totalDelayed := 0
 	for _, data := range resp {
-		if slices.Contains(checker.DelistedSymbols, data.Symbol) {
+		if slices.Contains(checker.SymbolsToBeDelisted, data.Symbol) {
 			continue
 		}
 

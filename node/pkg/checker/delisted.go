@@ -1,5 +1,5 @@
 package checker
 
-var DelistedSymbols = []string{
+var SymbolsToBeDelisted = []string{
 	"JOY-USDT",
 }

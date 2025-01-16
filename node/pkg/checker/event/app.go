@@ -55,7 +55,7 @@ func setUp(ctx context.Context) (*CheckList, error) {
 
 	FeedsToCheck := []FeedToCheck{}
 	for _, config := range configs {
-		if slices.Contains(checker.DelistedSymbols, config.Name) {
+		if slices.Contains(checker.SymbolsToBeDelisted, config.Name) {
 			continue
 		}
 
