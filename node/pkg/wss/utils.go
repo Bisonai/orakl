@@ -117,14 +117,17 @@ func (ws *WebsocketHelper) Run(ctx context.Context, router func(context.Context,
 					log.Error().Err(err).Str("endpoint", ws.Endpoint).Msg("error reading from websocket")
 					break innerLoop
 				}
+
 				ws.lastMessageTime = time.Now()
 
-				go func(context.Context, map[string]any) {
-					routerErr := router(ctx, data)
-					if routerErr != nil {
-						log.Warn().Err(routerErr).Str("endpoint", ws.Endpoint).Msg("error processing websocket message")
-					}
-				}(ctx, data)
+				if len(data) != 0 {
+					go func(context.Context, map[string]any) {
+						routerErr := router(ctx, data)
+						if routerErr != nil {
+							log.Warn().Err(routerErr).Str("endpoint", ws.Endpoint).Msg("error processing websocket message")
+						}
+					}(ctx, data)
+				}
 			}
 		}
 		ws.Close()
@@ -228,5 +231,10 @@ func defaultReader(ctx context.Context, conn *websocket.Conn) (map[string]interf
 	if err != nil {
 		return nil, err
 	}
+
+	if len(data) == 0 {
+		return nil, nil
+	}
+
 	return data, nil
 }
