@@ -296,3 +296,4 @@
 - **node** v0.0.1.20241226.0128.1b919e8 <br> *`PR`*: Remove upbit ticker dd propert... <br><br> 
 - **sentinel** v0.0.1.20250116.0401.c12b978 <br> *`PR`*: Health Reduce alert spamming <br><br> 
 - **sentinel** v0.0.1.20250116.0439.a0748c9 <br> *`PR`*: Health add missing skips <br><br> 
+- **node** v0.0.1.20250117.0059.5b40c6a <br> *`PR`*: skip empty message <br><br> 
