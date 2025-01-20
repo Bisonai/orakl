@@ -206,6 +206,7 @@ on:
           - sentinel:v0.0.1.20250116.0401.c12b978:Health Reduce alert spamming
           - sentinel:v0.0.1.20250116.0439.a0748c9:Health add missing skips
           - node:v0.0.1.20250117.0059.5b40c6a:skip empty message
+          - dal:v0.0.1.20250120.0302.f257049:DAL Unstrict endpoint for repo...
 jobs:
   prepare-taskflow:
     name: Prepare

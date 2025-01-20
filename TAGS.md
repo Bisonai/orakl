@@ -297,3 +297,4 @@
 - **sentinel** v0.0.1.20250116.0401.c12b978 <br> *`PR`*: Health Reduce alert spamming <br><br> 
 - **sentinel** v0.0.1.20250116.0439.a0748c9 <br> *`PR`*: Health add missing skips <br><br> 
 - **node** v0.0.1.20250117.0059.5b40c6a <br> *`PR`*: skip empty message <br><br> 
+- **dal** v0.0.1.20250120.0302.f257049 <br> *`PR`*: DAL Unstrict endpoint for repo... <br><br> 
