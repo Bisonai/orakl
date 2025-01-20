@@ -81,6 +81,7 @@ func NewServer(collector *collector.Collector, keyCache *keycache.KeyCache, hub 
 	serveMux.HandleFunc("GET /latest-data-feeds/transpose/all", s.AllLatestFeedsTransposedHandler)
 	serveMux.HandleFunc("GET /latest-data-feeds/transpose/{symbols}", s.TransposedLatestFeedsHandler)
 	serveMux.HandleFunc("GET /latest-data-feeds/{symbols}", s.LatestFeedsHandler)
+	serveMux.HandleFunc("GET /latest-data-feeds-unstrict/{symbols}", s.LatestFeedsHandlerUnstrict)
 
 	// Apply the RequestLoggerMiddleware to the ServeMux
 	loggedMux := statsApp.RequestLoggerMiddleware(serveMux)
@@ -324,6 +325,55 @@ func (s *ServerV2) LatestFeedsHandler(w http.ResponseWriter, r *http.Request) {
 				log.Error().Err(err).Msg("failed to write response")
 			}
 			return
+		}
+
+		results = append(results, result)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	err := json.NewEncoder(w).Encode(results)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to encode response")
+	}
+}
+
+func (s *ServerV2) LatestFeedsHandlerUnstrict(w http.ResponseWriter, r *http.Request) {
+	symbolsStr := r.PathValue("symbols")
+	if symbolsStr == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		_, err := w.Write([]byte("invalid symbol: empty symbol"))
+		if err != nil {
+			log.Error().Err(err).Msg("failed to write response")
+		}
+		return
+	}
+
+	symbolsStr = strings.ReplaceAll(symbolsStr, " ", "")
+
+	symbols := strings.Split(symbolsStr, ",")
+	results := make([]*dalcommon.OutgoingSubmissionData, 0, len(symbols))
+	for _, symbol := range symbols {
+		if symbol == "" {
+			continue
+		}
+
+		if !strings.Contains(symbol, "-") {
+			w.WriteHeader(http.StatusBadRequest)
+			_, err := w.Write([]byte(fmt.Sprintf("wrong symbol format: %s, symbol should be in {BASE}-{QUOTE} format", symbol)))
+			if err != nil {
+				log.Error().Err(err).Msg("failed to write response")
+			}
+			return
+		}
+
+		if !strings.Contains(symbol, "test") {
+			symbol = strings.ToUpper(symbol)
+		}
+
+		result, err := s.collector.GetLatestData(symbol)
+		if err != nil {
+			continue
 		}
 
 		results = append(results, result)
