@@ -70,7 +70,7 @@ func (f *XtFetcher) handleMessage(ctx context.Context, message map[string]any) e
 
 	feedDataList, err := ResponseToFeedData(raw, f.FeedMap)
 	if err != nil {
-		log.Error().Str("Player", "Xt").Err(err).Msg("error in xt.handleMessage, failed to convert response to feed data")
+		log.Warn().Str("Player", "Xt").Err(err).Msg("error in xt.handleMessage, failed to convert response to feed data")
 		return err
 	}
 

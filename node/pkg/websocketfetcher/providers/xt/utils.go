@@ -13,7 +13,7 @@ func ResponseToFeedData(response Response, feedMap map[string][]int32) ([]*commo
 	symbol := strings.ToUpper(strings.ReplaceAll(response.Data.Symbol, "_", "-"))
 	ids, exists := feedMap[symbol]
 	if !exists {
-		log.Error().Str("Player", "xt").Str("key", symbol).Msg("feed not found")
+		log.Warn().Str("Player", "xt").Str("raw", response.Data.Symbol).Str("key", symbol).Msg("feed not found")
 		return nil, fmt.Errorf("feed not found from xt for symbol: %s", symbol)
 	}
 	timestamp := time.UnixMilli(response.Data.Time)
