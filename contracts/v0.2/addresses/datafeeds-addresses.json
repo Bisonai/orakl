@@ -604,17 +604,6 @@
       "feed": "0x54ad834c1e308897b19399593d503af6f9bb55fc"
     }
   },
-  "JOY-USDT": {
-    "baobab": {
-      "proxy": "0x2be0d3cee8c4390f8456b3e7b457d9ed9baa0378",
-      "feed": "0x905d3535285ea692a2ec0a6b135c6841033dab4b"
-    },
-    "tag": "basic",
-    "cypress": {
-      "proxy": "0xaa4adf8428e689c603f4cb0c9073f28f72aff572",
-      "feed": "0x603a7458f850b7d213102acba2b478afdef2fe77"
-    }
-  },
   "KAIA-KRW": {
     "baobab": {
       "proxy": "0xae5f9c081057faff6ebf7537d74bb2fe5e784049",
