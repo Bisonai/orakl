@@ -299,3 +299,4 @@
 - **node** v0.0.1.20250117.0059.5b40c6a <br> *`PR`*: skip empty message <br><br> 
 - **dal** v0.0.1.20250120.0302.f257049 <br> *`PR`*: DAL Unstrict endpoint for repo... <br><br> 
 - **reporter** v0.0.1.20250120.0307.5a7d4e6 <br> *`PR`*: Reporter use unstrict endpoint <br><br> 
+- **node** v0.0.1.20250203.0104.ebc695b <br> *`PR`*: Remove contract addresses <br><br> 

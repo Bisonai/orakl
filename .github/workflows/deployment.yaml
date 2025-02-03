@@ -208,6 +208,7 @@ on:
           - node:v0.0.1.20250117.0059.5b40c6a:skip empty message
           - dal:v0.0.1.20250120.0302.f257049:DAL Unstrict endpoint for repo...
           - reporter:v0.0.1.20250120.0307.5a7d4e6:Reporter use unstrict endpoint
+          - node:v0.0.1.20250203.0104.ebc695b:Remove contract addresses
 jobs:
   prepare-taskflow:
     name: Prepare
