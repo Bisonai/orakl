@@ -2,6 +2,7 @@ package wss
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -180,6 +181,10 @@ func (ws *WebsocketHelper) Write(ctx context.Context, message interface{}) error
 }
 
 func (ws *WebsocketHelper) RawWrite(ctx context.Context, message string) error {
+	if ws.Conn == nil {
+		return errors.New("websocket is not running")
+	}
+
 	return ws.Conn.Write(ctx, websocket.MessageText, []byte(message))
 }
 
