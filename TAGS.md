@@ -300,3 +300,4 @@
 - **dal** v0.0.1.20250120.0302.f257049 <br> *`PR`*: DAL Unstrict endpoint for repo... <br><br> 
 - **reporter** v0.0.1.20250120.0307.5a7d4e6 <br> *`PR`*: Reporter use unstrict endpoint <br><br> 
 - **node** v0.0.1.20250203.0104.ebc695b <br> *`PR`*: Remove contract addresses <br><br> 
+- **node** v0.0.1.20250226.0733.5c534bf <br> *`PR`*: Remove contract addresses <br><br> 
