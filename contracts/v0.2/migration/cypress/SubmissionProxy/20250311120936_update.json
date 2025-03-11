@@ -1,0 +1,34 @@
+{
+  "address": "0xcb56b163e545a3870ca04c6ae2401f2405fb29a9",
+  "deployFeed": {
+    "feedNames": [
+      "PI-USDT",
+      "USDE-USDT",
+      "BGB-USDT",
+      "HYPE-USDT",
+      "XMR-USDT",
+      "OKB-USDT",
+      "MNT-USDT",
+      "CRO-USDT",
+      "VET-USDT",
+      "FDUSD-USDT",
+      "FIL-USDT",
+      "ALGO-USDT",
+      "GT-USDT",
+      "KAS-USDT",
+      "RNDR-USDT",
+      "DEXE-USDT",
+      "JUP-USDT",
+      "IP-USDT",
+      "SONIC-USDT",
+      "MOVE-USDT",
+      "MKR-USDT",
+      "FLR-USDT",
+      "QNT-USDT",
+      "LDO-USDT"
+    ]
+  },
+  "feedRouter": {
+    "address": "0x653078f0d3a230416a59aa6486466470db0190a2"
+  }
+}
