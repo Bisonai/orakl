@@ -2,6 +2,7 @@ package subgraphcleaner
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -36,16 +37,16 @@ const (
 SELECT
     block$
 FROM
-    @schema.chain_event
+    %s.chain_event
 WHERE
     time < (SELECT threshold FROM time_threshold)
 ORDER BY
     block$ DESC
 LIMIT 1;`
 
-	cleanChainEventQuery       = "DELETE FROM @schema.chain_event WHERE block$ <= @block"
-	cleanFeedUpdatedQuery      = "DELETE FROM @schema.feed_feed_updated WHERE block$ <= @block"
-	cleanLatestChainEventQuery = "DELETE FROM @schema.latest_chain_event WHERE upper(block_range) <= @block"
+	cleanChainEventQuery       = "DELETE FROM %s.chain_event WHERE block$ <= @block"
+	cleanFeedUpdatedQuery      = "DELETE FROM %s.feed_feed_updated WHERE block$ <= @block"
+	cleanLatestChainEventQuery = "DELETE FROM %s.latest_chain_event WHERE upper(block_range) <= @block"
 )
 
 type SubgraphInfo struct {
@@ -100,23 +101,23 @@ func run(ctx context.Context) error {
 		switch {
 		case strings.HasPrefix(subgraphInfo.Name, "Feed-"):
 			schema := subgraphInfo.SchemaName
-			offsetBlock, err := db.QueryRow[OffsetBlockNumber](ctx, getOffsetBlockNumberQuery, map[string]any{"schema": schema})
+			offsetBlock, err := db.QueryRow[OffsetBlockNumber](ctx, fmt.Sprintf(getOffsetBlockNumberQuery, schema), nil)
 			if err != nil {
 				log.Error().Err(err).Str("schema", schema).Msg("failed to get offset block number")
 				continue
 			}
 
-			err = db.QueryWithoutResult(ctx, cleanChainEventQuery, map[string]any{"schema": schema, "block": offsetBlock.BlockNumber})
+			err = db.QueryWithoutResult(ctx, fmt.Sprintf(cleanChainEventQuery, schema), map[string]any{"block": offsetBlock.BlockNumber})
 			if err != nil {
 				log.Error().Err(err).Str("schema", schema).Msg("failed to clear chain event table")
 			}
 
-			err = db.QueryWithoutResult(ctx, cleanFeedUpdatedQuery, map[string]any{"schema": schema, "block": offsetBlock.BlockNumber})
+			err = db.QueryWithoutResult(ctx, fmt.Sprintf(cleanFeedUpdatedQuery, schema), map[string]any{"block": offsetBlock.BlockNumber})
 			if err != nil {
 				log.Error().Err(err).Str("schema", schema).Msg("failed to clear feed updated table")
 			}
 
-			err = db.QueryWithoutResult(ctx, cleanLatestChainEventQuery, map[string]any{"schema": schema, "block": offsetBlock.BlockNumber})
+			err = db.QueryWithoutResult(ctx, fmt.Sprintf(cleanLatestChainEventQuery, schema), map[string]any{"block": offsetBlock.BlockNumber})
 			if err != nil {
 				log.Error().Err(err).Str("schema", schema).Msg("failed to clear latest chain event table")
 			}
