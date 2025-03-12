@@ -170,6 +170,8 @@ func main() {
 		}
 	}()
 
+	log.Info().Msg("inspect checker started")
+
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
@@ -180,7 +182,7 @@ func main() {
 		}
 	}()
 
-	log.Info().Msg("inspect checker started")
+	log.Info().Msg("subgraph cleaner started")
 
 	wg.Wait()
 }

@@ -93,6 +93,7 @@ func run(ctx context.Context) error {
 			schema := subgraphInfo.SchemaName
 			offsetBlock, err := db.QueryRow[OffsetBlockNumber](ctx, getOffsetBlockNumberQuery, map[string]any{"schema": schema})
 			if err != nil {
+				log.Error().Err(err).Str("schema", schema).Msg("failed to get offset block number")
 				continue
 			}
 
