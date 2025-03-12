@@ -211,6 +211,7 @@ on:
           - node:v0.0.1.20250203.0104.ebc695b:Remove contract addresses
           - node:v0.0.1.20250226.0733.5c534bf:Remove contract addresses
           - sentinel:v0.0.1.20250312.0555.b9a81a3:Subgraph cleaner
+          - sentinel:v0.0.1.20250312.0604.bf100ef:hotfix schema replacement
 jobs:
   prepare-taskflow:
     name: Prepare
