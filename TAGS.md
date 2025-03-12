@@ -303,3 +303,4 @@
 - **node** v0.0.1.20250226.0733.5c534bf <br> *`PR`*: Remove contract addresses <br><br> 
 - **sentinel** v0.0.1.20250312.0555.b9a81a3 <br> *`PR`*: Subgraph cleaner <br><br> 
 - **sentinel** v0.0.1.20250312.0604.bf100ef <br> *`PR`*: hotfix schema replacement <br><br> 
+- **sentinel** v0.0.1.20250312.0616.a401699 <br> *`PR`*: Reduce delays <br><br> 
