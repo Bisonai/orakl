@@ -34,7 +34,7 @@ const (
     SELECT EXTRACT(EPOCH FROM (NOW() - INTERVAL '7 days')) AS threshold
 )
 SELECT
-    block_number
+    block$
 FROM
     @schema.chain_event
 WHERE
