@@ -210,6 +210,7 @@ on:
           - reporter:v0.0.1.20250120.0307.5a7d4e6:Reporter use unstrict endpoint
           - node:v0.0.1.20250203.0104.ebc695b:Remove contract addresses
           - node:v0.0.1.20250226.0733.5c534bf:Remove contract addresses
+          - sentinel:v0.0.1.20250312.0555.b9a81a3:Subgraph cleaner
 jobs:
   prepare-taskflow:
     name: Prepare
