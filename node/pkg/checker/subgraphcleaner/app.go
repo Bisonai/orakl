@@ -67,15 +67,24 @@ func Start(ctx context.Context) error {
 	ticker := time.NewTicker(cleanupInterval)
 	defer ticker.Stop()
 
+	go func() {
+		err := run(ctx)
+		if err != nil {
+			log.Error().Err(err).Msg("failed to clean up subgraph")
+		}
+	}()
+
 	for {
 		select {
 		case <-ctx.Done():
 			return nil
 		case <-ticker.C:
-			err := run(ctx)
-			if err != nil {
-				return err
-			}
+			go func() {
+				err := run(ctx)
+				if err != nil {
+					log.Error().Err(err).Msg("failed to clean up subgraph")
+				}
+			}()
 		}
 	}
 }
