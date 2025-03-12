@@ -121,6 +121,8 @@ func run(ctx context.Context) error {
 			if err != nil {
 				log.Error().Err(err).Str("schema", schema).Msg("failed to clear latest chain event table")
 			}
+
+			log.Info().Str("schema", schema).Msg("cleaned up feed contract historical data")
 		}
 
 		time.Sleep(1 * time.Second) // avoid db stress
