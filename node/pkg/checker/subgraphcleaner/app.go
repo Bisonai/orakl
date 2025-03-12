@@ -97,7 +97,6 @@ func run(ctx context.Context) error {
 	}
 
 	for _, subgraphInfo := range subgraphs {
-
 		switch {
 		case strings.HasPrefix(subgraphInfo.Name, "Feed-"):
 			schema := subgraphInfo.SchemaName
@@ -123,9 +122,8 @@ func run(ctx context.Context) error {
 			}
 
 			log.Info().Str("schema", schema).Msg("cleaned up feed contract historical data")
+			time.Sleep(1 * time.Second) // avoid db stress
 		}
-
-		time.Sleep(1 * time.Second) // avoid db stress
 	}
 
 	return nil
