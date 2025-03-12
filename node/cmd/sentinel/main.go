@@ -16,6 +16,7 @@ import (
 	"bisonai.com/miko/node/pkg/checker/offset"
 	"bisonai.com/miko/node/pkg/checker/peers"
 	"bisonai.com/miko/node/pkg/checker/signer"
+	"bisonai.com/miko/node/pkg/checker/subgraphcleaner"
 	"bisonai.com/miko/node/pkg/logscribeconsumer"
 	"github.com/rs/zerolog/log"
 )
@@ -165,6 +166,16 @@ func main() {
 		err := inspect.Start(ctx)
 		if err != nil {
 			log.Error().Err(err).Msg("error starting inspect checker")
+			os.Exit(1)
+		}
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		err := subgraphcleaner.Start(ctx)
+		if err != nil {
+			log.Error().Err(err).Msg("error starting subgraph cleaner")
 			os.Exit(1)
 		}
 	}()
