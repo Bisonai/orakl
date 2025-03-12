@@ -1,0 +1,38 @@
+{
+  "address": "0x05ce978f1200bc7243ae4a5968de8c3f8bd082f7",
+  "deployFeed": {
+    "feedNames": [
+      "THETA-USDT",
+      "PYUSD-USDT",
+      "XAUT-USDT",
+      "XTZ-USDT",
+      "NEXO-USDT",
+      "JASMY-USDT",
+      "SAND-USDT",
+      "JTO-USDT",
+      "IOTA-USDT",
+      "BERA-USDT",
+      "GALA-USDT",
+      "FLOKI-USDT",
+      "NEO-USDT",
+      "EGLD-USDT",
+      "MANA-USDT",
+      "CRV-USDT",
+      "TUSD-USDT",
+      "RAY-USDT",
+      "RON-USDT",
+      "HNT-USDT",
+      "RUNE-USDT",
+      "AERO-USDT",
+      "KAVA-USDT",
+      "NFT-USDT",
+      "CAKE-USDT",
+      "DYDX-USDT",
+      "GRASS-USDT",
+      "AR-USDT"
+    ]
+  },
+  "feedRouter": {
+    "address": "0xd9dbbb92a6ecb8b8d3e386b8d0ad8284bd816ef1"
+  }
+}
