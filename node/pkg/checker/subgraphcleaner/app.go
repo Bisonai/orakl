@@ -97,17 +97,17 @@ func run(ctx context.Context) error {
 				continue
 			}
 
-			err = db.QueryWithoutResult(ctx, cleanChainEventQuery, map[string]any{"schema": schema, "block": offsetBlock})
+			err = db.QueryWithoutResult(ctx, cleanChainEventQuery, map[string]any{"schema": schema, "block": offsetBlock.BlockNumber})
 			if err != nil {
 				log.Error().Err(err).Str("schema", schema).Msg("failed to clear chain event table")
 			}
 
-			err = db.QueryWithoutResult(ctx, cleanFeedUpdatedQuery, map[string]any{"schema": schema, "block": offsetBlock})
+			err = db.QueryWithoutResult(ctx, cleanFeedUpdatedQuery, map[string]any{"schema": schema, "block": offsetBlock.BlockNumber})
 			if err != nil {
 				log.Error().Err(err).Str("schema", schema).Msg("failed to clear feed updated table")
 			}
 
-			err = db.QueryWithoutResult(ctx, cleanLatestChainEventQuery, map[string]any{"schema": schema, "block": offsetBlock})
+			err = db.QueryWithoutResult(ctx, cleanLatestChainEventQuery, map[string]any{"schema": schema, "block": offsetBlock.BlockNumber})
 			if err != nil {
 				log.Error().Err(err).Str("schema", schema).Msg("failed to clear latest chain event table")
 			}
