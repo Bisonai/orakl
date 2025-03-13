@@ -1,0 +1,38 @@
+{
+  "address": "0x05ce978f1200bc7243ae4a5968de8c3f8bd082f7",
+  "deployFeed": {
+    "feedNames": [
+      "XCN-USDT",
+      "VIRTUAL-USDT",
+      "CFX-USDT",
+      "CORE-USDT",
+      "COMP-USDT",
+      "TWT-USDT",
+      "FTT-USDT",
+      "MELANIA-USDT",
+      "BNX-USDT",
+      "SPX-USDT",
+      "KAITO-USDT",
+      "PENGU-USDT",
+      "AXL-USDT",
+      "GNO-USDT",
+      "LUNC-USDT",
+      "MINA-USDT",
+      "BRETT-USDT",
+      "JST-USDT",
+      "MORPHO-USDT",
+      "AIOZ-USDT",
+      "RSR-USDT",
+      "1INCH-USDT",
+      "SNX-USDT",
+      "BEAM-USDT",
+      "EIGEN-USDT",
+      "KSM-USDT",
+      "SFP-USDT",
+      "DASH-USDT"
+    ]
+  },
+  "feedRouter": {
+    "address": "0xd9dbbb92a6ecb8b8d3e386b8d0ad8284bd816ef1"
+  }
+}
