@@ -214,7 +214,13 @@ contract DeploySubmissionProxy is Script {
         address[] memory feedAddresses = new address[](feedNames.length);
         address[] memory proxyAddresses = new address[](feedNames.length);
         for (uint256 j = 0; j < feedNames.length; j++) {
-            Feed feed = new Feed(DECIMALS, feedNames[j], address(submissionProxy));
+            // TODO: support general decimals setting
+            uint8 decimals = DECIMALS;
+            if (compareStrings(feedNames[j], "BABYDOGE-USDT")) {
+                decimals = 16;
+            }
+
+            Feed feed = new Feed(decimals, feedNames[j], address(submissionProxy));
             console.log("(Feed Deployed)", feedNames[j], address(feed));
             FeedProxy feedProxy = new FeedProxy(address(feed));
             console.log("(FeedProxy Deployed)", feedNames[j], address(feedProxy));
@@ -249,5 +255,9 @@ contract DeploySubmissionProxy is Script {
 
     function string2bytes32Hash(string memory str) internal pure returns (bytes32) {
         return keccak256(abi.encodePacked(str));
+    }
+
+    function compareStrings(string memory s1, string memory s2) public pure returns (bool) {
+        return keccak256(abi.encodePacked(s1)) == keccak256(abi.encodePacked(s2));
     }
 }
