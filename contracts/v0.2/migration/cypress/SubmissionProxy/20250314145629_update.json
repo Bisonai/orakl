@@ -1,0 +1,39 @@
+{
+  "address": "0xcb56b163e545a3870ca04c6ae2401f2405fb29a9",
+  "deployFeed": {
+    "feedNames": [
+      "ZK-USDT",
+      "TFUEL-USDT",
+      "W-USDT",
+      "SATS-USDT",
+      "DEEP-USDT",
+      "SUPER-USDT",
+      "ZIL-USDT",
+      "ZKJ-USDT",
+      "ROSE-USDT",
+      "FARTCOIN-USDT",
+      "CKB-USDT",
+      "BAT-USDT",
+      "QTUM-USDT",
+      "ATH-USDT",
+      "MASK-USDT",
+      "LPT-USDT",
+      "SAFE-USDT",
+      "VTHO-USDT",
+      "ZRX-USDT",
+      "NOT-USDT",
+      "CVX-USDT",
+      "AI16Z-USDT",
+      "ACH-USDT",
+      "HOT-USDT",
+      "CELO-USDT",
+      "OSMO-USDT",
+      "XCH-USDT",
+      "BABYDOGE-USDT",
+      "AVL-USDT"
+    ]
+  },
+  "feedRouter": {
+    "address": "0x653078f0d3a230416a59aa6486466470db0190a2"
+  }
+}
