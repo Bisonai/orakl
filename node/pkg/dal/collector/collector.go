@@ -268,13 +268,20 @@ func (c *Collector) IncomingDataToOutgoingData(ctx context.Context, data *aggreg
 		}
 		return nil, err
 	}
+
+	// TODO: support general decimals setting
+	decimals := DefaultDecimals
+	if data.Symbol == "BABYDOGE-USDT" {
+		decimals = "16"
+	}
+
 	return &dalcommon.OutgoingSubmissionData{
 		Symbol:        data.Symbol,
 		Value:         strconv.FormatInt(data.GlobalAggregate.Value, 10),
 		AggregateTime: strconv.FormatInt(data.GlobalAggregate.Timestamp.UnixMilli(), 10),
 		Proof:         formatBytesToHex(orderedProof),
 		FeedHash:      formatBytesToHex(feedHashBytes),
-		Decimals:      DefaultDecimals,
+		Decimals:      decimals,
 	}, nil
 }
 
