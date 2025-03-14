@@ -54,7 +54,13 @@ contract DeployFeed is Script {
         address submitter = abi.decode(submitterRaw, (address));
         string[] memory feedNames = abi.decode(feedNamesRaw, (string[]));
         for (uint256 j = 0; j < feedNames.length; j++) {
-            Feed feed = new Feed(DECIMALS, feedNames[j], submitter);
+            // TODO: support general decimals setting
+            uint8 decimals = DECIMALS;
+            if (compareStrings(feedNames[j], "BABYDOGE-USDT")) {
+                decimals = 16;
+            }
+
+            Feed feed = new Feed(decimals, feedNames[j], submitter);
             console.log("(Feed Deployed)", feedNames[j], address(feed));
             FeedProxy feedProxy = new FeedProxy(address(feed));
             console.log("(FeedProxy Deployed)", feedNames[j], address(feedProxy));
@@ -110,5 +116,9 @@ contract DeployFeed is Script {
             feedProxy.confirmFeed(updateSet.feedAddress);
             console.log("(Feed Confirmed)", updateSet.feedProxyAddress, updateSet.feedAddress);
         }
+    }
+
+     function compareStrings(string memory s1, string memory s2) public pure returns (bool) {
+        return keccak256(abi.encodePacked(s1)) == keccak256(abi.encodePacked(s2));
     }
 }
