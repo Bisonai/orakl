@@ -213,6 +213,7 @@ on:
           - sentinel:v0.0.1.20250312.0555.b9a81a3:Subgraph cleaner
           - sentinel:v0.0.1.20250312.0604.bf100ef:hotfix schema replacement
           - sentinel:v0.0.1.20250312.0616.a401699:Reduce delays
+          - node:v0.0.1.20250314.0436.c547895:Multiply decimals twice if val...
 jobs:
   prepare-taskflow:
     name: Prepare
