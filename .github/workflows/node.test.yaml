@@ -99,7 +99,7 @@ jobs:
           REDIS_PORT: "6379"
           ENCRYPT_PASSWORD: "anything"
           KAIA_WEBSOCKET_URL: "wss://public-en.node.kaia.io/ws"
-          ETH_WEBSOCKET_URL: "wss://ethereum-rpc.publicnode.com"
+          ETH_WEBSOCKET_URL: "https://eth.llamarpc.com"
           KAIA_PROVIDER_URL: "https://public-en-kairos.node.kaia.io"
           KAIA_REPORTER_PK: ${{ secrets.TEST_DELEGATOR_REPORTER_PK}}
           ETH_PROVIDER_URL: "https://rpc.sepolia.org"
