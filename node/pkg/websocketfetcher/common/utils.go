@@ -63,7 +63,11 @@ func VolumeStringToFloat64(volume string) (float64, error) {
 }
 
 func FormatFloat64Price(price float64) float64 {
-	return price * float64(math.Pow10(DECIMALS))
+	result := price * float64(math.Pow10(DECIMALS))
+	if result < 1 {
+		result = result * float64(math.Pow10(DECIMALS))
+	}
+	return result
 }
 
 func MessageToStruct[T any](message map[string]any) (T, error) {
