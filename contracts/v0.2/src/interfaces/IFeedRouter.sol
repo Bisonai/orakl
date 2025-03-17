@@ -27,7 +27,7 @@ interface IFeedRouter {
     function removeProxyBulk(string[] calldata feedNames) external;
 
     /**
-     * @notice Get the round data given a a feedd name and round ID.
+     * @notice Get the round data given a feed name and round ID.
      * @param feedName The feed name.
      * @param roundId The round ID.
      * @return id The round ID.
