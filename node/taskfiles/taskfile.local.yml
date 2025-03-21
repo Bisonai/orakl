@@ -5,6 +5,10 @@ tasks:
     dotenv: [".env"]
     cmds:
       - go run ./cmd/boot_api/main.go
+  boot-api-build:
+    cmds:
+      - mkdir -p ~/bin
+      - go build -v -o ~/bin/boot-api ./cmd/boot_api
   admin:
     dotenv: [".env"]
     cmds:
