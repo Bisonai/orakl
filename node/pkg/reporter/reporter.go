@@ -34,6 +34,7 @@ func NewReporter(ctx context.Context, opts ...ReporterOption) (*Reporter, error)
 	deviationThreshold := GetDeviationThreshold(groupInterval)
 
 	reporter := &Reporter{
+		DalRestEndpoint:        config.DalRestEndpoint,
 		contractAddress:        config.ContractAddress,
 		SubmissionInterval:     groupInterval,
 		CachedWhitelist:        config.CachedWhitelist,
@@ -82,7 +83,7 @@ func (r *Reporter) Run(ctx context.Context) {
 }
 
 func (r *Reporter) regularReporterJob(ctx context.Context) error {
-	pairsMap, err := GetLatestDataRest(ctx, r.Pairs)
+	pairsMap, err := GetLatestDataRest(ctx, r.DalRestEndpoint, r.Pairs)
 	if err != nil {
 		return err
 	}
