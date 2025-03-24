@@ -23,7 +23,7 @@ import (
 )
 
 const (
-	WhitelistRefreshInterval = 5 * time.Second
+	WhitelistRefreshInterval = 10 * time.Second
 	DefaultDecimals          = "8"
 	GetAllOracles            = "getAllOracles() public view returns (address[] memory)"
 	OracleAdded              = "OracleAdded(address oracle, uint256 expirationTime)"
@@ -82,12 +82,12 @@ func NewCollector(ctx context.Context, symbols []string) (*Collector, error) {
 		log.Warn().Msg("sub redis port not set")
 	}
 
-	chainreader, err := chainreader.NewChainReader(kaiaRestUrl)
+	chainReader, err := chainreader.NewChainReader(kaiaRestUrl)
 	if err != nil {
 		return nil, err
 	}
 
-	initialWhitelist, err := getAllOracles(ctx, chainreader, submissionProxyContractAddr)
+	initialWhitelist, err := getAllOracles(ctx, chainReader, submissionProxyContractAddr)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +97,7 @@ func NewCollector(ctx context.Context, symbols []string) (*Collector, error) {
 		FeedHashes:                  make(map[string][]byte, len(symbols)),
 		LatestTimestamps:            make(map[string]time.Time),
 		LatestData:                  make(map[string]*dalcommon.OutgoingSubmissionData),
-		chainReader:                 chainreader,
+		chainReader:                 chainReader,
 		CachedWhitelist:             initialWhitelist,
 		submissionProxyContractAddr: submissionProxyContractAddr,
 	}
