@@ -145,7 +145,7 @@ func (c *Collector) Start(ctx context.Context) {
 	c.IsRunning = true
 
 	c.receive(ctxWithCancel)
-	c.refreshOracles(ctxWithCancel)
+	go c.refreshOracles(ctxWithCancel)
 }
 
 func (c *Collector) GetLatestData(symbol string) (*dalcommon.OutgoingSubmissionData, error) {
