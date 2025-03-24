@@ -119,7 +119,6 @@ func checkForNonWhitelistedSigners(signers []klaytncommon.Address, whitelist []k
 
 func isWhitelisted(signer klaytncommon.Address, whitelist []klaytncommon.Address) bool {
 	for _, w := range whitelist {
-		log.Info().Any("signer", signer).Any("whitelist", whitelist).Msg("check is whitelisted")
 		if w == signer {
 			return true
 		}
