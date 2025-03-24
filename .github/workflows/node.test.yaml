@@ -102,7 +102,7 @@ jobs:
           ETH_WEBSOCKET_URL: "wss://ethereum-rpc.publicnode.com"
           KAIA_PROVIDER_URL: "https://public-en-kairos.node.kaia.io"
           KAIA_REPORTER_PK: ${{ secrets.TEST_DELEGATOR_REPORTER_PK}}
-          ETH_PROVIDER_URL: "https://rpc.sepolia.org"
+          ETH_PROVIDER_URL: "wss://ethereum-sepolia-rpc.publicnode.com"
           ETH_REPORTER_PK: ${{ secrets.TEST_DELEGATOR_REPORTER_PK}}
           TEST_FEE_PAYER_PK: ${{ secrets.DELEGATOR_FEEPAYER_PK}}
           SUBMISSION_PROXY_CONTRACT: "0xE2bA32d006e6FEd86AeA2502C561540c28CF65e9"
