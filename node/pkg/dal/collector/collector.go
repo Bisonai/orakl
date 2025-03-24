@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"bisonai.com/miko/node/pkg/aggregator"
-	"bisonai.com/miko/node/pkg/chain/websocketchainreader"
+	"bisonai.com/miko/node/pkg/chain/helper"
 	"bisonai.com/miko/node/pkg/common/keys"
 	"bisonai.com/miko/node/pkg/common/types"
 	dalcommon "bisonai.com/miko/node/pkg/dal/common"
@@ -23,9 +23,10 @@ import (
 )
 
 const (
-	DefaultDecimals = "8"
-	GetAllOracles   = "getAllOracles() public view returns (address[] memory)"
-	OracleAdded     = "OracleAdded(address oracle, uint256 expirationTime)"
+	WhitelistRefreshInterval = 5 * time.Second
+	DefaultDecimals          = "8"
+	GetAllOracles            = "getAllOracles() public view returns (address[] memory)"
+	OracleAdded              = "OracleAdded(address oracle, uint256 expirationTime)"
 )
 
 type Config = types.Config
@@ -44,16 +45,16 @@ type Collector struct {
 	IsRunning  bool
 	CancelFunc context.CancelFunc
 
-	chainReader                 *websocketchainreader.ChainReader
+	chainHelper                 *helper.ChainHelper
 	submissionProxyContractAddr string
 
 	mu sync.RWMutex
 }
 
 func NewCollector(ctx context.Context, symbols []string) (*Collector, error) {
-	kaiaWebsocketUrl := os.Getenv("KAIA_WEBSOCKET_URL")
-	if kaiaWebsocketUrl == "" {
-		return nil, errors.New("KAIA_WEBSOCKET_URL is not set")
+	kaiaRestUrl := os.Getenv("KAIA_PROVIDER_URL")
+	if kaiaRestUrl == "" {
+		return nil, errors.New("KAIA_PROVIDER_URL is not set")
 	}
 
 	submissionProxyContractAddr := os.Getenv("SUBMISSION_PROXY_CONTRACT")
@@ -81,12 +82,13 @@ func NewCollector(ctx context.Context, symbols []string) (*Collector, error) {
 		log.Warn().Msg("sub redis port not set")
 	}
 
-	chainReader, err := websocketchainreader.New(websocketchainreader.WithKaiaWebsocketUrl(kaiaWebsocketUrl))
-	if err != nil {
-		return nil, err
-	}
+	chainHelper, err := helper.NewChainHelper(
+		ctx,
+		helper.WithBlockchainType(helper.Kaia),
+		helper.WithProviderUrl(kaiaRestUrl),
+	)
 
-	initialWhitelist, err := getAllOracles(ctx, chainReader, submissionProxyContractAddr)
+	initialWhitelist, err := getAllOracles(ctx, chainHelper, submissionProxyContractAddr)
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +98,7 @@ func NewCollector(ctx context.Context, symbols []string) (*Collector, error) {
 		FeedHashes:                  make(map[string][]byte, len(symbols)),
 		LatestTimestamps:            make(map[string]time.Time),
 		LatestData:                  make(map[string]*dalcommon.OutgoingSubmissionData),
-		chainReader:                 chainReader,
+		chainHelper:                 chainHelper,
 		CachedWhitelist:             initialWhitelist,
 		submissionProxyContractAddr: submissionProxyContractAddr,
 	}
@@ -255,7 +257,7 @@ func (c *Collector) IncomingDataToOutgoingData(ctx context.Context, data *aggreg
 	if err != nil {
 		log.Error().Err(err).Str("Player", "DalCollector").Str("Symbol", data.Symbol).Msg("failed to order proof")
 		if errors.Is(err, errorsentinel.ErrDalSignerNotWhitelisted) {
-			go func(ctx context.Context, chainHelper *websocketchainreader.ChainReader, contractAddress string) {
+			go func(ctx context.Context, chainHelper *helper.ChainHelper, contractAddress string) {
 				newList, getAllOraclesErr := getAllOracles(ctx, chainHelper, contractAddress)
 				if getAllOraclesErr != nil {
 					log.Error().Err(getAllOraclesErr).Str("Player", "DalCollector").Msg("failed to refresh oracles")
@@ -264,7 +266,7 @@ func (c *Collector) IncomingDataToOutgoingData(ctx context.Context, data *aggreg
 				c.mu.Lock()
 				c.CachedWhitelist = newList
 				c.mu.Unlock()
-			}(ctx, c.chainReader, c.submissionProxyContractAddr)
+			}(ctx, c.chainHelper, c.submissionProxyContractAddr)
 		}
 		return nil, err
 	}
@@ -286,25 +288,22 @@ func (c *Collector) IncomingDataToOutgoingData(ctx context.Context, data *aggreg
 }
 
 func (c *Collector) trackOracleAdded(ctx context.Context) {
-	eventTriggered := make(chan any)
-	err := subscribeAddOracleEvent(ctx, c.chainReader, c.submissionProxyContractAddr, eventTriggered)
-	if err != nil {
-		log.Error().Err(err).Str("Player", "DalCollector").Msg("failed to subscribe to oracle added event")
-	}
-	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-eventTriggered:
-				newList, err := getAllOracles(ctx, c.chainReader, c.submissionProxyContractAddr)
-				if err != nil {
-					log.Error().Err(err).Str("Player", "DalCollector").Msg("failed to get all oracles")
-				}
+	ticker := time.NewTicker(WhitelistRefreshInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			newOracles, err := getAllOracles(ctx, c.chainHelper, c.submissionProxyContractAddr)
+			if err != nil {
+				log.Error().Err(err).Str("Player", "DalCollector").Msg("failed to get all oracles")
+			} else {
 				c.mu.Lock()
-				c.CachedWhitelist = newList
+				c.CachedWhitelist = newOracles
 				c.mu.Unlock()
 			}
 		}
-	}()
+	}
 }

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"time"
 
+	"bisonai.com/miko/node/pkg/chain/helper"
 	"bisonai.com/miko/node/pkg/chain/websocketchainreader"
 
 	chainutils "bisonai.com/miko/node/pkg/chain/utils"
@@ -15,8 +16,8 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func getAllOracles(ctx context.Context, chainReader *websocketchainreader.ChainReader, submissionProxyContractAddr string) ([]klaytncommon.Address, error) {
-	rawResult, err := chainReader.ReadContractOnce(ctx, websocketchainreader.Kaia, submissionProxyContractAddr, GetAllOracles)
+func getAllOracles(ctx context.Context, chainHelper *helper.ChainHelper, submissionProxyContractAddr string) ([]klaytncommon.Address, error) {
+	rawResult, err := chainHelper.ReadContract(ctx, submissionProxyContractAddr, GetAllOracles)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to get all oracles")
 		return nil, err
