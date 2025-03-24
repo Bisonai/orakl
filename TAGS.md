@@ -307,3 +307,4 @@
 - **node** v0.0.1.20250314.0436.c547895 <br> *`PR`*: Multiply decimals twice if val... <br><br> 
 - **dal** v0.0.1.20250314.0440.4ad5ffb <br> *`PR`*: Multiply decimals twice if val... <br><br> 
 - **reporter** v0.0.1.20250324.0509.a85e3d7 <br> *`PR`*: Update reporter dal endpoint r... <br><br> 
+- **dal** v0.0.1.20250324.0531.b423f9d <br> *`PR`*: Remove ws json rpc dependency ... <br><br> 
