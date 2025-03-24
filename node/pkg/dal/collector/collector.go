@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"bisonai.com/miko/node/pkg/aggregator"
-	"bisonai.com/miko/node/pkg/chain/helper"
+	"bisonai.com/miko/node/pkg/chain/chainreader"
 	"bisonai.com/miko/node/pkg/common/keys"
 	"bisonai.com/miko/node/pkg/common/types"
 	dalcommon "bisonai.com/miko/node/pkg/dal/common"
@@ -45,7 +45,7 @@ type Collector struct {
 	IsRunning  bool
 	CancelFunc context.CancelFunc
 
-	chainHelper                 *helper.ChainHelper
+	chainReader                 *chainreader.ChainReader
 	submissionProxyContractAddr string
 
 	mu sync.RWMutex
@@ -82,13 +82,12 @@ func NewCollector(ctx context.Context, symbols []string) (*Collector, error) {
 		log.Warn().Msg("sub redis port not set")
 	}
 
-	chainHelper, err := helper.NewChainHelper(
-		ctx,
-		helper.WithBlockchainType(helper.Kaia),
-		helper.WithProviderUrl(kaiaRestUrl),
-	)
+	chainreader, err := chainreader.NewChainReader(kaiaRestUrl)
+	if err != nil {
+		return nil, err
+	}
 
-	initialWhitelist, err := getAllOracles(ctx, chainHelper, submissionProxyContractAddr)
+	initialWhitelist, err := getAllOracles(ctx, chainreader, submissionProxyContractAddr)
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +97,7 @@ func NewCollector(ctx context.Context, symbols []string) (*Collector, error) {
 		FeedHashes:                  make(map[string][]byte, len(symbols)),
 		LatestTimestamps:            make(map[string]time.Time),
 		LatestData:                  make(map[string]*dalcommon.OutgoingSubmissionData),
-		chainHelper:                 chainHelper,
+		chainReader:                 chainreader,
 		CachedWhitelist:             initialWhitelist,
 		submissionProxyContractAddr: submissionProxyContractAddr,
 	}
@@ -146,7 +145,7 @@ func (c *Collector) Start(ctx context.Context) {
 	c.IsRunning = true
 
 	c.receive(ctxWithCancel)
-	c.trackOracleAdded(ctxWithCancel)
+	c.refreshOracles(ctxWithCancel)
 }
 
 func (c *Collector) GetLatestData(symbol string) (*dalcommon.OutgoingSubmissionData, error) {
@@ -257,7 +256,7 @@ func (c *Collector) IncomingDataToOutgoingData(ctx context.Context, data *aggreg
 	if err != nil {
 		log.Error().Err(err).Str("Player", "DalCollector").Str("Symbol", data.Symbol).Msg("failed to order proof")
 		if errors.Is(err, errorsentinel.ErrDalSignerNotWhitelisted) {
-			go func(ctx context.Context, chainHelper *helper.ChainHelper, contractAddress string) {
+			go func(ctx context.Context, chainHelper *chainreader.ChainReader, contractAddress string) {
 				newList, getAllOraclesErr := getAllOracles(ctx, chainHelper, contractAddress)
 				if getAllOraclesErr != nil {
 					log.Error().Err(getAllOraclesErr).Str("Player", "DalCollector").Msg("failed to refresh oracles")
@@ -266,7 +265,7 @@ func (c *Collector) IncomingDataToOutgoingData(ctx context.Context, data *aggreg
 				c.mu.Lock()
 				c.CachedWhitelist = newList
 				c.mu.Unlock()
-			}(ctx, c.chainHelper, c.submissionProxyContractAddr)
+			}(ctx, c.chainReader, c.submissionProxyContractAddr)
 		}
 		return nil, err
 	}
@@ -287,7 +286,7 @@ func (c *Collector) IncomingDataToOutgoingData(ctx context.Context, data *aggreg
 	}, nil
 }
 
-func (c *Collector) trackOracleAdded(ctx context.Context) {
+func (c *Collector) refreshOracles(ctx context.Context) {
 	ticker := time.NewTicker(WhitelistRefreshInterval)
 	defer ticker.Stop()
 
@@ -296,7 +295,7 @@ func (c *Collector) trackOracleAdded(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			newOracles, err := getAllOracles(ctx, c.chainHelper, c.submissionProxyContractAddr)
+			newOracles, err := getAllOracles(ctx, c.chainReader, c.submissionProxyContractAddr)
 			if err != nil {
 				log.Error().Err(err).Str("Player", "DalCollector").Msg("failed to get all oracles")
 			} else {
