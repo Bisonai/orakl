@@ -57,7 +57,7 @@ type ReporterConfig struct {
 	CachedWhitelist        []common.Address
 	JobType                JobType
 	DalApiKey              string
-	DalWsEndpoint          string
+	DalRestEndpoint        string
 	KaiaHelper             *helper.ChainHelper
 	LatestDataMap          *sync.Map // map[symbol]SubmissionData
 	LatestSubmittedDataMap *sync.Map // map[symbol]int64
@@ -118,7 +118,14 @@ func WithLatestSubmittedDataMap(latestSubmittedDataMap *sync.Map) ReporterOption
 	}
 }
 
+func WithDalRestEndpoint(endpoint string) ReporterOption {
+	return func(c *ReporterConfig) {
+		c.DalRestEndpoint = endpoint
+	}
+}
+
 type Reporter struct {
+	DalRestEndpoint    string
 	KaiaHelper         *helper.ChainHelper
 	Pairs              []string
 	SubmissionInterval time.Duration

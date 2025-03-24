@@ -45,6 +45,11 @@ func (a *App) setReporters(ctx context.Context) error {
 		dalWsEndpoint = "ws://orakl-dal.orakl.svc.cluster.local/ws"
 	}
 
+	dalRestEndpoint := os.Getenv("DAL_REST_URL")
+	if dalRestEndpoint == "" {
+		return errorSentinel.ErrReporterDalRestEndpointNotFound
+	}
+
 	contractAddress := os.Getenv("SUBMISSION_PROXY_CONTRACT")
 	if contractAddress == "" {
 		return errorSentinel.ErrReporterSubmissionProxyContractNotFound
@@ -85,6 +90,7 @@ func (a *App) setReporters(ctx context.Context) error {
 			WithKaiaHelper(chainHelper),
 			WithLatestDataMap(a.LatestDataMap),
 			WithLatestSubmittedDataMap(a.LatestSubmittedDataMap),
+			WithDalRestEndpoint(dalRestEndpoint),
 		)
 		if errNewReporter != nil {
 			log.Error().Str("Player", "Reporter").Err(errNewReporter).Msg("failed to set reporter")
@@ -107,6 +113,7 @@ func (a *App) setReporters(ctx context.Context) error {
 		WithKaiaHelper(chainHelper),
 		WithLatestDataMap(a.LatestDataMap),
 		WithLatestSubmittedDataMap(a.LatestSubmittedDataMap),
+		WithDalRestEndpoint(dalRestEndpoint),
 	)
 	if errNewDeviationReporter != nil {
 		log.Error().Str("Player", "Reporter").Err(errNewDeviationReporter).Msg("failed to set deviation reporter")

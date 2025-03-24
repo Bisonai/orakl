@@ -41,8 +41,8 @@ func GetDeviatingAggregates(latestSubmittedData *sync.Map, latestData *sync.Map,
 	return deviatingSubmissionPairs
 }
 
-func GetLatestDataRest(ctx context.Context, name []string) (map[string]SubmissionData, error) {
-	url := fmt.Sprintf("http://orakl-dal.orakl.svc.cluster.local/latest-data-feeds-unstrict/%s", strings.Join(name, ","))
+func GetLatestDataRest(ctx context.Context, baseEndpoint string, name []string) (map[string]SubmissionData, error) {
+	url := fmt.Sprintf("%s/latest-data-feeds-unstrict/%s", baseEndpoint, strings.Join(name, ","))
 	resp, err := request.Request[[]RawSubmissionData](
 		request.WithEndpoint(url),
 		request.WithHeaders(map[string]string{"X-API-Key": secrets.GetSecret("API_KEY")}),
