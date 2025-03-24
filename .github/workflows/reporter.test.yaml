@@ -83,4 +83,5 @@ jobs:
           CHAIN: "test"
           SIGNER_PK: ${{ secrets.TEST_DELEGATOR_REPORTER_PK}}
           API_KEY: ${{ secrets.DAL_API_KEY}}
+          DAL_REST_URL: "https://dal.baobab.orakl.network"
           DAL_WS_URL: "ws://dal.baobab.orakl.network/ws"
