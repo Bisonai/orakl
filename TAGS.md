@@ -311,3 +311,4 @@
 - **node** v0.0.1.20250325.0259.f0e39ab <br> *`PR`*: Use secrets for json rpc url <br><br> 
 - **sentinel** v0.0.1.20250325.0331.515e890 <br> *`PR`*: Update orakl dal endpoint for ... <br><br> 
 - **dal** v0.0.1.20250325.0356.462b087 <br> *`PR`*: Update orakl dal endpoint for ... <br><br> 
+- **dal** v0.0.1.20250325.0410.11d99ae <br> *`PR`*: Chore Dal log update <br><br> 

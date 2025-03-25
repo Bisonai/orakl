@@ -220,6 +220,7 @@ on:
           - node:v0.0.1.20250325.0259.f0e39ab:Use secrets for json rpc url
           - sentinel:v0.0.1.20250325.0331.515e890:Update orakl dal endpoint for ...
           - dal:v0.0.1.20250325.0356.462b087:Update orakl dal endpoint for ...
+          - dal:v0.0.1.20250325.0410.11d99ae:Chore Dal log update
 jobs:
   prepare-taskflow:
     name: Prepare
