@@ -137,14 +137,14 @@ func (a *StatsApp) RequestLoggerMiddleware(next http.Handler) http.Handler {
 		sl := NewStatsLogger(w)
 		w.Header()
 		defer func() {
-			key := r.Header.Get("X-API-Key")
-			if key == "" {
-				log.Warn().Msg("X-API-Key header is empty")
+			endpoint := r.RequestURI
+			if endpoint == "/" {
 				return
 			}
 
-			endpoint := r.RequestURI
-			if endpoint == "/" {
+			key := r.Header.Get("X-API-Key")
+			if key == "" {
+				log.Warn().Str("endpoint", r.RequestURI).Msg("X-API-Key header is empty")
 				return
 			}
 
