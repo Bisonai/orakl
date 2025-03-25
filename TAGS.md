@@ -312,3 +312,4 @@
 - **sentinel** v0.0.1.20250325.0331.515e890 <br> *`PR`*: Update orakl dal endpoint for ... <br><br> 
 - **dal** v0.0.1.20250325.0356.462b087 <br> *`PR`*: Update orakl dal endpoint for ... <br><br> 
 - **dal** v0.0.1.20250325.0410.11d99ae <br> *`PR`*: Chore Dal log update <br><br> 
+- **dal** v0.0.1.20250325.0418.cdfa76d <br> *`PR`*: Chore Dal healthcheck handler <br><br> 
