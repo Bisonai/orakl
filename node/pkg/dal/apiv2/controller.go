@@ -166,6 +166,11 @@ func (s *ServerV2) WSHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *ServerV2) HealthCheckHandler(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/" {
+		http.NotFound(w, r)
+		return
+	}
+
 	w.WriteHeader(http.StatusOK)
 	_, err := w.Write([]byte("Miko Node DAL API"))
 	if err != nil {
