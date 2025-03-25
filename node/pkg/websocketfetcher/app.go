@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"bisonai.com/miko/node/pkg/chain/websocketchainreader"
+	"bisonai.com/miko/node/pkg/common/keys"
 	"bisonai.com/miko/node/pkg/common/types"
 	"bisonai.com/miko/node/pkg/db"
 	"bisonai.com/miko/node/pkg/secrets"
@@ -44,6 +45,7 @@ import (
 const (
 	DefaultStoreInterval = 200 * time.Millisecond
 	DefaultBufferSize    = 3000
+	warmCacheTTL         = time.Minute
 )
 
 type AppConfig struct {
@@ -304,7 +306,21 @@ func (a *App) storeFeedData(ctx context.Context) {
 		if err != nil {
 			log.Error().Err(err).Msg("error in setting latest feed data")
 		}
+
+		err = a.StoreIntoRedisCache(ctx, batch)
+		if err != nil {
+			log.Error().Err(err).Msg("error in storing into redis cache")
+		}
 	default:
 		return
 	}
+}
+
+func (a *App) StoreIntoRedisCache(ctx context.Context, batch []*types.FeedData) error {
+	batchStoreEntries := make(map[string]any)
+	for _, feedData := range batch {
+		batchStoreEntries[keys.FeedData(feedData.FeedID)] = feedData
+	}
+
+	return db.MSetObjectWithExp(ctx, batchStoreEntries, warmCacheTTL)
 }
