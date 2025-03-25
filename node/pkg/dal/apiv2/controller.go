@@ -73,7 +73,6 @@ func NewServer(collector *collector.Collector, keyCache *keycache.KeyCache, hub 
 	}
 	serveMux := http.NewServeMux()
 
-	serveMux.HandleFunc("/", s.HealthCheckHandler)
 	serveMux.HandleFunc("/ws", s.WSHandler)
 
 	serveMux.HandleFunc("GET /symbols", s.SymbolsHandler)
@@ -82,6 +81,8 @@ func NewServer(collector *collector.Collector, keyCache *keycache.KeyCache, hub 
 	serveMux.HandleFunc("GET /latest-data-feeds/transpose/{symbols}", s.TransposedLatestFeedsHandler)
 	serveMux.HandleFunc("GET /latest-data-feeds/{symbols}", s.LatestFeedsHandler)
 	serveMux.HandleFunc("GET /latest-data-feeds-unstrict/{symbols}", s.LatestFeedsHandlerUnstrict)
+
+	serveMux.HandleFunc("/", s.HealthCheckHandler)
 
 	// Apply the RequestLoggerMiddleware to the ServeMux
 	loggedMux := statsApp.RequestLoggerMiddleware(serveMux)
