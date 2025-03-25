@@ -309,3 +309,4 @@
 - **reporter** v0.0.1.20250324.0509.a85e3d7 <br> *`PR`*: Update reporter dal endpoint r... <br><br> 
 - **dal** v0.0.1.20250324.0531.b423f9d <br> *`PR`*: Remove ws json rpc dependency ... <br><br> 
 - **node** v0.0.1.20250325.0259.f0e39ab <br> *`PR`*: Use secrets for json rpc url <br><br> 
+- **sentinel** v0.0.1.20250325.0331.515e890 <br> *`PR`*: Update orakl dal endpoint for ... <br><br> 
