@@ -22,7 +22,7 @@ func setProviderAndReporter(config *ChainHelperConfig, blockchainType Blockchain
 	switch blockchainType {
 	case Kaia:
 		if config.ProviderUrl == "" {
-			config.ProviderUrl = os.Getenv(KaiaProviderUrl)
+			config.ProviderUrl = secrets.GetSecret(KaiaProviderUrl)
 			if config.ProviderUrl == "" {
 				log.Error().Msg("provider url not set")
 				return errorSentinel.ErrChainProviderUrlNotFound
@@ -37,7 +37,7 @@ func setProviderAndReporter(config *ChainHelperConfig, blockchainType Blockchain
 		}
 	case Ethereum:
 		if config.ProviderUrl == "" {
-			config.ProviderUrl = os.Getenv(EthProviderUrl)
+			config.ProviderUrl = secrets.GetSecret(EthProviderUrl)
 			if config.ProviderUrl == "" {
 				log.Error().Msg("provider url not set")
 				return errorSentinel.ErrChainProviderUrlNotFound
