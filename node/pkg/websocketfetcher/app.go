@@ -10,6 +10,7 @@ import (
 	"bisonai.com/miko/node/pkg/chain/websocketchainreader"
 	"bisonai.com/miko/node/pkg/common/types"
 	"bisonai.com/miko/node/pkg/db"
+	"bisonai.com/miko/node/pkg/secrets"
 	"bisonai.com/miko/node/pkg/websocketfetcher/common"
 	"bisonai.com/miko/node/pkg/websocketfetcher/providers/binance"
 	"bisonai.com/miko/node/pkg/websocketfetcher/providers/bingx"
@@ -221,8 +222,8 @@ func (a *App) initializeCex(ctx context.Context, appConfig AppConfig) error {
 }
 
 func (a *App) initializeDex(ctx context.Context, appConfig AppConfig) error {
-	kaiaWebsocketUrl := os.Getenv("KAIA_WEBSOCKET_URL")
-	ethWebsocketUrl := os.Getenv("ETH_WEBSOCKET_URL")
+	kaiaWebsocketUrl := secrets.GetSecret("KAIA_WEBSOCKET_URL")
+	ethWebsocketUrl := secrets.GetSecret("ETH_WEBSOCKET_URL")
 	if kaiaWebsocketUrl == "" || ethWebsocketUrl == "" {
 		log.Error().Msg("KAIA_WEBSOCKET_URL and ETH_WEBSOCKET_URL must be set")
 		return errors.New("KAIA_WEBSOCKET_URL and ETH_WEBSOCKET_URL must be set")
