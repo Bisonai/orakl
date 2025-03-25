@@ -9,7 +9,7 @@
   },
   {
     "name": "orakl-dal",
-    "url": "http://orakl-dal.orakl.svc.cluster.local:80/"
+    "url": "https://dal.cypress.orakl.network/"
   },
   {
     "name": "orakl-delegator",
