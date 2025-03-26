@@ -314,3 +314,4 @@
 - **dal** v0.0.1.20250325.0410.11d99ae <br> *`PR`*: Chore Dal log update <br><br> 
 - **dal** v0.0.1.20250325.0418.cdfa76d <br> *`PR`*: Chore Dal healthcheck handler <br><br> 
 - **sentinel** v0.0.1.20250326.0201.6c2ac44 <br> *`PR`*: Update boot api health endpoin... <br><br> 
+- **sentinel** v0.0.1.20250326.0244.7daefc3 <br> *`PR`*: Chore fix boot api endpoint fo... <br><br> 
