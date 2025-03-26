@@ -222,6 +222,7 @@ on:
           - dal:v0.0.1.20250325.0356.462b087:Update orakl dal endpoint for ...
           - dal:v0.0.1.20250325.0410.11d99ae:Chore Dal log update
           - dal:v0.0.1.20250325.0418.cdfa76d:Chore Dal healthcheck handler
+          - sentinel:v0.0.1.20250326.0201.6c2ac44:Update boot api health endpoin...
 jobs:
   prepare-taskflow:
     name: Prepare
