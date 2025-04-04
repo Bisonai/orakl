@@ -17,18 +17,14 @@ import (
 	"bisonai.com/miko/node/pkg/checker/peers"
 	"bisonai.com/miko/node/pkg/checker/signer"
 	"bisonai.com/miko/node/pkg/checker/subgraphcleaner"
-	"bisonai.com/miko/node/pkg/logscribeconsumer"
+	"bisonai.com/miko/node/pkg/utils/loginit"
 	"github.com/rs/zerolog/log"
 )
 
 func main() {
 	ctx := context.Background()
 
-	err := logscribeconsumer.Start(ctx, logscribeconsumer.WithStoreService("sentinel"))
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to start logscribe consumer")
-		return
-	}
+	loginit.InitZeroLog()
 
 	var wg sync.WaitGroup
 	wg.Add(1)

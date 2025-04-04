@@ -13,19 +13,14 @@ import (
 	"bisonai.com/miko/node/pkg/fetcher"
 	"bisonai.com/miko/node/pkg/libp2p/helper"
 	libp2pSetup "bisonai.com/miko/node/pkg/libp2p/setup"
-	"bisonai.com/miko/node/pkg/logscribeconsumer"
+	"bisonai.com/miko/node/pkg/utils/loginit"
 	"bisonai.com/miko/node/pkg/utils/retrier"
 	"github.com/rs/zerolog/log"
 )
 
 func main() {
 	ctx := context.Background()
-
-	err := logscribeconsumer.Start(ctx, logscribeconsumer.WithStoreService("node"))
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to start logscribe consumer")
-		return
-	}
+	loginit.InitZeroLog()
 
 	mb := bus.New(1000)
 	var wg sync.WaitGroup

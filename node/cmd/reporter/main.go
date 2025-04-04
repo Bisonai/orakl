@@ -7,8 +7,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"bisonai.com/miko/node/pkg/logscribeconsumer"
 	"bisonai.com/miko/node/pkg/reporter"
+	"bisonai.com/miko/node/pkg/utils/loginit"
 	"github.com/rs/zerolog/log"
 )
 
@@ -16,18 +16,14 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	err := logscribeconsumer.Start(ctx, logscribeconsumer.WithStoreService("reporter"))
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to start logscribe consumer")
-		return
-	}
+	loginit.InitZeroLog()
 
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 
 	r := reporter.New()
 
-	err = r.Run(ctx)
+	err := r.Run(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to start reporter")
 		cancel()

@@ -6,3 +6,4 @@ dockerfiles/local-data-feed/tmp/**
 .env
 .aider*
 .idea
+.qodo

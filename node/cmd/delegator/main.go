@@ -1,11 +1,8 @@
 package main
 
 import (
-	"context"
 	_ "embed"
 	"os"
-
-	"bisonai.com/miko/node/pkg/logscribeconsumer"
 
 	"bisonai.com/miko/node/pkg/delegator/contract"
 	"bisonai.com/miko/node/pkg/delegator/function"
@@ -13,6 +10,7 @@ import (
 	"bisonai.com/miko/node/pkg/delegator/reporter"
 	"bisonai.com/miko/node/pkg/delegator/sign"
 	"bisonai.com/miko/node/pkg/delegator/utils"
+	"bisonai.com/miko/node/pkg/utils/loginit"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/joho/godotenv"
@@ -20,19 +18,12 @@ import (
 )
 
 func main() {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
 	err := godotenv.Load()
 	if err != nil {
 		log.Info().Msg("env file is not found, continuing without .env file")
 	}
 
-	err = logscribeconsumer.Start(ctx, logscribeconsumer.WithStoreService("delegator"))
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to start logscribe consumer")
-		return
-	}
+	loginit.InitZeroLog()
 
 	appConfig, err := utils.Setup("0.0.1")
 	if err != nil {
