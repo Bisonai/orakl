@@ -317,3 +317,4 @@
 - **sentinel** v0.0.1.20250326.0244.7daefc3 <br> *`PR`*: Chore fix boot api endpoint fo... <br><br> 
 - **api** v0.0.1.20250404.0407.dc09012 <br> *`PR`*: chore rollback new image deplo... <br><br> 
 - **boot-api** v0.0.1.20250404.0409.5c6d108 <br> *`PR`*: chore rollback new image deplo... <br><br> 
+- **dal** v0.0.1.20250404.0412.a581867 <br> *`PR`*: chore rollback new image deplo... <br><br> 
