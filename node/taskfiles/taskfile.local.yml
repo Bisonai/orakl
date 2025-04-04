@@ -37,10 +37,7 @@ tasks:
     dotenv: [".env"]
     cmds:
       - go run ./cmd/reporter/main.go
-  logscribe:
-    dotenv: [".env"]
-    cmds:
-      - go run ./cmd/logscribe/main.go
+
   sentinel:
     dotenv: [".env"]
     cmds:
@@ -153,18 +150,11 @@ tasks:
     dotenv: [".env"]
     cmds:
       - go test ./pkg/dal/tests -v
-  test-logscribeconsumer:
-    dotenv: [".env"]
-    cmds:
-      - go test ./pkg/logscribeconsumer -v
+
   test-raft:
     dotenv: [".env"]
     cmds:
       - go test ./pkg/raft -v
-  test-logscribe:
-    dotenv: [".env"]
-    cmds:
-      - go test ./pkg/logscribe/tests -v
 
   test-checker-health:
     cmds:
