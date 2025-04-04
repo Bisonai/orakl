@@ -31,6 +31,7 @@ on:
         type: choice
         default: "new"
         options:
+          - new
           - sentinel:v0.0.1.20241122.0446.86dbb99:Sentinel Remove ws delay check...
           - sentinel:v0.0.1.20241127.0150.cf6be1b:Sentinel DAL rest network dela...
           - node:v0.0.1.20241128.0230.5c56212:Chore Add log
