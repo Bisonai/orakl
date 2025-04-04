@@ -31,6 +31,8 @@ func getAllOracles(ctx context.Context, chainReader *chainreader.ChainReader, su
 		return nil, errors.New("failed to cast first element to []klaytncommon.Address")
 	}
 
+	log.Info().Any("addresses", addresses).Msg("loaded oracles")
+
 	return addresses, nil
 }
 
