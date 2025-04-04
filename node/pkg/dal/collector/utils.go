@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"strings"
 	"time"
 
 	"bisonai.com/miko/node/pkg/chain/chainreader"
@@ -29,6 +30,8 @@ func getAllOracles(ctx context.Context, chainReader *chainreader.ChainReader, su
 	if !ok {
 		return nil, errors.New("failed to cast first element to []klaytncommon.Address")
 	}
+
+	log.Info().Any("addresses", addresses).Msg("loaded oracles")
 
 	return addresses, nil
 }
@@ -118,8 +121,9 @@ func checkForNonWhitelistedSigners(signers []klaytncommon.Address, whitelist []k
 }
 
 func isWhitelisted(signer klaytncommon.Address, whitelist []klaytncommon.Address) bool {
+	signerHex := strings.ToLower(signer.Hex())
 	for _, w := range whitelist {
-		if w == signer {
+		if strings.ToLower(w.Hex()) == signerHex {
 			return true
 		}
 	}
