@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	_ "embed"
 
 	"bisonai.com/miko/node/pkg/api/apierr"
@@ -13,30 +12,20 @@ import (
 	"bisonai.com/miko/node/pkg/api/service"
 	"bisonai.com/miko/node/pkg/api/utils"
 	"bisonai.com/miko/node/pkg/api/vrf"
+	"bisonai.com/miko/node/pkg/utils/loginit"
 
-	"bisonai.com/miko/node/pkg/logscribeconsumer"
 	"github.com/gofiber/fiber/v2"
 	"github.com/joho/godotenv"
 	"github.com/rs/zerolog/log"
 )
 
 func main() {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
 	err := godotenv.Load()
 	if err != nil {
 		log.Info().Msg("env file is not found, continuing without .env file")
 	}
 
-	err = logscribeconsumer.Start(
-		ctx,
-		logscribeconsumer.WithStoreService("api"),
-	)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to start logscribe consumer")
-		return
-	}
+	loginit.InitZeroLog()
 
 	config, err := utils.LoadEnvVars()
 	if err != nil {

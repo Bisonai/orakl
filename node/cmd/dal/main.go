@@ -5,7 +5,7 @@ import (
 	"flag"
 
 	"bisonai.com/miko/node/pkg/dal"
-	"bisonai.com/miko/node/pkg/logscribeconsumer"
+	"bisonai.com/miko/node/pkg/utils/loginit"
 	"github.com/joho/godotenv"
 	"github.com/rs/zerolog/log"
 )
@@ -28,14 +28,9 @@ func main() {
 	defer cancel()
 
 	LoadEnvFromFile()
+	loginit.InitZeroLog()
 
-	err := logscribeconsumer.Start(ctx, logscribeconsumer.WithStoreService("dal"))
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to start logscribe consumer")
-		return
-	}
-
-	err = dal.Run(ctx)
+	err := dal.Run(ctx)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to start DAL")
 	}

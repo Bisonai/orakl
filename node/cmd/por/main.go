@@ -3,19 +3,13 @@ package main
 import (
 	"context"
 
-	"bisonai.com/miko/node/pkg/logscribeconsumer"
 	"bisonai.com/miko/node/pkg/por"
-	"github.com/rs/zerolog/log"
+	"bisonai.com/miko/node/pkg/utils/loginit"
 )
 
 func main() {
 	ctx := context.Background()
-
-	err := logscribeconsumer.Start(ctx, logscribeconsumer.WithStoreService("por"))
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to start logscribe consumer")
-		return
-	}
+	loginit.InitZeroLog()
 
 	app, err := por.New(ctx)
 	if err != nil {
