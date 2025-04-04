@@ -322,3 +322,4 @@
 - **node** v0.0.1.20250404.0420.1175644 <br> *`PR`*: chore rollback new image deplo... <br><br> 
 - **por** v0.0.1.20250404.0425.ad6e1c2 <br> *`PR`*: chore rollback new image deplo... <br><br> 
 - **sentinel** v0.0.1.20250404.0429.5013bf3 <br> *`PR`*: chore rollback new image deplo... <br><br> 
+- **reporter** v0.0.1.20250404.0429.5013bf3 <br> *`PR`*: chore rollback new image deplo... <br><br> 
