@@ -32,10 +32,6 @@
     "url": "http://orakl-reporter.orakl.svc.cluster.local:3000/api/v1"
   },
   {
-    "name": "orakl-logscribe",
-    "url": "http://orakl-logscribe.orakl.svc.cluster.local:3000/api/v1/"
-  },
-  {
     "name": "orakl-vrf-core",
     "url": "http://orakl-vrf-core.orakl.svc.cluster.local:8080/"
   },
