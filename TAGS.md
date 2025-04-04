@@ -319,3 +319,4 @@
 - **boot-api** v0.0.1.20250404.0409.5c6d108 <br> *`PR`*: chore rollback new image deplo... <br><br> 
 - **dal** v0.0.1.20250404.0412.a581867 <br> *`PR`*: chore rollback new image deplo... <br><br> 
 - **delegator** v0.0.1.20250404.0417.905d557 <br> *`PR`*: chore rollback new image deplo... <br><br> 
+- **node** v0.0.1.20250404.0420.1175644 <br> *`PR`*: chore rollback new image deplo... <br><br> 
