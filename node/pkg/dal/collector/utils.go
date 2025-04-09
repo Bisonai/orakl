@@ -121,9 +121,9 @@ func checkForNonWhitelistedSigners(signers []klaytncommon.Address, whitelist []k
 }
 
 func isWhitelisted(signer klaytncommon.Address, whitelist []klaytncommon.Address) bool {
-	signerHex := strings.ToLower(signer.Hex())
+	signerHex := strings.ToLower(strings.TrimSpace(signer.Hex()))
 	for _, w := range whitelist {
-		if strings.ToLower(w.Hex()) == signerHex {
+		if strings.ToLower(strings.TrimSpace(w.Hex())) == signerHex {
 			return true
 		}
 	}
