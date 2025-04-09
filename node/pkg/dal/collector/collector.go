@@ -238,7 +238,8 @@ func (c *Collector) processIncomingData(ctx context.Context, data *aggregator.Su
 
 func (c *Collector) IncomingDataToOutgoingData(ctx context.Context, data *aggregator.SubmissionData) (*dalcommon.OutgoingSubmissionData, error) {
 	c.mu.RLock()
-	whitelist := c.CachedWhitelist
+	whitelist := make([]klaytncommon.Address, len(c.CachedWhitelist))
+	copy(whitelist, c.CachedWhitelist)
 	c.mu.RUnlock()
 
 	feedHashBytes, ok := c.FeedHashes[data.Symbol]
