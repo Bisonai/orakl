@@ -325,3 +325,4 @@
 - **reporter** v0.0.1.20250404.0429.5013bf3 <br> *`PR`*: chore rollback new image deplo... <br><br> 
 - **dal** v0.0.1.20250514.0238.8305171 <br> *`PR`*: update table column <br><br> 
 - **dal** v0.0.1.20250514.0404.825cc1c <br> *`PR`*: Revert feat update table colum... <br><br> 
+- **dal** v0.0.1.20250514.0412.6209a41 <br> *`PR`*: fix remove unexpected large va... <br><br> 
