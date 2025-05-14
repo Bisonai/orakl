@@ -1,0 +1,3 @@
+ALTER TABLE rest_calls
+ALTER COLUMN id TYPE BIGINT;
+ALTER SEQUENCE public.rest_calls_id_seq AS BIGINT;
