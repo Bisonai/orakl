@@ -7,6 +7,7 @@ import (
 	"errors"
 	"net"
 	"net/http"
+	"strings"
 	"time"
 
 	"bisonai.com/miko/node/pkg/db"
@@ -115,7 +116,13 @@ func (a *StatsApp) Run(ctx context.Context) {
 			for {
 				select {
 				case entry := <-a.RestEntryBuffer:
-					bulkCopyEntries = append(bulkCopyEntries, []any{entry.ApiKey, entry.Endpoint, entry.StatusCode, entry.ResponseTime.Microseconds()})
+					responseTime := entry.ResponseTime.Microseconds()
+					if strings.HasSuffix(entry.Endpoint, "/ws") {
+						// ignore response time for ws
+						responseTime = 0
+					}
+
+					bulkCopyEntries = append(bulkCopyEntries, []any{entry.ApiKey, entry.Endpoint, entry.StatusCode, responseTime})
 				default:
 					break loop
 				}
