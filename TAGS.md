@@ -323,3 +323,4 @@
 - **por** v0.0.1.20250404.0425.ad6e1c2 <br> *`PR`*: chore rollback new image deplo... <br><br> 
 - **sentinel** v0.0.1.20250404.0429.5013bf3 <br> *`PR`*: chore rollback new image deplo... <br><br> 
 - **reporter** v0.0.1.20250404.0429.5013bf3 <br> *`PR`*: chore rollback new image deplo... <br><br> 
+- **dal** v0.0.1.20250514.0238.8305171 <br> *`PR`*: update table column <br><br> 
