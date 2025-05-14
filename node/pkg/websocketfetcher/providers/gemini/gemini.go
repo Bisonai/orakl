@@ -74,11 +74,11 @@ func (f *GeminiFetcher) Run(ctx context.Context) {
 func (f *GeminiFetcher) CacheVolumes() {
 	volumeTimer := time.NewTimer(common.VolumeFetchInterval * time.Millisecond)
 
-	FetchVolumes(f.FeedMap, &f.VolumeCacheMap)
+	fetchVolumes(f.FeedMap, &f.VolumeCacheMap)
 
 	for {
 		<-volumeTimer.C
-		FetchVolumes(f.FeedMap, &f.VolumeCacheMap)
+		fetchVolumes(f.FeedMap, &f.VolumeCacheMap)
 		volumeTimer.Reset(common.VolumeFetchInterval * time.Millisecond)
 	}
 }
