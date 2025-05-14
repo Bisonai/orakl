@@ -328,3 +328,4 @@
 - **dal** v0.0.1.20250514.0412.6209a41 <br> *`PR`*: fix remove unexpected large va... <br><br> 
 - **node** v0.0.1.20250514.0632.0bd4aff <br> *`PR`*: fix minor errors reduce log sp... <br><br> 
 - **dal** v0.0.1.20250514.0650.d721e8a <br> *`PR`*: Log whitelist and signer toget... <br><br> 
+- **node** v0.0.1.20250514.0916.042f3d5 <br> *`PR`*: feat splitted subs <br><br> 
