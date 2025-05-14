@@ -45,17 +45,17 @@ func TradeResponseToFeedDataList(data Response, feedMap map[string][]int32, volu
 	return feedDataList, nil
 }
 
-func FetchVolumes(feedMap map[string][]int32, volumeCacheMap *common.VolumeCacheMap) {
+func fetchVolumes(feedMap map[string][]int32, volumeCacheMap *common.VolumeCacheMap) {
 	for symbol, ids := range feedMap {
 		endpoint := TICKER_ENDPOINT + strings.ToLower(symbol)
 		result, err := request.Request[HttpTickerResponse](request.WithEndpoint(endpoint), request.WithTimeout(common.VolumeFetchTimeout))
 		if err != nil {
-			log.Error().Str("Player", "Gemini").Err(err).Msg("fetch volumes, http request failed")
+			log.Warn().Str("Player", "Gemini").Err(err).Msg("fetch volumes, http request failed")
 			continue
 		}
 		timestampRaw, ok := result.Volume["timestamp"].(float64)
 		if !ok {
-			log.Error().Str("Player", "Gemini").Msg("fetch volumes, entry timestamp not found")
+			log.Warn().Str("Player", "Gemini").Msg("fetch volumes, entry timestamp not found")
 			continue
 		}
 

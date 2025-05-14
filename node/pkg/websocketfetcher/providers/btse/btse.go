@@ -13,6 +13,8 @@ import (
 
 type BtseFetcher common.Fetcher
 
+const IncreasedReadLimit = 327690
+
 func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInterface, error) {
 	config := &common.FetcherConfig{}
 	for _, opt := range opts {
@@ -41,7 +43,10 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 	ws, err := wss.NewWebsocketHelper(ctx,
 		wss.WithEndpoint(URL),
 		wss.WithSubscriptions([]any{subscription}),
-		wss.WithProxyUrl(config.Proxy))
+		wss.WithProxyUrl(config.Proxy),
+		wss.WithReadLimit(IncreasedReadLimit),
+	)
+
 	if err != nil {
 		log.Error().Str("Player", "Btse").Err(err).Msg("error in btse.New")
 		return nil, err
