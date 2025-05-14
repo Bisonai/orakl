@@ -45,6 +45,13 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 		}
 	}
 
+	if len(args) > 0 {
+		subscriptions = append(subscriptions, Subscription{
+			Op:   "subscribe",
+			Args: args,
+		})
+	}
+
 	ws, err := wss.NewWebsocketHelper(ctx,
 		wss.WithEndpoint(URL),
 		wss.WithSubscriptions(subscriptions),
