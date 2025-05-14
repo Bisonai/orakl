@@ -13,7 +13,10 @@ import (
 
 type BtseFetcher common.Fetcher
 
-const IncreasedReadLimit = 327690
+const (
+	IncreasedReadLimit    = 327690
+	maxArgPerSubscription = 10
+)
 
 func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInterface, error) {
 	config := &common.FetcherConfig{}
@@ -29,20 +32,22 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 		Mutex: sync.Mutex{},
 	}
 
+	subscriptions := []any{}
 	args := []string{}
-
 	for feed := range fetcher.FeedMap {
 		args = append(args, "tradeHistoryApi:"+feed)
-	}
-
-	subscription := Subscription{
-		Op:   "subscribe",
-		Args: args,
+		if len(args) == maxArgPerSubscription {
+			subscriptions = append(subscriptions, Subscription{
+				Op:   "subscribe",
+				Args: args,
+			})
+			args = []string{}
+		}
 	}
 
 	ws, err := wss.NewWebsocketHelper(ctx,
 		wss.WithEndpoint(URL),
-		wss.WithSubscriptions([]any{subscription}),
+		wss.WithSubscriptions(subscriptions),
 		wss.WithProxyUrl(config.Proxy),
 		wss.WithReadLimit(IncreasedReadLimit),
 	)
