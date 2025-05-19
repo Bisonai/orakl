@@ -14,14 +14,14 @@ import (
 	"bisonai.com/miko/node/pkg/delegator/utils"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/klaytn/klaytn"
-	"github.com/klaytn/klaytn/accounts/abi/bind"
-	"github.com/klaytn/klaytn/blockchain/types"
-	"github.com/klaytn/klaytn/client"
-	"github.com/klaytn/klaytn/common"
-	"github.com/klaytn/klaytn/common/hexutil"
-	"github.com/klaytn/klaytn/crypto"
-	"github.com/klaytn/klaytn/rlp"
+	"github.com/kaiachain/kaia"
+	"github.com/kaiachain/kaia/accounts/abi/bind"
+	"github.com/kaiachain/kaia/blockchain/types"
+	"github.com/kaiachain/kaia/client"
+	"github.com/kaiachain/kaia/common"
+	"github.com/kaiachain/kaia/common/hexutil"
+	"github.com/kaiachain/kaia/crypto"
+	"github.com/kaiachain/kaia/rlp"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -144,7 +144,7 @@ func TestInsert(t *testing.T) {
 
 	// read contract before
 	contractAddr := common.HexToAddress(_mockPayload.To)
-	callMsg := klaytn.CallMsg{
+	callMsg := kaia.CallMsg{
 		To:   &contractAddr,
 		Data: common.FromHex(encodedCallName),
 	}

@@ -9,10 +9,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/klaytn/klaytn"
-	"github.com/klaytn/klaytn/accounts/abi"
-	"github.com/klaytn/klaytn/client"
-	"github.com/klaytn/klaytn/common"
+	"github.com/kaiachain/kaia"
+	"github.com/kaiachain/kaia/accounts/abi"
+	"github.com/kaiachain/kaia/client"
+	"github.com/kaiachain/kaia/common"
 	"github.com/rs/zerolog/log"
 )
 
@@ -79,7 +79,7 @@ func ReadContract(ctx context.Context, client client.Client, functionString stri
 		return nil, err
 	}
 
-	result, err := client.CallContract(ctx, klaytn.CallMsg{
+	result, err := client.CallContract(ctx, kaia.CallMsg{
 		To:   &contractAddressHex,
 		Data: callData,
 	}, nil)

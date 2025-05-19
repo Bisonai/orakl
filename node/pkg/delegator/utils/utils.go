@@ -20,7 +20,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/klaytn/klaytn/crypto"
+	"github.com/kaiachain/kaia/crypto"
 	"github.com/rs/zerolog/log"
 )
 

@@ -12,8 +12,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/klaytn/klaytn/client"
-	"github.com/klaytn/klaytn/common"
+	"github.com/kaiachain/kaia/client"
+	"github.com/kaiachain/kaia/common"
 	"github.com/rs/zerolog/log"
 
 	"bisonai.com/miko/node/pkg/alert"

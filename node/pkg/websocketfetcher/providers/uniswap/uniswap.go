@@ -11,7 +11,7 @@ import (
 	"bisonai.com/miko/node/pkg/chain/websocketchainreader"
 	errorSentinel "bisonai.com/miko/node/pkg/error"
 	"bisonai.com/miko/node/pkg/websocketfetcher/common"
-	"github.com/klaytn/klaytn/blockchain/types"
+	"github.com/kaiachain/kaia/blockchain/types"
 	"github.com/rs/zerolog/log"
 )
 

@@ -15,11 +15,11 @@ import (
 
 	"github.com/go-playground/validator"
 	"github.com/gofiber/fiber/v2"
-	"github.com/klaytn/klaytn/blockchain/types"
-	"github.com/klaytn/klaytn/common"
-	"github.com/klaytn/klaytn/crypto"
-	"github.com/klaytn/klaytn/params"
-	"github.com/klaytn/klaytn/rlp"
+	"github.com/kaiachain/kaia/blockchain/types"
+	"github.com/kaiachain/kaia/common"
+	"github.com/kaiachain/kaia/crypto"
+	"github.com/kaiachain/kaia/params"
+	"github.com/kaiachain/kaia/rlp"
 	"github.com/rs/zerolog/log"
 )
 

@@ -16,8 +16,8 @@ import (
 	dalcommon "bisonai.com/miko/node/pkg/dal/common"
 	"bisonai.com/miko/node/pkg/db"
 	errorsentinel "bisonai.com/miko/node/pkg/error"
-	klaytncommon "github.com/klaytn/klaytn/common"
-	"github.com/klaytn/klaytn/crypto"
+	kaiacommon "github.com/kaiachain/kaia/common"
+	"github.com/kaiachain/kaia/crypto"
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
 )
@@ -37,7 +37,7 @@ type Collector struct {
 	FeedHashes       map[string][]byte
 	LatestTimestamps map[string]time.Time
 	LatestData       map[string]*dalcommon.OutgoingSubmissionData
-	CachedWhitelist  []klaytncommon.Address
+	CachedWhitelist  []kaiacommon.Address
 
 	baseRediscribe *db.Rediscribe
 	subRediscribe  *db.Rediscribe
@@ -238,7 +238,7 @@ func (c *Collector) processIncomingData(ctx context.Context, data *aggregator.Su
 
 func (c *Collector) IncomingDataToOutgoingData(ctx context.Context, data *aggregator.SubmissionData) (*dalcommon.OutgoingSubmissionData, error) {
 	c.mu.RLock()
-	whitelist := make([]klaytncommon.Address, len(c.CachedWhitelist))
+	whitelist := make([]kaiacommon.Address, len(c.CachedWhitelist))
 	copy(whitelist, c.CachedWhitelist)
 	c.mu.RUnlock()
 

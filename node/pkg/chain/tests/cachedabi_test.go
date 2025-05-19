@@ -6,7 +6,7 @@ import (
 
 	"bisonai.com/miko/node/pkg/chain/utils"
 	errorsentinel "bisonai.com/miko/node/pkg/error"
-	"github.com/klaytn/klaytn/accounts/abi"
+	"github.com/kaiachain/kaia/accounts/abi"
 	"github.com/stretchr/testify/assert"
 )
 

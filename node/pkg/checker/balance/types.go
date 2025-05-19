@@ -3,8 +3,8 @@ package balance
 import (
 	"time"
 
-	"github.com/klaytn/klaytn/client"
-	"github.com/klaytn/klaytn/common"
+	"github.com/kaiachain/kaia/client"
+	"github.com/kaiachain/kaia/common"
 )
 
 const (

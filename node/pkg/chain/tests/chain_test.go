@@ -17,9 +17,9 @@ import (
 	"bisonai.com/miko/node/pkg/chain/utils"
 	"bisonai.com/miko/node/pkg/db"
 	errorSentinel "bisonai.com/miko/node/pkg/error"
-	"github.com/klaytn/klaytn/blockchain/types"
-	"github.com/klaytn/klaytn/common"
-	"github.com/klaytn/klaytn/crypto"
+	"github.com/kaiachain/kaia/blockchain/types"
+	"github.com/kaiachain/kaia/common"
+	"github.com/kaiachain/kaia/crypto"
 	"github.com/stretchr/testify/assert"
 )
 

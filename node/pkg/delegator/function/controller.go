@@ -6,7 +6,7 @@ import (
 	"bisonai.com/miko/node/pkg/delegator/utils"
 	"github.com/go-playground/validator"
 	"github.com/gofiber/fiber/v2"
-	"github.com/klaytn/klaytn/crypto"
+	"github.com/kaiachain/kaia/crypto"
 )
 
 type FunctionModel struct {
