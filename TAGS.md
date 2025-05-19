@@ -329,3 +329,4 @@
 - **node** v0.0.1.20250514.0632.0bd4aff <br> *`PR`*: fix minor errors reduce log sp... <br><br> 
 - **dal** v0.0.1.20250514.0650.d721e8a <br> *`PR`*: Log whitelist and signer toget... <br><br> 
 - **node** v0.0.1.20250514.0916.042f3d5 <br> *`PR`*: feat splitted subs <br><br> 
+- **api** v0.0.1.20250519.0818.5acb329 <br> *`PR`*: Update missing go versions <br><br> 

@@ -81,6 +81,7 @@ on:
           - node:v0.0.1.20250514.0632.0bd4aff:fix minor errors reduce log sp...
           - dal:v0.0.1.20250514.0650.d721e8a:Log whitelist and signer toget...
           - node:v0.0.1.20250514.0916.042f3d5:feat splitted subs
+          - api:v0.0.1.20250519.0818.5acb329:Update missing go versions
 jobs:
   prepare-taskflow:
     name: Prepare
