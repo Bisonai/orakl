@@ -330,3 +330,4 @@
 - **dal** v0.0.1.20250514.0650.d721e8a <br> *`PR`*: Log whitelist and signer toget... <br><br> 
 - **node** v0.0.1.20250514.0916.042f3d5 <br> *`PR`*: feat splitted subs <br><br> 
 - **api** v0.0.1.20250519.0818.5acb329 <br> *`PR`*: Update missing go versions <br><br> 
+- **boot-api** v0.0.1.20250519.0851.c161fb2 <br> *`PR`*: Update missing go versions <br><br> 
