@@ -332,3 +332,4 @@
 - **api** v0.0.1.20250519.0818.5acb329 <br> *`PR`*: Update missing go versions <br><br> 
 - **boot-api** v0.0.1.20250519.0851.c161fb2 <br> *`PR`*: Update missing go versions <br><br> 
 - **node** v0.0.1.20250519.0855.8e74afe <br> *`PR`*: Update missing go versions <br><br> 
+- **delegator** v0.0.1.20250519.0855.8e74afe <br> *`PR`*: Update missing go versions <br><br> 

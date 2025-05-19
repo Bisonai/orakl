@@ -84,6 +84,7 @@ on:
           - api:v0.0.1.20250519.0818.5acb329:Update missing go versions
           - boot-api:v0.0.1.20250519.0851.c161fb2:Update missing go versions
           - node:v0.0.1.20250519.0855.8e74afe:Update missing go versions
+          - delegator:v0.0.1.20250519.0855.8e74afe:Update missing go versions
 jobs:
   prepare-taskflow:
     name: Prepare
