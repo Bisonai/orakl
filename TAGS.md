@@ -336,3 +336,4 @@
 - **dal** v0.0.1.20250519.0901.2c53495 <br> *`PR`*: Update missing go versions <br><br> 
 - **reporter** v0.0.1.20250519.0904.56967e4 <br> *`PR`*: Update missing go versions <br><br> 
 - **por** v0.0.1.20250519.0908.8ae617c <br> *`PR`*: Update missing go versions <br><br> 
+- **sentinel** v0.0.1.20250519.0909.8ae617c <br> *`PR`*: Update missing go versions <br><br> 

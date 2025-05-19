@@ -88,6 +88,7 @@ on:
           - dal:v0.0.1.20250519.0901.2c53495:Update missing go versions
           - reporter:v0.0.1.20250519.0904.56967e4:Update missing go versions
           - por:v0.0.1.20250519.0908.8ae617c:Update missing go versions
+          - sentinel:v0.0.1.20250519.0909.8ae617c:Update missing go versions
 jobs:
   prepare-taskflow:
     name: Prepare
