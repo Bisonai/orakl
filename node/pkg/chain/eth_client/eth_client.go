@@ -7,13 +7,13 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/klaytn/klaytn"
-	"github.com/klaytn/klaytn/api"
-	"github.com/klaytn/klaytn/blockchain/types"
-	"github.com/klaytn/klaytn/common"
-	"github.com/klaytn/klaytn/common/hexutil"
-	"github.com/klaytn/klaytn/networks/rpc"
-	"github.com/klaytn/klaytn/rlp"
+	"github.com/kaiachain/kaia"
+	"github.com/kaiachain/kaia/api"
+	"github.com/kaiachain/kaia/blockchain/types"
+	"github.com/kaiachain/kaia/common"
+	"github.com/kaiachain/kaia/common/hexutil"
+	"github.com/kaiachain/kaia/networks/rpc"
+	"github.com/kaiachain/kaia/rlp"
 )
 
 type EthClient struct {
@@ -64,7 +64,7 @@ func (ec *EthClient) getBlock(ctx context.Context, method string, args ...interf
 	if err != nil {
 		return nil, err
 	} else if len(raw) == 0 {
-		return nil, klaytn.NotFound
+		return nil, kaia.NotFound
 	}
 
 	var head *types.Header
@@ -90,7 +90,7 @@ func (ec *EthClient) HeaderByHash(ctx context.Context, hash common.Hash) (*types
 	var head *types.Header
 	err := ec.c.CallContext(ctx, &head, "eth_getBlockByHash", hash, false)
 	if err == nil && head == nil {
-		err = klaytn.NotFound
+		err = kaia.NotFound
 	}
 	return head, err
 }
@@ -99,12 +99,12 @@ func (ec *EthClient) HeaderByNumber(ctx context.Context, number *big.Int) (*type
 	var head *types.Header
 	err := ec.c.CallContext(ctx, &head, "eth_getBlockByNumber", toBlockNumArg(number), false)
 	if err == nil && head == nil {
-		err = klaytn.NotFound
+		err = kaia.NotFound
 	}
 	return head, err
 }
 
-func (ec *EthClient) SubscribeFilterLogs(ctx context.Context, q klaytn.FilterQuery, ch chan<- types.Log) (klaytn.Subscription, error) {
+func (ec *EthClient) SubscribeFilterLogs(ctx context.Context, q kaia.FilterQuery, ch chan<- types.Log) (kaia.Subscription, error) {
 	return ec.c.Subscribe(ctx, "eth", ch, "logs", toFilterArg(q))
 }
 
@@ -132,7 +132,7 @@ func (ec *EthClient) TransactionByHash(ctx context.Context, hash common.Hash) (t
 	if err != nil {
 		return nil, false, err
 	} else if json == nil {
-		return nil, false, klaytn.NotFound
+		return nil, false, kaia.NotFound
 	} else if sigs := json.tx.RawSignatureValues(); sigs[0].V == nil {
 		return nil, false, fmt.Errorf("server returned transaction without signature")
 	}
@@ -176,7 +176,7 @@ func (ec *EthClient) TransactionInBlock(ctx context.Context, blockHash common.Ha
 		return nil, err
 	}
 	if json == nil {
-		return nil, klaytn.NotFound
+		return nil, kaia.NotFound
 	} else if sigs := json.tx.RawSignatureValues(); sigs[0].V == nil {
 		return nil, fmt.Errorf("server returned transaction without signature")
 	}
@@ -191,7 +191,7 @@ func (ec *EthClient) TransactionReceipt(ctx context.Context, txHash common.Hash)
 	err := ec.c.CallContext(ctx, &r, "eth_getTransactionReceipt", txHash)
 	if err == nil {
 		if r == nil {
-			return nil, klaytn.NotFound
+			return nil, kaia.NotFound
 		}
 	}
 	return r, err
@@ -200,7 +200,7 @@ func (ec *EthClient) TransactionReceipt(ctx context.Context, txHash common.Hash)
 func (ec *EthClient) TransactionReceiptRpcOutput(ctx context.Context, txHash common.Hash) (r map[string]interface{}, err error) {
 	err = ec.c.CallContext(ctx, &r, "eth_getTransactionReceipt", txHash)
 	if err == nil && r == nil {
-		return nil, klaytn.NotFound
+		return nil, kaia.NotFound
 	}
 	return
 }
@@ -220,7 +220,7 @@ type rpcProgress struct {
 	KnownStates   hexutil.Uint64
 }
 
-func (ec *EthClient) SyncProgress(ctx context.Context) (*klaytn.SyncProgress, error) {
+func (ec *EthClient) SyncProgress(ctx context.Context) (*kaia.SyncProgress, error) {
 	var raw json.RawMessage
 	if err := ec.c.CallContext(ctx, &raw, "eth_syncing"); err != nil {
 		return nil, err
@@ -234,7 +234,7 @@ func (ec *EthClient) SyncProgress(ctx context.Context) (*klaytn.SyncProgress, er
 	if err := json.Unmarshal(raw, &progress); err != nil {
 		return nil, err
 	}
-	return &klaytn.SyncProgress{
+	return &kaia.SyncProgress{
 		StartingBlock: uint64(progress.StartingBlock),
 		CurrentBlock:  uint64(progress.CurrentBlock),
 		HighestBlock:  uint64(progress.HighestBlock),
@@ -243,7 +243,7 @@ func (ec *EthClient) SyncProgress(ctx context.Context) (*klaytn.SyncProgress, er
 	}, nil
 }
 
-func (ec *EthClient) SubscribeNewHead(ctx context.Context, ch chan<- *types.Header) (klaytn.Subscription, error) {
+func (ec *EthClient) SubscribeNewHead(ctx context.Context, ch chan<- *types.Header) (kaia.Subscription, error) {
 	return ec.c.Subscribe(ctx, "eth", ch, "newHeads")
 }
 
@@ -283,13 +283,13 @@ func (ec *EthClient) NonceAt(ctx context.Context, account common.Address, blockN
 	return uint64(result), err
 }
 
-func (ec *EthClient) FilterLogs(ctx context.Context, q klaytn.FilterQuery) ([]types.Log, error) {
+func (ec *EthClient) FilterLogs(ctx context.Context, q kaia.FilterQuery) ([]types.Log, error) {
 	var result []types.Log
 	err := ec.c.CallContext(ctx, &result, "eth_getLogs", toFilterArg(q))
 	return result, err
 }
 
-func toFilterArg(q klaytn.FilterQuery) interface{} {
+func toFilterArg(q kaia.FilterQuery) interface{} {
 	arg := map[string]interface{}{
 		"fromBlock": toBlockNumArg(q.FromBlock),
 		"toBlock":   toBlockNumArg(q.ToBlock),
@@ -332,7 +332,7 @@ func (ec *EthClient) PendingTransactionCount(ctx context.Context) (uint, error) 
 	return uint(num), err
 }
 
-func (ec *EthClient) CallContract(ctx context.Context, msg klaytn.CallMsg, blockNumber *big.Int) ([]byte, error) {
+func (ec *EthClient) CallContract(ctx context.Context, msg kaia.CallMsg, blockNumber *big.Int) ([]byte, error) {
 	var hex hexutil.Bytes
 	err := ec.c.CallContext(ctx, &hex, "eth_call", toCallArg(msg), toBlockNumArg(blockNumber))
 	if err != nil {
@@ -341,7 +341,7 @@ func (ec *EthClient) CallContract(ctx context.Context, msg klaytn.CallMsg, block
 	return hex, nil
 }
 
-func (ec *EthClient) PendingCallContract(ctx context.Context, msg klaytn.CallMsg) ([]byte, error) {
+func (ec *EthClient) PendingCallContract(ctx context.Context, msg kaia.CallMsg) ([]byte, error) {
 	var hex hexutil.Bytes
 	err := ec.c.CallContext(ctx, &hex, "eth_call", toCallArg(msg), "pending")
 	if err != nil {
@@ -358,7 +358,7 @@ func (ec *EthClient) SuggestGasPrice(ctx context.Context) (*big.Int, error) {
 	return (*big.Int)(&hex), nil
 }
 
-func (ec *EthClient) EstimateGas(ctx context.Context, msg klaytn.CallMsg) (uint64, error) {
+func (ec *EthClient) EstimateGas(ctx context.Context, msg kaia.CallMsg) (uint64, error) {
 	var hex hexutil.Uint64
 	err := ec.c.CallContext(ctx, &hex, "eth_estimateGas", toCallArg(msg))
 	if err != nil {
@@ -425,7 +425,7 @@ func (ec *EthClient) UnlockAccount(ctx context.Context, address common.Address, 
 	return result, err
 }
 
-func toCallArg(msg klaytn.CallMsg) interface{} {
+func toCallArg(msg kaia.CallMsg) interface{} {
 	arg := map[string]interface{}{
 		"from": msg.From,
 		"to":   msg.To,
@@ -500,7 +500,7 @@ func (ec *EthClient) RemovePeer(ctx context.Context, url string) (bool, error) {
 	return result, err
 }
 
-func (ec *EthClient) CreateAccessList(ctx context.Context, msg klaytn.CallMsg) (*types.AccessList, uint64, string, error) {
+func (ec *EthClient) CreateAccessList(ctx context.Context, msg kaia.CallMsg) (*types.AccessList, uint64, string, error) {
 	type AccessListResult struct {
 		Accesslist *types.AccessList `json:"accessList"`
 		Error      string            `json:"error,omitempty"`

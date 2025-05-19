@@ -15,13 +15,13 @@ import (
 	errorSentinel "bisonai.com/miko/node/pkg/error"
 	"bisonai.com/miko/node/pkg/utils/encryptor"
 
-	"github.com/klaytn/klaytn"
-	"github.com/klaytn/klaytn/accounts/abi"
-	"github.com/klaytn/klaytn/accounts/abi/bind"
-	"github.com/klaytn/klaytn/blockchain/types"
-	"github.com/klaytn/klaytn/common"
-	"github.com/klaytn/klaytn/crypto"
-	"github.com/klaytn/klaytn/rlp"
+	"github.com/kaiachain/kaia"
+	"github.com/kaiachain/kaia/accounts/abi"
+	"github.com/kaiachain/kaia/accounts/abi/bind"
+	"github.com/kaiachain/kaia/blockchain/types"
+	"github.com/kaiachain/kaia/common"
+	"github.com/kaiachain/kaia/crypto"
+	"github.com/kaiachain/kaia/rlp"
 
 	"github.com/rs/zerolog/log"
 )
@@ -212,7 +212,7 @@ func MakeDirectTx(ctx context.Context, client ClientInterface, contractAddressHe
 
 	contractAddress := common.HexToAddress(contractAddressHex)
 
-	estimatedGas, err := client.EstimateGas(ctx, klaytn.CallMsg{
+	estimatedGas, err := client.EstimateGas(ctx, kaia.CallMsg{
 		To:   &contractAddress,
 		Data: packed,
 	})
@@ -293,7 +293,7 @@ func MakeFeeDelegatedTx(ctx context.Context, client ClientInterface, contractAdd
 
 	contractAddress := common.HexToAddress(contractAddressHex)
 
-	estimatedGas, err := client.EstimateGas(ctx, klaytn.CallMsg{
+	estimatedGas, err := client.EstimateGas(ctx, kaia.CallMsg{
 		To:   &contractAddress,
 		Data: packed,
 	})
@@ -454,7 +454,7 @@ func ReadContract(ctx context.Context, client ClientInterface, functionString st
 		return nil, err
 	}
 
-	result, err := client.CallContract(ctx, klaytn.CallMsg{
+	result, err := client.CallContract(ctx, kaia.CallMsg{
 		To:   &contractAddressHex,
 		Data: callData,
 	}, nil)

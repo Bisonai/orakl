@@ -3,8 +3,8 @@ package balance
 import (
 	"time"
 
-	"github.com/klaytn/klaytn/client"
-	"github.com/klaytn/klaytn/common"
+	"github.com/kaiachain/kaia/client"
+	"github.com/kaiachain/kaia/common"
 )
 
 const (
@@ -22,7 +22,7 @@ var DelegatorAlarmAmount float64
 var BalanceCheckInterval time.Duration
 var BalanceAlarmInterval time.Duration
 
-var klaytnClient *client.Client
+var kaiaClient *client.Client
 var wallets []Wallet
 
 type Urls struct {

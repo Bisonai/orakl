@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"bisonai.com/miko/node/pkg/chain/utils"
-	"github.com/klaytn/klaytn/blockchain/types"
+	"github.com/kaiachain/kaia/blockchain/types"
 )
 
 type BlockchainType int

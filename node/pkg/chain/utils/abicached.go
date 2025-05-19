@@ -4,7 +4,7 @@ import (
 	"sync"
 
 	errorsentinel "bisonai.com/miko/node/pkg/error"
-	"github.com/klaytn/klaytn/accounts/abi"
+	"github.com/kaiachain/kaia/accounts/abi"
 )
 
 type AbiWithFunctionName struct {

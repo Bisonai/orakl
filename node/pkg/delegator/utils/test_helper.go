@@ -12,10 +12,10 @@ import (
 	"os"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/klaytn/klaytn"
-	"github.com/klaytn/klaytn/blockchain/types"
-	"github.com/klaytn/klaytn/client"
-	"github.com/klaytn/klaytn/common"
+	"github.com/kaiachain/kaia"
+	"github.com/kaiachain/kaia/blockchain/types"
+	"github.com/kaiachain/kaia/client"
+	"github.com/kaiachain/kaia/common"
 )
 
 func RawReq(app *fiber.App, method string, endpoint string, requestBody interface{}) error {
@@ -208,7 +208,7 @@ func GetGasPrice() (*big.Int, error) {
 	return gasPrice, nil
 }
 
-func GetGasLimit(msg klaytn.CallMsg) (uint64, error) {
+func GetGasLimit(msg kaia.CallMsg) (uint64, error) {
 	client, err := client.Dial(os.Getenv("PROVIDER_URL"))
 	if err != nil {
 		return 0, err

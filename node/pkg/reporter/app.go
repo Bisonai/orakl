@@ -10,7 +10,7 @@ import (
 	errorSentinel "bisonai.com/miko/node/pkg/error"
 	"bisonai.com/miko/node/pkg/secrets"
 	"bisonai.com/miko/node/pkg/utils/request"
-	"github.com/klaytn/klaytn/common"
+	"github.com/kaiachain/kaia/common"
 	"github.com/rs/zerolog/log"
 )
 

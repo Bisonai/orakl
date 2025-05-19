@@ -11,8 +11,8 @@ import (
 	"bisonai.com/miko/node/pkg/chain/utils"
 	errorSentinel "bisonai.com/miko/node/pkg/error"
 	"bisonai.com/miko/node/pkg/secrets"
-	"github.com/klaytn/klaytn/common"
-	"github.com/klaytn/klaytn/crypto"
+	"github.com/kaiachain/kaia/common"
+	"github.com/kaiachain/kaia/crypto"
 	"github.com/rs/zerolog/log"
 )
 

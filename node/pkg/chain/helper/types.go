@@ -9,7 +9,7 @@ import (
 	"bisonai.com/miko/node/pkg/chain/eth_client"
 	"bisonai.com/miko/node/pkg/chain/noncemanagerv2"
 	"bisonai.com/miko/node/pkg/chain/utils"
-	"github.com/klaytn/klaytn/client"
+	"github.com/kaiachain/kaia/client"
 )
 
 type ChainHelper struct {

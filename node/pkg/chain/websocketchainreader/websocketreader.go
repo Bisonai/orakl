@@ -8,10 +8,10 @@ import (
 	"bisonai.com/miko/node/pkg/chain/eth_client"
 	"bisonai.com/miko/node/pkg/chain/utils"
 	errorSentinel "bisonai.com/miko/node/pkg/error"
-	"github.com/klaytn/klaytn"
-	"github.com/klaytn/klaytn/blockchain/types"
-	"github.com/klaytn/klaytn/client"
-	"github.com/klaytn/klaytn/common"
+	"github.com/kaiachain/kaia"
+	"github.com/kaiachain/kaia/blockchain/types"
+	"github.com/kaiachain/kaia/client"
+	"github.com/kaiachain/kaia/common"
 	"github.com/rs/zerolog/log"
 )
 
@@ -110,7 +110,7 @@ func (c *ChainReader) handleSubscription(ctx context.Context, config *SubscribeC
 			continue
 		}
 
-		query := klaytn.FilterQuery{
+		query := kaia.FilterQuery{
 			FromBlock: blockNumber,
 			Addresses: []common.Address{common.HexToAddress(config.Address)},
 		}
@@ -168,7 +168,7 @@ func retryWithContext(ctx context.Context, duration time.Duration) bool {
 	}
 }
 
-func processLogs(ctx context.Context, sub klaytn.Subscription, logs <-chan types.Log, ch chan<- types.Log) bool {
+func processLogs(ctx context.Context, sub kaia.Subscription, logs <-chan types.Log, ch chan<- types.Log) bool {
 	for {
 		select {
 		case err := <-sub.Err():

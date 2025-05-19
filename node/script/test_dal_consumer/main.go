@@ -9,7 +9,7 @@ import (
 	"bisonai.com/miko/node/pkg/chain/helper"
 	"bisonai.com/miko/node/pkg/dal/common"
 	"bisonai.com/miko/node/pkg/utils/request"
-	klaytncommon "github.com/klaytn/klaytn/common"
+	kaiacommon "github.com/kaiachain/kaia/common"
 	"github.com/rs/zerolog/log"
 )
 
@@ -64,14 +64,14 @@ func main() {
 				panic("failed to convert string to big int")
 			}
 
-			feedHashBytes := klaytncommon.Hex2Bytes(strings.TrimPrefix(entry.FeedHash, "0x"))
+			feedHashBytes := kaiacommon.Hex2Bytes(strings.TrimPrefix(entry.FeedHash, "0x"))
 			feedHash := [32]byte{}
 			copy(feedHash[:], feedHashBytes)
 
 			feedHashes = append(feedHashes, feedHash)
 			values = append(values, &submissionVal)
 			timestamps = append(timestamps, &submissionTime)
-			proofs = append(proofs, klaytncommon.Hex2Bytes(strings.TrimPrefix(entry.Proof, "0x")))
+			proofs = append(proofs, kaiacommon.Hex2Bytes(strings.TrimPrefix(entry.Proof, "0x")))
 
 			if len(feedHashes) >= 50 {
 				err = kaiaHelper.SubmitDelegatedFallbackDirect(ctx, contractAddr, SUBMIT_STRICT, feedHashes, values, timestamps, proofs)

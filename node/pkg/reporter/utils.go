@@ -16,7 +16,7 @@ import (
 	"bisonai.com/miko/node/pkg/utils/request"
 	"bisonai.com/miko/node/pkg/wss"
 
-	klaytncommon "github.com/klaytn/klaytn/common"
+	kaiacommon "github.com/kaiachain/kaia/common"
 	"github.com/rs/zerolog/log"
 )
 
@@ -96,7 +96,7 @@ func ShouldReportDeviation(oldValue int64, newValue int64, threshold float64) bo
 	}
 }
 
-func ReadOnchainWhitelist(ctx context.Context, chainHelper *helper.ChainHelper, contractAddress string, contractFunction string) ([]klaytncommon.Address, error) {
+func ReadOnchainWhitelist(ctx context.Context, chainHelper *helper.ChainHelper, contractAddress string, contractFunction string) ([]kaiacommon.Address, error) {
 	result, err := chainHelper.ReadContract(ctx, contractAddress, contractFunction)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to read contract")
@@ -109,7 +109,7 @@ func ReadOnchainWhitelist(ctx context.Context, chainHelper *helper.ChainHelper, 
 		return nil, errorSentinel.ErrReporterResultCastToInterfaceFail
 	}
 
-	arr, ok := rawResultSlice[0].([]klaytncommon.Address)
+	arr, ok := rawResultSlice[0].([]kaiacommon.Address)
 	if !ok {
 		log.Error().Str("Player", "Reporter").Msg("unexpected raw result type")
 		return nil, errorSentinel.ErrReporterResultCastToAddressFail
@@ -175,12 +175,12 @@ func RawSubmissionData2SubmissionData(rawSubmissionData RawSubmissionData) (Subm
 		log.Error().Str("Player", "Reporter").Msg("empty data fields")
 		return SubmissionData{}, errorSentinel.ErrReporterDalWsDataProcessingFailed
 	}
-	feedHashBytes := klaytncommon.Hex2Bytes(strings.TrimPrefix(rawSubmissionData.FeedHash, "0x"))
+	feedHashBytes := kaiacommon.Hex2Bytes(strings.TrimPrefix(rawSubmissionData.FeedHash, "0x"))
 	feedHash := [32]byte{}
 	copy(feedHash[:], feedHashBytes)
 	submissionData := SubmissionData{
 		FeedHash: feedHash,
-		Proof:    klaytncommon.Hex2Bytes(strings.TrimPrefix(rawSubmissionData.Proof, "0x")),
+		Proof:    kaiacommon.Hex2Bytes(strings.TrimPrefix(rawSubmissionData.Proof, "0x")),
 	}
 
 	value, valueErr := strconv.ParseInt(rawSubmissionData.Value, 10, 64)

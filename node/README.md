@@ -20,7 +20,7 @@
   - [Scripts](#scripts)
   - [CLI](#cli)
 - [Troubleshooting](#troubleshooting)
-  - [`Klaytn` package compile error](#klaytn-package-compile-error)
+  - [`Kaia` package compile error](#kaia-package-compile-error)
 
 ## Introduction
 
@@ -303,7 +303,7 @@ task local:remove-json-rpc ID=10
 
 ## Troubleshooting
 
-### `Klaytn` package compile error
+### `Kaia` package compile error
 
 [Reference](https://github.com/klaytn/klaytn/issues/197#issuecomment-612597933)
 

@@ -9,21 +9,21 @@ import (
 	"strings"
 	"time"
 
-	"github.com/klaytn/klaytn"
-	"github.com/klaytn/klaytn/accounts/abi"
-	"github.com/klaytn/klaytn/client"
-	"github.com/klaytn/klaytn/common"
+	"github.com/kaiachain/kaia"
+	"github.com/kaiachain/kaia/accounts/abi"
+	"github.com/kaiachain/kaia/client"
+	"github.com/kaiachain/kaia/common"
 	"github.com/rs/zerolog/log"
 )
 
 func ExtractExpirationFromContract(ctx context.Context, jsonrpc string, submissionProxy string, signer string) (*time.Time, error) {
-	klaytnClient, err := client.Dial(jsonrpc)
+	kaiaClient, err := client.Dial(jsonrpc)
 	if err != nil {
 		return nil, err
 	}
-	defer klaytnClient.Close()
+	defer kaiaClient.Close()
 
-	readResult, err := ReadContract(ctx, *klaytnClient, "whitelist(address) returns ((uint256, uint256))", submissionProxy, common.HexToAddress(signer))
+	readResult, err := ReadContract(ctx, *kaiaClient, "whitelist(address) returns ((uint256, uint256))", submissionProxy, common.HexToAddress(signer))
 	if err != nil {
 		return nil, err
 	}
@@ -35,14 +35,14 @@ func ExtractExpirationFromContract(ctx context.Context, jsonrpc string, submissi
 }
 
 func GetSignerAddresses(ctx context.Context, jsonrpc string, submissionProxy string) ([]string, error) {
-	klaytnClient, err := client.Dial(jsonrpc)
+	kaiaClient, err := client.Dial(jsonrpc)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to connect to Klaytn client")
 		return nil, err
 	}
-	defer klaytnClient.Close()
+	defer kaiaClient.Close()
 
-	rawData, err := ReadContract(ctx, *klaytnClient, "function getAllOracles() public view returns (address[] memory)", submissionProxy)
+	rawData, err := ReadContract(ctx, *kaiaClient, "function getAllOracles() public view returns (address[] memory)", submissionProxy)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to read contract")
 		return nil, err
@@ -79,7 +79,7 @@ func ReadContract(ctx context.Context, client client.Client, functionString stri
 		return nil, err
 	}
 
-	result, err := client.CallContract(ctx, klaytn.CallMsg{
+	result, err := client.CallContract(ctx, kaia.CallMsg{
 		To:   &contractAddressHex,
 		Data: callData,
 	}, nil)

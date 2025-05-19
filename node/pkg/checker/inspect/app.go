@@ -14,7 +14,7 @@ import (
 	"bisonai.com/miko/node/pkg/chain/helper"
 	"bisonai.com/miko/node/pkg/secrets"
 
-	klaytncommon "github.com/klaytn/klaytn/common"
+	kaiacommon "github.com/kaiachain/kaia/common"
 	"github.com/robfig/cron/v3"
 	"github.com/rs/zerolog/log"
 )
@@ -214,7 +214,7 @@ func (i *Inspector) inspectRR(ctx context.Context) (string, error) {
 }
 
 func (i *Inspector) requestVRF(ctx context.Context) error {
-	keyHashBytes := klaytncommon.Hex2Bytes(strings.TrimPrefix(i.keyHash, "0x"))
+	keyHashBytes := kaiacommon.Hex2Bytes(strings.TrimPrefix(i.keyHash, "0x"))
 	keyHash := [32]byte{}
 	copy(keyHash[:], keyHashBytes)
 

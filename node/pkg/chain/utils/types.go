@@ -5,9 +5,9 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/klaytn/klaytn"
-	"github.com/klaytn/klaytn/blockchain/types"
-	"github.com/klaytn/klaytn/common"
+	"github.com/kaiachain/kaia"
+	"github.com/kaiachain/kaia/blockchain/types"
+	"github.com/kaiachain/kaia/common"
 )
 
 const (
@@ -71,15 +71,15 @@ type ClientInterface interface {
 	Close()
 	PendingNonceAt(ctx context.Context, account common.Address) (uint64, error)
 	SuggestGasPrice(ctx context.Context) (*big.Int, error)
-	EstimateGas(ctx context.Context, call klaytn.CallMsg) (uint64, error)
+	EstimateGas(ctx context.Context, call kaia.CallMsg) (uint64, error)
 	SendTransaction(ctx context.Context, tx *types.Transaction) error
-	CallContract(ctx context.Context, call klaytn.CallMsg, blockNumber *big.Int) ([]byte, error)
+	CallContract(ctx context.Context, call kaia.CallMsg, blockNumber *big.Int) ([]byte, error)
 	NetworkID(ctx context.Context) (*big.Int, error)
 	CodeAt(ctx context.Context, account common.Address, blockNumber *big.Int) ([]byte, error)
 	TransactionReceipt(ctx context.Context, txHash common.Hash) (*types.Receipt, error)
 	BlockNumber(ctx context.Context) (*big.Int, error)
-	SubscribeFilterLogs(ctx context.Context, q klaytn.FilterQuery, ch chan<- types.Log) (klaytn.Subscription, error)
-	SubscribeNewHead(ctx context.Context, ch chan<- *types.Header) (klaytn.Subscription, error)
+	SubscribeFilterLogs(ctx context.Context, q kaia.FilterQuery, ch chan<- types.Log) (kaia.Subscription, error)
+	SubscribeNewHead(ctx context.Context, ch chan<- *types.Header) (kaia.Subscription, error)
 }
 
 type JsonRpcError interface {

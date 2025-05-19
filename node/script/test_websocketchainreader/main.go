@@ -6,7 +6,7 @@ import (
 
 	"bisonai.com/miko/node/pkg/chain/utils"
 	"bisonai.com/miko/node/pkg/chain/websocketchainreader"
-	"github.com/klaytn/klaytn/blockchain/types"
+	"github.com/kaiachain/kaia/blockchain/types"
 
 	"github.com/rs/zerolog/log"
 )

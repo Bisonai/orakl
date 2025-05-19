@@ -11,11 +11,11 @@ import (
 
 	chainutils "bisonai.com/miko/node/pkg/chain/utils"
 	errorsentinel "bisonai.com/miko/node/pkg/error"
-	klaytncommon "github.com/klaytn/klaytn/common"
+	kaiacommon "github.com/kaiachain/kaia/common"
 	"github.com/rs/zerolog/log"
 )
 
-func getAllOracles(ctx context.Context, chainReader *chainreader.ChainReader, submissionProxyContractAddr string) ([]klaytncommon.Address, error) {
+func getAllOracles(ctx context.Context, chainReader *chainreader.ChainReader, submissionProxyContractAddr string) ([]kaiacommon.Address, error) {
 	rawResult, err := chainReader.ReadContract(ctx, submissionProxyContractAddr, GetAllOracles)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to get all oracles")
@@ -26,9 +26,9 @@ func getAllOracles(ctx context.Context, chainReader *chainreader.ChainReader, su
 		return nil, errors.New("failed to cast result to []interface{} in getAllOracles")
 	}
 
-	addresses, ok := rawResultSlice[0].([]klaytncommon.Address)
+	addresses, ok := rawResultSlice[0].([]kaiacommon.Address)
 	if !ok {
-		return nil, errors.New("failed to cast first element to []klaytncommon.Address")
+		return nil, errors.New("failed to cast first element to []kaiacommon.Address")
 	}
 
 	log.Info().Any("addresses", addresses).Msg("loaded oracles")
@@ -36,7 +36,7 @@ func getAllOracles(ctx context.Context, chainReader *chainreader.ChainReader, su
 	return addresses, nil
 }
 
-func orderProof(ctx context.Context, proof []byte, value int64, timestamp time.Time, symbol string, cachedWhitelist []klaytncommon.Address) ([]byte, error) {
+func orderProof(ctx context.Context, proof []byte, value int64, timestamp time.Time, symbol string, cachedWhitelist []kaiacommon.Address) ([]byte, error) {
 	proofChunks, err := getUniqueProofChunks(proof)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to remove duplicate proofs in orderProof")
@@ -97,8 +97,8 @@ func splitProofToChunk(proof []byte) ([][]byte, error) {
 	return proofs, nil
 }
 
-func getSignerListFromProofs(hash []byte, proofChunks [][]byte) ([]klaytncommon.Address, error) {
-	signers := []klaytncommon.Address{}
+func getSignerListFromProofs(hash []byte, proofChunks [][]byte) ([]kaiacommon.Address, error) {
+	signers := []kaiacommon.Address{}
 	for _, p := range proofChunks {
 		signer, err := chainutils.RecoverSigner(hash, p)
 		if err != nil {
@@ -110,7 +110,7 @@ func getSignerListFromProofs(hash []byte, proofChunks [][]byte) ([]klaytncommon.
 	return signers, nil
 }
 
-func checkForNonWhitelistedSigners(signers []klaytncommon.Address, whitelist []klaytncommon.Address) error {
+func checkForNonWhitelistedSigners(signers []kaiacommon.Address, whitelist []kaiacommon.Address) error {
 	for _, signer := range signers {
 		if !isWhitelisted(signer, whitelist) {
 			log.Error().Str("Player", "DAL").Any("whitelist", whitelist).Any("signer", signer).Msg("non-whitelisted signer")
@@ -120,7 +120,7 @@ func checkForNonWhitelistedSigners(signers []klaytncommon.Address, whitelist []k
 	return nil
 }
 
-func isWhitelisted(signer klaytncommon.Address, whitelist []klaytncommon.Address) bool {
+func isWhitelisted(signer kaiacommon.Address, whitelist []kaiacommon.Address) bool {
 	signerHex := strings.TrimSpace(signer.Hex())
 	for _, w := range whitelist {
 		if strings.EqualFold(strings.TrimSpace(w.Hex()), signerHex) {
@@ -130,15 +130,15 @@ func isWhitelisted(signer klaytncommon.Address, whitelist []klaytncommon.Address
 	return false
 }
 
-func getSignerMap(signers []klaytncommon.Address, proofChunks [][]byte) map[klaytncommon.Address][]byte {
-	signerMap := make(map[klaytncommon.Address][]byte)
+func getSignerMap(signers []kaiacommon.Address, proofChunks [][]byte) map[kaiacommon.Address][]byte {
+	signerMap := make(map[kaiacommon.Address][]byte)
 	for i, signer := range signers {
 		signerMap[signer] = proofChunks[i]
 	}
 	return signerMap
 }
 
-func validateProof(signerMap map[klaytncommon.Address][]byte, whitelist []klaytncommon.Address) ([]byte, error) {
+func validateProof(signerMap map[kaiacommon.Address][]byte, whitelist []kaiacommon.Address) ([]byte, error) {
 	tmpProofs := make([][]byte, 0, len(whitelist))
 	for _, signer := range whitelist {
 		tmpProof, ok := signerMap[signer]
@@ -156,5 +156,5 @@ func validateProof(signerMap map[klaytncommon.Address][]byte, whitelist []klaytn
 }
 
 func formatBytesToHex(bytes []byte) string {
-	return "0x" + klaytncommon.Bytes2Hex(bytes)
+	return "0x" + kaiacommon.Bytes2Hex(bytes)
 }
