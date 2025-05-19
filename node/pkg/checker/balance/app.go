@@ -49,9 +49,9 @@ func setUp() error {
 
 func setClient(jsonRpcUrl string) error {
 	var err error
-	klaytnClient, err = client.Dial(jsonRpcUrl)
+	kaiaClient, err = client.Dial(jsonRpcUrl)
 	if err != nil {
-		log.Error().Err(err).Msg("Error connecting to klaytn client")
+		log.Error().Err(err).Msg("Error connecting to kaia client")
 		return err
 	}
 	return nil
@@ -262,7 +262,7 @@ func loadWalletFromDelegator(ctx context.Context, url string) (Wallet, error) {
 }
 
 func getBalance(ctx context.Context, address common.Address) (float64, error) {
-	balance, err := klaytnClient.BalanceAt(ctx, address, nil)
+	balance, err := kaiaClient.BalanceAt(ctx, address, nil)
 	if err != nil {
 		return 0, err
 	}

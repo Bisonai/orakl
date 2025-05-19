@@ -17,13 +17,13 @@ import (
 )
 
 func ExtractExpirationFromContract(ctx context.Context, jsonrpc string, submissionProxy string, signer string) (*time.Time, error) {
-	klaytnClient, err := client.Dial(jsonrpc)
+	kaiaClient, err := client.Dial(jsonrpc)
 	if err != nil {
 		return nil, err
 	}
-	defer klaytnClient.Close()
+	defer kaiaClient.Close()
 
-	readResult, err := ReadContract(ctx, *klaytnClient, "whitelist(address) returns ((uint256, uint256))", submissionProxy, common.HexToAddress(signer))
+	readResult, err := ReadContract(ctx, *kaiaClient, "whitelist(address) returns ((uint256, uint256))", submissionProxy, common.HexToAddress(signer))
 	if err != nil {
 		return nil, err
 	}
@@ -35,14 +35,14 @@ func ExtractExpirationFromContract(ctx context.Context, jsonrpc string, submissi
 }
 
 func GetSignerAddresses(ctx context.Context, jsonrpc string, submissionProxy string) ([]string, error) {
-	klaytnClient, err := client.Dial(jsonrpc)
+	kaiaClient, err := client.Dial(jsonrpc)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to connect to Klaytn client")
 		return nil, err
 	}
-	defer klaytnClient.Close()
+	defer kaiaClient.Close()
 
-	rawData, err := ReadContract(ctx, *klaytnClient, "function getAllOracles() public view returns (address[] memory)", submissionProxy)
+	rawData, err := ReadContract(ctx, *kaiaClient, "function getAllOracles() public view returns (address[] memory)", submissionProxy)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to read contract")
 		return nil, err

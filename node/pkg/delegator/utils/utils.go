@@ -291,7 +291,7 @@ func GetPublicKey(pk string) (string, error) {
 	pk = strings.TrimPrefix(pk, "0x")
 
 	if len(pk) == 110 {
-		return "", fmt.Errorf("klaytn wallet key is given instead of private key")
+		return "", fmt.Errorf("kaia wallet key is given instead of private key")
 	}
 
 	privateKeyECDSA, err := crypto.HexToECDSA(pk)

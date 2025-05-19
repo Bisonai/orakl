@@ -22,7 +22,7 @@ var DelegatorAlarmAmount float64
 var BalanceCheckInterval time.Duration
 var BalanceAlarmInterval time.Duration
 
-var klaytnClient *client.Client
+var kaiaClient *client.Client
 var wallets []Wallet
 
 type Urls struct {

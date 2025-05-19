@@ -20,7 +20,7 @@
   - [Scripts](#scripts)
   - [CLI](#cli)
 - [Troubleshooting](#troubleshooting)
-  - [`Klaytn` package compile error](#klaytn-package-compile-error)
+  - [`Kaia` package compile error](#kaia-package-compile-error)
 
 ## Introduction
 
