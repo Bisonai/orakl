@@ -20,9 +20,9 @@ const fetchTags = async () => {
           ? "premium"
           : numFeeds > 5
           ? "standard"
-          : numFeeds == 1
-          ? "single"
-          : "basic";
+          : numFeeds > 1
+          ? "basic"
+          : "single";
       tags[feed.name] = tag;
     });
   } catch (error) {
