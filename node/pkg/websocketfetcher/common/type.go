@@ -47,6 +47,13 @@ type DexFeedDefinition struct {
 	Reciprocal     *bool  `json:"reciprocal"`
 }
 
+type DexFeedDefinitionCaypbara struct {
+	DexFeedDefinition
+	Token0Address string `json:"token0Address"`
+	Token1Address string `json:"token1Address"`
+	InitAmount    int64  `json:"initAmount"`
+}
+
 type FetcherConfig struct {
 	FeedMaps       FeedMaps
 	Proxy          string
