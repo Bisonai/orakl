@@ -83,7 +83,7 @@ func (f *CapybaraFetcher) run(ctx context.Context, feed common.Feed) {
 }
 
 func (f *CapybaraFetcher) getInitialPrice(ctx context.Context, feed common.Feed) (*float64, error) {
-	definition := new(common.DexFeedDefinitionCaypbara)
+	definition := new(common.DexFeedDefinitionCapybara)
 	err := json.Unmarshal(feed.Definition, &definition)
 	if err != nil {
 		log.Error().Str("Player", "Capybara").Err(err).Msg("error in capybara.getInitialPrice, failed to unmarshal definition")
@@ -93,7 +93,7 @@ func (f *CapybaraFetcher) getInitialPrice(ctx context.Context, feed common.Feed)
 	return f.getPriceThroughQuotePotentialSwap(ctx, definition)
 }
 
-func (f *CapybaraFetcher) getPriceThroughQuotePotentialSwap(ctx context.Context, definition *common.DexFeedDefinitionCaypbara) (*float64, error) {
+func (f *CapybaraFetcher) getPriceThroughQuotePotentialSwap(ctx context.Context, definition *common.DexFeedDefinitionCapybara) (*float64, error) {
 	var initAmount int64 = 10 // ex. 10 klay -> usdt or 10 weth -> usdt
 	if definition.InitAmount > 0 {
 		initAmount = definition.InitAmount
@@ -138,7 +138,7 @@ func (f *CapybaraFetcher) getPriceThroughQuotePotentialSwap(ctx context.Context,
 }
 
 func (f *CapybaraFetcher) subscribeEvent(ctx context.Context, feed common.Feed) error {
-	definition := new(common.DexFeedDefinitionCaypbara)
+	definition := new(common.DexFeedDefinitionCapybara)
 	err := json.Unmarshal(feed.Definition, &definition)
 	if err != nil {
 		log.Error().Str("Player", "Capybara").Err(err).Msg("error in capybara.subscribeEvent, failed to unmarshal definition")
@@ -148,7 +148,7 @@ func (f *CapybaraFetcher) subscribeEvent(ctx context.Context, feed common.Feed) 
 	return f.readSwapEvent(ctx, feed, definition)
 }
 
-func (f *CapybaraFetcher) readSwapEvent(ctx context.Context, feed common.Feed, definition *common.DexFeedDefinitionCaypbara) error {
+func (f *CapybaraFetcher) readSwapEvent(ctx context.Context, feed common.Feed, definition *common.DexFeedDefinitionCapybara) error {
 	logChannel := make(chan types.Log)
 	address := definition.Address
 

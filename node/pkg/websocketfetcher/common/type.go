@@ -47,7 +47,7 @@ type DexFeedDefinition struct {
 	Reciprocal     *bool  `json:"reciprocal"`
 }
 
-type DexFeedDefinitionCaypbara struct {
+type DexFeedDefinitionCapybara struct {
 	DexFeedDefinition
 	Token0Address string `json:"token0Address"`
 	Token1Address string `json:"token1Address"`
