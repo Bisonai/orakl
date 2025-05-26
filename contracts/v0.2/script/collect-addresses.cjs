@@ -16,7 +16,13 @@ const fetchTags = async () => {
     (res.data || []).forEach((feed) => {
       const numFeeds = feed.feeds.length;
       const tag =
-        numFeeds > 8 ? "premium" : numFeeds > 5 ? "standard" : "basic";
+        numFeeds > 8
+          ? "premium"
+          : numFeeds > 5
+          ? "standard"
+          : numFeeds == 1
+          ? "single"
+          : "basic";
       tags[feed.name] = tag;
     });
   } catch (error) {
