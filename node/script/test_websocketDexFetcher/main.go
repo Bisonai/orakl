@@ -18,21 +18,35 @@ func main() {
 	feeds := []common.Feed{
 		{
 			ID:   1,
-			Name: "Capybara-WKLAY-USDT",
+			Name: "Capybara-WALK-USDT",
 			Definition: json.RawMessage(`{
 				"chainId": "8217",
-				"address": "0x1de1578476d9b4237f963eca5d37500fc33df3d1",
+				"address": "0x872e7e7422bcacdcb37f7fffb0cfe3f2f0d6c546",
 				"type": "CapybaraPool",
 				"token0Decimals": 18,
 				"token1Decimals": 6,
-				"token0Address": "0x19aac5f612f524b754ca7e7c41cbfa2e981a4432",
-				"token1Address": "0x9025095263d1E548dc890A7589A4C78038aC40ab"
+				"token0Address": "0x976232eb7eb92287ff06c5d145bd0d1c033eca58",
+				"token1Address": "0x5c13e303a62fc5dedf5b52d66873f2e59fedadc2"
 				}`),
 			ConfigID: 1,
 		},
 		{
 			ID:   2,
-			Name: "Capybara-WKLAY-USDT",
+			Name: "Capybara-KRWO-USDT",
+			Definition: json.RawMessage(`{
+				"chainId": "8217",
+				"address": "0x4b63ec6284810f62cecba6f03cf17413b0f4cec3",
+				"type": "CapybaraPool",
+				"token0Decimals": 6,
+				"token1Decimals": 6,
+				"token0Address": "0x7fc692699f2216647a0e06225d8bdf8cdee40e7f",
+				"token1Address": "0x5c13e303a62fc5dedf5b52d66873f2e59fedadc2"
+			}`),
+			ConfigID: 2,
+		},
+		{
+			ID:   3,
+			Name: "Capybara-KAIA-USDT",
 			Definition: json.RawMessage(`{
 				"chainId": "8217",
 				"address": "0x6389dbfa1427a3b0a89cddc7ea9bbda6e73dece7",
@@ -40,21 +54,7 @@ func main() {
 				"token0Decimals": 18,
 				"token1Decimals": 6,
 				"token0Address": "0x19aac5f612f524b754ca7e7c41cbfa2e981a4432",
-				"token1Address": "0x5C13E303a62Fc5DEdf5B52D66873f2E59fEdADC2"
-			}`),
-			ConfigID: 2,
-		},
-		{
-			ID:   3,
-			Name: "Capybara-USDT-USDC",
-			Definition: json.RawMessage(`{
-				"chainId": "8217",
-				"address": "0x540cce8ed7d210f71eeabb9e7ed7698ac745e077",
-				"type": "CapybaraPool",
-				"token0Decimals": 6,
-				"token1Decimals": 6,
-				"token0Address": "0x5c13e303a62fc5dedf5b52d66873f2e59fedadc2",
-				"token1Address": "0x608792deb376cce1c9fa4d0e6b7b44f507cffa6a"
+				"token1Address": "0x5c13e303a62fc5dedf5b52d66873f2e59fedadc2"
 			}`),
 			ConfigID: 3,
 		},
