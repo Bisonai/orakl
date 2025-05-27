@@ -46,7 +46,7 @@ func main() {
 		},
 		{
 			ID:   3,
-			Name: "Capybara-KAIA-USDT",
+			Name: "Capybara-KAIA-USDT(Wormhole)",
 			Definition: json.RawMessage(`{
 				"chainId": "8217",
 				"address": "0x6389dbfa1427a3b0a89cddc7ea9bbda6e73dece7",
@@ -57,6 +57,20 @@ func main() {
 				"token1Address": "0x5c13e303a62fc5dedf5b52d66873f2e59fedadc2"
 			}`),
 			ConfigID: 3,
+		},
+		{
+			ID:   4,
+			Name: "Capybara-KAIA-USDT(Stargate)",
+			Definition: json.RawMessage(`{
+				"chainId": "8217",
+				"address": "0x1de1578476d9b4237f963eca5d37500fc33df3d1",
+				"type": "CapybaraPool",
+				"token0Decimals": 18,
+				"token1Decimals": 6,
+				"token0Address": "0x19aac5f612f524b754ca7e7c41cbfa2e981a4432",
+				"token1Address": "0x9025095263d1e548dc890a7589a4c78038ac40ab"
+			}`),
+			ConfigID: 4,
 		},
 	}
 
