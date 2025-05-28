@@ -47,6 +47,22 @@ func New(opts ...ChainReaderOption) (*ChainReader, error) {
 		chainIdToChainType[ethChainId.String()] = Ethereum
 	}
 
+	var binanceClient *eth_client.EthClient
+	var binanceChainId *big.Int
+	if config.BinanceWebsocketUrl != "" {
+		binanceClient, err = eth_client.Dial(config.BinanceWebsocketUrl)
+		if err != nil {
+			return nil, err
+		}
+
+		binanceChainId, err = binanceClient.ChainID(context.Background())
+		if err != nil {
+			return nil, err
+		}
+
+		chainIdToChainType[binanceChainId.String()] = Binance
+	}
+
 	var kaiaClient *client.Client
 	var kaiaChainId *big.Int
 	if config.KaiaWebsocketUrl != "" {
@@ -66,6 +82,7 @@ func New(opts ...ChainReaderOption) (*ChainReader, error) {
 	return &ChainReader{
 		EthClient:          ethClient,
 		KaiaClient:         kaiaClient,
+		BinanceClient:      binanceClient,
 		RetryPeriod:        config.RetryInterval,
 		ChainIdToChainType: chainIdToChainType,
 	}, nil
@@ -148,11 +165,16 @@ func (c *ChainReader) getBlockNumber(ctx context.Context, config *SubscribeConfi
 }
 
 func (c *ChainReader) client(chainType BlockchainType) utils.ClientInterface {
-	if chainType == Ethereum {
+	switch chainType {
+	case Ethereum:
 		return c.EthClient
+	case Binance:
+		return c.BinanceClient
+	case Kaia:
+		return c.KaiaClient
+	default:
+		panic("invalid chainType")
 	}
-
-	return c.KaiaClient
 }
 
 func (c *ChainReader) ReadContractOnce(ctx context.Context, chain BlockchainType, contractAddressHex string, functionString string, args ...interface{}) (interface{}, error) {
