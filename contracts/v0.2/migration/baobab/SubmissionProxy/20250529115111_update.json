@@ -1,0 +1,9 @@
+{
+  "address": "0x05ce978f1200bc7243ae4a5968de8c3f8bd082f7",
+  "deployFeed": {
+    "feedNames": ["ZP-KAIA"]
+  },
+  "feedRouter": {
+    "address": "0xd9dbbb92a6ecb8b8d3e386b8d0ad8284bd816ef1"
+  }
+}
