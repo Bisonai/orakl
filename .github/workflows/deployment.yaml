@@ -90,6 +90,7 @@ on:
           - por:v0.0.1.20250519.0908.8ae617c:Update missing go versions
           - sentinel:v0.0.1.20250519.0909.8ae617c:Update missing go versions
           - node:v0.0.1.20250527.0604.0a024c4:Deploy walk usdt contracts
+          - node:v0.0.1.20250529.0307.e101a4e:Deploy contracts for a new pai...
 jobs:
   prepare-taskflow:
     name: Prepare
