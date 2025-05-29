@@ -2,6 +2,7 @@ package bus
 
 import (
 	"strconv"
+	"sync"
 
 	errorSentinel "bisonai.com/miko/node/pkg/error"
 	"github.com/rs/zerolog/log"
@@ -29,6 +30,7 @@ type MessageResponse struct {
 type MessageBus struct {
 	channels  map[string]chan Message
 	msgBuffer int
+	sync.RWMutex
 }
 
 func New(bufferSize int) *MessageBus {
@@ -39,12 +41,16 @@ func New(bufferSize int) *MessageBus {
 }
 
 func (mb *MessageBus) Subscribe(id string) <-chan Message {
+	mb.Lock()
+	defer mb.Unlock()
 	ch := make(chan Message, mb.msgBuffer)
 	mb.channels[id] = ch
 	return ch
 }
 
 func (mb *MessageBus) Publish(msg Message) error {
+	mb.RLock()
+	defer mb.RUnlock()
 	ch, ok := mb.channels[msg.To]
 	if !ok {
 		return errorSentinel.ErrBusChannelNotFound
