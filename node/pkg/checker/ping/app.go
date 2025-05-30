@@ -75,14 +75,18 @@ func WithThresholdFactor(factor float64) AppOption {
 
 type App struct {
 	RTTAvg          map[string]float64
-	Alpha           float64 // smoothing factor for the EMA
+	Alpha           float64
 	ThresholdFactor float64
 	Endpoints       []PingEndpoint
 	ResultsBuffer   chan PingResult
 	FailCount       map[string]int
 }
 
-func (pe *PingEndpoint) run() error {
+func (pe *PingEndpoint) runOnce() error {
+	// Type assert to actual *probing.Pinger to set Count=1
+	if p, ok := pe.Pinger.(*probing.Pinger); ok {
+		p.Count = 1
+	}
 	return pe.Pinger.Run()
 }
 
@@ -110,8 +114,8 @@ func New(opts ...AppOption) (*App, error) {
 		withoutPrivileged = false
 	}
 
-	endpoints := []PingEndpoint{}
-	for _, endpoint := range c.Endpoints {
+	for _, addr := range c.Endpoints {
+		endpoint := addr // capture loop variable
 		pinger, err := probing.NewPinger(endpoint)
 		if err != nil {
 			return nil, err
@@ -129,18 +133,17 @@ func New(opts ...AppOption) (*App, error) {
 			}
 		}
 
-		endpoints = append(endpoints, PingEndpoint{endpoint, pinger})
+		app.Endpoints = append(app.Endpoints, PingEndpoint{Address: endpoint, Pinger: pinger})
 	}
 
-	app.Endpoints = endpoints
 	app.Alpha = c.Alpha
 	app.ThresholdFactor = c.ThresholdFactor
 
 	return app, nil
 }
 
-func Run(ctx context.Context, opt ...AppOption) {
-	app, err := New(opt...)
+func Run(ctx context.Context, opts ...AppOption) {
+	app, err := New(opts...)
 	if err != nil {
 		panic(err)
 	}
@@ -148,17 +151,19 @@ func Run(ctx context.Context, opt ...AppOption) {
 }
 
 func (app *App) Start(ctx context.Context) {
-	for _, endpoint := range app.Endpoints {
-		go func(endpoint PingEndpoint) {
+	// Start each endpoint's ping loop
+	for _, e := range app.Endpoints {
+		endpoint := e // capture for goroutine
+		go func() {
 			for {
 				select {
 				case <-ctx.Done():
 					return
 				default:
-					log.Debug().Msg("connecting ICMP Pinger")
-					err := endpoint.run()
+					log.Debug().Str("endpoint", endpoint.Address).Msg("sending ping")
+					err := endpoint.runOnce()
 					if err != nil {
-						log.Warn().Err(err).Msg("failed to ping endpoint")
+						log.Warn().Err(err).Str("endpoint", endpoint.Address).Msg("ping error")
 						app.ResultsBuffer <- PingResult{
 							Address: endpoint.Address,
 							Success: false,
@@ -168,51 +173,58 @@ func (app *App) Start(ctx context.Context) {
 					time.Sleep(DefaultReconnectInterval)
 				}
 			}
-		}(endpoint)
+		}()
 	}
 
+	// Process results
 	for {
 		select {
 		case <-ctx.Done():
 			close(app.ResultsBuffer)
 			return
 		case result := <-app.ResultsBuffer:
-			if result.Success {
-				if _, exists := app.RTTAvg[result.Address]; !exists {
-					app.RTTAvg[result.Address] = float64(result.Delay)
-				} else {
-					app.RTTAvg[result.Address] = app.Alpha*float64(result.Delay) + (1-app.Alpha)*app.RTTAvg[result.Address]
-				}
+			app.processResult(result)
 
-				if result.Delay > time.Duration(app.ThresholdFactor*app.RTTAvg[result.Address]) {
-					log.
-						Warn().
-						Any("result", result).
-						Float64("delay_ms", float64(result.Delay)/float64(time.Millisecond)).
-						Float64("threshold_ms", app.ThresholdFactor*app.RTTAvg[result.Address]/float64(time.Millisecond)).
-						Msg("ping failed")
-					app.FailCount[result.Address] += 1
-				} else {
-					log.Debug().Any("result", result).Msg("ping success")
-					app.FailCount[result.Address] = 0
-				}
-			} else {
-				log.Warn().Any("result", result).Msg("failed to ping endpoint")
-				app.FailCount[result.Address] += 1
-			}
-
+			// Check shutdown condition
 			failedCount := 0
 			for _, count := range app.FailCount {
 				if count >= DefaultMaxFails {
-					failedCount += 1
+					failedCount++
 				}
 			}
 
-			// shuts down if all endpoints fails pinging 2 times in a row
 			if failedCount == len(app.Endpoints) {
-				log.Error().Msg("All pings failed, shutting down")
+				log.Error().Msg("All endpoints failed multiple times, shutting down")
 				return
 			}
 		}
+	}
+}
+
+func (app *App) processResult(result PingResult) {
+	delayMs := result.Delay.Milliseconds()
+	thresholdMs := int64(app.ThresholdFactor * app.RTTAvg[result.Address] / float64(time.Millisecond))
+
+	if result.Success {
+		if _, exists := app.RTTAvg[result.Address]; !exists {
+			app.RTTAvg[result.Address] = float64(result.Delay)
+		} else {
+			app.RTTAvg[result.Address] = app.Alpha*float64(result.Delay) + (1-app.Alpha)*app.RTTAvg[result.Address]
+		}
+
+		if delayMs > thresholdMs {
+			log.Warn().
+				Str("endpoint", result.Address).
+				Int64("delay_ms", delayMs).
+				Int64("threshold_ms", thresholdMs).
+				Msg("ping success but above threshold")
+			app.FailCount[result.Address]++
+		} else {
+			log.Debug().Str("endpoint", result.Address).Int64("delay_ms", delayMs).Msg("ping OK")
+			app.FailCount[result.Address] = 0
+		}
+	} else {
+		log.Warn().Str("endpoint", result.Address).Msg("ping failed")
+		app.FailCount[result.Address]++
 	}
 }
