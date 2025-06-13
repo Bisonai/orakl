@@ -1030,17 +1030,6 @@
       "feed": "0x2dfca0eddc9c55ea34c7ac61901240a94c6513e7"
     }
   },
-  "HPO-KRW": {
-    "baobab": {
-      "proxy": "0xa0faa18cab698430a33514420ede2b48be5faf45",
-      "feed": "0x63887981dd1898a922b2049cee641deccb871928"
-    },
-    "tag": "basic",
-    "cypress": {
-      "proxy": "0x619a2c1db90c89465fa8e8c801528882c4c2c354",
-      "feed": "0x798d686bb488521e3bff6702e0aff9874394e6d3"
-    }
-  },
   "IMX-KRW": {
     "baobab": {
       "proxy": "0x171e20cb4b0ebecb2f76c86529c2e5ca41d5f85f",
