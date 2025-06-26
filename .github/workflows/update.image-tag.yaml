@@ -1,4 +1,4 @@
-name: "update-image-tag"
+name: 'update-image-tag'
 
 on:
   workflow_call:
@@ -49,8 +49,9 @@ jobs:
       - name: Verify and Checkout Branch
         run: |
           cd ./gitops_tmp/
-          git fetch origin idc-fly:idc-fly
+          git fetch origin idc-fly
           git checkout idc-fly
+          git reset --hard origin/idc-fly
 
       - name: Update image tag in values.${{ inputs.network }}.yaml files
         run: |
