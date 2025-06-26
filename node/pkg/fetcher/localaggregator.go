@@ -68,7 +68,8 @@ func (c *LocalAggregator) Job(ctx context.Context) error {
 		return err
 	}
 
-	if len(feeds) == 0 {
+	if len(feeds) < len(c.Feeds)/2 {
+		log.Debug().Str("Player", "LocalAggregator").Msg("not enough feeds")
 		return nil
 	}
 
