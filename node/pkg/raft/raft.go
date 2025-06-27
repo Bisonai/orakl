@@ -335,8 +335,14 @@ func (r *Raft) setLeaderState() {
 
 func (r *Raft) becomeLeader(ctx context.Context) {
 	r.setLeaderState()
-	_ = r.sendHeartbeat(ctx)
-	_ = r.LeaderJob(ctx)
+	err := r.sendHeartbeat(ctx)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to send heartbeat")
+	}
+	err = r.LeaderJob(ctx)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to execute leader job")
+	}
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
