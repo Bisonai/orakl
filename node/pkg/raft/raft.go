@@ -335,6 +335,7 @@ func (r *Raft) setLeaderState() {
 
 func (r *Raft) becomeLeader(ctx context.Context) {
 	r.setLeaderState()
+	_ = r.sendHeartbeat(ctx)
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
