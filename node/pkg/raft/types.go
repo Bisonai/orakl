@@ -24,8 +24,8 @@ const (
 	Candidate RoleType = "candidate"
 	Follower  RoleType = "follower"
 
-	MaxMissedHeartbeats   = 2
-	DefaultCooldownPeriod = 3 * time.Second
+	MaxMissedHeartbeats   = 3
+	DefaultCooldownPeriod = 5 * time.Second
 )
 
 type Message struct {
