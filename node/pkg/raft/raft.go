@@ -14,7 +14,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/host"
 )
 
-const HEARTBEAT_TIMEOUT = 500 * time.Millisecond
+const HEARTBEAT_TIMEOUT = 100 * time.Millisecond
 
 func NewRaftNode(
 	h host.Host,
