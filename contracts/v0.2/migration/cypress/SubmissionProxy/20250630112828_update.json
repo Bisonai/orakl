@@ -1,0 +1,9 @@
+{
+  "address": "0xcb56b163e545a3870ca04c6ae2401f2405fb29a9",
+  "deployFeed": {
+    "feedNames": ["RENDER-UDST"]
+  },
+  "feedRouter": {
+    "address": "0x653078f0d3a230416a59aa6486466470db0190a2"
+  }
+}
