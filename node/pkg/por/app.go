@@ -52,7 +52,7 @@ func New(ctx context.Context) (*app, error) {
 	}
 
 	entries := map[string]entry{}
-	for _, u := range urls {
+	for n, u := range urls {
 		adapterUrl := adapterBaseUrl + strings.ReplaceAll(u.adapterEndpoint, "{CHAIN}", chain)
 		aggregatorUrl := aggregatorBaseUrl + strings.ReplaceAll(u.aggregatorEndpoint, "{CHAIN}", chain)
 
@@ -82,7 +82,7 @@ func New(ctx context.Context) (*app, error) {
 			aggregator: ag,
 		}
 
-		entries[ad.Name] = e
+		entries[n] = e
 	}
 
 	porReporterPk := secrets.GetSecret("POR_REPORTER_PK")
