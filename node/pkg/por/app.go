@@ -31,7 +31,7 @@ const (
 )
 
 var urls = map[string]urlEntry{
-	"peg-por": urlEntry{
+	"peg-por": {
 		"/{CHAIN}/peg-{CHAIN}.por.json",
 		"/{CHAIN}/peg.por.json",
 	},
@@ -142,10 +142,10 @@ func (a *app) Run(ctx context.Context) {
 	wg := sync.WaitGroup{}
 	for j, e := range a.entries {
 		wg.Add(1)
-		go func(ctx context.Context, j string, e entry) {
+		go func(j string, e entry) {
 			defer wg.Done()
 			a.startJob(ctx, e)
-		}(ctx, j, e)
+		}(j, e)
 	}
 	wg.Wait()
 }
@@ -214,12 +214,13 @@ func (a *app) report(ctx context.Context, e entry, submissionValue float64, late
 
 	latestRoundIdParam := new(big.Int).SetUint64(uint64(latestRoundId))
 
-	tx, err := a.kaiaHelper.MakeDirectTx(ctx, e.aggregator.Address, submitInterface, latestRoundIdParam, submissionValueParam)
-	if err != nil {
-		return err
-	}
-
-	return a.kaiaHelper.Submit(ctx, tx)
+	return retrier.Retry(func() error {
+		tx, err := a.kaiaHelper.MakeDirectTx(ctx, e.aggregator.Address, submitInterface, latestRoundIdParam, submissionValueParam)
+		if err != nil {
+			return err
+		}
+		return a.kaiaHelper.Submit(ctx, tx)
+	}, maxRetry, initialFailureTimeout, maxRetryDelay)
 }
 
 func (a *app) getLastInfo(ctx context.Context, e entry) (lastInfo, error) {
@@ -272,6 +273,11 @@ func (a *app) shouldReport(e entry, lastInfo lastInfo, newVal float64, fetchedTi
 	log.Debug().Float64("oldValue", oldVal).Float64("newValue", newVal).Msg("checking deviation")
 
 	denominator := math.Pow10(e.adapter.Decimals)
+	if denominator == 0 {
+		log.Error().Float64("denom", denominator).Msg("invalid denominator")
+		return false
+	}
+
 	o, n := oldVal/denominator, newVal/denominator
 
 	if o != 0 && n != 0 {
