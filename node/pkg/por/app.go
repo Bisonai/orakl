@@ -3,10 +3,13 @@ package por
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"math"
 	"math/big"
 	"net/http"
 	"os"
+	"strings"
+	"sync"
 	"time"
 
 	"bisonai.com/miko/node/pkg/chain/helper"
@@ -19,10 +22,22 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-const maxTxSubmissionRetries = 3
+const (
+	maxTxSubmissionRetries = 3
+	defaultInterval        = 60 * time.Second
+	submissionBuffer       = 5 * time.Second
+	adapterBaseUrl         = "https://config.orakl.network/adapter"
+	aggregatorBaseUrl      = "https://config.orakl.network/aggregator"
+)
 
-func New(ctx context.Context) (*App, error) {
-	// TODO: updates for multiple PORs
+var urls = map[string]urlEntry{
+	"peg-por": urlEntry{
+		"/{CHAIN}/peg-{CHAIN}.por.json",
+		"/{CHAIN}/peg.por.json",
+	},
+}
+
+func New(ctx context.Context) (*app, error) {
 	chain := os.Getenv("POR_CHAIN")
 	if chain == "" {
 		chain = "baobab"
@@ -36,33 +51,38 @@ func New(ctx context.Context) (*App, error) {
 		}
 	}
 
-	adapterUrl := "https://config.orakl.network/adapter/" + chain + "/peg-" + chain + ".por.json"
-	aggregatorUrl := "https://config.orakl.network/aggregator/" + chain + "/peg.por.json"
+	entries := map[string]entry{}
+	for _, u := range urls {
+		adapterUrl := adapterBaseUrl + strings.ReplaceAll(u.adapterEndpoint, "{CHAIN}", chain)
+		aggregatorUrl := aggregatorBaseUrl + strings.ReplaceAll(u.aggregatorEndpoint, "{CHAIN}", chain)
 
-	adapter, err := request.Request[AdapterModel](request.WithEndpoint(adapterUrl))
-	if err != nil {
-		return nil, err
-	}
+		ad, err := request.Request[adaptor](request.WithEndpoint(adapterUrl))
+		if err != nil {
+			return nil, err
+		}
 
-	fetchInterval := 60 * time.Second
-	if adapter.Interval != nil {
-		fetchInterval = time.Duration(*adapter.Interval) * time.Millisecond
-	}
+		if len(ad.Feeds) == 0 {
+			return nil, fmt.Errorf("feeds not found for %s", adapterUrl)
+		}
 
-	aggregator, err := request.Request[AggregatorModel](request.WithEndpoint(aggregatorUrl))
-	if err != nil {
-		return nil, err
-	}
+		ag, err := request.Request[aggregator](request.WithEndpoint(aggregatorUrl))
+		if err != nil {
+			return nil, err
+		}
 
-	definition := new(fetcher.Definition)
-	err = json.Unmarshal(adapter.Feeds[0].Definition, &definition)
-	if err != nil {
-		return nil, err
-	}
+		d := new(fetcher.Definition)
+		err = json.Unmarshal(ad.Feeds[0].Definition, &d)
+		if err != nil {
+			return nil, err
+		}
 
-	submitInterval := 60 * time.Minute
-	if aggregator.Heartbeat != nil {
-		submitInterval = time.Duration(*aggregator.Heartbeat) * time.Millisecond
+		e := entry{
+			definition: d,
+			adapter:    ad,
+			aggregator: ag,
+		}
+
+		entries[ad.Name] = e
 	}
 
 	porReporterPk := secrets.GetSecret("POR_REPORTER_PK")
@@ -80,17 +100,13 @@ func New(ctx context.Context) (*App, error) {
 		return nil, err
 	}
 
-	return &App{
-		Name:            adapter.Name,
-		Definition:      definition,
-		FetchInterval:   fetchInterval,
-		SubmitInterval:  submitInterval,
-		KaiaHelper:      chainHelper,
-		ContractAddress: aggregator.Address,
+	return &app{
+		entries:    entries,
+		kaiaHelper: chainHelper,
 	}, nil
 }
 
-func (a *App) Run(ctx context.Context) error {
+func (a *app) Run(ctx context.Context) {
 	go func() {
 		port := os.Getenv("POR_PORT")
 		if port == "" {
@@ -122,20 +138,38 @@ func (a *App) Run(ctx context.Context) error {
 		}
 	}()
 
-	ticker := time.NewTicker(a.FetchInterval)
+	// start jobs
+	wg := sync.WaitGroup{}
+	for j, e := range a.entries {
+		wg.Add(1)
+		go func(ctx context.Context, j string, e entry) {
+			defer wg.Done()
+			a.startJob(ctx, e)
+		}(ctx, j, e)
+	}
+	wg.Wait()
+}
+
+func (a *app) startJob(ctx context.Context, entry entry) {
+	interval := defaultInterval
+	if entry.adapter.Interval != nil {
+		interval = time.Duration(*entry.adapter.Interval) * time.Millisecond
+	}
+
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
 	for {
 		select {
 		case <-ctx.Done():
-			ticker.Stop()
-			return nil
+			return
 		case <-ticker.C:
 			err := retrier.Retry(
 				func() error {
-					return a.Execute(ctx)
+					return a.execute(ctx, entry)
 				},
-				MAX_RETRY,
-				INITIAL_FAILURE_TIMEOUT,
-				MAX_RETRY_DELAY,
+				maxRetry,
+				initialFailureTimeout,
+				maxRetryDelay,
 			)
 			if err != nil {
 				log.Error().Err(err).Msg("error in execute")
@@ -144,31 +178,26 @@ func (a *App) Run(ctx context.Context) error {
 	}
 }
 
-func (a *App) Execute(ctx context.Context) error {
-	value, err := a.Fetch(ctx)
+func (a *app) execute(ctx context.Context, e entry) error {
+	v, err := fetcher.FetchSingle(ctx, e.definition)
 	if err != nil {
-		log.Error().Err(err).Msg("error in fetch")
-	}
-	log.Debug().Msg("fetched value")
-
-	lastInfo, err := a.GetLastInfo(ctx)
-	if err != nil {
-		log.Error().Err(err).Msg("error in read contract")
 		return err
 	}
-	log.Debug().Msg("read last info")
+
+	lastInfo, err := a.getLastInfo(ctx, e)
+	if err != nil {
+		return err
+	}
 
 	now := time.Now()
-	if a.ShouldReport(&lastInfo, value, now) {
-		roundId, err := a.GetRoundID(ctx)
+	if a.shouldReport(e, lastInfo, v, now) {
+		roundId, err := a.getRoundId(ctx, e)
 		if err != nil {
-			log.Error().Err(err).Msg("failed to get roundId")
 			return err
 		}
 
-		err = a.report(ctx, value, roundId)
+		err = a.report(ctx, e, v, roundId)
 		if err != nil {
-			log.Error().Err(err).Msg("failed to report")
 			return err
 		}
 	} else {
@@ -178,11 +207,49 @@ func (a *App) Execute(ctx context.Context) error {
 	return nil
 }
 
-func (a *App) Fetch(ctx context.Context) (float64, error) {
-	return fetcher.FetchSingle(ctx, a.Definition)
+func (a *app) report(ctx context.Context, e entry, submissionValue float64, latestRoundId uint32) error {
+	tmp := new(big.Float).SetFloat64(submissionValue)
+	submissionValueParam := new(big.Int)
+	tmp.Int(submissionValueParam)
+
+	latestRoundIdParam := new(big.Int).SetUint64(uint64(latestRoundId))
+
+	tx, err := a.kaiaHelper.MakeDirectTx(ctx, e.aggregator.Address, submitInterface, latestRoundIdParam, submissionValueParam)
+	if err != nil {
+		return err
+	}
+
+	return a.kaiaHelper.Submit(ctx, tx)
 }
 
-func (a *App) ShouldReport(lastInfo *LastInfo, value float64, fetchedTime time.Time) bool {
+func (a *app) getLastInfo(ctx context.Context, e entry) (lastInfo, error) {
+	rawResult, err := a.kaiaHelper.ReadContract(ctx, e.aggregator.Address, latestRoundDataInterface)
+	if err != nil {
+		return lastInfo{}, err
+	}
+
+	rawResultSlice, ok := rawResult.([]interface{})
+	if !ok {
+		return lastInfo{}, errorSentinel.ErrPorRawResultCastFail
+	}
+
+	updatedAt, ok := rawResultSlice[3].(*big.Int)
+	if !ok {
+		return lastInfo{}, errorSentinel.ErrPorUpdatedAtCastFail
+	}
+
+	answer, ok := rawResultSlice[1].(*big.Int)
+	if !ok {
+		return lastInfo{}, errorSentinel.ErrPorAnswerCastFail
+	}
+
+	return lastInfo{
+		UpdatedAt: updatedAt,
+		Answer:    answer,
+	}, nil
+}
+
+func (a *app) shouldReport(e entry, lastInfo lastInfo, newVal float64, fetchedTime time.Time) bool {
 	if lastInfo.UpdatedAt.Sign() == 0 && lastInfo.Answer.Sign() == 0 {
 		return true
 	}
@@ -191,59 +258,41 @@ func (a *App) ShouldReport(lastInfo *LastInfo, value float64, fetchedTime time.T
 	lastSubmissionTime := time.Unix(int64UpdatedAt, 0)
 	log.Debug().Msg("time since last submission: " + fetchedTime.Sub(lastSubmissionTime).String())
 
-	buffer := 5 * time.Second
+	submitInterval := 60 * time.Minute
+	if e.aggregator.Heartbeat != nil {
+		submitInterval = time.Duration(*e.aggregator.Heartbeat) * time.Millisecond
+	}
 
-	if fetchedTime.Sub(lastSubmissionTime) > a.SubmitInterval-buffer {
+	if fetchedTime.Sub(lastSubmissionTime) > submitInterval-submissionBuffer {
 		return true
 	}
 
-	lastSubmittedValue := new(big.Float).SetInt(lastInfo.Answer)
-	float64Value, _ := lastSubmittedValue.Float64()
+	oldVal, _ := new(big.Float).SetInt(lastInfo.Answer).Float64()
 
-	return a.DeviationCheck(float64Value, value)
-}
+	log.Debug().Float64("oldValue", oldVal).Float64("newValue", newVal).Msg("checking deviation")
 
-func (a *App) report(ctx context.Context, submissionValue float64, latestRoundId uint32) error {
-	tmp := new(big.Float).SetFloat64(submissionValue)
-	submissionValueParam := new(big.Int)
-	tmp.Int(submissionValueParam)
+	denominator := math.Pow10(e.adapter.Decimals)
+	o, n := oldVal/denominator, newVal/denominator
 
-	latestRoundIdParam := new(big.Int).SetUint64(uint64(latestRoundId))
-
-	tx, err := a.KaiaHelper.MakeDirectTx(ctx, a.ContractAddress, SUBMIT_FUNCTION_STRING, latestRoundIdParam, submissionValueParam)
-	if err != nil {
-		return err
-	}
-
-	return a.KaiaHelper.Submit(ctx, tx)
-}
-
-func (a *App) DeviationCheck(oldValue float64, newValue float64) bool {
-	log.Debug().Float64("oldValue", oldValue).Float64("newValue", newValue).Msg("checking deviation")
-
-	denominator := math.Pow10(DECIMALS)
-	old := oldValue / denominator
-	new := newValue / denominator
-
-	if old != 0 && new != 0 {
-		deviationRange := old * DEVIATION_THRESHOLD
-		min := old - deviationRange
-		max := old + deviationRange
-		return new < min || new > max
-	} else if old == 0 && new != 0 {
-		return new > ABSOLUTE_THRESHOLD
+	if o != 0 && n != 0 {
+		deviationRange := oldVal * e.aggregator.Threshold
+		min := oldVal - deviationRange
+		max := oldVal + deviationRange
+		return newVal < min || newVal > max
+	} else if o == 0 && n != 0 {
+		return newVal > e.aggregator.AbsoluteThreshold
 	} else {
 		return false
 	}
 }
 
-func (a *App) GetRoundID(ctx context.Context) (uint32, error) {
-	publicAddress, err := a.KaiaHelper.PublicAddress()
+func (a *app) getRoundId(ctx context.Context, e entry) (uint32, error) {
+	publicAddress, err := a.kaiaHelper.PublicAddress()
 	if err != nil {
 		return 0, err
 	}
 
-	rawResult, err := a.KaiaHelper.ReadContract(ctx, a.ContractAddress, READ_ROUND_ID, publicAddress, uint32(0))
+	rawResult, err := a.kaiaHelper.ReadContract(ctx, e.aggregator.Address, oracleRoundStateInterface, publicAddress, uint32(0))
 	if err != nil {
 		return 0, err
 	}
@@ -259,31 +308,4 @@ func (a *App) GetRoundID(ctx context.Context) (uint32, error) {
 	}
 
 	return RoundID, nil
-}
-
-func (a *App) GetLastInfo(ctx context.Context) (LastInfo, error) {
-	rawResult, err := a.KaiaHelper.ReadContract(ctx, a.ContractAddress, READ_LATEST_ROUND_DATA)
-	if err != nil {
-		return LastInfo{}, err
-	}
-
-	rawResultSlice, ok := rawResult.([]interface{})
-	if !ok {
-		return LastInfo{}, errorSentinel.ErrPorRawResultCastFail
-	}
-
-	updatedAt, ok := rawResultSlice[3].(*big.Int)
-	if !ok {
-		return LastInfo{}, errorSentinel.ErrPorUpdatedAtCastFail
-	}
-
-	answer, ok := rawResultSlice[1].(*big.Int)
-	if !ok {
-		return LastInfo{}, errorSentinel.ErrPorAnswerCastFail
-	}
-
-	return LastInfo{
-		UpdatedAt: updatedAt,
-		Answer:    answer,
-	}, nil
 }

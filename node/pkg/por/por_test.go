@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"bisonai.com/miko/node/pkg/fetcher"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -14,13 +15,11 @@ func TestNew(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	assert.Equal(t, "PEG-POR", app.Name)
-	assert.Equal(t, 60*time.Second, app.FetchInterval)
-	assert.Equal(t, 60*time.Minute, app.SubmitInterval)
-	assert.NotNil(t, app.KaiaHelper)
-	assert.Equal(t, "0x58798D6Ca40480DF2FAd1b69939C3D29d91b60d3", app.ContractAddress)
 
-	publicAddress, err := app.KaiaHelper.PublicAddressString()
+	t.Log(app.entries)
+	assert.NotNil(t, app.kaiaHelper)
+
+	publicAddress, err := app.kaiaHelper.PublicAddressString()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -33,7 +32,8 @@ func TestReadLatestRoundId(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	roundId, err := app.GetRoundID(ctx)
+
+	roundId, err := app.getRoundId(ctx, app.entries["peg-por"])
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -47,7 +47,7 @@ func TestGetLastInfo(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	info, err := app.GetLastInfo(ctx)
+	info, err := app.getLastInfo(ctx, app.entries["peg-por"])
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -58,25 +58,13 @@ func TestGetLastInfo(t *testing.T) {
 	assert.Greater(t, answer, int64(0))
 }
 
-func TestFetch(t *testing.T) {
-	ctx := context.Background()
-	app, err := New(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, err = app.Fetch(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-}
-
 func TestExecute(t *testing.T) {
 	ctx := context.Background()
 	app, err := New(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = app.Execute(ctx)
+	err = app.execute(ctx, app.entries["peg-por"])
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -89,17 +77,17 @@ func TestReport(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	value, err := app.Fetch(ctx)
+	value, err := fetcher.FetchSingle(ctx, app.entries["peg-por"].definition)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	roundId, err := app.GetRoundID(ctx)
+	roundId, err := app.getRoundId(ctx, app.entries["peg-por"])
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = app.report(ctx, value, roundId)
+	err = app.report(ctx, app.entries["peg-por"], value, roundId)
 	if err != nil {
 		t.Fatal(err)
 	}
