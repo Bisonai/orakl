@@ -94,6 +94,7 @@ on:
           - node:v0.0.1.20250722.0545.5aa1f86:Use gateio v3 endpoint
           - por:v0.0.1.20250722.0617.61420a4:Use gateio v3 endpoint
           - por:v0.0.1.20250722.0714.2de1bf0:Include gp into baobab por
+          - por:v0.0.1.20250722.0732.9c98f96:Chore update reduce logic to h...
 jobs:
   prepare-taskflow:
     name: Prepare
