@@ -232,24 +232,29 @@ func (a *app) report(ctx context.Context, e entry, submissionValue float64, late
 }
 
 func (a *app) getLastInfo(ctx context.Context, e entry) (lastInfo, error) {
+	r := lastInfo{
+		UpdatedAt: big.NewInt(0),
+		Answer:    big.NewInt(0),
+	}
+
 	rawResult, err := a.kaiaHelper.ReadContract(ctx, e.aggregator.Address, latestRoundDataInterface)
 	if err != nil {
-		return lastInfo{}, err
+		return r, err
 	}
 
 	rawResultSlice, ok := rawResult.([]interface{})
 	if !ok {
-		return lastInfo{}, errorSentinel.ErrPorRawResultCastFail
+		return r, errorSentinel.ErrPorRawResultCastFail
 	}
 
 	updatedAt, ok := rawResultSlice[3].(*big.Int)
 	if !ok {
-		return lastInfo{}, errorSentinel.ErrPorUpdatedAtCastFail
+		return r, errorSentinel.ErrPorUpdatedAtCastFail
 	}
 
 	answer, ok := rawResultSlice[1].(*big.Int)
 	if !ok {
-		return lastInfo{}, errorSentinel.ErrPorAnswerCastFail
+		return r, errorSentinel.ErrPorAnswerCastFail
 	}
 
 	return lastInfo{
@@ -259,7 +264,7 @@ func (a *app) getLastInfo(ctx context.Context, e entry) (lastInfo, error) {
 }
 
 func (a *app) shouldReport(e entry, lastInfo lastInfo, newVal float64, fetchedTime time.Time) bool {
-	if lastInfo.UpdatedAt == nil || lastInfo.Answer == nil || (lastInfo.UpdatedAt.Sign() == 0 && lastInfo.Answer.Sign() == 0) {
+	if lastInfo.UpdatedAt.Sign() == 0 && lastInfo.Answer.Sign() == 0 {
 		return true
 	}
 
