@@ -93,6 +93,7 @@ on:
           - node:v0.0.1.20250529.0307.e101a4e:Deploy contracts for a new pai...
           - node:v0.0.1.20250722.0545.5aa1f86:Use gateio v3 endpoint
           - por:v0.0.1.20250722.0617.61420a4:Use gateio v3 endpoint
+          - por:v0.0.1.20250722.0714.2de1bf0:Include gp into baobab por
 jobs:
   prepare-taskflow:
     name: Prepare
