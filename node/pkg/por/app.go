@@ -259,7 +259,7 @@ func (a *app) getLastInfo(ctx context.Context, e entry) (lastInfo, error) {
 }
 
 func (a *app) shouldReport(e entry, lastInfo lastInfo, newVal float64, fetchedTime time.Time) bool {
-	if lastInfo.UpdatedAt.Sign() == 0 && lastInfo.Answer.Sign() == 0 {
+	if lastInfo.UpdatedAt == nil || lastInfo.Answer == nil || (lastInfo.UpdatedAt.Sign() == 0 && lastInfo.Answer.Sign() == 0) {
 		return true
 	}
 
