@@ -343,3 +343,4 @@
 - **por** v0.0.1.20250722.0617.61420a4 <br> *`PR`*: Use gateio v3 endpoint <br><br> 
 - **por** v0.0.1.20250722.0714.2de1bf0 <br> *`PR`*: Include gp into baobab por <br><br> 
 - **por** v0.0.1.20250722.0732.9c98f96 <br> *`PR`*: Chore update reduce logic to h... <br><br> 
+- **por** v0.0.1.20250722.0749.5d9a8ef <br> *`PR`*: Fix initial submission failure <br><br> 
