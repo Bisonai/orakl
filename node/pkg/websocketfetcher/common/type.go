@@ -15,7 +15,7 @@ import (
 const (
 	DECIMALS                  = 8
 	GetAllWebsocketFeedsQuery = `SELECT *
-	FROM feeds
+	FROM public.feeds
 	WHERE definition @> '{"type": "wss"}';`
 	GetAllProxiesQuery  = `SELECT * FROM proxies`
 	VolumeCacheLifespan = 10 * time.Minute
@@ -28,7 +28,7 @@ type FeedData = types.FeedData
 
 func GetDexFeedsQuery(name string) string {
 	name = capitalizeFirstLetter(name)
-	return fmt.Sprintf(`SELECT * FROM feeds WHERE definition::jsonb @> '{"type": "%sPool"}'::jsonb;`, name)
+	return fmt.Sprintf(`SELECT * FROM public.feeds WHERE definition::jsonb @> '{"type": "%sPool"}'::jsonb;`, name)
 }
 
 type FeedDefinition struct {
