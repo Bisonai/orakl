@@ -14,7 +14,6 @@ type Reducer struct {
 }
 
 func Reduce(raw interface{}, reducers []Reducer) (float64, error) {
-	var result float64
 	var err error
 	for _, reducer := range reducers {
 		raw, err = reduce(raw, reducer)
@@ -23,11 +22,25 @@ func Reduce(raw interface{}, reducers []Reducer) (float64, error) {
 		}
 	}
 
-	result, ok := raw.(float64)
-	if !ok {
+	switch v := raw.(type) {
+	case float64:
+		return v, nil
+	case float32:
+		return float64(v), nil
+	case int:
+		return float64(v), nil
+	case int64:
+		return float64(v), nil
+	case string:
+		v = strings.ReplaceAll(v, ",", "")
+		f, err := strconv.ParseFloat(v, 64)
+		if err != nil {
+			return 0, err
+		}
+		return f, nil
+	default:
 		return 0, errorSentinel.ErrReducerCastToFloatFail
 	}
-	return result, nil
 }
 
 func reduce(raw interface{}, reducer Reducer) (interface{}, error) {
