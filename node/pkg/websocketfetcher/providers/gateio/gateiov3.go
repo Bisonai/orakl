@@ -48,6 +48,10 @@ func NewV3(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInt
 		payload = append(payload, strings.ReplaceAll(feed, "-", "_"))
 	}
 
+	if len(payload) == 0 {
+		log.Warn().Str("Player", "gateioV3").Msg("no feeds provided")
+	}
+
 	maxBatchSize := 50
 	splittedPayloads := arr.SplitByChunkSize(payload, maxBatchSize)
 
@@ -61,7 +65,7 @@ func NewV3(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInt
 		})
 	}
 
-	log.Debug().Any("subscriptions", subscriptions).Msg("subscriptions generated")
+	log.Debug().Str("Player", "gateiov3").Any("subscriptions", subscriptions).Msg("subscriptions generated")
 
 	ws, err := wss.NewWebsocketHelper(
 		ctx,
@@ -80,7 +84,7 @@ func NewV3(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInt
 func (f *GateioV3Fetcher) handleMessage(ctx context.Context, message map[string]any) error {
 	response, err := common.MessageToStruct[TickerUpdate](message)
 	if err != nil {
-		log.Error().Str("Player", "GateioV3").Err(err).Msg("failed to unmarshal message")
+		log.Error().Str("Player", "gateioV3").Err(err).Msg("failed to unmarshal message")
 		return err
 	}
 

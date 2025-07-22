@@ -28,6 +28,10 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 		payload = append(payload, strings.ReplaceAll(feed, "-", "_"))
 	}
 
+	if len(payload) == 0 {
+		log.Warn().Str("Player", "Gateio").Msg("empty feed map")
+	}
+
 	maxBatchSize := 10
 	splittedPayloads := arr.SplitByChunkSize(payload, maxBatchSize)
 	channel := "spot.tickers"
