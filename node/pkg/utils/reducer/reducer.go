@@ -32,6 +32,7 @@ func Reduce(raw interface{}, reducers []Reducer) (float64, error) {
 	case int64:
 		return float64(v), nil
 	case string:
+		v = strings.ReplaceAll(v, ",", "")
 		f, err := strconv.ParseFloat(v, 64)
 		if err != nil {
 			return 0, err
