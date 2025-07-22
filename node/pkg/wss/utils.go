@@ -152,6 +152,7 @@ func (ws *WebsocketHelper) dialAndSubscribe(ctx context.Context) error {
 					return err
 				}
 			}
+			time.Sleep(time.Second)
 		}
 		return nil
 	}
