@@ -28,7 +28,7 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 		payload = append(payload, strings.ReplaceAll(feed, "-", "_"))
 	}
 
-	maxBatchSize := 50
+	maxBatchSize := 10
 	splittedPayloads := arr.SplitByChunkSize(payload, maxBatchSize)
 	channel := "spot.tickers"
 	event := "subscribe"
