@@ -340,3 +340,4 @@
 - **node** v0.0.1.20250527.0604.0a024c4 <br> *`PR`*: Deploy walk usdt contracts <br><br> 
 - **node** v0.0.1.20250529.0307.e101a4e <br> *`PR`*: Deploy contracts for a new pai... <br><br> 
 - **node** v0.0.1.20250722.0545.5aa1f86 <br> *`PR`*: Use gateio v3 endpoint <br><br> 
+- **por** v0.0.1.20250722.0617.61420a4 <br> *`PR`*: Use gateio v3 endpoint <br><br> 
