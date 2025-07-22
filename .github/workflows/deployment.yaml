@@ -97,6 +97,7 @@ on:
           - por:v0.0.1.20250722.0732.9c98f96:Chore update reduce logic to h...
           - por:v0.0.1.20250722.0749.5d9a8ef:Fix initial submission failure
           - por:v0.0.1.20250722.0757.7c5058f:fix por nil ptr err
+          - por:v0.0.1.20250722.0803.41e4dbf:Fix rollback set default val
 jobs:
   prepare-taskflow:
     name: Prepare

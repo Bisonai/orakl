@@ -345,3 +345,4 @@
 - **por** v0.0.1.20250722.0732.9c98f96 <br> *`PR`*: Chore update reduce logic to h... <br><br> 
 - **por** v0.0.1.20250722.0749.5d9a8ef <br> *`PR`*: Fix initial submission failure <br><br> 
 - **por** v0.0.1.20250722.0757.7c5058f <br> *`PR`*: fix por nil ptr err <br><br> 
+- **por** v0.0.1.20250722.0803.41e4dbf <br> *`PR`*: Fix rollback set default val <br><br> 
