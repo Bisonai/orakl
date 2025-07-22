@@ -194,7 +194,7 @@ func (a *app) execute(ctx context.Context, e entry) error {
 
 	lastInfo, err := a.getLastInfo(ctx, e)
 	if err != nil {
-		return err
+		log.Error().Err(err).Msg("failed to fetch last info")
 	}
 
 	now := time.Now()
