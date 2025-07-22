@@ -35,6 +35,10 @@ var urls = map[string]urlEntry{
 		"/{CHAIN}/peg-{CHAIN}.por.json",
 		"/{CHAIN}/peg.por.json",
 	},
+	"gp": {
+		"/{CHAIN}/gp-{CHAIN}.json",
+		"/{CHAIN}/gp.json",
+	},
 }
 
 func New(ctx context.Context) (*app, error) {
