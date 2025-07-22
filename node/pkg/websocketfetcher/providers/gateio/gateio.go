@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"bisonai.com/miko/node/pkg/utils/arr"
 	"bisonai.com/miko/node/pkg/websocketfetcher/common"
 	"bisonai.com/miko/node/pkg/wss"
 	"github.com/rs/zerolog/log"
@@ -27,18 +28,24 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 		payload = append(payload, strings.ReplaceAll(feed, "-", "_"))
 	}
 
+	maxBatchSize := 50
+	splittedPayloads := arr.SplitByChunkSize(payload, maxBatchSize)
 	channel := "spot.tickers"
+	event := "subscribe"
 
-	subscription := Subscription{
-		Time:    time.Now().Unix(),
-		Channel: channel,
-		Event:   "subscribe",
-		Payload: payload,
+	subscriptions := make([]any, 0, len(splittedPayloads))
+	for _, sp := range splittedPayloads {
+		subscriptions = append(subscriptions, Subscription{
+			Time:    time.Now().Unix(),
+			Channel: channel,
+			Event:   event,
+			Payload: sp,
+		})
 	}
 
 	ws, err := wss.NewWebsocketHelper(ctx,
 		wss.WithEndpoint(URL),
-		wss.WithSubscriptions([]any{subscription}),
+		wss.WithSubscriptions(subscriptions),
 		wss.WithProxyUrl(config.Proxy))
 	if err != nil {
 		log.Error().Str("Player", "Gateio").Err(err).Msg("error in gateio.New")
