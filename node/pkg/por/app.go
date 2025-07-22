@@ -65,6 +65,10 @@ func New(ctx context.Context) (*app, error) {
 			return nil, fmt.Errorf("feeds not found for %s", adapterUrl)
 		}
 
+		if ad.Decimals == 0 {
+			return nil, fmt.Errorf("decimals not found for %s", adapterUrl)
+		}
+
 		ag, err := request.Request[aggregator](request.WithEndpoint(aggregatorUrl))
 		if err != nil {
 			return nil, err
