@@ -10,16 +10,12 @@ import (
 )
 
 const (
-	DECIMALS            = 4
-	DEVIATION_THRESHOLD = 0.0001
-	ABSOLUTE_THRESHOLD  = 0.1
+	initialFailureTimeout = 500 * time.Millisecond
+	maxRetry              = 3
+	maxRetryDelay         = 5000 * time.Millisecond
 
-	INITIAL_FAILURE_TIMEOUT = 500 * time.Millisecond
-	MAX_RETRY               = 3
-	MAX_RETRY_DELAY         = 5000 * time.Millisecond
-
-	SUBMIT_FUNCTION_STRING = "submit(uint256 _roundId, int256 _submission)"
-	READ_ROUND_ID          = `function oracleRoundState(address _oracle, uint32 _queriedRoundId) external view returns (
+	submitInterface           = "submit(uint256 _roundId, int256 _submission)"
+	oracleRoundStateInterface = `function oracleRoundState(address _oracle, uint32 _queriedRoundId) external view returns (
             bool _eligibleToSubmit,
             uint32 _roundId,
             int256 _latestSubmission,
@@ -28,7 +24,7 @@ const (
             uint8 _oracleCount
     )`
 
-	READ_LATEST_ROUND_DATA = `function latestRoundData() public view returns (
+	latestRoundDataInterface = `function latestRoundData() public view returns (
             uint80 roundId,
             int256 answer,
             uint256 startedAt,
@@ -38,40 +34,43 @@ const (
 	`
 )
 
-type App struct {
-	Name            string
-	Definition      *fetcher.Definition
-	FetchInterval   time.Duration
-	SubmitInterval  time.Duration
-	KaiaHelper      *helper.ChainHelper
-	ContractAddress string
+type app struct {
+	entries    map[string]entry
+	kaiaHelper *helper.ChainHelper
 }
 
-type FeedModel struct {
+type entry struct {
+	definition *fetcher.Definition
+	adapter    adaptor
+	aggregator aggregator
+}
+
+type feed struct {
 	Name       string          `json:"name"`
 	Definition json.RawMessage `json:"definition"`
 	AdapterId  *int64          `json:"adapterId"`
 }
 
-type AdapterModel struct {
-	Name     string      `json:"name"`
-	Feeds    []FeedModel `json:"feeds"`
-	Interval *int        `json:"interval"`
+type adaptor struct {
+	Name     string `json:"name"`
+	Feeds    []feed `json:"feeds"`
+	Interval *int   `json:"interval"`
+	Decimals int    `json:"decimals"`
 }
 
-type AggregatorModel struct {
-	Name      string `json:"name"`
-	Heartbeat *int   `json:"heartbeat"`
-	Address   string `json:"address"`
+type aggregator struct {
+	Name              string  `json:"name"`
+	Heartbeat         *int    `json:"heartbeat"`
+	Address           string  `json:"address"`
+	Threshold         float64 `json:"threshold"`
+	AbsoluteThreshold float64 `json:"absoluteThreshold"`
 }
 
-type SubmissionModel struct {
-	Name  string    `json:"name"`
-	Time  time.Time `json:"time"`
-	Value float64   `json:"value"`
-}
-
-type LastInfo struct {
+type lastInfo struct {
 	UpdatedAt *big.Int
 	Answer    *big.Int
+}
+
+type urlEntry struct {
+	adapterEndpoint, aggregatorEndpoint string
 }
