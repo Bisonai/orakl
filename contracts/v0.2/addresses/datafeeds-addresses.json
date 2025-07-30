@@ -2358,17 +2358,6 @@
       "feed": "0x86066c24febdcc18fbaa14c01d57556d9dd13f29"
     }
   },
-  "WEMIX-KRW": {
-    "baobab": {
-      "proxy": "0x98ac08166d81e81e228caf5c061c44206b2496ef",
-      "feed": "0xc2507479d4783e407f0b760bcad0660b434641e1"
-    },
-    "tag": "basic",
-    "cypress": {
-      "proxy": "0x0be13b64cb1745e226cb24318743f3a024a60f74",
-      "feed": "0x4222a92bdac89a108172bf6f87e0a6aca0ad242f"
-    }
-  },
   "WIF-USDT": {
     "baobab": {
       "proxy": "0xc98388eee13e9a6d7f7b7e9f1135cffa9b1d826e",
