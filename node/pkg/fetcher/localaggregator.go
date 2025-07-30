@@ -159,6 +159,8 @@ func filterOutliers(feeds []*FeedData) ([]*FeedData, error) {
 		filtered = slices.DeleteFunc(feeds, func(feed *FeedData) bool {
 			return slices.Contains(extremes, feed.Value)
 		})
+
+		log.Info().Int32("feed", feeds[0].FeedID).Any("extremes", extremes).Msg("extremes")
 	}
 
 	if extremes.Len() < maxOutliersToRemove && outliers.Mild.Len() > 0 {
@@ -176,6 +178,8 @@ func filterOutliers(feeds []*FeedData) ([]*FeedData, error) {
 		filtered = slices.DeleteFunc(filtered, func(feed *FeedData) bool {
 			return slices.Contains(milds, feed.Value)
 		})
+
+		log.Info().Int32("feed", feeds[0].FeedID).Any("milds", milds).Msg("milds")
 	}
 
 	return filtered, nil
