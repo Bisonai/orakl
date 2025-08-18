@@ -8,6 +8,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/rs/zerolog/log"
+
 	"bisonai.com/miko/node/pkg/checker/balance"
 	"bisonai.com/miko/node/pkg/checker/dal"
 	"bisonai.com/miko/node/pkg/checker/dalstats"
@@ -20,8 +22,8 @@ import (
 	"bisonai.com/miko/node/pkg/checker/price"
 	"bisonai.com/miko/node/pkg/checker/signer"
 	"bisonai.com/miko/node/pkg/checker/subgraphcleaner"
+	"bisonai.com/miko/node/pkg/secrets"
 	"bisonai.com/miko/node/pkg/utils/loginit"
-	"github.com/rs/zerolog/log"
 )
 
 func main() {
@@ -185,8 +187,8 @@ func main() {
 
 	runPriceChecker, _ := strconv.ParseBool(os.Getenv("RUN_PRICE_CHECKER"))
 	if runPriceChecker {
-		dalApiKey := os.Getenv("DAL_API_KEY")
-		slackEndpoint := os.Getenv("PRICE_CHECK_SLACK")
+		dalApiKey := secrets.GetSecret("DAL_API_KEY")
+		slackEndpoint := secrets.GetSecret("PRICE_CHECK_SLACK")
 		trackingPairsRaw := os.Getenv("PRICE_CHECK_PAIRS")
 		trackingPairs := strings.Split(trackingPairsRaw, ",")
 		for i := range trackingPairs {
