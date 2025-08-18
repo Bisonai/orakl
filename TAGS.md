@@ -347,3 +347,4 @@
 - **por** v0.0.1.20250722.0757.7c5058f <br> *`PR`*: fix por nil ptr err <br><br> 
 - **por** v0.0.1.20250722.0803.41e4dbf <br> *`PR`*: Fix rollback set default val <br><br> 
 - **sentinel** v0.0.1.20250818.0901.862b9c6 <br> *`PR`*: price checker integrated to se... <br><br> 
+- **sentinel** v0.0.1.20250818.0909.7801731 <br> *`PR`*: hotfix use secretGetSecret ins... <br><br> 

@@ -99,6 +99,7 @@ on:
           - por:v0.0.1.20250722.0757.7c5058f:fix por nil ptr err
           - por:v0.0.1.20250722.0803.41e4dbf:Fix rollback set default val
           - sentinel:v0.0.1.20250818.0901.862b9c6:price checker integrated to se...
+          - sentinel:v0.0.1.20250818.0909.7801731:hotfix use secretGetSecret ins...
 jobs:
   prepare-taskflow:
     name: Prepare
