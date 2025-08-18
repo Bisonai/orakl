@@ -4,6 +4,8 @@ import (
 	"context"
 	"net/http"
 	"os"
+	"strconv"
+	"strings"
 	"sync"
 
 	"bisonai.com/miko/node/pkg/checker/balance"
@@ -15,6 +17,7 @@ import (
 	"bisonai.com/miko/node/pkg/checker/inspect"
 	"bisonai.com/miko/node/pkg/checker/offset"
 	"bisonai.com/miko/node/pkg/checker/peers"
+	"bisonai.com/miko/node/pkg/checker/price"
 	"bisonai.com/miko/node/pkg/checker/signer"
 	"bisonai.com/miko/node/pkg/checker/subgraphcleaner"
 	"bisonai.com/miko/node/pkg/utils/loginit"
@@ -179,6 +182,32 @@ func main() {
 	}()
 
 	log.Info().Msg("subgraph cleaner started")
+
+	runPriceChecker, _ := strconv.ParseBool(os.Getenv("RUN_PRICE_CHECKER"))
+	if runPriceChecker {
+		dalApiKey := os.Getenv("DAL_API_KEY")
+		slackEndpoint := os.Getenv("PRICE_CHECK_SLACK")
+		trackingPairsRaw := os.Getenv("PRICE_CHECK_PAIRS")
+		trackingPairs := strings.Split(trackingPairsRaw, ",")
+		for i := range trackingPairs {
+			trackingPairs[i] = strings.TrimSpace(trackingPairs[i])
+		}
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			err := price.Start(
+				ctx,
+				price.WithDalApiKey(dalApiKey),
+				price.WithSlackEndpoint(slackEndpoint),
+				price.WithTrackingPairs(trackingPairs),
+			)
+			if err != nil {
+				log.Error().Err(err).Msg("error starting price checker")
+				os.Exit(1)
+			}
+		}()
+	}
 
 	wg.Wait()
 }

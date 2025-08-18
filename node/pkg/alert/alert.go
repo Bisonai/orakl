@@ -47,6 +47,26 @@ func SlackAlert(text string) {
 	log.Debug().Msg(fmt.Sprintf("Slack Response Status: %s", resp.Status))
 }
 
+func SlackAlertWithEndpoint(text, endpoint string) {
+	payload := map[string]string{
+		"text": text,
+	}
+
+	jsonPayload, _ := json.Marshal(payload)
+
+	resp, err := http.Post(endpoint, "application/json", bytes.NewBuffer(jsonPayload))
+	if err != nil {
+		log.Error().Err(err).Msg(fmt.Sprintf("Slack Alert: Error sending message: %s", err))
+		return
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		log.Error().Msg(fmt.Sprintf("Slack Alert: Non-OK HTTP status: %s", resp.Status))
+		return
+	}
+	log.Debug().Msg(fmt.Sprintf("Slack Response Status: %s", resp.Status))
+}
+
 const DefaultSlackTimeout = 5 * time.Second
 
 type SlackClient struct {
