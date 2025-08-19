@@ -11,10 +11,10 @@ import (
 	"sync"
 	"time"
 
-	"bisonai.com/miko/node/pkg/utils/request"
+	"github.com/rs/zerolog/log"
 
 	"bisonai.com/miko/node/pkg/alert"
-	"github.com/rs/zerolog/log"
+	"bisonai.com/miko/node/pkg/utils/request"
 )
 
 const (
@@ -125,7 +125,7 @@ func (a *App) process() error {
 		log.Info().Str("base", e.base).Str("quote", e.quote).Float64("dal_price", p).Float64("binance_price", binancePrices[e]).Msg("price difference")
 
 		if (math.Abs(p-bp) / p) > a.priceDiffThreshold {
-			alert.SlackAlertWithEndpoint(fmt.Sprintf("3%% exceeded price difference detected for %s-%s [dal: %f, binance: %f]", e.base, e.quote, p, bp), a.slackEndpoint)
+			alert.SlackAlertWithEndpoint(fmt.Sprintf("%f%% exceeded price difference detected for %s-%s [dal: %f, binance: %f]", a.priceDiffThreshold*100, e.base, e.quote, p, bp), a.slackEndpoint)
 		}
 
 		pp, ok := pythPrices[e]
@@ -135,7 +135,7 @@ func (a *App) process() error {
 		log.Info().Str("base", e.base).Str("quote", e.quote).Float64("dal_price", p).Float64("pyth_price", pp).Msg("price difference")
 
 		if (math.Abs(p-pp) / p) > a.priceDiffThreshold {
-			alert.SlackAlertWithEndpoint(fmt.Sprintf("3%% exceeded price difference detected for %s-%s [dal: %f, pyth: %f]", e.base, e.quote, p, pp), a.slackEndpoint)
+			alert.SlackAlertWithEndpoint(fmt.Sprintf("%f%% exceeded price difference detected for %s-%s [dal: %f, pyth: %f]", a.priceDiffThreshold*100, e.base, e.quote, p, pp), a.slackEndpoint)
 		}
 	}
 	return nil

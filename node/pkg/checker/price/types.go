@@ -29,6 +29,20 @@ type pythFeedAttribute struct {
 	QuoteCurrency string `json:"quote_currency"`
 }
 
+type pythPriceResponse struct {
+	Parsed []pythPriceEntry
+}
+
+type pythPriceEntry struct {
+	Id    string
+	Price pythPriceDetail
+}
+
+type pythPriceDetail struct {
+	Price string
+	Expo  int
+}
+
 type App struct {
 	slackUrl                 string
 	dalApiKey, slackEndpoint string
