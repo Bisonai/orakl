@@ -349,3 +349,4 @@
 - **sentinel** v0.0.1.20250818.0901.862b9c6 <br> *`PR`*: price checker integrated to se... <br><br> 
 - **sentinel** v0.0.1.20250818.0909.7801731 <br> *`PR`*: hotfix use secretGetSecret ins... <br><br> 
 - **sentinel** v0.0.1.20250819.0130.c87c7c4 <br> *`PR`*: Update price drift threshold <br><br> 
+- **sentinel** v0.0.1.20250819.0217.5a41be7 <br> *`PR`*: price checker make threshold c... <br><br> 
