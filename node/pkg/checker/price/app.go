@@ -17,11 +17,12 @@ import (
 )
 
 const (
-	defaultTimeout            = 5 * time.Second
-	dalEndpoint               = "https://dal.cypress.orakl.network"
-	binanceEndpoint           = "https://api.binance.com/api/v3/ticker/price"
-	defaultPriceDiffThreshold = 0.01 // 1%
-	checkInterval             = 15 * time.Second
+	defaultTimeout     = 5 * time.Second
+	dalEndpoint        = "https://dal.cypress.orakl.network"
+	binanceEndpoint    = "https://api.binance.com/api/v3/ticker/price"
+	pythEndpoint = "https://hermes.pyth.network"
+	priceDiffThreshold = 0.01 // 1%
+	checkInterval      = 15 * time.Second
 )
 
 func dalSymbolToBaseAndQuote(symbol string) (baseAndQuote, error) {
@@ -180,6 +181,12 @@ func (a *App) collectBinancePrices() (map[baseAndQuote]float64, error) {
 	}
 
 	return prices, nil
+}
+
+func (a *App) collectPythPrices() (map[baseAndQuote]float64, error) {
+	prices := map[baseAndQuote]float64{}
+
+	// load 
 }
 
 func (a *App) getBinanceTickers() ([]binanceResponse, error) {
