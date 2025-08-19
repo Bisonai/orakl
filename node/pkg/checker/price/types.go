@@ -22,6 +22,7 @@ type App struct {
 	slackUrl                 string
 	dalApiKey, slackEndpoint string
 	trackingPairs            map[baseAndQuote]struct{}
+	priceDiffThreshold       float64
 }
 
 type Option func(*App)
@@ -53,5 +54,14 @@ func WithTrackingPairs(pairs []string) Option {
 func WithSlackUrl(url string) Option {
 	return func(a *App) {
 		a.slackUrl = url
+	}
+}
+
+func WithpriceDiffThreshold(threshold float64) Option {
+	return func(a *App) {
+		if threshold == 0 {
+			return
+		}
+		a.priceDiffThreshold = threshold
 	}
 }
