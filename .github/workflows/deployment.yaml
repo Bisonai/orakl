@@ -103,6 +103,7 @@ on:
           - sentinel:v0.0.1.20250819.0130.c87c7c4:Update price drift threshold
           - sentinel:v0.0.1.20250819.0217.5a41be7:price checker make threshold c...
           - sentinel:v0.0.1.20250819.0511.172e422:Price checker update
+          - sentinel:v0.0.1.20250819.0627.ad5a79a:price chcker update message
 jobs:
   prepare-taskflow:
     name: Prepare

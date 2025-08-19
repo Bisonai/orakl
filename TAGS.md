@@ -351,3 +351,4 @@
 - **sentinel** v0.0.1.20250819.0130.c87c7c4 <br> *`PR`*: Update price drift threshold <br><br> 
 - **sentinel** v0.0.1.20250819.0217.5a41be7 <br> *`PR`*: price checker make threshold c... <br><br> 
 - **sentinel** v0.0.1.20250819.0511.172e422 <br> *`PR`*: Price checker update <br><br> 
+- **sentinel** v0.0.1.20250819.0627.ad5a79a <br> *`PR`*: price chcker update message <br><br> 
