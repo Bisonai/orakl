@@ -18,12 +18,12 @@ import (
 )
 
 const (
-	defaultTimeout     = 5 * time.Second
-	dalEndpoint        = "https://dal.cypress.orakl.network"
-	binanceEndpoint    = "https://api.binance.com/api/v3/ticker/price"
-	pythEndpoint       = "https://hermes.pyth.network"
-	priceDiffThreshold = 0.01 // 1%
-	checkInterval      = 15 * time.Second
+	defaultTimeout            = 5 * time.Second
+	dalEndpoint               = "https://dal.cypress.orakl.network"
+	binanceEndpoint           = "https://api.binance.com/api/v3/ticker/price"
+	pythEndpoint              = "https://hermes.pyth.network"
+	defaultPriceDiffThreshold = 0.01 // 1%
+	checkInterval             = 15 * time.Second
 )
 
 func dalSymbolToBaseAndQuote(symbol string) (baseAndQuote, error) {
@@ -124,7 +124,7 @@ func (a *App) process() error {
 		}
 		log.Info().Str("base", e.base).Str("quote", e.quote).Float64("dal_price", p).Float64("binance_price", binancePrices[e]).Msg("price difference")
 
-		if (math.Abs(p-bp) / p) > defaultPriceDiffThreshold {
+		if (math.Abs(p-bp) / p) > a.priceDiffThreshold {
 			alert.SlackAlertWithEndpoint(fmt.Sprintf("3%% exceeded price difference detected for %s-%s [dal: %f, binance: %f]", e.base, e.quote, p, bp), a.slackEndpoint)
 		}
 
@@ -134,7 +134,7 @@ func (a *App) process() error {
 		}
 		log.Info().Str("base", e.base).Str("quote", e.quote).Float64("dal_price", p).Float64("pyth_price", pp).Msg("price difference")
 
-		if (math.Abs(p-pp) / p) > priceDiffThreshold {
+		if (math.Abs(p-pp) / p) > a.priceDiffThreshold {
 			alert.SlackAlertWithEndpoint(fmt.Sprintf("3%% exceeded price difference detected for %s-%s [dal: %f, pyth: %f]", e.base, e.quote, p, pp), a.slackEndpoint)
 		}
 	}
