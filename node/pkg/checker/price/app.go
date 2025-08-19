@@ -17,11 +17,11 @@ import (
 )
 
 const (
-	defaultTimeout     = 5 * time.Second
-	dalEndpoint        = "https://dal.cypress.orakl.network"
-	binanceEndpoint    = "https://api.binance.com/api/v3/ticker/price"
-	priceDiffThreshold = 0.01 // 1%
-	checkInterval      = 15 * time.Second
+	defaultTimeout            = 5 * time.Second
+	dalEndpoint               = "https://dal.cypress.orakl.network"
+	binanceEndpoint           = "https://api.binance.com/api/v3/ticker/price"
+	defaultPriceDiffThreshold = 0.01 // 1%
+	checkInterval             = 15 * time.Second
 )
 
 func dalSymbolToBaseAndQuote(symbol string) (baseAndQuote, error) {
@@ -33,9 +33,9 @@ func dalSymbolToBaseAndQuote(symbol string) (baseAndQuote, error) {
 }
 
 func Start(ctx context.Context, opts ...Option) error {
-
 	app := &App{
-		trackingPairs: map[baseAndQuote]struct{}{},
+		trackingPairs:      map[baseAndQuote]struct{}{},
+		priceDiffThreshold: defaultPriceDiffThreshold,
 	}
 
 	for _, opt := range opts {
@@ -105,7 +105,7 @@ func (a *App) process() error {
 		}
 		log.Info().Str("base", e.base).Str("quote", e.quote).Float64("dal_price", p).Float64("binance_price", binancePrices[e]).Msg("price difference")
 
-		if (math.Abs(p-bp) / p) > priceDiffThreshold {
+		if (math.Abs(p-bp) / p) > defaultPriceDiffThreshold {
 			alert.SlackAlertWithEndpoint(fmt.Sprintf("3%% exceeded price difference detected for %s-%s [dal: %f, binance: %f]", e.base, e.quote, p, bp), a.slackEndpoint)
 		}
 	}

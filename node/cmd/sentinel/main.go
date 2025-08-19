@@ -195,6 +195,13 @@ func main() {
 			trackingPairs[i] = strings.TrimSpace(trackingPairs[i])
 		}
 
+		thresholdRaw := os.Getenv("PRICE_DIFF_THRESHOLD")
+		threshold, err := strconv.ParseFloat(thresholdRaw, 64)
+		if err != nil {
+			log.Error().Err(err).Msg("error parsing price diff threshold, using default")
+			threshold = 0
+		}
+
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -203,6 +210,7 @@ func main() {
 				price.WithDalApiKey(dalApiKey),
 				price.WithSlackEndpoint(slackEndpoint),
 				price.WithTrackingPairs(trackingPairs),
+				price.WithpriceDiffThreshold(threshold),
 			)
 			if err != nil {
 				log.Error().Err(err).Msg("error starting price checker")
