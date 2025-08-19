@@ -100,6 +100,7 @@ on:
           - por:v0.0.1.20250722.0803.41e4dbf:Fix rollback set default val
           - sentinel:v0.0.1.20250818.0901.862b9c6:price checker integrated to se...
           - sentinel:v0.0.1.20250818.0909.7801731:hotfix use secretGetSecret ins...
+          - sentinel:v0.0.1.20250819.0130.c87c7c4:Update price drift threshold
 jobs:
   prepare-taskflow:
     name: Prepare
