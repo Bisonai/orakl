@@ -124,8 +124,19 @@ func (a *App) process() error {
 		}
 		log.Info().Str("base", e.base).Str("quote", e.quote).Float64("dal_price", p).Float64("binance_price", binancePrices[e]).Msg("price difference")
 
-		if (math.Abs(p-bp) / p) > a.priceDiffThreshold {
-			alert.SlackAlertWithEndpoint(fmt.Sprintf("%f%% exceeded price difference detected for %s-%s [dal: %f, binance: %f]", a.priceDiffThreshold*100, e.base, e.quote, p, bp), a.slackEndpoint)
+		diff := math.Abs(p-bp) / p
+		if diff > a.priceDiffThreshold {
+			alert.SlackAlertWithEndpoint(
+				fmt.Sprintf(
+					"%.2g%% threshold exceeded: diff %.4g%% (delta %.6g) for %s-%s [dal: %.6g, binance: %.6g]",
+					a.priceDiffThreshold*100,
+					diff*100,
+					p-bp,
+					e.base, e.quote,
+					p, bp,
+				),
+				a.slackEndpoint,
+			)
 		}
 
 		pp, ok := pythPrices[e]
@@ -134,8 +145,19 @@ func (a *App) process() error {
 		}
 		log.Info().Str("base", e.base).Str("quote", e.quote).Float64("dal_price", p).Float64("pyth_price", pp).Msg("price difference")
 
-		if (math.Abs(p-pp) / p) > a.priceDiffThreshold {
-			alert.SlackAlertWithEndpoint(fmt.Sprintf("%f%% exceeded price difference detected for %s-%s [dal: %f, pyth: %f]", a.priceDiffThreshold*100, e.base, e.quote, p, pp), a.slackEndpoint)
+		diff = math.Abs(p-pp) / p
+		if diff > a.priceDiffThreshold {
+			alert.SlackAlertWithEndpoint(
+				fmt.Sprintf(
+					"%.2g%% threshold exceeded: diff %.4g%% (delta %.6g) for %s-%s [dal: %.6g, pyth: %.6g]",
+					a.priceDiffThreshold*100,
+					diff*100,
+					p-pp,
+					e.base, e.quote,
+					p, pp,
+				),
+				a.slackEndpoint,
+			)
 		}
 	}
 	return nil
