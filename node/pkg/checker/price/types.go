@@ -18,6 +18,17 @@ type binanceResponse struct {
 	Symbol, Price string
 }
 
+type pythFeedResponse struct {
+	Id         string
+	Attributes pythFeedAttribute
+}
+
+type pythFeedAttribute struct {
+	AssetType     string `json:"asset_type"`
+	Base          string
+	QuoteCurrency string `json:"quote_currency"`
+}
+
 type App struct {
 	slackUrl                 string
 	dalApiKey, slackEndpoint string
