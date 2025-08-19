@@ -20,7 +20,7 @@ const (
 	defaultTimeout     = 5 * time.Second
 	dalEndpoint        = "https://dal.cypress.orakl.network"
 	binanceEndpoint    = "https://api.binance.com/api/v3/ticker/price"
-	priceDiffThreshold = 0.03 // 3%
+	priceDiffThreshold = 0.01 // 1%
 	checkInterval      = 15 * time.Second
 )
 
