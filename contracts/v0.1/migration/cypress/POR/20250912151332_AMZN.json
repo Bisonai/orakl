@@ -1,0 +1,16 @@
+{
+  "deploy": {
+    "name": "AMZN",
+    "timeout": 0,
+    "validator": "0x0000000000000000000000000000000000000000",
+    "decimals": 0,
+    "description": "AMZN"
+  },
+  "changeOracles": {
+    "removed": [],
+    "added": ["0xA249A1fF7aC8Ff359A88Fee4889E12bD110f88b5"],
+    "minSubmissionCount": 1,
+    "maxSubmissionCount": 1,
+    "restartDelay": 0
+  }
+}

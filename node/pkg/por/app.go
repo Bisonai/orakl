@@ -69,10 +69,6 @@ func New(ctx context.Context) (*app, error) {
 			return nil, fmt.Errorf("feeds not found for %s", adapterUrl)
 		}
 
-		if ad.Decimals == 0 {
-			return nil, fmt.Errorf("decimals not found for %s", adapterUrl)
-		}
-
 		ag, err := request.Request[aggregator](request.WithEndpoint(aggregatorUrl))
 		if err != nil {
 			return nil, err
@@ -286,11 +282,6 @@ func (a *app) shouldReport(e entry, lastInfo lastInfo, newVal float64, fetchedTi
 	log.Debug().Float64("oldValue", oldVal).Float64("newValue", newVal).Msg("checking deviation")
 
 	denominator := math.Pow10(e.adapter.Decimals)
-	if denominator == 0 {
-		log.Error().Float64("denom", denominator).Msg("invalid denominator")
-		return false
-	}
-
 	o, n := oldVal/denominator, newVal/denominator
 
 	if o != 0 && n != 0 {
