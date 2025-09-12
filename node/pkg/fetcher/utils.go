@@ -13,15 +13,20 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func FetchSingle(ctx context.Context, definition *Definition) (float64, error) {
-	rawResult, err := request.Request[interface{}](
+func FetchSingle(ctx context.Context, definition *Definition, reqOpts ...request.RequestOption) (float64, error) {
+	requestOptions := []request.RequestOption{
 		request.WithEndpoint(*definition.Url),
 		request.WithHeaders(definition.Headers),
-		request.WithTimeout(10*time.Second),
-	)
+		request.WithTimeout(10 * time.Second),
+	}
+
+	requestOptions = append(requestOptions, reqOpts...)
+
+	rawResult, err := request.Request[interface{}](requestOptions...)
 	if err != nil {
 		return 0, err
 	}
+
 	return reducer.Reduce(rawResult, definition.Reducers)
 }
 

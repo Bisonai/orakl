@@ -12,14 +12,17 @@ import (
 	"sync"
 	"time"
 
+	"github.com/rs/zerolog/log"
+
 	"bisonai.com/miko/node/pkg/chain/helper"
 	chainUtils "bisonai.com/miko/node/pkg/chain/utils"
+	"bisonai.com/miko/node/pkg/common/types"
+	"bisonai.com/miko/node/pkg/db"
 	errorSentinel "bisonai.com/miko/node/pkg/error"
 	"bisonai.com/miko/node/pkg/fetcher"
 	"bisonai.com/miko/node/pkg/secrets"
 	"bisonai.com/miko/node/pkg/utils/request"
 	"bisonai.com/miko/node/pkg/utils/retrier"
-	"github.com/rs/zerolog/log"
 )
 
 const (
@@ -34,10 +37,12 @@ var urls = map[string]urlEntry{
 	"peg-por": {
 		"/{CHAIN}/peg-{CHAIN}.por.json",
 		"/{CHAIN}/peg.por.json",
+		false,
 	},
 	"gp": {
 		"/{CHAIN}/gp-{CHAIN}.json",
 		"/{CHAIN}/gp.json",
+		false,
 	},
 }
 
@@ -84,6 +89,7 @@ func New(ctx context.Context) (*app, error) {
 			definition: d,
 			adapter:    ad,
 			aggregator: ag,
+			useProxy:   u.useProxy,
 		}
 
 		entries[n] = e
@@ -104,9 +110,15 @@ func New(ctx context.Context) (*app, error) {
 		return nil, err
 	}
 
+	proxies, err := db.QueryRows[types.Proxy](ctx, "SELECT * FROM proxies", nil)
+	if err != nil {
+		return nil, err
+	}
+
 	return &app{
 		entries:    entries,
 		kaiaHelper: chainHelper,
+		proxies:    proxies,
 	}, nil
 }
 
@@ -183,7 +195,7 @@ func (a *app) startJob(ctx context.Context, entry entry) {
 }
 
 func (a *app) execute(ctx context.Context, e entry) error {
-	v, err := fetcher.FetchSingle(ctx, e.definition)
+	v, err := fetcher.FetchSingle(ctx, e.definition, a.buildRequestOpts(e)...)
 	if err != nil {
 		return err
 	}
@@ -318,4 +330,27 @@ func (a *app) getRoundId(ctx context.Context, e entry) (uint32, error) {
 	}
 
 	return RoundID, nil
+}
+
+func (a *app) getNextProxy() *string {
+	a.Lock()
+	defer a.Unlock()
+
+	if len(a.proxies) == 0 {
+		return nil
+	}
+
+	proxy := a.proxies[a.proxyIdx%len(a.proxies)].GetProxyUrl()
+	a.proxyIdx++
+	return &proxy
+}
+
+func (a *app) buildRequestOpts(e entry) []request.RequestOption {
+	opts := []request.RequestOption{}
+	if e.useProxy {
+		if p := a.getNextProxy(); p != nil && *p != "" {
+			opts = append(opts, request.WithProxy(*p))
+		}
+	}
+	return opts
 }
