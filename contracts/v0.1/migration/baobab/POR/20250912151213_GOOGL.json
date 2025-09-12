@@ -1,0 +1,16 @@
+{
+  "deploy": {
+    "name": "GOOGL",
+    "timeout": 0,
+    "validator": "0x0000000000000000000000000000000000000000",
+    "decimals": 0,
+    "description": "GOOGL"
+  },
+  "changeOracles": {
+    "removed": [],
+    "added": ["0x7a8cD2921BEC42378EAea68f4d0309464d0c50c5"],
+    "minSubmissionCount": 1,
+    "maxSubmissionCount": 1,
+    "restartDelay": 0
+  }
+}
