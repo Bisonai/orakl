@@ -44,6 +44,41 @@ var urls = map[string]urlEntry{
 		"/{CHAIN}/gp.json",
 		false,
 	},
+	"aapl": {
+		"/{CHAIN}/aapl-{CHAIN}.json",
+		"/{CHAIN}/aapl.json",
+		true,
+	},
+	"amzn": {
+		"/{CHAIN}/amzn-{CHAIN}.json",
+		"/{CHAIN}/amzn.json",
+		true,
+	},
+	"googl": {
+		"/{CHAIN}/googl-{CHAIN}.json",
+		"/{CHAIN}/googl.json",
+		true,
+	},
+	"meta": {
+		"/{CHAIN}/meta-{CHAIN}.json",
+		"/{CHAIN}/meta.json",
+		true,
+	},
+	"msft": {
+		"/{CHAIN}/msft-{CHAIN}.json",
+		"/{CHAIN}/msft.json",
+		true,
+	},
+	"nvda": {
+		"/{CHAIN}/nvda-{CHAIN}.json",
+		"/{CHAIN}/nvda.json",
+		true,
+	},
+	"tsla": {
+		"/{CHAIN}/tsla-{CHAIN}.json",
+		"/{CHAIN}/tsla.json",
+		true,
+	},
 }
 
 func New(ctx context.Context) (*app, error) {
