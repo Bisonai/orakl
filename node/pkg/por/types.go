@@ -3,9 +3,11 @@ package por
 import (
 	"encoding/json"
 	"math/big"
+	"sync"
 	"time"
 
 	"bisonai.com/miko/node/pkg/chain/helper"
+	"bisonai.com/miko/node/pkg/common/types"
 	"bisonai.com/miko/node/pkg/fetcher"
 )
 
@@ -37,12 +39,17 @@ const (
 type app struct {
 	entries    map[string]entry
 	kaiaHelper *helper.ChainHelper
+
+	proxies  []types.Proxy
+	proxyIdx int
+	sync.Mutex
 }
 
 type entry struct {
 	definition *fetcher.Definition
 	adapter    adaptor
 	aggregator aggregator
+	useProxy   bool
 }
 
 type feed struct {
@@ -73,4 +80,5 @@ type lastInfo struct {
 
 type urlEntry struct {
 	adapterEndpoint, aggregatorEndpoint string
+	useProxy                            bool
 }
