@@ -16,7 +16,6 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"bisonai.com/miko/node/pkg/chain/helper"
-	"bisonai.com/miko/node/pkg/chain/utils"
 	chainUtils "bisonai.com/miko/node/pkg/chain/utils"
 	"bisonai.com/miko/node/pkg/common/types"
 	"bisonai.com/miko/node/pkg/db"
@@ -277,7 +276,7 @@ func (a *app) report(ctx context.Context, e entry, submissionValue float64, late
 			submissionValueParam,
 		)
 	}, maxRetry, initialFailureTimeout, maxRetryDelay)
-	if utils.IsNonceError(err) || errors.Is(err, context.DeadlineExceeded) {
+	if chainUtils.IsNonceError(err) || errors.Is(err, context.DeadlineExceeded) {
 		return a.kaiaHelper.FlushNoncePool(ctx)
 	}
 	return err
