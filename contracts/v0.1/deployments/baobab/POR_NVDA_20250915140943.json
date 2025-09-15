@@ -1,0 +1,1290 @@
+{
+  "address": "0x3f7E757F40BB399762ba879Ff57E845cF925c33d",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "uint32",
+          "name": "_timeout",
+          "type": "uint32"
+        },
+        {
+          "internalType": "address",
+          "name": "_validator",
+          "type": "address"
+        },
+        {
+          "internalType": "uint8",
+          "name": "_decimals",
+          "type": "uint8"
+        },
+        {
+          "internalType": "string",
+          "name": "_description",
+          "type": "string"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "inputs": [],
+      "name": "MaxSubmissionGtOracleNum",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "MinSubmissionGtMaxSubmission",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "MinSubmissionZero",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "NewRequestTooSoon",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "NoDataPresent",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "OffChainReadingOnly",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "OracleAlreadyEnabled",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "OracleNotEnabled",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "PrevRoundNotSupersedable",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "RequesterNotAuthorized",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "RestartDelayExceedOracleNum",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "RoundNotAcceptingSubmission",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "TooManyOracles",
+      "type": "error"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "int256",
+          "name": "current",
+          "type": "int256"
+        },
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "roundId",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "updatedAt",
+          "type": "uint256"
+        }
+      ],
+      "name": "AnswerUpdated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "roundId",
+          "type": "uint256"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "startedBy",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "startedAt",
+          "type": "uint256"
+        }
+      ],
+      "name": "NewRound",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "oracle",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "bool",
+          "name": "whitelisted",
+          "type": "bool"
+        }
+      ],
+      "name": "OraclePermissionsUpdated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "previousOwner",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "newOwner",
+          "type": "address"
+        }
+      ],
+      "name": "OwnershipTransferred",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "requester",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "bool",
+          "name": "authorized",
+          "type": "bool"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint32",
+          "name": "delay",
+          "type": "uint32"
+        }
+      ],
+      "name": "RequesterPermissionsSet",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint32",
+          "name": "minSubmissionCount",
+          "type": "uint32"
+        },
+        {
+          "indexed": true,
+          "internalType": "uint32",
+          "name": "maxSubmissionCount",
+          "type": "uint32"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint32",
+          "name": "restartDelay",
+          "type": "uint32"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint32",
+          "name": "timeout",
+          "type": "uint32"
+        }
+      ],
+      "name": "RoundDetailsUpdated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "int256",
+          "name": "submission",
+          "type": "int256"
+        },
+        {
+          "indexed": true,
+          "internalType": "uint32",
+          "name": "round",
+          "type": "uint32"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "oracle",
+          "type": "address"
+        }
+      ],
+      "name": "SubmissionReceived",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "previous",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "current",
+          "type": "address"
+        }
+      ],
+      "name": "ValidatorUpdated",
+      "type": "event"
+    },
+    {
+      "inputs": [],
+      "name": "MAX_ORACLE_COUNT",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address[]",
+          "name": "_removed",
+          "type": "address[]"
+        },
+        {
+          "internalType": "address[]",
+          "name": "_added",
+          "type": "address[]"
+        },
+        {
+          "internalType": "uint32",
+          "name": "_minSubmissionCount",
+          "type": "uint32"
+        },
+        {
+          "internalType": "uint32",
+          "name": "_maxSubmissionCount",
+          "type": "uint32"
+        },
+        {
+          "internalType": "uint32",
+          "name": "_restartDelay",
+          "type": "uint32"
+        }
+      ],
+      "name": "changeOracles",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "currentRoundStartedAt",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "decimals",
+      "outputs": [
+        {
+          "internalType": "uint8",
+          "name": "",
+          "type": "uint8"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "description",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "",
+          "type": "string"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getOracles",
+      "outputs": [
+        {
+          "internalType": "address[]",
+          "name": "",
+          "type": "address[]"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint80",
+          "name": "_roundId",
+          "type": "uint80"
+        }
+      ],
+      "name": "getRoundData",
+      "outputs": [
+        {
+          "internalType": "uint80",
+          "name": "roundId",
+          "type": "uint80"
+        },
+        {
+          "internalType": "int256",
+          "name": "answer",
+          "type": "int256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "startedAt",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "updatedAt",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint80",
+          "name": "answeredInRound",
+          "type": "uint80"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "latestRoundData",
+      "outputs": [
+        {
+          "internalType": "uint80",
+          "name": "roundId",
+          "type": "uint80"
+        },
+        {
+          "internalType": "int256",
+          "name": "answer",
+          "type": "int256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "startedAt",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "updatedAt",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint80",
+          "name": "answeredInRound",
+          "type": "uint80"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "maxSubmissionCount",
+      "outputs": [
+        {
+          "internalType": "uint32",
+          "name": "",
+          "type": "uint32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "minSubmissionCount",
+      "outputs": [
+        {
+          "internalType": "uint32",
+          "name": "",
+          "type": "uint32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "oracleCount",
+      "outputs": [
+        {
+          "internalType": "uint8",
+          "name": "",
+          "type": "uint8"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_oracle",
+          "type": "address"
+        },
+        {
+          "internalType": "uint32",
+          "name": "_queriedRoundId",
+          "type": "uint32"
+        }
+      ],
+      "name": "oracleRoundState",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "_eligibleToSubmit",
+          "type": "bool"
+        },
+        {
+          "internalType": "uint32",
+          "name": "_roundId",
+          "type": "uint32"
+        },
+        {
+          "internalType": "int256",
+          "name": "_latestSubmission",
+          "type": "int256"
+        },
+        {
+          "internalType": "uint64",
+          "name": "_startedAt",
+          "type": "uint64"
+        },
+        {
+          "internalType": "uint64",
+          "name": "_timeout",
+          "type": "uint64"
+        },
+        {
+          "internalType": "uint8",
+          "name": "_oracleCount",
+          "type": "uint8"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "owner",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "renounceOwnership",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "requestNewRound",
+      "outputs": [
+        {
+          "internalType": "uint80",
+          "name": "",
+          "type": "uint80"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "restartDelay",
+      "outputs": [
+        {
+          "internalType": "uint32",
+          "name": "",
+          "type": "uint32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_requester",
+          "type": "address"
+        },
+        {
+          "internalType": "bool",
+          "name": "_authorized",
+          "type": "bool"
+        },
+        {
+          "internalType": "uint32",
+          "name": "_delay",
+          "type": "uint32"
+        }
+      ],
+      "name": "setRequesterPermissions",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_newValidator",
+          "type": "address"
+        }
+      ],
+      "name": "setValidator",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_roundId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "int256",
+          "name": "_submission",
+          "type": "int256"
+        }
+      ],
+      "name": "submit",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "timeout",
+      "outputs": [
+        {
+          "internalType": "uint32",
+          "name": "",
+          "type": "uint32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "newOwner",
+          "type": "address"
+        }
+      ],
+      "name": "transferOwnership",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "typeAndVersion",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "",
+          "type": "string"
+        }
+      ],
+      "stateMutability": "pure",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint32",
+          "name": "_minSubmissionCount",
+          "type": "uint32"
+        },
+        {
+          "internalType": "uint32",
+          "name": "_maxSubmissionCount",
+          "type": "uint32"
+        },
+        {
+          "internalType": "uint32",
+          "name": "_restartDelay",
+          "type": "uint32"
+        },
+        {
+          "internalType": "uint32",
+          "name": "_timeout",
+          "type": "uint32"
+        }
+      ],
+      "name": "updateFutureRounds",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "validator",
+      "outputs": [
+        {
+          "internalType": "contract IAggregatorValidator",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "transactionHash": "0xe5978e081ba0d139a2f171b56eb2012bcd7e587c32076e3cf0f94711a7e0fd42",
+  "receipt": {
+    "to": null,
+    "from": "0xa195bE68Bd37EBFfB056279Dc3d236fAa6F23670",
+    "contractAddress": "0x3f7E757F40BB399762ba879Ff57E845cF925c33d",
+    "transactionIndex": 0,
+    "gasUsed": "2733859",
+    "logsBloom": "0x00000000000000000000000000000000000000000000000001800000000000000001000000000000000000000000000000000000000000000000000000000000000000000000020000000000000000000001000000000000000000000000000000000000020000000000000000000800000000000000000040040000000000400000000400000000000000000000000000000000000000000000001000000000000001080000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000",
+    "blockHash": "0xd3eee898414e82fb3ecebb4197f6db0f7e01c4ebfc6f88cb4ff3c1f419567e10",
+    "transactionHash": "0xe5978e081ba0d139a2f171b56eb2012bcd7e587c32076e3cf0f94711a7e0fd42",
+    "logs": [
+      {
+        "transactionIndex": 0,
+        "blockNumber": 196275640,
+        "transactionHash": "0xe5978e081ba0d139a2f171b56eb2012bcd7e587c32076e3cf0f94711a7e0fd42",
+        "address": "0x3f7E757F40BB399762ba879Ff57E845cF925c33d",
+        "topics": [
+          "0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0",
+          "0x0000000000000000000000000000000000000000000000000000000000000000",
+          "0x000000000000000000000000a195be68bd37ebffb056279dc3d236faa6f23670"
+        ],
+        "data": "0x",
+        "logIndex": 0,
+        "blockHash": "0xd3eee898414e82fb3ecebb4197f6db0f7e01c4ebfc6f88cb4ff3c1f419567e10"
+      },
+      {
+        "transactionIndex": 0,
+        "blockNumber": 196275640,
+        "transactionHash": "0xe5978e081ba0d139a2f171b56eb2012bcd7e587c32076e3cf0f94711a7e0fd42",
+        "address": "0x3f7E757F40BB399762ba879Ff57E845cF925c33d",
+        "topics": [
+          "0x5367d98e38d29934760624fbc12e31a1088389dedf394e2d729c2ef4441218d7",
+          "0x0000000000000000000000000000000000000000000000000000000000000000",
+          "0x0000000000000000000000000000000000000000000000000000000000000000"
+        ],
+        "data": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "logIndex": 1,
+        "blockHash": "0xd3eee898414e82fb3ecebb4197f6db0f7e01c4ebfc6f88cb4ff3c1f419567e10"
+      }
+    ],
+    "blockNumber": 196275640,
+    "cumulativeGasUsed": "2733859",
+    "status": 1,
+    "byzantium": true
+  },
+  "args": [
+    0,
+    "0x0000000000000000000000000000000000000000",
+    8,
+    "NVDA"
+  ],
+  "numDeployments": 1,
+  "solcInputHash": "60ea5a4040b01d2b56ffbce9a999b2ba",
+  "metadata": "{\"compiler\":{\"version\":\"0.8.16+commit.07a7930e\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"uint32\",\"name\":\"_timeout\",\"type\":\"uint32\"},{\"internalType\":\"address\",\"name\":\"_validator\",\"type\":\"address\"},{\"internalType\":\"uint8\",\"name\":\"_decimals\",\"type\":\"uint8\"},{\"internalType\":\"string\",\"name\":\"_description\",\"type\":\"string\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"inputs\":[],\"name\":\"MaxSubmissionGtOracleNum\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"MinSubmissionGtMaxSubmission\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"MinSubmissionZero\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"NewRequestTooSoon\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"NoDataPresent\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"OffChainReadingOnly\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"OracleAlreadyEnabled\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"OracleNotEnabled\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"PrevRoundNotSupersedable\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"RequesterNotAuthorized\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"RestartDelayExceedOracleNum\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"RoundNotAcceptingSubmission\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"TooManyOracles\",\"type\":\"error\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"int256\",\"name\":\"current\",\"type\":\"int256\"},{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"roundId\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"updatedAt\",\"type\":\"uint256\"}],\"name\":\"AnswerUpdated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"roundId\",\"type\":\"uint256\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"startedBy\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"startedAt\",\"type\":\"uint256\"}],\"name\":\"NewRound\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"oracle\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"bool\",\"name\":\"whitelisted\",\"type\":\"bool\"}],\"name\":\"OraclePermissionsUpdated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"previousOwner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"requester\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"bool\",\"name\":\"authorized\",\"type\":\"bool\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"delay\",\"type\":\"uint32\"}],\"name\":\"RequesterPermissionsSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"uint32\",\"name\":\"minSubmissionCount\",\"type\":\"uint32\"},{\"indexed\":true,\"internalType\":\"uint32\",\"name\":\"maxSubmissionCount\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"restartDelay\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"timeout\",\"type\":\"uint32\"}],\"name\":\"RoundDetailsUpdated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"int256\",\"name\":\"submission\",\"type\":\"int256\"},{\"indexed\":true,\"internalType\":\"uint32\",\"name\":\"round\",\"type\":\"uint32\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"oracle\",\"type\":\"address\"}],\"name\":\"SubmissionReceived\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"previous\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"current\",\"type\":\"address\"}],\"name\":\"ValidatorUpdated\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"MAX_ORACLE_COUNT\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address[]\",\"name\":\"_removed\",\"type\":\"address[]\"},{\"internalType\":\"address[]\",\"name\":\"_added\",\"type\":\"address[]\"},{\"internalType\":\"uint32\",\"name\":\"_minSubmissionCount\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"_maxSubmissionCount\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"_restartDelay\",\"type\":\"uint32\"}],\"name\":\"changeOracles\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"currentRoundStartedAt\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"decimals\",\"outputs\":[{\"internalType\":\"uint8\",\"name\":\"\",\"type\":\"uint8\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"description\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getOracles\",\"outputs\":[{\"internalType\":\"address[]\",\"name\":\"\",\"type\":\"address[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint80\",\"name\":\"_roundId\",\"type\":\"uint80\"}],\"name\":\"getRoundData\",\"outputs\":[{\"internalType\":\"uint80\",\"name\":\"roundId\",\"type\":\"uint80\"},{\"internalType\":\"int256\",\"name\":\"answer\",\"type\":\"int256\"},{\"internalType\":\"uint256\",\"name\":\"startedAt\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"updatedAt\",\"type\":\"uint256\"},{\"internalType\":\"uint80\",\"name\":\"answeredInRound\",\"type\":\"uint80\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"latestRoundData\",\"outputs\":[{\"internalType\":\"uint80\",\"name\":\"roundId\",\"type\":\"uint80\"},{\"internalType\":\"int256\",\"name\":\"answer\",\"type\":\"int256\"},{\"internalType\":\"uint256\",\"name\":\"startedAt\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"updatedAt\",\"type\":\"uint256\"},{\"internalType\":\"uint80\",\"name\":\"answeredInRound\",\"type\":\"uint80\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"maxSubmissionCount\",\"outputs\":[{\"internalType\":\"uint32\",\"name\":\"\",\"type\":\"uint32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"minSubmissionCount\",\"outputs\":[{\"internalType\":\"uint32\",\"name\":\"\",\"type\":\"uint32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"oracleCount\",\"outputs\":[{\"internalType\":\"uint8\",\"name\":\"\",\"type\":\"uint8\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_oracle\",\"type\":\"address\"},{\"internalType\":\"uint32\",\"name\":\"_queriedRoundId\",\"type\":\"uint32\"}],\"name\":\"oracleRoundState\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"_eligibleToSubmit\",\"type\":\"bool\"},{\"internalType\":\"uint32\",\"name\":\"_roundId\",\"type\":\"uint32\"},{\"internalType\":\"int256\",\"name\":\"_latestSubmission\",\"type\":\"int256\"},{\"internalType\":\"uint64\",\"name\":\"_startedAt\",\"type\":\"uint64\"},{\"internalType\":\"uint64\",\"name\":\"_timeout\",\"type\":\"uint64\"},{\"internalType\":\"uint8\",\"name\":\"_oracleCount\",\"type\":\"uint8\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"renounceOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"requestNewRound\",\"outputs\":[{\"internalType\":\"uint80\",\"name\":\"\",\"type\":\"uint80\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"restartDelay\",\"outputs\":[{\"internalType\":\"uint32\",\"name\":\"\",\"type\":\"uint32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_requester\",\"type\":\"address\"},{\"internalType\":\"bool\",\"name\":\"_authorized\",\"type\":\"bool\"},{\"internalType\":\"uint32\",\"name\":\"_delay\",\"type\":\"uint32\"}],\"name\":\"setRequesterPermissions\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_newValidator\",\"type\":\"address\"}],\"name\":\"setValidator\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_roundId\",\"type\":\"uint256\"},{\"internalType\":\"int256\",\"name\":\"_submission\",\"type\":\"int256\"}],\"name\":\"submit\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"timeout\",\"outputs\":[{\"internalType\":\"uint32\",\"name\":\"\",\"type\":\"uint32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"transferOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"typeAndVersion\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"pure\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint32\",\"name\":\"_minSubmissionCount\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"_maxSubmissionCount\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"_restartDelay\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"_timeout\",\"type\":\"uint32\"}],\"name\":\"updateFutureRounds\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"validator\",\"outputs\":[{\"internalType\":\"contract IAggregatorValidator\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{\"changeOracles(address[],address[],uint32,uint32,uint32)\":{\"params\":{\"_added\":\"is the list of addresses for the new Oracles being added\",\"_maxSubmissionCount\":\"is the new maximum submission count for each round\",\"_minSubmissionCount\":\"is the new minimum submission count for each round\",\"_removed\":\"is the list of addresses for the new Oracles being removed\",\"_restartDelay\":\"is the number of rounds an Oracle has to wait before they can initiate a round\"}},\"constructor\":{\"params\":{\"_decimals\":\"represents the number of decimals to offset the answer by\",\"_description\":\"a short description of what is being reported\",\"_timeout\":\"is the number of seconds after the previous round that are allowed to lapse before allowing an oracle to skip an unfinished round\",\"_validator\":\"is an optional contract address for validating external validation of answers\"}},\"getRoundData(uint80)\":{\"details\":\"Note that for in-progress rounds (i.e. rounds that haven't yet received maxSubmissions) answer and updatedAt may change between queries.\",\"params\":{\"_roundId\":\"the round ID to retrieve the round data for\"},\"returns\":{\"answer\":\"is the answer for the given round\",\"answeredInRound\":\"is the round ID of the round in which the answer was computed. answeredInRound may be smaller than roundId when the round timed out. answeredInRound is equal to roundId when the round didn't time out and was completed regularly.\",\"roundId\":\"is the round ID for which data was retrieved\",\"startedAt\":\"is the timestamp when the round was started. This is 0 if the round hasn't been started yet.\",\"updatedAt\":\"is the timestamp when the round last was updated (i.e. answer was last computed)\"}},\"latestRoundData()\":{\"details\":\"Note that for in-progress rounds (i.e. rounds that haven't yet received maxSubmissions) answer and updatedAt may change between queries.\",\"returns\":{\"answer\":\"is the answer for the given round\",\"answeredInRound\":\"is the round ID of the round in which the answer was computed. answeredInRound may be smaller than roundId when the round timed out. answeredInRound is equal to roundId when the round didn't time out and was completed regularly.\",\"roundId\":\"is the round ID for which data was retrieved\",\"startedAt\":\"is the timestamp when the round was started. This is 0 if the round hasn't been started yet.\",\"updatedAt\":\"is the timestamp when the round last was updated (i.e. answer was last computed)\"}},\"oracleRoundState(address,uint32)\":{\"params\":{\"_oracle\":\"the address to look up information for.\"}},\"owner()\":{\"details\":\"Returns the address of the current owner.\"},\"renounceOwnership()\":{\"details\":\"Leaves the contract without owner. It will not be possible to call `onlyOwner` functions. Can only be called by the current owner. NOTE: Renouncing ownership will leave the contract without an owner, thereby disabling any functionality that is only available to the owner.\"},\"setRequesterPermissions(address,bool,uint32)\":{\"params\":{\"_authorized\":\"is a boolean specifying whether they can start new rounds or not\",\"_delay\":\"is the number of rounds the requester must wait before starting another round\",\"_requester\":\"is the address to set permissions for\"}},\"setValidator(address)\":{\"params\":{\"_newValidator\":\"designates the address of the new validation contract.\"}},\"submit(uint256,int256)\":{\"params\":{\"_roundId\":\"is the ID of the round this submission pertains to\",\"_submission\":\"is the updated data that the oracle is submitting\"}},\"transferOwnership(address)\":{\"details\":\"Transfers ownership of the contract to a new account (`newOwner`). Can only be called by the current owner.\"},\"typeAndVersion()\":{\"returns\":{\"_0\":\"Type and version string\"}},\"updateFutureRounds(uint32,uint32,uint32,uint32)\":{\"params\":{\"_maxSubmissionCount\":\"is the new maximum submission count for each round\",\"_minSubmissionCount\":\"is the new minimum submission count for each round\",\"_restartDelay\":\"is the number of rounds an Oracle has to wait before they can initiate a round\"}}},\"title\":\"Orakl Network Aggregator\",\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{\"changeOracles(address[],address[],uint32,uint32,uint32)\":{\"notice\":\"called by the owner to remove and add new oracles as well as update the round related parameters that pertain to total oracle count\"},\"constructor\":{\"notice\":\"set up the aggregator with initial configuration\"},\"getOracles()\":{\"notice\":\"returns an array of addresses containing the oracles on contract\"},\"getRoundData(uint80)\":{\"notice\":\"get data about a round. Consumers are encouraged to check that they're receiving fresh data by inspecting the updatedAt and answeredInRound return values.\"},\"latestRoundData()\":{\"notice\":\"get data about the latest round. Consumers are encouraged to check that they're receiving fresh data by inspecting the updatedAt and answeredInRound return values. Consumers are encouraged to check that they're receiving fresh data by inspecting the updatedAt and answeredInRound return values.\"},\"oracleCount()\":{\"notice\":\"returns the number of oracles\"},\"oracleRoundState(address,uint32)\":{\"notice\":\"a method to provide all current info oracles need. Intended only only to be callable by oracles. Not for use by contracts to read state.\"},\"requestNewRound()\":{\"notice\":\"allows non-oracles to request a new round\"},\"setRequesterPermissions(address,bool,uint32)\":{\"notice\":\"allows the owner to specify new non-oracles to start new rounds\"},\"setValidator(address)\":{\"notice\":\"method to update the address which does external data validation.\"},\"submit(uint256,int256)\":{\"notice\":\"called by oracles when they have witnessed a need to update\"},\"typeAndVersion()\":{\"notice\":\"The type and version of this contract\"},\"updateFutureRounds(uint32,uint32,uint32,uint32)\":{\"notice\":\"update the round and payment related parameters for subsequent rounds\"}},\"notice\":\"Handles aggregating data pushed in from off-chain. Oracles' submissions are gathered in rounds, with each round aggregating the submissions for each oracle into a single answer. The latest aggregated answer is exposed as well as historical answers and their updated at timestamp.\",\"version\":1}},\"settings\":{\"compilationTarget\":{\"src/Aggregator.sol\":\"Aggregator\"},\"evmVersion\":\"london\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\",\"useLiteralContent\":true},\"optimizer\":{\"enabled\":true,\"runs\":1000},\"remappings\":[]},\"sources\":{\"@openzeppelin/contracts/access/Ownable.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts (last updated v4.9.0) (access/Ownable.sol)\\n\\npragma solidity ^0.8.0;\\n\\nimport \\\"../utils/Context.sol\\\";\\n\\n/**\\n * @dev Contract module which provides a basic access control mechanism, where\\n * there is an account (an owner) that can be granted exclusive access to\\n * specific functions.\\n *\\n * By default, the owner account will be the one that deploys the contract. This\\n * can later be changed with {transferOwnership}.\\n *\\n * This module is used through inheritance. It will make available the modifier\\n * `onlyOwner`, which can be applied to your functions to restrict their use to\\n * the owner.\\n */\\nabstract contract Ownable is Context {\\n    address private _owner;\\n\\n    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);\\n\\n    /**\\n     * @dev Initializes the contract setting the deployer as the initial owner.\\n     */\\n    constructor() {\\n        _transferOwnership(_msgSender());\\n    }\\n\\n    /**\\n     * @dev Throws if called by any account other than the owner.\\n     */\\n    modifier onlyOwner() {\\n        _checkOwner();\\n        _;\\n    }\\n\\n    /**\\n     * @dev Returns the address of the current owner.\\n     */\\n    function owner() public view virtual returns (address) {\\n        return _owner;\\n    }\\n\\n    /**\\n     * @dev Throws if the sender is not the owner.\\n     */\\n    function _checkOwner() internal view virtual {\\n        require(owner() == _msgSender(), \\\"Ownable: caller is not the owner\\\");\\n    }\\n\\n    /**\\n     * @dev Leaves the contract without owner. It will not be possible to call\\n     * `onlyOwner` functions. Can only be called by the current owner.\\n     *\\n     * NOTE: Renouncing ownership will leave the contract without an owner,\\n     * thereby disabling any functionality that is only available to the owner.\\n     */\\n    function renounceOwnership() public virtual onlyOwner {\\n        _transferOwnership(address(0));\\n    }\\n\\n    /**\\n     * @dev Transfers ownership of the contract to a new account (`newOwner`).\\n     * Can only be called by the current owner.\\n     */\\n    function transferOwnership(address newOwner) public virtual onlyOwner {\\n        require(newOwner != address(0), \\\"Ownable: new owner is the zero address\\\");\\n        _transferOwnership(newOwner);\\n    }\\n\\n    /**\\n     * @dev Transfers ownership of the contract to a new account (`newOwner`).\\n     * Internal function without access restriction.\\n     */\\n    function _transferOwnership(address newOwner) internal virtual {\\n        address oldOwner = _owner;\\n        _owner = newOwner;\\n        emit OwnershipTransferred(oldOwner, newOwner);\\n    }\\n}\\n\",\"keccak256\":\"0xba43b97fba0d32eb4254f6a5a297b39a19a247082a02d6e69349e071e2946218\",\"license\":\"MIT\"},\"@openzeppelin/contracts/utils/Context.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts v4.4.1 (utils/Context.sol)\\n\\npragma solidity ^0.8.0;\\n\\n/**\\n * @dev Provides information about the current execution context, including the\\n * sender of the transaction and its data. While these are generally available\\n * via msg.sender and msg.data, they should not be accessed in such a direct\\n * manner, since when dealing with meta-transactions the account sending and\\n * paying for execution may not be the actual sender (as far as an application\\n * is concerned).\\n *\\n * This contract is only required for intermediate, library-like contracts.\\n */\\nabstract contract Context {\\n    function _msgSender() internal view virtual returns (address) {\\n        return msg.sender;\\n    }\\n\\n    function _msgData() internal view virtual returns (bytes calldata) {\\n        return msg.data;\\n    }\\n}\\n\",\"keccak256\":\"0xe2e337e6dde9ef6b680e07338c493ebea1b5fd09b43424112868e9cc1706bca7\",\"license\":\"MIT\"},\"src/Aggregator.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity 0.8.16;\\n\\n// https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.6/FluxAggregator.sol\\n\\nimport \\\"@openzeppelin/contracts/access/Ownable.sol\\\";\\nimport \\\"./interfaces/ITypeAndVersion.sol\\\";\\nimport \\\"./interfaces/IAggregator.sol\\\";\\nimport \\\"./interfaces/IAggregatorValidator.sol\\\";\\nimport \\\"./libraries/Median.sol\\\";\\n\\n/// @title Orakl Network Aggregator\\n/// @notice Handles aggregating data pushed in from off-chain. Oracles'\\n/// submissions are gathered in rounds, with each round aggregating the\\n/// submissions for each oracle into a single answer. The latest\\n/// aggregated answer is exposed as well as historical answers and\\n/// their updated at timestamp.\\ncontract Aggregator is Ownable, IAggregator, ITypeAndVersion {\\n    struct Round {\\n        int256 answer;\\n        uint64 startedAt;\\n        uint64 updatedAt;\\n        uint32 answeredInRound;\\n    }\\n\\n    struct RoundDetails {\\n        int256[] submissions;\\n        uint32 maxSubmissions;\\n        uint32 minSubmissions;\\n        uint32 timeout;\\n    }\\n\\n    struct OracleStatus {\\n        uint32 startingRound;\\n        uint32 endingRound;\\n        uint32 lastReportedRound;\\n        uint32 lastStartedRound;\\n        int256 latestSubmission;\\n        uint16 index;\\n    }\\n\\n    struct Requester {\\n        bool authorized;\\n        uint32 delay;\\n        uint32 lastStartedRound;\\n    }\\n\\n    IAggregatorValidator public validator;\\n\\n    // Round related params\\n    uint32 public maxSubmissionCount;\\n    uint32 public minSubmissionCount;\\n    uint32 public restartDelay;\\n    uint32 public timeout;\\n    uint8 public override decimals;\\n    string public override description;\\n\\n    uint256 public constant MAX_ORACLE_COUNT = 77;\\n    uint32 private constant ROUND_MAX = 2 ** 32 - 1;\\n    uint256 private constant VALIDATOR_GAS_LIMIT = 100000;\\n\\n    uint32 private reportingRoundId;\\n    uint32 internal latestRoundId;\\n    mapping(address => OracleStatus) private oracles;\\n    mapping(uint32 => Round) internal rounds;\\n    mapping(uint32 => RoundDetails) internal details;\\n    mapping(address => Requester) internal requesters;\\n    address[] private oracleAddresses;\\n\\n    error OracleAlreadyEnabled();\\n    error OracleNotEnabled();\\n    error OffChainReadingOnly();\\n    error RequesterNotAuthorized();\\n    error PrevRoundNotSupersedable();\\n    error RoundNotAcceptingSubmission();\\n    error TooManyOracles();\\n    error NoDataPresent();\\n    error NewRequestTooSoon();\\n    error MinSubmissionGtMaxSubmission();\\n    error RestartDelayExceedOracleNum();\\n    error MinSubmissionZero();\\n    error MaxSubmissionGtOracleNum();\\n\\n    event RoundDetailsUpdated(\\n        uint32 indexed minSubmissionCount,\\n        uint32 indexed maxSubmissionCount,\\n        uint32 restartDelay,\\n        uint32 timeout // measured in seconds\\n    );\\n    event OraclePermissionsUpdated(address indexed oracle, bool indexed whitelisted);\\n    event SubmissionReceived(\\n        int256 indexed submission,\\n        uint32 indexed round,\\n        address indexed oracle\\n    );\\n    event RequesterPermissionsSet(address indexed requester, bool authorized, uint32 delay);\\n    event ValidatorUpdated(address indexed previous, address indexed current);\\n\\n    /**\\n     * @notice set up the aggregator with initial configuration\\n     * @param _timeout is the number of seconds after the previous round that are\\n     * allowed to lapse before allowing an oracle to skip an unfinished round\\n     * @param _validator is an optional contract address for validating\\n     * external validation of answers\\n     * @param _decimals represents the number of decimals to offset the answer by\\n     * @param _description a short description of what is being reported\\n     */\\n    constructor(uint32 _timeout, address _validator, uint8 _decimals, string memory _description) {\\n        updateFutureRounds(0, 0, 0, _timeout);\\n        setValidator(_validator);\\n        decimals = _decimals;\\n        description = _description;\\n\\n        rounds[0].updatedAt = uint64(block.timestamp - uint256(_timeout));\\n    }\\n\\n    /**\\n     * @notice called by oracles when they have witnessed a need to update\\n     * @param _roundId is the ID of the round this submission pertains to\\n     * @param _submission is the updated data that the oracle is submitting\\n     */\\n    function submit(uint256 _roundId, int256 _submission) external {\\n        bytes memory error = validateOracleRound(msg.sender, uint32(_roundId));\\n        require(error.length == 0, string(error));\\n\\n        oracleInitializeNewRound(uint32(_roundId));\\n        recordSubmission(_submission, uint32(_roundId));\\n        (bool updated, int256 newAnswer) = updateRoundAnswer(uint32(_roundId));\\n        deleteRoundDetails(uint32(_roundId));\\n        if (updated) {\\n            validateAnswer(uint32(_roundId), newAnswer);\\n        }\\n    }\\n\\n    /**\\n     * @notice called by the owner to remove and add new oracles as well as\\n     * update the round related parameters that pertain to total oracle count\\n     * @param _removed is the list of addresses for the new Oracles being removed\\n     * @param _added is the list of addresses for the new Oracles being added\\n     * @param _minSubmissionCount is the new minimum submission count for each round\\n     * @param _maxSubmissionCount is the new maximum submission count for each round\\n     * @param _restartDelay is the number of rounds an Oracle has to wait before\\n     * they can initiate a round\\n     */\\n    function changeOracles(\\n        address[] calldata _removed,\\n        address[] calldata _added,\\n        uint32 _minSubmissionCount,\\n        uint32 _maxSubmissionCount,\\n        uint32 _restartDelay\\n    ) external onlyOwner {\\n        for (uint256 i = 0; i < _removed.length; i++) {\\n            removeOracle(_removed[i]);\\n        }\\n\\n        if (uint256(oracleCount()) + _added.length >= MAX_ORACLE_COUNT) {\\n            revert TooManyOracles();\\n        }\\n\\n        for (uint256 i = 0; i < _added.length; i++) {\\n            addOracle(_added[i]);\\n        }\\n\\n        updateFutureRounds(_minSubmissionCount, _maxSubmissionCount, _restartDelay, timeout);\\n    }\\n\\n    /**\\n     * @notice update the round and payment related parameters for subsequent\\n     * rounds\\n     * @param _minSubmissionCount is the new minimum submission count for each round\\n     * @param _maxSubmissionCount is the new maximum submission count for each round\\n     * @param _restartDelay is the number of rounds an Oracle has to wait before\\n     * they can initiate a round\\n     */\\n    function updateFutureRounds(\\n        uint32 _minSubmissionCount,\\n        uint32 _maxSubmissionCount,\\n        uint32 _restartDelay,\\n        uint32 _timeout\\n    ) public onlyOwner {\\n        uint32 oracleNum = oracleCount(); // Save on storage reads\\n\\n        if (_minSubmissionCount > _maxSubmissionCount) {\\n            revert MinSubmissionGtMaxSubmission();\\n        }\\n\\n        if (_maxSubmissionCount > oracleNum) {\\n            revert MaxSubmissionGtOracleNum();\\n        }\\n\\n        if (oracleNum > 0) {\\n            if (oracleNum <= _restartDelay) {\\n                revert RestartDelayExceedOracleNum();\\n            }\\n            if (_minSubmissionCount == 0) {\\n                revert MinSubmissionZero();\\n            }\\n        }\\n\\n        minSubmissionCount = _minSubmissionCount;\\n        maxSubmissionCount = _maxSubmissionCount;\\n        restartDelay = _restartDelay;\\n        timeout = _timeout;\\n\\n        emit RoundDetailsUpdated(_minSubmissionCount, _maxSubmissionCount, _restartDelay, _timeout);\\n    }\\n\\n    /**\\n     * @notice returns the number of oracles\\n     */\\n    function oracleCount() public view returns (uint8) {\\n        return uint8(oracleAddresses.length);\\n    }\\n\\n    /**\\n     * @notice returns an array of addresses containing the oracles on contract\\n     */\\n    function getOracles() external view returns (address[] memory) {\\n        return oracleAddresses;\\n    }\\n\\n    /**\\n     * @notice get data about a round. Consumers are encouraged to check\\n     * that they're receiving fresh data by inspecting the updatedAt and\\n     * answeredInRound return values.\\n     * @param _roundId the round ID to retrieve the round data for\\n     * @return roundId is the round ID for which data was retrieved\\n     * @return answer is the answer for the given round\\n     * @return startedAt is the timestamp when the round was started. This is 0\\n     * if the round hasn't been started yet.\\n     * @return updatedAt is the timestamp when the round last was updated (i.e.\\n     * answer was last computed)\\n     * @return answeredInRound is the round ID of the round in which the answer\\n     * was computed. answeredInRound may be smaller than roundId when the round\\n     * timed out. answeredInRound is equal to roundId when the round didn't time out\\n     * and was completed regularly.\\n     * @dev Note that for in-progress rounds (i.e. rounds that haven't yet received\\n     * maxSubmissions) answer and updatedAt may change between queries.\\n     */\\n    function getRoundData(\\n        uint80 _roundId\\n    )\\n        public\\n        view\\n        virtual\\n        override\\n        returns (\\n            uint80 roundId,\\n            int256 answer,\\n            uint256 startedAt,\\n            uint256 updatedAt,\\n            uint80 answeredInRound\\n        )\\n    {\\n        Round memory r = rounds[uint32(_roundId)];\\n\\n        if (r.answeredInRound == 0 || !validRoundId(_roundId)) {\\n            revert NoDataPresent();\\n        }\\n\\n        return (_roundId, r.answer, r.startedAt, r.updatedAt, r.answeredInRound);\\n    }\\n\\n    /**\\n     * @notice get data about the latest round. Consumers are encouraged to check\\n     * that they're receiving fresh data by inspecting the updatedAt and\\n     * answeredInRound return values. Consumers are encouraged to check\\n     * that they're receiving fresh data by inspecting the updatedAt and\\n     * answeredInRound return values.\\n     * @return roundId is the round ID for which data was retrieved\\n     * @return answer is the answer for the given round\\n     * @return startedAt is the timestamp when the round was started. This is 0\\n     * if the round hasn't been started yet.\\n     * @return updatedAt is the timestamp when the round last was updated (i.e.\\n     * answer was last computed)\\n     * @return answeredInRound is the round ID of the round in which the answer\\n     * was computed. answeredInRound may be smaller than roundId when the round\\n     * timed out. answeredInRound is equal to roundId when the round didn't time\\n     * out and was completed regularly.\\n     * @dev Note that for in-progress rounds (i.e. rounds that haven't yet\\n     * received maxSubmissions) answer and updatedAt may change between queries.\\n     */\\n    function latestRoundData()\\n        public\\n        view\\n        virtual\\n        override\\n        returns (\\n            uint80 roundId,\\n            int256 answer,\\n            uint256 startedAt,\\n            uint256 updatedAt,\\n            uint80 answeredInRound\\n        )\\n    {\\n        return getRoundData(latestRoundId);\\n    }\\n\\n    /**\\n     * @notice allows non-oracles to request a new round\\n     */\\n    function requestNewRound() external returns (uint80) {\\n        if (!requesters[msg.sender].authorized) {\\n            revert RequesterNotAuthorized();\\n        }\\n\\n        uint32 current = reportingRoundId;\\n        if (rounds[current].updatedAt == 0 && !timedOut(current)) {\\n            revert PrevRoundNotSupersedable();\\n        }\\n\\n        uint32 newRoundId = current + 1;\\n        requesterInitializeNewRound(newRoundId);\\n        return newRoundId;\\n    }\\n\\n    /**\\n     * @notice allows the owner to specify new non-oracles to start new rounds\\n     * @param _requester is the address to set permissions for\\n     * @param _authorized is a boolean specifying whether they can start new rounds or not\\n     * @param _delay is the number of rounds the requester must wait before starting another round\\n     */\\n    function setRequesterPermissions(\\n        address _requester,\\n        bool _authorized,\\n        uint32 _delay\\n    ) external onlyOwner {\\n        if (requesters[_requester].authorized == _authorized) {\\n            return;\\n        }\\n\\n        if (_authorized) {\\n            requesters[_requester].authorized = _authorized;\\n            requesters[_requester].delay = _delay;\\n        } else {\\n            delete requesters[_requester];\\n        }\\n\\n        emit RequesterPermissionsSet(_requester, _authorized, _delay);\\n    }\\n\\n    /**\\n     * @notice a method to provide all current info oracles need. Intended only\\n     * only to be callable by oracles. Not for use by contracts to read state.\\n     * @param _oracle the address to look up information for.\\n     */\\n    function oracleRoundState(\\n        address _oracle,\\n        uint32 _queriedRoundId\\n    )\\n        external\\n        view\\n        returns (\\n            bool _eligibleToSubmit,\\n            uint32 _roundId,\\n            int256 _latestSubmission,\\n            uint64 _startedAt,\\n            uint64 _timeout,\\n            uint8 _oracleCount\\n        )\\n    {\\n        if (msg.sender != tx.origin) {\\n            revert OffChainReadingOnly();\\n        }\\n\\n        if (_queriedRoundId > 0) {\\n            Round storage round = rounds[_queriedRoundId];\\n            RoundDetails storage _details = details[_queriedRoundId];\\n            return (\\n                eligibleForSpecificRound(_oracle, _queriedRoundId),\\n                _queriedRoundId,\\n                oracles[_oracle].latestSubmission,\\n                round.startedAt,\\n                _details.timeout,\\n                oracleCount()\\n            );\\n        } else {\\n            return oracleRoundStateSuggestRound(_oracle);\\n        }\\n    }\\n\\n    function currentRoundStartedAt() external view returns (uint256) {\\n        Round storage round = rounds[reportingRoundId];\\n        return round.startedAt;\\n    }\\n\\n    /**\\n     * @notice method to update the address which does external data validation.\\n     * @param _newValidator designates the address of the new validation contract.\\n     */\\n    function setValidator(address _newValidator) public onlyOwner {\\n        address previous = address(validator);\\n\\n        if (previous != _newValidator) {\\n            validator = IAggregatorValidator(_newValidator);\\n            emit ValidatorUpdated(previous, _newValidator);\\n        }\\n    }\\n\\n    /**\\n     * @notice The type and version of this contract\\n     * @return Type and version string\\n     */\\n    function typeAndVersion() external pure virtual override returns (string memory) {\\n        return \\\"Aggregator v0.1\\\";\\n    }\\n\\n    /**\\n     * Private\\n     */\\n\\n    /**\\n     * @dev The function is executed fully with a specified parameter\\n     * at most once.\\n     */\\n    function initializeNewRound(uint32 _roundId) private {\\n        updateTimedOutRoundInfo(_roundId - 1);\\n\\n        reportingRoundId = _roundId;\\n        RoundDetails memory nextDetails = RoundDetails(\\n            new int256[](0),\\n            maxSubmissionCount,\\n            minSubmissionCount,\\n            timeout\\n        );\\n        details[_roundId] = nextDetails;\\n        rounds[_roundId].startedAt = uint64(block.timestamp);\\n\\n        emit NewRound(_roundId, msg.sender, rounds[_roundId].startedAt);\\n    }\\n\\n    /**\\n     * @dev The function is executed fully with a specified parameter\\n     * at most once. Update of `reportingRoundId` is performed within\\n     * `initializeNewRound` which is used in `newRound()` function to\\n     * restrict access to this function.\\n     */\\n    function oracleInitializeNewRound(uint32 _roundId) private {\\n        if (!newRound(_roundId)) {\\n            return;\\n        }\\n        uint256 lastStarted = oracles[msg.sender].lastStartedRound;\\n        if (lastStarted > 0 && _roundId <= lastStarted + restartDelay) {\\n            return;\\n        }\\n\\n        initializeNewRound(_roundId);\\n        oracles[msg.sender].lastStartedRound = _roundId;\\n    }\\n\\n    function requesterInitializeNewRound(uint32 _roundId) private {\\n        if (!newRound(_roundId)) {\\n            return;\\n        }\\n        uint256 lastStarted = requesters[msg.sender].lastStartedRound;\\n        if (lastStarted > 0 && _roundId <= lastStarted + requesters[msg.sender].delay) {\\n            revert NewRequestTooSoon();\\n        }\\n\\n        initializeNewRound(_roundId);\\n        requesters[msg.sender].lastStartedRound = _roundId;\\n    }\\n\\n    function updateTimedOutRoundInfo(uint32 _roundId) private {\\n        if (!timedOut(_roundId)) {\\n            return;\\n        }\\n\\n        uint32 prevId = _roundId - 1;\\n        rounds[_roundId].answer = rounds[prevId].answer;\\n        rounds[_roundId].answeredInRound = rounds[prevId].answeredInRound;\\n        rounds[_roundId].updatedAt = uint64(block.timestamp);\\n\\n        delete details[_roundId];\\n    }\\n\\n    function eligibleForSpecificRound(\\n        address _oracle,\\n        uint32 _queriedRoundId\\n    ) private view returns (bool _eligible) {\\n        if (rounds[_queriedRoundId].startedAt > 0) {\\n            // past or current round\\n            return\\n                acceptingSubmissions(_queriedRoundId) &&\\n                validateOracleRound(_oracle, _queriedRoundId).length == 0;\\n        } else {\\n            // future rounds\\n            return\\n                delayed(_oracle, _queriedRoundId) &&\\n                validateOracleRound(_oracle, _queriedRoundId).length == 0;\\n        }\\n    }\\n\\n    function oracleRoundStateSuggestRound(\\n        address _oracle\\n    )\\n        private\\n        view\\n        returns (\\n            bool _eligibleToSubmit,\\n            uint32 _roundId,\\n            int256 _latestSubmission,\\n            uint64 _startedAt,\\n            uint64 _timeout,\\n            uint8 _oracleCount\\n        )\\n    {\\n        Round storage round = rounds[0];\\n        OracleStatus storage oracle = oracles[_oracle];\\n\\n        bool shouldSupersede = oracle.lastReportedRound == reportingRoundId ||\\n            !acceptingSubmissions(reportingRoundId);\\n\\n        // Instead of nudging oracles to submit to the next round, the\\n        // inclusion of the shouldSupersede bool in the if condition\\n        // pushes them towards submitting in a currently open round.\\n        if (supersedable(reportingRoundId) && shouldSupersede) {\\n            _roundId = reportingRoundId + 1;\\n            round = rounds[_roundId];\\n            _eligibleToSubmit = delayed(_oracle, _roundId);\\n        } else {\\n            _roundId = reportingRoundId;\\n            round = rounds[_roundId];\\n            _eligibleToSubmit = acceptingSubmissions(_roundId);\\n        }\\n\\n        if (validateOracleRound(_oracle, _roundId).length != 0) {\\n            _eligibleToSubmit = false;\\n        }\\n\\n        return (\\n            _eligibleToSubmit,\\n            _roundId,\\n            oracle.latestSubmission,\\n            round.startedAt,\\n            details[_roundId].timeout,\\n            oracleCount()\\n        );\\n    }\\n\\n    function updateRoundAnswer(uint32 _roundId) internal returns (bool, int256) {\\n        if (details[_roundId].submissions.length < details[_roundId].minSubmissions) {\\n            return (false, 0);\\n        }\\n\\n        int256 newAnswer = Median.calculateInplace(details[_roundId].submissions);\\n        rounds[_roundId].answer = newAnswer;\\n        rounds[_roundId].updatedAt = uint64(block.timestamp);\\n        rounds[_roundId].answeredInRound = _roundId;\\n        latestRoundId = _roundId;\\n\\n        emit AnswerUpdated(newAnswer, _roundId, block.timestamp);\\n\\n        return (true, newAnswer);\\n    }\\n\\n    function validateAnswer(uint32 _roundId, int256 _newAnswer) private {\\n        IAggregatorValidator av = validator;\\n        if (address(av) == address(0)) {\\n            return;\\n        }\\n\\n        uint32 prevRound = _roundId - 1;\\n        uint32 prevAnswerRoundId = rounds[prevRound].answeredInRound;\\n        int256 prevRoundAnswer = rounds[prevRound].answer;\\n        // We do not want the validator to ever prevent reporting, so we limit its\\n        // gas usage and catch any errors that may arise.\\n        try\\n            av.validate{gas: VALIDATOR_GAS_LIMIT}(\\n                prevAnswerRoundId,\\n                prevRoundAnswer,\\n                _roundId,\\n                _newAnswer\\n            )\\n        {} catch {}\\n    }\\n\\n    function recordSubmission(int256 _submission, uint32 _roundId) private {\\n        if (!acceptingSubmissions(_roundId)) {\\n            revert RoundNotAcceptingSubmission();\\n        }\\n\\n        details[_roundId].submissions.push(_submission);\\n        oracles[msg.sender].lastReportedRound = _roundId;\\n        oracles[msg.sender].latestSubmission = _submission;\\n\\n        emit SubmissionReceived(_submission, _roundId, msg.sender);\\n    }\\n\\n    function deleteRoundDetails(uint32 _roundId) private {\\n        if (details[_roundId].submissions.length >= details[_roundId].maxSubmissions) {\\n            delete details[_roundId];\\n        }\\n    }\\n\\n    function timedOut(uint32 _roundId) private view returns (bool) {\\n        uint64 startedAt = rounds[_roundId].startedAt;\\n        // `details` mapping for a specific round is supposed to be\\n        // deleted after aggregator collects at least `maxSubmissions`\\n        // answers for that specific round. If it does not collect\\n        // such number of answers within the round, `details` mapping\\n        // will be deleted during the initialization of the next\\n        // round.  Depending on the validity of `_roundId` key,\\n        // `roundTimeout` variable can be used to distinguish between\\n        // successfully acomplished round and unsuccesful\\n        // one. Assuming that `roundId` has been active (startedAt >\\n        // 0), and a `roundTimeout` is over, a non-negative value of\\n        // `roundTimeout` represents unsuccessfully finished round.\\n        uint32 roundTimeout = details[_roundId].timeout;\\n        return startedAt > 0 && roundTimeout > 0 && startedAt + roundTimeout < block.timestamp;\\n    }\\n\\n    function getStartingRound(address _oracle) private view returns (uint32) {\\n        uint32 currentRound = reportingRoundId;\\n        if (currentRound != 0 && currentRound == oracles[_oracle].endingRound) {\\n            return currentRound;\\n        }\\n        return currentRound + 1;\\n    }\\n\\n    /**\\n     * @dev In general, oracles are supposed to submit to the current\\n     * round that is denoted by `reportingRoundId` variable. In some\\n     * cases, when the current round is `supersedable`, we allow them to\\n     * submit to the next round.\\n     * The only exception of submitting on previous round\\n     * (`reportingRound - 1`) is when the current round has not\\n     * received enough submissions to produce an aggregate value.\\n     */\\n    function previousAndCurrentUnanswered(\\n        uint32 _roundId,\\n        uint32 _rrId\\n    ) private view returns (bool) {\\n        return _roundId + 1 == _rrId && rounds[_rrId].updatedAt == 0;\\n    }\\n\\n    function addOracle(address _oracle) private {\\n        if (oracleEnabled(_oracle)) {\\n            revert OracleAlreadyEnabled();\\n        }\\n        oracles[_oracle].startingRound = getStartingRound(_oracle);\\n        oracles[_oracle].endingRound = ROUND_MAX;\\n        oracles[_oracle].index = uint16(oracleAddresses.length);\\n        oracleAddresses.push(_oracle);\\n\\n        emit OraclePermissionsUpdated(_oracle, true);\\n    }\\n\\n    function removeOracle(address _oracle) private {\\n        if (!oracleEnabled(_oracle)) {\\n            revert OracleNotEnabled();\\n        }\\n        oracles[_oracle].endingRound = reportingRoundId + 1;\\n        address tail = oracleAddresses[uint256(oracleCount()) - 1];\\n        uint16 index = oracles[_oracle].index;\\n        oracles[tail].index = index;\\n        delete oracles[_oracle].index;\\n        oracleAddresses[index] = tail;\\n        oracleAddresses.pop();\\n\\n        emit OraclePermissionsUpdated(_oracle, false);\\n    }\\n\\n    function validateOracleRound(\\n        address _oracle,\\n        uint32 _roundId\\n    ) private view returns (bytes memory) {\\n        uint32 startingRound = oracles[_oracle].startingRound;\\n        uint32 rrId = reportingRoundId;\\n\\n        if (startingRound == 0) return \\\"not enabled oracle\\\";\\n        if (startingRound > _roundId) return \\\"not yet enabled oracle\\\";\\n        if (oracles[_oracle].endingRound < _roundId) return \\\"no longer allowed oracle\\\";\\n        if (oracles[_oracle].lastReportedRound >= _roundId)\\n            return \\\"cannot report on previous rounds\\\";\\n        if (\\n            // Not reporting on current round.\\n            _roundId != rrId &&\\n            // Not reporting on next round.\\n            _roundId != rrId + 1 &&\\n            // Not reporting on the previous round while the current\\n            // round has not finished yet.\\n            !previousAndCurrentUnanswered(_roundId, rrId)\\n        ) return \\\"invalid round to report\\\";\\n        if (_roundId != 1 && !supersedable(_roundId - 1)) return \\\"previous round not supersedable\\\";\\n\\n        return \\\"\\\";\\n    }\\n\\n    /**\\n     * @dev `updatedAt > 0` expression represents that aggregated\\n     * submission can be accessed through `AggregatorProxy`. Accepting\\n     * new submissions can still be allowed, but the aggregated value\\n     * should be already a good approximate, therefore the `_roundId`\\n     * is considered supersedable. The other possibility is that\\n     * previous current round has not received enough submissions to\\n     * compute aggregate value, however, the round has timed out,\\n     * therefore `_roundId` is supersedable.\\n     */\\n    function supersedable(uint32 _roundId) private view returns (bool) {\\n        return rounds[_roundId].updatedAt > 0 || timedOut(_roundId);\\n    }\\n\\n    /**\\n     * @dev `endingRound` is set to `ROUND_MAX` when a new oracle is\\n     * added (`addOracle`), therefore the `endingRound` equality to\\n     * `ROUND_MAX` means that oracle has already been enabled.\\n     * When oracle is removed (`removeOracle`), `endingRound` property\\n     * is set to `reportingRoundId + 1`, indicating that the oracle\\n     * is diabled. Submitting to the current `reportingRoundId` is\\n     * still allowed.\\n     */\\n    function oracleEnabled(address _oracle) private view returns (bool) {\\n        return oracles[_oracle].endingRound == ROUND_MAX;\\n    }\\n\\n    /**\\n     * @dev `maxSubmissions` struct property is initialized within\\n     * `initializeNewRound` function with uint32 storage variable\\n     * `maxSubmissionsCount`. After Aggregator collects at least\\n     * `maxSubmissions` submissions, `details` struct is deleted\\n     * (`deleteRoundDetails`), making `maxSubmissions` effectively\\n     * 0. This sequence of events is depended on in this\\n     * `acceptingSubmissions` to find out whether aggregator still\\n     * accepts submissions for `_roundId`.\\n     */\\n    function acceptingSubmissions(uint32 _roundId) private view returns (bool) {\\n        return details[_roundId].maxSubmissions != 0;\\n    }\\n\\n    /**\\n     * @dev oracles can be limited by how frequently they can initiate\\n     * a new round. This frequency is defined with `restartDelay`\\n     * variable that is same for all oracles. When a new oracle is\\n     * added, it can initiate a new round without a\\n     * limitation. However, for later submissions it is constrained by\\n     * the frequency of new round initiation (`restartDelay`). Even\\n     * though oracle cannot initiate a new round, it can still submit\\n     * a new answer to aggregator. If `restartDelay` is 0, there are\\n     * no frequency limitations on initiating a new round.\\n     */\\n    function delayed(address _oracle, uint32 _roundId) private view returns (bool) {\\n        uint256 lastStarted = oracles[_oracle].lastStartedRound;\\n        return lastStarted == 0 || _roundId > lastStarted + restartDelay;\\n    }\\n\\n    function newRound(uint32 _roundId) private view returns (bool) {\\n        return _roundId == reportingRoundId + 1;\\n    }\\n\\n    function validRoundId(uint256 _roundId) private pure returns (bool) {\\n        return _roundId <= ROUND_MAX;\\n    }\\n}\\n\",\"keccak256\":\"0x60b07bcfb2b32942207735e8c67cab1cba5c09daba0b34bd4aeca000f4a65041\",\"license\":\"MIT\"},\"src/interfaces/IAggregator.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.16;\\n\\n// https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol\\n// https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.6/interfaces/AggregatorInterface.sol\\n\\ninterface IAggregator {\\n    function decimals() external view returns (uint8);\\n\\n    function description() external view returns (string memory);\\n\\n    function getRoundData(\\n        uint80 _roundId\\n    )\\n        external\\n        view\\n        returns (\\n            uint80 roundId,\\n            int256 answer,\\n            uint256 startedAt,\\n            uint256 updatedAt,\\n            uint80 answeredInRound\\n        );\\n\\n    function latestRoundData()\\n        external\\n        view\\n        returns (\\n            uint80 roundId,\\n            int256 answer,\\n            uint256 startedAt,\\n            uint256 updatedAt,\\n            uint80 answeredInRound\\n        );\\n\\n    event AnswerUpdated(int256 indexed current, uint256 indexed roundId, uint256 updatedAt);\\n\\n    event NewRound(uint256 indexed roundId, address indexed startedBy, uint256 startedAt);\\n}\\n\",\"keccak256\":\"0x83c1e2279685e749dde5d0070f90a7adcafa95c57facace6a1f0e3039f83d005\",\"license\":\"MIT\"},\"src/interfaces/IAggregatorValidator.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.16;\\n\\n// https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.6/interfaces/AggregatorValidatorInterface.sol\\n\\ninterface IAggregatorValidator {\\n    function validate(\\n        uint256 previousRoundId,\\n        int256 previousAnswer,\\n        uint256 currentRoundId,\\n        int256 currentAnswer\\n    ) external returns (bool);\\n}\\n\",\"keccak256\":\"0x4a47bae1c5d1be3fa194f1b6e68a6716a07b09fb3d07494f519ac1d4300e6604\",\"license\":\"MIT\"},\"src/interfaces/ITypeAndVersion.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.16;\\n\\n// https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.8/interfaces/TypeAndVersionInterface.sol\\n\\nabstract contract ITypeAndVersion {\\n    function typeAndVersion() external pure virtual returns (string memory);\\n}\\n\",\"keccak256\":\"0xb4298d53c43e0afe8c55f2a77724cd1ea29de928581a436a13fc65043891428d\",\"license\":\"MIT\"},\"src/libraries/Median.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.16;\\n\\n// https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.6/Median.sol\\n\\nlibrary Median {\\n    int256 constant INT_MAX = 2 ** 255 - 1;\\n\\n    /**\\n     * @notice Returns the sorted middle, or the average of the two middle indexed items if the\\n     * array has an even number of elements.\\n     * @dev The list passed as an argument isn't modified.\\n     * @dev This algorithm has expected runtime O(n), but for adversarially chosen inputs\\n     * the runtime is O(n^2).\\n     * @param list The list of elements to compare\\n     */\\n    function calculate(int256[] memory list) internal pure returns (int256) {\\n        return calculateInplace(copy(list));\\n    }\\n\\n    /**\\n     * @notice See documentation for function calculate.\\n     * @dev The list passed as an argument may be permuted.\\n     */\\n    function calculateInplace(int256[] memory list) internal pure returns (int256) {\\n        require(list.length > 0, \\\"list must not be empty\\\");\\n        uint256 len = list.length;\\n        uint256 middleIndex = len / 2;\\n        if (len % 2 == 0) {\\n            int256 median1;\\n            int256 median2;\\n            (median1, median2) = quickselectTwo(list, 0, len - 1, middleIndex - 1, middleIndex);\\n            return avg(median1, median2);\\n        } else {\\n            return quickselect(list, 0, len - 1, middleIndex);\\n        }\\n    }\\n\\n    /**\\n     * @notice Computes average of two signed integers.\\n     * @dev If the result is not an integer, it is rounded towards\\n     * @dev zero. For example, avg(-3, -4) = -3\\n     * @dev Since Solidity v0.8.0 arithmetic operations revert on\\n     * @dev underflow and overflow. We do not need to check for it\\n     * @dev manually.\\n     */\\n    function avg(int256 _a, int256 _b) internal pure returns (int256) {\\n        if ((_a < 0 && _b > 0) || (_a > 0 && _b < 0)) {\\n            return (_a + _b) / 2;\\n        }\\n        int256 remainder = ((_a % 2) + (_b % 2)) / 2;\\n        return (_a / 2) + (_b / 2) + remainder;\\n    }\\n\\n    /**\\n     * @notice Maximum length of list that shortSelectTwo can handle\\n     */\\n    uint256 constant SHORTSELECTTWO_MAX_LENGTH = 7;\\n\\n    /**\\n     * @notice Select the k1-th and k2-th element from list of length at most 7\\n     * @dev Uses an optimal sorting network\\n     */\\n    function shortSelectTwo(\\n        int256[] memory list,\\n        uint256 lo,\\n        uint256 hi,\\n        uint256 k1,\\n        uint256 k2\\n    ) private pure returns (int256 k1th, int256 k2th) {\\n        // Uses an optimal sorting network (https://en.wikipedia.org/wiki/Sorting_network)\\n        // for lists of length 7. Network layout is taken from\\n        // http://jgamble.ripco.net/cgi-bin/nw.cgi?inputs=7&algorithm=hibbard&output=svg\\n\\n        uint256 len = hi + 1 - lo;\\n        int256 x0 = list[lo + 0];\\n        int256 x1 = 1 < len ? list[lo + 1] : INT_MAX;\\n        int256 x2 = 2 < len ? list[lo + 2] : INT_MAX;\\n        int256 x3 = 3 < len ? list[lo + 3] : INT_MAX;\\n        int256 x4 = 4 < len ? list[lo + 4] : INT_MAX;\\n        int256 x5 = 5 < len ? list[lo + 5] : INT_MAX;\\n        int256 x6 = 6 < len ? list[lo + 6] : INT_MAX;\\n\\n        if (x0 > x1) {\\n            (x0, x1) = (x1, x0);\\n        }\\n        if (x2 > x3) {\\n            (x2, x3) = (x3, x2);\\n        }\\n        if (x4 > x5) {\\n            (x4, x5) = (x5, x4);\\n        }\\n        if (x0 > x2) {\\n            (x0, x2) = (x2, x0);\\n        }\\n        if (x1 > x3) {\\n            (x1, x3) = (x3, x1);\\n        }\\n        if (x4 > x6) {\\n            (x4, x6) = (x6, x4);\\n        }\\n        if (x1 > x2) {\\n            (x1, x2) = (x2, x1);\\n        }\\n        if (x5 > x6) {\\n            (x5, x6) = (x6, x5);\\n        }\\n        if (x0 > x4) {\\n            (x0, x4) = (x4, x0);\\n        }\\n        if (x1 > x5) {\\n            (x1, x5) = (x5, x1);\\n        }\\n        if (x2 > x6) {\\n            (x2, x6) = (x6, x2);\\n        }\\n        if (x1 > x4) {\\n            (x1, x4) = (x4, x1);\\n        }\\n        if (x3 > x6) {\\n            (x3, x6) = (x6, x3);\\n        }\\n        if (x2 > x4) {\\n            (x2, x4) = (x4, x2);\\n        }\\n        if (x3 > x5) {\\n            (x3, x5) = (x5, x3);\\n        }\\n        if (x3 > x4) {\\n            (x3, x4) = (x4, x3);\\n        }\\n\\n        uint256 index1 = k1 - lo;\\n        if (index1 == 0) {\\n            k1th = x0;\\n        } else if (index1 == 1) {\\n            k1th = x1;\\n        } else if (index1 == 2) {\\n            k1th = x2;\\n        } else if (index1 == 3) {\\n            k1th = x3;\\n        } else if (index1 == 4) {\\n            k1th = x4;\\n        } else if (index1 == 5) {\\n            k1th = x5;\\n        } else if (index1 == 6) {\\n            k1th = x6;\\n        } else {\\n            revert(\\\"k1 out of bounds\\\");\\n        }\\n\\n        uint256 index2 = k2 - lo;\\n        if (k1 == k2) {\\n            return (k1th, k1th);\\n        } else if (index2 == 0) {\\n            return (k1th, x0);\\n        } else if (index2 == 1) {\\n            return (k1th, x1);\\n        } else if (index2 == 2) {\\n            return (k1th, x2);\\n        } else if (index2 == 3) {\\n            return (k1th, x3);\\n        } else if (index2 == 4) {\\n            return (k1th, x4);\\n        } else if (index2 == 5) {\\n            return (k1th, x5);\\n        } else if (index2 == 6) {\\n            return (k1th, x6);\\n        } else {\\n            revert(\\\"k2 out of bounds\\\");\\n        }\\n    }\\n\\n    /**\\n     * @notice Selects the k-th ranked element from list, looking only at indices between lo and hi\\n     * (inclusive). Modifies list in-place.\\n     */\\n    function quickselect(\\n        int256[] memory list,\\n        uint256 lo,\\n        uint256 hi,\\n        uint256 k\\n    ) private pure returns (int256 kth) {\\n        require(lo <= k);\\n        require(k <= hi);\\n        while (lo < hi) {\\n            if (hi - lo < SHORTSELECTTWO_MAX_LENGTH) {\\n                int256 ignore;\\n                (kth, ignore) = shortSelectTwo(list, lo, hi, k, k);\\n                return kth;\\n            }\\n            uint256 pivotIndex = partition(list, lo, hi);\\n            if (k <= pivotIndex) {\\n                // since pivotIndex < (original hi passed to partition),\\n                // termination is guaranteed in this case\\n                hi = pivotIndex;\\n            } else {\\n                // since (original lo passed to partition) <= pivotIndex,\\n                // termination is guaranteed in this case\\n                lo = pivotIndex + 1;\\n            }\\n        }\\n        return list[lo];\\n    }\\n\\n    /**\\n     * @notice Selects the k1-th and k2-th ranked elements from list, looking only at indices between\\n     * lo and hi (inclusive). Modifies list in-place.\\n     */\\n    function quickselectTwo(\\n        int256[] memory list,\\n        uint256 lo,\\n        uint256 hi,\\n        uint256 k1,\\n        uint256 k2 // for testing\\n    ) internal pure returns (int256 k1th, int256 k2th) {\\n        require(k1 < k2);\\n        require(lo <= k1 && k1 <= hi);\\n        require(lo <= k2 && k2 <= hi);\\n\\n        while (true) {\\n            if (hi - lo < SHORTSELECTTWO_MAX_LENGTH) {\\n                return shortSelectTwo(list, lo, hi, k1, k2);\\n            }\\n            uint256 pivotIdx = partition(list, lo, hi);\\n            if (k2 <= pivotIdx) {\\n                hi = pivotIdx;\\n            } else if (pivotIdx < k1) {\\n                lo = pivotIdx + 1;\\n            } else {\\n                assert(k1 <= pivotIdx && pivotIdx < k2);\\n                k1th = quickselect(list, lo, pivotIdx, k1);\\n                k2th = quickselect(list, pivotIdx + 1, hi, k2);\\n                return (k1th, k2th);\\n            }\\n        }\\n    }\\n\\n    /**\\n     * @notice Partitions list in-place using Hoare's partitioning scheme.\\n     * Only elements of list between indices lo and hi (inclusive) will be modified.\\n     * Returns an index i, such that:\\n     * - lo <= i < hi\\n     * - forall j in [lo, i]. list[j] <= list[i]\\n     * - forall j in [i, hi]. list[i] <= list[j]\\n     */\\n    function partition(\\n        int256[] memory list,\\n        uint256 lo,\\n        uint256 hi\\n    ) private pure returns (uint256) {\\n        // We don't care about overflow of the addition, because it would require a list\\n        // larger than any feasible computer's memory.\\n        int256 pivot = list[(lo + hi) / 2];\\n        unchecked {\\n            lo -= 1; // this can underflow. that's intentional.\\n        }\\n        hi += 1;\\n\\n        while (true) {\\n            do {\\n                unchecked {\\n                    lo += 1;\\n                }\\n            } while (list[lo] < pivot);\\n            do {\\n                hi -= 1;\\n            } while (list[hi] > pivot);\\n            if (lo < hi) {\\n                (list[lo], list[hi]) = (list[hi], list[lo]);\\n            } else {\\n                // Let orig_lo and orig_hi be the original values of lo and hi passed to partition.\\n                // Then, hi < orig_hi, because hi decreases *strictly* monotonically\\n                // in each loop iteration and\\n                // - either list[orig_hi] > pivot, in which case the first loop iteration\\n                //   will achieve hi < orig_hi;\\n                // - or list[orig_hi] <= pivot, in which case at least two loop iterations are\\n                //   needed:\\n                //   - lo will have to stop at least once in the interval\\n                //     [orig_lo, (orig_lo + orig_hi)/2]\\n                //   - (orig_lo + orig_hi)/2 < orig_hi\\n                return hi;\\n            }\\n        }\\n        revert();\\n    }\\n\\n    /**\\n     * @notice Makes an in-memory copy of the array passed in\\n     * @param list Reference to the array to be copied\\n     */\\n    function copy(int256[] memory list) private pure returns (int256[] memory) {\\n        int256[] memory list2 = new int256[](list.length);\\n        for (uint256 i = 0; i < list.length; i++) {\\n            list2[i] = list[i];\\n        }\\n        return list2;\\n    }\\n}\\n\",\"keccak256\":\"0x308771a3268b45b0bb5374959fc87354c6df639fb1734ba589739ec47d63af0a\",\"license\":\"MIT\"}},\"version\":1}",
+  "bytecode": "0x60806040523480156200001157600080fd5b50604051620034d7380380620034d78339810160408190526200003491620003ba565b6200003f33620000f6565b6200004e600080808762000146565b6200005983620002cf565b6002805460ff60201b191664010000000060ff851602179055600362000080828262000577565b506200009363ffffffff85164262000643565b6000805260066020527f54cdd369e4e8a8515e52ca72ec816c2101831ad1f18bf44102ed171459c9b4f980546001600160401b03929092166801000000000000000002600160401b600160801b0319909216919091179055506200066b92505050565b600080546001600160a01b038381166001600160a01b0319831681178455604051919092169283917f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e09190a35050565b6200015062000343565b60006200015c60095490565b60ff1690508363ffffffff168563ffffffff1611156200018f5760405163fd97bd0f60e01b815260040160405180910390fd5b8063ffffffff168463ffffffff161115620001bd576040516308bc6c0160e01b815260040160405180910390fd5b63ffffffff8116156200021f578263ffffffff168163ffffffff1611620001f7576040516368b58bf160e11b815260040160405180910390fd5b8463ffffffff166000036200021f57604051632f50191f60e11b815260040160405180910390fd5b60018054600160a01b600160e01b031916600160c01b63ffffffff88811691820263ffffffff60a01b191692909217600160a01b888416908102919091176001600160e01b0316600160e01b888516908102919091179094556002805463ffffffff191693871693841790556040805194855260208501939093529290917f5367d98e38d29934760624fbc12e31a1088389dedf394e2d729c2ef4441218d7910160405180910390a35050505050565b620002d962000343565b6001546001600160a01b0390811690821681146200033f57600180546001600160a01b0319166001600160a01b0384811691821790925560405190918316907fcfac5dc75b8d9a7e074162f59d9adcd33da59f0fe8dfb21580db298fc0fdad0d90600090a35b5050565b6000546001600160a01b03163314620003a25760405162461bcd60e51b815260206004820181905260248201527f4f776e61626c653a2063616c6c6572206973206e6f7420746865206f776e6572604482015260640160405180910390fd5b565b634e487b7160e01b600052604160045260246000fd5b60008060008060808587031215620003d157600080fd5b845163ffffffff81168114620003e657600080fd5b602086810151919550906001600160a01b03811681146200040657600080fd5b604087015190945060ff811681146200041e57600080fd5b60608701519093506001600160401b03808211156200043c57600080fd5b818801915088601f8301126200045157600080fd5b815181811115620004665762000466620003a4565b604051601f8201601f19908116603f01168101908382118183101715620004915762000491620003a4565b816040528281528b86848701011115620004aa57600080fd5b600093505b82841015620004ce5784840186015181850187015292850192620004af565b600086848301015280965050505050505092959194509250565b600181811c90821680620004fd57607f821691505b6020821081036200051e57634e487b7160e01b600052602260045260246000fd5b50919050565b601f8211156200057257600081815260208120601f850160051c810160208610156200054d5750805b601f850160051c820191505b818110156200056e5782815560010162000559565b5050505b505050565b81516001600160401b03811115620005935762000593620003a4565b620005ab81620005a48454620004e8565b8462000524565b602080601f831160018114620005e35760008415620005ca5750858301515b600019600386901b1c1916600185901b1785556200056e565b600085815260208120601f198616915b828110156200061457888601518255948401946001909101908401620005f3565b5085821015620006335787850151600019600388901b60f8161c191681555b5050505050600190811b01905550565b818103818111156200066557634e487b7160e01b600052601160045260246000fd5b92915050565b612e5c806200067b6000396000f3fe608060405234801561001057600080fd5b50600436106101985760003560e01c8063715018a6116100e35780639a6fc8f51161008c578063c937450011610066578063c93745001461042c578063f2fde38b14610443578063feaf968c1461045657600080fd5b80639a6fc8f5146103c75780639b74056814610411578063bf146fe61461042457600080fd5b80638b6d0965116100bd5780638b6d09651461035f5780638da5cb5b1461039357806398e5b12a146103a457600080fd5b8063715018a6146102f85780637284e4161461030057806388aa80e71461030857600080fd5b80633a5381b51161014557806358609e441161011f57806358609e44146102c9578063613d8fcc146102e057806370dea79a146102e857600080fd5b80633a5381b51461027657806340884c52146102a15780634f6c5621146102b657600080fd5b806320ed02751161017657806320ed027514610210578063313ce56714610223578063357ebb021461024a57600080fd5b80631327d3d81461019d578063181f5a77146101b2578063202ee0ed146101fd575b600080fd5b6101b06101ab366004612932565b61045e565b005b60408051808201909152600f81527f41676772656761746f722076302e31000000000000000000000000000000000060208201525b6040516101f4919061294d565b60405180910390f35b6101b061020b36600461299b565b6104dc565b6101b061021e3660046129df565b61055b565b60025461023890640100000000900460ff1681565b60405160ff90911681526020016101f4565b60015461026190600160e01b900463ffffffff1681565b60405163ffffffff90911681526020016101f4565b600154610289906001600160a01b031681565b6040516001600160a01b0390911681526020016101f4565b6102a961064a565b6040516101f49190612a24565b6101b06102c4366004612a71565b6106ac565b60015461026190600160a01b900463ffffffff1681565b600954610238565b6002546102619063ffffffff1681565b6101b06108d3565b6101e76108e7565b61031b610316366004612ac5565b610975565b60408051961515875263ffffffff90951660208701529385019290925267ffffffffffffffff908116606085015216608083015260ff1660a082015260c0016101f4565b60045463ffffffff1660009081526006602052604090206001015467ffffffffffffffff165b6040519081526020016101f4565b6000546001600160a01b0316610289565b6103ac610a61565b60405169ffffffffffffffffffff90911681526020016101f4565b6103da6103d5366004612af8565b610b44565b6040805169ffffffffffffffffffff968716815260208101959095528401929092526060830152909116608082015260a0016101f4565b6101b061041f366004612b70565b610c39565b610385604d81565b60015461026190600160c01b900463ffffffff1681565b6101b0610451366004612932565b610d4c565b6103da610ddc565b610466610e14565b6001546001600160a01b0390811690821681146104d8576001805473ffffffffffffffffffffffffffffffffffffffff19166001600160a01b0384811691821790925560405190918316907fcfac5dc75b8d9a7e074162f59d9adcd33da59f0fe8dfb21580db298fc0fdad0d90600090a35b5050565b60006104e83384610e6e565b9050805160001481906105175760405162461bcd60e51b815260040161050e919061294d565b60405180910390fd5b5061052183611120565b61052b82846111eb565b600080610537856112c0565b915091506105448561143c565b811561055457610554858261149a565b5050505050565b610563610e14565b6001600160a01b03831660009081526008602052604090205460ff161515821515146106455781156105d0576001600160a01b0383166000908152600860205260409020805464ffffffffff191683151564ffffffff0019161761010063ffffffff8416021790556105f9565b6001600160a01b0383166000908152600860205260409020805468ffffffffffffffffff191690555b60408051831515815263ffffffff831660208201526001600160a01b038516917fc3df5a754e002718f2e10804b99e6605e7c701d95cec9552c7680ca2b6f2820a910160405180910390a25b505050565b606060098054806020026020016040519081016040528092919081815260200182805480156106a257602002820191906000526020600020905b81546001600160a01b03168152600190910190602001808311610684575b5050505050905090565b6106b4610e14565b60006106bf60095490565b60ff1690508363ffffffff168563ffffffff16111561070a576040517ffd97bd0f00000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b8063ffffffff168463ffffffff161115610750576040517f08bc6c0100000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b63ffffffff8116156107e1578263ffffffff168163ffffffff16116107a1576040517fd16b17e200000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b8463ffffffff166000036107e1576040517f5ea0323e00000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b600180547fffffffff0000000000000000ffffffffffffffffffffffffffffffffffffffff16600160c01b63ffffffff8881169182027fffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffff1692909217600160a01b888416908102919091177bffffffffffffffffffffffffffffffffffffffffffffffffffffffff16600160e01b888516908102919091179094556002805463ffffffff191693871693841790556040805194855260208501939093529290917f5367d98e38d29934760624fbc12e31a1088389dedf394e2d729c2ef4441218d7910160405180910390a35050505050565b6108db610e14565b6108e56000611591565b565b600380546108f490612c12565b80601f016020809104026020016040519081016040528092919081815260200182805461092090612c12565b801561096d5780601f106109425761010080835404028352916020019161096d565b820191906000526020600020905b81548152906001019060200180831161095057829003601f168201915b505050505081565b600080808080803332146109b5576040517f8d07577c00000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b63ffffffff871615610a415763ffffffff8716600090815260066020908152604080832060079092529091206109eb8a8a6115ee565b6001600160a01b038b166000908152600560205260409020600190810154938101549201546009549199508a985092965067ffffffffffffffff9091169450600160401b90910463ffffffff1692509050610a57565b610a4a88611659565b9550955095509550955095505b9295509295509295565b3360009081526008602052604081205460ff16610aaa576040517faf9a0f5900000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b60045463ffffffff16600081815260066020526040902060010154600160401b900467ffffffffffffffff16158015610ae95750610ae7816117e8565b155b15610b20576040517f403ea3fa00000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b6000610b2d826001612c62565b9050610b3881611869565b63ffffffff1692915050565b63ffffffff808216600090815260066020908152604080832081516080810183528154815260019091015467ffffffffffffffff80821694830194909452600160401b810490931691810191909152600160801b9091049092166060830181905290918291829182918291901580610bcb575069ffffffffffffffffffff871663ffffffff105b15610c02576040517fbb25870000000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b8051602082015160408301516060909301519899919867ffffffffffffffff91821698509216955063ffffffff9091169350915050565b610c41610e14565b60005b86811015610c8d57610c7b888883818110610c6157610c61612c86565b9050602002016020810190610c769190612932565b611949565b80610c8581612c9c565b915050610c44565b50604d84610c9a60095490565b60ff16610ca79190612cb5565b10610cde576040517f25d0209c00000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b60005b84811015610d2a57610d18868683818110610cfe57610cfe612c86565b9050602002016020810190610d139190612932565b611b40565b80610d2281612c9c565b915050610ce1565b50600254610d439084908490849063ffffffff166106ac565b50505050505050565b610d54610e14565b6001600160a01b038116610dd05760405162461bcd60e51b815260206004820152602660248201527f4f776e61626c653a206e6577206f776e657220697320746865207a65726f206160448201527f6464726573730000000000000000000000000000000000000000000000000000606482015260840161050e565b610dd981611591565b50565b6000806000806000610e0360048054906101000a900463ffffffff1663ffffffff16610b44565b945094509450945094509091929394565b6000546001600160a01b031633146108e55760405162461bcd60e51b815260206004820181905260248201527f4f776e61626c653a2063616c6c6572206973206e6f7420746865206f776e6572604482015260640161050e565b6001600160a01b03821660009081526005602052604081205460045460609263ffffffff9283169290911690829003610ee0576040518060400160405280601281526020017f6e6f7420656e61626c6564206f7261636c6500000000000000000000000000008152509250505061111a565b8363ffffffff168263ffffffff161115610f33576040518060400160405280601681526020017f6e6f742079657420656e61626c6564206f7261636c65000000000000000000008152509250505061111a565b6001600160a01b03851660009081526005602052604090205463ffffffff808616640100000000909204161015610fa3576040518060400160405280601881526020017f6e6f206c6f6e67657220616c6c6f776564206f7261636c6500000000000000008152509250505061111a565b6001600160a01b03851660009081526005602052604090205463ffffffff808616600160401b9092041610611011576040518060400160405280602081526020017f63616e6e6f74207265706f7274206f6e2070726576696f757320726f756e64738152509250505061111a565b8063ffffffff168463ffffffff16141580156110435750611033816001612c62565b63ffffffff168463ffffffff1614155b801561105657506110548482611c7a565b155b1561109a576040518060400160405280601781526020017f696e76616c696420726f756e6420746f207265706f72740000000000000000008152509250505061111a565b8363ffffffff166001141580156110c157506110bf6110ba600186612cc8565b611ccf565b155b15611105576040518060400160405280601f81526020017f70726576696f757320726f756e64206e6f7420737570657273656461626c65008152509250505061111a565b60405180602001604052806000815250925050505b92915050565b61112981611d0a565b6111305750565b336000908152600560205260409020546c01000000000000000000000000900463ffffffff168015801590611184575060015461117a90600160e01b900463ffffffff1682612cb5565b8263ffffffff1611155b1561118d575050565b61119682611d36565b50336000908152600560205260409020805463ffffffff9092166c01000000000000000000000000027fffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffff909216919091179055565b63ffffffff8082166000908152600760205260409020600101541661123c576040517f575c0ddb00000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b63ffffffff811660008181526007602090815260408083208054600180820183559185528385200187905533808552600590935281842080546bffffffff00000000000000001916600160401b8702178155018690555190929185917f92e98423f8adac6e64d0608e519fd1cefb861498385c6dee70d58fc926ddc68c9190a45050565b63ffffffff808216600090815260076020526040812060018101549054919283926401000000009092041611156112fc57506000928392509050565b63ffffffff8316600090815260076020908152604080832080548251818502810185019093528083526113629383018282801561135857602002820191906000526020600020905b815481526020019060010190808311611344575b5050505050611e80565b63ffffffff8516600081815260066020908152604091829020848155600101805473ffffffffffffffffffffffff00000000000000001916600160401b4267ffffffffffffffff8116919091027fffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffff1691909117600160801b8602179091556004805467ffffffff00000000191664010000000086021790559151918252929350909183917f0559884fd3a460db3073b7fc896cc77986f16e378210ded43186175bf646fc5f910160405180910390a3600194909350915050565b63ffffffff808216600090815260076020526040902060018101549054911611610dd95763ffffffff81166000908152600760205260408120906114808282612898565b5060010180546bffffffffffffffffffffffff1916905550565b6001546001600160a01b0316806114b057505050565b60006114bd600185612cc8565b63ffffffff818116600090815260066020526040908190206001810154905491517fbeed9b51000000000000000000000000000000000000000000000000000000008152600160801b9091048316600482018190526024820183905292881660448201526064810187905292935090916001600160a01b0385169063beed9b5190620186a09060840160206040518083038160008887f193505050508015611582575060408051601f3d908101601f1916820190925261157f91810190612ce5565b60015b1561158957505b505050505050565b600080546001600160a01b0383811673ffffffffffffffffffffffffffffffffffffffff19831681178455604051919092169283917f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e09190a35050565b63ffffffff811660009081526006602052604081206001015467ffffffffffffffff161561164f5763ffffffff8083166000908152600760205260409020600101541615155b801561164857506116458383610e6e565b51155b905061111a565b6116348383611f49565b6001600160a01b03811660009081526005602052604081206004548154839283928392839283927f54cdd369e4e8a8515e52ca72ec816c2101831ad1f18bf44102ed171459c9b4f892849163ffffffff908116600160401b9092041614806116dc575060045463ffffffff90811660009081526007602052604090206001015416155b6004549091506116f19063ffffffff16611ccf565b80156116fa5750805b1561173e576004546117139063ffffffff166001612c62565b63ffffffff8116600090815260066020526040902090985092506117378a89611f49565b9850611771565b60045463ffffffff9081166000818152600660209081526040808320600790925290912060010154919a50945016151598505b61177b8a89610e6e565b511561178657600098505b6001808301548482015463ffffffff808c166000908152600760205260409020909301548c938c939267ffffffffffffffff1691600160401b9004166117cb60095490565b949f939e50919c509a5063ffffffff169850909650945050505050565b63ffffffff808216600090815260066020908152604080832060019081015460079093529083200154919267ffffffffffffffff90911691600160401b900416811580159061183d575060008163ffffffff16115b801561186157504261185563ffffffff831684612d02565b67ffffffffffffffff16105b949350505050565b61187281611d0a565b6118795750565b3360009081526008602052604090205465010000000000900463ffffffff1680158015906118d15750336000908152600860205260409020546118c790610100900463ffffffff1682612cb5565b8263ffffffff1611155b15611908576040517fc30a2a1200000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b61191182611d36565b50336000908152600860205260409020805463ffffffff909216650100000000000268ffffffff000000000019909216919091179055565b6001600160a01b03811660009081526005602052604090205463ffffffff6401000000009091048116146119a9576040517f1c22532f00000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b6004546119bd9063ffffffff166001612c62565b6001600160a01b0382166000908152600560205260408120805463ffffffff939093166401000000000267ffffffff00000000199093169290921790915560096001611a0860095490565b60ff16611a159190612d23565b81548110611a2557611a25612c86565b6000918252602080832091909101546001600160a01b0385811680855260059093526040808520600290810180549390941680875291862001805461ffff90931661ffff19938416811790915593909452815416905560098054929350909183919083908110611a9757611a97612c86565b9060005260206000200160006101000a8154816001600160a01b0302191690836001600160a01b031602179055506009805480611ad657611ad6612d36565b6000828152602081208201600019908101805473ffffffffffffffffffffffffffffffffffffffff191690559091019091556040516001600160a01b038516907f18dd09695e4fbdae8d1a5edb11221eb04564269c29a089b9753a6535c54ba92e908390a3505050565b6001600160a01b03811660009081526005602052604090205463ffffffff640100000000909104811603611ba0576040517f9c90768e00000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b611ba981611faa565b6001600160a01b038216600081815260056020526040808220805467ffffffffffffffff191663ffffffff959095169490941767ffffffff00000000178455600980546002909501805461ffff90961661ffff19909616959095179094558354600181810186559483527f6e1540171b6c0c960b71a7020d9f60077f6af931a8bbf590da0223dacf75c7af01805473ffffffffffffffffffffffffffffffffffffffff191684179055517f18dd09695e4fbdae8d1a5edb11221eb04564269c29a089b9753a6535c54ba92e9190a350565b600063ffffffff8216611c8e846001612c62565b63ffffffff16148015611cc8575063ffffffff8216600090815260066020526040902060010154600160401b900467ffffffffffffffff16155b9392505050565b63ffffffff8116600090815260066020526040812060010154600160401b900467ffffffffffffffff1615158061111a575061111a826117e8565b600454600090611d219063ffffffff166001612c62565b63ffffffff168263ffffffff16149050919050565b611d49611d44600183612cc8565b612003565b6004805463ffffffff191663ffffffff8381169182179092556040805160006080820181815260a0830184528252600154600160a01b81048616602080850191909152600160c01b90910486168385015260025490951660608301529283526007845291208151805192938493611dc392849201906128b6565b506020828101516001928301805460408087015160609097015163ffffffff908116600160401b026bffffffff0000000000000000199882166401000000000267ffffffffffffffff1994851696831696909617959095179790971693909317909155938616600081815260068452829020909301805467ffffffffffffffff42169516851790555192835233927f0109fc6f55cf40689f02fbaad7af7fe7bbac8a3d2186600afc7d3e10cac60271910160405180910390a35050565b600080825111611ed25760405162461bcd60e51b815260206004820152601660248201527f6c697374206d757374206e6f7420626520656d70747900000000000000000000604482015260640161050e565b81516000611ee1600283612d62565b9050611eee600283612d76565b600003611f3257600080611f198682611f08600188612d23565b611f13600188612d23565b876120e0565b9092509050611f2882826121d8565b9695505050505050565b611861846000611f43600186612d23565b84612274565b6001600160a01b0382166000908152600560205260408120546c01000000000000000000000000900463ffffffff168015806118615750600154611f9a90600160e01b900463ffffffff1682612cb5565b8363ffffffff1611949350505050565b60045460009063ffffffff168015801590611fed57506001600160a01b03831660009081526005602052604090205463ffffffff82811664010000000090920416145b15611ff85792915050565b611cc8816001612c62565b61200c816117e8565b6120135750565b6000612020600183612cc8565b63ffffffff8181166000908152600660209081526040808320805488861685528285209081556001918201549101805473ffffffffffffffffffffffff00000000000000001916600160801b928390049096169091027fffffffffffffffffffffffffffffffff0000000000000000ffffffffffffffff1694909417600160401b4267ffffffffffffffff160217909355600790529081209192506120c58282612898565b5060010180546bffffffffffffffffffffffff191690555050565b6000808284106120ef57600080fd5b8386111580156120ff5750848411155b61210857600080fd5b8286111580156121185750848311155b61212157600080fd5b600761212d8787612d23565b1015612149576121408787878787612319565b915091506121ce565b6000612156888888612776565b9050808411612167578095506121c8565b848110156121815761217a816001612cb5565b96506121c8565b80851115801561219057508381105b61219c5761219c612d8a565b6121a888888388612274565b92506121c0886121b9836001612cb5565b8887612274565b9150506121ce565b50612121565b9550959350505050565b600080831280156121e95750600082135b806121ff57506000831380156121ff5750600082125b1561221a5760026122108385612da0565b6116489190612dc8565b600060026122288185612e12565b612233600287612e12565b61223d9190612da0565b6122479190612dc8565b905080612255600285612dc8565b612260600287612dc8565b61226a9190612da0565b6118619190612da0565b60008184111561228357600080fd5b8282111561229057600080fd5b828410156122f55760076122a48585612d23565b10156122c35760006122b98686868687612319565b5091506118619050565b60006122d0868686612776565b90508083116122e1578093506122ef565b6122ec816001612cb5565b94505b50612290565b84848151811061230757612307612c86565b60200260200101519050949350505050565b6000808086612329876001612cb5565b6123339190612d23565b90506000886123428983612cb5565b8151811061235257612352612c86565b60200260200101519050600082600110612373576001600160ff1b03612398565b8961237f8a6001612cb5565b8151811061238f5761238f612c86565b60200260200101515b90506000836002106123b1576001600160ff1b036123d6565b8a6123bd8b6002612cb5565b815181106123cd576123cd612c86565b60200260200101515b90506000846003106123ef576001600160ff1b03612414565b8b6123fb8c6003612cb5565b8151811061240b5761240b612c86565b60200260200101515b905060008560041061242d576001600160ff1b03612452565b8c6124398d6004612cb5565b8151811061244957612449612c86565b60200260200101515b905060008660051061246b576001600160ff1b03612490565b8d6124778e6005612cb5565b8151811061248757612487612c86565b60200260200101515b90506000876006106124a9576001600160ff1b036124ce565b8e6124b58f6006612cb5565b815181106124c5576124c5612c86565b60200260200101515b9050858713156124dc579495945b838513156124e8579293925b818313156124f4579091905b84871315612500579395935b8386131561250c579294925b8083131561251657915b84861315612522579394935b8082131561252c57905b82871315612538579195915b81861315612544579094905b8085131561254e57935b8286131561255a579194915b8084131561256457925b82851315612570579193915b8184131561257c579092905b82841315612588579192915b60006125948f8e612d23565b9050806000036125a657879a5061264e565b806001036125b657869a5061264e565b806002036125c657859a5061264e565b806003036125d657849a5061264e565b806004036125e657839a5061264e565b806005036125f657829a5061264e565b8060060361260657819a5061264e565b60405162461bcd60e51b815260206004820152601060248201527f6b31206f7574206f6620626f756e647300000000000000000000000000000000604482015260640161050e565b60008f8d61265c9190612d23565b90508c8e0361267857508a99506121ce98505050505050505050565b8060000361269257509698506121ce975050505050505050565b806001036126ac57509598506121ce975050505050505050565b806002036126c657509498506121ce975050505050505050565b806003036126e057509398506121ce975050505050505050565b806004036126fa57509298506121ce975050505050505050565b8060050361271457509198506121ce975050505050505050565b8060060361272e57509098506121ce975050505050505050565b60405162461bcd60e51b815260206004820152601060248201527f6b32206f7574206f6620626f756e647300000000000000000000000000000000604482015260640161050e565b6000808460026127868587612cb5565b6127909190612d62565b815181106127a0576127a0612c86565b602002602001015190506001840393506001836127bd9190612cb5565b92505b600184019350808585815181106127d9576127d9612c86565b6020026020010151126127c0575b6127f2600184612d23565b92508085848151811061280757612807612c86565b6020026020010151136127e7578284101561288f5784838151811061282e5761282e612c86565b602002602001015185858151811061284857612848612c86565b602002602001015186868151811061286257612862612c86565b6020026020010187868151811061287b5761287b612c86565b6020908102919091010191909152526127c0565b50909392505050565b5080546000825590600052602060002090810190610dd99190612901565b8280548282559060005260206000209081019282156128f1579160200282015b828111156128f15782518255916020019190600101906128d6565b506128fd929150612901565b5090565b5b808211156128fd5760008155600101612902565b80356001600160a01b038116811461292d57600080fd5b919050565b60006020828403121561294457600080fd5b611cc882612916565b600060208083528351808285015260005b8181101561297a5785810183015185820160400152820161295e565b506000604082860101526040601f19601f8301168501019250505092915050565b600080604083850312156129ae57600080fd5b50508035926020909101359150565b8015158114610dd957600080fd5b803563ffffffff8116811461292d57600080fd5b6000806000606084860312156129f457600080fd5b6129fd84612916565b92506020840135612a0d816129bd565b9150612a1b604085016129cb565b90509250925092565b6020808252825182820181905260009190848201906040850190845b81811015612a655783516001600160a01b031683529284019291840191600101612a40565b50909695505050505050565b60008060008060808587031215612a8757600080fd5b612a90856129cb565b9350612a9e602086016129cb565b9250612aac604086016129cb565b9150612aba606086016129cb565b905092959194509250565b60008060408385031215612ad857600080fd5b612ae183612916565b9150612aef602084016129cb565b90509250929050565b600060208284031215612b0a57600080fd5b813569ffffffffffffffffffff81168114611cc857600080fd5b60008083601f840112612b3657600080fd5b50813567ffffffffffffffff811115612b4e57600080fd5b6020830191508360208260051b8501011115612b6957600080fd5b9250929050565b600080600080600080600060a0888a031215612b8b57600080fd5b873567ffffffffffffffff80821115612ba357600080fd5b612baf8b838c01612b24565b909950975060208a0135915080821115612bc857600080fd5b50612bd58a828b01612b24565b9096509450612be89050604089016129cb565b9250612bf6606089016129cb565b9150612c04608089016129cb565b905092959891949750929550565b600181811c90821680612c2657607f821691505b602082108103612c4657634e487b7160e01b600052602260045260246000fd5b50919050565b634e487b7160e01b600052601160045260246000fd5b63ffffffff818116838216019080821115612c7f57612c7f612c4c565b5092915050565b634e487b7160e01b600052603260045260246000fd5b600060018201612cae57612cae612c4c565b5060010190565b8082018082111561111a5761111a612c4c565b63ffffffff828116828216039080821115612c7f57612c7f612c4c565b600060208284031215612cf757600080fd5b8151611cc8816129bd565b67ffffffffffffffff818116838216019080821115612c7f57612c7f612c4c565b8181038181111561111a5761111a612c4c565b634e487b7160e01b600052603160045260246000fd5b634e487b7160e01b600052601260045260246000fd5b600082612d7157612d71612d4c565b500490565b600082612d8557612d85612d4c565b500690565b634e487b7160e01b600052600160045260246000fd5b8082018281126000831280158216821582161715612dc057612dc0612c4c565b505092915050565b600082612dd757612dd7612d4c565b7f8000000000000000000000000000000000000000000000000000000000000000821460001984141615612e0d57612e0d612c4c565b500590565b600082612e2157612e21612d4c565b50079056fea26469706673582212202b41e7f9a2124bd8cfca58ae7079ba861956810807b11bb77ec6ec9009e0a8dc64736f6c63430008100033",
+  "deployedBytecode": "0x608060405234801561001057600080fd5b50600436106101985760003560e01c8063715018a6116100e35780639a6fc8f51161008c578063c937450011610066578063c93745001461042c578063f2fde38b14610443578063feaf968c1461045657600080fd5b80639a6fc8f5146103c75780639b74056814610411578063bf146fe61461042457600080fd5b80638b6d0965116100bd5780638b6d09651461035f5780638da5cb5b1461039357806398e5b12a146103a457600080fd5b8063715018a6146102f85780637284e4161461030057806388aa80e71461030857600080fd5b80633a5381b51161014557806358609e441161011f57806358609e44146102c9578063613d8fcc146102e057806370dea79a146102e857600080fd5b80633a5381b51461027657806340884c52146102a15780634f6c5621146102b657600080fd5b806320ed02751161017657806320ed027514610210578063313ce56714610223578063357ebb021461024a57600080fd5b80631327d3d81461019d578063181f5a77146101b2578063202ee0ed146101fd575b600080fd5b6101b06101ab366004612932565b61045e565b005b60408051808201909152600f81527f41676772656761746f722076302e31000000000000000000000000000000000060208201525b6040516101f4919061294d565b60405180910390f35b6101b061020b36600461299b565b6104dc565b6101b061021e3660046129df565b61055b565b60025461023890640100000000900460ff1681565b60405160ff90911681526020016101f4565b60015461026190600160e01b900463ffffffff1681565b60405163ffffffff90911681526020016101f4565b600154610289906001600160a01b031681565b6040516001600160a01b0390911681526020016101f4565b6102a961064a565b6040516101f49190612a24565b6101b06102c4366004612a71565b6106ac565b60015461026190600160a01b900463ffffffff1681565b600954610238565b6002546102619063ffffffff1681565b6101b06108d3565b6101e76108e7565b61031b610316366004612ac5565b610975565b60408051961515875263ffffffff90951660208701529385019290925267ffffffffffffffff908116606085015216608083015260ff1660a082015260c0016101f4565b60045463ffffffff1660009081526006602052604090206001015467ffffffffffffffff165b6040519081526020016101f4565b6000546001600160a01b0316610289565b6103ac610a61565b60405169ffffffffffffffffffff90911681526020016101f4565b6103da6103d5366004612af8565b610b44565b6040805169ffffffffffffffffffff968716815260208101959095528401929092526060830152909116608082015260a0016101f4565b6101b061041f366004612b70565b610c39565b610385604d81565b60015461026190600160c01b900463ffffffff1681565b6101b0610451366004612932565b610d4c565b6103da610ddc565b610466610e14565b6001546001600160a01b0390811690821681146104d8576001805473ffffffffffffffffffffffffffffffffffffffff19166001600160a01b0384811691821790925560405190918316907fcfac5dc75b8d9a7e074162f59d9adcd33da59f0fe8dfb21580db298fc0fdad0d90600090a35b5050565b60006104e83384610e6e565b9050805160001481906105175760405162461bcd60e51b815260040161050e919061294d565b60405180910390fd5b5061052183611120565b61052b82846111eb565b600080610537856112c0565b915091506105448561143c565b811561055457610554858261149a565b5050505050565b610563610e14565b6001600160a01b03831660009081526008602052604090205460ff161515821515146106455781156105d0576001600160a01b0383166000908152600860205260409020805464ffffffffff191683151564ffffffff0019161761010063ffffffff8416021790556105f9565b6001600160a01b0383166000908152600860205260409020805468ffffffffffffffffff191690555b60408051831515815263ffffffff831660208201526001600160a01b038516917fc3df5a754e002718f2e10804b99e6605e7c701d95cec9552c7680ca2b6f2820a910160405180910390a25b505050565b606060098054806020026020016040519081016040528092919081815260200182805480156106a257602002820191906000526020600020905b81546001600160a01b03168152600190910190602001808311610684575b5050505050905090565b6106b4610e14565b60006106bf60095490565b60ff1690508363ffffffff168563ffffffff16111561070a576040517ffd97bd0f00000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b8063ffffffff168463ffffffff161115610750576040517f08bc6c0100000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b63ffffffff8116156107e1578263ffffffff168163ffffffff16116107a1576040517fd16b17e200000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b8463ffffffff166000036107e1576040517f5ea0323e00000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b600180547fffffffff0000000000000000ffffffffffffffffffffffffffffffffffffffff16600160c01b63ffffffff8881169182027fffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffff1692909217600160a01b888416908102919091177bffffffffffffffffffffffffffffffffffffffffffffffffffffffff16600160e01b888516908102919091179094556002805463ffffffff191693871693841790556040805194855260208501939093529290917f5367d98e38d29934760624fbc12e31a1088389dedf394e2d729c2ef4441218d7910160405180910390a35050505050565b6108db610e14565b6108e56000611591565b565b600380546108f490612c12565b80601f016020809104026020016040519081016040528092919081815260200182805461092090612c12565b801561096d5780601f106109425761010080835404028352916020019161096d565b820191906000526020600020905b81548152906001019060200180831161095057829003601f168201915b505050505081565b600080808080803332146109b5576040517f8d07577c00000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b63ffffffff871615610a415763ffffffff8716600090815260066020908152604080832060079092529091206109eb8a8a6115ee565b6001600160a01b038b166000908152600560205260409020600190810154938101549201546009549199508a985092965067ffffffffffffffff9091169450600160401b90910463ffffffff1692509050610a57565b610a4a88611659565b9550955095509550955095505b9295509295509295565b3360009081526008602052604081205460ff16610aaa576040517faf9a0f5900000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b60045463ffffffff16600081815260066020526040902060010154600160401b900467ffffffffffffffff16158015610ae95750610ae7816117e8565b155b15610b20576040517f403ea3fa00000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b6000610b2d826001612c62565b9050610b3881611869565b63ffffffff1692915050565b63ffffffff808216600090815260066020908152604080832081516080810183528154815260019091015467ffffffffffffffff80821694830194909452600160401b810490931691810191909152600160801b9091049092166060830181905290918291829182918291901580610bcb575069ffffffffffffffffffff871663ffffffff105b15610c02576040517fbb25870000000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b8051602082015160408301516060909301519899919867ffffffffffffffff91821698509216955063ffffffff9091169350915050565b610c41610e14565b60005b86811015610c8d57610c7b888883818110610c6157610c61612c86565b9050602002016020810190610c769190612932565b611949565b80610c8581612c9c565b915050610c44565b50604d84610c9a60095490565b60ff16610ca79190612cb5565b10610cde576040517f25d0209c00000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b60005b84811015610d2a57610d18868683818110610cfe57610cfe612c86565b9050602002016020810190610d139190612932565b611b40565b80610d2281612c9c565b915050610ce1565b50600254610d439084908490849063ffffffff166106ac565b50505050505050565b610d54610e14565b6001600160a01b038116610dd05760405162461bcd60e51b815260206004820152602660248201527f4f776e61626c653a206e6577206f776e657220697320746865207a65726f206160448201527f6464726573730000000000000000000000000000000000000000000000000000606482015260840161050e565b610dd981611591565b50565b6000806000806000610e0360048054906101000a900463ffffffff1663ffffffff16610b44565b945094509450945094509091929394565b6000546001600160a01b031633146108e55760405162461bcd60e51b815260206004820181905260248201527f4f776e61626c653a2063616c6c6572206973206e6f7420746865206f776e6572604482015260640161050e565b6001600160a01b03821660009081526005602052604081205460045460609263ffffffff9283169290911690829003610ee0576040518060400160405280601281526020017f6e6f7420656e61626c6564206f7261636c6500000000000000000000000000008152509250505061111a565b8363ffffffff168263ffffffff161115610f33576040518060400160405280601681526020017f6e6f742079657420656e61626c6564206f7261636c65000000000000000000008152509250505061111a565b6001600160a01b03851660009081526005602052604090205463ffffffff808616640100000000909204161015610fa3576040518060400160405280601881526020017f6e6f206c6f6e67657220616c6c6f776564206f7261636c6500000000000000008152509250505061111a565b6001600160a01b03851660009081526005602052604090205463ffffffff808616600160401b9092041610611011576040518060400160405280602081526020017f63616e6e6f74207265706f7274206f6e2070726576696f757320726f756e64738152509250505061111a565b8063ffffffff168463ffffffff16141580156110435750611033816001612c62565b63ffffffff168463ffffffff1614155b801561105657506110548482611c7a565b155b1561109a576040518060400160405280601781526020017f696e76616c696420726f756e6420746f207265706f72740000000000000000008152509250505061111a565b8363ffffffff166001141580156110c157506110bf6110ba600186612cc8565b611ccf565b155b15611105576040518060400160405280601f81526020017f70726576696f757320726f756e64206e6f7420737570657273656461626c65008152509250505061111a565b60405180602001604052806000815250925050505b92915050565b61112981611d0a565b6111305750565b336000908152600560205260409020546c01000000000000000000000000900463ffffffff168015801590611184575060015461117a90600160e01b900463ffffffff1682612cb5565b8263ffffffff1611155b1561118d575050565b61119682611d36565b50336000908152600560205260409020805463ffffffff9092166c01000000000000000000000000027fffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffff909216919091179055565b63ffffffff8082166000908152600760205260409020600101541661123c576040517f575c0ddb00000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b63ffffffff811660008181526007602090815260408083208054600180820183559185528385200187905533808552600590935281842080546bffffffff00000000000000001916600160401b8702178155018690555190929185917f92e98423f8adac6e64d0608e519fd1cefb861498385c6dee70d58fc926ddc68c9190a45050565b63ffffffff808216600090815260076020526040812060018101549054919283926401000000009092041611156112fc57506000928392509050565b63ffffffff8316600090815260076020908152604080832080548251818502810185019093528083526113629383018282801561135857602002820191906000526020600020905b815481526020019060010190808311611344575b5050505050611e80565b63ffffffff8516600081815260066020908152604091829020848155600101805473ffffffffffffffffffffffff00000000000000001916600160401b4267ffffffffffffffff8116919091027fffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffff1691909117600160801b8602179091556004805467ffffffff00000000191664010000000086021790559151918252929350909183917f0559884fd3a460db3073b7fc896cc77986f16e378210ded43186175bf646fc5f910160405180910390a3600194909350915050565b63ffffffff808216600090815260076020526040902060018101549054911611610dd95763ffffffff81166000908152600760205260408120906114808282612898565b5060010180546bffffffffffffffffffffffff1916905550565b6001546001600160a01b0316806114b057505050565b60006114bd600185612cc8565b63ffffffff818116600090815260066020526040908190206001810154905491517fbeed9b51000000000000000000000000000000000000000000000000000000008152600160801b9091048316600482018190526024820183905292881660448201526064810187905292935090916001600160a01b0385169063beed9b5190620186a09060840160206040518083038160008887f193505050508015611582575060408051601f3d908101601f1916820190925261157f91810190612ce5565b60015b1561158957505b505050505050565b600080546001600160a01b0383811673ffffffffffffffffffffffffffffffffffffffff19831681178455604051919092169283917f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e09190a35050565b63ffffffff811660009081526006602052604081206001015467ffffffffffffffff161561164f5763ffffffff8083166000908152600760205260409020600101541615155b801561164857506116458383610e6e565b51155b905061111a565b6116348383611f49565b6001600160a01b03811660009081526005602052604081206004548154839283928392839283927f54cdd369e4e8a8515e52ca72ec816c2101831ad1f18bf44102ed171459c9b4f892849163ffffffff908116600160401b9092041614806116dc575060045463ffffffff90811660009081526007602052604090206001015416155b6004549091506116f19063ffffffff16611ccf565b80156116fa5750805b1561173e576004546117139063ffffffff166001612c62565b63ffffffff8116600090815260066020526040902090985092506117378a89611f49565b9850611771565b60045463ffffffff9081166000818152600660209081526040808320600790925290912060010154919a50945016151598505b61177b8a89610e6e565b511561178657600098505b6001808301548482015463ffffffff808c166000908152600760205260409020909301548c938c939267ffffffffffffffff1691600160401b9004166117cb60095490565b949f939e50919c509a5063ffffffff169850909650945050505050565b63ffffffff808216600090815260066020908152604080832060019081015460079093529083200154919267ffffffffffffffff90911691600160401b900416811580159061183d575060008163ffffffff16115b801561186157504261185563ffffffff831684612d02565b67ffffffffffffffff16105b949350505050565b61187281611d0a565b6118795750565b3360009081526008602052604090205465010000000000900463ffffffff1680158015906118d15750336000908152600860205260409020546118c790610100900463ffffffff1682612cb5565b8263ffffffff1611155b15611908576040517fc30a2a1200000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b61191182611d36565b50336000908152600860205260409020805463ffffffff909216650100000000000268ffffffff000000000019909216919091179055565b6001600160a01b03811660009081526005602052604090205463ffffffff6401000000009091048116146119a9576040517f1c22532f00000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b6004546119bd9063ffffffff166001612c62565b6001600160a01b0382166000908152600560205260408120805463ffffffff939093166401000000000267ffffffff00000000199093169290921790915560096001611a0860095490565b60ff16611a159190612d23565b81548110611a2557611a25612c86565b6000918252602080832091909101546001600160a01b0385811680855260059093526040808520600290810180549390941680875291862001805461ffff90931661ffff19938416811790915593909452815416905560098054929350909183919083908110611a9757611a97612c86565b9060005260206000200160006101000a8154816001600160a01b0302191690836001600160a01b031602179055506009805480611ad657611ad6612d36565b6000828152602081208201600019908101805473ffffffffffffffffffffffffffffffffffffffff191690559091019091556040516001600160a01b038516907f18dd09695e4fbdae8d1a5edb11221eb04564269c29a089b9753a6535c54ba92e908390a3505050565b6001600160a01b03811660009081526005602052604090205463ffffffff640100000000909104811603611ba0576040517f9c90768e00000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b611ba981611faa565b6001600160a01b038216600081815260056020526040808220805467ffffffffffffffff191663ffffffff959095169490941767ffffffff00000000178455600980546002909501805461ffff90961661ffff19909616959095179094558354600181810186559483527f6e1540171b6c0c960b71a7020d9f60077f6af931a8bbf590da0223dacf75c7af01805473ffffffffffffffffffffffffffffffffffffffff191684179055517f18dd09695e4fbdae8d1a5edb11221eb04564269c29a089b9753a6535c54ba92e9190a350565b600063ffffffff8216611c8e846001612c62565b63ffffffff16148015611cc8575063ffffffff8216600090815260066020526040902060010154600160401b900467ffffffffffffffff16155b9392505050565b63ffffffff8116600090815260066020526040812060010154600160401b900467ffffffffffffffff1615158061111a575061111a826117e8565b600454600090611d219063ffffffff166001612c62565b63ffffffff168263ffffffff16149050919050565b611d49611d44600183612cc8565b612003565b6004805463ffffffff191663ffffffff8381169182179092556040805160006080820181815260a0830184528252600154600160a01b81048616602080850191909152600160c01b90910486168385015260025490951660608301529283526007845291208151805192938493611dc392849201906128b6565b506020828101516001928301805460408087015160609097015163ffffffff908116600160401b026bffffffff0000000000000000199882166401000000000267ffffffffffffffff1994851696831696909617959095179790971693909317909155938616600081815260068452829020909301805467ffffffffffffffff42169516851790555192835233927f0109fc6f55cf40689f02fbaad7af7fe7bbac8a3d2186600afc7d3e10cac60271910160405180910390a35050565b600080825111611ed25760405162461bcd60e51b815260206004820152601660248201527f6c697374206d757374206e6f7420626520656d70747900000000000000000000604482015260640161050e565b81516000611ee1600283612d62565b9050611eee600283612d76565b600003611f3257600080611f198682611f08600188612d23565b611f13600188612d23565b876120e0565b9092509050611f2882826121d8565b9695505050505050565b611861846000611f43600186612d23565b84612274565b6001600160a01b0382166000908152600560205260408120546c01000000000000000000000000900463ffffffff168015806118615750600154611f9a90600160e01b900463ffffffff1682612cb5565b8363ffffffff1611949350505050565b60045460009063ffffffff168015801590611fed57506001600160a01b03831660009081526005602052604090205463ffffffff82811664010000000090920416145b15611ff85792915050565b611cc8816001612c62565b61200c816117e8565b6120135750565b6000612020600183612cc8565b63ffffffff8181166000908152600660209081526040808320805488861685528285209081556001918201549101805473ffffffffffffffffffffffff00000000000000001916600160801b928390049096169091027fffffffffffffffffffffffffffffffff0000000000000000ffffffffffffffff1694909417600160401b4267ffffffffffffffff160217909355600790529081209192506120c58282612898565b5060010180546bffffffffffffffffffffffff191690555050565b6000808284106120ef57600080fd5b8386111580156120ff5750848411155b61210857600080fd5b8286111580156121185750848311155b61212157600080fd5b600761212d8787612d23565b1015612149576121408787878787612319565b915091506121ce565b6000612156888888612776565b9050808411612167578095506121c8565b848110156121815761217a816001612cb5565b96506121c8565b80851115801561219057508381105b61219c5761219c612d8a565b6121a888888388612274565b92506121c0886121b9836001612cb5565b8887612274565b9150506121ce565b50612121565b9550959350505050565b600080831280156121e95750600082135b806121ff57506000831380156121ff5750600082125b1561221a5760026122108385612da0565b6116489190612dc8565b600060026122288185612e12565b612233600287612e12565b61223d9190612da0565b6122479190612dc8565b905080612255600285612dc8565b612260600287612dc8565b61226a9190612da0565b6118619190612da0565b60008184111561228357600080fd5b8282111561229057600080fd5b828410156122f55760076122a48585612d23565b10156122c35760006122b98686868687612319565b5091506118619050565b60006122d0868686612776565b90508083116122e1578093506122ef565b6122ec816001612cb5565b94505b50612290565b84848151811061230757612307612c86565b60200260200101519050949350505050565b6000808086612329876001612cb5565b6123339190612d23565b90506000886123428983612cb5565b8151811061235257612352612c86565b60200260200101519050600082600110612373576001600160ff1b03612398565b8961237f8a6001612cb5565b8151811061238f5761238f612c86565b60200260200101515b90506000836002106123b1576001600160ff1b036123d6565b8a6123bd8b6002612cb5565b815181106123cd576123cd612c86565b60200260200101515b90506000846003106123ef576001600160ff1b03612414565b8b6123fb8c6003612cb5565b8151811061240b5761240b612c86565b60200260200101515b905060008560041061242d576001600160ff1b03612452565b8c6124398d6004612cb5565b8151811061244957612449612c86565b60200260200101515b905060008660051061246b576001600160ff1b03612490565b8d6124778e6005612cb5565b8151811061248757612487612c86565b60200260200101515b90506000876006106124a9576001600160ff1b036124ce565b8e6124b58f6006612cb5565b815181106124c5576124c5612c86565b60200260200101515b9050858713156124dc579495945b838513156124e8579293925b818313156124f4579091905b84871315612500579395935b8386131561250c579294925b8083131561251657915b84861315612522579394935b8082131561252c57905b82871315612538579195915b81861315612544579094905b8085131561254e57935b8286131561255a579194915b8084131561256457925b82851315612570579193915b8184131561257c579092905b82841315612588579192915b60006125948f8e612d23565b9050806000036125a657879a5061264e565b806001036125b657869a5061264e565b806002036125c657859a5061264e565b806003036125d657849a5061264e565b806004036125e657839a5061264e565b806005036125f657829a5061264e565b8060060361260657819a5061264e565b60405162461bcd60e51b815260206004820152601060248201527f6b31206f7574206f6620626f756e647300000000000000000000000000000000604482015260640161050e565b60008f8d61265c9190612d23565b90508c8e0361267857508a99506121ce98505050505050505050565b8060000361269257509698506121ce975050505050505050565b806001036126ac57509598506121ce975050505050505050565b806002036126c657509498506121ce975050505050505050565b806003036126e057509398506121ce975050505050505050565b806004036126fa57509298506121ce975050505050505050565b8060050361271457509198506121ce975050505050505050565b8060060361272e57509098506121ce975050505050505050565b60405162461bcd60e51b815260206004820152601060248201527f6b32206f7574206f6620626f756e647300000000000000000000000000000000604482015260640161050e565b6000808460026127868587612cb5565b6127909190612d62565b815181106127a0576127a0612c86565b602002602001015190506001840393506001836127bd9190612cb5565b92505b600184019350808585815181106127d9576127d9612c86565b6020026020010151126127c0575b6127f2600184612d23565b92508085848151811061280757612807612c86565b6020026020010151136127e7578284101561288f5784838151811061282e5761282e612c86565b602002602001015185858151811061284857612848612c86565b602002602001015186868151811061286257612862612c86565b6020026020010187868151811061287b5761287b612c86565b6020908102919091010191909152526127c0565b50909392505050565b5080546000825590600052602060002090810190610dd99190612901565b8280548282559060005260206000209081019282156128f1579160200282015b828111156128f15782518255916020019190600101906128d6565b506128fd929150612901565b5090565b5b808211156128fd5760008155600101612902565b80356001600160a01b038116811461292d57600080fd5b919050565b60006020828403121561294457600080fd5b611cc882612916565b600060208083528351808285015260005b8181101561297a5785810183015185820160400152820161295e565b506000604082860101526040601f19601f8301168501019250505092915050565b600080604083850312156129ae57600080fd5b50508035926020909101359150565b8015158114610dd957600080fd5b803563ffffffff8116811461292d57600080fd5b6000806000606084860312156129f457600080fd5b6129fd84612916565b92506020840135612a0d816129bd565b9150612a1b604085016129cb565b90509250925092565b6020808252825182820181905260009190848201906040850190845b81811015612a655783516001600160a01b031683529284019291840191600101612a40565b50909695505050505050565b60008060008060808587031215612a8757600080fd5b612a90856129cb565b9350612a9e602086016129cb565b9250612aac604086016129cb565b9150612aba606086016129cb565b905092959194509250565b60008060408385031215612ad857600080fd5b612ae183612916565b9150612aef602084016129cb565b90509250929050565b600060208284031215612b0a57600080fd5b813569ffffffffffffffffffff81168114611cc857600080fd5b60008083601f840112612b3657600080fd5b50813567ffffffffffffffff811115612b4e57600080fd5b6020830191508360208260051b8501011115612b6957600080fd5b9250929050565b600080600080600080600060a0888a031215612b8b57600080fd5b873567ffffffffffffffff80821115612ba357600080fd5b612baf8b838c01612b24565b909950975060208a0135915080821115612bc857600080fd5b50612bd58a828b01612b24565b9096509450612be89050604089016129cb565b9250612bf6606089016129cb565b9150612c04608089016129cb565b905092959891949750929550565b600181811c90821680612c2657607f821691505b602082108103612c4657634e487b7160e01b600052602260045260246000fd5b50919050565b634e487b7160e01b600052601160045260246000fd5b63ffffffff818116838216019080821115612c7f57612c7f612c4c565b5092915050565b634e487b7160e01b600052603260045260246000fd5b600060018201612cae57612cae612c4c565b5060010190565b8082018082111561111a5761111a612c4c565b63ffffffff828116828216039080821115612c7f57612c7f612c4c565b600060208284031215612cf757600080fd5b8151611cc8816129bd565b67ffffffffffffffff818116838216019080821115612c7f57612c7f612c4c565b8181038181111561111a5761111a612c4c565b634e487b7160e01b600052603160045260246000fd5b634e487b7160e01b600052601260045260246000fd5b600082612d7157612d71612d4c565b500490565b600082612d8557612d85612d4c565b500690565b634e487b7160e01b600052600160045260246000fd5b8082018281126000831280158216821582161715612dc057612dc0612c4c565b505092915050565b600082612dd757612dd7612d4c565b7f8000000000000000000000000000000000000000000000000000000000000000821460001984141615612e0d57612e0d612c4c565b500590565b600082612e2157612e21612d4c565b50079056fea26469706673582212202b41e7f9a2124bd8cfca58ae7079ba861956810807b11bb77ec6ec9009e0a8dc64736f6c63430008100033",
+  "devdoc": {
+    "kind": "dev",
+    "methods": {
+      "changeOracles(address[],address[],uint32,uint32,uint32)": {
+        "params": {
+          "_added": "is the list of addresses for the new Oracles being added",
+          "_maxSubmissionCount": "is the new maximum submission count for each round",
+          "_minSubmissionCount": "is the new minimum submission count for each round",
+          "_removed": "is the list of addresses for the new Oracles being removed",
+          "_restartDelay": "is the number of rounds an Oracle has to wait before they can initiate a round"
+        }
+      },
+      "constructor": {
+        "params": {
+          "_decimals": "represents the number of decimals to offset the answer by",
+          "_description": "a short description of what is being reported",
+          "_timeout": "is the number of seconds after the previous round that are allowed to lapse before allowing an oracle to skip an unfinished round",
+          "_validator": "is an optional contract address for validating external validation of answers"
+        }
+      },
+      "getRoundData(uint80)": {
+        "details": "Note that for in-progress rounds (i.e. rounds that haven't yet received maxSubmissions) answer and updatedAt may change between queries.",
+        "params": {
+          "_roundId": "the round ID to retrieve the round data for"
+        },
+        "returns": {
+          "answer": "is the answer for the given round",
+          "answeredInRound": "is the round ID of the round in which the answer was computed. answeredInRound may be smaller than roundId when the round timed out. answeredInRound is equal to roundId when the round didn't time out and was completed regularly.",
+          "roundId": "is the round ID for which data was retrieved",
+          "startedAt": "is the timestamp when the round was started. This is 0 if the round hasn't been started yet.",
+          "updatedAt": "is the timestamp when the round last was updated (i.e. answer was last computed)"
+        }
+      },
+      "latestRoundData()": {
+        "details": "Note that for in-progress rounds (i.e. rounds that haven't yet received maxSubmissions) answer and updatedAt may change between queries.",
+        "returns": {
+          "answer": "is the answer for the given round",
+          "answeredInRound": "is the round ID of the round in which the answer was computed. answeredInRound may be smaller than roundId when the round timed out. answeredInRound is equal to roundId when the round didn't time out and was completed regularly.",
+          "roundId": "is the round ID for which data was retrieved",
+          "startedAt": "is the timestamp when the round was started. This is 0 if the round hasn't been started yet.",
+          "updatedAt": "is the timestamp when the round last was updated (i.e. answer was last computed)"
+        }
+      },
+      "oracleRoundState(address,uint32)": {
+        "params": {
+          "_oracle": "the address to look up information for."
+        }
+      },
+      "owner()": {
+        "details": "Returns the address of the current owner."
+      },
+      "renounceOwnership()": {
+        "details": "Leaves the contract without owner. It will not be possible to call `onlyOwner` functions. Can only be called by the current owner. NOTE: Renouncing ownership will leave the contract without an owner, thereby disabling any functionality that is only available to the owner."
+      },
+      "setRequesterPermissions(address,bool,uint32)": {
+        "params": {
+          "_authorized": "is a boolean specifying whether they can start new rounds or not",
+          "_delay": "is the number of rounds the requester must wait before starting another round",
+          "_requester": "is the address to set permissions for"
+        }
+      },
+      "setValidator(address)": {
+        "params": {
+          "_newValidator": "designates the address of the new validation contract."
+        }
+      },
+      "submit(uint256,int256)": {
+        "params": {
+          "_roundId": "is the ID of the round this submission pertains to",
+          "_submission": "is the updated data that the oracle is submitting"
+        }
+      },
+      "transferOwnership(address)": {
+        "details": "Transfers ownership of the contract to a new account (`newOwner`). Can only be called by the current owner."
+      },
+      "typeAndVersion()": {
+        "returns": {
+          "_0": "Type and version string"
+        }
+      },
+      "updateFutureRounds(uint32,uint32,uint32,uint32)": {
+        "params": {
+          "_maxSubmissionCount": "is the new maximum submission count for each round",
+          "_minSubmissionCount": "is the new minimum submission count for each round",
+          "_restartDelay": "is the number of rounds an Oracle has to wait before they can initiate a round"
+        }
+      }
+    },
+    "title": "Orakl Network Aggregator",
+    "version": 1
+  },
+  "userdoc": {
+    "kind": "user",
+    "methods": {
+      "changeOracles(address[],address[],uint32,uint32,uint32)": {
+        "notice": "called by the owner to remove and add new oracles as well as update the round related parameters that pertain to total oracle count"
+      },
+      "constructor": {
+        "notice": "set up the aggregator with initial configuration"
+      },
+      "getOracles()": {
+        "notice": "returns an array of addresses containing the oracles on contract"
+      },
+      "getRoundData(uint80)": {
+        "notice": "get data about a round. Consumers are encouraged to check that they're receiving fresh data by inspecting the updatedAt and answeredInRound return values."
+      },
+      "latestRoundData()": {
+        "notice": "get data about the latest round. Consumers are encouraged to check that they're receiving fresh data by inspecting the updatedAt and answeredInRound return values. Consumers are encouraged to check that they're receiving fresh data by inspecting the updatedAt and answeredInRound return values."
+      },
+      "oracleCount()": {
+        "notice": "returns the number of oracles"
+      },
+      "oracleRoundState(address,uint32)": {
+        "notice": "a method to provide all current info oracles need. Intended only only to be callable by oracles. Not for use by contracts to read state."
+      },
+      "requestNewRound()": {
+        "notice": "allows non-oracles to request a new round"
+      },
+      "setRequesterPermissions(address,bool,uint32)": {
+        "notice": "allows the owner to specify new non-oracles to start new rounds"
+      },
+      "setValidator(address)": {
+        "notice": "method to update the address which does external data validation."
+      },
+      "submit(uint256,int256)": {
+        "notice": "called by oracles when they have witnessed a need to update"
+      },
+      "typeAndVersion()": {
+        "notice": "The type and version of this contract"
+      },
+      "updateFutureRounds(uint32,uint32,uint32,uint32)": {
+        "notice": "update the round and payment related parameters for subsequent rounds"
+      }
+    },
+    "notice": "Handles aggregating data pushed in from off-chain. Oracles' submissions are gathered in rounds, with each round aggregating the submissions for each oracle into a single answer. The latest aggregated answer is exposed as well as historical answers and their updated at timestamp.",
+    "version": 1
+  },
+  "storageLayout": {
+    "storage": [
+      {
+        "astId": 7,
+        "contract": "src/Aggregator.sol:Aggregator",
+        "label": "_owner",
+        "offset": 0,
+        "slot": "0",
+        "type": "t_address"
+      },
+      {
+        "astId": 952,
+        "contract": "src/Aggregator.sol:Aggregator",
+        "label": "validator",
+        "offset": 0,
+        "slot": "1",
+        "type": "t_contract(IAggregatorValidator)13331"
+      },
+      {
+        "astId": 954,
+        "contract": "src/Aggregator.sol:Aggregator",
+        "label": "maxSubmissionCount",
+        "offset": 20,
+        "slot": "1",
+        "type": "t_uint32"
+      },
+      {
+        "astId": 956,
+        "contract": "src/Aggregator.sol:Aggregator",
+        "label": "minSubmissionCount",
+        "offset": 24,
+        "slot": "1",
+        "type": "t_uint32"
+      },
+      {
+        "astId": 958,
+        "contract": "src/Aggregator.sol:Aggregator",
+        "label": "restartDelay",
+        "offset": 28,
+        "slot": "1",
+        "type": "t_uint32"
+      },
+      {
+        "astId": 960,
+        "contract": "src/Aggregator.sol:Aggregator",
+        "label": "timeout",
+        "offset": 0,
+        "slot": "2",
+        "type": "t_uint32"
+      },
+      {
+        "astId": 963,
+        "contract": "src/Aggregator.sol:Aggregator",
+        "label": "decimals",
+        "offset": 4,
+        "slot": "2",
+        "type": "t_uint8"
+      },
+      {
+        "astId": 966,
+        "contract": "src/Aggregator.sol:Aggregator",
+        "label": "description",
+        "offset": 0,
+        "slot": "3",
+        "type": "t_string_storage"
+      },
+      {
+        "astId": 981,
+        "contract": "src/Aggregator.sol:Aggregator",
+        "label": "reportingRoundId",
+        "offset": 0,
+        "slot": "4",
+        "type": "t_uint32"
+      },
+      {
+        "astId": 983,
+        "contract": "src/Aggregator.sol:Aggregator",
+        "label": "latestRoundId",
+        "offset": 4,
+        "slot": "4",
+        "type": "t_uint32"
+      },
+      {
+        "astId": 988,
+        "contract": "src/Aggregator.sol:Aggregator",
+        "label": "oracles",
+        "offset": 0,
+        "slot": "5",
+        "type": "t_mapping(t_address,t_struct(OracleStatus)942_storage)"
+      },
+      {
+        "astId": 993,
+        "contract": "src/Aggregator.sol:Aggregator",
+        "label": "rounds",
+        "offset": 0,
+        "slot": "6",
+        "type": "t_mapping(t_uint32,t_struct(Round)919_storage)"
+      },
+      {
+        "astId": 998,
+        "contract": "src/Aggregator.sol:Aggregator",
+        "label": "details",
+        "offset": 0,
+        "slot": "7",
+        "type": "t_mapping(t_uint32,t_struct(RoundDetails)929_storage)"
+      },
+      {
+        "astId": 1003,
+        "contract": "src/Aggregator.sol:Aggregator",
+        "label": "requesters",
+        "offset": 0,
+        "slot": "8",
+        "type": "t_mapping(t_address,t_struct(Requester)949_storage)"
+      },
+      {
+        "astId": 1006,
+        "contract": "src/Aggregator.sol:Aggregator",
+        "label": "oracleAddresses",
+        "offset": 0,
+        "slot": "9",
+        "type": "t_array(t_address)dyn_storage"
+      }
+    ],
+    "types": {
+      "t_address": {
+        "encoding": "inplace",
+        "label": "address",
+        "numberOfBytes": "20"
+      },
+      "t_array(t_address)dyn_storage": {
+        "base": "t_address",
+        "encoding": "dynamic_array",
+        "label": "address[]",
+        "numberOfBytes": "32"
+      },
+      "t_array(t_int256)dyn_storage": {
+        "base": "t_int256",
+        "encoding": "dynamic_array",
+        "label": "int256[]",
+        "numberOfBytes": "32"
+      },
+      "t_bool": {
+        "encoding": "inplace",
+        "label": "bool",
+        "numberOfBytes": "1"
+      },
+      "t_contract(IAggregatorValidator)13331": {
+        "encoding": "inplace",
+        "label": "contract IAggregatorValidator",
+        "numberOfBytes": "20"
+      },
+      "t_int256": {
+        "encoding": "inplace",
+        "label": "int256",
+        "numberOfBytes": "32"
+      },
+      "t_mapping(t_address,t_struct(OracleStatus)942_storage)": {
+        "encoding": "mapping",
+        "key": "t_address",
+        "label": "mapping(address => struct Aggregator.OracleStatus)",
+        "numberOfBytes": "32",
+        "value": "t_struct(OracleStatus)942_storage"
+      },
+      "t_mapping(t_address,t_struct(Requester)949_storage)": {
+        "encoding": "mapping",
+        "key": "t_address",
+        "label": "mapping(address => struct Aggregator.Requester)",
+        "numberOfBytes": "32",
+        "value": "t_struct(Requester)949_storage"
+      },
+      "t_mapping(t_uint32,t_struct(Round)919_storage)": {
+        "encoding": "mapping",
+        "key": "t_uint32",
+        "label": "mapping(uint32 => struct Aggregator.Round)",
+        "numberOfBytes": "32",
+        "value": "t_struct(Round)919_storage"
+      },
+      "t_mapping(t_uint32,t_struct(RoundDetails)929_storage)": {
+        "encoding": "mapping",
+        "key": "t_uint32",
+        "label": "mapping(uint32 => struct Aggregator.RoundDetails)",
+        "numberOfBytes": "32",
+        "value": "t_struct(RoundDetails)929_storage"
+      },
+      "t_string_storage": {
+        "encoding": "bytes",
+        "label": "string",
+        "numberOfBytes": "32"
+      },
+      "t_struct(OracleStatus)942_storage": {
+        "encoding": "inplace",
+        "label": "struct Aggregator.OracleStatus",
+        "members": [
+          {
+            "astId": 931,
+            "contract": "src/Aggregator.sol:Aggregator",
+            "label": "startingRound",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_uint32"
+          },
+          {
+            "astId": 933,
+            "contract": "src/Aggregator.sol:Aggregator",
+            "label": "endingRound",
+            "offset": 4,
+            "slot": "0",
+            "type": "t_uint32"
+          },
+          {
+            "astId": 935,
+            "contract": "src/Aggregator.sol:Aggregator",
+            "label": "lastReportedRound",
+            "offset": 8,
+            "slot": "0",
+            "type": "t_uint32"
+          },
+          {
+            "astId": 937,
+            "contract": "src/Aggregator.sol:Aggregator",
+            "label": "lastStartedRound",
+            "offset": 12,
+            "slot": "0",
+            "type": "t_uint32"
+          },
+          {
+            "astId": 939,
+            "contract": "src/Aggregator.sol:Aggregator",
+            "label": "latestSubmission",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_int256"
+          },
+          {
+            "astId": 941,
+            "contract": "src/Aggregator.sol:Aggregator",
+            "label": "index",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_uint16"
+          }
+        ],
+        "numberOfBytes": "96"
+      },
+      "t_struct(Requester)949_storage": {
+        "encoding": "inplace",
+        "label": "struct Aggregator.Requester",
+        "members": [
+          {
+            "astId": 944,
+            "contract": "src/Aggregator.sol:Aggregator",
+            "label": "authorized",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_bool"
+          },
+          {
+            "astId": 946,
+            "contract": "src/Aggregator.sol:Aggregator",
+            "label": "delay",
+            "offset": 1,
+            "slot": "0",
+            "type": "t_uint32"
+          },
+          {
+            "astId": 948,
+            "contract": "src/Aggregator.sol:Aggregator",
+            "label": "lastStartedRound",
+            "offset": 5,
+            "slot": "0",
+            "type": "t_uint32"
+          }
+        ],
+        "numberOfBytes": "32"
+      },
+      "t_struct(Round)919_storage": {
+        "encoding": "inplace",
+        "label": "struct Aggregator.Round",
+        "members": [
+          {
+            "astId": 912,
+            "contract": "src/Aggregator.sol:Aggregator",
+            "label": "answer",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_int256"
+          },
+          {
+            "astId": 914,
+            "contract": "src/Aggregator.sol:Aggregator",
+            "label": "startedAt",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_uint64"
+          },
+          {
+            "astId": 916,
+            "contract": "src/Aggregator.sol:Aggregator",
+            "label": "updatedAt",
+            "offset": 8,
+            "slot": "1",
+            "type": "t_uint64"
+          },
+          {
+            "astId": 918,
+            "contract": "src/Aggregator.sol:Aggregator",
+            "label": "answeredInRound",
+            "offset": 16,
+            "slot": "1",
+            "type": "t_uint32"
+          }
+        ],
+        "numberOfBytes": "64"
+      },
+      "t_struct(RoundDetails)929_storage": {
+        "encoding": "inplace",
+        "label": "struct Aggregator.RoundDetails",
+        "members": [
+          {
+            "astId": 922,
+            "contract": "src/Aggregator.sol:Aggregator",
+            "label": "submissions",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_array(t_int256)dyn_storage"
+          },
+          {
+            "astId": 924,
+            "contract": "src/Aggregator.sol:Aggregator",
+            "label": "maxSubmissions",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_uint32"
+          },
+          {
+            "astId": 926,
+            "contract": "src/Aggregator.sol:Aggregator",
+            "label": "minSubmissions",
+            "offset": 4,
+            "slot": "1",
+            "type": "t_uint32"
+          },
+          {
+            "astId": 928,
+            "contract": "src/Aggregator.sol:Aggregator",
+            "label": "timeout",
+            "offset": 8,
+            "slot": "1",
+            "type": "t_uint32"
+          }
+        ],
+        "numberOfBytes": "64"
+      },
+      "t_uint16": {
+        "encoding": "inplace",
+        "label": "uint16",
+        "numberOfBytes": "2"
+      },
+      "t_uint32": {
+        "encoding": "inplace",
+        "label": "uint32",
+        "numberOfBytes": "4"
+      },
+      "t_uint64": {
+        "encoding": "inplace",
+        "label": "uint64",
+        "numberOfBytes": "8"
+      },
+      "t_uint8": {
+        "encoding": "inplace",
+        "label": "uint8",
+        "numberOfBytes": "1"
+      }
+    }
+  }
+}
