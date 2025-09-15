@@ -3,6 +3,7 @@ package por
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
 	"math/big"
@@ -197,6 +198,7 @@ func (a *app) Run(ctx context.Context) {
 			defer wg.Done()
 			a.startJob(ctx, e)
 		}(j, e)
+		time.Sleep(100 * time.Millisecond) // prevent sudden requests
 	}
 	wg.Wait()
 }
@@ -265,13 +267,22 @@ func (a *app) report(ctx context.Context, e entry, submissionValue float64, late
 
 	latestRoundIdParam := new(big.Int).SetUint64(uint64(latestRoundId))
 
-	return retrier.Retry(func() error {
-		tx, err := a.kaiaHelper.MakeDirectTx(ctx, e.aggregator.Address, submitInterface, latestRoundIdParam, submissionValueParam)
-		if err != nil {
-			return err
+	err := retrier.Retry(func() error {
+		err := a.kaiaHelper.SubmitDirect(
+			ctx,
+			e.aggregator.Address,
+			submitInterface,
+			latestRoundIdParam,
+			submissionValueParam,
+		)
+		if chainUtils.IsNonceError(err) || errors.Is(err, context.DeadlineExceeded) {
+			_ = a.kaiaHelper.FlushNoncePool(ctx)
 		}
-		return a.kaiaHelper.Submit(ctx, tx)
+		return err
+
 	}, maxRetry, initialFailureTimeout, maxRetryDelay)
+
+	return err
 }
 
 func (a *app) getLastInfo(ctx context.Context, e entry) (lastInfo, error) {
