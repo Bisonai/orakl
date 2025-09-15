@@ -353,3 +353,4 @@
 - **sentinel** v0.0.1.20250819.0511.172e422 <br> *`PR`*: Price checker update <br><br> 
 - **sentinel** v0.0.1.20250819.0627.ad5a79a <br> *`PR`*: price chcker update message <br><br> 
 - **por** v0.0.1.20250915.0613.7dd25f6 <br> *`PR`*: Redeploy contracts with fixed ... <br><br> 
+- **por** v0.0.1.20250915.0645.ca7aed1 <br> *`PR`*: Noncemanager to prevent nonce ... <br><br> 

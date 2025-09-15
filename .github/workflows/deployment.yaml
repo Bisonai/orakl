@@ -105,6 +105,7 @@ on:
           - sentinel:v0.0.1.20250819.0511.172e422:Price checker update
           - sentinel:v0.0.1.20250819.0627.ad5a79a:price chcker update message
           - por:v0.0.1.20250915.0613.7dd25f6:Redeploy contracts with fixed ...
+          - por:v0.0.1.20250915.0645.ca7aed1:Noncemanager to prevent nonce ...
 jobs:
   prepare-taskflow:
     name: Prepare
