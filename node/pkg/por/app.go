@@ -275,7 +275,7 @@ func (a *app) report(ctx context.Context, e entry, submissionValue float64, late
 			latestRoundIdParam,
 			submissionValueParam,
 		)
-		if chainUtils.IsNonceError(err) || errors.Is(err, context.DeadlineExceeded) {
+		if err != nil && (chainUtils.IsNonceError(err) || errors.Is(err, context.DeadlineExceeded)) {
 			_ = a.kaiaHelper.FlushNoncePool(ctx)
 		}
 		return err
