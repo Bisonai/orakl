@@ -268,17 +268,20 @@ func (a *app) report(ctx context.Context, e entry, submissionValue float64, late
 	latestRoundIdParam := new(big.Int).SetUint64(uint64(latestRoundId))
 
 	err := retrier.Retry(func() error {
-		return a.kaiaHelper.SubmitDirect(
+		err := a.kaiaHelper.SubmitDirect(
 			ctx,
 			e.aggregator.Address,
 			submitInterface,
 			latestRoundIdParam,
 			submissionValueParam,
 		)
+		if chainUtils.IsNonceError(err) || errors.Is(err, context.DeadlineExceeded) {
+			_ = a.kaiaHelper.FlushNoncePool(ctx)
+		}
+		return err
+
 	}, maxRetry, initialFailureTimeout, maxRetryDelay)
-	if chainUtils.IsNonceError(err) || errors.Is(err, context.DeadlineExceeded) {
-		return a.kaiaHelper.FlushNoncePool(ctx)
-	}
+
 	return err
 }
 
