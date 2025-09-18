@@ -357,3 +357,4 @@
 - **por** v0.0.1.20250915.0654.5d8262c <br> *`PR`*: Hotfix por retry condition <br><br> 
 - **por** v0.0.1.20250918.0222.3ce66e6 <br> *`PR`*: Deploy skyusdt contracts <br><br> 
 - **por** v0.0.1.20250918.0903.4379484 <br> *`PR`*: Store fetched data for monitor... <br><br> 
+- **por** v0.0.1.20250918.0909.6a8e057 <br> *`PR`*: Store fetched data for monitor... <br><br> 
