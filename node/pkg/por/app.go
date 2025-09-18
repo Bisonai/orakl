@@ -159,6 +159,8 @@ func New(ctx context.Context) (*app, error) {
 }
 
 func (a *app) Run(ctx context.Context) {
+	go a.cleanupDB(ctx)
+
 	go func() {
 		port := os.Getenv("POR_PORT")
 		if port == "" {
@@ -239,6 +241,15 @@ func (a *app) execute(ctx context.Context, e entry) error {
 		return err
 	}
 	log.Debug().Str("entry", e.adapter.Name).Float64("value", v).Msg("fetched")
+
+	defer func() {
+		if err := db.QueryWithoutResult(ctx, "INSERT INTO public.por_offchain (name, value) VALUES (@name, @value)", map[string]any{
+			"name":  e.adapter.Name,
+			"value": v,
+		}); err != nil {
+			log.Error().Err(err).Msg("failed to insert offchain data")
+		}
+	}()
 
 	lastInfo, err := a.getLastInfo(ctx, e)
 	if err != nil {
@@ -405,4 +416,20 @@ func (a *app) buildRequestOpts(e entry) []request.RequestOption {
 		}
 	}
 	return opts
+}
+
+func (a *app) cleanupDB(ctx context.Context) {
+	ticker := time.NewTicker(1 * time.Hour)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			if err := db.QueryWithoutResult(ctx, "DELETE FROM public.por_offchain WHERE timestamp < NOW() - INTERVAL '6 hours'", nil); err != nil {
+				log.Error().Err(err).Msg("failed to cleanup offchain data")
+			}
+		}
+	}
 }
