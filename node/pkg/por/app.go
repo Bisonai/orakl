@@ -190,14 +190,16 @@ func (a *app) Run(ctx context.Context) {
 		}
 	}()
 
+	log.Debug().Any("entries", a.entries).Msg("launching")
+
 	// start jobs
 	wg := sync.WaitGroup{}
-	for j, e := range a.entries {
+	for _, e := range a.entries {
 		wg.Add(1)
-		go func(j string, e entry) {
+		go func(e entry) {
 			defer wg.Done()
 			a.startJob(ctx, e)
-		}(j, e)
+		}(e)
 		time.Sleep(100 * time.Millisecond) // prevent sudden requests
 	}
 	wg.Wait()
@@ -236,11 +238,13 @@ func (a *app) execute(ctx context.Context, e entry) error {
 	if err != nil {
 		return err
 	}
+	log.Debug().Str("entry", e.adapter.Name).Float64("value", v).Msg("fetched")
 
 	lastInfo, err := a.getLastInfo(ctx, e)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to fetch last info")
 	}
+	log.Debug().Str("entry", e.adapter.Name).Any("lastInfo", lastInfo).Msg("last info loaded")
 
 	now := time.Now()
 	if a.shouldReport(e, lastInfo, v, now) {
@@ -248,13 +252,15 @@ func (a *app) execute(ctx context.Context, e entry) error {
 		if err != nil {
 			return err
 		}
+		log.Debug().Str("entry", e.adapter.Name).Uint32("roundId", roundId).Msg("round id loaded")
 
 		err = a.report(ctx, e, v, roundId)
 		if err != nil {
 			return err
 		}
+		log.Debug().Str("entry", e.adapter.Name).Msg("reported")
 	} else {
-		log.Debug().Msg("no need to report")
+		log.Debug().Str("entry", e.adapter.Name).Msg("no need to report")
 	}
 
 	return nil
