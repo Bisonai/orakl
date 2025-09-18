@@ -243,7 +243,7 @@ func (a *app) execute(ctx context.Context, e entry) error {
 	log.Debug().Str("entry", e.adapter.Name).Float64("value", v).Msg("fetched")
 
 	defer func() {
-		if err := db.QueryWithoutResult(ctx, "INSERT INTO public.por_offchain (name, value) VALUES (@name, @value)", map[string]any{
+		if err := db.QueryWithoutResult(ctx, "INSERT INTO por_offchain (name, value) VALUES (@name, @value)", map[string]any{
 			"name":  e.adapter.Name,
 			"value": v,
 		}); err != nil {
@@ -427,7 +427,7 @@ func (a *app) cleanupDB(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			if err := db.QueryWithoutResult(ctx, "DELETE FROM public.por_offchain WHERE timestamp < NOW() - INTERVAL '6 hours'", nil); err != nil {
+			if err := db.QueryWithoutResult(ctx, "DELETE FROM por_offchain WHERE timestamp < NOW() - INTERVAL '6 hours'", nil); err != nil {
 				log.Error().Err(err).Msg("failed to cleanup offchain data")
 			}
 		}
