@@ -107,6 +107,7 @@ on:
           - por:v0.0.1.20250915.0613.7dd25f6:Redeploy contracts with fixed ...
           - por:v0.0.1.20250915.0645.ca7aed1:Noncemanager to prevent nonce ...
           - por:v0.0.1.20250915.0654.5d8262c:Hotfix por retry condition
+          - por:v0.0.1.20250918.0222.3ce66e6:Deploy skyusdt contracts
 jobs:
   prepare-taskflow:
     name: Prepare
