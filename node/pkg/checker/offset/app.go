@@ -76,6 +76,16 @@ SELECT
 FROM
  latest_local_aggregate la
  JOIN latest_global_aggregate ga on la.config_id = ga.config_id`
+
+	PorAlarmThreshold     = 3
+	PorAlarmOffset        = 300 * time.Second
+	GetPorOffchainOffsets = `SELECT
+	name,
+	EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - MAX(timestamp))) AS delay
+FROM
+	por_offchain
+GROUP BY
+	name`
 )
 
 type Config struct {
@@ -92,8 +102,14 @@ type LatestAggregateEach struct {
 	GlobalAggregate float64 `db:"global_aggregate"`
 }
 
+type PorOffsetResult struct {
+	Name  string
+	Delay float64
+}
+
 var localAggregateAlarmCount map[int32]int
 var globalAggregateAlarmCount map[int32]int
+var porOffchainAlarmCount map[string]int
 
 func Start(ctx context.Context) error {
 	localAggregateAlarmCount = make(map[int32]int)
@@ -122,7 +138,34 @@ func Start(ctx context.Context) error {
 			return ctx.Err()
 		case <-ticker.C:
 			checkOffsets(ctx, serviceDB)
+			checkPorOffsets(ctx, serviceDB)
 		}
+	}
+}
+
+func checkPorOffsets(ctx context.Context, serviceDB *pgxpool.Pool) {
+	msg := ""
+
+	res, err := db.QueryRowsTransient[PorOffsetResult](ctx, serviceDB, GetPorOffchainOffsets, nil)
+	if err != nil {
+		log.Error().Err(err).Msg("Error getting por offchain offsets")
+		return
+	}
+
+	for _, r := range res {
+		if r.Delay > PorAlarmOffset.Seconds() {
+			porOffchainAlarmCount[r.Name]++
+			if porOffchainAlarmCount[r.Name] > PorAlarmThreshold {
+				msg += fmt.Sprintf("(por offchain offset) %s: %v seconds\n", r.Name, r.Delay)
+				porOffchainAlarmCount[r.Name] = 0
+			}
+		} else {
+			porOffchainAlarmCount[r.Name] = 0
+		}
+	}
+
+	if msg != "" {
+		alert.SlackAlert(msg)
 	}
 }
 
