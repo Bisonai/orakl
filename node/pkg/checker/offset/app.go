@@ -114,6 +114,7 @@ var porOffchainAlarmCount map[string]int
 func Start(ctx context.Context) error {
 	localAggregateAlarmCount = make(map[int32]int)
 	globalAggregateAlarmCount = make(map[int32]int)
+	porOffchainAlarmCount = make(map[string]int)
 
 	serviceDBUrl := secrets.GetSecret("SERVICE_DB_URL")
 	if serviceDBUrl == "" {
