@@ -154,6 +154,7 @@ func checkPorOffsets(ctx context.Context, serviceDB *pgxpool.Pool) {
 	}
 
 	for _, r := range res {
+		log.Debug().Str("name", r.Name).Float64("delay", r.Delay).Msg("checking por offset")
 		if r.Delay > PorAlarmOffset.Seconds() {
 			porOffchainAlarmCount[r.Name]++
 			if porOffchainAlarmCount[r.Name] > PorAlarmThreshold {
