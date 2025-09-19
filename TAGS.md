@@ -360,3 +360,4 @@
 - **por** v0.0.1.20250918.0909.6a8e057 <br> *`PR`*: Store fetched data for monitor... <br><br> 
 - **sentinel** v0.0.1.20250919.0235.23b76b3 <br> *`PR`*: Offchain offset alert <br><br> 
 - **por** v0.0.1.20250919.0235.23b76b3 <br> *`PR`*: Offchain offset alert <br><br> 
+- **por** v0.0.1.20250919.0253.34154ba <br> *`PR`*: Add more logs in sentinel <br><br> 

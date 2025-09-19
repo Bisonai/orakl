@@ -112,6 +112,7 @@ on:
           - por:v0.0.1.20250918.0909.6a8e057:Store fetched data for monitor...
           - sentinel:v0.0.1.20250919.0235.23b76b3:Offchain offset alert
           - por:v0.0.1.20250919.0235.23b76b3:Offchain offset alert
+          - por:v0.0.1.20250919.0253.34154ba:Add more logs in sentinel
 jobs:
   prepare-taskflow:
     name: Prepare
