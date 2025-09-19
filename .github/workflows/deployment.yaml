@@ -110,6 +110,7 @@ on:
           - por:v0.0.1.20250918.0222.3ce66e6:Deploy skyusdt contracts
           - por:v0.0.1.20250918.0903.4379484:Store fetched data for monitor...
           - por:v0.0.1.20250918.0909.6a8e057:Store fetched data for monitor...
+          - sentinel:v0.0.1.20250919.0235.23b76b3:Offchain offset alert
 jobs:
   prepare-taskflow:
     name: Prepare
