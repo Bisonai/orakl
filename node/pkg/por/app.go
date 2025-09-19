@@ -427,7 +427,7 @@ func (a *app) cleanupDB(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			if err := db.QueryWithoutResult(ctx, "DELETE FROM por_offchain WHERE timestamp < NOW() - INTERVAL '6 hours'", nil); err != nil {
+			if err := db.QueryWithoutResult(ctx, "DELETE FROM por_offchain WHERE timestamp < NOW() - INTERVAL '12 hours'", nil); err != nil {
 				log.Error().Err(err).Msg("failed to cleanup offchain data")
 			}
 		}
