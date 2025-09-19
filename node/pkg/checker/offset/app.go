@@ -138,8 +138,8 @@ func Start(ctx context.Context) error {
 			log.Info().Msg("context cancelled, shutting down")
 			return ctx.Err()
 		case <-ticker.C:
-			checkOffsets(ctx, serviceDB)
-			checkPorOffsets(ctx, serviceDB)
+			go checkOffsets(ctx, serviceDB)
+			go checkPorOffsets(ctx, serviceDB)
 		}
 	}
 }
@@ -232,7 +232,7 @@ func checkOffsets(ctx context.Context, serviceDB *pgxpool.Pool) {
 			msg += fmt.Sprintf("(latest aggregate price difference) %s: %v (globalAggregate: %v, localAggregate: %v)\n", config.Name, latestAggregateResult.LocalAggregate-latestAggregateResult.GlobalAggregate, latestAggregateResult.GlobalAggregate, latestAggregateResult.LocalAggregate)
 		}
 
-		time.Sleep(500 * time.Millisecond) // sleep to reduce pgsql stress
+		time.Sleep(100 * time.Millisecond) // sleep to reduce pgsql stress
 	}
 
 	if localAggregateDelayedOffsetCount > 0 {
