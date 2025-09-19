@@ -61,17 +61,12 @@ type FullfillEventToCheck struct {
 
 type CheckList struct {
 	Feeds []FeedToCheck
-	Por   FeedToCheck
+	Por   []FeedToCheck
 	VRF   FullfillEventToCheck
 }
 
 func feedEventQuery(schemaName string) string {
 	return fmt.Sprintf(`SELECT time FROM %s.feed_feed_updated ORDER BY time DESC LIMIT 1;`, schemaName)
-}
-
-func feedLastIntervalEventQuery(schemaName string, interval int) string {
-	intervalInSeconds := interval / 1000
-	return fmt.Sprintf(`SELECT COUNT(*) FROM %s.feed_feed_updated WHERE time >= EXTRACT(EPOCH FROM NOW()) - %d;`, schemaName, intervalInSeconds)
 }
 
 func aggregatorEventQuery(schemaName string) string {
@@ -88,4 +83,8 @@ func loadMikoConfigUrl(chain string) string {
 
 func loadPegPorConfigUrl(chain string) string {
 	return fmt.Sprintf("https://config.orakl.network/aggregator/%s/peg.por.json", chain)
+}
+
+func loadAggregatorInfoUrl(chain string) string {
+	return fmt.Sprintf("https://config.orakl.network/%s_aggregators.json", chain)
 }

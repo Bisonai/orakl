@@ -47,6 +47,12 @@ func setUp(ctx context.Context) (*CheckList, error) {
 		return nil, err
 	}
 
+	porConfigs, err := loadPorEventIntervals()
+	if err != nil {
+		log.Error().Err(err).Msg("failed to load por event intervals")
+		return nil, err
+	}
+
 	subgraphInfoMap, err := loadSubgraphInfoMap(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to load subgraph info")
@@ -76,18 +82,38 @@ func setUp(ctx context.Context) (*CheckList, error) {
 		})
 	}
 
+	PorsToCheck := []FeedToCheck{}
+	for _, config := range porConfigs {
+		subgraphInfo, ok := subgraphInfoMap[config.Name]
+		if !ok {
+			continue
+		}
+
+		if subgraphInfo.Status != "current" {
+			continue
+		}
+
+		PorsToCheck = append(PorsToCheck, FeedToCheck{
+			SchemaName:       subgraphInfo.SchemaName,
+			FeedName:         config.Name,
+			ExpectedInterval: config.Heartbeat,
+			LatencyChecked:   0,
+		})
+	}
+
 	pegPorSubgraphInfo, ok := subgraphInfoMap[pegPorConfig.Name]
 	if !ok {
 		log.Warn().Msg("Peg Por subgraph info not found")
 		return nil, fmt.Errorf("por subgraph info not found")
 	}
 
-	PegPorToCheck := FeedToCheck{
+	// legacy
+	PorsToCheck = append(PorsToCheck, FeedToCheck{
 		SchemaName:       pegPorSubgraphInfo.SchemaName,
 		FeedName:         pegPorConfig.Name,
 		ExpectedInterval: pegPorConfig.Heartbeat,
 		LatencyChecked:   0,
-	}
+	})
 
 	VRFToCheck := FullfillEventToCheck{
 		SchemaName: subgraphInfoMap["VRF"].SchemaName,
@@ -97,10 +123,9 @@ func setUp(ctx context.Context) (*CheckList, error) {
 
 	return &CheckList{
 		Feeds: FeedsToCheck,
-		Por:   PegPorToCheck,
+		Por:   PorsToCheck,
 		VRF:   VRFToCheck,
 	}, nil
-
 }
 
 func Start(ctx context.Context) error {
@@ -190,16 +215,19 @@ func checkPorAndVrf(ctx context.Context, checkList *CheckList) {
 	checkVRF(ctx, checkList.VRF)
 }
 
-func checkPors(ctx context.Context, PegPorToCheck FeedToCheck) {
+func checkPors(ctx context.Context, PegPorsToCheck []FeedToCheck) {
 	msg := ""
-	porOffset, err := timeSinceLastPorEvent(ctx, PegPorToCheck)
-	if err != nil {
-		log.Error().Err(err).Str("feed", PegPorToCheck.FeedName).Msg("Failed to check peg por")
-	} else {
-		log.Debug().Str("POR offset", porOffset.String()).Msg("POR offset")
-		if porOffset > time.Duration(PegPorToCheck.ExpectedInterval)*time.Millisecond+POR_BUFFER {
-			log.Warn().Str("feed", PegPorToCheck.FeedName).Msg(fmt.Sprintf("%s delayed by %s", PegPorToCheck.FeedName, porOffset-time.Duration(PegPorToCheck.ExpectedInterval)*time.Millisecond))
-			msg += fmt.Sprintf("%s delayed by %s\n", PegPorToCheck.FeedName, porOffset-time.Duration(PegPorToCheck.ExpectedInterval)*time.Millisecond)
+
+	for _, PegPorToCheck := range PegPorsToCheck {
+		porOffset, err := timeSinceLastPorEvent(ctx, PegPorToCheck)
+		if err != nil {
+			log.Error().Err(err).Str("feed", PegPorToCheck.FeedName).Msg("Failed to check peg por")
+		} else {
+			log.Debug().Str("POR offset", porOffset.String()).Msg("POR offset")
+			if porOffset > time.Duration(PegPorToCheck.ExpectedInterval)*time.Millisecond+POR_BUFFER {
+				log.Warn().Str("feed", PegPorToCheck.FeedName).Msg(fmt.Sprintf("%s delayed by %s", PegPorToCheck.FeedName, porOffset-time.Duration(PegPorToCheck.ExpectedInterval)*time.Millisecond))
+				msg += fmt.Sprintf("%s delayed by %s\n", PegPorToCheck.FeedName, porOffset-time.Duration(PegPorToCheck.ExpectedInterval)*time.Millisecond)
+			}
 		}
 	}
 
@@ -275,10 +303,28 @@ func loadExpectedEventIntervals() ([]Config, error) {
 	return request.Request[[]Config](request.WithEndpoint(url))
 }
 
+// legacy
 func loadPegPorEventInterval() (PegPorConfig, error) {
 	chain := os.Getenv("CHAIN")
 	url := loadPegPorConfigUrl(chain)
 	return request.Request[PegPorConfig](request.WithEndpoint(url))
+}
+
+func loadPorEventIntervals() ([]PegPorConfig, error) {
+	chain := os.Getenv("CHAIN")
+	url := loadAggregatorInfoUrl(chain)
+	result, err := request.Request[[]PegPorConfig](request.WithEndpoint(url))
+	if err != nil {
+		return nil, err
+	}
+
+	for i, config := range result {
+		if strings.HasSuffix(config.Name, "-POR") {
+			result[i].Name = strings.TrimSuffix(config.Name, "-POR")
+		}
+	}
+
+	return result, nil
 }
 
 func loadSubgraphInfoMap(ctx context.Context) (map[string]SubgraphInfo, error) {
@@ -292,15 +338,24 @@ func loadSubgraphInfoMap(ctx context.Context) (map[string]SubgraphInfo, error) {
 		if strings.HasPrefix(subgraphInfo.Name, "Feed-") {
 			pricePairName := strings.TrimPrefix(subgraphInfo.Name, "Feed-")
 			subgraphInfoMap[pricePairName] = subgraphInfo
+			continue
 		}
 
 		if strings.HasPrefix(subgraphInfo.Name, "Aggregator-") && strings.HasSuffix(subgraphInfo.Name, "-POR") {
 			porName := strings.TrimPrefix(subgraphInfo.Name, "Aggregator-")
 			subgraphInfoMap[porName] = subgraphInfo
+			continue
+		}
+
+		if strings.HasPrefix(subgraphInfo.Name, "Aggregator-POR_") {
+			name := strings.TrimPrefix(subgraphInfo.Name, "Aggregator-POR_")
+			subgraphInfoMap[name] = subgraphInfo
+			continue
 		}
 
 		if subgraphInfo.Name == "VRFCoordinator" {
 			subgraphInfoMap["VRF"] = subgraphInfo
+			continue
 		}
 	}
 
