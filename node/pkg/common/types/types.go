@@ -115,6 +115,7 @@ func (m *LatestFeedDataMap) CleanupJob(ctx context.Context) {
 					delete(m.FeedDataMap, k)
 				}
 			}
+			m.Mu.Unlock()
 		}
 	}
 }
