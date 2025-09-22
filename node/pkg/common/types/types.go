@@ -111,7 +111,7 @@ func (m *LatestFeedDataMap) CleanupJob(ctx context.Context) {
 		case <-ticker.C:
 			m.Mu.Lock()
 			for k, v := range m.FeedDataMap {
-				if v.Timestamp.Before(time.Now().Add(-24 * time.Hour)) {
+				if v.Timestamp != nil && v.Timestamp.Before(time.Now().Add(-24*time.Hour)) {
 					delete(m.FeedDataMap, k)
 				}
 			}
