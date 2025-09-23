@@ -1,6 +1,7 @@
 package types
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"sync"
@@ -97,4 +98,24 @@ func (m *LatestFeedDataMap) SetLatestFeedData(feedData []*FeedData) error {
 		m.FeedDataMap[data.FeedID] = data
 	}
 	return nil
+}
+
+func (m *LatestFeedDataMap) CleanupJob(ctx context.Context) {
+	ticker := time.NewTicker(60 * time.Minute)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			m.Mu.Lock()
+			for k, v := range m.FeedDataMap {
+				if v.Timestamp != nil && v.Timestamp.Before(time.Now().Add(-24*time.Hour)) {
+					delete(m.FeedDataMap, k)
+				}
+			}
+			m.Mu.Unlock()
+		}
+	}
 }

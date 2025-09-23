@@ -386,6 +386,8 @@ func (a *App) initialize(ctx context.Context) error {
 		return err
 	}
 
+	go a.LatestFeedDataMap.CleanupJob(ctx)
+
 	return nil
 }
 
