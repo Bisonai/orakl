@@ -116,6 +116,7 @@ on:
           - sentinel:v0.0.1.20250919.0256.a03a77d:Add more logs in sentinel
           - sentinel:v0.0.1.20250919.0308.667bf26:Add more logs in sentinel
           - por:v0.0.1.20250923.0122.e064717:Cleanup stale data
+          - node:v0.0.1.20250923.0140.40298c0:Cleanup stale data
 jobs:
   prepare-taskflow:
     name: Prepare
