@@ -32,7 +32,7 @@ func TradeResponseToFeedDataList(data Response, feedMap map[string][]int32, volu
 			feedData.FeedID = id
 			feedData.Value = price
 			feedData.Timestamp = &timestamp
-			volumeData, exists := volumeCacheMap.Map[id]
+			volumeData, exists := volumeCacheMap.SafeGet(id)
 			if !exists || volumeData.UpdatedAt.Before(time.Now().Add(-common.VolumeCacheLifespan)) {
 				feedData.Volume = 0
 			} else {
@@ -78,11 +78,9 @@ func fetchVolumes(feedMap map[string][]int32, volumeCacheMap *common.VolumeCache
 					UpdatedAt: timestamp,
 					Volume:    volume,
 				}
-				volumeCacheMap.Mutex.Lock()
 				for _, id := range ids {
-					volumeCacheMap.Map[id] = volumeCache
+					volumeCacheMap.SafeSet(id, volumeCache)
 				}
-				volumeCacheMap.Mutex.Unlock()
 			}
 		}
 

@@ -38,9 +38,7 @@ func TradeEventToFeedData(data TradeEvent, feedMap map[string][]int32, volumeCac
 		feedData.Value = value
 		feedData.Timestamp = &timestamp
 
-		volumeCacheMap.Mutex.Lock()
-		volumeData, exists := volumeCacheMap.Map[id]
-		volumeCacheMap.Mutex.Unlock()
+		volumeData, exists := volumeCacheMap.SafeGet(id)
 		if !exists || volumeData.UpdatedAt.Before(time.Now().Add(-common.VolumeCacheLifespan)) {
 			feedData.Volume = 0
 		} else {
@@ -73,14 +71,12 @@ func FetchVolumes(feedMap map[string][]int32, volumeCacheMap *common.VolumeCache
 			continue
 		}
 
-		volumeCacheMap.Mutex.Lock()
 		for _, id := range ids {
-			volumeCacheMap.Map[id] = common.VolumeCache{
+			volumeCacheMap.SafeSet(id, common.VolumeCache{
 				UpdatedAt: time.Now(),
 				Volume:    volume,
-			}
+			})
 		}
-		volumeCacheMap.Mutex.Unlock()
 	}
 
 	return nil
