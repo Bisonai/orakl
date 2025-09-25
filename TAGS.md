@@ -365,3 +365,4 @@
 - **sentinel** v0.0.1.20250919.0308.667bf26 <br> *`PR`*: Add more logs in sentinel <br><br> 
 - **por** v0.0.1.20250923.0122.e064717 <br> *`PR`*: Cleanup stale data <br><br> 
 - **node** v0.0.1.20250923.0140.40298c0 <br> *`PR`*: Cleanup stale data <br><br> 
+- **node** v0.0.1.20250925.1000.8785452 <br> *`PR`*: Hotfix concurrent map access f... <br><br> 
