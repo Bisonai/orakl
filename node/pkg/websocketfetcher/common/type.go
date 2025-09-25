@@ -138,6 +138,24 @@ type VolumeCacheMap struct {
 	Mutex sync.Mutex
 }
 
+func (vc *VolumeCacheMap) Get(key int32) (VolumeCache, bool) {
+	vc.Mutex.Lock()
+	defer vc.Mutex.Unlock()
+
+	cache, ok := vc.Map[key]
+	return cache, ok
+}
+
+func (vc *VolumeCacheMap) Set(key int32, value VolumeCache) {
+	vc.Mutex.Lock()
+	defer vc.Mutex.Unlock()
+	if vc.Map == nil {
+		vc.Map = make(map[int32]VolumeCache)
+	}
+
+	vc.Map[key] = value
+}
+
 func capitalizeFirstLetter(s string) string {
 	if len(s) == 0 {
 		return s
