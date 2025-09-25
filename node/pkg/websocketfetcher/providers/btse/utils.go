@@ -29,7 +29,7 @@ func ResponseToFeedDataList(data Response, feedMap map[string][]int32, volumeCac
 				Timestamp: &timestamp,
 			}
 
-			volumeData, ok := volumeCacheMap.SafeGet(id)
+			volumeData, ok := volumeCacheMap.Get(id)
 			if !ok || volumeData.UpdatedAt.Before(time.Now().Add(-common.VolumeCacheLifespan)) {
 				entry.Volume = 0
 			} else {
@@ -60,7 +60,7 @@ func FetchVolumes(feedMap map[string][]int32, volumeCacheMap *common.VolumeCache
 		volume := entry.Size
 
 		for _, id := range ids {
-			volumeCacheMap.SafeSet(id, common.VolumeCache{
+			volumeCacheMap.Set(id, common.VolumeCache{
 				UpdatedAt: time.Now(),
 				Volume:    volume,
 			})

@@ -138,7 +138,7 @@ type VolumeCacheMap struct {
 	Mutex sync.Mutex
 }
 
-func (vc *VolumeCacheMap) SafeGet(key int32) (VolumeCache, bool) {
+func (vc *VolumeCacheMap) Get(key int32) (VolumeCache, bool) {
 	vc.Mutex.Lock()
 	defer vc.Mutex.Unlock()
 
@@ -146,7 +146,7 @@ func (vc *VolumeCacheMap) SafeGet(key int32) (VolumeCache, bool) {
 	return cache, ok
 }
 
-func (vc *VolumeCacheMap) SafeSet(key int32, value VolumeCache) {
+func (vc *VolumeCacheMap) Set(key int32, value VolumeCache) {
 	vc.Mutex.Lock()
 	defer vc.Mutex.Unlock()
 

@@ -38,7 +38,7 @@ func TradeEventToFeedData(data TradeEvent, feedMap map[string][]int32, volumeCac
 		feedData.Value = value
 		feedData.Timestamp = &timestamp
 
-		volumeData, exists := volumeCacheMap.SafeGet(id)
+		volumeData, exists := volumeCacheMap.Get(id)
 		if !exists || volumeData.UpdatedAt.Before(time.Now().Add(-common.VolumeCacheLifespan)) {
 			feedData.Volume = 0
 		} else {
@@ -72,7 +72,7 @@ func FetchVolumes(feedMap map[string][]int32, volumeCacheMap *common.VolumeCache
 		}
 
 		for _, id := range ids {
-			volumeCacheMap.SafeSet(id, common.VolumeCache{
+			volumeCacheMap.Set(id, common.VolumeCache{
 				UpdatedAt: time.Now(),
 				Volume:    volume,
 			})
