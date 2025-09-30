@@ -208,7 +208,7 @@ require (
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/steakknife/bloomfilter v0.0.0-20180922174646-6819c0d2a570 // indirect
 	github.com/steakknife/hamming v0.0.0-20180906055917-c99c65617cd3 // indirect
-	github.com/supranational/blst v0.3.11 // indirect
+	github.com/supranational/blst v0.3.14 // indirect
 	github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7 // indirect
 	github.com/tinylib/msgp v1.1.8 // indirect
 	github.com/urfave/cli/v2 v2.25.7 // indirect
