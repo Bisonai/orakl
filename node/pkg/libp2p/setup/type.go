@@ -103,5 +103,5 @@ func NewHost(ctx context.Context, opts ...HostOption) (host.Host, error) {
 
 func MakePubsub(ctx context.Context, host host.Host) (*pubsub.PubSub, error) {
 	log.Debug().Msg("creating pubsub instance")
-	return pubsub.NewGossipSub(ctx, host, pubsub.WithSeenMessagesTTL(10*time.Second))
+	return pubsub.NewGossipSub(ctx, host, pubsub.WithSeenMessagesTTL(30*time.Second))
 }
