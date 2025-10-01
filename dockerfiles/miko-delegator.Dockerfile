@@ -1,4 +1,4 @@
-FROM golang:1.23.7-bullseye as builder
+FROM golang:1.24.0-bullseye as builder
 # https://stackoverflow.com/questions/75209245/golang-cross-compiling-with-cgo-inside-docker-image
 RUN apt-get update && apt-get install -y curl g++-x86-64-linux-gnu libc6-dev-amd64-cross && rm -rf /var/lib/apt/lists/*
 
