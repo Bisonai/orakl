@@ -367,3 +367,4 @@
 - **node** v0.0.1.20250923.0140.40298c0 <br> *`PR`*: Cleanup stale data <br><br> 
 - **node** v0.0.1.20250925.1000.8785452 <br> *`PR`*: Hotfix concurrent map access f... <br><br> 
 - **node** v0.0.1.20251001.0140.8ab8001 <br> *`PR`*: Fix build failure <br><br> 
+- **node** v0.0.1.20251001.0832.608cf5d <br> *`PR`*: Chore reduce ttl for feed data... <br><br> 
