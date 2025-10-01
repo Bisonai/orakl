@@ -118,6 +118,7 @@ on:
           - por:v0.0.1.20250923.0122.e064717:Cleanup stale data
           - node:v0.0.1.20250923.0140.40298c0:Cleanup stale data
           - node:v0.0.1.20250925.1000.8785452:Hotfix concurrent map access f...
+          - node:v0.0.1.20251001.0140.8ab8001:Fix build failure
 jobs:
   prepare-taskflow:
     name: Prepare
