@@ -1,4 +1,4 @@
-FROM golang:1.23.7-bullseye as builder
+FROM golang:1.24.0-bullseye as builder
 
 RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
