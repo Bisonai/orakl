@@ -368,3 +368,4 @@
 - **node** v0.0.1.20250925.1000.8785452 <br> *`PR`*: Hotfix concurrent map access f... <br><br> 
 - **node** v0.0.1.20251001.0140.8ab8001 <br> *`PR`*: Fix build failure <br><br> 
 - **node** v0.0.1.20251001.0832.608cf5d <br> *`PR`*: Chore reduce ttl for feed data... <br><br> 
+- **node** v0.0.1.20251013.0242.32e4cb4 <br> *`PR`*: Update feed data processing re... <br><br> 
