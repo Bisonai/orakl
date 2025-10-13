@@ -40,6 +40,7 @@ func New(opts ...common.DexFetcherOption) common.FetcherInterface {
 		Feeds:                config.Feeds,
 		FeedDataBuffer:       config.FeedDataBuffer,
 		WebsocketChainReader: config.WebsocketChainReader,
+		LatestEntries:        make(map[int32]*common.FeedData),
 	}
 }
 
@@ -67,7 +68,52 @@ func (f *UniswapFetcher) run(ctx context.Context, feed common.Feed) {
 	}
 	log.Debug().Str("Player", "Uniswap").Any("feedData", initialFeedData).Msg("initial price fetched")
 	f.FeedDataBuffer <- initialFeedData
-	// 2. get subsequent data through websocket
+
+	f.Mutex.Lock()
+	f.LatestEntries[feed.ID] = initialFeedData
+	f.Mutex.Unlock()
+
+	// 2. regular fetch if data is older than 1hr
+	t := time.NewTicker(time.Minute)
+	defer t.Stop()
+	go func() {
+		for {
+			select {
+			case <-t.C:
+				f.Mutex.Lock()
+				last, ok := f.LatestEntries[feed.ID]
+				f.Mutex.Unlock()
+				if !ok {
+					continue
+				}
+
+				now := time.Now()
+				if last.Timestamp.Before(now.Add(-time.Hour)) {
+					price, err := f.getInitialPrice(ctx, feed)
+					if err != nil {
+						log.Error().Str("Player", "Uniswap").Err(err).Msg("failed to get refreshed price")
+						continue
+					}
+
+					refreshedFeedData := &common.FeedData{
+						FeedID:    feed.ID,
+						Value:     *price,
+						Timestamp: &now,
+					}
+					f.FeedDataBuffer <- refreshedFeedData
+
+					f.Mutex.Lock()
+					f.LatestEntries[feed.ID] = refreshedFeedData
+					f.Mutex.Unlock()
+				}
+			case <-ctx.Done():
+				return
+			}
+		}
+
+	}()
+
+	// 3. get subsequent data through websocket
 	err = f.subscribeEvent(ctx, feed)
 	if err != nil {
 		log.Error().Str("Player", "Uniswap").Err(err).Msg("error in uniswap.run, failed to subscribe event")
@@ -178,6 +224,9 @@ func (f *UniswapFetcher) readSwapEvent(ctx context.Context, feed common.Feed, de
 		}
 		log.Debug().Str("Player", "Uniswap").Any("feedData", feedData).Msg("price fetched")
 		f.FeedDataBuffer <- feedData
+		f.Mutex.Lock()
+		f.LatestEntries[feed.ID] = feedData
+		f.Mutex.Unlock()
 	}
 	return nil
 }
