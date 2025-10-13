@@ -122,6 +122,8 @@ type DexFetcher struct {
 	Feeds                []Feed
 	WebsocketChainReader *websocketchainreader.ChainReader
 	FeedDataBuffer       chan *FeedData
+	LatestEntries        map[int32]*FeedData
+	sync.Mutex
 }
 
 type FetcherInterface interface {
