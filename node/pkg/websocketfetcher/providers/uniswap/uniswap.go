@@ -75,6 +75,8 @@ func (f *UniswapFetcher) run(ctx context.Context, feed common.Feed) {
 
 	// 2. regular fetch if data is older than 1hr
 
+	localCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
 	go func(ctx context.Context) {
 		t := time.NewTicker(time.Minute)
 		defer t.Stop()
@@ -112,8 +114,7 @@ func (f *UniswapFetcher) run(ctx context.Context, feed common.Feed) {
 				return
 			}
 		}
-
-	}(ctx)
+	}(localCtx)
 
 	// 3. get subsequent data through websocket
 	err = f.subscribeEvent(ctx, feed)
