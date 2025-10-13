@@ -157,7 +157,7 @@ func (f *CapybaraFetcher) getPriceThroughQuotePotentialSwap(ctx context.Context,
 	}
 
 	rawResultSlice, ok := rawResult.([]interface{})
-	if !ok || len(rawResultSlice) < 1 {
+	if !ok || len(rawResultSlice) < 2 {
 		log.Error().Str("Player", "Capybara").Msg("error in capybara.getPriceThroughQuotePotentialSwap, failed to get slice result")
 		return nil, errorSentinel.ErrFetcherFailedToGetDexResultSlice
 	}
