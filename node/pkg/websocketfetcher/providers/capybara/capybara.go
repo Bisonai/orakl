@@ -79,9 +79,10 @@ func (f *CapybaraFetcher) run(ctx context.Context, feed common.Feed) {
 	f.LatestEntries[feed.ID] = initialFeedData
 	f.Mutex.Unlock()
 
-	t := time.NewTicker(time.Minute)
-	defer t.Stop()
-	go func() {
+	go func(ctx context.Context) {
+		t := time.NewTicker(time.Minute)
+		defer t.Stop()
+
 		for {
 			select {
 			case <-t.C:
@@ -115,7 +116,7 @@ func (f *CapybaraFetcher) run(ctx context.Context, feed common.Feed) {
 				return
 			}
 		}
-	}()
+	}(ctx)
 
 	err = f.subscribeEvent(ctx, feed)
 	if err != nil {

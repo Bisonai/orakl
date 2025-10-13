@@ -74,9 +74,11 @@ func (f *UniswapFetcher) run(ctx context.Context, feed common.Feed) {
 	f.Mutex.Unlock()
 
 	// 2. regular fetch if data is older than 1hr
-	t := time.NewTicker(time.Minute)
-	defer t.Stop()
-	go func() {
+
+	go func(ctx context.Context) {
+		t := time.NewTicker(time.Minute)
+		defer t.Stop()
+
 		for {
 			select {
 			case <-t.C:
@@ -111,7 +113,7 @@ func (f *UniswapFetcher) run(ctx context.Context, feed common.Feed) {
 			}
 		}
 
-	}()
+	}(ctx)
 
 	// 3. get subsequent data through websocket
 	err = f.subscribeEvent(ctx, feed)
