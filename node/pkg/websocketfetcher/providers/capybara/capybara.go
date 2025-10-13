@@ -93,14 +93,14 @@ func (f *CapybaraFetcher) run(ctx context.Context, feed common.Feed) {
 					continue
 				}
 
-				now := time.Now()
-				if last.Timestamp.Before(now.Add(-time.Hour)) {
+				if time.Since(*last.Timestamp) > time.Hour {
 					price, err := f.getInitialPrice(ctx, feed)
 					if err != nil {
 						log.Error().Str("Player", "Capybara").Err(err).Msg("failed to get refreshed price")
 						continue
 					}
 
+					now := time.Now()
 					refreshedFeedData := &common.FeedData{
 						FeedID:    feed.ID,
 						Value:     *price,
