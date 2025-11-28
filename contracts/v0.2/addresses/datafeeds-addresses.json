@@ -1298,17 +1298,6 @@
       "feed": "0x5ee9c2fe64b73cbc2633e76c75e8fe2bd2edcaf7"
     }
   },
-  "KSP-KRW": {
-    "cypress": {
-      "proxy": "0xc14904bfe59fb6e2d462b9a972aef253ea8549cd",
-      "feed": "0x86e8945a220a24a44831a3a714870409057a66e7"
-    },
-    "tag": "basic",
-    "baobab": {
-      "proxy": "0x1793692454949619a843285dd8274a0ea955b105",
-      "feed": "0xd6ab32aba7b33a10dec2f8555303ea5a9147bf36"
-    }
-  },
   "LINK-KRW": {
     "cypress": {
       "proxy": "0x2f141d92351e341e3e8b3eee657f4cc888a200b9",
