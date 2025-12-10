@@ -39,45 +39,54 @@ var urls = map[string]urlEntry{
 		"/{CHAIN}/peg-{CHAIN}.por.json",
 		"/{CHAIN}/peg.por.json",
 		false,
+		false,
 	},
 	"gp": {
 		"/{CHAIN}/gp-{CHAIN}.json",
 		"/{CHAIN}/gp.json",
+		false,
 		false,
 	},
 	"aapl": {
 		"/{CHAIN}/aapl-{CHAIN}.json",
 		"/{CHAIN}/aapl.json",
 		true,
+		true,
 	},
 	"amzn": {
 		"/{CHAIN}/amzn-{CHAIN}.json",
 		"/{CHAIN}/amzn.json",
+		true,
 		true,
 	},
 	"googl": {
 		"/{CHAIN}/googl-{CHAIN}.json",
 		"/{CHAIN}/googl.json",
 		true,
+		true,
 	},
 	"meta": {
 		"/{CHAIN}/meta-{CHAIN}.json",
 		"/{CHAIN}/meta.json",
+		true,
 		true,
 	},
 	"msft": {
 		"/{CHAIN}/msft-{CHAIN}.json",
 		"/{CHAIN}/msft.json",
 		true,
+		true,
 	},
 	"nvda": {
 		"/{CHAIN}/nvda-{CHAIN}.json",
 		"/{CHAIN}/nvda.json",
 		true,
+		true,
 	},
 	"tsla": {
 		"/{CHAIN}/tsla-{CHAIN}.json",
 		"/{CHAIN}/tsla.json",
+		true,
 		true,
 	},
 }
@@ -122,10 +131,11 @@ func New(ctx context.Context) (*app, error) {
 		}
 
 		e := entry{
-			definition: d,
-			adapter:    ad,
-			aggregator: ag,
-			useProxy:   u.useProxy,
+			definition:     d,
+			adapter:        ad,
+			aggregator:     ag,
+			useProxy:       u.useProxy,
+			useDelegatedTx: u.useDelegatedTx,
 		}
 
 		entries[n] = e
@@ -285,13 +295,25 @@ func (a *app) report(ctx context.Context, e entry, submissionValue float64, late
 	latestRoundIdParam := new(big.Int).SetUint64(uint64(latestRoundId))
 
 	err := retrier.Retry(func() error {
-		err := a.kaiaHelper.SubmitDirect(
-			ctx,
-			e.aggregator.Address,
-			submitInterface,
-			latestRoundIdParam,
-			submissionValueParam,
-		)
+		var err error
+		if e.useDelegatedTx {
+			err = a.kaiaHelper.SubmitDelegatedFallbackDirect(
+				ctx,
+				e.aggregator.Address,
+				submitInterface,
+				latestRoundIdParam,
+				submissionValueParam,
+			)
+		} else {
+			err = a.kaiaHelper.SubmitDirect(
+				ctx,
+				e.aggregator.Address,
+				submitInterface,
+				latestRoundIdParam,
+				submissionValueParam,
+			)
+		}
+
 		if err != nil && (chainUtils.IsNonceError(err) || errors.Is(err, context.DeadlineExceeded)) {
 			_ = a.kaiaHelper.FlushNoncePool(ctx)
 		}

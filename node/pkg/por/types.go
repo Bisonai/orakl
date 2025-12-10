@@ -46,10 +46,11 @@ type app struct {
 }
 
 type entry struct {
-	definition *fetcher.Definition
-	adapter    adaptor
-	aggregator aggregator
-	useProxy   bool
+	definition     *fetcher.Definition
+	adapter        adaptor
+	aggregator     aggregator
+	useProxy       bool
+	useDelegatedTx bool
 }
 
 type feed struct {
@@ -81,4 +82,5 @@ type lastInfo struct {
 type urlEntry struct {
 	adapterEndpoint, aggregatorEndpoint string
 	useProxy                            bool
+	useDelegatedTx                      bool
 }
