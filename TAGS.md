@@ -370,3 +370,4 @@
 - **node** v0.0.1.20251001.0832.608cf5d <br> *`PR`*: Chore reduce ttl for feed data... <br><br> 
 - **node** v0.0.1.20251013.0242.32e4cb4 <br> *`PR`*: Update feed data processing re... <br><br> 
 - **node** v0.0.1.20251013.0649.8977047 <br> *`PR`*: Less frequent traded pair refr... <br><br> 
+- **por** v0.0.1.20251210.0451.16d37d1 <br> *`PR`*: Delegated transaction from m7 <br><br> 
