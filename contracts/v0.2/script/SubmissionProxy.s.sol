@@ -207,6 +207,13 @@ contract DeploySubmissionProxy is Script {
         if (!vm.keyExists(json, ".deployFeed")) {
             return;
         }
+
+        uint8 decimals = DECIMALS;
+        if (vm.keyExists(json, ".deployFeed.decimals")) {
+            bytes memory decimalsRaw = json.parseRaw(".deployFeed.decimals");
+            decimals = abi.decode(decimalsRaw, (uint8));
+        }
+
         bytes memory raw = json.parseRaw(".deployFeed.feedNames");
         string[] memory feedNames = abi.decode(raw, (string[]));
 
@@ -214,12 +221,6 @@ contract DeploySubmissionProxy is Script {
         address[] memory feedAddresses = new address[](feedNames.length);
         address[] memory proxyAddresses = new address[](feedNames.length);
         for (uint256 j = 0; j < feedNames.length; j++) {
-            // TODO: support general decimals setting
-            uint8 decimals = DECIMALS;
-            if (compareStrings(feedNames[j], "BABYDOGE-USDT")) {
-                decimals = 16;
-            }
-
             Feed feed = new Feed(decimals, feedNames[j], address(submissionProxy));
             console.log("(Feed Deployed)", feedNames[j], address(feed));
             FeedProxy feedProxy = new FeedProxy(address(feed));

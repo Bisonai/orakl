@@ -493,9 +493,7 @@ contract SubmissionProxyTest is Test {
         IFeed(feeds_[0]).latestRoundData();
     }
 
-       function test_submitWithoutSupersedValidationIgnoreLateSubmission() public {
-
-
+    function test_submitWithoutSupersedValidationIgnoreLateSubmission() public {
         (address alice_, uint256 aliceSk_) = makeAddrAndKey("alice");
         (address bob_, uint256 bobSk_) = makeAddrAndKey("bob");
         (address celine_, uint256 celineSk_) = makeAddrAndKey("celine");
@@ -524,7 +522,7 @@ contract SubmissionProxyTest is Test {
 
         uint256[] memory oldTimestamps = new uint256[](timestamps_.length);
         for (uint256 i = 0; i < timestamps_.length; i++) {
-            oldTimestamps[i] = timestamps_[i] -1;
+            oldTimestamps[i] = timestamps_[i] - 1;
         }
         // should not revert
         submissionProxy.submitWithoutSupersedValidation(feedHashes_, submissions_, oldTimestamps, proofs_);
