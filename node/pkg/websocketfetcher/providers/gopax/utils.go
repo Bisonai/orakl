@@ -33,7 +33,7 @@ func TickerToFeedData(ticker Ticker, feedMap map[string][]int32) ([]*common.Feed
 		return nil, errorSentinel.ErrFetcherFeedNotFound
 	}
 	timestamp := time.UnixMilli(ticker.Timestamp)
-	value := common.FormatFloat64Price(ticker.Price)
+	value := ticker.Price
 
 	result := []*common.FeedData{}
 	for _, id := range ids {

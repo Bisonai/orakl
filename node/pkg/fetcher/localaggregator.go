@@ -213,7 +213,7 @@ func (c *LocalAggregator) streamLocalAggregate(ctx context.Context, aggregated f
 	if aggregated != 0 {
 		localAggregate := &LocalAggregate{
 			ConfigID:  c.ID,
-			Value:     int64(aggregated),
+			Value:     c.applyDecimals(aggregated),
 			Timestamp: time.Now(),
 		}
 
@@ -230,6 +230,10 @@ func (c *LocalAggregator) streamLocalAggregate(ctx context.Context, aggregated f
 	}
 
 	return nil
+}
+
+func (c *LocalAggregator) applyDecimals(value float64) int64 {
+	return int64(value * math.Pow10(c.Config.Decimals))
 }
 
 func (c *LocalAggregator) collect(ctx context.Context) ([]*FeedData, error) {

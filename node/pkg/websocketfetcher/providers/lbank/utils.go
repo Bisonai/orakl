@@ -21,7 +21,7 @@ func ResponseToFeedData(data Response, feedMap map[string][]int32) ([]*common.Fe
 		return nil, err
 	}
 	timestamp := timestampRaw.UTC()
-	value := common.FormatFloat64Price(data.Tick.Latest)
+	value := data.Tick.Latest
 	symbol := strings.ToUpper(strings.ReplaceAll(data.Pair, "_", "-"))
 	volume := data.Tick.Vol
 

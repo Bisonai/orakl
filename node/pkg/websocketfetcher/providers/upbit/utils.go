@@ -11,7 +11,7 @@ import (
 func ResponseToFeedData(data Response, feedMap map[string][]int32) ([]*common.FeedData, error) {
 
 	timestamp := time.UnixMilli(data.TradeTimestamp)
-	price := common.FormatFloat64Price(data.TradePrice)
+	price := data.TradePrice
 
 	volume := data.AccTradeVolume24h
 

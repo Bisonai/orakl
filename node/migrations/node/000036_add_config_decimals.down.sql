@@ -1,0 +1,1 @@
+ALTER TABLE configs DROP COLUMN IF EXISTS decimals;

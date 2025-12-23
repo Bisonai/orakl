@@ -19,7 +19,7 @@ func TradeEventToFeedData(data TradeEvent, feedMap map[string][]int32, volumeCac
 	}
 
 	timestamp := time.Unix(0, rawTimestamp*int64(time.Microsecond))
-	value := common.FormatFloat64Price(data.Data.Price)
+	value := data.Data.Price
 	splitted := strings.Split(data.Channel, "_")
 	if len(splitted) < 3 {
 		return nil, fmt.Errorf("invalid feed name")

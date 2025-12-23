@@ -14,7 +14,7 @@ func ResponseToFeedData(response Response, feedMap map[string][]int32) ([]*commo
 		return nil, fmt.Errorf("feed not found for %s", symbol)
 	}
 	timestamp := time.UnixMilli(response.Data.EventTime)
-	value := common.FormatFloat64Price(response.Data.Price)
+	value := response.Data.Price
 	volume := response.Data.Volume
 
 	result := []*common.FeedData{}
