@@ -5,7 +5,6 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"io"
-	"math"
 	"strconv"
 	"strings"
 
@@ -50,25 +49,11 @@ func GetWssFeedMap(feeds []Feed) map[string]FeedMaps {
 }
 
 func PriceStringToFloat64(price string) (float64, error) {
-	f, err := strconv.ParseFloat(price, 64)
-	if err != nil {
-		return 0, err
-	}
-
-	return FormatFloat64Price(f), nil
+	return strconv.ParseFloat(price, 64)
 }
 
 func VolumeStringToFloat64(volume string) (float64, error) {
 	return strconv.ParseFloat(volume, 64)
-}
-
-func FormatFloat64Price(price float64) float64 {
-	// TODO: support general decimals setting
-	result := price * float64(math.Pow10(DECIMALS))
-	if result < 1 {
-		result = result * float64(math.Pow10(DECIMALS))
-	}
-	return result
 }
 
 func MessageToStruct[T any](message map[string]any) (T, error) {

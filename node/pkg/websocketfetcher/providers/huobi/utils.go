@@ -12,7 +12,7 @@ import (
 func ResponseToFeedData(response Response, feedMap map[string][]int32) ([]*common.FeedData, error) {
 
 	timestamp := time.UnixMilli(response.Ts)
-	price := common.FormatFloat64Price(response.Tick.LastPrice)
+	price := response.Tick.LastPrice
 
 	splitted := strings.Split(response.Ch, ".")
 	if len(splitted) < 3 || splitted[2] != "ticker" {

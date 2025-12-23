@@ -18,7 +18,7 @@ func RawDataToFeedData(raw SymbolSnapshotRaw, feedMap map[string][]int32) ([]*co
 	}
 
 	timestamp := time.UnixMilli(snapshot.Time)
-	value := common.FormatFloat64Price(snapshot.Price)
+	value := snapshot.Price
 	volume := snapshot.Volume
 
 	result := []*common.FeedData{}

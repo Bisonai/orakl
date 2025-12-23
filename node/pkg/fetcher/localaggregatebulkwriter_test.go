@@ -2,6 +2,7 @@ package fetcher
 
 import (
 	"context"
+	"math"
 	"testing"
 	"time"
 
@@ -26,6 +27,11 @@ func TestLocalAggregateBulkWriter(t *testing.T) {
 	configs, err := app.getConfigs(ctx)
 	if err != nil {
 		t.Fatalf("error getting configs: %v", err)
+	}
+
+	configMap := make(map[int32]Config, len(configs))
+	for _, config := range configs {
+		configMap[config.ID] = config
 	}
 
 	localAggregatesChannel := make(chan *LocalAggregate, LocalAggregatesChannelSize)
@@ -55,7 +61,10 @@ func TestLocalAggregateBulkWriter(t *testing.T) {
 	}
 
 	data := <-localAggregatesChannel
-	assert.Equal(t, DUMMY_FEED_VALUE, float64(data.Value))
+
+	decimals := configMap[data.ConfigID].Decimals
+
+	assert.Equal(t, DUMMY_FEED_VALUE*math.Pow10(decimals), float64(data.Value))
 
 	go app.LocalAggregateBulkWriter.Run(ctx)
 
@@ -67,5 +76,5 @@ func TestLocalAggregateBulkWriter(t *testing.T) {
 	if pgsqlErr != nil {
 		t.Fatalf("error getting local aggregate from pgsql: %v", pgsqlErr)
 	}
-	assert.Equal(t, float64(pgsqlData.Value), DUMMY_FEED_VALUE)
+	assert.Equal(t, DUMMY_FEED_VALUE*math.Pow10(decimals), float64(pgsqlData.Value))
 }

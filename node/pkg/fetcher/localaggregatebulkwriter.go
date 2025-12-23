@@ -44,7 +44,7 @@ loop:
 	for {
 		select {
 		case data := <-a.localAggregatesChannel:
-			localAggregatesDataPgsql = append(localAggregatesDataPgsql, []any{data.ConfigID, int64(data.Value), data.Timestamp})
+			localAggregatesDataPgsql = append(localAggregatesDataPgsql, []any{data.ConfigID, data.Value, data.Timestamp})
 		default:
 			break loop
 		}

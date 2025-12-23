@@ -94,26 +94,21 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 	}))
 
 	testItems.TmpConfig = Config{
-		ID:                13,
-		Name:              "test-aggregate",
-		FetchInterval:     15000,
-		AggregateInterval: 15000,
-		SubmitInterval:    15000,
+		ID:   13,
+		Name: "test-aggregate",
 	}
-
-	symbols := []string{testItems.TmpConfig.Name}
 
 	keyCache := keycache.NewAPIKeyCache(1 * time.Hour)
 	keyCache.CleanupLoop(10 * time.Minute)
 
-	collector, err := collector.NewCollector(ctx, symbols)
+	collector, err := collector.NewCollector(ctx, []types.Config{testItems.TmpConfig})
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to setup DAL API server")
 		return nil, nil, err
 	}
 	collector.Start(ctx)
 
-	hub := hub.HubSetup(ctx, symbols)
+	hub := hub.HubSetup(ctx, []types.Config{testItems.TmpConfig})
 	go hub.Start(ctx, collector)
 
 	statsApp := stats.NewStatsApp(ctx, stats.WithBulkLogsCopyInterval(1*time.Second))

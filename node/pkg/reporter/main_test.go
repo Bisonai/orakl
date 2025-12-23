@@ -74,25 +74,20 @@ func mockDalWsServer(ctx context.Context) (*wss.WebsocketHelper, *types.Config, 
 	}
 
 	tmpConfig := types.Config{
-		ID:                13,
-		Name:              "test-aggregate",
-		FetchInterval:     15000,
-		AggregateInterval: 15000,
-		SubmitInterval:    15000,
+		ID:   13,
+		Name: "test-aggregate",
 	}
-
-	symbols := []string{tmpConfig.Name}
 
 	keyCache := keycache.NewAPIKeyCache(1 * time.Hour)
 	keyCache.CleanupLoop(10 * time.Minute)
 
-	collector, err := collector.NewCollector(ctx, symbols)
+	collector, err := collector.NewCollector(ctx, []types.Config{tmpConfig})
 	if err != nil {
 		return nil, nil, nil, err
 	}
 	collector.Start(ctx)
 
-	h := hub.HubSetup(ctx, symbols)
+	h := hub.HubSetup(ctx, []types.Config{tmpConfig})
 	go h.Start(ctx, collector)
 
 	statsApp := stats.NewStatsApp(ctx, stats.WithBulkLogsCopyInterval(1*time.Second))
@@ -109,5 +104,5 @@ func mockDalWsServer(ctx context.Context) (*wss.WebsocketHelper, *types.Config, 
 		return nil, nil, nil, err
 	}
 
-	return conn, &tmpConfig, symbols, nil
+	return conn, &tmpConfig, []string{tmpConfig.Name}, nil
 }

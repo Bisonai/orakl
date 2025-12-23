@@ -16,7 +16,7 @@ func ResponseToFeedData(response Response, feedMap map[string][]int32) []*common
 			continue
 		}
 
-		value := common.FormatFloat64Price(data.Price)
+		value := data.Price
 		timestamp := time.Now()
 		volume := data.Volume
 
