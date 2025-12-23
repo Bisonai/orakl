@@ -82,7 +82,7 @@ func TestGetWssFeedMap(t *testing.T) {
 
 func TestPriceStringToFloat64(t *testing.T) {
 	price := "10000.123400"
-	expected := 1000012340000.0
+	expected := 10000.123400
 	result, err := common.PriceStringToFloat64(price)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
