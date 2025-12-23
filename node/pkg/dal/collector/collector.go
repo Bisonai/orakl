@@ -98,6 +98,7 @@ func NewCollector(ctx context.Context, configs []types.Config) (*Collector, erro
 		FeedHashes:       make(map[string][]byte, len(configs)),
 		LatestTimestamps: make(map[string]time.Time),
 		LatestData:       make(map[string]*dalcommon.OutgoingSubmissionData),
+		Configs:          make(map[string]Config, len(configs)),
 
 		chainReader:                 chainReader,
 		CachedWhitelist:             initialWhitelist,
