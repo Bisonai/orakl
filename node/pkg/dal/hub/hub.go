@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"bisonai.com/miko/node/pkg/common/types"
 	"bisonai.com/miko/node/pkg/dal/collector"
 	dalcommon "bisonai.com/miko/node/pkg/dal/common"
 	"bisonai.com/miko/node/pkg/dal/utils/stats"
@@ -33,10 +34,10 @@ const (
 	CleanupInterval = time.Hour
 )
 
-func HubSetup(ctx context.Context, symbols []string) *Hub {
+func HubSetup(ctx context.Context, configs []types.Config) *Hub {
 	symbolsMap := make(map[string]struct{})
-	for _, symbol := range symbols {
-		symbolsMap[symbol] = struct{}{}
+	for _, config := range configs {
+		symbolsMap[config.Name] = struct{}{}
 	}
 
 	hub := NewHub(symbolsMap)

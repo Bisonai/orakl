@@ -37,20 +37,20 @@ func Run(ctx context.Context) error {
 		return errorsentinel.ErrDalChainEnvNotFound
 	}
 
-	symbols, err := fetchSymbols(chain)
+	configs, err := fetchConfigs(chain)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to fetch symbols")
+		log.Error().Err(err).Msg("Failed to fetch configs")
 		return err
 	}
 
-	collector, err := collector.NewCollector(ctx, symbols)
+	collector, err := collector.NewCollector(ctx, configs)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to setup collector")
 		return err
 	}
 	collector.Start(ctx)
 
-	hub := hub.HubSetup(ctx, symbols)
+	hub := hub.HubSetup(ctx, configs)
 	go hub.Start(ctx, collector)
 
 	err = apiv2.Start(ctx, apiv2.WithCollector(collector), apiv2.WithHub(hub), apiv2.WithKeyCache(keyCache), apiv2.WithStatsApp(statsApp))
@@ -62,26 +62,8 @@ func Run(ctx context.Context) error {
 	return nil
 }
 
-func fetchSymbols(chain string) ([]string, error) {
-	type ConfigEntry struct {
-		Name string `json:"name"`
-	}
-
-	results, err := request.Request[[]ConfigEntry](
+func fetchConfigs(chain string) ([]Config, error) {
+	return request.Request[[]Config](
 		request.WithEndpoint(fmt.Sprintf(baseMikoConfigUrl, chain)),
 		request.WithTimeout(5*time.Second))
-	if err != nil {
-		return nil, err
-	}
-
-	if len(results) == 0 {
-		return nil, errorsentinel.ErrDalSymbolsNotFound
-	}
-
-	var symbols []string
-	for _, result := range results {
-		symbols = append(symbols, result.Name)
-	}
-
-	return symbols, nil
 }

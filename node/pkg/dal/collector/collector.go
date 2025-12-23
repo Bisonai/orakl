@@ -37,6 +37,7 @@ type Collector struct {
 	FeedHashes       map[string][]byte
 	LatestTimestamps map[string]time.Time
 	LatestData       map[string]*dalcommon.OutgoingSubmissionData
+	Configs          map[string]Config
 	CachedWhitelist  []kaiacommon.Address
 
 	baseRediscribe *db.Rediscribe
@@ -51,7 +52,7 @@ type Collector struct {
 	mu sync.RWMutex
 }
 
-func NewCollector(ctx context.Context, symbols []string) (*Collector, error) {
+func NewCollector(ctx context.Context, configs []types.Config) (*Collector, error) {
 	kaiaRestUrl := os.Getenv("KAIA_PROVIDER_URL")
 	if kaiaRestUrl == "" {
 		return nil, errors.New("KAIA_PROVIDER_URL is not set")
@@ -93,20 +94,22 @@ func NewCollector(ctx context.Context, symbols []string) (*Collector, error) {
 	}
 
 	collector := &Collector{
-		OutgoingStream:              make(map[string]chan *dalcommon.OutgoingSubmissionData, len(symbols)),
-		FeedHashes:                  make(map[string][]byte, len(symbols)),
-		LatestTimestamps:            make(map[string]time.Time),
-		LatestData:                  make(map[string]*dalcommon.OutgoingSubmissionData),
+		OutgoingStream:   make(map[string]chan *dalcommon.OutgoingSubmissionData, len(configs)),
+		FeedHashes:       make(map[string][]byte, len(configs)),
+		LatestTimestamps: make(map[string]time.Time),
+		LatestData:       make(map[string]*dalcommon.OutgoingSubmissionData),
+
 		chainReader:                 chainReader,
 		CachedWhitelist:             initialWhitelist,
 		submissionProxyContractAddr: submissionProxyContractAddr,
 	}
 
 	redisTopics := []string{}
-	for _, symbol := range symbols {
-		collector.OutgoingStream[symbol] = make(chan *dalcommon.OutgoingSubmissionData, 1000)
-		collector.FeedHashes[symbol] = crypto.Keccak256([]byte(symbol))
-		redisTopics = append(redisTopics, keys.SubmissionDataStreamKey(symbol))
+	for _, config := range configs {
+		collector.OutgoingStream[config.Name] = make(chan *dalcommon.OutgoingSubmissionData, 1000)
+		collector.FeedHashes[config.Name] = crypto.Keccak256([]byte(config.Name))
+		collector.Configs[config.Name] = config
+		redisTopics = append(redisTopics, keys.SubmissionDataStreamKey(config.Name))
 	}
 
 	baseRediscribe, err := db.NewRediscribe(
@@ -271,10 +274,11 @@ func (c *Collector) IncomingDataToOutgoingData(ctx context.Context, data *aggreg
 		return nil, err
 	}
 
-	// TODO: support general decimals setting
 	decimals := DefaultDecimals
-	if data.Symbol == "BABYDOGE-USDT" {
-		decimals = "16"
+	if config, ok := c.Configs[data.Symbol]; ok {
+		if config.Decimals != nil && *config.Decimals != 0 {
+			decimals = strconv.Itoa(*config.Decimals)
+		}
 	}
 
 	return &dalcommon.OutgoingSubmissionData{
