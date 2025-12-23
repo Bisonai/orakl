@@ -81,9 +81,10 @@ func sync(ctx context.Context) error {
 
 	removingConfigs := []string{}
 	for _, dbConfig := range dbConfigs {
-		_, ok := loadedConfigMap[dbConfig.Name]
-		if !ok {
-			log.Info().Str("Player", "Config").Str("Config", dbConfig.Name).Msg("Config not found in config")
+		latest, ok := loadedConfigMap[dbConfig.Name]
+		// TODO: consider other properties as well
+		if !ok || latest.Decimals != nil && dbConfig.Decimals != nil && *latest.Decimals != *dbConfig.Decimals {
+			log.Info().Str("Player", "Config").Str("Config", dbConfig.Name).Int("latestDecimals", *latest.Decimals).Int("dbDecimals", *dbConfig.Decimals).Msg("data mismatch in config")
 			removingConfigs = append(removingConfigs, strconv.Itoa(int(dbConfig.ID)))
 		}
 	}
