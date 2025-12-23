@@ -1,0 +1,3 @@
+ALTER TABLE feed_data
+ALTER COLUMN value TYPE INT8
+USING value::INT8;
