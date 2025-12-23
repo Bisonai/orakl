@@ -123,6 +123,7 @@ on:
           - node:v0.0.1.20251013.0242.32e4cb4:Update feed data processing re...
           - node:v0.0.1.20251013.0649.8977047:Less frequent traded pair refr...
           - por:v0.0.1.20251210.0451.16d37d1:Delegated transaction from m7
+          - dal:v0.0.1.20251223.0633.f7ac3bb:deploy baobab contracts
 jobs:
   prepare-taskflow:
     name: Prepare

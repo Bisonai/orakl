@@ -371,3 +371,4 @@
 - **node** v0.0.1.20251013.0242.32e4cb4 <br> *`PR`*: Update feed data processing re... <br><br> 
 - **node** v0.0.1.20251013.0649.8977047 <br> *`PR`*: Less frequent traded pair refr... <br><br> 
 - **por** v0.0.1.20251210.0451.16d37d1 <br> *`PR`*: Delegated transaction from m7 <br><br> 
+- **dal** v0.0.1.20251223.0633.f7ac3bb <br> *`PR`*: deploy baobab contracts <br><br> 
