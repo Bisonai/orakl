@@ -84,7 +84,7 @@ func sync(ctx context.Context) error {
 		latest, ok := loadedConfigMap[dbConfig.Name]
 		// TODO: consider other properties as well
 		if !ok || latest.Decimals != nil && dbConfig.Decimals != nil && *latest.Decimals != *dbConfig.Decimals {
-			log.Info().Str("Player", "Config").Str("Config", dbConfig.Name).Int("latestDecimals", *latest.Decimals).Int("dbDecimals", *dbConfig.Decimals).Msg("data mismatch in config")
+			log.Info().Str("Player", "Config").Any("DBConfig", dbConfig).Any("LatestConfig", latest).Msg("data mismatch in config")
 			removingConfigs = append(removingConfigs, strconv.Itoa(int(dbConfig.ID)))
 		}
 	}
