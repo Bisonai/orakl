@@ -125,6 +125,7 @@ on:
           - por:v0.0.1.20251210.0451.16d37d1:Delegated transaction from m7
           - dal:v0.0.1.20251223.0633.f7ac3bb:deploy baobab contracts
           - node:v0.0.1.20251223.0633.f7ac3bb:deploy baobab contracts
+          - node:v0.0.1.20251223.0654.ced9837:Hotfix pointer
 jobs:
   prepare-taskflow:
     name: Prepare

@@ -373,3 +373,4 @@
 - **por** v0.0.1.20251210.0451.16d37d1 <br> *`PR`*: Delegated transaction from m7 <br><br> 
 - **dal** v0.0.1.20251223.0633.f7ac3bb <br> *`PR`*: deploy baobab contracts <br><br> 
 - **node** v0.0.1.20251223.0633.f7ac3bb <br> *`PR`*: deploy baobab contracts <br><br> 
+- **node** v0.0.1.20251223.0654.ced9837 <br> *`PR`*: Hotfix pointer <br><br> 
