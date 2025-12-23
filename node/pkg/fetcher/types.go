@@ -37,7 +37,7 @@ type Config struct {
 	ID            int32  `db:"id"`
 	Name          string `db:"name"`
 	FetchInterval int32  `db:"fetch_interval"`
-	Decimals      int    `db:"decimals"`
+	Decimals      *int   `db:"decimals"`
 }
 
 type Fetcher struct {

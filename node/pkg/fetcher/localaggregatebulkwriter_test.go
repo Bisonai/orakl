@@ -63,8 +63,12 @@ func TestLocalAggregateBulkWriter(t *testing.T) {
 	data := <-localAggregatesChannel
 
 	decimals := configMap[data.ConfigID].Decimals
+	if decimals == nil {
+		defaultDecimals := DECIMALS
+		decimals = &defaultDecimals
+	}
 
-	assert.Equal(t, DUMMY_FEED_VALUE*math.Pow10(decimals), float64(data.Value))
+	assert.Equal(t, DUMMY_FEED_VALUE*math.Pow10(*decimals), float64(data.Value))
 
 	go app.LocalAggregateBulkWriter.Run(ctx)
 
@@ -76,5 +80,5 @@ func TestLocalAggregateBulkWriter(t *testing.T) {
 	if pgsqlErr != nil {
 		t.Fatalf("error getting local aggregate from pgsql: %v", pgsqlErr)
 	}
-	assert.Equal(t, DUMMY_FEED_VALUE*math.Pow10(decimals), float64(pgsqlData.Value))
+	assert.Equal(t, DUMMY_FEED_VALUE*math.Pow10(*decimals), float64(pgsqlData.Value))
 }
