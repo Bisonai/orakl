@@ -226,14 +226,19 @@ func (a *App) initializeCex(ctx context.Context, appConfig AppConfig) error {
 func (a *App) initializeDex(ctx context.Context, appConfig AppConfig) error {
 	kaiaWebsocketUrl := secrets.GetSecret("KAIA_WEBSOCKET_URL")
 	ethWebsocketUrl := secrets.GetSecret("ETH_WEBSOCKET_URL")
-	if kaiaWebsocketUrl == "" || ethWebsocketUrl == "" {
-		log.Error().Msg("KAIA_WEBSOCKET_URL and ETH_WEBSOCKET_URL must be set")
-		return errors.New("KAIA_WEBSOCKET_URL and ETH_WEBSOCKET_URL must be set")
+	bscWebsocketUrl := secrets.GetSecret("BSC_WEBSOCKET_URL")
+	polygonWebsocketUrl := secrets.GetSecret("POLYGON_WEBSOCKET_URL")
+	if kaiaWebsocketUrl == "" || ethWebsocketUrl == "" || bscWebsocketUrl == "" || polygonWebsocketUrl == "" {
+		log.Error().Msg("KAIA_WEBSOCKET_URL, ETH_WEBSOCKET_URL, BSC_WEBSOCKET_URL, and POLYGON_WEBSOCKET_URL must be set")
+		return errors.New("KAIA_WEBSOCKET_URL, ETH_WEBSOCKET_URL, BSC_WEBSOCKET_URL, and POLYGON_WEBSOCKET_URL must be set")
 	}
 
 	chainReader, err := websocketchainreader.New(
 		websocketchainreader.WithEthWebsocketUrl(ethWebsocketUrl),
-		websocketchainreader.WithKaiaWebsocketUrl(kaiaWebsocketUrl))
+		websocketchainreader.WithKaiaWebsocketUrl(kaiaWebsocketUrl),
+		websocketchainreader.WithBSCWebsocketUrl(bscWebsocketUrl),
+		websocketchainreader.WithPolygonWebsocketUrl(polygonWebsocketUrl),
+	)
 	if err != nil {
 		log.Error().Err(err).Msg("error in creating chain reader")
 		return err
