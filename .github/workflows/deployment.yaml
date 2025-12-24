@@ -127,6 +127,7 @@ on:
           - node:v0.0.1.20251223.0633.f7ac3bb:deploy baobab contracts
           - node:v0.0.1.20251223.0654.ced9837:Hotfix pointer
           - node:v0.0.1.20251223.0934.ee56928:Deploy mainnet contracts
+          - node:v0.0.1.20251224.0822.35b441a:Support new chain and protocol
 jobs:
   prepare-taskflow:
     name: Prepare
