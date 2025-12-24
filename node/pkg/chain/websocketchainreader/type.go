@@ -13,12 +13,16 @@ type BlockchainType int
 const (
 	Kaia     BlockchainType = 1
 	Ethereum BlockchainType = 2
+	BSC      BlockchainType = 3
+	Polygon  BlockchainType = 4
 )
 
 type ChainReaderConfig struct {
-	KaiaWebsocketUrl string
-	EthWebsocketUrl  string
-	RetryInterval    time.Duration
+	KaiaWebsocketUrl    string
+	EthWebsocketUrl     string
+	BSCWebsocketUrl     string
+	PolygonWebsocketUrl string
+	RetryInterval       time.Duration
 }
 
 type ChainReaderOption func(*ChainReaderConfig)
@@ -35,6 +39,18 @@ func WithEthWebsocketUrl(url string) ChainReaderOption {
 	}
 }
 
+func WithBSCWebsocketUrl(url string) ChainReaderOption {
+	return func(c *ChainReaderConfig) {
+		c.BSCWebsocketUrl = url
+	}
+}
+
+func WithPolygonWebsocketUrl(url string) ChainReaderOption {
+	return func(c *ChainReaderConfig) {
+		c.PolygonWebsocketUrl = url
+	}
+}
+
 func WithRetryInterval(interval time.Duration) ChainReaderOption {
 	return func(c *ChainReaderConfig) {
 		c.RetryInterval = interval
@@ -44,6 +60,8 @@ func WithRetryInterval(interval time.Duration) ChainReaderOption {
 type ChainReader struct {
 	KaiaClient         utils.ClientInterface
 	EthClient          utils.ClientInterface
+	BscClient          utils.ClientInterface
+	PolygonClient      utils.ClientInterface
 	RetryPeriod        time.Duration
 	ChainIdToChainType map[string]BlockchainType
 }

@@ -293,10 +293,7 @@ func rawPriceToFloat64(rawPrice *big.Int, toTokenDecimals int) (*float64, error)
 
 	price.Quo(price, denom)
 
-	price.Mul(price, new(big.Float).SetFloat64(math.Pow(10, common.DECIMALS)))
-
 	result, _ := price.Float64()
-	result = math.Round(result)
 
 	return &result, nil
 }
