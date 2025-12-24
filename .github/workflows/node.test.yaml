@@ -96,6 +96,8 @@ jobs:
           ENCRYPT_PASSWORD: "anything"
           KAIA_WEBSOCKET_URL: "wss://public-en.node.kaia.io/ws"
           ETH_WEBSOCKET_URL: "wss://ethereum-rpc.publicnode.com"
+          BSC_WEBSOCKET_URL: "wss://bsc-rpc.publicnode.com"
+          POLYGON_WEBSOCKET_URL: "wss://polygon-bor-rpc.publicnode.com"
           KAIA_PROVIDER_URL: "https://public-en-kairos.node.kaia.io"
           KAIA_REPORTER_PK: ${{ secrets.TEST_DELEGATOR_REPORTER_PK}}
           ETH_PROVIDER_URL: "wss://ethereum-sepolia-rpc.publicnode.com"

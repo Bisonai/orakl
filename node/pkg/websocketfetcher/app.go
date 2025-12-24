@@ -36,6 +36,7 @@ import (
 	"bisonai.com/miko/node/pkg/websocketfetcher/providers/mexc"
 	"bisonai.com/miko/node/pkg/websocketfetcher/providers/okx"
 	"bisonai.com/miko/node/pkg/websocketfetcher/providers/orangex"
+	"bisonai.com/miko/node/pkg/websocketfetcher/providers/pancakeswap"
 	"bisonai.com/miko/node/pkg/websocketfetcher/providers/uniswap"
 	"bisonai.com/miko/node/pkg/websocketfetcher/providers/upbit"
 	"bisonai.com/miko/node/pkg/websocketfetcher/providers/xt"
@@ -147,8 +148,9 @@ func (a *App) Init(ctx context.Context, opts ...AppOption) error {
 	}
 
 	dexFactories := map[string]func(...common.DexFetcherOption) common.FetcherInterface{
-		"uniswap":  uniswap.New,
-		"capybara": capybara.New,
+		"uniswap":     uniswap.New,
+		"capybara":    capybara.New,
+		"pancakeswap": pancakeswap.New,
 	}
 
 	appConfig := &AppConfig{
