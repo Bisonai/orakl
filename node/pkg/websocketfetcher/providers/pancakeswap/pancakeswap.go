@@ -172,7 +172,7 @@ func (f *PancakeswapFetcher) getPriceThroughSlotCall(ctx context.Context, defini
 func getTokenPrice(sqrtPrice *big.Int, definition *common.DexFeedDefinition) (*float64, error) {
 	decimal0 := definition.Token0Decimals
 	decimal1 := definition.Token1Decimals
-	if sqrtPrice == nil || decimal0 == 0 || decimal1 == 0 {
+	if sqrtPrice == nil {
 		return nil, errorSentinel.ErrFetcherInvalidInput
 	}
 

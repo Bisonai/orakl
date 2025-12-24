@@ -191,6 +191,14 @@ func (c *ChainReader) client(chainType BlockchainType) utils.ClientInterface {
 		return c.EthClient
 	}
 
+	if chainType == BSC {
+		return c.BscClient
+	}
+
+	if chainType == Polygon {
+		return c.PolygonClient
+	}
+
 	return c.KaiaClient
 }
 
