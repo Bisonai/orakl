@@ -23,7 +23,8 @@ func New(opts ...ChainReaderOption) (*ChainReader, error) {
 		opt(config)
 	}
 
-	if config.EthWebsocketUrl == "" && config.KaiaWebsocketUrl == "" && config.BSCWebsocketUrl == "" && config.PolygonWebsocketUrl == "" {
+	if config.EthWebsocketUrl == "" || config.KaiaWebsocketUrl == "" || config.BSCWebsocketUrl == "" || config.PolygonWebsocketUrl == "" {
+		log.Error().Msg("EthWebsocketUrl, KaiaWebsocketUrl, BSCWebsocketUrl, and PolygonWebsocketUrl must be set")
 		return nil, errorSentinel.ErrChainWebsocketUrlNotProvided
 	}
 
@@ -64,7 +65,7 @@ func New(opts ...ChainReaderOption) (*ChainReader, error) {
 	}
 
 	var (
-		bscClient *eth_client.EthClient
+		bscClient  *eth_client.EthClient
 		bscChainId *big.Int
 	)
 	if config.BSCWebsocketUrl != "" {
@@ -82,7 +83,7 @@ func New(opts ...ChainReaderOption) (*ChainReader, error) {
 	}
 
 	var (
-		polygonClient *eth_client.EthClient
+		polygonClient  *eth_client.EthClient
 		polygonChainId *big.Int
 	)
 	if config.PolygonWebsocketUrl != "" {

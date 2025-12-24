@@ -65,7 +65,7 @@ func (f *PancakeswapFetcher) Run(ctx context.Context) {
 func (f *PancakeswapFetcher) run(ctx context.Context, feed common.Feed) {
 	price, err := f.getInitialPrice(ctx, feed)
 	if err != nil {
-		log.Error().Str("Player", "Uniswap").Err(err).Msg("error in uniswap.run, failed to get initial price")
+		log.Error().Str("Player", "Pancakeswap").Err(err).Msg("error in pancakeswap.run, failed to get initial price")
 		return
 	}
 
@@ -75,7 +75,7 @@ func (f *PancakeswapFetcher) run(ctx context.Context, feed common.Feed) {
 		Value:     *price,
 		Timestamp: &now,
 	}
-	log.Debug().Str("Player", "Uniswap").Any("feedData", initialFeedData).Msg("initial price fetched")
+	log.Debug().Str("Player", "Pancakeswap").Any("feedData", initialFeedData).Msg("initial price fetched")
 	f.FeedDataBuffer <- initialFeedData
 
 	f.Mutex.Lock()
@@ -101,7 +101,7 @@ func (f *PancakeswapFetcher) run(ctx context.Context, feed common.Feed) {
 				if time.Since(*last.Timestamp) > time.Hour {
 					price, err := f.getInitialPrice(ctx, feed)
 					if err != nil {
-						log.Error().Str("Player", "Pancakeswap").Err(err).Msg("failed to get refreshed price")
+						log.Error().Str("Player", "Pancakeswap").Err(err).Msg("error in pancakeswap.run, failed to get refreshed price")
 						continue
 					}
 
@@ -221,13 +221,13 @@ func (f *PancakeswapFetcher) readSwapEvent(ctx context.Context, feed common.Feed
 
 	eventName, input, _, eventParseErr = utils.ParseMethodSignature(EVENT)
 	if eventParseErr != nil {
-		log.Error().Str("Player", "Uniswap").Err(eventParseErr).Msg("error in uniswap.subscribeEvent, failed to parse method signature")
+		log.Error().Str("Player", "Pancakeswap").Err(eventParseErr).Msg("error in pancakeswap.subscribeEvent, failed to parse method signature")
 		return eventParseErr
 	}
 
 	swapEventABI, err := utils.GenerateEventABI(eventName, input)
 	if err != nil {
-		log.Error().Str("Player", "Uniswap").Err(err).Msg("error in uniswap.subscribeEvent, failed to generate event abi")
+		log.Error().Str("Player", "Pancakeswap").Err(err).Msg("error in pancakeswap.subscribeEvent, failed to generate event abi")
 		return err
 	}
 
@@ -237,7 +237,7 @@ func (f *PancakeswapFetcher) readSwapEvent(ctx context.Context, feed common.Feed
 		websocketchainreader.WithChannel(logChannel),
 		websocketchainreader.WithChainType(chainType))
 	if err != nil {
-		log.Error().Str("Player", "Uniswap").Err(err).Msg("error in uniswap.subscribeEvent, failed to subscribe")
+		log.Error().Str("Player", "Pancakeswap").Err(err).Msg("error in pancakeswap.subscribeEvent, failed to subscribe")
 		return err
 	}
 
@@ -249,7 +249,7 @@ func (f *PancakeswapFetcher) readSwapEvent(ctx context.Context, feed common.Feed
 		sqrtPrice := res[2]
 		price, err := getTokenPrice(sqrtPrice.(*big.Int), definition)
 		if err != nil {
-			log.Error().Str("Player", "Uniswap").Err(err).Msg("error in uniswap.subscribeEvent, failed to get token price")
+			log.Error().Str("Player", "Pancakeswap").Err(err).Msg("error in pancakeswap.subscribeEvent, failed to get token price")
 			continue
 		}
 		now := time.Now()
@@ -258,7 +258,7 @@ func (f *PancakeswapFetcher) readSwapEvent(ctx context.Context, feed common.Feed
 			Value:     *price,
 			Timestamp: &now,
 		}
-		log.Debug().Str("Player", "Uniswap").Any("feedData", feedData).Msg("price fetched")
+		log.Debug().Str("Player", "Pancakeswap").Any("feedData", feedData).Msg("price fetched")
 		f.FeedDataBuffer <- feedData
 		f.Mutex.Lock()
 		f.LatestEntries[feed.ID] = feedData
