@@ -237,7 +237,7 @@ func (f *UniswapFetcher) readSwapEvent(ctx context.Context, feed common.Feed, de
 func getTokenPrice(sqrtPrice *big.Int, definition *common.DexFeedDefinition) (*float64, error) {
 	decimal0 := definition.Token0Decimals
 	decimal1 := definition.Token1Decimals
-	if sqrtPrice == nil || decimal0 == 0 || decimal1 == 0 {
+	if sqrtPrice == nil {
 		return nil, errorSentinel.ErrFetcherInvalidInput
 	}
 
@@ -255,11 +255,7 @@ func getTokenPrice(sqrtPrice *big.Int, definition *common.DexFeedDefinition) (*f
 		datum = datum.Quo(new(big.Float).SetFloat64(1), datum)
 	}
 
-	multiplier := new(big.Float).SetFloat64(math.Pow(10, common.DECIMALS))
-	datum.Mul(datum, multiplier)
-
 	result, _ := datum.Float64()
-	result = math.Round(result)
 
 	return &result, nil
 }

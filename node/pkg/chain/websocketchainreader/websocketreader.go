@@ -23,7 +23,8 @@ func New(opts ...ChainReaderOption) (*ChainReader, error) {
 		opt(config)
 	}
 
-	if config.EthWebsocketUrl == "" && config.KaiaWebsocketUrl == "" {
+	if config.EthWebsocketUrl == "" || config.KaiaWebsocketUrl == "" || config.BSCWebsocketUrl == "" || config.PolygonWebsocketUrl == "" {
+		log.Error().Msg("EthWebsocketUrl, KaiaWebsocketUrl, BSCWebsocketUrl, and PolygonWebsocketUrl must be set")
 		return nil, errorSentinel.ErrChainWebsocketUrlNotProvided
 	}
 
@@ -63,9 +64,47 @@ func New(opts ...ChainReaderOption) (*ChainReader, error) {
 		chainIdToChainType[kaiaChainId.String()] = Kaia
 	}
 
+	var (
+		bscClient  *eth_client.EthClient
+		bscChainId *big.Int
+	)
+	if config.BSCWebsocketUrl != "" {
+		bscClient, err = eth_client.Dial(config.BSCWebsocketUrl)
+		if err != nil {
+			return nil, err
+		}
+
+		bscChainId, err = bscClient.ChainID(context.Background())
+		if err != nil {
+			return nil, err
+		}
+
+		chainIdToChainType[bscChainId.String()] = BSC
+	}
+
+	var (
+		polygonClient  *eth_client.EthClient
+		polygonChainId *big.Int
+	)
+	if config.PolygonWebsocketUrl != "" {
+		polygonClient, err = eth_client.Dial(config.PolygonWebsocketUrl)
+		if err != nil {
+			return nil, err
+		}
+
+		polygonChainId, err = polygonClient.ChainID(context.Background())
+		if err != nil {
+			return nil, err
+		}
+
+		chainIdToChainType[polygonChainId.String()] = Polygon
+	}
+
 	return &ChainReader{
 		EthClient:          ethClient,
 		KaiaClient:         kaiaClient,
+		BscClient:          bscClient,
+		PolygonClient:      polygonClient,
 		RetryPeriod:        config.RetryInterval,
 		ChainIdToChainType: chainIdToChainType,
 	}, nil
@@ -150,6 +189,14 @@ func (c *ChainReader) getBlockNumber(ctx context.Context, config *SubscribeConfi
 func (c *ChainReader) client(chainType BlockchainType) utils.ClientInterface {
 	if chainType == Ethereum {
 		return c.EthClient
+	}
+
+	if chainType == BSC {
+		return c.BscClient
+	}
+
+	if chainType == Polygon {
+		return c.PolygonClient
 	}
 
 	return c.KaiaClient

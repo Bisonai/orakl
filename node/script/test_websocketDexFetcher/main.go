@@ -33,10 +33,13 @@ func main() {
 
 	kaiaWebsocketUrl := os.Getenv("KAIA_WEBSOCKET_URL")
 	ethWebsocketUrl := os.Getenv("ETH_WEBSOCKET_URL")
-
+	bscWebsocketUrl := os.Getenv("BSC_WEBSOCKET_URL")
+	polygonWebsocketUrl := os.Getenv("POLYGON_WEBSOCKET_URL")
 	chainReader, err := websocketchainreader.New(
 		websocketchainreader.WithEthWebsocketUrl(ethWebsocketUrl),
 		websocketchainreader.WithKaiaWebsocketUrl(kaiaWebsocketUrl),
+		websocketchainreader.WithBSCWebsocketUrl(bscWebsocketUrl),
+		websocketchainreader.WithPolygonWebsocketUrl(polygonWebsocketUrl),
 	)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to create websocketchainreader")
