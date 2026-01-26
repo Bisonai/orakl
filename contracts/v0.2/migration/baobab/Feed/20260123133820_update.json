@@ -1,0 +1,12 @@
+{
+  "address": "0x05ce978f1200bc7243ae4a5968de8c3f8bd082f7",
+  "deploy": {
+    "submitter": "0xa195bE68Bd37EBFfB056279Dc3d236fAa6F23670",
+    "feedNames": [
+      "RIVER-USDT"
+    ]
+  },
+  "feedRouter": {
+    "address": "0xd9dbbb92a6ecb8b8d3e386b8d0ad8284bd816ef1"
+  }
+}
