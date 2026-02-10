@@ -63,16 +63,6 @@ func setUp() error {
 	}
 	log.Info().Msg("Loaded healthcheck.json")
 
-	graphnodeDB := secrets.GetSecret("DATABASE_URL")
-	if graphnodeDB != "" {
-		HealthCheckUrls = append(HealthCheckUrls, HealthCheckUrl{
-			Name: "graphnode",
-			Url:  graphnodeDB,
-		})
-	}
-
-	log.Info().Msg("Loaded graphnode db url for healthcheck")
-
 	serviceDB := secrets.GetSecret("SERVICE_DB_URL")
 	if serviceDB != "" {
 		HealthCheckUrls = append(HealthCheckUrls, HealthCheckUrl{

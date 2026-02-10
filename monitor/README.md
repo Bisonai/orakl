@@ -4,7 +4,7 @@
 
 + Specs
 
-+ Postgresql + Grafana + Graphnode + Cron
++ Postgresql + Grafana +  Cron
 
 ### Migration (table)
 

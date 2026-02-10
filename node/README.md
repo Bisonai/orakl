@@ -424,9 +424,6 @@ contextName = "orakl-baobab-admin@bisonai"
 
 Reads Orakl service wallets regularly and sends an alarm if the amount is less than the minimum.
 
-### Event Checker
-
-Reads events from the Graphnode DB and sends an alarm message if the expected event is not emitted after the expected time.
 
 ### DAL Checker
 
