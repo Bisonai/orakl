@@ -14,7 +14,6 @@ import (
 	"bisonai.com/miko/node/pkg/checker/dal"
 	"bisonai.com/miko/node/pkg/checker/dalstats"
 	"bisonai.com/miko/node/pkg/checker/dbcronjob"
-	"bisonai.com/miko/node/pkg/checker/event"
 	"bisonai.com/miko/node/pkg/checker/health"
 	"bisonai.com/miko/node/pkg/checker/inspect"
 	"bisonai.com/miko/node/pkg/checker/offset"
@@ -75,18 +74,6 @@ func main() {
 	}()
 
 	log.Info().Msg("health checker started")
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		err := event.Start(ctx)
-		if err != nil {
-			log.Error().Err(err).Msg("error starting event checker")
-			os.Exit(1)
-		}
-	}()
-
-	log.Info().Msg("event checker started")
 
 	wg.Add(1)
 	go func() {
