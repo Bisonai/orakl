@@ -2640,5 +2640,11 @@
       "proxy": "0xa78910c254fe34552b79ca26b88e3f60e1dba02d",
       "feed": "0xcaBb61C0fFE47A2c2d1f39ED5B65dde7c6D0A9fD"
     }
+  },
+  "ZKP-USDT": {
+    "baobab": {
+      "proxy": "0x427020cf9efcA53342eAffe1D61F4d9E8Ad57C64",
+      "feed": "0x427020cf9efcA53342eAffe1D61F4d9E8Ad57C64"
+    }
   }
 }
