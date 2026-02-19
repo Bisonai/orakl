@@ -34,7 +34,7 @@ func fetch(definition *Definition) (float64, error) {
 }
 
 const testDefStr = `{
-        "url": "http://m.stock.naver.com/front-api/marketIndex/productDetail?category=exchange&reutersCode=FX_USDKRW",
+        "url": "https://m.stock.naver.com/front-api/marketIndex/productDetail?category=exchange&reutersCode=FX_USDKRW",
         "headers": {
           "Content-Type": "application/json"
         },

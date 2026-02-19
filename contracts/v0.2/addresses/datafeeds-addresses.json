@@ -2645,8 +2645,6 @@
     "baobab": {
       "proxy": "0xdA26B9Ae7Ae9D5cF709AEE1325bBbaCB97872464",
       "feed": "0x68Ed7F6d63Db586086eC48b9a977C6b7bF5f6963"
-    },
-    "proxy": "0x9e1fB0119A4093989B808b6EFeC3c6c749990976",
-    "feed": "0x8A9ffB117e5316ff6bc7031695f4EBa5428ec1B4"
+    }
   }
 }
