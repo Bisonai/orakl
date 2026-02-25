@@ -2652,5 +2652,11 @@
       "proxy": "0xDabBF6785aCB76B73F181DA858bDcaA98F65e888",
       "feed": "0xCf6210240d25A127b346Fe4126ECc667a89fAe66"
     }
+  },
+  "STKAIA-USDT": {
+    "baobab": {
+      "proxy": "0x1cee78Ac376034867b381268759D1d5520fB10D3",
+      "feed": "0xEDC852b23ad3af04D1cA699B6561882fE6e781e3"
+    }
   }
 }
