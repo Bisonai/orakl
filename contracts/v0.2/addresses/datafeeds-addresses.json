@@ -2647,12 +2647,6 @@
       "feed": "0x68Ed7F6d63Db586086eC48b9a977C6b7bF5f6963"
     }
   },
-  "STKAIA-KAIA": {
-    "baobab": {
-      "proxy": "0xDabBF6785aCB76B73F181DA858bDcaA98F65e888",
-      "feed": "0xCf6210240d25A127b346Fe4126ECc667a89fAe66"
-    }
-  },
   "STKAIA-USDT": {
     "baobab": {
       "proxy": "0x1cee78Ac376034867b381268759D1d5520fB10D3",
