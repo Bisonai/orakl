@@ -2652,5 +2652,11 @@
       "proxy": "0xF882C0b58978F68902280fD2904863D77a2d5C43",
       "feed": "0x166F9C76Ee9EdCdF1c866e046648ace81D534f2d"
     }
+  },
+  "EARNUSDT-USDT": {
+    "baobab": {
+      "proxy": "0x6993e0f47D3AA4a88F5a68dAB02AB825f0d03a4e",
+      "feed": "0x436Ff8b1Ac00494E1Dc2E134F8219AfA5c1a6369"
+    }
   }
 }
