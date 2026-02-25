@@ -2655,8 +2655,8 @@
   },
   "EARNUSDT-USDT": {
     "baobab": {
-      "proxy": "0x6993e0f47D3AA4a88F5a68dAB02AB825f0d03a4e",
-      "feed": "0x436Ff8b1Ac00494E1Dc2E134F8219AfA5c1a6369"
+      "proxy": "0xD46dC03A6cBFf164c84B3202Dd57e5F514A1e449",
+      "feed": "0xA9F21965F9fe01FE2dD473B187485490826d3B97"
     }
   }
 }
