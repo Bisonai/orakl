@@ -2649,8 +2649,8 @@
   },
   "STKAIA-KAIA": {
     "baobab": {
-      "proxy": "0x1cee78Ac376034867b381268759D1d5520fB10D3",
-      "feed": "0xEDC852b23ad3af04D1cA699B6561882fE6e781e3"
+      "proxy": "0xF882C0b58978F68902280fD2904863D77a2d5C43",
+      "feed": "0x166F9C76Ee9EdCdF1c866e046648ace81D534f2d"
     }
   }
 }
