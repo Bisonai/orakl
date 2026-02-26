@@ -159,7 +159,8 @@ jobs:
       tag_date: ${{ needs.prepare-taskflow.outputs.tag_date }}
       tag_git_hash: ${{ needs.prepare-taskflow.outputs.tag_git_hash }}
     secrets:
-      PAT: ${{ secrets.PAT }}
+      GH_ORAKL_BOT_APP_ID: ${{ secrets.GH_ORAKL_BOT_APP_ID }}
+      GH_ORAKL_BOT_PRIVATE_KEY: ${{ secrets.GH_ORAKL_BOT_PRIVATE_KEY }}
     if: ${{ github.event.inputs.image != 'new' }}
   post-slack-taskflow-image-upload:
     name: Slack message for image upload
@@ -259,7 +260,8 @@ jobs:
       tag_date: ${{ needs.prepare.outputs.tag_date }}
       tag_git_hash: ${{ needs.prepare.outputs.tag_git_hash }}
     secrets:
-      PAT: ${{ secrets.PAT }}
+      GH_ORAKL_BOT_APP_ID: ${{ secrets.GH_ORAKL_BOT_APP_ID }}
+      GH_ORAKL_BOT_PRIVATE_KEY: ${{ secrets.GH_ORAKL_BOT_PRIVATE_KEY }}
     if: ${{ github.event.inputs.network == 'Baobab' && github.event.inputs.image == 'new' }}
   post-slack-baobab-tag-update-success:
     name: Post slack message for tag update success
@@ -279,7 +281,8 @@ jobs:
       network: "cypress"
       project-name: ${{ github.event.inputs.application }}
     secrets:
-      PAT: ${{ secrets.PAT }}
+      GH_ORAKL_BOT_APP_ID: ${{ secrets.GH_ORAKL_BOT_APP_ID }}
+      GH_ORAKL_BOT_PRIVATE_KEY: ${{ secrets.GH_ORAKL_BOT_PRIVATE_KEY }}
     if: ${{ github.event.inputs.network == 'Cypress' }}
   post-slack-cypress-tag-update-success:
     name: Post slack message for tag update success
