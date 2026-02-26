@@ -25,7 +25,9 @@ on:
         required: false
         type: string
     secrets:
-      PAT:
+      GH_ORAKL_BOT_APP_ID:
+        required: true
+      GH_ORAKL_BOT_PRIVATE_KEY:
         required: true
 
 jobs:
@@ -38,11 +40,20 @@ jobs:
       contents: read
 
     steps:
+      - name: Generate GitHub App Token
+        id: generate-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.GH_ORAKL_BOT_APP_ID }}
+          private-key: ${{ secrets.GH_ORAKL_BOT_PRIVATE_KEY }}
+          owner: bisonai
+          repositories: orakl-helm-charts
+
       - name: Checkout gitops
         run: |
           echo Checking out ${GITHUB_SERVER_URL}/bisonai/orakl-helm-charts.git
           rm -rf ./gitops_tmp
-          GH_URL=$(echo "$GITHUB_SERVER_URL" | sed 's,://,://x-access-token:'"${{ secrets.PAT }}"'@,g')
+          GH_URL=$(echo "$GITHUB_SERVER_URL" | sed 's,://,://x-access-token:'"${{ steps.generate-token.outputs.token }}"'@,g')
           git clone --depth 1 --no-single-branch ${GH_URL}/bisonai/orakl-helm-charts.git ./gitops_tmp
         shell: bash
 
