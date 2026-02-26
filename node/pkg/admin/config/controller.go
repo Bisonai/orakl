@@ -31,6 +31,7 @@ type ConfigInsertModel struct {
 	AggregateInterval *int              `db:"aggregate_interval" json:"aggregateInterval"`
 	SubmitInterval    *int              `db:"submit_interval" json:"submitInterval"`
 	Decimals          *int              `db:"decimals" json:"decimals"`
+	FeedDataFreshness *int              `db:"feed_data_freshness" json:"feedDataFreshness"`
 	Feeds             []FeedInsertModel `json:"feeds"`
 }
 
@@ -41,6 +42,7 @@ type ConfigModel struct {
 	AggregateInterval *int   `db:"aggregate_interval" json:"aggregateInterval"`
 	SubmitInterval    *int   `db:"submit_interval" json:"submitInterval"`
 	Decimals          *int   `db:"decimals" json:"decimals"`
+	FeedDataFreshness *int   `db:"feed_data_freshness" json:"feedDataFreshness"`
 }
 
 type ConfigNameIdModel struct {

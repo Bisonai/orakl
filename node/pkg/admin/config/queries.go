@@ -1,7 +1,7 @@
 package config
 
 const (
-	InsertConfigQuery     = "INSERT INTO configs (name, fetch_interval, aggregate_interval, submit_interval, decimals) VALUES (@name, @fetch_interval, @aggregate_interval, @submit_interval, @decimals) RETURNING *"
+	InsertConfigQuery     = "INSERT INTO configs (name, fetch_interval, aggregate_interval, submit_interval, decimals, feed_data_freshness) VALUES (@name, @fetch_interval, @aggregate_interval, @submit_interval, @decimals, @feed_data_freshness) RETURNING *"
 	SelectConfigQuery     = "SELECT * FROM configs"
 	SelectConfigByIdQuery = "SELECT * FROM configs WHERE id = @id"
 	DeleteConfigQuery     = "DELETE FROM configs WHERE id = @id RETURNING *"
