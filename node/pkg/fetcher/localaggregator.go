@@ -244,5 +244,47 @@ func (c *LocalAggregator) collect(ctx context.Context) ([]*FeedData, error) {
 	for i, feed := range c.Feeds {
 		feedIds[i] = feed.ID
 	}
-	return c.latestFeedDataMap.GetLatestFeedData(feedIds)
+
+	feeds, err := c.latestFeedDataMap.GetLatestFeedData(feedIds)
+	if err != nil {
+		return nil, err
+	}
+
+	return c.filterStaleFeeds(feeds), nil
+}
+
+func (c *LocalAggregator) filterStaleFeeds(feeds []*FeedData) []*FeedData {
+	if c.Config.FeedDataFreshness == nil || *c.Config.FeedDataFreshness <= 0 {
+		return feeds
+	}
+
+	if len(feeds) <= 1 {
+		return feeds
+	}
+
+	freshness := time.Duration(*c.Config.FeedDataFreshness) * time.Millisecond
+	now := time.Now()
+	fresh := make([]*FeedData, 0, len(feeds))
+
+	for _, feed := range feeds {
+		if feed.Timestamp == nil {
+			fresh = append(fresh, feed)
+			continue
+		}
+
+		age := now.Sub(*feed.Timestamp)
+		if age > freshness {
+			log.Warn().Str("Player", "LocalAggregator").
+				Str("config", c.Name).
+				Int32("feedID", feed.FeedID).
+				Dur("age", age).
+				Dur("freshness", freshness).
+				Float64("value", feed.Value).
+				Msg("excluding stale feed from aggregation")
+			continue
+		}
+		fresh = append(fresh, feed)
+	}
+
+	return fresh
 }
