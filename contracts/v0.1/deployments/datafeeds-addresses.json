@@ -164,17 +164,6 @@
       "aggregator": "0xFf369500111F0CE541A67D84bCB326604099a066"
     }
   },
-  "KLAY-USDT": {
-    "baobab": {
-      "proxy": "0xC874f389A3F49C5331490145f77c4eFE202d72E1",
-      "aggregator": "0xf0d6Ccdd18B8A7108b901af872021109C27095bA"
-    },
-    "tag": "standard",
-    "cypress": {
-      "proxy": "0x33D6ee12D4ADE244100F09b280e159659fe0ACE0",
-      "aggregator": "0x955bd135ABBc0eB0D022556602112A9Ec456d41d"
-    }
-  },
   "JPY-USD": {
     "baobab": {
       "proxy": "0x60b84C725543Da01e168C085Ecd8389FB2a52026",

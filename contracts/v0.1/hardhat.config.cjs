@@ -107,7 +107,7 @@ task('address', 'Convert mnemonic to address')
   })
 
 task('read-data-feed', 'Read latest data from DataFeedConsumerMock')
-  .addParam('pair', 'Price pair (e.g. KLAY-USDT)')
+  .addParam('pair', 'Price pair (e.g. BTC-USDT)')
   .setAction(async (taskArgs, hre) => {
     let _consumer
     if (network.name == 'localhost') {

@@ -148,10 +148,6 @@ node ./script/collect-addresses.cjs
     {
       "feedName": "BTC-USDT",
       "proxyAddress": "0x50c23983ea26f30d368da5b257001ee3ddf9a539"
-    },
-    {
-      "feedName": "KLAY-USDT",
-      "proxyAddress": "0xd07bd0bcd3a8fa1087430b1be457e05c4a412a4b"
     }
   ]
 }
