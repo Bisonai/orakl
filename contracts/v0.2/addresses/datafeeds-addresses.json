@@ -1255,28 +1255,6 @@
       "feed": "0x7f9a888dd135927b66da692803f5f52b1a9a5cb4"
     }
   },
-  "KLAY-KRW": {
-    "cypress": {
-      "proxy": "0x925a2087e1cfd4489a7410ccab912650230c156e",
-      "feed": "0x772b4e3408a10d3f8b110e2e4cd65aa1dd539420"
-    },
-    "tag": "basic",
-    "baobab": {
-      "proxy": "0xfb4b01452edfe90fa611d1d102b2ac9de41f0754",
-      "feed": "0x9dfb887500b68e982bebacb50e3ed292fd5cc23c"
-    }
-  },
-  "KLAY-USDT": {
-    "cypress": {
-      "proxy": "0x6a08d36e8c10d5d89529c7443cebf37ea2cd01d4",
-      "feed": "0x612e5b796c07940ada4bfb6603def23178765200"
-    },
-    "tag": "premium",
-    "baobab": {
-      "proxy": "0x1408cb13d84ba8cb533fdf332db5d78290b071c9",
-      "feed": "0x7c688130c185929eb5163cddc4681f357db91efb"
-    }
-  },
   "KAITO-USDT": {
     "cypress": {
       "proxy": "0x9ec0d73bbb6dc1e49b27f4a14739bdf1f32183f8",
