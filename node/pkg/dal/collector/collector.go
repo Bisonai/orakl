@@ -238,12 +238,15 @@ func (c *Collector) processIncomingData(ctx context.Context, data *aggregator.Su
 			return
 		}
 
-		defer func(result *dalcommon.OutgoingSubmissionData) {
-			c.mu.Lock()
-			defer c.mu.Unlock()
-			c.LatestData[result.Symbol] = result
-		}(result)
-		c.OutgoingStream[result.Symbol] <- result
+		c.mu.Lock()
+		c.LatestData[result.Symbol] = result
+		c.mu.Unlock()
+
+		select {
+		case c.OutgoingStream[result.Symbol] <- result:
+		default:
+			log.Debug().Str("Player", "DalCollector").Str("Symbol", result.Symbol).Msg("outgoing stream full, dropping data")
+		}
 	}
 }
 
