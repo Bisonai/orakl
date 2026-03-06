@@ -16,6 +16,7 @@ import (
 	dalcommon "bisonai.com/miko/node/pkg/dal/common"
 	"bisonai.com/miko/node/pkg/db"
 	errorsentinel "bisonai.com/miko/node/pkg/error"
+	"bisonai.com/miko/node/pkg/utils/pool"
 	kaiacommon "github.com/kaiachain/kaia/common"
 	"github.com/kaiachain/kaia/crypto"
 	"github.com/redis/go-redis/v9"
@@ -27,6 +28,7 @@ const (
 	DefaultDecimals          = "8"
 	GetAllOracles            = "getAllOracles() public view returns (address[] memory)"
 	OracleAdded              = "OracleAdded(address oracle, uint256 expirationTime)"
+	ProcessWorkerCount       = 50
 )
 
 type Config = types.Config
@@ -49,7 +51,8 @@ type Collector struct {
 	chainReader                 *chainreader.ChainReader
 	submissionProxyContractAddr string
 
-	mu sync.RWMutex
+	processPool *pool.Pool
+	mu          sync.RWMutex
 }
 
 func NewCollector(ctx context.Context, configs []types.Config) (*Collector, error) {
@@ -103,6 +106,7 @@ func NewCollector(ctx context.Context, configs []types.Config) (*Collector, erro
 		chainReader:                 chainReader,
 		CachedWhitelist:             initialWhitelist,
 		submissionProxyContractAddr: submissionProxyContractAddr,
+		processPool:                 pool.NewPool(ProcessWorkerCount),
 	}
 
 	redisTopics := []string{}
@@ -148,6 +152,7 @@ func (c *Collector) Start(ctx context.Context) {
 	c.CancelFunc = cancel
 	c.IsRunning = true
 
+	c.processPool.Run(ctxWithCancel)
 	c.receive(ctxWithCancel)
 	go c.refreshOracles(ctxWithCancel)
 }
@@ -197,7 +202,9 @@ func (c *Collector) redisRouter(ctx context.Context, msg *redis.Message) error {
 		return err
 	}
 
-	go c.processIncomingData(ctx, data)
+	c.processPool.AddJob(func() {
+		c.processIncomingData(ctx, data)
+	})
 	return nil
 }
 

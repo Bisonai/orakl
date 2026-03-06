@@ -2,7 +2,6 @@ package stats
 
 import (
 	"bufio"
-	"bytes"
 	"context"
 	"errors"
 	"net"
@@ -158,11 +157,15 @@ func (a *StatsApp) RequestLoggerMiddleware(next http.Handler) http.Handler {
 			statusCode := sl.statusCode
 			responseTime := time.Since(start)
 
-			a.RestEntryBuffer <- &RestEntry{
+			select {
+			case a.RestEntryBuffer <- &RestEntry{
 				ApiKey:       key,
 				Endpoint:     endpoint,
 				StatusCode:   *statusCode,
 				ResponseTime: responseTime,
+			}:
+			default:
+				log.Warn().Msg("stats buffer full, dropping entry")
 			}
 		}()
 		next.ServeHTTP(sl, r)
@@ -206,22 +209,18 @@ func InsertWebsocketSubscriptions(ctx context.Context, connectionId int32, topic
 
 type StatsLogger struct {
 	w          *http.ResponseWriter
-	body       *bytes.Buffer
 	statusCode *int
 }
 
 func NewStatsLogger(w http.ResponseWriter) StatsLogger {
-	var buf bytes.Buffer
 	var statusCode int = 200
 	return StatsLogger{
 		w:          &w,
-		body:       &buf,
 		statusCode: &statusCode,
 	}
 }
 
 func (sl StatsLogger) Write(buf []byte) (int, error) {
-	sl.body.Write(buf)
 	return (*sl.w).Write(buf)
 }
 
