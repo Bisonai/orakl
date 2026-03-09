@@ -11,7 +11,15 @@ import (
 	errorSentinel "bisonai.com/miko/node/pkg/error"
 	"bisonai.com/miko/node/pkg/utils/reducer"
 	"bisonai.com/miko/node/pkg/utils/request"
+	"bisonai.com/miko/node/pkg/utils/retrier"
 	"github.com/rs/zerolog/log"
+)
+
+const (
+	FetcherRequestTimeout  = 5 * time.Second
+	FetcherMaxRetries      = 3
+	FetcherRetryInitDelay  = 500 * time.Millisecond
+	FetcherRetryMaxDelay   = 2 * time.Second
 )
 
 func NewFetcher(config Config, feeds []Feed, latestFeedDataMap *LatestFeedDataMap, feedDataDumpChannel chan *FeedData) *Fetcher {
@@ -167,11 +175,32 @@ func (f *Fetcher) requestFeed(definition *Definition, proxies []Proxy) (interfac
 }
 
 func (f *Fetcher) requestWithoutProxy(definition *Definition) (interface{}, error) {
-	return request.Request[interface{}](request.WithEndpoint(*definition.Url), request.WithHeaders(definition.Headers))
+	var result interface{}
+	err := retrier.Retry(func() error {
+		var reqErr error
+		result, reqErr = request.Request[interface{}](
+			request.WithEndpoint(*definition.Url),
+			request.WithHeaders(definition.Headers),
+			request.WithTimeout(FetcherRequestTimeout),
+		)
+		return reqErr
+	}, FetcherMaxRetries, FetcherRetryInitDelay, FetcherRetryMaxDelay)
+	return result, err
 }
 
 func (f *Fetcher) requestWithProxy(definition *Definition, proxyUrl string) (interface{}, error) {
-	return request.Request[interface{}](request.WithEndpoint(*definition.Url), request.WithHeaders(definition.Headers), request.WithProxy(proxyUrl))
+	var result interface{}
+	err := retrier.Retry(func() error {
+		var reqErr error
+		result, reqErr = request.Request[interface{}](
+			request.WithEndpoint(*definition.Url),
+			request.WithHeaders(definition.Headers),
+			request.WithProxy(proxyUrl),
+			request.WithTimeout(FetcherRequestTimeout),
+		)
+		return reqErr
+	}, FetcherMaxRetries, FetcherRetryInitDelay, FetcherRetryMaxDelay)
+	return result, err
 }
 
 func (f *Fetcher) filterProxyByLocation(proxies []Proxy, location string) []Proxy {
