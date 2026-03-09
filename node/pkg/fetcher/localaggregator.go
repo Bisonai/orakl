@@ -267,6 +267,12 @@ func (c *LocalAggregator) filterStaleFeeds(feeds []*FeedData) []*FeedData {
 	fresh := make([]*FeedData, 0, len(feeds))
 
 	for _, feed := range feeds {
+		// DEX/HTTP feeds (volume == 0) are not subject to freshness filtering
+		if feed.Volume == 0 {
+			fresh = append(fresh, feed)
+			continue
+		}
+
 		if feed.Timestamp == nil {
 			fresh = append(fresh, feed)
 			continue
