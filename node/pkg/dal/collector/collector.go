@@ -28,7 +28,7 @@ const (
 	DefaultDecimals          = "8"
 	GetAllOracles            = "getAllOracles() public view returns (address[] memory)"
 	OracleAdded              = "OracleAdded(address oracle, uint256 expirationTime)"
-	ProcessWorkerCount       = 50
+	ProcessWorkerCount       = 200
 )
 
 type Config = types.Config
