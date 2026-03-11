@@ -29,7 +29,7 @@ func Run(ctx context.Context) error {
 	defer statsApp.Stop()
 
 	keyCache := keycache.NewAPIKeyCache(1 * time.Hour)
-	keyCache.CleanupLoop(10 * time.Minute)
+	keyCache.CleanupLoop(ctx, 10*time.Minute)
 
 	chain := os.Getenv("CHAIN")
 	if chain == "" {

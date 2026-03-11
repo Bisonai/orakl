@@ -42,10 +42,18 @@ func (c *KeyCache) Get(key string) bool {
 	return true
 }
 
-func (c *KeyCache) CleanupLoop(interval time.Duration) {
+func (c *KeyCache) CleanupLoop(ctx context.Context, interval time.Duration) {
 	go func() {
-		time.Sleep(interval)
-		c.Cleanup()
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				c.Cleanup()
+			}
+		}
 	}()
 }
 

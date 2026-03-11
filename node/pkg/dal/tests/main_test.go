@@ -99,7 +99,7 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 	}
 
 	keyCache := keycache.NewAPIKeyCache(1 * time.Hour)
-	keyCache.CleanupLoop(10 * time.Minute)
+	keyCache.CleanupLoop(ctx, 10*time.Minute)
 
 	collector, err := collector.NewCollector(ctx, []types.Config{testItems.TmpConfig})
 	if err != nil {
