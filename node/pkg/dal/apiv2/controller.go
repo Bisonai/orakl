@@ -127,7 +127,7 @@ func metricsMiddleware(next http.Handler) http.Handler {
 func (s *ServerV2) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	key := r.Header.Get("X-API-Key")
 
-	if r.RequestURI != "/" && !s.checkAPIKey(r.Context(), key) {
+	if r.RequestURI != "/" && r.RequestURI != "/metrics" && !s.checkAPIKey(r.Context(), key) {
 		w.WriteHeader(http.StatusUnauthorized)
 		_, err := w.Write([]byte("Unauthorized"))
 		if err != nil {
