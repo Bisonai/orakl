@@ -14,9 +14,31 @@ import (
 	"bisonai.com/miko/node/pkg/dal/utils/keycache"
 	"bisonai.com/miko/node/pkg/dal/utils/stats"
 	errorsentinel "bisonai.com/miko/node/pkg/error"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog/log"
 	"nhooyr.io/websocket"
 	"nhooyr.io/websocket/wsjson"
+)
+
+var (
+	wsActiveConnections = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "dal_websocket_active_connections",
+		Help: "Current number of active WebSocket connections",
+	})
+	wsConnectionsTotal = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "dal_websocket_connections_total",
+		Help: "Total number of WebSocket connections",
+	})
+	wsSubscriptionsTotal = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "dal_websocket_subscriptions_total",
+		Help: "Total number of WebSocket subscriptions",
+	})
+	restRequestsTotal = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "dal_rest_requests_total",
+		Help: "Total number of REST API requests",
+	}, []string{"method", "path"})
 )
 
 func Start(ctx context.Context, opts ...ServerV2Option) error {
@@ -82,14 +104,24 @@ func NewServer(collector *collector.Collector, keyCache *keycache.KeyCache, hub 
 	serveMux.HandleFunc("GET /latest-data-feeds/{symbols}", s.LatestFeedsHandler)
 	serveMux.HandleFunc("GET /latest-data-feeds-unstrict/{symbols}", s.LatestFeedsHandlerUnstrict)
 
+	serveMux.Handle("GET /metrics", promhttp.Handler())
 	serveMux.HandleFunc("/", s.HealthCheckHandler)
 
 	// Apply the RequestLoggerMiddleware to the ServeMux
 	loggedMux := statsApp.RequestLoggerMiddleware(serveMux)
 
-	s.handler = loggedMux
+	s.handler = metricsMiddleware(loggedMux)
 
 	return s
+}
+
+func metricsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/ws" && r.URL.Path != "/metrics" && r.URL.Path != "/" {
+			restRequestsTotal.WithLabelValues(r.Method, r.URL.Path).Inc()
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 func (s *ServerV2) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -133,6 +165,8 @@ func (s *ServerV2) WSHandler(w http.ResponseWriter, r *http.Request) {
 	defer c.Close(websocket.StatusInternalError, "the sky is falling")
 
 	s.hub.Register <- c
+	wsConnectionsTotal.Inc()
+	wsActiveConnections.Set(float64(s.hub.ConnectionCount()))
 
 	key := r.Header.Get("X-API-Key")
 	id, err := stats.InsertWebsocketConnection(r.Context(), key)
@@ -144,6 +178,7 @@ func (s *ServerV2) WSHandler(w http.ResponseWriter, r *http.Request) {
 
 	defer func() {
 		s.hub.Unregister <- c
+		wsActiveConnections.Set(float64(s.hub.ConnectionCount()))
 		err = stats.UpdateWebsocketConnection(r.Context(), id)
 		if err != nil {
 			log.Error().Err(err).Msg("failed to update websocket connection")
@@ -161,6 +196,7 @@ func (s *ServerV2) WSHandler(w http.ResponseWriter, r *http.Request) {
 
 		if msg.Method == "SUBSCRIBE" {
 			s.hub.HandleSubscription(r.Context(), c, msg, id)
+			wsSubscriptionsTotal.Add(float64(len(msg.Params)))
 		}
 	}
 }

@@ -99,7 +99,13 @@ func (h *Hub) HandleSubscription(ctx context.Context, client *websocket.Conn, ms
 	}(valid)
 }
 
-func (h *Hub) handleClientRegistration(ctx context.Context) {
+func (h *Hub) ConnectionCount() int {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	return len(h.Clients)
+}
+
+func (h *Hub) handleClientRegistration() {
 	for {
 		select {
 		case <-ctx.Done():
