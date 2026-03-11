@@ -105,7 +105,7 @@ func (h *Hub) ConnectionCount() int {
 	return len(h.Clients)
 }
 
-func (h *Hub) handleClientRegistration() {
+func (h *Hub) handleClientRegistration(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
