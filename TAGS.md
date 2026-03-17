@@ -376,3 +376,4 @@
 - **node** v0.0.1.20251223.0654.ced9837 <br> *`PR`*: Hotfix pointer <br><br> 
 - **node** v0.0.1.20251223.0934.ee56928 <br> *`PR`*: Deploy mainnet contracts <br><br> 
 - **node** v0.0.1.20251224.0822.35b441a <br> *`PR`*: Support new chain and protocol <br><br> 
+- **node** v0.0.1.20260317.0732.e00f03e <br> *`PR`*: wip Memory leak on dal <br><br> 
