@@ -206,24 +206,25 @@ func TestMessageToStruct(t *testing.T) {
 
 	t.Run("TestMessageToStructKorbit", func(t *testing.T) {
 		jsonStr := `{
-			"accessToken": null,
-			"event": "korbit:push-ticker",
-			"timestamp" : 1389678052000,
-			"data":
-			  {
-				"channel": "ticker",
-				"currency_pair": "btc_krw",
-				"timestamp": 1558590089274,
-				"last": "9198500.1235789",
-				"open": "9500000.3445783",
-				"bid": "9192500.4578344",
-				"ask": "9198000.32148556",
-				"low": "9171500.23785685",
-				"high": "9599000.34876458",
-				"volume": "1539.18571988",
-				"change": "-301500.234578934"
+			"type": "ticker",
+			"timestamp": 1700000027754,
+			"symbol": "btc_krw",
+			"snapshot": true,
+			"data": {
+				"open": "94679000",
+				"high": "111162000",
+				"low": "93861000",
+				"close": "99027000",
+				"prevClose": "94679000",
+				"priceChange": "4348000",
+				"priceChangePercent": "4.59",
+				"volume": "147.94385655",
+				"quoteVolume": "14311735005.18033",
+				"bestAskPrice": "99027000",
+				"bestBidPrice": "99026000",
+				"lastTradedAt": 1700000010022
 			}
-		  }`
+		}`
 
 		var result map[string]any
 		err := json.Unmarshal([]byte(jsonStr), &result)
@@ -236,9 +237,11 @@ func TestMessageToStruct(t *testing.T) {
 			t.Errorf("unexpected error: %v", err)
 		}
 
-		assert.Equal(t, "btc_krw", data.Data.CurrencyPair)
-		assert.Equal(t, int64(1558590089274), data.Data.Timestamp)
-		assert.Equal(t, "9198500.1235789", data.Data.Last)
+		assert.Equal(t, "ticker", data.Type)
+		assert.Equal(t, "btc_krw", data.Symbol)
+		assert.Equal(t, int64(1700000027754), data.Timestamp)
+		assert.Equal(t, "99027000", data.Data.Close)
+		assert.Equal(t, "147.94385655", data.Data.Volume)
 	})
 
 	t.Run("TestMessageToStructCryptoDotCom", func(t *testing.T) {

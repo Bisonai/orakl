@@ -8,19 +8,19 @@ import (
 	"bisonai.com/miko/node/pkg/websocketfetcher/common"
 )
 
-func DataToFeedData(data Ticker, feedMap map[string][]int32) ([]*common.FeedData, error) {
-	timestamp := time.UnixMilli(data.Timestamp)
-	value, err := common.PriceStringToFloat64(data.Last)
+func RawToFeedData(raw Raw, feedMap map[string][]int32) ([]*common.FeedData, error) {
+	timestamp := time.UnixMilli(raw.Timestamp)
+	value, err := common.PriceStringToFloat64(raw.Data.Close)
 	if err != nil {
 		return nil, err
 	}
 
-	volume, err := common.VolumeStringToFloat64(data.Volume)
+	volume, err := common.VolumeStringToFloat64(raw.Data.Volume)
 	if err != nil {
 		return nil, err
 	}
 
-	rawPair := strings.Split(data.CurrencyPair, "_")
+	rawPair := strings.Split(raw.Symbol, "_")
 	if len(rawPair) < 2 {
 		return nil, fmt.Errorf("invalid feed name")
 	}
