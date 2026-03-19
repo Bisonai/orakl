@@ -131,6 +131,7 @@ on:
           - node:v0.0.1.20260317.0732.e00f03e:wip Memory leak on dal
           - node:v0.0.1.20260319.0205.477dac8.cypress:feat enable Cypress network to...
           - node:v0.0.1.20260319.0214.aa9ca92.cypress:fix
+          - node:v0.0.1.20260319.0507.a760171.cypress:fix
 jobs:
   prepare-taskflow:
     name: Prepare
