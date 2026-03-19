@@ -3,7 +3,6 @@ package korbit
 import (
 	"context"
 	"strings"
-	"time"
 
 	"bisonai.com/miko/node/pkg/websocketfetcher/common"
 	"bisonai.com/miko/node/pkg/wss"
@@ -29,14 +28,11 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 		symbols = append(symbols, symbol)
 	}
 
-	subscription := Subscription{
-		AccessToken: nil,
-		Timestamp:   time.Now().Unix(),
-		Event:       "korbit:subscribe",
-		Data: Data{Channels: []string{
-			"ticker:" + strings.Join(symbols, ","),
-		}},
-	}
+	subscription := []Subscription{{
+		Method:  "subscribe",
+		Type:    "ticker",
+		Symbols: symbols,
+	}}
 
 	ws, err := wss.NewWebsocketHelper(ctx,
 		wss.WithEndpoint(URL),
@@ -52,19 +48,24 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 }
 
 func (k *KorbitFetcher) handleMessage(ctx context.Context, message map[string]any) error {
+	// skip control messages (success/fail responses)
+	if _, hasStatus := message["status"]; hasStatus {
+		return nil
+	}
+
 	raw, err := common.MessageToStruct[Raw](message)
 	if err != nil {
 		log.Error().Str("Player", "Korbit").Err(err).Msg("error in MessageToRawResponse")
 		return err
 	}
 
-	if raw.Event != "korbit:push-ticker" {
+	if raw.Type != "ticker" {
 		return nil
 	}
 
-	feedDataList, err := DataToFeedData(raw.Data, k.FeedMap)
+	feedDataList, err := RawToFeedData(raw, k.FeedMap)
 	if err != nil {
-		log.Error().Str("Player", "Korbit").Err(err).Msg("error in DataToFeedData")
+		log.Error().Str("Player", "Korbit").Err(err).Msg("error in RawToFeedData")
 		return err
 	}
 
