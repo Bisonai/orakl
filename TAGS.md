@@ -380,3 +380,4 @@
 - **node** v0.0.1.20260319.0205.477dac8.cypress <br> *`PR`*: feat enable Cypress network to... <br><br> 
 - **node** v0.0.1.20260319.0214.aa9ca92.cypress <br> *`PR`*: fix <br><br> 
 - **node** v0.0.1.20260319.0507.a760171.cypress <br> *`PR`*: fix <br><br> 
+- **dal** v0.0.1.20260319.0739.fc0b80a.cypress <br> *`PR`*: fix <br><br> 
