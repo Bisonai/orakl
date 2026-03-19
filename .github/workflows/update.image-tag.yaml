@@ -69,7 +69,7 @@ jobs:
           cd ./gitops_tmp/${{ inputs.project-name }}/
           echo "Updating image tag in values.${{ inputs.network }}.yaml files"
 
-          if [[ "${{ inputs.network }}" == "cypress" && "${{ inputs.build }}" ]]; then
+          if [[ "${{ inputs.network }}" == "cypress" && "${{ inputs.build }}" == "true" ]]; then
 
             baobab_tag=$(grep -oP 'tag: "\K[^"]+' values.baobab.yaml)
             sed -i "s/tag: \".*\"/tag: \"$baobab_tag\"/" values.${{ inputs.network }}.yaml
