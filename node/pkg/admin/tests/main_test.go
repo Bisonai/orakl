@@ -69,7 +69,7 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 func insertSampleData(ctx context.Context) (*TmpData, error) {
 	var tmpData = new(TmpData)
 
-	tmpConfig, err := db.QueryRow[config.ConfigModel](ctx, "INSERT INTO configs (name, fetch_interval, aggregate_interval, submit_interval) VALUES (@name,  @fetch_interval, @aggregate_interval, @submit_interval) RETURNING *;", map[string]any{"name": "test_config", "fetch_interval": 1, "aggregate_interval": 1, "submit_interval": 1})
+	tmpConfig, err := db.QueryRow[config.ConfigModel](ctx, "INSERT INTO configs (name, fetch_interval, aggregate_interval, submit_interval, feed_data_freshness) VALUES (@name,  @fetch_interval, @aggregate_interval, @submit_interval, @feed_data_freshness) RETURNING *;", map[string]any{"name": "test_config", "fetch_interval": 1, "aggregate_interval": 1, "submit_interval": 1, "feed_data_freshness": 1})
 	if err != nil {
 		return nil, err
 	}

@@ -76,8 +76,14 @@ func Start(ctx context.Context) error {
 		return errors.New("DAL_API_KEY not found")
 	}
 
-	endpoint := fmt.Sprintf("https://dal.%s.orakl.network", chain)
-	wsEndpoint := fmt.Sprintf("ws://dal.%s.orakl.network/ws", chain)
+	var endpoint, wsEndpoint string
+	if chain == "baobab" {
+		endpoint = "http://orakl-dal.orakl.svc.cluster.local"
+		wsEndpoint = "ws://orakl-dal.orakl.svc.cluster.local/ws"
+	} else {
+		endpoint = fmt.Sprintf("https://dal.%s.orakl.network", chain)
+		wsEndpoint = fmt.Sprintf("ws://dal.%s.orakl.network/ws", chain)
+	}
 
 	configs, err := fetchConfigs()
 	if err != nil {

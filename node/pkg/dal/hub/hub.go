@@ -32,6 +32,7 @@ type Hub struct {
 const (
 	MAX_CONNECTIONS = 10
 	CleanupInterval = time.Hour
+	WriteTimeout    = 10 * time.Second
 )
 
 func HubSetup(ctx context.Context, configs []types.Config) *Hub {
@@ -55,7 +56,7 @@ func NewHub(symbols map[string]struct{}) *Hub {
 }
 
 func (h *Hub) Start(ctx context.Context, collector *collector.Collector) {
-	go h.handleClientRegistration()
+	go h.handleClientRegistration(ctx)
 
 	h.initializeBroadcastChannels(collector)
 
@@ -98,9 +99,17 @@ func (h *Hub) HandleSubscription(ctx context.Context, client *websocket.Conn, ms
 	}(valid)
 }
 
-func (h *Hub) handleClientRegistration() {
+func (h *Hub) ConnectionCount() int {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	return len(h.Clients)
+}
+
+func (h *Hub) handleClientRegistration(ctx context.Context) {
 	for {
 		select {
+		case <-ctx.Done():
+			return
 		case client := <-h.Register:
 			h.addClient(client)
 		case client := <-h.Unregister:
@@ -145,29 +154,43 @@ func (h *Hub) initializeBroadcastChannels(collector *collector.Collector) {
 
 func (h *Hub) broadcastDataForSymbol(ctx context.Context, symbol string) {
 	for data := range h.broadcast[symbol] {
-		go h.castSubmissionData(ctx, data, symbol)
+		h.castSubmissionData(ctx, data, symbol)
 	}
 }
 
 func (h *Hub) castSubmissionData(ctx context.Context, data *dalcommon.OutgoingSubmissionData, symbol string) {
 	var wg sync.WaitGroup
+	var failedMu sync.Mutex
+	var failedClients []*websocket.Conn
 
 	h.mu.RLock()
-	defer h.mu.RUnlock()
-
 	for client, subscriptions := range h.Clients {
 		if _, ok := subscriptions[symbol]; ok {
 			wg.Add(1)
 			go func(entry *websocket.Conn) {
 				defer wg.Done()
-				err := wsjson.Write(ctx, entry, data)
-				if err != nil {
+				writeCtx, cancel := context.WithTimeout(ctx, WriteTimeout)
+				defer cancel()
+				if err := wsjson.Write(writeCtx, entry, data); err != nil {
 					log.Warn().Err(err).Msg("failed to write message to client")
+					failedMu.Lock()
+					failedClients = append(failedClients, entry)
+					failedMu.Unlock()
 				}
 			}(client)
 		}
 	}
+	h.mu.RUnlock()
 	wg.Wait()
+
+	if len(failedClients) > 0 {
+		h.mu.Lock()
+		for _, client := range failedClients {
+			delete(h.Clients, client)
+			client.Close(websocket.StatusGoingAway, "write failed")
+		}
+		h.mu.Unlock()
+	}
 }
 
 func (h *Hub) cleanupJob(ctx context.Context) {
@@ -188,13 +211,10 @@ func (h *Hub) cleanup() {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
-	newClients := make(map[*websocket.Conn]map[string]struct{}, len(h.Clients))
 	for client, subscriptions := range h.Clients {
-		if len(subscriptions) > 0 {
-			newClients[client] = subscriptions
-		} else {
-			h.Unregister <- client
+		if len(subscriptions) == 0 {
+			delete(h.Clients, client)
+			client.Close(websocket.StatusNormalClosure, "")
 		}
 	}
-	h.Clients = newClients
 }

@@ -31,6 +31,7 @@ type ConfigInsertModel struct {
 	AggregateInterval *int              `db:"aggregate_interval" json:"aggregateInterval"`
 	SubmitInterval    *int              `db:"submit_interval" json:"submitInterval"`
 	Decimals          *int              `db:"decimals" json:"decimals"`
+	FeedDataFreshness *int              `db:"feed_data_freshness" json:"feedDataFreshness"`
 	Feeds             []FeedInsertModel `json:"feeds"`
 }
 
@@ -41,6 +42,7 @@ type ConfigModel struct {
 	AggregateInterval *int   `db:"aggregate_interval" json:"aggregateInterval"`
 	SubmitInterval    *int   `db:"submit_interval" json:"submitInterval"`
 	Decimals          *int   `db:"decimals" json:"decimals"`
+	FeedDataFreshness *int   `db:"feed_data_freshness" json:"feedDataFreshness"`
 }
 
 type ConfigNameIdModel struct {
@@ -169,11 +171,12 @@ func Insert(c *fiber.Ctx) error {
 	setDefaultValues(config)
 
 	result, err := db.QueryRow[ConfigModel](c.Context(), InsertConfigQuery, map[string]any{
-		"name":               config.Name,
-		"fetch_interval":     config.FetchInterval,
-		"aggregate_interval": config.AggregateInterval,
-		"submit_interval":    config.SubmitInterval,
-		"decimals":           config.Decimals,
+		"name":                config.Name,
+		"fetch_interval":      config.FetchInterval,
+		"aggregate_interval":  config.AggregateInterval,
+		"submit_interval":     config.SubmitInterval,
+		"decimals":            config.Decimals,
+		"feed_data_freshness": config.FeedDataFreshness,
 	})
 	if err != nil {
 		log.Error().Err(err).Str("Player", "Admin").Msg("failed to insert config")

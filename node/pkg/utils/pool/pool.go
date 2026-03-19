@@ -13,7 +13,7 @@ type Pool struct {
 
 func NewPool(workerCount int) *Pool {
 	return &Pool{
-		jobChannel:  make(chan func()),
+		jobChannel:  make(chan func(), 200),
 		workerCount: workerCount,
 	}
 }

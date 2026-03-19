@@ -54,12 +54,13 @@ type Proof struct {
 }
 
 type Config struct {
-	ID                int32  `db:"id" json:"id"`
-	Name              string `db:"name" json:"name"`
-	FetchInterval     *int   `db:"fetch_interval" json:"fetchInterval"`
-	AggregateInterval *int   `db:"aggregate_interval" json:"aggregateInterval"`
-	SubmitInterval    *int   `db:"submit_interval" json:"submitInterval"`
-	Decimals          *int   `db:"decimals" json:"decimals"`
+	ID                  int32  `db:"id" json:"id"`
+	Name                string `db:"name" json:"name"`
+	FetchInterval       *int   `db:"fetch_interval" json:"fetchInterval"`
+	AggregateInterval   *int   `db:"aggregate_interval" json:"aggregateInterval"`
+	SubmitInterval      *int   `db:"submit_interval" json:"submitInterval"`
+	Decimals            *int   `db:"decimals" json:"decimals"`
+	FeedDataFreshness *int `db:"feed_data_freshness" json:"feedDataFreshness"`
 }
 
 type LatestFeedDataMap struct {

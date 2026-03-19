@@ -2,6 +2,7 @@
 package test
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -46,7 +47,8 @@ func TestKeyCache_CleanupLoop(t *testing.T) {
 	// Set a key and wait for it to expire
 	key := "test-key"
 	cache.Set(key)
-	cache.CleanupLoop(25 * time.Millisecond)
+	ctx := context.Background()
+	cache.CleanupLoop(ctx, 25*time.Millisecond)
 	time.Sleep(75 * time.Millisecond)
 
 	// Check if the key has been removed
