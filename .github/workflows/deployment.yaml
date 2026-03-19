@@ -143,7 +143,7 @@ jobs:
       - uses: actions/checkout@master
       - name: extract tags
         id: taskflow-tag
-        run: "IMAGE_TAG=\"${{ github.event.inputs.image }}\"\nVERSION=$(echo \"${IMAGE_TAG}\" | cut -d':' -f2 | cut -d'.' -f1-3)\necho $VERSION\nTAG_DATE=$(echo \"${IMAGE_TAG}\" | cut -d':' -f2 | cut -d'.' -f4-5)\necho $TAG_DATE\nTAG_GIT_HASH=$(echo \"${IMAGE_TAG}\" | cut -d':' -f2 | cut -d'.' -f6)\nTAG=\"${VERSION}.${TAG_DATE}.${TAG_GIT_HASH}\"\necho $TAG;          \necho $TAG_GIT_HASH\necho \"version=${VERSION}\" >> $GITHUB_OUTPUT\necho \"tag_date=${TAG_DATE}\" >> $GITHUB_OUTPUT\necho \"tag_git_hash=${TAG_GIT_HASH}\" >> $GITHUB_OUTPUT\necho \"img_tag=${TAG}\" >> $GITHUB_OUTPUT\n"
+        run: "IMAGE_TAG=\"${{ github.event.inputs.image }}\"\nVERSION=$(echo \"${IMAGE_TAG}\" | cut -d':' -f2 | cut -d'.' -f1-3)\necho $VERSION\nTAG_DATE=$(echo \"${IMAGE_TAG}\" | cut -d':' -f2 | cut -d'.' -f4-5)\necho $TAG_DATE\nTAG_GIT_HASH=$(echo \"${IMAGE_TAG}\" | cut -d':' -f2 | cut -d'.' -f6)\nTAG_NETWORK=$(echo \"${IMAGE_TAG}\" | cut -d':' -f2 | cut -d'.' -f7)\nif [ -n \"$TAG_NETWORK\" ]; then\n  TAG=\"${VERSION}.${TAG_DATE}.${TAG_GIT_HASH}.${TAG_NETWORK}\"\nelse\n  TAG=\"${VERSION}.${TAG_DATE}.${TAG_GIT_HASH}\"\nfi\necho $TAG\necho $TAG_GIT_HASH\necho \"version=${VERSION}\" >> $GITHUB_OUTPUT\necho \"tag_date=${TAG_DATE}\" >> $GITHUB_OUTPUT\necho \"tag_git_hash=${TAG_GIT_HASH}\" >> $GITHUB_OUTPUT\necho \"img_tag=${TAG}\" >> $GITHUB_OUTPUT\n"
         env:
           GH_TOKEN: ${{ secrets.WORKFLOW_PAT }}
   taskflow-image-update:
@@ -176,18 +176,19 @@ jobs:
   prepare:
     name: Prepare
     runs-on: ubuntu-latest
-    if: ${{ github.event.inputs.network == 'Baobab' && github.event.inputs.image == 'new' }}
+    if: ${{ github.event.inputs.image == 'new' }}
     outputs:
       tag_date: ${{ steps.tag.outputs.date }}
       tag_git_hash: ${{ steps.tag.outputs.git_hash }}
       service: ${{ steps.tag.outputs.service }}
       ecr_url: ${{ steps.tag.outputs.ecr_url }}
       version: ${{ steps.package.outputs.version }}
+      network: ${{ steps.tag.outputs.network }}
     steps:
       - uses: actions/checkout@master
       - name: get time tag
         id: tag
-        run: "# Get the date and git hash\necho \"date=$(date +'%Y%m%d.%H%M')\" >> $GITHUB_OUTPUT\necho \"git_hash=$(git rev-parse --short HEAD)\" >> $GITHUB_OUTPUT\nservice=\"${{ github.event.inputs.application }}\"\n# Set the service name\nif [[ \"$service\" == \"vrf\" || \"$service\" == \"request-response\" ]]; then\n  service=\"core\"\nfi            \n# Set the ecr url\necho \"service=$service\" >> $GITHUB_OUTPUT\necho \"ecr_url=public.ecr.aws/bisonai/orakl-${service}\" >> $GITHUB_OUTPUT\n# end of the script\n"
+        run: "# Get the date and git hash\necho \"date=$(date +'%Y%m%d.%H%M')\" >> $GITHUB_OUTPUT\necho \"git_hash=$(git rev-parse --short HEAD)\" >> $GITHUB_OUTPUT\nservice=\"${{ github.event.inputs.application }}\"\n# Set the service name\nif [[ \"$service\" == \"vrf\" || \"$service\" == \"request-response\" ]]; then\n  service=\"core\"\nfi            \n# Set the ecr url\necho \"service=$service\" >> $GITHUB_OUTPUT\necho \"ecr_url=public.ecr.aws/bisonai/orakl-${service}\" >> $GITHUB_OUTPUT\n# Set lowercase network\necho \"network=$(echo '${{ github.event.inputs.network }}' | tr '[:upper:]' '[:lower:]')\" >> $GITHUB_OUTPUT\n# end of the script\n"
         env:
           GH_TOKEN: ${{ secrets.WORKFLOW_PAT }}
       - name: get package version
@@ -199,7 +200,7 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     needs: prepare
-    if: ${{ github.event.inputs.network == 'Baobab' && github.event.inputs.image == 'new' }}
+    if: ${{ github.event.inputs.image == 'new' }}
     permissions:
       id-token: write
       contents: read
@@ -232,11 +233,11 @@ jobs:
         run: |
           docker tag miko-${{ needs.prepare.outputs.service }} ${{ needs.prepare.outputs.ecr_url }}:latest
           docker push ${{ needs.prepare.outputs.ecr_url }}:latest
-          docker tag ${{ needs.prepare.outputs.ecr_url }}:latest ${{ needs.prepare.outputs.ecr_url }}:v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
-          docker push ${{ needs.prepare.outputs.ecr_url }}:v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
+          docker tag ${{ needs.prepare.outputs.ecr_url }}:latest ${{ needs.prepare.outputs.ecr_url }}:v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}.${{ needs.prepare.outputs.network }}
+          docker push ${{ needs.prepare.outputs.ecr_url }}:v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}.${{ needs.prepare.outputs.network }}
       - name: image tag output
         id: img-tag
-        run: echo "img_tag=v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}" >> $GITHUB_OUTPUT
+        run: echo "img_tag=v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}.${{ needs.prepare.outputs.network }}" >> $GITHUB_OUTPUT
   post-slack-image-upload:
     name: Slack message for image upload
     needs: [prepare, build]
@@ -247,13 +248,14 @@ jobs:
       channel: "miko-notification"
     secrets:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-    if: ${{ github.event.inputs.network == 'Baobab' && success() }}
+    if: ${{ github.event.inputs.image == 'new' && success() }}
   image-update:
     name: Update image tag
     needs: [prepare, build]
     uses: ./.github/workflows/update.image-tag.yaml
     with:
-      network: "baobab"
+      network: ${{ needs.prepare.outputs.network }}
+      build: false
       project-name: ${{ github.event.inputs.application }}
       version: ${{ needs.prepare.outputs.version }}
       image-tag: ${{ needs.build.outputs.img_tag }}
@@ -262,7 +264,7 @@ jobs:
     secrets:
       GH_ORAKL_BOT_APP_ID: ${{ secrets.GH_ORAKL_BOT_APP_ID }}
       GH_ORAKL_BOT_PRIVATE_KEY: ${{ secrets.GH_ORAKL_BOT_PRIVATE_KEY }}
-    if: ${{ github.event.inputs.network == 'Baobab' && github.event.inputs.image == 'new' }}
+    if: ${{ github.event.inputs.image == 'new' }}
   post-slack-baobab-tag-update-success:
     name: Post slack message for tag update success
     needs: [prepare, build, image-update]
@@ -273,7 +275,7 @@ jobs:
       channel: "miko-notification"
     secrets:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-    if: ${{ github.event.inputs.network == 'Baobab' && github.event.inputs.image == 'new' && success() }}
+    if: ${{ github.event.inputs.image == 'new' && success() }}
   cypress-image-update:
     name: cypress image update
     uses: ./.github/workflows/update.image-tag.yaml
@@ -283,7 +285,7 @@ jobs:
     secrets:
       GH_ORAKL_BOT_APP_ID: ${{ secrets.GH_ORAKL_BOT_APP_ID }}
       GH_ORAKL_BOT_PRIVATE_KEY: ${{ secrets.GH_ORAKL_BOT_PRIVATE_KEY }}
-    if: ${{ github.event.inputs.network == 'Cypress' }}
+    if: ${{ github.event.inputs.network == 'Cypress' && github.event.inputs.image != 'new' }}
   post-slack-cypress-tag-update-success:
     name: Post slack message for tag update success
     needs: [cypress-image-update]
@@ -294,7 +296,7 @@ jobs:
       channel: "miko-notification"
     secrets:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-    if: ${{ github.event.inputs.network == 'Cypress' && success() }}
+    if: ${{ github.event.inputs.network == 'Cypress' && github.event.inputs.image != 'new' && success() }}
   post-slack-tag-update-failure:
     name: Post to a slack message for tag update failure
     needs: [prepare, build, image-update]
@@ -305,7 +307,7 @@ jobs:
       channel: "miko-notification"
     secrets:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-    if: ${{ github.event.inputs.network == 'Baobab' && github.event.inputs.image == 'new' && failure() }}
+    if: ${{ github.event.inputs.image == 'new' && failure() }}
   update-workflow-and-readme:
     name: Update Workflow and README
     needs: [prepare, build, image-update]
