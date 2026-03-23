@@ -177,8 +177,7 @@ func storeProofs(ctx context.Context, proofs []Proof) error {
 		insertRows[i] = []any{proof.ConfigID, proof.Round, proof.Proof}
 	}
 
-	_, err := db.BulkCopy(ctx, "proofs", []string{"config_id", "round", "proof"}, insertRows)
-	return err
+	return db.BulkUpsert(ctx, "proofs", []string{"config_id", "round", "proof"}, insertRows, []string{"config_id", "round"}, []string{"proof"})
 }
 
 func storeGlobalAggregates(ctx context.Context, globalAggregates []GlobalAggregate) error {
