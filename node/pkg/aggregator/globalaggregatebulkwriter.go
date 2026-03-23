@@ -172,12 +172,18 @@ func storeProofs(ctx context.Context, proofs []Proof) error {
 		return nil
 	}
 
-	insertRows := make([][]any, len(proofs))
-	for i, proof := range proofs {
-		insertRows[i] = []any{proof.ConfigID, proof.Round, proof.Proof}
+	seen := make(map[[2]int32]struct{})
+	dedupRows := make([][]any, 0, len(proofs))
+	for _, proof := range proofs {
+		key := [2]int32{proof.ConfigID, proof.Round}
+		if _, exists := seen[key]; exists {
+			continue
+		}
+		seen[key] = struct{}{}
+		dedupRows = append(dedupRows, []any{proof.ConfigID, proof.Round, proof.Proof})
 	}
 
-	return db.BulkUpsert(ctx, "proofs", []string{"config_id", "round", "proof"}, insertRows, []string{"config_id", "round"}, []string{"proof"})
+	return db.BulkUpsert(ctx, "proofs", []string{"config_id", "round", "proof"}, dedupRows, []string{"config_id", "round"}, []string{"proof"})
 }
 
 func storeGlobalAggregates(ctx context.Context, globalAggregates []GlobalAggregate) error {
