@@ -40,10 +40,21 @@ type app struct {
 	entries    map[string]entry
 	kaiaHelper *helper.ChainHelper
 
-	proxies  []types.Proxy
-	proxyIdx int
+	proxies         []types.Proxy
+	proxyIdx        int
+	circuitBreakers map[string]*porCircuitBreaker
 	sync.Mutex
 }
+
+type porCircuitBreaker struct {
+	consecutiveFails int
+	openUntil        time.Time
+}
+
+const (
+	porCBThreshold = 5
+	porCBCooldown  = 5 * time.Minute
+)
 
 type entry struct {
 	definition     *fetcher.Definition

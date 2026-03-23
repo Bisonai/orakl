@@ -162,9 +162,10 @@ func New(ctx context.Context) (*app, error) {
 	}
 
 	return &app{
-		entries:    entries,
-		kaiaHelper: chainHelper,
-		proxies:    proxies,
+		entries:         entries,
+		kaiaHelper:      chainHelper,
+		proxies:         proxies,
+		circuitBreakers: make(map[string]*porCircuitBreaker),
 	}, nil
 }
 
@@ -223,6 +224,8 @@ func (a *app) startJob(ctx context.Context, entry entry) {
 		interval = time.Duration(*entry.adapter.Interval) * time.Millisecond
 	}
 
+	name := entry.adapter.Name
+
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 	for {
@@ -230,6 +233,12 @@ func (a *app) startJob(ctx context.Context, entry entry) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
+			cb := a.circuitBreakers[name]
+			if cb != nil && cb.consecutiveFails >= porCBThreshold && time.Now().Before(cb.openUntil) {
+				log.Debug().Str("entry", name).Msg("circuit breaker open, skipping POR fetch")
+				continue
+			}
+
 			err := retrier.Retry(
 				func() error {
 					return a.execute(ctx, entry)
@@ -240,6 +249,17 @@ func (a *app) startJob(ctx context.Context, entry entry) {
 			)
 			if err != nil {
 				log.Error().Err(err).Msg("error in execute")
+				if cb == nil {
+					cb = &porCircuitBreaker{}
+					a.circuitBreakers[name] = cb
+				}
+				cb.consecutiveFails++
+				if cb.consecutiveFails == porCBThreshold {
+					cb.openUntil = time.Now().Add(porCBCooldown)
+					log.Warn().Str("entry", name).Dur("cooldown", porCBCooldown).Msg("POR circuit breaker opened")
+				}
+			} else if cb != nil {
+				cb.consecutiveFails = 0
 			}
 		}
 	}

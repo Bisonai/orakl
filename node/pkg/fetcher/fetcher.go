@@ -30,6 +30,7 @@ func NewFetcher(config Config, feeds []Feed, latestFeedDataMap *LatestFeedDataMa
 		cancel:              nil,
 		latestFeedDataMap:   latestFeedDataMap,
 		FeedDataDumpChannel: feedDataDumpChannel,
+		circuitBreakers:     newCircuitBreakerMap(),
 	}
 }
 
@@ -84,20 +85,36 @@ func (f *Fetcher) fetcherJob(ctx context.Context, proxies []Proxy) error {
 func (f *Fetcher) fetch(proxies []Proxy) ([]*FeedData, error) {
 	feeds := f.Feeds
 
+	activeFeeds := make([]Feed, 0, len(feeds))
+	for _, feed := range feeds {
+		if f.circuitBreakers.isOpen(feed.ID) {
+			log.Debug().Str("Player", "Fetcher").Str("feed", feed.Name).Msg("circuit breaker open, skipping feed")
+			continue
+		}
+		activeFeeds = append(activeFeeds, feed)
+	}
+
+	if len(activeFeeds) == 0 {
+		return nil, errorSentinel.ErrFetcherNoDataFetched
+	}
+
 	data := []*FeedData{}
 	errList := []error{}
-	dataChan := make(chan *FeedData)
-	errChan := make(chan error)
 
-	defer close(dataChan)
-	defer close(errChan)
+	type fetchResult struct {
+		feedID   int32
+		feedName string
+		data     *FeedData
+		err      error
+	}
+	resultChan := make(chan fetchResult, len(activeFeeds))
 
-	for _, feed := range feeds {
+	for _, feed := range activeFeeds {
 		go func(feed Feed) {
 			definition := new(Definition)
 			err := json.Unmarshal(feed.Definition, &definition)
 			if err != nil {
-				errChan <- err
+				resultChan <- fetchResult{feedID: feed.ID, feedName: feed.Name, err: err}
 				return
 			}
 
@@ -108,25 +125,31 @@ func (f *Fetcher) fetch(proxies []Proxy) ([]*FeedData, error) {
 			case definition.Type == nil:
 				resultValue, fetchErr = f.cex(definition, proxies)
 				if fetchErr != nil {
-					errChan <- fetchErr
+					resultChan <- fetchResult{feedID: feed.ID, feedName: feed.Name, err: fetchErr}
 					return
 				}
 			default:
-				errChan <- errorSentinel.ErrFetcherInvalidType
+				resultChan <- fetchResult{feedID: feed.ID, feedName: feed.Name, err: errorSentinel.ErrFetcherInvalidType}
 				return
 			}
 			now := time.Now()
-			dataChan <- &FeedData{FeedID: feed.ID, Value: resultValue, Timestamp: &now, Volume: 0}
-
+			resultChan <- fetchResult{feedID: feed.ID, feedName: feed.Name, data: &FeedData{FeedID: feed.ID, Value: resultValue, Timestamp: &now, Volume: 0}}
 		}(feed)
 	}
 
-	for i := 0; i < len(feeds); i++ {
-		select {
-		case result := <-dataChan:
-			data = append(data, result)
-		case err := <-errChan:
-			errList = append(errList, err)
+	for i := 0; i < len(activeFeeds); i++ {
+		r := <-resultChan
+		if r.err != nil {
+			errList = append(errList, r.err)
+			if opened := f.circuitBreakers.recordFailure(r.feedID, r.feedName); opened {
+				log.Warn().Str("Player", "Fetcher").Str("feed", r.feedName).
+					Int("threshold", CircuitBreakerThreshold).
+					Dur("cooldown", CircuitBreakerCooldown).
+					Msg("circuit breaker opened, feed will be skipped temporarily")
+			}
+		} else {
+			data = append(data, r.data)
+			f.circuitBreakers.recordSuccess(r.feedID)
 		}
 	}
 

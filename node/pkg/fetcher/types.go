@@ -50,6 +50,7 @@ type Fetcher struct {
 	isRunning           bool
 	latestFeedDataMap   *LatestFeedDataMap
 	FeedDataDumpChannel chan *FeedData
+	circuitBreakers     *circuitBreakerMap
 }
 
 type LocalAggregator struct {
