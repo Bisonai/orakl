@@ -134,6 +134,7 @@ on:
           - node:v0.0.1.20260319.0507.a760171.cypress:fix
           - dal:v0.0.1.20260319.0739.fc0b80a.cypress:fix
           - node:v0.0.1.20260323.0143.0ff6dc5.baobab:fix
+          - node:v0.0.1.20260323.0149.a93916c.baobab:fix
 jobs:
   prepare-taskflow:
     name: Prepare
