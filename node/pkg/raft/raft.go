@@ -3,6 +3,7 @@ package raft
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"math/rand"
 	"sync"
 	"time"
@@ -62,7 +63,11 @@ func (r *Raft) Run(ctx context.Context) {
 
 				err = r.handleMessage(ctx, msg)
 				if err != nil {
-					log.Error().Err(err).Str("Player", "Raft").Msg("failed to handle message")
+					if errors.Is(err, errorSentinel.ErrAggregatorNonLeaderRaftMessage) {
+						log.Debug().Err(err).Str("Player", "Raft").Msg("failed to handle message")
+					} else {
+						log.Error().Err(err).Str("Player", "Raft").Msg("failed to handle message")
+					}
 				}
 			}(rawMsg)
 		case <-r.ElectionTimer.C:
