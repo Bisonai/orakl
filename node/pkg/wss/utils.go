@@ -115,7 +115,7 @@ func (ws *WebsocketHelper) Run(ctx context.Context, router func(context.Context,
 					if isErrorNormalClosure(err) {
 						break innerLoop
 					}
-					log.Error().Err(err).Str("endpoint", ws.Endpoint).Msg("error reading from websocket")
+					log.Warn().Err(err).Str("endpoint", ws.Endpoint).Msg("error reading from websocket, reconnecting")
 					break innerLoop
 				}
 
@@ -228,7 +228,8 @@ func (ws *WebsocketHelper) IsAlive(ctx context.Context) error {
 }
 
 func isErrorNormalClosure(err error) bool {
-	return websocket.CloseStatus(err) == websocket.StatusNormalClosure || websocket.CloseStatus(err) == websocket.StatusGoingAway
+	status := websocket.CloseStatus(err)
+	return status == websocket.StatusNormalClosure || status == websocket.StatusGoingAway || status == websocket.StatusNoStatusRcvd
 }
 
 func defaultReader(ctx context.Context, conn *websocket.Conn) (map[string]interface{}, error) {
