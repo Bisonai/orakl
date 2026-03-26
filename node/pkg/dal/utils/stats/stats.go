@@ -144,7 +144,7 @@ func (a *StatsApp) RequestLoggerMiddleware(next http.Handler) http.Handler {
 		w.Header()
 		defer func() {
 			endpoint := r.RequestURI
-			if endpoint == "/" {
+			if endpoint == "/" || endpoint == "/metrics" {
 				return
 			}
 
