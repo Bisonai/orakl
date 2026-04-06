@@ -14,10 +14,12 @@ import (
 var peerCount int
 var failCount int
 var peerCheckInterval time.Duration
+var debounceCount int
 
 const (
 	DEFAULT_PEER_CHECK_INTERVAL = 10 * time.Second
 	peerCountEndpoint           = "/host/peercount"
+	DEBOUNCE_THRESHOLD          = 3
 )
 
 type peerCountResponse struct {
@@ -38,6 +40,7 @@ func setUp() error {
 	}
 	peerCount = initialCount
 	failCount = 0
+	debounceCount = 0
 
 	return nil
 }
@@ -67,8 +70,14 @@ func Start() error {
 		failCount = 0
 
 		if newPeerCount != peerCount {
-			alarm(newPeerCount, peerCount)
-			peerCount = newPeerCount
+			debounceCount++
+			if debounceCount >= DEBOUNCE_THRESHOLD {
+				alarm(newPeerCount, peerCount)
+				peerCount = newPeerCount
+				debounceCount = 0
+			}
+		} else {
+			debounceCount = 0
 		}
 	}
 	return nil
