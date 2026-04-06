@@ -33,7 +33,7 @@ func TestReadLatestRoundId(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	roundId, err := app.getRoundId(ctx, app.entries["peg-por"])
+	roundId, err := app.getRoundId(ctx, app.entries["aapl"])
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -47,7 +47,7 @@ func TestGetLastInfo(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	info, err := app.getLastInfo(ctx, app.entries["peg-por"])
+	info, err := app.getLastInfo(ctx, app.entries["aapl"])
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -64,7 +64,7 @@ func TestExecute(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = app.execute(ctx, app.entries["peg-por"])
+	err = app.execute(ctx, app.entries["aapl"])
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -77,17 +77,17 @@ func TestReport(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	value, err := fetcher.FetchSingle(ctx, app.entries["peg-por"].definition)
+	value, err := fetcher.FetchSingle(ctx, app.entries["aapl"].definition)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	roundId, err := app.getRoundId(ctx, app.entries["peg-por"])
+	roundId, err := app.getRoundId(ctx, app.entries["aapl"])
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = app.report(ctx, app.entries["peg-por"], value, roundId)
+	err = app.report(ctx, app.entries["aapl"], value, roundId)
 	if err != nil {
 		t.Fatal(err)
 	}

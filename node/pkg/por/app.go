@@ -35,18 +35,6 @@ const (
 )
 
 var urls = map[string]urlEntry{
-	"peg-por": {
-		"/{CHAIN}/peg-{CHAIN}.por.json",
-		"/{CHAIN}/peg.por.json",
-		false,
-		false,
-	},
-	"gp": {
-		"/{CHAIN}/gp-{CHAIN}.json",
-		"/{CHAIN}/gp.json",
-		false,
-		false,
-	},
 	"aapl": {
 		"/{CHAIN}/aapl-{CHAIN}.json",
 		"/{CHAIN}/aapl.json",
