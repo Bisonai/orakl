@@ -130,7 +130,7 @@ func (a *App) Init(ctx context.Context, opts ...AppOption) error {
 		"crypto":   crypto.New,
 		"btse":     btse.New,
 		"bithumb":  bithumb.New,
-		"gateio":   gateio.NewV3,
+		"gateio":   gateio.New,
 		"coinex":   coinex.New,
 		"huobi":    huobi.New,
 		"mexc":     mexc.New,

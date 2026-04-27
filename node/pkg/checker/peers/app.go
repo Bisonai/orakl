@@ -14,12 +14,11 @@ import (
 var peerCount int
 var failCount int
 var peerCheckInterval time.Duration
-var debounceCount int
 
 const (
 	DEFAULT_PEER_CHECK_INTERVAL = 10 * time.Second
 	peerCountEndpoint           = "/host/peercount"
-	DEBOUNCE_THRESHOLD          = 3
+	SAMPLE_COUNT                = 5
 )
 
 type peerCountResponse struct {
@@ -40,7 +39,6 @@ func setUp() error {
 	}
 	peerCount = initialCount
 	failCount = 0
-	debounceCount = 0
 
 	return nil
 }
@@ -70,14 +68,8 @@ func Start() error {
 		failCount = 0
 
 		if newPeerCount != peerCount {
-			debounceCount++
-			if debounceCount >= DEBOUNCE_THRESHOLD {
-				alarm(newPeerCount, peerCount)
-				peerCount = newPeerCount
-				debounceCount = 0
-			}
-		} else {
-			debounceCount = 0
+			alarm(newPeerCount, peerCount)
+			peerCount = newPeerCount
 		}
 	}
 	return nil
@@ -89,11 +81,19 @@ func checkPeerCounts() (int, error) {
 		return 0, errors.New("ORAKL_NODE_ADMIN_URL not found")
 	}
 
-	resp, err := request.Request[peerCountResponse](request.WithEndpoint(mikoNodeAdminUrl+peerCountEndpoint), request.WithTimeout(10*time.Second))
-	if err != nil {
-		return 0, err
+	maxCount := 0
+	for i := 0; i < SAMPLE_COUNT; i++ {
+		resp, err := request.Request[peerCountResponse](request.WithEndpoint(mikoNodeAdminUrl+peerCountEndpoint), request.WithTimeout(10*time.Second))
+		if err != nil {
+			log.Warn().Err(err).Int("sample", i).Msg("failed to get peer count sample")
+			continue
+		}
+		if resp.Count > maxCount {
+			maxCount = resp.Count
+		}
 	}
-	return resp.Count, nil
+
+	return maxCount, nil
 }
 
 func alarm(newCount int, oldCount int) {
