@@ -88,35 +88,21 @@ func (f *CapybaraFetcher) run(ctx context.Context, feed common.Feed) {
 		}
 	}()
 
-	// Heartbeat poll — foreground; see uniswap.run() for the rationale.
-	t := time.NewTicker(common.GetDexPollInterval())
-	defer t.Stop()
-	for {
-		select {
-		case <-t.C:
-			price, err := f.getInitialPrice(ctx, feed)
-			if err != nil {
-				log.Error().Str("Player", "Capybara").Err(err).Msg("failed to poll slot0()")
-				continue
-			}
-
-			// TODO(diag): drop after IDRX-USDT polling confirmed.
-			log.Info().Str("Player", "Capybara").Int32("feedID", feed.ID).Str("name", feed.Name).Float64("price", *price).Msg("DIAG polled price")
-
-			now := time.Now()
-			polledFeedData := &common.FeedData{
-				FeedID:    feed.ID,
-				Value:     *price,
-				Timestamp: &now,
-			}
-			f.FeedDataBuffer <- polledFeedData
-
+	// Heartbeat poll — see uniswap.run() for the rationale.
+	common.HeartbeatPoll(ctx, common.GetDexPollInterval(), "Capybara", feed.ID, feed.Name,
+		f.getInitialPriceFor(feed),
+		func(fd *common.FeedData) {
+			f.FeedDataBuffer <- fd
 			f.Mutex.Lock()
-			f.LatestEntries[feed.ID] = polledFeedData
+			f.LatestEntries[feed.ID] = fd
 			f.Mutex.Unlock()
-		case <-ctx.Done():
-			return
-		}
+		},
+	)
+}
+
+func (f *CapybaraFetcher) getInitialPriceFor(feed common.Feed) func(context.Context) (*float64, error) {
+	return func(ctx context.Context) (*float64, error) {
+		return f.getInitialPrice(ctx, feed)
 	}
 }
 
