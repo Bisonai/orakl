@@ -75,50 +75,47 @@ func (f *UniswapFetcher) run(ctx context.Context, feed common.Feed) {
 	f.LatestEntries[feed.ID] = initialFeedData
 	f.Mutex.Unlock()
 
-	// 2. heartbeat poll — repeatedly read slot0() so a fresh timestamp
-	// (and the latest pool price, even if no Swap events fire) is always
-	// pushed.  Low-volume pools used to drift up to an hour without an
-	// update; the poll bounds that to DexPollInterval.
-	localCtx, cancel := context.WithCancel(ctx)
-	defer cancel()
-	go func(ctx context.Context) {
-		t := time.NewTicker(common.GetDexPollInterval())
-		defer t.Stop()
-
-		for {
-			select {
-			case <-t.C:
-				price, err := f.getInitialPrice(ctx, feed)
-				if err != nil {
-					log.Error().Str("Player", "Uniswap").Err(err).Msg("failed to poll slot0()")
-					continue
-				}
-
-				// TODO(diag): drop after IDRX-USDT polling confirmed.
-				log.Info().Str("Player", "Uniswap").Int32("feedID", feed.ID).Str("name", feed.Name).Float64("price", *price).Msg("DIAG polled price")
-
-				now := time.Now()
-				polledFeedData := &common.FeedData{
-					FeedID:    feed.ID,
-					Value:     *price,
-					Timestamp: &now,
-				}
-				f.FeedDataBuffer <- polledFeedData
-
-				f.Mutex.Lock()
-				f.LatestEntries[feed.ID] = polledFeedData
-				f.Mutex.Unlock()
-			case <-ctx.Done():
-				return
-			}
+	// 2. WSS Swap subscription — best effort, runs in the background.
+	// Swap events give sub-poll-interval freshness when the pool is
+	// active.  If the subscription drops or returns we keep polling.
+	go func() {
+		if err := f.subscribeEvent(ctx, feed); err != nil {
+			log.Error().Str("Player", "Uniswap").Err(err).Msg("error in uniswap.run, subscribe event ended")
 		}
-	}(localCtx)
+	}()
 
-	// 3. get subsequent data through websocket
-	err = f.subscribeEvent(ctx, feed)
-	if err != nil {
-		log.Error().Str("Player", "Uniswap").Err(err).Msg("error in uniswap.run, failed to subscribe event")
-		return
+	// 3. heartbeat poll — repeatedly read slot0() so a fresh timestamp
+	// (and the latest pool price, even if no Swap events fire) is always
+	// pushed.  Runs in the foreground so its lifetime tracks ctx, not
+	// the WSS subscription's success.
+	t := time.NewTicker(common.GetDexPollInterval())
+	defer t.Stop()
+	for {
+		select {
+		case <-t.C:
+			price, err := f.getInitialPrice(ctx, feed)
+			if err != nil {
+				log.Error().Str("Player", "Uniswap").Err(err).Msg("failed to poll slot0()")
+				continue
+			}
+
+			// TODO(diag): drop after IDRX-USDT polling confirmed.
+			log.Info().Str("Player", "Uniswap").Int32("feedID", feed.ID).Str("name", feed.Name).Float64("price", *price).Msg("DIAG polled price")
+
+			now := time.Now()
+			polledFeedData := &common.FeedData{
+				FeedID:    feed.ID,
+				Value:     *price,
+				Timestamp: &now,
+			}
+			f.FeedDataBuffer <- polledFeedData
+
+			f.Mutex.Lock()
+			f.LatestEntries[feed.ID] = polledFeedData
+			f.Mutex.Unlock()
+		case <-ctx.Done():
+			return
+		}
 	}
 }
 

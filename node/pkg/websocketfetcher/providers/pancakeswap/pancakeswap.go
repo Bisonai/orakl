@@ -84,46 +84,42 @@ func (f *PancakeswapFetcher) run(ctx context.Context, feed common.Feed) {
 	f.LatestEntries[feed.ID] = initialFeedData
 	f.Mutex.Unlock()
 
-	// Heartbeat poll — see uniswap.run() for the rationale; same pattern.
-	localCtx, cancel := context.WithCancel(ctx)
-	defer cancel()
-	go func(ctx context.Context) {
-		t := time.NewTicker(common.GetDexPollInterval())
-		defer t.Stop()
-
-		for {
-			select {
-			case <-t.C:
-				price, err := f.getInitialPrice(ctx, feed)
-				if err != nil {
-					log.Error().Str("Player", "Pancakeswap").Err(err).Msg("failed to poll slot0()")
-					continue
-				}
-
-				// TODO(diag): drop after IDRX-USDT polling confirmed.
-				log.Info().Str("Player", "Pancakeswap").Int32("feedID", feed.ID).Str("name", feed.Name).Float64("price", *price).Msg("DIAG polled price")
-
-				now := time.Now()
-				feedData := &common.FeedData{
-					FeedID:    feed.ID,
-					Value:     *price,
-					Timestamp: &now,
-				}
-				f.FeedDataBuffer <- feedData
-
-				f.Mutex.Lock()
-				f.LatestEntries[feed.ID] = feedData
-				f.Mutex.Unlock()
-			case <-ctx.Done():
-				return
-			}
+	// WSS Swap subscription — background, best effort.
+	go func() {
+		if err := f.subscribeEvent(ctx, feed); err != nil {
+			log.Error().Str("Player", "Pancakeswap").Err(err).Msg("error in pancakeswap.run, subscribe event ended")
 		}
-	}(localCtx)
+	}()
 
-	err = f.subscribeEvent(ctx, feed)
-	if err != nil {
-		log.Error().Str("Player", "Pancakeswap").Err(err).Msg("error in pancakeswap.run, failed to subscribe event")
-		return
+	// Heartbeat poll — foreground; see uniswap.run() for the rationale.
+	t := time.NewTicker(common.GetDexPollInterval())
+	defer t.Stop()
+	for {
+		select {
+		case <-t.C:
+			price, err := f.getInitialPrice(ctx, feed)
+			if err != nil {
+				log.Error().Str("Player", "Pancakeswap").Err(err).Msg("failed to poll slot0()")
+				continue
+			}
+
+			// TODO(diag): drop after IDRX-USDT polling confirmed.
+			log.Info().Str("Player", "Pancakeswap").Int32("feedID", feed.ID).Str("name", feed.Name).Float64("price", *price).Msg("DIAG polled price")
+
+			now := time.Now()
+			feedData := &common.FeedData{
+				FeedID:    feed.ID,
+				Value:     *price,
+				Timestamp: &now,
+			}
+			f.FeedDataBuffer <- feedData
+
+			f.Mutex.Lock()
+			f.LatestEntries[feed.ID] = feedData
+			f.Mutex.Unlock()
+		case <-ctx.Done():
+			return
+		}
 	}
 }
 
