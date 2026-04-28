@@ -73,43 +73,36 @@ func (f *UniswapFetcher) run(ctx context.Context, feed common.Feed) {
 	f.LatestEntries[feed.ID] = initialFeedData
 	f.Mutex.Unlock()
 
-	// 2. regular fetch if data is older than 1hr
-
+	// 2. heartbeat poll — repeatedly read slot0() so a fresh timestamp
+	// (and the latest pool price, even if no Swap events fire) is always
+	// pushed.  Low-volume pools used to drift up to an hour without an
+	// update; the poll bounds that to DexPollInterval.
 	localCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	go func(ctx context.Context) {
-		t := time.NewTicker(time.Minute)
+		t := time.NewTicker(common.GetDexPollInterval())
 		defer t.Stop()
 
 		for {
 			select {
 			case <-t.C:
-				f.Mutex.Lock()
-				last, ok := f.LatestEntries[feed.ID]
-				f.Mutex.Unlock()
-				if !ok {
+				price, err := f.getInitialPrice(ctx, feed)
+				if err != nil {
+					log.Error().Str("Player", "Uniswap").Err(err).Msg("failed to poll slot0()")
 					continue
 				}
 
-				if time.Since(*last.Timestamp) > time.Hour {
-					price, err := f.getInitialPrice(ctx, feed)
-					if err != nil {
-						log.Error().Str("Player", "Uniswap").Err(err).Msg("failed to get refreshed price")
-						continue
-					}
-
-					now := time.Now()
-					refreshedFeedData := &common.FeedData{
-						FeedID:    feed.ID,
-						Value:     *price,
-						Timestamp: &now,
-					}
-					f.FeedDataBuffer <- refreshedFeedData
-
-					f.Mutex.Lock()
-					f.LatestEntries[feed.ID] = refreshedFeedData
-					f.Mutex.Unlock()
+				now := time.Now()
+				polledFeedData := &common.FeedData{
+					FeedID:    feed.ID,
+					Value:     *price,
+					Timestamp: &now,
 				}
+				f.FeedDataBuffer <- polledFeedData
+
+				f.Mutex.Lock()
+				f.LatestEntries[feed.ID] = polledFeedData
+				f.Mutex.Unlock()
 			case <-ctx.Done():
 				return
 			}

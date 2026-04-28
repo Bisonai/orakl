@@ -3,6 +3,7 @@ package common
 import (
 	"context"
 	"fmt"
+	"os"
 	"sync"
 	"time"
 	"unicode"
@@ -21,7 +22,28 @@ const (
 	VolumeCacheLifespan = 10 * time.Minute
 	VolumeFetchInterval = 10000
 	VolumeFetchTimeout  = 6 * time.Second
+
+	// DefaultDexPollInterval is how often each DEX pool fetcher re-reads
+	// slot0() in addition to subscribing to Swap events.  In hybrid mode
+	// the WSS subscription captures real-time price changes from swaps,
+	// while the poll guarantees a fresh timestamp (and value, for low
+	// volume pools that rarely swap) on a predictable cadence.
+	DefaultDexPollInterval = 30 * time.Second
 )
+
+// GetDexPollInterval returns the configured DEX poll interval, falling back to
+// DefaultDexPollInterval if DEX_POLL_INTERVAL is unset or unparseable.
+func GetDexPollInterval() time.Duration {
+	raw := os.Getenv("DEX_POLL_INTERVAL")
+	if raw == "" {
+		return DefaultDexPollInterval
+	}
+	d, err := time.ParseDuration(raw)
+	if err != nil || d <= 0 {
+		return DefaultDexPollInterval
+	}
+	return d
+}
 
 type Feed = types.Feed
 type FeedData = types.FeedData

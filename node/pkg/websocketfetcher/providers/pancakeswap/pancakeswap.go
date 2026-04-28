@@ -82,41 +82,33 @@ func (f *PancakeswapFetcher) run(ctx context.Context, feed common.Feed) {
 	f.LatestEntries[feed.ID] = initialFeedData
 	f.Mutex.Unlock()
 
+	// Heartbeat poll — see uniswap.run() for the rationale; same pattern.
 	localCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	go func(ctx context.Context) {
-		t := time.NewTicker(time.Minute)
+		t := time.NewTicker(common.GetDexPollInterval())
 		defer t.Stop()
 
 		for {
 			select {
 			case <-t.C:
-				f.Mutex.Lock()
-				last, ok := f.LatestEntries[feed.ID]
-				f.Mutex.Unlock()
-				if !ok {
+				price, err := f.getInitialPrice(ctx, feed)
+				if err != nil {
+					log.Error().Str("Player", "Pancakeswap").Err(err).Msg("failed to poll slot0()")
 					continue
 				}
 
-				if time.Since(*last.Timestamp) > time.Hour {
-					price, err := f.getInitialPrice(ctx, feed)
-					if err != nil {
-						log.Error().Str("Player", "Pancakeswap").Err(err).Msg("error in pancakeswap.run, failed to get refreshed price")
-						continue
-					}
-
-					now := time.Now()
-					feedData := &common.FeedData{
-						FeedID:    feed.ID,
-						Value:     *price,
-						Timestamp: &now,
-					}
-					f.FeedDataBuffer <- feedData
-
-					f.Mutex.Lock()
-					f.LatestEntries[feed.ID] = feedData
-					f.Mutex.Unlock()
+				now := time.Now()
+				feedData := &common.FeedData{
+					FeedID:    feed.ID,
+					Value:     *price,
+					Timestamp: &now,
 				}
+				f.FeedDataBuffer <- feedData
+
+				f.Mutex.Lock()
+				f.LatestEntries[feed.ID] = feedData
+				f.Mutex.Unlock()
 			case <-ctx.Done():
 				return
 			}
