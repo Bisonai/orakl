@@ -2,6 +2,7 @@ package fetcher
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"math"
 	"os"
@@ -296,7 +297,81 @@ func (c *LocalAggregator) collect(ctx context.Context) ([]*FeedData, error) {
 		return nil, err
 	}
 
+	feeds = c.applyPerFeedMultipliers(feeds)
 	return c.filterStaleFeeds(feeds), nil
+}
+
+// applyPerFeedMultipliers walks each FeedData against its source Feed
+// definition and, if the definition declares MultiplyBy, scales the value by
+// the named config's most recent raw aggregate (or by 1/value when
+// MultiplyByReciprocal is true).
+//
+// The source feed lives in latestFeedDataMap and is shared with other
+// aggregators, so we never mutate it in place — we emit a copy with the
+// adjusted value. Feeds whose multiplier source is missing or stale are
+// dropped from this aggregation cycle so the synthetic value isn't computed
+// from nonsense; non-synthetic feeds pass through unchanged.
+func (c *LocalAggregator) applyPerFeedMultipliers(feeds []*FeedData) []*FeedData {
+	if c.localAggregateValueMap == nil || len(c.Feeds) == 0 {
+		return feeds
+	}
+
+	feedById := make(map[int32]*Feed, len(c.Feeds))
+	for i := range c.Feeds {
+		feedById[c.Feeds[i].ID] = &c.Feeds[i]
+	}
+
+	freshness := time.Minute
+	if c.Config.FeedDataFreshness != nil && *c.Config.FeedDataFreshness > 0 {
+		freshness = time.Duration(*c.Config.FeedDataFreshness) * time.Millisecond
+	}
+
+	out := make([]*FeedData, 0, len(feeds))
+	for _, fd := range feeds {
+		feed, ok := feedById[fd.FeedID]
+		if !ok {
+			out = append(out, fd)
+			continue
+		}
+		defn := new(Definition)
+		if err := json.Unmarshal(feed.Definition, defn); err != nil {
+			out = append(out, fd)
+			continue
+		}
+		if defn.MultiplyBy == nil || *defn.MultiplyBy == "" {
+			out = append(out, fd)
+			continue
+		}
+		entry, ok := c.localAggregateValueMap.Get(*defn.MultiplyBy)
+		if !ok || entry.Value == 0 {
+			log.Debug().Str("Player", "LocalAggregator").
+				Str("config", c.Name).
+				Str("feed", feed.Name).
+				Str("multiplyBy", *defn.MultiplyBy).
+				Msg("per-feed multiplier source not yet available, dropping feed")
+			continue
+		}
+		if time.Since(entry.Timestamp) > freshness {
+			log.Warn().Str("Player", "LocalAggregator").
+				Str("config", c.Name).
+				Str("feed", feed.Name).
+				Str("multiplyBy", *defn.MultiplyBy).
+				Dur("age", time.Since(entry.Timestamp)).
+				Dur("freshness", freshness).
+				Msg("per-feed multiplier source is stale, dropping feed")
+			continue
+		}
+		newValue := fd.Value
+		if defn.MultiplyByReciprocal != nil && *defn.MultiplyByReciprocal {
+			newValue /= entry.Value
+		} else {
+			newValue *= entry.Value
+		}
+		fdCopy := *fd
+		fdCopy.Value = newValue
+		out = append(out, &fdCopy)
+	}
+	return out
 }
 
 func (c *LocalAggregator) filterStaleFeeds(feeds []*FeedData) []*FeedData {

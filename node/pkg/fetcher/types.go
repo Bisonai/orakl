@@ -153,6 +153,16 @@ type Definition struct {
 	Token0Decimals *int64  `json:"token0Decimals"`
 	Token1Decimals *int64  `json:"token1Decimals"`
 	Reciprocal     *bool   `json:"reciprocal"`
+
+	// Per-feed synthetic multiplier. When MultiplyBy names another config,
+	// the LocalAggregator multiplies (or divides, when MultiplyByReciprocal
+	// is true) this feed's value by that config's most recent raw aggregate
+	// before it joins this config's aggregation. Used when a single source
+	// reports the wrong quote currency — e.g. PancakeSwap on Base reports
+	// IDRX/USDC but the aggregating config is IDRX-USDT, so the feed
+	// multiplies its value by USDC-USDT to land in the right pair.
+	MultiplyBy           *string `json:"multiplyBy"`
+	MultiplyByReciprocal *bool   `json:"multiplyByReciprocal"`
 }
 
 type ChainHelper interface {

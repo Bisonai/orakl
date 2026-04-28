@@ -3,6 +3,7 @@ package fetcher
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -152,6 +153,138 @@ func TestStreamLocalAggregate_MultiplyByReciprocal_DividesBySource(t *testing.T)
 	case <-time.After(time.Second):
 		t.Fatal("expected aggregate on channel")
 	}
+}
+
+// Per-feed multiplier (Definition.MultiplyBy) tests --------------------------
+
+func newPerFeedMultiplierAggregator(t *testing.T, feeds []Feed) *LocalAggregator {
+	t.Helper()
+	freshness := 60_000
+	return &LocalAggregator{
+		Config: Config{
+			ID:                100,
+			Name:              "IDRX-USDT",
+			FetchInterval:     2000,
+			Decimals:          intPtr(8),
+			FeedDataFreshness: &freshness,
+		},
+		Feeds:                  feeds,
+		localAggregateValueMap: NewLocalAggregateValueMap(),
+	}
+}
+
+func feedWithMultiplyBy(id int32, name string, multiplyBy string, reciprocal bool) Feed {
+	defn := map[string]any{
+		"type":                 "UniswapPool",
+		"chainId":              "8453",
+		"address":              "0x457C528A3d135EC387caB8848D7aFeDfAB49a82F",
+		"token0Decimals":       18,
+		"token1Decimals":       6,
+		"multiplyBy":           multiplyBy,
+		"multiplyByReciprocal": reciprocal,
+	}
+	raw, _ := json.Marshal(defn)
+	return Feed{ID: id, Name: name, Definition: raw}
+}
+
+func feedNoMultiplier(id int32, name string) Feed {
+	defn := map[string]any{
+		"type":           "UniswapPool",
+		"chainId":        "8217",
+		"address":        "0x68dd15d01f36dc92677fcf353ff9f1474f98ce19",
+		"token0Decimals": 0,
+		"token1Decimals": 6,
+	}
+	raw, _ := json.Marshal(defn)
+	return Feed{ID: id, Name: name, Definition: raw}
+}
+
+func TestApplyPerFeedMultipliers_AppliesMultiplier(t *testing.T) {
+	la := newPerFeedMultiplierAggregator(t, []Feed{
+		feedWithMultiplyBy(1, "PancakeSwap-IDRX-USDC", "USDC-USDT", false),
+		feedNoMultiplier(2, "DragonSwap-IDRX-USDT"),
+	})
+	la.localAggregateValueMap.Set("USDC-USDT", 1.0001) // raw USDC-USDT
+
+	now := time.Now()
+	feeds := []*FeedData{
+		{FeedID: 1, Value: 0.0000625, Timestamp: &now},
+		{FeedID: 2, Value: 0.0000628, Timestamp: &now},
+	}
+	out := la.applyPerFeedMultipliers(feeds)
+
+	assert.Len(t, out, 2)
+	// PancakeSwap feed multiplied by 1.0001
+	assert.InDelta(t, 0.0000625*1.0001, out[0].Value, 1e-12)
+	// DragonSwap feed unchanged
+	assert.Equal(t, 0.0000628, out[1].Value)
+	// Original FeedData not mutated (latestFeedDataMap is shared).
+	assert.Equal(t, 0.0000625, feeds[0].Value)
+}
+
+func TestApplyPerFeedMultipliers_Reciprocal(t *testing.T) {
+	la := newPerFeedMultiplierAggregator(t, []Feed{
+		feedWithMultiplyBy(1, "PancakeSwap-IDRX-USDC", "USDT-USDC", true),
+	})
+	la.localAggregateValueMap.Set("USDT-USDC", 0.9999)
+
+	now := time.Now()
+	feeds := []*FeedData{{FeedID: 1, Value: 0.0000625, Timestamp: &now}}
+	out := la.applyPerFeedMultipliers(feeds)
+
+	assert.Len(t, out, 1)
+	assert.InDelta(t, 0.0000625/0.9999, out[0].Value, 1e-12)
+}
+
+func TestApplyPerFeedMultipliers_DropsWhenSourceMissing(t *testing.T) {
+	la := newPerFeedMultiplierAggregator(t, []Feed{
+		feedWithMultiplyBy(1, "PancakeSwap-IDRX-USDC", "USDC-USDT", false),
+		feedNoMultiplier(2, "DragonSwap-IDRX-USDT"),
+	})
+	// Don't set USDC-USDT in the map.
+
+	now := time.Now()
+	feeds := []*FeedData{
+		{FeedID: 1, Value: 0.0000625, Timestamp: &now},
+		{FeedID: 2, Value: 0.0000628, Timestamp: &now},
+	}
+	out := la.applyPerFeedMultipliers(feeds)
+
+	// Synthetic feed dropped, non-synthetic kept.
+	assert.Len(t, out, 1)
+	assert.Equal(t, int32(2), out[0].FeedID)
+}
+
+func TestApplyPerFeedMultipliers_DropsWhenSourceStale(t *testing.T) {
+	la := newPerFeedMultiplierAggregator(t, []Feed{
+		feedWithMultiplyBy(1, "PancakeSwap-IDRX-USDC", "USDC-USDT", false),
+	})
+	// Inject a stale entry directly so we can rewind the timestamp.
+	la.localAggregateValueMap.Mu.Lock()
+	la.localAggregateValueMap.Data["USDC-USDT"] = LocalAggregateValueEntry{
+		Value:     1.0001,
+		Timestamp: time.Now().Add(-10 * time.Minute),
+	}
+	la.localAggregateValueMap.Mu.Unlock()
+
+	now := time.Now()
+	feeds := []*FeedData{{FeedID: 1, Value: 0.0000625, Timestamp: &now}}
+	out := la.applyPerFeedMultipliers(feeds)
+
+	assert.Len(t, out, 0)
+}
+
+func TestApplyPerFeedMultipliers_NoMultiplyByPassesThrough(t *testing.T) {
+	la := newPerFeedMultiplierAggregator(t, []Feed{
+		feedNoMultiplier(1, "DragonSwap-IDRX-USDT"),
+	})
+
+	now := time.Now()
+	feeds := []*FeedData{{FeedID: 1, Value: 0.0000628, Timestamp: &now}}
+	out := la.applyPerFeedMultipliers(feeds)
+
+	assert.Len(t, out, 1)
+	assert.Equal(t, 0.0000628, out[0].Value)
 }
 
 func TestStreamLocalAggregate_ZeroAggregate_NoOp(t *testing.T) {

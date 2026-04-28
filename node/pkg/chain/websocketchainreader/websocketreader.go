@@ -100,11 +100,33 @@ func New(opts ...ChainReaderOption) (*ChainReader, error) {
 		chainIdToChainType[polygonChainId.String()] = Polygon
 	}
 
+	// Base is optional — environments that have not yet provisioned a Base RPC
+	// (e.g. nodes running before BASE_WEBSOCKET_URL was added to Vault/values)
+	// keep working without it instead of failing to start.
+	var (
+		baseClient  *eth_client.EthClient
+		baseChainId *big.Int
+	)
+	if config.BaseWebsocketUrl != "" {
+		baseClient, err = eth_client.Dial(config.BaseWebsocketUrl)
+		if err != nil {
+			return nil, err
+		}
+
+		baseChainId, err = baseClient.ChainID(context.Background())
+		if err != nil {
+			return nil, err
+		}
+
+		chainIdToChainType[baseChainId.String()] = Base
+	}
+
 	return &ChainReader{
 		EthClient:          ethClient,
 		KaiaClient:         kaiaClient,
 		BscClient:          bscClient,
 		PolygonClient:      polygonClient,
+		BaseClient:         baseClient,
 		RetryPeriod:        config.RetryInterval,
 		ChainIdToChainType: chainIdToChainType,
 	}, nil
@@ -197,6 +219,10 @@ func (c *ChainReader) client(chainType BlockchainType) utils.ClientInterface {
 
 	if chainType == Polygon {
 		return c.PolygonClient
+	}
+
+	if chainType == Base {
+		return c.BaseClient
 	}
 
 	return c.KaiaClient

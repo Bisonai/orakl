@@ -15,6 +15,7 @@ const (
 	Ethereum BlockchainType = 2
 	BSC      BlockchainType = 3
 	Polygon  BlockchainType = 4
+	Base     BlockchainType = 5
 )
 
 type ChainReaderConfig struct {
@@ -22,6 +23,7 @@ type ChainReaderConfig struct {
 	EthWebsocketUrl     string
 	BSCWebsocketUrl     string
 	PolygonWebsocketUrl string
+	BaseWebsocketUrl    string
 	RetryInterval       time.Duration
 }
 
@@ -51,6 +53,12 @@ func WithPolygonWebsocketUrl(url string) ChainReaderOption {
 	}
 }
 
+func WithBaseWebsocketUrl(url string) ChainReaderOption {
+	return func(c *ChainReaderConfig) {
+		c.BaseWebsocketUrl = url
+	}
+}
+
 func WithRetryInterval(interval time.Duration) ChainReaderOption {
 	return func(c *ChainReaderConfig) {
 		c.RetryInterval = interval
@@ -62,6 +70,7 @@ type ChainReader struct {
 	EthClient          utils.ClientInterface
 	BscClient          utils.ClientInterface
 	PolygonClient      utils.ClientInterface
+	BaseClient         utils.ClientInterface
 	RetryPeriod        time.Duration
 	ChainIdToChainType map[string]BlockchainType
 }
