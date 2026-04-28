@@ -1,0 +1,1 @@
+ALTER TABLE configs ADD COLUMN IF NOT EXISTS multiply_by_reciprocal BOOLEAN NOT NULL DEFAULT false;

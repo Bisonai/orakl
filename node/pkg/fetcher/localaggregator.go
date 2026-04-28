@@ -244,7 +244,15 @@ func (c *LocalAggregator) streamLocalAggregate(ctx context.Context, aggregated f
 				Msg("multiplier source is stale, skipping")
 			return nil
 		}
-		aggregated *= entry.Value
+		// Some price configs (e.g. KRW-USD) intentionally store the
+		// reciprocal of the natural rate.  When the synthetic config
+		// needs the natural direction it sets MultiplyByReciprocal so
+		// we divide by the source instead of multiplying.
+		if c.MultiplyByReciprocal {
+			aggregated /= entry.Value
+		} else {
+			aggregated *= entry.Value
+		}
 	}
 
 	// Cache our own raw value so other configs can multiply against us.

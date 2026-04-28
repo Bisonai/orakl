@@ -23,6 +23,10 @@ func TestLocalAggregateValueMap_SetGet(t *testing.T) {
 }
 
 func newLocalAggregatorForMultiply(t *testing.T, multiplyBy *string, freshnessMs *int) (*LocalAggregator, chan *LocalAggregate) {
+	return newLocalAggregatorForMultiplyOp(t, multiplyBy, freshnessMs, false)
+}
+
+func newLocalAggregatorForMultiplyOp(t *testing.T, multiplyBy *string, freshnessMs *int, reciprocal bool) (*LocalAggregator, chan *LocalAggregate) {
 	t.Helper()
 	ch := make(chan *LocalAggregate, 1)
 	mb := bus.New(10)
@@ -32,12 +36,13 @@ func newLocalAggregatorForMultiply(t *testing.T, multiplyBy *string, freshnessMs
 	mb.Subscribe(bus.AGGREGATOR)
 	return &LocalAggregator{
 		Config: Config{
-			ID:                42,
-			Name:              "STG-KRW",
-			FetchInterval:     2000,
-			Decimals:          intPtr(8),
-			FeedDataFreshness: freshnessMs,
-			MultiplyBy:        multiplyBy,
+			ID:                   42,
+			Name:                 "STG-KRW",
+			FetchInterval:        2000,
+			Decimals:             intPtr(8),
+			FeedDataFreshness:    freshnessMs,
+			MultiplyBy:           multiplyBy,
+			MultiplyByReciprocal: reciprocal,
 		},
 		bus:                    mb,
 		localAggregatesChannel: ch,
@@ -125,6 +130,28 @@ func TestStreamLocalAggregate_CachesOwnRawValue(t *testing.T) {
 	entry, ok := la.localAggregateValueMap.Get("STG-KRW")
 	assert.True(t, ok, "config should cache its own raw value for downstream synthetic configs")
 	assert.Equal(t, 0.218, entry.Value)
+}
+
+func TestStreamLocalAggregate_MultiplyByReciprocal_DividesBySource(t *testing.T) {
+	mb := "KRW-USD"
+	la, ch := newLocalAggregatorForMultiplyOp(t, &mb, intPtr(60_000), true)
+	// KRW-USD's raw value intentionally stores USD-per-KRW (the reciprocal
+	// of the natural KRW-per-USD rate); the synthetic config divides by it
+	// to get back to KRW-per-USD scale.
+	la.localAggregateValueMap.Set("KRW-USD", 0.000678)
+
+	err := la.streamLocalAggregate(context.Background(), 0.218)
+	assert.NoError(t, err)
+
+	select {
+	case agg := <-ch:
+		// 0.218 / 0.000678 = 321.53...; * 10^8 ≈ 32_153_x
+		// allow some delta because the reciprocal trick rounds.
+		assert.InDelta(t, int64(32_153_000_000), agg.Value, 100_000_000,
+			"reciprocal mode should divide aggregate by source value")
+	case <-time.After(time.Second):
+		t.Fatal("expected aggregate on channel")
+	}
 }
 
 func TestStreamLocalAggregate_ZeroAggregate_NoOp(t *testing.T) {
