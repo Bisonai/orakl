@@ -3,6 +3,7 @@ package fetcher
 import (
 	"context"
 	"math/big"
+	"sync"
 	"time"
 
 	"bisonai.com/miko/node/pkg/bus"
@@ -13,7 +14,7 @@ import (
 
 const (
 	SelectAllProxiesQuery                 = `SELECT * FROM proxies`
-	SelectConfigsQuery                    = `SELECT id, name, fetch_interval, decimals, feed_data_freshness FROM configs`
+	SelectConfigsQuery                    = `SELECT id, name, fetch_interval, decimals, feed_data_freshness, multiply_by FROM configs`
 	SelectHttpRequestFeedsByConfigIdQuery = `SELECT * FROM feeds WHERE config_id = @config_id AND NOT (definition::jsonb ? 'type')`
 	SelectFeedsByConfigIdQuery            = `SELECT * FROM feeds WHERE config_id = @config_id`
 	InsertLocalAggregateQuery             = `INSERT INTO local_aggregates (config_id, value) VALUES (@config_id, @value)`
@@ -34,11 +35,50 @@ type Proxy = types.Proxy
 type LatestFeedDataMap = types.LatestFeedDataMap
 
 type Config struct {
-	ID                int32  `db:"id"`
-	Name              string `db:"name"`
-	FetchInterval     int32  `db:"fetch_interval"`
-	Decimals          *int   `db:"decimals"`
-	FeedDataFreshness *int   `db:"feed_data_freshness"`
+	ID                int32   `db:"id"`
+	Name              string  `db:"name"`
+	FetchInterval     int32   `db:"fetch_interval"`
+	Decimals          *int    `db:"decimals"`
+	FeedDataFreshness *int    `db:"feed_data_freshness"`
+	MultiplyBy        *string `db:"multiply_by"`
+}
+
+// LocalAggregateValueMap is a process-wide cache of the most recent raw
+// aggregate value (pre-decimals) for each config, keyed by config name.
+//
+// It exists to support synthetic configs whose value is derived by
+// multiplying their own aggregated feed value by another config's
+// aggregate (e.g. STG-KRW = STG-USDT * KRW-USD).  The value is the
+// floating-point aggregate emitted by LocalAggregator, before
+// applyDecimals is applied, so consumers can multiply directly without
+// having to reverse the decimal scaling.
+type LocalAggregateValueMap struct {
+	Mu   sync.RWMutex
+	Data map[string]LocalAggregateValueEntry
+}
+
+type LocalAggregateValueEntry struct {
+	Value     float64
+	Timestamp time.Time
+}
+
+func NewLocalAggregateValueMap() *LocalAggregateValueMap {
+	return &LocalAggregateValueMap{
+		Data: make(map[string]LocalAggregateValueEntry),
+	}
+}
+
+func (m *LocalAggregateValueMap) Set(name string, value float64) {
+	m.Mu.Lock()
+	defer m.Mu.Unlock()
+	m.Data[name] = LocalAggregateValueEntry{Value: value, Timestamp: time.Now()}
+}
+
+func (m *LocalAggregateValueMap) Get(name string) (LocalAggregateValueEntry, bool) {
+	m.Mu.RLock()
+	defer m.Mu.RUnlock()
+	v, ok := m.Data[name]
+	return v, ok
 }
 
 type Fetcher struct {
@@ -64,6 +104,7 @@ type LocalAggregator struct {
 
 	localAggregatesChannel chan *LocalAggregate
 	latestFeedDataMap      *LatestFeedDataMap
+	localAggregateValueMap *LocalAggregateValueMap
 }
 
 type FeedDataBulkWriter struct {
@@ -92,6 +133,7 @@ type App struct {
 	LocalAggregateBulkWriter *LocalAggregateBulkWriter
 	WebsocketFetcher         *websocketfetcher.App
 	LatestFeedDataMap        *LatestFeedDataMap
+	LocalAggregateValueMap   *LocalAggregateValueMap
 	Proxies                  []Proxy
 	FeedDataDumpChannel      chan *FeedData
 }

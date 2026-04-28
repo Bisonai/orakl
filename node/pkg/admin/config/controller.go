@@ -32,17 +32,19 @@ type ConfigInsertModel struct {
 	SubmitInterval    *int              `db:"submit_interval" json:"submitInterval"`
 	Decimals          *int              `db:"decimals" json:"decimals"`
 	FeedDataFreshness *int              `db:"feed_data_freshness" json:"feedDataFreshness"`
+	MultiplyBy        *string           `db:"multiply_by" json:"multiplyBy"`
 	Feeds             []FeedInsertModel `json:"feeds"`
 }
 
 type ConfigModel struct {
-	ID                int32  `db:"id" json:"id"`
-	Name              string `db:"name" json:"name"`
-	FetchInterval     *int   `db:"fetch_interval" json:"fetchInterval"`
-	AggregateInterval *int   `db:"aggregate_interval" json:"aggregateInterval"`
-	SubmitInterval    *int   `db:"submit_interval" json:"submitInterval"`
-	Decimals          *int   `db:"decimals" json:"decimals"`
-	FeedDataFreshness *int   `db:"feed_data_freshness" json:"feedDataFreshness"`
+	ID                int32   `db:"id" json:"id"`
+	Name              string  `db:"name" json:"name"`
+	FetchInterval     *int    `db:"fetch_interval" json:"fetchInterval"`
+	AggregateInterval *int    `db:"aggregate_interval" json:"aggregateInterval"`
+	SubmitInterval    *int    `db:"submit_interval" json:"submitInterval"`
+	Decimals          *int    `db:"decimals" json:"decimals"`
+	FeedDataFreshness *int    `db:"feed_data_freshness" json:"feedDataFreshness"`
+	MultiplyBy        *string `db:"multiply_by" json:"multiplyBy"`
 }
 
 type ConfigNameIdModel struct {
@@ -177,6 +179,7 @@ func Insert(c *fiber.Ctx) error {
 		"submit_interval":     config.SubmitInterval,
 		"decimals":            config.Decimals,
 		"feed_data_freshness": config.FeedDataFreshness,
+		"multiply_by":         config.MultiplyBy,
 	})
 	if err != nil {
 		log.Error().Err(err).Str("Player", "Admin").Msg("failed to insert config")
@@ -236,10 +239,10 @@ func getConfigUrl() string {
 func bulkUpsertConfigs(ctx context.Context, configs []ConfigInsertModel) error {
 	upsertRows := make([][]any, 0, len(configs))
 	for _, config := range configs {
-		upsertRows = append(upsertRows, []any{config.Name, config.FetchInterval, config.AggregateInterval, config.SubmitInterval, config.Decimals})
+		upsertRows = append(upsertRows, []any{config.Name, config.FetchInterval, config.AggregateInterval, config.SubmitInterval, config.Decimals, config.MultiplyBy})
 	}
 
-	return db.BulkUpsert(ctx, "configs", []string{"name", "fetch_interval", "aggregate_interval", "submit_interval", "decimals"}, upsertRows, []string{"name"}, []string{"fetch_interval", "aggregate_interval", "submit_interval", "decimals"})
+	return db.BulkUpsert(ctx, "configs", []string{"name", "fetch_interval", "aggregate_interval", "submit_interval", "decimals", "multiply_by"}, upsertRows, []string{"name"}, []string{"fetch_interval", "aggregate_interval", "submit_interval", "decimals", "multiply_by"})
 }
 
 func setDefaultValues(config *ConfigInsertModel) {

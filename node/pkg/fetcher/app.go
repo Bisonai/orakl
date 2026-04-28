@@ -23,8 +23,9 @@ func New(bus *bus.MessageBus) *App {
 			FeedDataMap: make(map[int32]*FeedData),
 			Mu:          sync.RWMutex{},
 		},
-		FeedDataDumpChannel: make(chan *FeedData, DefaultFeedDataDumpChannelSize),
-		Bus:                 bus,
+		LocalAggregateValueMap: NewLocalAggregateValueMap(),
+		FeedDataDumpChannel:    make(chan *FeedData, DefaultFeedDataDumpChannelSize),
+		Bus:                    bus,
 	}
 }
 
@@ -366,7 +367,7 @@ func (a *App) initialize(ctx context.Context) error {
 		if getFeedsErr != nil {
 			return getFeedsErr
 		}
-		a.LocalAggregators[config.ID] = NewLocalAggregator(config, localAggregatorFeeds, a.LocalAggregateBulkWriter.localAggregatesChannel, a.Bus, a.LatestFeedDataMap)
+		a.LocalAggregators[config.ID] = NewLocalAggregator(config, localAggregatorFeeds, a.LocalAggregateBulkWriter.localAggregatesChannel, a.Bus, a.LatestFeedDataMap, a.LocalAggregateValueMap)
 	}
 	feedDataDumpIntervalRaw := os.Getenv("FEED_DATA_STREAM_INTERVAL")
 	dumpInterval, err := time.ParseDuration(feedDataDumpIntervalRaw)

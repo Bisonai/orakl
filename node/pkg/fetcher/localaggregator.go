@@ -18,7 +18,8 @@ func NewLocalAggregator(
 	feeds []Feed,
 	localAggregatesChannel chan *LocalAggregate,
 	bus *bus.MessageBus,
-	latestFeedDataMap *LatestFeedDataMap) *LocalAggregator {
+	latestFeedDataMap *LatestFeedDataMap,
+	localAggregateValueMap *LocalAggregateValueMap) *LocalAggregator {
 	return &LocalAggregator{
 		Config:                 config,
 		Feeds:                  feeds,
@@ -27,6 +28,7 @@ func NewLocalAggregator(
 		bus:                    bus,
 		localAggregatesChannel: localAggregatesChannel,
 		latestFeedDataMap:      latestFeedDataMap,
+		localAggregateValueMap: localAggregateValueMap,
 	}
 }
 
@@ -210,26 +212,62 @@ func calculateAggregatedPrice(valueWeightedAveragePrice, medianPrice float64) fl
 }
 
 func (c *LocalAggregator) streamLocalAggregate(ctx context.Context, aggregated float64) error {
-	if aggregated != 0 {
-		localAggregate := &LocalAggregate{
-			ConfigID:  c.ID,
-			Value:     c.applyDecimals(aggregated),
-			Timestamp: time.Now(),
-		}
-
-		msg := bus.Message{
-			From: bus.FETCHER,
-			To:   bus.AGGREGATOR,
-			Content: bus.MessageContent{
-				Command: bus.STREAM_LOCAL_AGGREGATE,
-				Args:    map[string]any{"value": localAggregate},
-			},
-		}
-		defer func() { c.localAggregatesChannel <- localAggregate }()
-		return c.bus.Publish(msg)
+	if aggregated == 0 {
+		return nil
 	}
 
-	return nil
+	// Synthetic configs (e.g. STG-KRW = STG-USDT * KRW-USD) source their
+	// multiplier from another config's most recent raw aggregate.  If the
+	// source isn't available yet we skip emitting this round rather than
+	// publishing a zeroed-out value.
+	if c.MultiplyBy != nil && *c.MultiplyBy != "" {
+		entry, ok := c.localAggregateValueMap.Get(*c.MultiplyBy)
+		if !ok || entry.Value == 0 {
+			log.Debug().Str("Player", "LocalAggregator").
+				Str("config", c.Name).
+				Str("multiplyBy", *c.MultiplyBy).
+				Msg("multiplier source not yet available, skipping")
+			return nil
+		}
+		// Reject obviously stale multipliers using this config's freshness
+		// budget; if it isn't set, fall back to the freshness used elsewhere.
+		freshness := time.Minute
+		if c.Config.FeedDataFreshness != nil && *c.Config.FeedDataFreshness > 0 {
+			freshness = time.Duration(*c.Config.FeedDataFreshness) * time.Millisecond
+		}
+		if time.Since(entry.Timestamp) > freshness {
+			log.Warn().Str("Player", "LocalAggregator").
+				Str("config", c.Name).
+				Str("multiplyBy", *c.MultiplyBy).
+				Dur("age", time.Since(entry.Timestamp)).
+				Dur("freshness", freshness).
+				Msg("multiplier source is stale, skipping")
+			return nil
+		}
+		aggregated *= entry.Value
+	}
+
+	// Cache our own raw value so other configs can multiply against us.
+	if c.localAggregateValueMap != nil {
+		c.localAggregateValueMap.Set(c.Name, aggregated)
+	}
+
+	localAggregate := &LocalAggregate{
+		ConfigID:  c.ID,
+		Value:     c.applyDecimals(aggregated),
+		Timestamp: time.Now(),
+	}
+
+	msg := bus.Message{
+		From: bus.FETCHER,
+		To:   bus.AGGREGATOR,
+		Content: bus.MessageContent{
+			Command: bus.STREAM_LOCAL_AGGREGATE,
+			Args:    map[string]any{"value": localAggregate},
+		},
+	}
+	defer func() { c.localAggregatesChannel <- localAggregate }()
+	return c.bus.Publish(msg)
 }
 
 func (c *LocalAggregator) applyDecimals(value float64) int64 {
