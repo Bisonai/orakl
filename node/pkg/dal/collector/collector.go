@@ -226,19 +226,6 @@ func (c *Collector) processIncomingData(ctx context.Context, data *aggregator.Su
 	case <-ctx.Done():
 		return
 	default:
-		// TODO(diag): drop after IDRX-USDT pipeline is verified.  Logs the
-		// incoming GlobalAggregate timestamp + round so we can see why
-		// IDRX-USDT keeps tripping the "old data" path while peer pairs
-		// pass through.
-		c.mu.RLock()
-		prevTs := c.LatestTimestamps[data.Symbol]
-		c.mu.RUnlock()
-		log.Info().Str("Player", "DalCollector").Str("Symbol", data.Symbol).
-			Int32("Round", data.GlobalAggregate.Round).
-			Time("incomingTs", data.GlobalAggregate.Timestamp).
-			Time("cachedTs", prevTs).
-			Msg("DIAG incoming submission")
-
 		valid := c.compareAndSwapLatestTimestamp(data)
 		if !valid {
 			log.Debug().Str("Player", "DalCollector").Str("Symbol", data.Symbol).Msg("old data recieved")
