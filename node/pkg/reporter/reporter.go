@@ -124,6 +124,14 @@ func (r *Reporter) report(ctx context.Context, pairs map[string]SubmissionData) 
 		submittedPairs = append(submittedPairs, pair)
 	}
 
+	// TODO(diag): drop after IDRX-USDT pipeline is verified.  Logs the
+	// pairs included in each interval-grouped submission batch so we can
+	// confirm whether IDRX-USDT actually reaches the on-chain submit path.
+	log.Info().Str("Player", "Reporter").
+		Dur("interval", r.SubmissionInterval).
+		Strs("pairs", submittedPairs).
+		Msg("DIAG submitted batch")
+
 	dataLen := len(feedHashes)
 	wg := sync.WaitGroup{}
 
