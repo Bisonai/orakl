@@ -99,6 +99,11 @@ func TestFilterStaleFeeds_AllFresh(t *testing.T) {
 	assert.Equal(t, 3, len(result), "all fresh feeds should be returned")
 }
 
+// All TestFilterStaleFeeds_* fixtures set Volume > 0 — filterStaleFeeds
+// short-circuits Volume == 0 feeds (DEX/HTTP) past the freshness check,
+// so omitting Volume here would mean the feeds bypass the filter entirely
+// and these tests would silently lose their assertion power.
+
 func TestFilterStaleFeeds_MixFreshAndStale(t *testing.T) {
 	la := newLocalAggregatorWithFreshness(intPtr(60000)) // 60 seconds
 
@@ -109,10 +114,10 @@ func TestFilterStaleFeeds_MixFreshAndStale(t *testing.T) {
 	stale2 := now.Add(-5 * time.Minute)
 
 	feeds := []*FeedData{
-		{FeedID: 1, Value: 100.0, Timestamp: &fresh1},
-		{FeedID: 2, Value: 0.0119, Timestamp: &stale1}, // stuck old price
-		{FeedID: 3, Value: 101.0, Timestamp: &fresh2},
-		{FeedID: 4, Value: 0.0119, Timestamp: &stale2}, // stuck old price
+		{FeedID: 1, Value: 100.0, Volume: 1, Timestamp: &fresh1},
+		{FeedID: 2, Value: 0.0119, Volume: 1, Timestamp: &stale1}, // stuck old price
+		{FeedID: 3, Value: 101.0, Volume: 1, Timestamp: &fresh2},
+		{FeedID: 4, Value: 0.0119, Volume: 1, Timestamp: &stale2}, // stuck old price
 	}
 
 	result := la.filterStaleFeeds(feeds)
@@ -131,9 +136,9 @@ func TestFilterStaleFeeds_AllStale(t *testing.T) {
 	stale3 := now.Add(-10 * time.Minute)
 
 	feeds := []*FeedData{
-		{FeedID: 1, Value: 100.0, Timestamp: &stale1},
-		{FeedID: 2, Value: 101.0, Timestamp: &stale2},
-		{FeedID: 3, Value: 102.0, Timestamp: &stale3},
+		{FeedID: 1, Value: 100.0, Volume: 1, Timestamp: &stale1},
+		{FeedID: 2, Value: 101.0, Volume: 1, Timestamp: &stale2},
+		{FeedID: 3, Value: 102.0, Volume: 1, Timestamp: &stale3},
 	}
 
 	result := la.filterStaleFeeds(feeds)
@@ -148,9 +153,9 @@ func TestFilterStaleFeeds_NilTimestampPassesThrough(t *testing.T) {
 	stale := now.Add(-5 * time.Minute)
 
 	feeds := []*FeedData{
-		{FeedID: 1, Value: 100.0, Timestamp: &fresh},
-		{FeedID: 2, Value: 101.0, Timestamp: nil},   // nil timestamp should pass
-		{FeedID: 3, Value: 102.0, Timestamp: &stale}, // stale
+		{FeedID: 1, Value: 100.0, Volume: 1, Timestamp: &fresh},
+		{FeedID: 2, Value: 101.0, Volume: 1, Timestamp: nil},   // nil timestamp should pass
+		{FeedID: 3, Value: 102.0, Volume: 1, Timestamp: &stale}, // stale
 	}
 
 	result := la.filterStaleFeeds(feeds)
@@ -171,8 +176,8 @@ func TestFilterStaleFeeds_BoundaryExactlyAtThreshold(t *testing.T) {
 	justOver := now.Add(-60001 * time.Millisecond)
 
 	feeds := []*FeedData{
-		{FeedID: 1, Value: 100.0, Timestamp: &justUnder},
-		{FeedID: 2, Value: 101.0, Timestamp: &justOver},
+		{FeedID: 1, Value: 100.0, Volume: 1, Timestamp: &justUnder},
+		{FeedID: 2, Value: 101.0, Volume: 1, Timestamp: &justOver},
 	}
 
 	result := la.filterStaleFeeds(feeds)
