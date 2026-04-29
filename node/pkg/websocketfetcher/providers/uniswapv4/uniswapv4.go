@@ -240,45 +240,57 @@ func (f *V4Fetcher) subscribeEvent(ctx context.Context, feed common.Feed) error 
 		return err
 	}
 
-	for eventLog := range logChannel {
-		// Defensive: the subscription is already filtered by both the
-		// event signature and the pool id, but verify topic[1] matches
-		// in case a misbehaving relay forwards extra logs.
-		if len(eventLog.Topics) < 2 || eventLog.Topics[1] != poolIDHash {
-			continue
-		}
+	// Loop driven by select so we exit promptly on ctx cancellation.
+	// The websocketchainreader.Subscribe contract does not close
+	// logChannel on shutdown, so a `range` over it would leak this
+	// goroutine for the lifetime of the process even after ctx is
+	// cancelled.
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case eventLog, ok := <-logChannel:
+			if !ok {
+				return nil
+			}
+			// Defensive: the subscription is already filtered by both
+			// the event signature and the pool id, but verify topic[1]
+			// matches in case a misbehaving relay forwards extra logs.
+			if len(eventLog.Topics) < 2 || eventLog.Topics[1] != poolIDHash {
+				continue
+			}
 
-		res, err := swapEventABI.Unpack(eventName, eventLog.Data)
-		if err != nil {
-			continue
+			res, err := swapEventABI.Unpack(eventName, eventLog.Data)
+			if err != nil {
+				continue
+			}
+			// Non-indexed args, in declaration order:
+			// [amount0, amount1, sqrtPriceX96, liquidity, tick, fee]
+			if len(res) < 3 {
+				continue
+			}
+			sqrtPrice, ok := res[2].(*big.Int)
+			if !ok {
+				continue
+			}
+			price, err := GetTokenPrice(sqrtPrice, definition)
+			if err != nil {
+				log.Error().Str("Player", "UniswapV4").Err(err).Msg("error in uniswapv4.subscribeEvent, failed to get token price")
+				continue
+			}
+			now := time.Now()
+			feedData := &common.FeedData{
+				FeedID:    feed.ID,
+				Value:     *price,
+				Timestamp: &now,
+			}
+			log.Debug().Str("Player", "UniswapV4").Any("feedData", feedData).Msg("price fetched")
+			f.FeedDataBuffer <- feedData
+			f.Mutex.Lock()
+			f.LatestEntries[feed.ID] = feedData
+			f.Mutex.Unlock()
 		}
-		// Non-indexed args, in declaration order:
-		// [amount0, amount1, sqrtPriceX96, liquidity, tick, fee]
-		if len(res) < 3 {
-			continue
-		}
-		sqrtPrice, ok := res[2].(*big.Int)
-		if !ok {
-			continue
-		}
-		price, err := GetTokenPrice(sqrtPrice, definition)
-		if err != nil {
-			log.Error().Str("Player", "UniswapV4").Err(err).Msg("error in uniswapv4.subscribeEvent, failed to get token price")
-			continue
-		}
-		now := time.Now()
-		feedData := &common.FeedData{
-			FeedID:    feed.ID,
-			Value:     *price,
-			Timestamp: &now,
-		}
-		log.Debug().Str("Player", "UniswapV4").Any("feedData", feedData).Msg("price fetched")
-		f.FeedDataBuffer <- feedData
-		f.Mutex.Lock()
-		f.LatestEntries[feed.ID] = feedData
-		f.Mutex.Unlock()
 	}
-	return nil
 }
 
 // SwapEventTopic0 returns keccak256 of SwapEventCanonicalSig.  This is
