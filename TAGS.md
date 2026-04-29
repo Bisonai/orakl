@@ -411,3 +411,4 @@
 - **dal** v0.0.1.20260429.0527.d6a7bef.baobab <br> *`PR`*: fix <br><br> 
 - **reporter** v0.0.1.20260429.1139.1c231ff.baobab <br> *`PR`*: fix <br><br> 
 - **reporter** v0.0.1.20260429.1210.c548251.baobab <br> *`PR`*: fix <br><br> 
+- **dal** v0.0.1.20260429.1210.c548251.baobab <br> *`PR`*: fix <br><br> 
