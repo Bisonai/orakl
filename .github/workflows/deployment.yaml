@@ -161,6 +161,7 @@ on:
           - node:v0.0.1.20260428.1446.e95e1e1.baobab:fix
           - node:v0.0.1.20260429.0527.d6a7bef.baobab:fix
           - dal:v0.0.1.20260429.0527.d6a7bef.baobab:fix
+          - reporter:v0.0.1.20260429.1139.1c231ff.baobab:fix
 jobs:
   prepare-taskflow:
     name: Prepare
