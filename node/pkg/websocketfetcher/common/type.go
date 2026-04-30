@@ -67,6 +67,14 @@ type DexFeedDefinition struct {
 	Token0Decimals int    `json:"token0Decimals"`
 	Token1Decimals int    `json:"token1Decimals"`
 	Reciprocal     *bool  `json:"reciprocal"`
+	// PoolID is the 32-byte Uniswap V4 pool identifier (keccak256 of the
+	// PoolKey).  Populated only for type=="Uniswapv4Pool" feeds — V3-style
+	// providers continue to use Address instead.
+	//
+	// The "Uniswapv4Pool" spelling (lowercase 'v') is what GetDexFeedsQuery
+	// builds when capitalizing the "uniswapv4" factory key, matching the
+	// existing convention for PancakeswapPool / CapybaraPool.
+	PoolID string `json:"poolId"`
 }
 
 type DexFeedDefinitionCapybara struct {

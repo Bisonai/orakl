@@ -150,6 +150,7 @@ type Definition struct {
 	Type           *string `json:"type"`
 	ChainID        *string `json:"chainId"`
 	Address        *string `json:"address"`
+	PoolID         *string `json:"poolId"`
 	Token0Decimals *int64  `json:"token0Decimals"`
 	Token1Decimals *int64  `json:"token1Decimals"`
 	Reciprocal     *bool   `json:"reciprocal"`

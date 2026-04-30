@@ -121,12 +121,34 @@ func New(opts ...ChainReaderOption) (*ChainReader, error) {
 		chainIdToChainType[baseChainId.String()] = Base
 	}
 
+	// Arbitrum is optional for the same reason as Base — environments
+	// without ARBITRUM_WEBSOCKET_URL keep working but DEX feeds on
+	// Arbitrum will be skipped at chain-type lookup time.
+	var (
+		arbitrumClient  *eth_client.EthClient
+		arbitrumChainId *big.Int
+	)
+	if config.ArbitrumWebsocketUrl != "" {
+		arbitrumClient, err = eth_client.Dial(config.ArbitrumWebsocketUrl)
+		if err != nil {
+			return nil, err
+		}
+
+		arbitrumChainId, err = arbitrumClient.ChainID(context.Background())
+		if err != nil {
+			return nil, err
+		}
+
+		chainIdToChainType[arbitrumChainId.String()] = Arbitrum
+	}
+
 	return &ChainReader{
 		EthClient:          ethClient,
 		KaiaClient:         kaiaClient,
 		BscClient:          bscClient,
 		PolygonClient:      polygonClient,
 		BaseClient:         baseClient,
+		ArbitrumClient:     arbitrumClient,
 		RetryPeriod:        config.RetryInterval,
 		ChainIdToChainType: chainIdToChainType,
 	}, nil
@@ -174,6 +196,7 @@ func (c *ChainReader) handleSubscription(ctx context.Context, config *SubscribeC
 		query := kaia.FilterQuery{
 			FromBlock: blockNumber,
 			Addresses: []common.Address{common.HexToAddress(config.Address)},
+			Topics:    config.Topics,
 		}
 
 		logs := make(chan types.Log)
@@ -223,6 +246,10 @@ func (c *ChainReader) client(chainType BlockchainType) utils.ClientInterface {
 
 	if chainType == Base {
 		return c.BaseClient
+	}
+
+	if chainType == Arbitrum {
+		return c.ArbitrumClient
 	}
 
 	return c.KaiaClient
