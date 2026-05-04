@@ -40,9 +40,6 @@ func HeartbeatPoll(
 				continue
 			}
 
-			// TODO(diag): drop after IDRX-USDT polling confirmed.
-			log.Info().Str("Player", player).Int32("feedID", feedID).Str("name", feedName).Float64("price", *price).Msg("DIAG polled price")
-
 			now := time.Now()
 			emit(&FeedData{
 				FeedID:    feedID,

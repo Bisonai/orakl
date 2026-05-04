@@ -74,8 +74,6 @@ func (f *CapybaraFetcher) run(ctx context.Context, feed common.Feed) {
 		Timestamp: &now,
 	}
 	log.Debug().Str("Player", "Capybara").Any("feedData", initialFeedData).Msg("initial price fetched")
-	// TODO(diag): drop these Info lines after IDRX-USDT polling is confirmed working.
-	log.Info().Str("Player", "Capybara").Int32("feedID", feed.ID).Str("name", feed.Name).Float64("price", *price).Msg("DIAG initial price fetched")
 	f.FeedDataBuffer <- initialFeedData
 	f.Mutex.Lock()
 	f.LatestEntries[feed.ID] = initialFeedData

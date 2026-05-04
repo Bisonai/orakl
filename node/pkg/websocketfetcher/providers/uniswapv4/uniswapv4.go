@@ -97,8 +97,6 @@ func (f *V4Fetcher) run(ctx context.Context, feed common.Feed) {
 		Timestamp: &now,
 	}
 	log.Debug().Str("Player", "UniswapV4").Any("feedData", initialFeedData).Msg("initial price fetched")
-	log.Info().Str("Player", "UniswapV4").Int32("feedID", feed.ID).Str("name", feed.Name).
-		Float64("price", *price).Msg("DIAG initial price fetched")
 	f.FeedDataBuffer <- initialFeedData
 
 	f.Mutex.Lock()
