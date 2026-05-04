@@ -412,3 +412,4 @@
 - **reporter** v0.0.1.20260429.1139.1c231ff.baobab <br> *`PR`*: fix <br><br> 
 - **reporter** v0.0.1.20260429.1210.c548251.baobab <br> *`PR`*: fix <br><br> 
 - **dal** v0.0.1.20260429.1210.c548251.baobab <br> *`PR`*: fix <br><br> 
+- **node** v0.0.1.20260504.0035.15a5191.baobab <br> *`PR`*: feat Uniswap V4 fetcher  Arbit... <br><br> 

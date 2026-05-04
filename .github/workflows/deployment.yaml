@@ -164,6 +164,7 @@ on:
           - reporter:v0.0.1.20260429.1139.1c231ff.baobab:fix
           - reporter:v0.0.1.20260429.1210.c548251.baobab:fix
           - dal:v0.0.1.20260429.1210.c548251.baobab:fix
+          - node:v0.0.1.20260504.0035.15a5191.baobab:feat Uniswap V4 fetcher  Arbit...
 jobs:
   prepare-taskflow:
     name: Prepare
