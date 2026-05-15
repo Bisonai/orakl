@@ -2,6 +2,7 @@ package aggregator
 
 import (
 	"context"
+	"sort"
 	"time"
 
 	"bisonai.com/miko/node/pkg/common/keys"
@@ -182,6 +183,17 @@ func storeProofs(ctx context.Context, proofs []Proof) error {
 		seen[key] = struct{}{}
 		dedupRows = append(dedupRows, []any{proof.ConfigID, proof.Round, proof.Proof})
 	}
+
+	// Sort by (config_id, round) so concurrent BulkUpsert calls acquire row
+	// locks in the same order, avoiding 40P01 deadlocks on the ON CONFLICT
+	// path when batches share rows (e.g. P2P-replayed proofs).
+	sort.Slice(dedupRows, func(i, j int) bool {
+		ai, aj := dedupRows[i][0].(int32), dedupRows[j][0].(int32)
+		if ai != aj {
+			return ai < aj
+		}
+		return dedupRows[i][1].(int32) < dedupRows[j][1].(int32)
+	})
 
 	return db.BulkUpsert(ctx, "proofs", []string{"config_id", "round", "proof"}, dedupRows, []string{"config_id", "round"}, []string{"proof"})
 }
