@@ -418,3 +418,4 @@
 - **node** v0.0.1.20260515.0531.1496e82.cypress <br> *`PR`*: Sort proof rows before BulkUps... <br><br> 
 - **node** v0.0.1.20260518.0155.35e73af.cypress <br> *`PR`*: Serialize bulkInsert ticks to ... <br><br> 
 - **node** v0.0.1.20260518.0206.229c4f8.baobab <br> *`PR`*: Serialize bulkInsert ticks to ... <br><br> 
+- **node** v0.0.1.20260518.0206.229c4f8.cypress <br> *`PR`*: Serialize bulkInsert ticks to ... <br><br> 
