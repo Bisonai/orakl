@@ -416,3 +416,4 @@
 - **dal** v0.0.1.20260506.0204.0efde73.cypress <br> *`PR`*: feat Uniswap V4 fetcher  Arbit... <br><br> 
 - **node** v0.0.1.20260506.0215.7214e08.cypress <br> *`PR`*: feat Uniswap V4 fetcher  Arbit... <br><br> 
 - **node** v0.0.1.20260515.0531.1496e82.cypress <br> *`PR`*: Sort proof rows before BulkUps... <br><br> 
+- **node** v0.0.1.20260518.0155.35e73af.cypress <br> *`PR`*: Serialize bulkInsert ticks to ... <br><br> 
