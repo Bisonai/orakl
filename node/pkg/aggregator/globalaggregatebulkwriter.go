@@ -3,6 +3,7 @@ package aggregator
 import (
 	"context"
 	"sort"
+	"sync"
 	"time"
 
 	"bisonai.com/miko/node/pkg/common/keys"
@@ -23,6 +24,14 @@ type GlobalAggregateBulkWriter struct {
 
 	ctx        context.Context
 	cancelFunc context.CancelFunc
+
+	// bulkInsertMu serializes bulkInsert calls so that a slow upsert
+	// doesn't allow the next tick to start a second concurrent run.
+	// Concurrent BulkUpserts on overlapping (config_id, round) rows
+	// were the residual source of 40P01 deadlocks even after the rows
+	// were pre-sorted (the ON CONFLICT path acquires locks beyond the
+	// caller-controlled order).
+	bulkInsertMu sync.Mutex
 }
 
 const DefaultPgsqlBulkInsertInterval = 1 * time.Second
@@ -132,7 +141,18 @@ func (s *GlobalAggregateBulkWriter) bulkInsertJob(ctx context.Context) {
 				ticker.Stop()
 				return
 			case <-ticker.C:
-				go s.bulkInsert(ctx)
+				// Skip this tick if a previous bulkInsert is still
+				// running. The buffered Buffer chan will simply hold
+				// more items until the next tick drains them, which
+				// is the same behavior as before but without the
+				// concurrent-writer deadlock window.
+				if !s.bulkInsertMu.TryLock() {
+					continue
+				}
+				go func() {
+					defer s.bulkInsertMu.Unlock()
+					s.bulkInsert(ctx)
+				}()
 			}
 		}
 	}()
