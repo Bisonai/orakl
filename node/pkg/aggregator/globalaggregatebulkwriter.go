@@ -2,14 +2,27 @@ package aggregator
 
 import (
 	"context"
+	"errors"
 	"sort"
 	"sync"
 	"time"
 
 	"bisonai.com/miko/node/pkg/common/keys"
 	"bisonai.com/miko/node/pkg/db"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/rs/zerolog/log"
 )
+
+// PostgreSQL SQLSTATE for deadlock_detected — see
+// https://www.postgresql.org/docs/current/errcodes-appendix.html
+const pgDeadlockSQLState = "40P01"
+
+// storeProofsRetryAttempts caps the retry loop for transient deadlocks on
+// the proofs BulkUpsert. The handoff race in Stop()/Start() should
+// eliminate the common deadlock window already; this is defense in depth
+// for any remaining edge cases (concurrent ad-hoc admin writers, future
+// migrations running mid-flight, etc.).
+const storeProofsRetryAttempts = 3
 
 /*
 bulk insert proofs and aggregates into pgsql
@@ -109,6 +122,19 @@ func (s *GlobalAggregateBulkWriter) Stop() {
 	s.cancelFunc()
 	s.cancelFunc = nil
 	s.ctx = nil
+
+	// Wait for any in-flight bulkInsert to finish before returning. The
+	// REFRESH_AGGREGATOR_APP handler calls Stop() then immediately creates
+	// a new GlobalAggregateBulkWriter (with its own mutex) and starts it.
+	// Without this drain the old goroutine's BulkUpsert and the new one's
+	// next tick can both run concurrently against the proofs table — each
+	// holds its own per-instance mutex, so they don't serialize, and the
+	// ON CONFLICT (config_id, round) DO UPDATE path then deadlocks
+	// (SQLSTATE 40P01) when their batches share rows. Acquiring and
+	// releasing the mutex here ensures the in-flight query returns first,
+	// so the handoff to the next instance is sequential.
+	s.bulkInsertMu.Lock()
+	s.bulkInsertMu.Unlock()
 }
 
 func (s *GlobalAggregateBulkWriter) receive(ctx context.Context) {
@@ -215,7 +241,37 @@ func storeProofs(ctx context.Context, proofs []Proof) error {
 		return dedupRows[i][1].(int32) < dedupRows[j][1].(int32)
 	})
 
-	return db.BulkUpsert(ctx, "proofs", []string{"config_id", "round", "proof"}, dedupRows, []string{"config_id", "round"}, []string{"proof"})
+	// Retry on deadlock (SQLSTATE 40P01). Per PostgreSQL docs, "applications
+	// using transactions should be prepared to retry on serialization /
+	// deadlock failures." The handoff drain in Stop() removes the common
+	// source of deadlocks here, so this loop is defense in depth — at the
+	// observed pre-fix rate (~2–4/day) a single retry attempt is enough.
+	var lastErr error
+	for attempt := 1; attempt <= storeProofsRetryAttempts; attempt++ {
+		err := db.BulkUpsert(ctx, "proofs", []string{"config_id", "round", "proof"}, dedupRows, []string{"config_id", "round"}, []string{"proof"})
+		if err == nil {
+			return nil
+		}
+		lastErr = err
+		var pgErr *pgconn.PgError
+		if !errors.As(err, &pgErr) || pgErr.Code != pgDeadlockSQLState {
+			return err
+		}
+
+		// Don't log "retrying" or sleep on the final attempt — we're
+		// about to return lastErr, not retry.
+		if attempt == storeProofsRetryAttempts {
+			break
+		}
+
+		log.Warn().Err(err).Int("attempt", attempt).Msg("proofs BulkUpsert deadlock — retrying")
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(time.Duration(attempt) * 50 * time.Millisecond):
+		}
+	}
+	return lastErr
 }
 
 func storeGlobalAggregates(ctx context.Context, globalAggregates []GlobalAggregate) error {
