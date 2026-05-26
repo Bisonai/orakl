@@ -257,6 +257,13 @@ func storeProofs(ctx context.Context, proofs []Proof) error {
 		if !errors.As(err, &pgErr) || pgErr.Code != pgDeadlockSQLState {
 			return err
 		}
+
+		// Don't log "retrying" or sleep on the final attempt — we're
+		// about to return lastErr, not retry.
+		if attempt == storeProofsRetryAttempts {
+			break
+		}
+
 		log.Warn().Err(err).Int("attempt", attempt).Msg("proofs BulkUpsert deadlock — retrying")
 		select {
 		case <-ctx.Done():
