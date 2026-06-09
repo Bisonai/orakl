@@ -1989,17 +1989,6 @@
       "feed": "0x892994ebc631fdf78b0264f531f8d5689affb7bd"
     }
   },
-  "SATS-USDT": {
-    "cypress": {
-      "proxy": "0x963a1469b748f2a136cf43397199e06b19435dd6",
-      "feed": "0x9b4444a436b2b2a7344547ac40e78656bb00abc6"
-    },
-    "tag": "premium",
-    "baobab": {
-      "proxy": "0x68a9aea4800634e6467a750a8b112920bc078122",
-      "feed": "0xf8addd62c8c11367ca893a5832338ea542a19fcf"
-    }
-  },
   "SEI-USDT": {
     "cypress": {
       "proxy": "0x8c4e22c698a73d4ec3f454b4732ba201d3641e57",
