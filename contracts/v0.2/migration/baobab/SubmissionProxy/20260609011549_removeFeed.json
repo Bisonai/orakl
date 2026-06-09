@@ -1,0 +1,6 @@
+{
+  "address": "0x05ce978f1200bc7243ae4a5968de8c3f8bd082f7",
+  "removeFeed": {
+    "feedNames": ["SATS-USDT"]
+  }
+}
