@@ -1,0 +1,27 @@
+// Vendored from https://github.com/mexcdevelop/websocket-proto (PublicMiniTickerV3Api.proto).
+// Comments translated from the upstream Chinese.
+
+syntax = "proto3";
+
+package mexc;
+
+option go_package = "bisonai.com/miko/node/pkg/websocketfetcher/providers/mexc/pb";
+
+message PublicMiniTickerV3Api {
+  string symbol = 1;
+  string price = 2;
+  // Price change rate, UTC+8 day.
+  string rate = 3;
+  // Price change rate, subscribed timezone.
+  string zonedRate = 4;
+  string high = 5;
+  string low = 6;
+  // Rolling turnover, i.e. quote-asset volume.
+  string volume = 7;
+  // Rolling traded amount, i.e. base-asset volume.
+  string quantity = 8;
+  string lastCloseRate = 9;
+  string lastCloseZonedRate = 10;
+  string lastCloseHigh = 11;
+  string lastCloseLow = 12;
+}

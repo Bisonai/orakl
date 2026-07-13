@@ -1,0 +1,35 @@
+// Trimmed from https://github.com/mexcdevelop/websocket-proto (PushDataV3ApiWrapper.proto).
+//
+// Upstream declares `body` as a oneof over 15 payload types (fields 301-315),
+// one per public/private topic. We only ever subscribe to miniTickers, so
+// vendoring the full wrapper would pull in 14 unused .proto files and generate
+// 14 unused .pb.go files.
+//
+// Field numbers below are identical to upstream, which is what the wire format
+// is keyed on -- so this schema decodes MEXC's frames byte-for-byte the same as
+// the full one. Payloads for the other 14 topics decode into unknown fields and
+// leave PublicMiniTickers nil, which utils.go treats as "nothing to report".
+//
+// If a future topic is needed, copy its message in from upstream and add it
+// here with its upstream field number.
+
+syntax = "proto3";
+
+package mexc;
+
+import "PublicMiniTickersV3Api.proto";
+
+option go_package = "bisonai.com/miko/node/pkg/websocketfetcher/providers/mexc/pb";
+
+message PushDataV3ApiWrapper {
+  string channel = 1;
+
+  PublicMiniTickersV3Api publicMiniTickers = 310;
+
+  optional string symbol = 3;
+  optional string symbolId = 4;
+  // Time the message was generated (ms).
+  optional int64 createTime = 5;
+  // Time the message was pushed (ms).
+  optional int64 sendTime = 6;
+}
