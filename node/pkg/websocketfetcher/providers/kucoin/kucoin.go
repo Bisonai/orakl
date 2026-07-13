@@ -34,17 +34,26 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 		symbols = append(symbols, feed)
 	}
 
-	subscription := Subscription{
-		ID:       1,
-		Type:     "subscribe",
-		Topic:    "/market/snapshot:" + strings.Join(symbols, ","),
-		Response: true,
+	// Kucoin rejects a subscribe frame carrying more than MaxSymbolsPerSubscription
+	// symbols with `{"type":"error","code":509,"data":"exceed max subscription
+	// count limitation of 100 per time"}`, which drops every symbol in the frame --
+	// not just the overflow. Split the symbols across several subscribe frames; the
+	// wss helper sends them sequentially on (re)connect.
+	subscriptions := []any{}
+	for i := 0; i < len(symbols); i += MaxSymbolsPerSubscription {
+		end := min(i+MaxSymbolsPerSubscription, len(symbols))
+		subscriptions = append(subscriptions, Subscription{
+			ID:       i/MaxSymbolsPerSubscription + 1,
+			Type:     "subscribe",
+			Topic:    "/market/snapshot:" + strings.Join(symbols[i:end], ","),
+			Response: true,
+		})
 	}
 
 	ws, err := wss.NewWebsocketHelper(ctx,
 		wss.WithCustomDialFunc(fetcher.customDialFunc),
 		wss.WithEndpoint(URL),
-		wss.WithSubscriptions([]any{subscription}),
+		wss.WithSubscriptions(subscriptions),
 		wss.WithProxyUrl(config.Proxy))
 	if err != nil {
 		log.Error().Str("Player", "Kucoin").Err(err).Msg("error in kucoin.New")
@@ -55,6 +64,24 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 }
 
 func (f *KucoinFetcher) handleMessage(ctx context.Context, message map[string]any) error {
+	// Kucoin interleaves control frames (welcome / ack / pong) and error frames
+	// with market data. Error frames carry `data` as a string, so unmarshalling
+	// one into SymbolSnapshotRaw -- whose Data is a struct -- fails, and the
+	// actual reason (e.g. "exceed max subscription count limitation of 100 per
+	// time") is lost behind a generic unmarshal error. Dispatch on type first.
+	switch messageType, _ := message["type"].(string); messageType {
+	case "message":
+		// market data; parsed below
+	case "error":
+		log.Error().Str("Player", "Kucoin").
+			Any("code", message["code"]).
+			Any("data", message["data"]).
+			Msg("kucoin rejected a subscription")
+		return nil
+	default:
+		return nil
+	}
+
 	raw, err := common.MessageToStruct[SymbolSnapshotRaw](message)
 	if err != nil {
 		log.Error().Str("Player", "Kucoin").Err(err).Msg("error in kucoin.handleMessage")
