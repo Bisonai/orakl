@@ -1156,17 +1156,6 @@
       "feed": "0x22524842bd31261ed5f33753fc9442844d0209bd"
     }
   },
-  "IP-USDT": {
-    "cypress": {
-      "proxy": "0xbfa82fbe10e3e8878649b75dd2ca2d72a0a4383b",
-      "feed": "0x06ac7b436b0faa6f649ef195c01476f1735097b8"
-    },
-    "tag": "premium",
-    "baobab": {
-      "proxy": "0x66117204ff40fc3ac0064cf217502733630450f0",
-      "feed": "0xddc8fc4a748c74803440efb4ee37a2a4345b08ad"
-    }
-  },
   "JST-USDT": {
     "cypress": {
       "proxy": "0x0c7d92e7fd65e5db0d838b0c4ac2ede6e5062158",
@@ -2207,17 +2196,6 @@
     "baobab": {
       "proxy": "0x0f2050f8fb8d09c0a0ee3f7090ec23fb456c6bca",
       "feed": "0x4e95ad0458ed950de384a5822ba02292778c82d1"
-    }
-  },
-  "TON-USDT": {
-    "cypress": {
-      "proxy": "0xfa28aa452472fde711b76f52371b35f12f49f839",
-      "feed": "0xb5af21056bb3a925be3fc9403b0104eff2e8be49"
-    },
-    "tag": "premium",
-    "baobab": {
-      "proxy": "0x8191fcda1d2277350431f75dee2087a4bacb3d29",
-      "feed": "0x0dab8835706f991fd87cda6bc97a763d2cbafcef"
     }
   },
   "STX-KRW": {
