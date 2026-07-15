@@ -126,7 +126,8 @@ jobs:
       tag_date: ${{ needs.prepare.outputs.tag_date }}
       tag_git_hash: ${{ needs.prepare.outputs.tag_git_hash }}
     secrets:
-      PAT: ${{ secrets.PAT }}
+      GH_ORAKL_BOT_APP_ID: ${{ secrets.GH_ORAKL_BOT_APP_ID }}
+      GH_ORAKL_BOT_PRIVATE_KEY: ${{ secrets.GH_ORAKL_BOT_PRIVATE_KEY }}
     if: ${{ success() }}
 
   post-slack-tag-update-success:
