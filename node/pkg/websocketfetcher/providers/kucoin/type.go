@@ -4,6 +4,10 @@ const (
 	TokenUrl              = "https://api.kucoin.com/api/v1/bullet-public"
 	URL                   = "wss://ws-api-spot.kucoin.com/"
 	DEFAULT_PING_INTERVAL = 18000
+
+	// Kucoin caps a single subscribe frame at 100 symbols and rejects the whole
+	// frame past that (error code 509).
+	MaxSymbolsPerSubscription = 100
 )
 
 type TokenResponse struct {
