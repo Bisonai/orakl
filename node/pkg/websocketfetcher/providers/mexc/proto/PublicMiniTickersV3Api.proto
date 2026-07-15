@@ -1,0 +1,14 @@
+// Vendored from https://github.com/mexcdevelop/websocket-proto (PublicMiniTickersV3Api.proto).
+// Payload of the `spot@public.miniTickers.v3.api.pb@<zone>` topic.
+
+syntax = "proto3";
+
+package mexc;
+
+import "PublicMiniTickerV3Api.proto";
+
+option go_package = "bisonai.com/miko/node/pkg/websocketfetcher/providers/mexc/pb";
+
+message PublicMiniTickersV3Api {
+  repeated PublicMiniTickerV3Api items = 1;
+}

@@ -96,6 +96,15 @@ tasks:
     cmds:
       - go run ./script/test_pinger/main.go
 
+  # Regenerates the checked-in *.pb.go from the vendored *.proto. Needs protoc and
+  # protoc-gen-go on PATH. Only mexc uses protobuf so far; add a line per provider.
+  proto:
+    cmds:
+      - >-
+        protoc -I pkg/websocketfetcher/providers/mexc/proto
+        --go_out=. --go_opt=module=bisonai.com/miko/node
+        pkg/websocketfetcher/providers/mexc/proto/*.proto
+
   test-db:
     dotenv: [".env"]
     cmds:
