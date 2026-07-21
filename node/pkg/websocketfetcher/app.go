@@ -28,6 +28,7 @@ import (
 	"bisonai.com/miko/node/pkg/websocketfetcher/providers/gateio"
 	"bisonai.com/miko/node/pkg/websocketfetcher/providers/gemini"
 	"bisonai.com/miko/node/pkg/websocketfetcher/providers/gopax"
+	"bisonai.com/miko/node/pkg/websocketfetcher/providers/hashkey"
 	"bisonai.com/miko/node/pkg/websocketfetcher/providers/huobi"
 	"bisonai.com/miko/node/pkg/websocketfetcher/providers/korbit"
 	"bisonai.com/miko/node/pkg/websocketfetcher/providers/kraken"
@@ -146,6 +147,7 @@ func (a *App) Init(ctx context.Context, opts ...AppOption) error {
 		"xt":       xt.New,
 		"gopax":    gopax.New,
 		"orangex":  orangex.New,
+		"hashkey":  hashkey.New,
 	}
 
 	dexFactories := map[string]func(...common.DexFetcherOption) common.FetcherInterface{
