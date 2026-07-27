@@ -10,6 +10,7 @@ import (
 	"bisonai.com/miko/node/pkg/chain/noncemanagerv2"
 	"bisonai.com/miko/node/pkg/chain/utils"
 	"github.com/kaiachain/kaia/client"
+	"github.com/kaiachain/kaia/common"
 )
 
 type ChainHelper struct {
@@ -47,14 +48,30 @@ func WithBlockchainType(t BlockchainType) ChainHelperOption {
 	}
 }
 
+// Signer owns the node's global-aggregate signing key and keeps it reconciled with the
+// on-chain SubmissionProxy oracle whitelist. The on-chain whitelist — never local state — is
+// the authority on which key may sign; see reconcile/rotate in signer.go (issue #2516).
 type Signer struct {
 	PK                          *ecdsa.PrivateKey
 	chainHelper                 *ChainHelper
 	submissionProxyContractAddr string
-	expirationDate              *time.Time
-	renewInterval               time.Duration
-	renewThreshold              time.Duration
-	mu                          sync.RWMutex
+
+	// mu guards the fast sign-path fields below.
+	mu               sync.RWMutex
+	activeAddr       common.Address // address of PK
+	cachedExpiration time.Time      // on-chain expirationTime of activeAddr (authoritative sign-gate input)
+	lastConfirmedAt  time.Time      // last time activeAddr was positively confirmed whitelisted on-chain
+	usable           bool           // false => refuse to sign (fail loud) instead of signing with a stale key
+	rotating         bool           // true while a rotation is in flight => refuse to sign
+
+	rotateMu sync.Mutex // serializes reconcile+rotate within this process (TryLock)
+
+	staticMode       bool // WithSignerPk: fixed key, no reconcile/rotation/confirmation gate
+	bootstrapPk      string
+	renewThreshold   time.Duration
+	livenessInterval time.Duration
+	skewMargin       time.Duration
+	confirmationTTL  time.Duration // refuse to sign if activeAddr has not been confirmed whitelisted within this window
 }
 
 type signedTx struct {
@@ -92,4 +109,11 @@ const (
 	DefaultSignerRenewThreshold = 7 * 24 * time.Hour
 	SignerDetailFuncSignature   = "whitelist(address) returns ((uint256, uint256))"
 	UpdateSignerFuncSignature   = "updateOracle(address) returns (uint256)"
+	GetAllOraclesFuncSignature  = "getAllOracles() public view returns (address[] memory)"
+
+	// Crash-safe rotation / reconciliation tunables (issue #2516).
+	DefaultSignerLivenessInterval = 30 * time.Second // how often the active key's on-chain status is re-checked
+	DefaultSignerSkewMargin       = 90 * time.Second // refuse to sign this long before the cached expiration
+	signerVerifyPollInterval      = 3 * time.Second  // poll cadence when confirming a rotation on-chain
+	signerVerifyPollMax           = 20               // ~60s budget to observe the updateOracle result
 )

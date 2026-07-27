@@ -16,11 +16,34 @@ const (
 	SELECT_PROVIDER_URLS_QUERY = "SELECT * FROM provider_urls WHERE chain_id = @chain_id ORDER BY priority;"
 	LOAD_SIGNER                = "SELECT id, pk FROM signer LIMIT 1;"
 	STORE_SIGNER               = "INSERT INTO signer (pk, unique_dummy) VALUES (@pk, TRUE) ON CONFLICT (unique_dummy) DO UPDATE SET pk = EXCLUDED.pk;"
+
+	// signer_key keyring (issue #2516). The keyring durably holds every private key the
+	// node may still need (the confirmed active key + any in-flight pending + retired
+	// history) so a key that is / becomes the on-chain oracle is never lost across a crash.
+	LOAD_SIGNER_KEYS   = "SELECT id, address, pk, state, tx_hash, created_at, updated_at FROM signer_key ORDER BY created_at;"
+	INSERT_PENDING_KEY = "INSERT INTO signer_key (address, pk, state) VALUES (@address, @pk, 'pending') RETURNING id;"
+	BACKFILL_ADDRESS   = "UPDATE signer_key SET address = @address, updated_at = now() WHERE id = @id AND address IS NULL;"
+	SET_KEY_TXHASH     = "UPDATE signer_key SET tx_hash = @tx_hash, updated_at = now() WHERE id = @id;"
+	// PromotePendingToActive runs RETIRE_ACTIVE then ACTIVATE_KEY in one transaction, so the
+	// signer_key_one_active partial unique index is never transiently violated.
+	RETIRE_ACTIVE = "UPDATE signer_key SET state = 'retired', updated_at = now() WHERE state = 'active' AND id <> @id;"
+	ACTIVATE_KEY  = "UPDATE signer_key SET state = 'active', updated_at = now() WHERE id = @id;"
+	GC_RETIRED    = "DELETE FROM signer_key WHERE state = 'retired' AND updated_at < now() - interval '90 days';"
 )
 
 type Wallet struct {
 	ID int64  `db:"id"`
 	PK string `db:"pk"`
+}
+
+type SignerKey struct {
+	ID        int64      `db:"id"`
+	Address   *string    `db:"address"`
+	PK        string     `db:"pk"` // encrypted at rest
+	State     string     `db:"state"`
+	TxHash    *string    `db:"tx_hash"`
+	CreatedAt time.Time  `db:"created_at"`
+	UpdatedAt time.Time  `db:"updated_at"`
 }
 
 type ProviderUrl struct {

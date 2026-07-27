@@ -111,6 +111,7 @@ var (
 	ErrChainEmptySignedRawTx                 = &CustomError{Service: Others, Code: InvalidInputError, Message: "empty signed raw tx"}
 	ErrChainPubKeyToECDSAFail                = &CustomError{Service: Others, Code: InternalError, Message: "failed to convert public key to ECDSA"}
 	ErrChainSignerPKNotFound                 = &CustomError{Service: Others, Code: InvalidInputError, Message: "signer public key not found"}
+	ErrChainSignerNoWhitelistedKey           = &CustomError{Service: Others, Code: InternalError, Message: "no held signer key is currently whitelisted on-chain; refusing to sign"}
 	ErrChainEmptyClientParam                 = &CustomError{Service: Others, Code: InvalidInputError, Message: "empty client param"}
 	ErrChainEmptyAddressParam                = &CustomError{Service: Others, Code: InvalidInputError, Message: "empty address param"}
 	ErrChainEmptyReporterParam               = &CustomError{Service: Others, Code: InvalidInputError, Message: "empty reporter param"}

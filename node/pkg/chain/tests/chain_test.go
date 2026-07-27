@@ -3,8 +3,6 @@ package tests
 import (
 	"bytes"
 	"context"
-	"encoding/hex"
-	"fmt"
 	"math/big"
 	"os"
 	"strings"
@@ -481,7 +479,9 @@ func TestMakeAbiFuncAttribute(t *testing.T) {
 
 func TestMakeGlobalAggregateProof(t *testing.T) {
 	ctx := context.Background()
-	s, err := helper.NewSigner(ctx)
+	// Static mode (WithSignerPk): this test verifies proof FORMAT, independent of on-chain
+	// whitelist state, so use the fixed SIGNER_PK directly (the managed gate is covered elsewhere).
+	s, err := helper.NewSigner(ctx, helper.WithSignerPk(os.Getenv("SIGNER_PK")))
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -563,7 +563,8 @@ func TestMakeMultiGlobalAggregateProof(t *testing.T) {
 
 func TestGlobalAggregateProofMergeAndSplit(t *testing.T) {
 	ctx := context.Background()
-	s, err := helper.NewSigner(ctx)
+	// Static mode: verifies proof merge/split format independent of on-chain whitelist state.
+	s, err := helper.NewSigner(ctx, helper.WithSignerPk(os.Getenv("SIGNER_PK")))
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -685,81 +686,30 @@ func TestSignerTableSingleEntry(t *testing.T) {
 	}
 }
 
+// TestSignerRenew exercises the managed (reconcile-driven) signer. Rotation is now internal and
+// crash-safe (issue #2516): the node reconciles against the on-chain whitelist and adopts the
+// currently-whitelisted key. This integration test only runs against a real SubmissionProxy on
+// which the seeded/configured signer key is whitelisted.
 func TestSignerRenew(t *testing.T) {
 	ctx := context.Background()
 
-	contractAddr := os.Getenv("SUBMISSION_PROXY_CONTRACT")
-	if contractAddr == "" {
+	if os.Getenv("SUBMISSION_PROXY_CONTRACT") == "" {
 		t.Skip("Skipping test because SUBMISSION_PROXY_CONTRACT is not set")
 	}
 
 	s, err := helper.NewSigner(ctx)
 	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
+		t.Fatalf("Unexpected error: %v", err)
 	}
 
-	expiration, err := s.LoadExpiration(ctx)
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
+	// After reconcile the node must have adopted an on-chain-whitelisted key and be usable.
+	status := s.Status()
+	assert.NotEmpty(t, status.ActiveSigner)
+	assert.True(t, status.Usable, "expected the seeded signer key to be whitelisted on-chain")
+	assert.Greater(t, status.ExpiresAt, time.Now().Unix())
 
-	assert.False(t, expiration.IsZero())
-	fmt.Println(expiration)
-
-	renewalRequired := s.IsRenewalRequired()
-	assert.False(t, renewalRequired)
-
-	oldPK := s.PK
-	oldPKBytes := crypto.FromECDSA(oldPK)
-	oldPKHex := hex.EncodeToString(oldPKBytes)
-	oldSignerAddr, err := utils.StringPkToAddressHex(oldPKHex)
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-
-	newPK, newPKHex, err := utils.NewPk(ctx)
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-	newSignerAddr, err := utils.StringPkToAddressHex(newPKHex)
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-
-	err = s.Renew(ctx, newPK, newPKHex)
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-
-	newExpiration, err := s.LoadExpiration(ctx)
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-
-	assert.False(t, newExpiration.IsZero())
-	assert.Greater(t, newExpiration.Unix(), expiration.Unix())
-
-	//cleanup
-	chainHelperForCleanup, err := helper.NewChainHelper(ctx, helper.WithReporterPk(oldPKHex))
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-
-	addOracleFunctionSignature := "addOracle(address _oracle) external returns (uint256)"
-	removeOracleFunctionSignature := "function removeOracle(address _oracle) external"
-
-	err = chainHelperForCleanup.SubmitDelegatedFallbackDirect(ctx, contractAddr, addOracleFunctionSignature, common.HexToAddress(oldSignerAddr))
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-
-	err = chainHelperForCleanup.SubmitDelegatedFallbackDirect(ctx, contractAddr, removeOracleFunctionSignature, common.HexToAddress(newSignerAddr))
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-
-	err = db.QueryWithoutResult(ctx, "DELETE FROM signer;", nil)
-	if err != nil {
+	// CheckAndUpdateSignerPK drives reconcile+rotate; it must be safe and idempotent to call.
+	if err := s.CheckAndUpdateSignerPK(ctx); err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
 }
