@@ -2,7 +2,6 @@ package helper
 
 import (
 	"context"
-	"math/big"
 	"os"
 	"strings"
 	"time"
@@ -105,7 +104,7 @@ func NewSigner(ctx context.Context, opts ...SignerOption) (*Signer, error) {
 	// WithSignerPk and always uses the managed reconcile path below; this branch is for explicit
 	// overrides and tests, and preserves their pre-fix behavior.
 	if config.pk != "" {
-		return newStaticSigner(ctx, config, submissionProxyContractAddr)
+		return newStaticSigner(config)
 	}
 
 	// Seed the keyring from a bootstrap key if it is empty (fresh node). Existing nodes already
@@ -121,9 +120,9 @@ func NewSigner(ctx context.Context, opts ...SignerOption) (*Signer, error) {
 		return nil, err
 	}
 
-	chainHelper, err := NewChainHelper(ctx, WithReporterPk(initialPkHex))
+	chain, err := newRealOracleChain(ctx, submissionProxyContractAddr, initialPkHex)
 	if err != nil {
-		log.Error().Str("Player", "Signer").Err(err).Msg("failed to set chainHelper for signHelper")
+		log.Error().Str("Player", "Signer").Err(err).Msg("failed to set up on-chain oracle client")
 		return nil, err
 	}
 
@@ -141,19 +140,21 @@ func NewSigner(ctx context.Context, opts ...SignerOption) (*Signer, error) {
 	}
 
 	s := &Signer{
-		PK:                          initialPK,
-		chainHelper:                 chainHelper,
-		submissionProxyContractAddr: submissionProxyContractAddr,
-		activeAddr:                  crypto.PubkeyToAddress(initialPK.PublicKey),
-		usable:                      false, // remains false until reconcile confirms a whitelisted key
-		bootstrapPk:                 config.pk,
-		renewThreshold:              config.renewThreshold,
-		livenessInterval:            livenessInterval,
-		skewMargin:                  skewMargin,
+		PK:               initialPK,
+		chain:            chain,
+		store:            realSignerStore{},
+		activeAddr:       crypto.PubkeyToAddress(initialPK.PublicKey),
+		usable:           false, // remains false until reconcile confirms a whitelisted key
+		bootstrapPk:      config.pk,
+		renewThreshold:   config.renewThreshold,
+		livenessInterval: livenessInterval,
+		skewMargin:       skewMargin,
 		// If the active key cannot be positively re-confirmed whitelisted within this window
 		// (e.g. sustained RPC failures while the oracle was removed out-of-band), the sign gate
 		// refuses — bounding any stale-signing window instead of trusting a far-future cache.
-		confirmationTTL: 3 * livenessInterval,
+		confirmationTTL:    3 * livenessInterval,
+		verifyPollInterval: signerVerifyPollInterval,
+		verifyPollMax:      signerVerifyPollMax,
 	}
 
 	// Establish the truth (which held key is on-chain-whitelisted) BEFORE we start signing or
@@ -207,30 +208,25 @@ func ensureKeyring(ctx context.Context, config SignerConfig) (string, error) {
 }
 
 // newStaticSigner builds a Signer that signs with a fixed operator-supplied key, bypassing the
-// keyring, rotation and on-chain gate. Used only when WithSignerPk is set (explicit override / tests).
-func newStaticSigner(ctx context.Context, config SignerConfig, submissionProxyContractAddr string) (*Signer, error) {
+// keyring, rotation and on-chain gate. Used only when WithSignerPk is set (explicit override /
+// tests). It does no chain or DB I/O — signing uses PK directly — so chain/store stay nil and
+// reconcile is a no-op (guarded by staticMode).
+func newStaticSigner(config SignerConfig) (*Signer, error) {
 	pkHex := strings.TrimPrefix(config.pk, "0x")
 	pk, err := utils.StringToPk(pkHex)
 	if err != nil {
 		log.Error().Str("Player", "Signer").Err(err).Msg("failed to convert pk")
 		return nil, err
 	}
-	chainHelper, err := NewChainHelper(ctx, WithReporterPk(pkHex))
-	if err != nil {
-		log.Error().Str("Player", "Signer").Err(err).Msg("failed to set chainHelper for static signer")
-		return nil, err
-	}
 	return &Signer{
-		PK:                          pk,
-		chainHelper:                 chainHelper,
-		submissionProxyContractAddr: submissionProxyContractAddr,
-		activeAddr:                  crypto.PubkeyToAddress(pk.PublicKey),
-		usable:                      true,
-		staticMode:                  true,                          // no reconcile/rotation/confirmation gate
-		cachedExpiration:            time.Now().AddDate(100, 0, 0), // static key: effectively never expires
-		lastConfirmedAt:             time.Now().AddDate(100, 0, 0),
-		renewThreshold:              config.renewThreshold,
-		skewMargin:                  DefaultSignerSkewMargin,
+		PK:               pk,
+		activeAddr:       crypto.PubkeyToAddress(pk.PublicKey),
+		usable:           true,
+		staticMode:       true,                          // no reconcile/rotation/confirmation gate
+		cachedExpiration: time.Now().AddDate(100, 0, 0), // static key: effectively never expires
+		lastConfirmedAt:  time.Now().AddDate(100, 0, 0),
+		renewThreshold:   config.renewThreshold,
+		skewMargin:       DefaultSignerSkewMargin,
 	}, nil
 }
 
@@ -300,7 +296,7 @@ func (s *Signer) reconcileLocked(ctx context.Context, allowRotate bool) error {
 	anyUnknown := false
 	var whitelisted []*signerCandidate
 	for _, c := range cands {
-		exp, rErr := s.readExpiration(ctx, c.addr)
+		exp, rErr := s.chain.ReadExpiration(ctx, c.addr)
 		if rErr != nil {
 			c.status = wlUnknown
 			anyUnknown = true
@@ -369,7 +365,7 @@ func (s *Signer) reconcileLocked(ctx context.Context, allowRotate bool) error {
 // loadCandidates returns all held keys: the signer_key keyring plus the legacy `signer` row (so
 // the new binary can discover and adopt a key an old binary rotated in). Backfills NULL addresses.
 func (s *Signer) loadCandidates(ctx context.Context) ([]*signerCandidate, error) {
-	keys, err := utils.LoadSignerKeys(ctx)
+	keys, err := s.store.LoadKeys(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -388,7 +384,7 @@ func (s *Signer) loadCandidates(ctx context.Context) ([]*signerCandidate, error)
 				continue
 			}
 			addr = common.HexToAddress(ah)
-			if bErr := utils.BackfillKeyAddress(ctx, k.ID, addr.Hex()); bErr != nil {
+			if bErr := s.store.BackfillAddress(ctx, k.ID, addr.Hex()); bErr != nil {
 				log.Warn().Str("Player", "Signer").Err(bErr).Msg("failed to backfill signer_key address")
 			}
 		}
@@ -400,7 +396,7 @@ func (s *Signer) loadCandidates(ctx context.Context) ([]*signerCandidate, error)
 		cands = append(cands, &signerCandidate{id: &id, addr: addr, pkHex: k.PK, state: k.State})
 	}
 
-	if legacyPk, lErr := utils.LoadSignerPk(ctx); lErr == nil && legacyPk != "" {
+	if legacyPk, lErr := s.store.LoadLegacyPk(ctx); lErr == nil && legacyPk != "" {
 		if ah, e := utils.StringPkToAddressHex(legacyPk); e == nil {
 			addr := common.HexToAddress(ah)
 			if !seen[addr] {
@@ -451,17 +447,17 @@ func (s *Signer) ensureActive(ctx context.Context, chosen *signerCandidate) erro
 	// Persist the chosen key as the single active row (copying a legacy-only key into the keyring first).
 	id := chosen.id
 	if id == nil {
-		newID, err := utils.InsertPendingKey(ctx, chosen.addr.Hex(), chosen.pkHex)
+		newID, err := s.store.InsertPending(ctx, chosen.addr.Hex(), chosen.pkHex)
 		if err != nil {
 			return err
 		}
 		id = &newID
 	}
-	if err := utils.PromotePendingToActive(ctx, *id, chosen.pkHex); err != nil {
+	if err := s.store.Promote(ctx, *id, chosen.pkHex); err != nil {
 		log.Warn().Str("Player", "Signer").Err(err).Msg("failed to promote chosen key in DB")
 	}
 
-	if err := s.adopt(ctx, chosen.pkHex, chosen.addr, chosen.exp); err != nil {
+	if err := s.adopt(chosen.pkHex, chosen.addr, chosen.exp); err != nil {
 		return err
 	}
 	log.Info().Str("Player", "Signer").Str("activeSigner", chosen.addr.Hex()).
@@ -469,32 +465,24 @@ func (s *Signer) ensureActive(ctx context.Context, chosen *signerCandidate) erro
 	return nil
 }
 
-// adopt swaps the in-memory signing key and its tx chainHelper to the given key and marks the
-// signer usable. Caller must hold rotateMu.
-func (s *Signer) adopt(ctx context.Context, pkHex string, addr common.Address, exp time.Time) error {
+// adopt swaps the in-memory signing key to the given (confirmed-whitelisted) key and marks the
+// signer usable. On-chain writes go through s.chain (which signs with the key passed per call),
+// so adopt does no chain I/O. Caller must hold rotateMu.
+func (s *Signer) adopt(pkHex string, addr common.Address, exp time.Time) error {
 	pk, err := utils.StringToPk(pkHex)
-	if err != nil {
-		return err
-	}
-	newCH, err := NewChainHelper(ctx, WithReporterPk(pkHex))
 	if err != nil {
 		return err
 	}
 
 	s.mu.Lock()
-	old := s.chainHelper
 	s.PK = pk
 	s.activeAddr = addr
 	s.cachedExpiration = exp
 	s.lastConfirmedAt = time.Now() // adopting a key we just confirmed whitelisted on-chain
 	s.usable = true
 	s.rotating = false
-	s.chainHelper = newCH
 	s.mu.Unlock()
 
-	if old != nil && old != newCH {
-		old.Close()
-	}
 	return nil
 }
 
@@ -533,7 +521,7 @@ func (s *Signer) rotateLocked(ctx context.Context, from *signerCandidate, reuse 
 		newHex = strings.TrimPrefix(freshHex, "0x")
 		newAddr = common.HexToAddress(addrHex)
 		// PERSIST-FIRST: the new key is durable before any chain call, so it can never be lost.
-		newID, err := utils.InsertPendingKey(ctx, newAddr.Hex(), newHex)
+		newID, err := s.store.InsertPending(ctx, newAddr.Hex(), newHex)
 		if err != nil {
 			return err
 		}
@@ -548,15 +536,15 @@ func (s *Signer) rotateLocked(ctx context.Context, from *signerCandidate, reuse 
 
 	// updateOracle(newAddr) is submitted with `from`'s (whitelisted) key. The RPC ack is UNTRUSTED
 	// (WaitMined routinely errors on txs that actually mined — the original incident).
-	if err := s.signerUpdate(ctx, newAddr); err != nil {
+	if err := s.chain.UpdateOracle(ctx, from.pkHex, newAddr); err != nil {
 		log.Warn().Str("Player", "Signer").Err(err).Msg("updateOracle ack error (ignored; verifying by chain state)")
 	}
 
 	// Confirm by reading chain state, not by trusting the ack.
 	var newExp time.Time
 	landed := false
-	for i := 0; i < signerVerifyPollMax; i++ {
-		exp, rErr := s.readExpiration(ctx, newAddr)
+	for i := 0; i < s.verifyPollMax; i++ {
+		exp, rErr := s.chain.ReadExpiration(ctx, newAddr)
 		if rErr == nil && exp.After(time.Now()) {
 			newExp = exp
 			landed = true
@@ -565,13 +553,13 @@ func (s *Signer) rotateLocked(ctx context.Context, from *signerCandidate, reuse 
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
-		case <-time.After(signerVerifyPollInterval):
+		case <-time.After(s.verifyPollInterval):
 		}
 	}
 
 	if landed {
 		// Adopt the new key in memory FIRST (source of on-chain truth), then persist to DB.
-		if err := s.adopt(ctx, newHex, newAddr, newExp); err != nil {
+		if err := s.adopt(newHex, newAddr, newExp); err != nil {
 			// Clear rotating so the node isn't stuck refusing forever; the next liveness reconcile
 			// re-adopts the now-whitelisted new key (adopt is the only place rotating is cleared).
 			s.mu.Lock()
@@ -579,17 +567,17 @@ func (s *Signer) rotateLocked(ctx context.Context, from *signerCandidate, reuse 
 			s.mu.Unlock()
 			return err
 		}
-		if err := utils.PromotePendingToActive(ctx, id, newHex); err != nil {
+		if err := s.store.Promote(ctx, id, newHex); err != nil {
 			log.Warn().Str("Player", "Signer").Err(err).Msg("failed to promote rotated key in DB; will reconcile")
 		}
-		_ = utils.GCRetiredKeys(ctx)
+		_ = s.store.GCRetired(ctx)
 		log.Info().Str("Player", "Signer").Str("newSigner", newAddr.Hex()).Msg("signer key rotated")
 		return nil
 	}
 
 	// Not observed on-chain within budget: NEVER delete the pending key (it may still mine). Resume
 	// signing with the old key if it is still whitelisted, else refuse until the next reconcile.
-	fromExp, rErr := s.readExpiration(ctx, from.addr)
+	fromExp, rErr := s.chain.ReadExpiration(ctx, from.addr)
 	s.mu.Lock()
 	s.rotating = false
 	if rErr == nil && fromExp.After(time.Now()) {
@@ -600,26 +588,6 @@ func (s *Signer) rotateLocked(ctx context.Context, from *signerCandidate, reuse 
 	}
 	s.mu.Unlock()
 	return errorSentinel.ErrChainTransactionFail
-}
-
-func (s *Signer) readExpiration(ctx context.Context, addr common.Address) (time.Time, error) {
-	s.mu.RLock()
-	ch := s.chainHelper
-	s.mu.RUnlock()
-
-	readResult, err := ch.ReadContract(ctx, s.submissionProxyContractAddr, SignerDetailFuncSignature, addr)
-	if err != nil {
-		return time.Time{}, err
-	}
-	values, ok := readResult.([]interface{})
-	if !ok || len(values) < 2 {
-		return time.Time{}, errorSentinel.ErrChainFailedToParseContractResult
-	}
-	rawTimestamp, ok := values[1].(*big.Int)
-	if !ok {
-		return time.Time{}, errorSentinel.ErrChainFailedToParseContractResult
-	}
-	return time.Unix(rawTimestamp.Int64(), 0), nil
 }
 
 // SignerStatus is the in-memory truth reported by the admin endpoint (not a DB read), so the
@@ -640,8 +608,4 @@ func (s *Signer) Status() SignerStatus {
 		Rotating:     s.rotating,
 		ExpiresAt:    s.cachedExpiration.Unix(),
 	}
-}
-
-func (s *Signer) signerUpdate(ctx context.Context, newAddr common.Address) error {
-	return s.chainHelper.SubmitDelegatedFallbackDirect(ctx, s.submissionProxyContractAddr, UpdateSignerFuncSignature, newAddr)
 }

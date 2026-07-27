@@ -52,9 +52,9 @@ func WithBlockchainType(t BlockchainType) ChainHelperOption {
 // on-chain SubmissionProxy oracle whitelist. The on-chain whitelist — never local state — is
 // the authority on which key may sign; see reconcile/rotate in signer.go (issue #2516).
 type Signer struct {
-	PK                          *ecdsa.PrivateKey
-	chainHelper                 *ChainHelper
-	submissionProxyContractAddr string
+	PK    *ecdsa.PrivateKey
+	chain oracleChain // on-chain oracle reads/writes (injectable for tests)
+	store signerStore // durable keyring (injectable for tests)
 
 	// mu guards the fast sign-path fields below.
 	mu               sync.RWMutex
@@ -66,12 +66,14 @@ type Signer struct {
 
 	rotateMu sync.Mutex // serializes reconcile+rotate within this process (TryLock)
 
-	staticMode       bool // WithSignerPk: fixed key, no reconcile/rotation/confirmation gate
-	bootstrapPk      string
-	renewThreshold   time.Duration
-	livenessInterval time.Duration
-	skewMargin       time.Duration
-	confirmationTTL  time.Duration // refuse to sign if activeAddr has not been confirmed whitelisted within this window
+	staticMode         bool // WithSignerPk: fixed key, no reconcile/rotation/confirmation gate
+	bootstrapPk        string
+	renewThreshold     time.Duration
+	livenessInterval   time.Duration
+	skewMargin         time.Duration
+	confirmationTTL    time.Duration // refuse to sign if activeAddr has not been confirmed whitelisted within this window
+	verifyPollInterval time.Duration // rotation on-chain confirmation poll cadence
+	verifyPollMax      int           // rotation on-chain confirmation poll attempts
 }
 
 type signedTx struct {
