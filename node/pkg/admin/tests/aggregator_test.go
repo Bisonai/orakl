@@ -106,7 +106,10 @@ func TestAggregatorDeactivate(t *testing.T) {
 
 func TestAggregatorGetSigner(t *testing.T) {
 	type signer struct {
-		Signer string `json:"signer"`
+		Signer    string `json:"signer"`
+		Usable    bool   `json:"usable"`
+		Rotating  bool   `json:"rotating"`
+		ExpiresAt int64  `json:"expiresAt"`
 	}
 	ctx := context.Background()
 	cleanup, testItems, err := setup(ctx)
@@ -115,6 +118,16 @@ func TestAggregatorGetSigner(t *testing.T) {
 	}
 	defer cleanup()
 
+	// getSigner now reports the in-memory signer via the bus (not a DB read), so stand in for the
+	// aggregator and answer the GET_SIGNER request with a signer payload.
+	channel := testItems.mb.Subscribe(bus.AGGREGATOR)
+	waitForMessageWithResponse(t, channel, bus.ADMIN, bus.AGGREGATOR, bus.GET_SIGNER, map[string]any{
+		"signer":    "0x0000000000000000000000000000000000000001",
+		"usable":    true,
+		"rotating":  false,
+		"expiresAt": int64(0),
+	})
+
 	res, err := GetRequest[signer](testItems.app, "/api/v1/aggregator/signer", nil)
 	if err != nil {
 		t.Fatalf("error getting signer: %v", err)
@@ -122,4 +135,7 @@ func TestAggregatorGetSigner(t *testing.T) {
 
 	assert.NotNil(t, res)
 	assert.NotEmpty(t, res.Signer)
+	assert.True(t, res.Usable)
+	assert.False(t, res.Rotating)
+	assert.Equal(t, int64(0), res.ExpiresAt)
 }

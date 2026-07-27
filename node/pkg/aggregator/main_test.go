@@ -79,7 +79,10 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 	}
 	testItems.tmpData = tmpData
 
-	signHelper, err := helper.NewSigner(ctx)
+	// Static mode (WithSignerPk): the aggregator tests only need a working signer that produces
+	// proofs; static mode bypasses the on-chain whitelist gate so they don't depend on live chain
+	// state (the managed reconcile/rotate path is covered by helper unit + integration tests).
+	signHelper, err := helper.NewSigner(ctx, helper.WithSignerPk("27894b84849f129e08f37634be4e8ccc4c7267d824eb8cfd285185854ba5b78d"))
 	if err != nil {
 		return nil, nil, err
 	}

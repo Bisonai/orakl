@@ -1,14 +1,10 @@
 package aggregator
 
 import (
-	"errors"
-	"os"
 	"strconv"
 
 	"bisonai.com/miko/node/pkg/admin/utils"
 	"bisonai.com/miko/node/pkg/bus"
-	chainutils "bisonai.com/miko/node/pkg/chain/utils"
-	errorsentinel "bisonai.com/miko/node/pkg/error"
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog/log"
 )
@@ -106,22 +102,23 @@ func renewSigner(c *fiber.Ctx) error {
 	return c.SendString("s refreshed: " + strconv.FormatBool(resp.Success))
 }
 
+// getSigner reports the signer the node is ACTUALLY using (the in-memory active key, plus
+// whether it is currently usable / rotating), sourced from the running Signer via the bus —
+// not the DB row. Reading the DB was the misleading symptom in the 2026-07-25 incident, where
+// the endpoint showed a key different from the one the node was signing with.
 func getSigner(c *fiber.Ctx) error {
-	signerpk, err := chainutils.LoadSignerPk(c.Context())
-	if err != nil && !errors.Is(err, errorsentinel.ErrChainSignerPKNotFound) {
-		return c.Status(fiber.StatusInternalServerError).SendString("failed to get signer: " + err.Error())
-	}
-
-	if signerpk == "" {
-		signerpk = os.Getenv("SIGNER_PK")
-		if signerpk == "" {
-			return c.Status(fiber.StatusInternalServerError).SendString("failed to get signer, no signer set")
-		}
-	}
-
-	addr, err := chainutils.StringPkToAddressHex(signerpk)
+	msg, err := utils.SendMessage(c, bus.AGGREGATOR, bus.GET_SIGNER, nil)
 	if err != nil {
+		log.Error().Err(err).Str("Player", "Admin").Msg("failed to send message to aggregator")
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to get signer: " + err.Error())
 	}
-	return c.JSON(fiber.Map{"signer": addr})
+	resp := <-msg.Response
+	if !resp.Success {
+		errMsg := "unknown error"
+		if e, ok := resp.Args["error"].(string); ok {
+			errMsg = e
+		}
+		return c.Status(fiber.StatusInternalServerError).SendString("failed to get signer: " + errMsg)
+	}
+	return c.JSON(resp.Args)
 }

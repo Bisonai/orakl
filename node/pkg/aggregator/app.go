@@ -27,6 +27,14 @@ func New(bus *bus.MessageBus, h host.Host, ps *pubsub.PubSub) *App {
 }
 
 func (a *App) Run(ctx context.Context) error {
+	// Create the singleton Signer BEFORE subscribing to the bus, so a.Signer is assigned
+	// single-threaded before any GET_SIGNER/RENEW_SIGNER handler goroutine can read it. This
+	// closes both the double-create race and the plain-field data race on a.Signer (issue #2516).
+	if err := a.ensureSigner(ctx); err != nil {
+		log.Error().Err(err).Str("Player", "Aggregator").Msg("failed to initialize signer")
+		return err
+	}
+
 	a.subscribe(ctx)
 
 	configs, err := a.getConfigs(ctx)
@@ -100,34 +108,49 @@ func (a *App) clearAggregators() error {
 	return nil
 }
 
-func (a *App) initializeLoadedAggregators(ctx context.Context, loadedConfigs []Config, h host.Host, ps *pubsub.PubSub) error {
-	signerOptions := []helper.SignerOption{}
-
-	signerRenewIntervalRaw := os.Getenv("SIGNER_RENEW_INTERVAL")
-	duration, err := time.ParseDuration(signerRenewIntervalRaw)
-	if err == nil {
-		signerOptions = append(signerOptions, helper.WithRenewInterval(duration))
+// ensureSigner builds the singleton Signer exactly once. It is called from Run (before the bus
+// subscription starts, so the write is single-threaded and happens-before any handler read) and
+// again from initializeLoadedAggregators, where it is a no-op because a.Signer is already set.
+func (a *App) ensureSigner(ctx context.Context) error {
+	if a.Signer != nil {
+		return nil
 	}
 
-	signerRenewThresholdRaw := os.Getenv("SIGNER_RENEW_THRESHOLD")
-	threshold, err := time.ParseDuration(signerRenewThresholdRaw)
-	if err == nil {
-		signerOptions = append(signerOptions, helper.WithRenewThreshold(threshold))
+	signerOptions := []helper.SignerOption{}
+	if raw := os.Getenv("SIGNER_RENEW_INTERVAL"); raw != "" {
+		if duration, err := time.ParseDuration(raw); err == nil {
+			signerOptions = append(signerOptions, helper.WithRenewInterval(duration))
+		}
+	}
+	if raw := os.Getenv("SIGNER_RENEW_THRESHOLD"); raw != "" {
+		if threshold, err := time.ParseDuration(raw); err == nil {
+			signerOptions = append(signerOptions, helper.WithRenewThreshold(threshold))
+		}
 	}
 
 	signer, err := helper.NewSigner(ctx, signerOptions...)
 	if err != nil {
 		return err
 	}
-
 	a.Signer = signer
+	return nil
+}
+
+func (a *App) initializeLoadedAggregators(ctx context.Context, loadedConfigs []Config, h host.Host, ps *pubsub.PubSub) error {
+	// The Signer is a singleton for the app lifetime (created in Run before the bus starts). Reuse
+	// it here; never build a second one on config refresh (a second reconcile goroutine rotating
+	// the same on-chain oracle was a root cause of issue #2516).
+	if err := a.ensureSigner(ctx); err != nil {
+		return err
+	}
+
 	for _, config := range loadedConfigs {
 		if a.Aggregators[config.ID] != nil {
 			continue
 		}
 
 		topicString := config.Name + "-global-aggregator-topic-" + strconv.Itoa(int(config.AggregateInterval))
-		tmpNode, err := NewAggregator(h, ps, topicString, config, signer, a.LatestLocalAggregates)
+		tmpNode, err := NewAggregator(h, ps, topicString, config, a.Signer, a.LatestLocalAggregates)
 		if err != nil {
 			return err
 		}
@@ -342,12 +365,28 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 		msg.Response <- bus.MessageResponse{Success: true}
 	case bus.RENEW_SIGNER:
 		log.Debug().Str("Player", "Aggregator").Msg("refresh signer msg received")
+		if a.Signer == nil {
+			bus.HandleMessageError(errorSentinel.ErrChainSignerPKNotFound, msg, "signer not initialized")
+			return
+		}
 		err := a.renewSigner(ctx)
 		if err != nil {
 			bus.HandleMessageError(err, msg, "failed to refresh signer")
 			return
 		}
 		msg.Response <- bus.MessageResponse{Success: true}
+	case bus.GET_SIGNER:
+		if a.Signer == nil {
+			bus.HandleMessageError(errorSentinel.ErrChainSignerPKNotFound, msg, "signer not initialized")
+			return
+		}
+		status := a.Signer.Status()
+		msg.Response <- bus.MessageResponse{Success: true, Args: map[string]any{
+			"signer":    status.ActiveSigner,
+			"usable":    status.Usable,
+			"rotating":  status.Rotating,
+			"expiresAt": status.ExpiresAt,
+		}}
 	case bus.STREAM_LOCAL_AGGREGATE:
 
 		localAggregate := msg.Content.Args["value"].(*LocalAggregate)

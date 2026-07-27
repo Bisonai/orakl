@@ -28,6 +28,7 @@ const (
 	DEACTIVATE_AGGREGATOR = "deactivate_aggregator"
 
 	RENEW_SIGNER = "renew_signer"
+	GET_SIGNER   = "get_signer"
 
 	ACTIVATE_REPORTER   = "activate_reporter"
 	DEACTIVATE_REPORTER = "deactivate_reporter"
