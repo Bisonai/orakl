@@ -115,6 +115,16 @@ func TestAggregatorGetSigner(t *testing.T) {
 	}
 	defer cleanup()
 
+	// getSigner now reports the in-memory signer via the bus (not a DB read), so stand in for the
+	// aggregator and answer the GET_SIGNER request with a signer payload.
+	channel := testItems.mb.Subscribe(bus.AGGREGATOR)
+	waitForMessageWithResponse(t, channel, bus.ADMIN, bus.AGGREGATOR, bus.GET_SIGNER, map[string]any{
+		"signer":    "0x0000000000000000000000000000000000000001",
+		"usable":    true,
+		"rotating":  false,
+		"expiresAt": int64(0),
+	})
+
 	res, err := GetRequest[signer](testItems.app, "/api/v1/aggregator/signer", nil)
 	if err != nil {
 		t.Fatalf("error getting signer: %v", err)
