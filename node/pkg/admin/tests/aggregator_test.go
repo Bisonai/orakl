@@ -106,7 +106,10 @@ func TestAggregatorDeactivate(t *testing.T) {
 
 func TestAggregatorGetSigner(t *testing.T) {
 	type signer struct {
-		Signer string `json:"signer"`
+		Signer    string `json:"signer"`
+		Usable    bool   `json:"usable"`
+		Rotating  bool   `json:"rotating"`
+		ExpiresAt int64  `json:"expiresAt"`
 	}
 	ctx := context.Background()
 	cleanup, testItems, err := setup(ctx)
@@ -132,4 +135,7 @@ func TestAggregatorGetSigner(t *testing.T) {
 
 	assert.NotNil(t, res)
 	assert.NotEmpty(t, res.Signer)
+	assert.True(t, res.Usable)
+	assert.False(t, res.Rotating)
+	assert.Equal(t, int64(0), res.ExpiresAt)
 }

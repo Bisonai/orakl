@@ -17,8 +17,12 @@ CREATE TABLE IF NOT EXISTS signer_key (
 CREATE UNIQUE INDEX IF NOT EXISTS signer_key_one_active ON signer_key ((state)) WHERE state = 'active';
 CREATE UNIQUE INDEX IF NOT EXISTS signer_key_addr       ON signer_key (address)  WHERE address IS NOT NULL;
 
--- Seed exactly once from the existing single `signer` row as the active key.
--- address stays NULL here (partial index tolerates NULL); the app backfills it on first reconcile.
+-- Seed exactly once from the existing single `signer` row as the active key. This is only a
+-- bootstrap: at runtime reconcile (loadCandidates) always also considers the current legacy
+-- `signer` row as a candidate and, if it is the on-chain oracle, imports it into signer_key via
+-- ensureActive. So a key a pre-fix binary writes to `signer` later is still discovered/adopted —
+-- the one-time seed does not need to catch it. address stays NULL here (partial index tolerates
+-- NULL); the app backfills it on first reconcile.
 INSERT INTO signer_key (pk, state)
     SELECT pk, 'active' FROM signer
     WHERE pk IS NOT NULL AND pk <> '' AND NOT EXISTS (SELECT 1 FROM signer_key);

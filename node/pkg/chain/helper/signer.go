@@ -93,22 +93,23 @@ func NewSigner(ctx context.Context, opts ...SignerOption) (*Signer, error) {
 		opt(&config)
 	}
 
+	// Explicit static-key mode: an operator-supplied key (WithSignerPk) is used directly, with no
+	// keyring, no rotation and no on-chain whitelist gate. It does no chain/DB I/O, so it must NOT
+	// require SUBMISSION_PROXY_CONTRACT — the env check below is only for the managed path.
+	// Production (the aggregator) never sets WithSignerPk and always uses the managed reconcile
+	// path below; this branch is for explicit overrides and tests.
+	if config.pk != "" {
+		return newStaticSigner(config)
+	}
+
 	submissionProxyContractAddr := os.Getenv("SUBMISSION_PROXY_CONTRACT")
 	if submissionProxyContractAddr == "" {
 		log.Error().Str("Player", "Signer").Msg("SUBMISSION_PROXY_CONTRACT not found, signer initialization failed")
 		return nil, errorSentinel.ErrChainSubmissionProxyContractNotFound
 	}
 
-	// Explicit static-key mode: an operator-supplied key (WithSignerPk) is used directly, with no
-	// keyring, no rotation and no on-chain whitelist gate. Production (the aggregator) never sets
-	// WithSignerPk and always uses the managed reconcile path below; this branch is for explicit
-	// overrides and tests, and preserves their pre-fix behavior.
-	if config.pk != "" {
-		return newStaticSigner(config)
-	}
-
 	// Seed the keyring from a bootstrap key if it is empty (fresh node). Existing nodes already
-	// have the legacy key migrated into signer_key by migration 000027.
+	// have the legacy key migrated into signer_key by migration 000041.
 	initialPkHex, err := ensureKeyring(ctx, config)
 	if err != nil {
 		return nil, err
@@ -491,7 +492,7 @@ func (s *Signer) setUnusable(reason string) {
 	s.usable = false
 	s.rotating = false
 	s.mu.Unlock()
-	_ = reason
+	log.Warn().Str("Player", "Signer").Str("reason", reason).Msg("signer marked unusable — refusing to sign")
 }
 
 func (s *Signer) renewalRequired(exp time.Time) bool {
@@ -552,6 +553,9 @@ func (s *Signer) rotateLocked(ctx context.Context, from *signerCandidate, reuse 
 		}
 		select {
 		case <-ctx.Done():
+			s.mu.Lock()
+			s.rotating = false // don't leave the sign gate wedged on shutdown/cancel
+			s.mu.Unlock()
 			return ctx.Err()
 		case <-time.After(s.verifyPollInterval):
 		}
@@ -583,6 +587,9 @@ func (s *Signer) rotateLocked(ctx context.Context, from *signerCandidate, reuse 
 	if rErr == nil && fromExp.After(time.Now()) {
 		s.usable = true
 		s.cachedExpiration = fromExp
+		// This read is a positive on-chain confirmation of `from`; stamp it so the sign gate's
+		// confirmationTTL check does not immediately refuse after a slow (~60s) rotation attempt.
+		s.lastConfirmedAt = time.Now()
 	} else {
 		s.usable = false
 	}

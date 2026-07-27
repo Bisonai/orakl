@@ -483,7 +483,7 @@ func TestMakeGlobalAggregateProof(t *testing.T) {
 	// whitelist state, so use the fixed SIGNER_PK directly (the managed gate is covered elsewhere).
 	s, err := helper.NewSigner(ctx, helper.WithSignerPk(os.Getenv("SIGNER_PK")))
 	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
+		t.Fatalf("Unexpected error: %v", err)
 	}
 
 	timestamp := time.Now()
@@ -566,7 +566,7 @@ func TestGlobalAggregateProofMergeAndSplit(t *testing.T) {
 	// Static mode: verifies proof merge/split format independent of on-chain whitelist state.
 	s, err := helper.NewSigner(ctx, helper.WithSignerPk(os.Getenv("SIGNER_PK")))
 	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
+		t.Fatalf("Unexpected error: %v", err)
 	}
 
 	timestamp := time.Now()
