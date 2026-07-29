@@ -330,10 +330,15 @@ func (c *Collector) maybeRefreshWhitelist(ctx context.Context) {
 }
 
 // claimRefreshSlot reports whether the caller may fire an on-demand whitelist refresh now,
-// enforcing OnDemandRefreshCooldown. The single atomic doubles as the claim: among many callers
-// within one cooldown window, exactly one CompareAndSwap succeeds, so exactly one gets true.
+// enforcing OnDemandRefreshCooldown.
 func (c *Collector) claimRefreshSlot() bool {
-	now := time.Now().UnixNano()
+	return c.claimRefreshSlotAt(time.Now().UnixNano())
+}
+
+// claimRefreshSlotAt is claimRefreshSlot with an injected clock (UnixNano) so the cooldown can be
+// exercised deterministically in tests. The single atomic doubles as the claim: among many callers
+// within one cooldown window, exactly one CompareAndSwap succeeds, so exactly one gets true.
+func (c *Collector) claimRefreshSlotAt(now int64) bool {
 	last := c.lastOnDemandRefresh.Load()
 	if now-last < int64(OnDemandRefreshCooldown) {
 		return false
