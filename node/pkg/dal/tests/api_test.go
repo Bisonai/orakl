@@ -96,12 +96,8 @@ func TestApiGetLatestAll(t *testing.T) {
 		t.Fatalf("error generating sample submission data: %v", err)
 	}
 
-	err = testPublishData(ctx, "test-aggregate", *sampleSubmissionData)
-	if err != nil {
-		t.Fatalf("error publishing sample submission data: %v", err)
-	}
+	publishAndAwait(ctx, t, testItems, "test-aggregate", *sampleSubmissionData)
 
-	time.Sleep(10 * time.Millisecond) // should wait for redis data to be published
 	result, err := request.Request[[]common.OutgoingSubmissionData](request.WithEndpoint(testItems.MockDal.URL+"/latest-data-feeds/all"), request.WithHeaders(map[string]string{"X-API-Key": testItems.ApiKey}))
 	if err != nil {
 		t.Fatalf("error getting latest data: %v", err)
@@ -168,12 +164,7 @@ func TestApiGetLatest(t *testing.T) {
 		t.Fatalf("error generating sample submission data: %v", err)
 	}
 
-	err = testPublishData(ctx, "test-aggregate", *sampleSubmissionData)
-	if err != nil {
-		t.Fatalf("error publishing sample submission data: %v", err)
-	}
-
-	time.Sleep(10 * time.Millisecond)
+	publishAndAwait(ctx, t, testItems, "test-aggregate", *sampleSubmissionData)
 
 	result, err := request.Request[[]common.OutgoingSubmissionData](request.WithEndpoint(testItems.MockDal.URL+"/latest-data-feeds/test-aggregate"), request.WithHeaders(map[string]string{"X-API-Key": testItems.ApiKey}))
 	if err != nil {
@@ -209,12 +200,7 @@ func TestApiGetLatestTransposeAll(t *testing.T) {
 		t.Fatalf("error generating sample submission data: %v", err)
 	}
 
-	err = testPublishData(ctx, "test-aggregate", *sampleSubmissionData)
-	if err != nil {
-		t.Fatalf("error publishing sample submission data: %v", err)
-	}
-
-	time.Sleep(10 * time.Millisecond)
+	publishAndAwait(ctx, t, testItems, "test-aggregate", *sampleSubmissionData)
 
 	result, err := request.Request[apiv2.BulkResponse](request.WithEndpoint(testItems.MockDal.URL+"/latest-data-feeds/transpose/all"), request.WithHeaders(map[string]string{"X-API-Key": testItems.ApiKey}))
 	if err != nil {
@@ -257,12 +243,7 @@ func TestApiGetLatestTranspose(t *testing.T) {
 		t.Fatalf("error generating sample submission data: %v", err)
 	}
 
-	err = testPublishData(ctx, "test-aggregate", *sampleSubmissionData)
-	if err != nil {
-		t.Fatalf("error publishing sample submission data: %v", err)
-	}
-
-	time.Sleep(10 * time.Millisecond)
+	publishAndAwait(ctx, t, testItems, "test-aggregate", *sampleSubmissionData)
 
 	result, err := request.Request[apiv2.BulkResponse](request.WithEndpoint(testItems.MockDal.URL+"/latest-data-feeds/transpose/test-aggregate"), request.WithHeaders(map[string]string{"X-API-Key": testItems.ApiKey}))
 	if err != nil {
