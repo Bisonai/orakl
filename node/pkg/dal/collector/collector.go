@@ -7,6 +7,7 @@ import (
 	"os"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"bisonai.com/miko/node/pkg/aggregator"
@@ -29,6 +30,12 @@ const (
 	GetAllOracles            = "getAllOracles() public view returns (address[] memory)"
 	OracleAdded              = "OracleAdded(address oracle, uint256 expirationTime)"
 	ProcessWorkerCount       = 200
+	// OnDemandRefreshCooldown bounds how often a proof rejection may trigger an immediate
+	// getAllOracles read. The path is only an accelerator over the WhitelistRefreshInterval
+	// ticker, so at most one on-demand refresh per cooldown is enough to recover quickly from a
+	// legitimate rotation while preventing a sustained mismatch (e.g. a signer freeze, where every
+	// feed's proof is rejected ~2.5x/s) from spawning hundreds of on-chain calls per second.
+	OnDemandRefreshCooldown = 1 * time.Second
 )
 
 type Config = types.Config
@@ -53,6 +60,11 @@ type Collector struct {
 
 	processPool *pool.Pool
 	mu          sync.RWMutex
+
+	// lastOnDemandRefresh is the UnixNano of the last rejection-triggered whitelist refresh; it
+	// doubles as the rate-limit claim so concurrent rejections fire at most one refresh per
+	// OnDemandRefreshCooldown (see maybeRefreshWhitelist).
+	lastOnDemandRefresh atomic.Int64
 }
 
 func NewCollector(ctx context.Context, configs []types.Config) (*Collector, error) {
@@ -271,16 +283,7 @@ func (c *Collector) IncomingDataToOutgoingData(ctx context.Context, data *aggreg
 	if err != nil {
 		log.Error().Err(err).Str("Player", "DalCollector").Str("Symbol", data.Symbol).Msg("failed to order proof")
 		if errors.Is(err, errorsentinel.ErrDalSignerNotWhitelisted) {
-			go func(ctx context.Context, chainHelper *chainreader.ChainReader, contractAddress string) {
-				newList, getAllOraclesErr := getAllOracles(ctx, chainHelper, contractAddress)
-				if getAllOraclesErr != nil {
-					log.Error().Err(getAllOraclesErr).Str("Player", "DalCollector").Msg("failed to refresh oracles")
-					return
-				}
-				c.mu.Lock()
-				c.CachedWhitelist = newList
-				c.mu.Unlock()
-			}(ctx, c.chainReader, c.submissionProxyContractAddr)
+			c.maybeRefreshWhitelist(ctx)
 		}
 		return nil, err
 	}
@@ -300,6 +303,47 @@ func (c *Collector) IncomingDataToOutgoingData(ctx context.Context, data *aggreg
 		FeedHash:      formatBytesToHex(feedHashBytes),
 		Decimals:      decimals,
 	}, nil
+}
+
+// maybeRefreshWhitelist triggers an immediate getAllOracles read after a proof was rejected for a
+// non-whitelisted signer: the local cache may simply be lagging a legitimate oracle rotation, and
+// this recovers faster than waiting for the WhitelistRefreshInterval ticker. It is rate-limited to
+// at most one refresh per OnDemandRefreshCooldown — a single atomic timestamp both enforces the
+// cooldown and claims the slot, so a flood of concurrent rejections (as in a signer freeze where
+// every feed's proof is rejected) collapses to one on-chain call per cooldown instead of one per
+// rejected message.
+func (c *Collector) maybeRefreshWhitelist(ctx context.Context) {
+	if !c.claimRefreshSlot() {
+		return
+	}
+
+	go func() {
+		newList, err := getAllOracles(ctx, c.chainReader, c.submissionProxyContractAddr)
+		if err != nil {
+			log.Error().Err(err).Str("Player", "DalCollector").Msg("failed to refresh oracles on-demand")
+			return
+		}
+		c.mu.Lock()
+		c.CachedWhitelist = newList
+		c.mu.Unlock()
+	}()
+}
+
+// claimRefreshSlot reports whether the caller may fire an on-demand whitelist refresh now,
+// enforcing OnDemandRefreshCooldown.
+func (c *Collector) claimRefreshSlot() bool {
+	return c.claimRefreshSlotAt(time.Now().UnixNano())
+}
+
+// claimRefreshSlotAt is claimRefreshSlot with an injected clock (UnixNano) so the cooldown can be
+// exercised deterministically in tests. The single atomic doubles as the claim: among many callers
+// within one cooldown window, exactly one CompareAndSwap succeeds, so exactly one gets true.
+func (c *Collector) claimRefreshSlotAt(now int64) bool {
+	last := c.lastOnDemandRefresh.Load()
+	if now-last < int64(OnDemandRefreshCooldown) {
+		return false
+	}
+	return c.lastOnDemandRefresh.CompareAndSwap(last, now)
 }
 
 func (c *Collector) refreshOracles(ctx context.Context) {
