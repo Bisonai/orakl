@@ -23,6 +23,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// probe: no-op comment to trigger the node path filter on pristine master (isolate DAL flakiness).
 const (
 	WhitelistRefreshInterval = 10 * time.Second
 	DefaultDecimals          = "8"
