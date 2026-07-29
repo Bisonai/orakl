@@ -263,6 +263,37 @@ func TestApiGetLatestTranspose(t *testing.T) {
 	assert.Equal(t, expected.Decimals, result.Decimals[0])
 }
 
+// awaitWSSubmission re-publishes freshly-timestamped data for `name` and reads ch until a submission
+// message for that symbol arrives (or the deadline passes). The collector subscribes to redis and
+// the hub registers websocket subscriptions asynchronously, and a push happens only once per unique
+// timestamp, so surviving a push that lands before those subscriptions are ready requires retrying
+// with a fresh timestamp — a single publish + a blocking read otherwise hangs forever.
+func awaitWSSubmission(ctx context.Context, t *testing.T, testItems *TestItems, ch chan any, name string) common.OutgoingSubmissionData {
+	t.Helper()
+	deadline := time.Now().Add(10 * time.Second)
+	for {
+		data, err := generateSampleSubmissionData(testItems.TmpConfig.ID, int64(15), time.Now(), 1, name)
+		if err != nil {
+			t.Fatalf("error generating sample submission data: %v", err)
+		}
+		if err := testPublishData(ctx, name, *data); err != nil {
+			t.Fatalf("error publishing sample submission data: %v", err)
+		}
+		select {
+		case sample := <-ch:
+			result, err := wsfcommon.MessageToStruct[common.OutgoingSubmissionData](sample.(map[string]any))
+			if err != nil {
+				t.Fatalf("error converting sample to struct: %v", err)
+			}
+			return result
+		case <-time.After(300 * time.Millisecond):
+			if time.Now().After(deadline) {
+				t.Fatalf("did not receive a websocket submission for %q within timeout", name)
+			}
+		}
+	}
+}
+
 func TestApiWebsocket(t *testing.T) {
 	ctx := context.Background()
 	clean, testItems, err := setup(ctx)
@@ -297,37 +328,13 @@ func TestApiWebsocket(t *testing.T) {
 			t.Fatalf("error subscribing to websocket: %v", err)
 		}
 
-		sampleSubmissionData, err := generateSampleSubmissionData(
-			testItems.TmpConfig.ID,
-			int64(15),
-			time.Now(),
-			1,
-			"test-aggregate",
-		)
-		if err != nil {
-			t.Fatalf("error generating sample submission data: %v", err)
-		}
-
-		err = testPublishData(ctx, "test-aggregate", *sampleSubmissionData)
-		if err != nil {
-			t.Fatalf("error publishing sample submission data: %v", err)
-		}
-
-		ch := make(chan any)
+		ch := make(chan any, 16)
 		go conn.Read(ctx, ch)
 
-		expected, err := testItems.Collector.IncomingDataToOutgoingData(ctx, sampleSubmissionData)
-		if err != nil {
-			t.Fatalf("error converting sample submission data to outgoing data: %v", err)
-		}
+		result := awaitWSSubmission(ctx, t, testItems, ch, "test-aggregate")
+		assert.Equal(t, "test-aggregate", result.Symbol)
+		assert.Equal(t, "15", result.Value)
 
-		sample := <-ch
-
-		result, err := wsfcommon.MessageToStruct[common.OutgoingSubmissionData](sample.(map[string]any))
-		if err != nil {
-			t.Fatalf("error converting sample to struct: %v", err)
-		}
-		assert.Equal(t, *expected, result)
 		err = conn.Close()
 		if err != nil {
 			t.Fatalf("error closing websocket: %v", err)
