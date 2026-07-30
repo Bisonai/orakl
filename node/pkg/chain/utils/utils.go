@@ -38,10 +38,9 @@ func MakePayload(tx *types.Transaction) (SignInsertPayload, error) {
 	to := strings.ToLower(tx.To().Hex())
 	input := "0x" + hex.EncodeToString(tx.Data())
 	gas := fmt.Sprintf("0x%x", tx.Gas())
-	// big.Int.String() is decimal; behind an "0x" prefix it is read back as hex
-	value := "0x" + tx.Value().Text(16)
+	value := "0x" + tx.Value().String()
 	chainId := tx.ChainId()
-	gasPrice := "0x" + tx.GasPrice().Text(16)
+	gasPrice := "0x" + tx.GasPrice().String()
 	nonce := fmt.Sprintf("0x%x", tx.Nonce())
 
 	sig := tx.RawSignatureValues()
