@@ -68,10 +68,13 @@ func Setup(options ...string) (AppConfig, error) {
 		},
 	))
 	app.Use(cors.New())
+	// shared across requests, otherwise the cache is rebuilt empty on every
+	// request and every sign hits the db for contract validation
+	validContracts := new(sync.Map)
 	app.Use(func(c *fiber.Ctx) error {
 		c.Locals("feePayer", feePayer)
 		c.Locals("pgxConn", pgxPool)
-		c.Locals("validContracts", new(sync.Map))
+		c.Locals("validContracts", validContracts)
 		return c.Next()
 	})
 
@@ -119,7 +122,7 @@ func CustomErrorHandler(c *fiber.Ctx, err error) error {
 
 	// Return status code with error message
 	// | ${status} | ${ip} | ${method} | ${path} | ${error}",
-	log.Error().Err(err).Str("call info", fmt.Sprintf("| %d | %s | %s | %s | %s\n", code, c.IP(), c.Method(), c.Path(), err.Error()))
+	log.Error().Err(err).Str("call info", fmt.Sprintf("| %d | %s | %s | %s | %s\n", code, c.IP(), c.Method(), c.Path(), err.Error())).Msg("request failed")
 	return c.Status(code).SendString(err.Error())
 }
 

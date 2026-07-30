@@ -44,7 +44,7 @@ const (
 		)
 		AND "encodedName" = @encodedName;
 	`
-	GetTransactions       = `SELECT * FROM transactions;`
+	GetTransactions       = `SELECT * FROM transactions ORDER BY transaction_id DESC LIMIT @limit OFFSET @offset;`
 	GetTransactionById    = `SELECT * FROM transactions WHERE transaction_id = @id;`
 	DeleteTransactionById = `DELETE FROM transactions WHERE transaction_id = @id RETURNING *;`
 )

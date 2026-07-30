@@ -23,6 +23,11 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+const (
+	defaultTransactionLimit = 100
+	maxTransactionLimit     = 1000
+)
+
 type FeePayer struct {
 	PrivateKey string `json:"privateKey" db:"privateKey"`
 }
@@ -241,7 +246,17 @@ func insertV2(c *fiber.Ctx) error {
 }
 
 func get(c *fiber.Ctx) error {
-	transactions, err := utils.QueryRows[SignModel](c, GetTransactions, nil)
+	// unbounded select loads the whole table into memory and can oom the process
+	limit := c.QueryInt("limit", defaultTransactionLimit)
+	if limit < 1 || limit > maxTransactionLimit {
+		limit = defaultTransactionLimit
+	}
+	offset := c.QueryInt("offset", 0)
+	if offset < 0 {
+		offset = 0
+	}
+
+	transactions, err := utils.QueryRows[SignModel](c, GetTransactions, map[string]any{"limit": limit, "offset": offset})
 	if err != nil {
 		return err
 	}
@@ -454,9 +469,12 @@ func updateFeePayer(tx *types.Transaction, feePayer common.Address) (*types.Tran
 	}
 
 	newTx, err := types.NewTransactionWithMap(types.TxTypeFeeDelegatedSmartContractExecution, remap)
+	if err != nil {
+		return nil, err
+	}
 
 	newTx.SetSignature(tx.GetTxInternalData().RawSignatureValues())
-	return newTx, err
+	return newTx, nil
 }
 
 func TxToHash(tx *types.Transaction) string {

@@ -59,9 +59,9 @@ func MakePayload(tx *types.Transaction) (SignInsertPayload, error) {
 		ChainId:  "0x" + chainId.Text(16),
 		GasPrice: gasPrice,
 		Nonce:    nonce,
-		V:        r,
-		R:        s,
-		S:        v,
+		V:        v,
+		R:        r,
+		S:        s,
 		RawTx:    rawTx,
 	}
 
