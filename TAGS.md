@@ -422,3 +422,4 @@
 - **node** v0.0.1.20260526.0533.58da808.baobab <br> *`PR`*: Fixaggregator Drain inflight b... <br><br> 
 - **delegator** v0.0.1.20260730.0035.7f1fb1e.baobab <br> *`PR`*: fixdelegator surface swallowed... <br><br> 
 - **delegator** v0.0.1.20260730.0138.bb9dd3c.baobab <br> *`PR`*: featdelegator validate fee pay... <br><br> 
+- **delegator** v0.0.1.20260730.0146.5e0c12a.cypress <br> *`PR`*: featdelegator validate fee pay... <br><br> 
