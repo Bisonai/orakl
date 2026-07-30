@@ -18,7 +18,9 @@ import (
 	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
-	"github.com/gofiber/fiber/v2/middleware/recover"
+	// aliased: the package name "recover" shadows the builtin, which
+	// reloadFeePayer needs
+	fiberrecover "github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/kaiachain/kaia/crypto"
@@ -60,13 +62,7 @@ func Setup(options ...string) (AppConfig, error) {
 		return appConfig, pgxError
 	}
 
-	if err := InitFeePayerPK(context.Background(), pgxPool); err != nil {
-		// serving continues so the non-signing routes stay up, but every signing
-		// request will fail until the retry loop lands a usable key
-		log.Error().Err(err).Dur("retry_in", FeePayerRetryInterval).
-			Msg("fee payer not initialized, signing is broken; retrying in background. To load one immediately: /api/v1/sign/initialize")
-		go retryFeePayerInit(context.Background(), pgxPool, FeePayerRetryInterval)
-	}
+	feePayerErr := InitFeePayerPK(context.Background(), pgxPool)
 
 	app := fiber.New(fiber.Config{
 		AppName:           "delegator " + version,
@@ -74,8 +70,8 @@ func Setup(options ...string) (AppConfig, error) {
 		ErrorHandler:      CustomErrorHandler,
 	})
 
-	app.Use(recover.New(
-		recover.Config{
+	app.Use(fiberrecover.New(
+		fiberrecover.Config{
 			EnableStackTrace:  true,
 			StackTraceHandler: CustomStackTraceHandler,
 		},
@@ -90,6 +86,22 @@ func Setup(options ...string) (AppConfig, error) {
 		c.Locals("validContracts", validContracts)
 		return c.Next()
 	})
+
+	if feePayerErr != nil {
+		// serving continues so the non-signing routes stay up, but every signing
+		// request will fail until the retry loop lands a usable key.
+		// tied to app shutdown: Setup is called once per test, so an uncancellable
+		// goroutine here would accumulate one leaked retry loop per invocation.
+		retryCtx, cancelRetry := context.WithCancel(context.Background())
+		app.Hooks().OnShutdown(func() error {
+			cancelRetry()
+			return nil
+		})
+
+		log.Error().Err(feePayerErr).Dur("retry_in", FeePayerRetryInterval).
+			Msg("fee payer not initialized, signing is broken; retrying in background. To load one immediately: /api/v1/sign/initialize")
+		go retryFeePayerInit(retryCtx, pgxPool, FeePayerRetryInterval)
+	}
 
 	appConfig = AppConfig{
 		Postgres: pgxPool,
@@ -148,6 +160,18 @@ func setFeePayer(pk string) error {
 	return nil
 }
 
+// reloadFeePayer wraps InitFeePayerPK so a panic in a secret-store client ends
+// only this attempt. On the retry goroutine there is no fiber recover
+// middleware, so an unhandled panic would take the whole process down.
+func reloadFeePayer(ctx context.Context, pgxPool *pgxpool.Pool) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("panic while loading fee payer: %v", r)
+		}
+	}()
+	return InitFeePayerPK(ctx, pgxPool)
+}
+
 // retryFeePayerInit reloads the key until one validates. Started only when the
 // initial load failed, so the process recovers from a transient secret-store
 // outage on its own instead of serving 500s until someone notices.
@@ -161,7 +185,7 @@ func retryFeePayerInit(ctx context.Context, pgxPool *pgxpool.Pool, interval time
 			log.Error().Err(ctx.Err()).Msg("fee payer retry stopped before a usable key was loaded")
 			return
 		case <-ticker.C:
-			if err := InitFeePayerPK(ctx, pgxPool); err != nil {
+			if err := reloadFeePayer(ctx, pgxPool); err != nil {
 				log.Error().Err(err).Dur("retry_in", interval).Msg("fee payer reload failed, retrying")
 				continue
 			}
@@ -351,7 +375,9 @@ func LoadFeePayerFromGSM(ctx context.Context) (string, error) {
 
 	result, err := client.AccessSecretVersion(ctx, accessRequest)
 	if err != nil {
-		panic(fmt.Errorf("failed to access secret version: %v", err))
+		// returned rather than panicked: this runs on the retry goroutine, where
+		// a panic is unrecoverable and would kill the process every 60s
+		return "", fmt.Errorf("failed to access secret version: %w", err)
 	}
 
 	if string(result.Payload.Data) == "" {
