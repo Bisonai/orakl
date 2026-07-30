@@ -94,7 +94,9 @@ type ContractModel struct {
 }
 
 func initialize(c *fiber.Ctx) error {
-	pk := c.Query("feePayerPrivateKey", "")
+	// cloned: c.Query aliases fasthttp's request buffer, which is reused by the
+	// next request. storing it directly let a later request rewrite the key.
+	pk := strings.Clone(c.Query("feePayerPrivateKey", ""))
 	if pk == "" {
 		pgx, err := utils.GetPgx(c)
 		if err != nil {
@@ -108,6 +110,11 @@ func initialize(c *fiber.Ctx) error {
 	}
 
 	pk = strings.TrimPrefix(pk, "0x")
+
+	// reject before storing: an unusable key here breaks every subsequent sign
+	if err := utils.ValidateFeePayerPK(pk); err != nil {
+		return err
+	}
 
 	utils.UpdateFeePayer(pk)
 

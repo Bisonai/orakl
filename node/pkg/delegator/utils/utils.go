@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"bisonai.com/miko/node/pkg/delegator/secrets"
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
@@ -33,7 +34,16 @@ type AppConfig struct {
 	App      *fiber.App
 }
 
-var feePayer string
+// FeePayerRetryInterval is how long to wait before re-reading the fee payer key
+// after a load produced an unusable one.
+const FeePayerRetryInterval = 60 * time.Second
+
+// guards feePayer: the retry loop writes it from its own goroutine while every
+// request reads it through the middleware.
+var (
+	feePayerMu sync.RWMutex
+	feePayer   string
+)
 
 func Setup(options ...string) (AppConfig, error) {
 	var version string
@@ -50,9 +60,12 @@ func Setup(options ...string) (AppConfig, error) {
 		return appConfig, pgxError
 	}
 
-	err := InitFeePayerPK(context.Background(), pgxPool)
-	if err != nil {
-		fmt.Println("fee payer not initialized due to error:" + err.Error() + "\nplease refresh the application after fee payer insertion through following endpoint: /api/v1/sign/initialize")
+	if err := InitFeePayerPK(context.Background(), pgxPool); err != nil {
+		// serving continues so the non-signing routes stay up, but every signing
+		// request will fail until the retry loop lands a usable key
+		log.Error().Err(err).Dur("retry_in", FeePayerRetryInterval).
+			Msg("fee payer not initialized, signing is broken; retrying in background. To load one immediately: /api/v1/sign/initialize")
+		go retryFeePayerInit(context.Background(), pgxPool, FeePayerRetryInterval)
 	}
 
 	app := fiber.New(fiber.Config{
@@ -72,7 +85,7 @@ func Setup(options ...string) (AppConfig, error) {
 	// request and every sign hits the db for contract validation
 	validContracts := new(sync.Map)
 	app.Use(func(c *fiber.Ctx) error {
-		c.Locals("feePayer", feePayer)
+		c.Locals("feePayer", CurrentFeePayer())
 		c.Locals("pgxConn", pgxPool)
 		c.Locals("validContracts", validContracts)
 		return c.Next()
@@ -86,25 +99,76 @@ func Setup(options ...string) (AppConfig, error) {
 }
 
 func InitFeePayerPK(ctx context.Context, pgxPool *pgxpool.Pool) error {
-	var err error
-	if feePayer = os.Getenv("DELEGATOR_FEEPAYER_PK"); feePayer != "" {
-		return nil
+	// resolved into a local first: assigning the package var up front wiped a
+	// usable key whenever a later reload failed
+	if pk := os.Getenv("DELEGATOR_FEEPAYER_PK"); pk != "" {
+		return setFeePayer(pk)
 	}
 
 	useGoogleSecretManager, _ := strconv.ParseBool(os.Getenv("USE_GOOGLE_SECRET_MANAGER"))
 	useVault, _ := strconv.ParseBool(os.Getenv("USE_VAULT"))
-	if useVault {
-		feePayer, err = LoadFeePayerFromVault(ctx)
-		if err != nil {
-			return err
-		}
-	} else if useGoogleSecretManager {
-		feePayer, err = LoadFeePayerFromGSM(ctx)
-		if err != nil {
-			return err
-		}
+
+	var (
+		pk  string
+		err error
+	)
+	switch {
+	case useVault:
+		pk, err = LoadFeePayerFromVault(ctx)
+	case useGoogleSecretManager:
+		pk, err = LoadFeePayerFromGSM(ctx)
+	default:
+		return errors.New("no fee payer source configured")
+	}
+	if err != nil {
+		return err
+	}
+
+	return setFeePayer(pk)
+}
+
+// ValidateFeePayerPK reports whether pk is a usable secp256k1 private key.
+// Without this the delegator accepts an empty or truncated key and fails every
+// signing request until it is restarted.
+func ValidateFeePayerPK(pk string) error {
+	if pk == "" {
+		return errors.New("fee payer private key is empty")
+	}
+	if _, err := crypto.HexToECDSA(strings.TrimPrefix(pk, "0x")); err != nil {
+		return fmt.Errorf("unusable fee payer private key: %w", err)
 	}
 	return nil
+}
+
+func setFeePayer(pk string) error {
+	if err := ValidateFeePayerPK(pk); err != nil {
+		return err
+	}
+	UpdateFeePayer(strings.TrimPrefix(pk, "0x"))
+	return nil
+}
+
+// retryFeePayerInit reloads the key until one validates. Started only when the
+// initial load failed, so the process recovers from a transient secret-store
+// outage on its own instead of serving 500s until someone notices.
+func retryFeePayerInit(ctx context.Context, pgxPool *pgxpool.Pool, interval time.Duration) {
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			log.Error().Err(ctx.Err()).Msg("fee payer retry stopped before a usable key was loaded")
+			return
+		case <-ticker.C:
+			if err := InitFeePayerPK(ctx, pgxPool); err != nil {
+				log.Error().Err(err).Dur("retry_in", interval).Msg("fee payer reload failed, retrying")
+				continue
+			}
+			log.Info().Msg("fee payer key reloaded successfully, signing restored")
+			return
+		}
+	}
 }
 
 func CustomErrorHandler(c *fiber.Ctx, err error) error {
@@ -153,7 +217,16 @@ func GetFeePayer(c *fiber.Ctx) (string, error) {
 }
 
 func UpdateFeePayer(newFeePayer string) {
+	feePayerMu.Lock()
+	defer feePayerMu.Unlock()
 	feePayer = newFeePayer
+}
+
+// CurrentFeePayer returns the key the process is signing with.
+func CurrentFeePayer() string {
+	feePayerMu.RLock()
+	defer feePayerMu.RUnlock()
+	return feePayer
 }
 
 func GetPgx(c *fiber.Ctx) (*pgxpool.Pool, error) {
@@ -299,14 +372,15 @@ func GetPublicKey(pk string) (string, error) {
 
 	privateKeyECDSA, err := crypto.HexToECDSA(pk)
 	if err != nil {
-		return "", fmt.Errorf("failed to convert private key to ECDSA: " + err.Error())
+		return "", fmt.Errorf("failed to convert private key to ECDSA: %w", err)
 	}
 
 	publicKey := privateKeyECDSA.Public()
 
 	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
 	if !ok {
-		return "", fmt.Errorf("failed to convert public key to ECDSA format: " + err.Error())
+		// err is nil on this branch; calling err.Error() here panicked
+		return "", errors.New("failed to convert public key to ECDSA format")
 	}
 
 	address := crypto.PubkeyToAddress(*publicKeyECDSA)
