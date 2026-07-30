@@ -47,6 +47,13 @@ var (
 	feePayer   string
 )
 
+// indirected so tests can substitute a loader that panics, which is the only
+// way to exercise the recover in reloadFeePayer.
+var (
+	loadFeePayerFromVault = LoadFeePayerFromVault
+	loadFeePayerFromGSM   = LoadFeePayerFromGSM
+)
+
 func Setup(options ...string) (AppConfig, error) {
 	var version string
 	var appConfig AppConfig
@@ -89,18 +96,10 @@ func Setup(options ...string) (AppConfig, error) {
 
 	if feePayerErr != nil {
 		// serving continues so the non-signing routes stay up, but every signing
-		// request will fail until the retry loop lands a usable key.
-		// tied to app shutdown: Setup is called once per test, so an uncancellable
-		// goroutine here would accumulate one leaked retry loop per invocation.
-		retryCtx, cancelRetry := context.WithCancel(context.Background())
-		app.Hooks().OnShutdown(func() error {
-			cancelRetry()
-			return nil
-		})
-
+		// request will fail until the retry loop lands a usable key
 		log.Error().Err(feePayerErr).Dur("retry_in", FeePayerRetryInterval).
 			Msg("fee payer not initialized, signing is broken; retrying in background. To load one immediately: /api/v1/sign/initialize")
-		go retryFeePayerInit(retryCtx, pgxPool, FeePayerRetryInterval)
+		startFeePayerRetry(app, pgxPool, FeePayerRetryInterval)
 	}
 
 	appConfig = AppConfig{
@@ -126,9 +125,9 @@ func InitFeePayerPK(ctx context.Context, pgxPool *pgxpool.Pool) error {
 	)
 	switch {
 	case useVault:
-		pk, err = LoadFeePayerFromVault(ctx)
+		pk, err = loadFeePayerFromVault(ctx)
 	case useGoogleSecretManager:
-		pk, err = LoadFeePayerFromGSM(ctx)
+		pk, err = loadFeePayerFromGSM(ctx)
 	default:
 		return errors.New("no fee payer source configured")
 	}
@@ -158,6 +157,21 @@ func setFeePayer(pk string) error {
 	}
 	UpdateFeePayer(strings.TrimPrefix(pk, "0x"))
 	return nil
+}
+
+// startFeePayerRetry launches the retry loop and ties its lifetime to the app.
+// Setup runs once per test (27 call sites), so an uncancellable goroutine here
+// would leak one retry loop per invocation, all racing to write feePayer.
+// Returns the context so callers can observe cancellation.
+func startFeePayerRetry(app *fiber.App, pgxPool *pgxpool.Pool, interval time.Duration) context.Context {
+	ctx, cancel := context.WithCancel(context.Background())
+	app.Hooks().OnShutdown(func() error {
+		cancel()
+		return nil
+	})
+
+	go retryFeePayerInit(ctx, pgxPool, interval)
+	return ctx
 }
 
 // reloadFeePayer wraps InitFeePayerPK so a panic in a secret-store client ends

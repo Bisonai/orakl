@@ -48,9 +48,17 @@ func (s *SecretEnv) GetSecretFromVaultWithKubernetesAuth() (*Secrets, error) {
 		return nil, fmt.Errorf("unable to read secret: %w", err)
 	}
 
-	secretDataSet := &Secrets{
-		FeePayer: secrets.Data["FEE_PAYER"].(string),
+	// comma-ok: an unchecked assertion here panicked when the secret came back
+	// without FEE_PAYER. this runs on the fee payer retry goroutine, where a
+	// panic is unrecoverable and would kill the process.
+	raw, ok := secrets.Data["FEE_PAYER"]
+	if !ok {
+		return nil, fmt.Errorf("FEE_PAYER missing from vault secret %s/%s", s.VaultSecretPath, s.VaultKeyName)
+	}
+	feePayer, ok := raw.(string)
+	if !ok {
+		return nil, fmt.Errorf("FEE_PAYER in vault secret %s/%s is %T, want string", s.VaultSecretPath, s.VaultKeyName, raw)
 	}
 
-	return secretDataSet, nil
+	return &Secrets{FeePayer: feePayer}, nil
 }
