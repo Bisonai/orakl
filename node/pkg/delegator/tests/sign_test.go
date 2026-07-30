@@ -53,8 +53,12 @@ func TestInitialize(t *testing.T) {
 	defer t.Cleanup(cleanup)
 	defer appConfig.App.Shutdown()
 
+	// must be a real secp256k1 key: the delegator now rejects unusable ones
+	// instead of storing them and failing every later signing request
+	const overrideKey = "4c0883a69102937d6231471b5dbb6204fe5129617082792ae468d01a3f362318"
+
 	params := url.Values{}
-	params.Add("feePayerPrivateKey", "0x12345")
+	params.Add("feePayerPrivateKey", "0x"+overrideKey)
 
 	appConfig.App.Get("/readpk", func(c *fiber.Ctx) error {
 		fp, error := utils.GetFeePayer(c)
@@ -64,21 +68,29 @@ func TestInitialize(t *testing.T) {
 		return c.JSON(utils.FeePayer{PrivateKey: fp})
 	})
 
-	//_, err = utils.GetRequest[interface{}](appConfig.App, "/api/v1/sign/initialize?feePayerPrivateKey=0x12345", nil)
-
-	err = utils.RawReq(appConfig.App, "GET", "/api/v1/sign/initialize?feePayerPrivateKey=0x12345", nil)
+	err = utils.RawReq(appConfig.App, "GET", "/api/v1/sign/initialize?feePayerPrivateKey=0x"+overrideKey, nil)
 	assert.Nil(t, err)
 
 	readResult, err := utils.GetRequest[utils.FeePayer](appConfig.App, "/readpk", nil)
 	assert.Nil(t, err)
-	assert.Equal(t, readResult.PrivateKey, "12345")
+	assert.Equal(t, overrideKey, readResult.PrivateKey)
+
+	// an unusable key must be refused, leaving the working one in place.
+	// RawReq only surfaces transport errors, so the 500 shows up as the stored
+	// key being unchanged rather than as a returned error.
+	err = utils.RawReq(appConfig.App, "GET", "/api/v1/sign/initialize?feePayerPrivateKey=0x12345", nil)
+	assert.Nil(t, err)
+
+	readResultAfterReject, err := utils.GetRequest[utils.FeePayer](appConfig.App, "/readpk", nil)
+	assert.Nil(t, err)
+	assert.Equal(t, overrideKey, readResultAfterReject.PrivateKey)
 
 	err = utils.RawReq(appConfig.App, "GET", "/api/v1/sign/initialize", nil)
 	assert.Nil(t, err)
 
 	readResultRefreshed, err := utils.GetRequest[utils.FeePayer](appConfig.App, "/readpk", nil)
 	assert.Nil(t, err)
-	assert.NotEqual(t, readResultRefreshed.PrivateKey, "12345")
+	assert.NotEqual(t, overrideKey, readResultRefreshed.PrivateKey)
 }
 
 func TestGetFeePayerAddress(t *testing.T) {
