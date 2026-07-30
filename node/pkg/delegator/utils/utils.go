@@ -18,7 +18,9 @@ import (
 	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
-	"github.com/gofiber/fiber/v2/middleware/recover"
+	// aliased: the package name "recover" shadows the builtin, which
+	// reloadFeePayer needs
+	fiberrecover "github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/kaiachain/kaia/crypto"
@@ -45,6 +47,13 @@ var (
 	feePayer   string
 )
 
+// indirected so tests can substitute a loader that panics, which is the only
+// way to exercise the recover in reloadFeePayer.
+var (
+	loadFeePayerFromVault = LoadFeePayerFromVault
+	loadFeePayerFromGSM   = LoadFeePayerFromGSM
+)
+
 func Setup(options ...string) (AppConfig, error) {
 	var version string
 	var appConfig AppConfig
@@ -60,13 +69,7 @@ func Setup(options ...string) (AppConfig, error) {
 		return appConfig, pgxError
 	}
 
-	if err := InitFeePayerPK(context.Background(), pgxPool); err != nil {
-		// serving continues so the non-signing routes stay up, but every signing
-		// request will fail until the retry loop lands a usable key
-		log.Error().Err(err).Dur("retry_in", FeePayerRetryInterval).
-			Msg("fee payer not initialized, signing is broken; retrying in background. To load one immediately: /api/v1/sign/initialize")
-		go retryFeePayerInit(context.Background(), pgxPool, FeePayerRetryInterval)
-	}
+	feePayerErr := InitFeePayerPK(context.Background(), pgxPool)
 
 	app := fiber.New(fiber.Config{
 		AppName:           "delegator " + version,
@@ -74,8 +77,8 @@ func Setup(options ...string) (AppConfig, error) {
 		ErrorHandler:      CustomErrorHandler,
 	})
 
-	app.Use(recover.New(
-		recover.Config{
+	app.Use(fiberrecover.New(
+		fiberrecover.Config{
 			EnableStackTrace:  true,
 			StackTraceHandler: CustomStackTraceHandler,
 		},
@@ -90,6 +93,14 @@ func Setup(options ...string) (AppConfig, error) {
 		c.Locals("validContracts", validContracts)
 		return c.Next()
 	})
+
+	if feePayerErr != nil {
+		// serving continues so the non-signing routes stay up, but every signing
+		// request will fail until the retry loop lands a usable key
+		log.Error().Err(feePayerErr).Dur("retry_in", FeePayerRetryInterval).
+			Msg("fee payer not initialized, signing is broken; retrying in background. To load one immediately: /api/v1/sign/initialize")
+		startFeePayerRetry(app, pgxPool, FeePayerRetryInterval)
+	}
 
 	appConfig = AppConfig{
 		Postgres: pgxPool,
@@ -114,9 +125,9 @@ func InitFeePayerPK(ctx context.Context, pgxPool *pgxpool.Pool) error {
 	)
 	switch {
 	case useVault:
-		pk, err = LoadFeePayerFromVault(ctx)
+		pk, err = loadFeePayerFromVault(ctx)
 	case useGoogleSecretManager:
-		pk, err = LoadFeePayerFromGSM(ctx)
+		pk, err = loadFeePayerFromGSM(ctx)
 	default:
 		return errors.New("no fee payer source configured")
 	}
@@ -148,6 +159,33 @@ func setFeePayer(pk string) error {
 	return nil
 }
 
+// startFeePayerRetry launches the retry loop and ties its lifetime to the app.
+// Setup runs once per test (27 call sites), so an uncancellable goroutine here
+// would leak one retry loop per invocation, all racing to write feePayer.
+// Returns the context so callers can observe cancellation.
+func startFeePayerRetry(app *fiber.App, pgxPool *pgxpool.Pool, interval time.Duration) context.Context {
+	ctx, cancel := context.WithCancel(context.Background())
+	app.Hooks().OnShutdown(func() error {
+		cancel()
+		return nil
+	})
+
+	go retryFeePayerInit(ctx, pgxPool, interval)
+	return ctx
+}
+
+// reloadFeePayer wraps InitFeePayerPK so a panic in a secret-store client ends
+// only this attempt. On the retry goroutine there is no fiber recover
+// middleware, so an unhandled panic would take the whole process down.
+func reloadFeePayer(ctx context.Context, pgxPool *pgxpool.Pool) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("panic while loading fee payer: %v", r)
+		}
+	}()
+	return InitFeePayerPK(ctx, pgxPool)
+}
+
 // retryFeePayerInit reloads the key until one validates. Started only when the
 // initial load failed, so the process recovers from a transient secret-store
 // outage on its own instead of serving 500s until someone notices.
@@ -161,7 +199,7 @@ func retryFeePayerInit(ctx context.Context, pgxPool *pgxpool.Pool, interval time
 			log.Error().Err(ctx.Err()).Msg("fee payer retry stopped before a usable key was loaded")
 			return
 		case <-ticker.C:
-			if err := InitFeePayerPK(ctx, pgxPool); err != nil {
+			if err := reloadFeePayer(ctx, pgxPool); err != nil {
 				log.Error().Err(err).Dur("retry_in", interval).Msg("fee payer reload failed, retrying")
 				continue
 			}
@@ -351,7 +389,9 @@ func LoadFeePayerFromGSM(ctx context.Context) (string, error) {
 
 	result, err := client.AccessSecretVersion(ctx, accessRequest)
 	if err != nil {
-		panic(fmt.Errorf("failed to access secret version: %v", err))
+		// returned rather than panicked: this runs on the retry goroutine, where
+		// a panic is unrecoverable and would kill the process every 60s
+		return "", fmt.Errorf("failed to access secret version: %w", err)
 	}
 
 	if string(result.Payload.Data) == "" {
