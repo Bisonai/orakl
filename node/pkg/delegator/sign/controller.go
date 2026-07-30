@@ -109,6 +109,11 @@ func initialize(c *fiber.Ctx) error {
 
 	pk = strings.TrimPrefix(pk, "0x")
 
+	// reject before storing: an unusable key here breaks every subsequent sign
+	if err := utils.ValidateFeePayerPK(pk); err != nil {
+		return err
+	}
+
 	utils.UpdateFeePayer(pk)
 
 	return c.SendString("Initialized")
