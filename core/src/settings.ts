@@ -177,11 +177,79 @@ export const BULLMQ_CONNECTION = {
   },
 }
 
-function createJsonRpcProvider(providerUrl: string = PROVIDER_URL) {
+// Transient RPC-infrastructure failures worth retrying on the fallback endpoint (e.g. a BlockPI
+// Cloudflare 520, a dropped socket, or a request timeout). A CALL_EXCEPTION (contract revert) or a
+// malformed request is a real result, not an outage, so it is never retried.
+const TRANSIENT_RPC_ERROR_CODES = ['SERVER_ERROR', 'NETWORK_ERROR', 'TIMEOUT']
+
+function isTransientRpcError(err): boolean {
+  return !!err && TRANSIENT_RPC_ERROR_CODES.includes(err.code)
+}
+
+// Methods that must never fail over: eth_chainId is how detectNetwork resolves the chain, and it
+// must come only from the primary so the process is never silently locked to the fallback's chain;
+// eth_sendRawTransaction is never retried to avoid double-broadcasting a signed tx. Everything else
+// routed here is an idempotent read and is safe to retry.
+const NON_FAILOVER_RPC_METHODS = ['eth_chainId', 'eth_sendRawTransaction']
+
+// Whether a failed RPC call should be retried on the fallback endpoint: only transient outages of a
+// method that is safe to replay. Exported for unit testing.
+export function shouldFailoverRpc(method: string, err): boolean {
+  return !NON_FAILOVER_RPC_METHODS.includes(method) && isTransientRpcError(err)
+}
+
+// A JsonRpcProvider that transparently retries a failed READ on a secondary endpoint. Deliberately
+// NOT ethers' FallbackProvider: FallbackProvider couples startup to every backend (detectNetwork
+// does Promise.all over all providers, so a fallback that is down at boot bricks the healthy
+// primary) and enforces cross-endpoint block-number consensus. Here the fallback is touched only
+// after the primary errors, so the primary keeps working even if the fallback is unreachable. Both
+// endpoints carry an RPC_URL_TIMEOUT request timeout so a hung-but-connected primary (a common
+// Cloudflare-520-adjacent stall) fails over in seconds instead of ethers' ~2-minute default. Only
+// reads flow through this provider (tx submission uses caver).
+class FallbackJsonRpcProvider extends ethers.providers.JsonRpcProvider {
+  private readonly _fallbackProvider: ethers.providers.JsonRpcProvider
+  private _lastFailoverLogAt = 0
+
+  constructor(primaryUrl: string, fallbackUrl: string) {
+    super({ url: primaryUrl, timeout: RPC_URL_TIMEOUT })
+    this._fallbackProvider = new ethers.providers.JsonRpcProvider({
+      url: fallbackUrl,
+      timeout: RPC_URL_TIMEOUT,
+    })
+  }
+
+  async send(method: string, params: Array<any>): Promise<any> {
+    try {
+      return await super.send(method, params)
+    } catch (err) {
+      if (!shouldFailoverRpc(method, err)) {
+        throw err
+      }
+      // Throttled so a sustained primary outage does not itself become a log flood, while still
+      // surfacing that the primary is degraded (otherwise failover is invisible on dashboards).
+      const now = Date.now()
+      if (now - this._lastFailoverLogAt > 60_000) {
+        this._lastFailoverLogAt = now
+        console.warn(
+          `[RPC] primary failed (code=${err?.code}) on ${method}; failing over to fallback endpoint`,
+        )
+      }
+      return await this._fallbackProvider.send(method, params)
+    }
+  }
+}
+
+export function createJsonRpcProvider(
+  providerUrl: string = PROVIDER_URL,
+  fallbackUrl?: string,
+): ethers.providers.JsonRpcProvider {
+  if (fallbackUrl) {
+    return new FallbackJsonRpcProvider(providerUrl, fallbackUrl)
+  }
   return new ethers.providers.JsonRpcProvider(providerUrl)
 }
 
-export const PROVIDER = createJsonRpcProvider()
+export const PROVIDER = createJsonRpcProvider(PROVIDER_URL, FALLBACK_PROVIDER_URL)
 export const L2_PROVIDER = createJsonRpcProvider(L2_PROVIDER_URL)
 export const L1_ENDPOINT = process.env.L1_ENDPOINT || ''
 export const L2_ENDPOINT = process.env.L2_ENDPOINT || ''
