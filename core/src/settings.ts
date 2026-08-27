@@ -209,6 +209,7 @@ export function shouldFailoverRpc(method: string, err): boolean {
 class FallbackJsonRpcProvider extends ethers.providers.JsonRpcProvider {
   private readonly _fallbackProvider: ethers.providers.JsonRpcProvider
   private _lastFailoverLogAt = 0
+  private _fallbackSameChain: Promise<boolean> | undefined
 
   constructor(primaryUrl: string, fallbackUrl: string) {
     super({ url: primaryUrl, timeout: RPC_URL_TIMEOUT })
@@ -218,11 +219,38 @@ class FallbackJsonRpcProvider extends ethers.providers.JsonRpcProvider {
     })
   }
 
+  // Verified lazily on the first failover (never at startup) and cached: the fallback is used only
+  // after confirming it reports the same chain ID as the primary, so a misconfigured
+  // FALLBACK_PROVIDER_URL pointing at another network can never feed listeners foreign blocks/logs.
+  private fallbackOnSameChain(): Promise<boolean> {
+    if (this._fallbackSameChain === undefined) {
+      this._fallbackSameChain = Promise.all([
+        this.getNetwork(),
+        this._fallbackProvider.getNetwork(),
+      ])
+        .then(([primary, fallback]) => {
+          if (primary.chainId !== fallback.chainId) {
+            console.error(
+              `[RPC] fallback chainId ${fallback.chainId} != primary ${primary.chainId}; disabling fallback`,
+            )
+            return false
+          }
+          return true
+        })
+        .catch(() => {
+          // Could not verify (e.g. fallback unreachable): skip the fallback now, re-check next time.
+          this._fallbackSameChain = undefined
+          return false
+        })
+    }
+    return this._fallbackSameChain
+  }
+
   async send(method: string, params: Array<any>): Promise<any> {
     try {
       return await super.send(method, params)
     } catch (err) {
-      if (!shouldFailoverRpc(method, err)) {
+      if (!shouldFailoverRpc(method, err) || !(await this.fallbackOnSameChain())) {
         throw err
       }
       // Throttled so a sustained primary outage does not itself become a log flood, while still
