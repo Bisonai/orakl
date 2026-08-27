@@ -3,7 +3,7 @@ import ethers from 'ethers'
 import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
 import { OraklError, OraklErrorCode } from '../errors'
-import { LISTENER_DELAY, LISTENER_JOB_SETTINGS, PROVIDER_URL } from '../settings'
+import { LISTENER_DELAY, LISTENER_JOB_SETTINGS, PROVIDER } from '../settings'
 import { IListenerConfig, IListenerRawConfig } from '../types'
 import { getListeners, getObservedBlock, getUnprocessedBlocks, upsertObservedBlock } from './api'
 import { IContracts, IHistoryListenerJob, ILatestListenerJob, ListenerInitType } from './types'
@@ -79,7 +79,7 @@ export class State {
     this.eventName = eventName
     this.listenerInitType = listenerInitType
     this.logger = logger
-    this.provider = new ethers.providers.JsonRpcProvider(PROVIDER_URL)
+    this.provider = PROVIDER
     this.contracts = {}
   }
 
