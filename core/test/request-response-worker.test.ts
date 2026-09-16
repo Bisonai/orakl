@@ -1,3 +1,5 @@
+import { afterEach, jest } from '@jest/globals'
+import axios from 'axios'
 import { buildMockLogger } from '../src/logger'
 import { REQUEST_RESPONSE_FULFILL_GAS_MINIMUM } from '../src/settings'
 import { IRequestResponseListenerWorker } from '../src/types'
@@ -13,7 +15,18 @@ function KlayPriceRequest() {
 }
 
 describe('Request-Response Worker', function () {
+  afterEach(function () {
+    jest.restoreAllMocks()
+  })
+
   it('Composability test', async function () {
+    // cryptocompare now requires an API key and returns 401 to unauthenticated CI, so stub the
+    // outbound price fetch. This test exercises decode -> reduce -> build fulfillment tx, not the
+    // live data source; the path RAW,KLAY,USD,PRICE with pow10=8 yields 0.15 * 1e8 = 15000000.
+    jest.spyOn(axios, 'get').mockResolvedValue({
+      data: { RAW: { KLAY: { USD: { PRICE: 0.15 } } } },
+    } as any)
+
     const logger = buildMockLogger()
     const wrapperFn = await job(QUEUE, logger)
 
