@@ -79,7 +79,7 @@ export class State {
     this.eventName = eventName
     this.listenerInitType = listenerInitType
     this.logger = logger
-    this.provider = new ethers.providers.JsonRpcProvider(PROVIDER_URL)
+    this.provider = new ethers.providers.StaticJsonRpcProvider(PROVIDER_URL)
     this.contracts = {}
   }
 

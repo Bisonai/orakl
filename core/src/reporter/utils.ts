@@ -30,7 +30,7 @@ export function buildWallet({
   privateKey: string
   providerUrl: string
 }) {
-  const provider = new ethers.providers.JsonRpcProvider(providerUrl)
+  const provider = new ethers.providers.StaticJsonRpcProvider(providerUrl)
   const basicWallet = new ethers.Wallet(privateKey, provider)
   const wallet = new NonceManager(basicWallet)
   return wallet
