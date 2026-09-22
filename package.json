@@ -22,10 +22,7 @@
     ]
   },
   "dependencies": {},
-  "devDependencies": {
-    "husky": "^9.0.11",
-    "lint-staged": "^15.2.2"
-  },
+  "devDependencies": {},
   "scripts": {
     "cli": "yarn workspace @bisonai/orakl-cli",
     "contracts": "yarn workspace @bisonai/orakl-contracts",
@@ -36,7 +33,6 @@
     "fetcher": "yarn workspace @bisonai/orakl-fetcher",
     "l2-api": "yarn workspace @bisonai/orakl-l2-api",
     "vrf": "yarn workspace @bisonai/orakl-vrf",
-    "util": "yarn workspace @bisonai/orakl-util",
-    "prepare": "husky && chmod +x .husky/pre-commit"
+    "util": "yarn workspace @bisonai/orakl-util"
   }
 }
