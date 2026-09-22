@@ -3,7 +3,6 @@ package aggregator
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 
 	"time"
 
@@ -98,7 +97,7 @@ func (n *Aggregator) HandleCustomMessage(ctx context.Context, message raft.Messa
 
 func (n *Aggregator) HandleTriggerMessage(ctx context.Context, msg raft.Message) error {
 	var triggerMessage TriggerMessage
-	err := json.Unmarshal(msg.Data, &triggerMessage)
+	err := decodeInner(msg.Data, &triggerMessage)
 	if err != nil {
 		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to unmarshal trigger message")
 		return err
@@ -148,7 +147,7 @@ func (n *Aggregator) HandleTriggerMessage(ctx context.Context, msg raft.Message)
 
 func (n *Aggregator) HandlePriceDataMessage(ctx context.Context, msg raft.Message) error {
 	var priceDataMessage PriceDataMessage
-	err := json.Unmarshal(msg.Data, &priceDataMessage)
+	err := decodeInner(msg.Data, &priceDataMessage)
 	if err != nil {
 		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to unmarshal price data message")
 		return err
@@ -244,7 +243,7 @@ func (n *Aggregator) processCollectedPrices(ctx context.Context, roundID int32, 
 
 func (n *Aggregator) HandlePriceFixMessage(ctx context.Context, msg raft.Message) error {
 	var priceFixMessage PriceFixMessage
-	err := json.Unmarshal(msg.Data, &priceFixMessage)
+	err := decodeInner(msg.Data, &priceFixMessage)
 	if err != nil {
 		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to unmarshal price fix message")
 		return err
@@ -277,7 +276,7 @@ func (n *Aggregator) HandlePriceFixMessage(ctx context.Context, msg raft.Message
 
 func (n *Aggregator) HandleProofMessage(ctx context.Context, msg raft.Message) error {
 	var proofMessage ProofMessage
-	err := json.Unmarshal(msg.Data, &proofMessage)
+	err := decodeInner(msg.Data, &proofMessage)
 	if err != nil {
 		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to unmarshal proof message")
 		return err
@@ -379,7 +378,7 @@ func (n *Aggregator) PublishTriggerMessage(ctx context.Context, roundId int32, t
 		Timestamp: timestamp,
 	}
 
-	marshalledTriggerMessage, err := json.Marshal(triggerMessage)
+	marshalledTriggerMessage, err := encodeInner(triggerMessage)
 	if err != nil {
 		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to marshal trigger message")
 		return err
@@ -388,7 +387,7 @@ func (n *Aggregator) PublishTriggerMessage(ctx context.Context, roundId int32, t
 	message := raft.Message{
 		Type:     Trigger,
 		SentFrom: n.Raft.GetHostId(),
-		Data:     json.RawMessage(marshalledTriggerMessage),
+		Data:     marshalledTriggerMessage,
 	}
 
 	return n.Raft.PublishMessage(ctx, message)
@@ -401,7 +400,7 @@ func (n *Aggregator) PublishPriceDataMessage(ctx context.Context, roundId int32,
 		Timestamp: timestamp,
 	}
 
-	marshalledPriceDataMessage, err := json.Marshal(priceDataMessage)
+	marshalledPriceDataMessage, err := encodeInner(priceDataMessage)
 	if err != nil {
 		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to marshal price data message")
 		return err
@@ -410,7 +409,7 @@ func (n *Aggregator) PublishPriceDataMessage(ctx context.Context, roundId int32,
 	message := raft.Message{
 		Type:     PriceData,
 		SentFrom: n.Raft.GetHostId(),
-		Data:     json.RawMessage(marshalledPriceDataMessage),
+		Data:     marshalledPriceDataMessage,
 	}
 
 	return n.Raft.PublishMessage(ctx, message)
@@ -423,7 +422,7 @@ func (n *Aggregator) PublishPriceFixMessage(ctx context.Context, roundId int32, 
 		Timestamp: timestamp,
 	}
 
-	marshalledPriceFixMessage, err := json.Marshal(priceFixMessage)
+	marshalledPriceFixMessage, err := encodeInner(priceFixMessage)
 	if err != nil {
 		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to marshal price fix message")
 		return err
@@ -432,7 +431,7 @@ func (n *Aggregator) PublishPriceFixMessage(ctx context.Context, roundId int32, 
 	message := raft.Message{
 		Type:     PriceFix,
 		SentFrom: n.Raft.GetHostId(),
-		Data:     json.RawMessage(marshalledPriceFixMessage),
+		Data:     marshalledPriceFixMessage,
 	}
 
 	return n.Raft.PublishMessage(ctx, message)
@@ -446,7 +445,7 @@ func (n *Aggregator) PublishProofMessage(ctx context.Context, roundId int32, val
 		Timestamp: timestamp,
 	}
 
-	marshalledProofMessage, err := json.Marshal(proofMessage)
+	marshalledProofMessage, err := encodeInner(proofMessage)
 	if err != nil {
 		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to marshal proof message")
 		return err
@@ -455,7 +454,7 @@ func (n *Aggregator) PublishProofMessage(ctx context.Context, roundId int32, val
 	message := raft.Message{
 		Type:     ProofMsg,
 		SentFrom: n.Raft.GetHostId(),
-		Data:     json.RawMessage(marshalledProofMessage),
+		Data:     marshalledProofMessage,
 	}
 
 	return n.Raft.PublishMessage(ctx, message)

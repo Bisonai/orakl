@@ -2,7 +2,6 @@ package raft
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"math/rand"
 	"sync"
@@ -124,7 +123,7 @@ func (r *Raft) handleHeartbeat(msg Message) error {
 		return nil
 	}
 	var heartbeatMessage HeartbeatMessage
-	err := json.Unmarshal(msg.Data, &heartbeatMessage)
+	err := decodeInner(msg.Data, &heartbeatMessage)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to unmarshal heartbeat message")
 		return err
@@ -179,7 +178,7 @@ func (r *Raft) handleRequestVote(ctx context.Context, msg Message) error {
 	}
 
 	var requestVoteMessage RequestVoteMessage
-	if err := json.Unmarshal(msg.Data, &requestVoteMessage); err != nil {
+	if err := decodeInner(msg.Data, &requestVoteMessage); err != nil {
 		log.Error().Err(err).Msg("failed to unmarshal request vote message")
 		return err
 	}
@@ -217,7 +216,7 @@ func (r *Raft) handleReplyVote(ctx context.Context, msg Message) error {
 	}
 
 	var replyVoteMessage ReplyRequestVoteMessage
-	err := json.Unmarshal(msg.Data, &replyVoteMessage)
+	err := decodeInner(msg.Data, &replyVoteMessage)
 	if err != nil {
 		return err
 	}
@@ -241,7 +240,7 @@ func (r *Raft) handleReplyVote(ctx context.Context, msg Message) error {
 
 func (r *Raft) PublishMessage(ctx context.Context, msg Message) error {
 	msg.Timestamp = time.Now()
-	data, err := json.Marshal(msg)
+	data, err := encodeMessage(msg)
 	if err != nil {
 		return err
 	}
@@ -255,7 +254,7 @@ func (r *Raft) sendHeartbeat(ctx context.Context) error {
 		Term:     r.Term,
 	}
 	r.Mutex.Unlock()
-	marshalledHeartbeatMsg, err := json.Marshal(heartbeatMessage)
+	marshalledHeartbeatMsg, err := encodeInner(heartbeatMessage)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to marshal heartbeat message")
 		return err
@@ -264,7 +263,7 @@ func (r *Raft) sendHeartbeat(ctx context.Context) error {
 	message := Message{
 		Type:     Heartbeat,
 		SentFrom: r.GetHostId(),
-		Data:     json.RawMessage(marshalledHeartbeatMsg),
+		Data:     marshalledHeartbeatMsg,
 	}
 	err = r.PublishMessage(ctx, message)
 	if err != nil {
@@ -279,14 +278,14 @@ func (r *Raft) sendReplyVote(ctx context.Context, to string, voteGranted bool) e
 		VoteGranted: voteGranted,
 		LeaderID:    to,
 	}
-	marshalledReplyVoteMsg, err := json.Marshal(replyVoteMessage)
+	marshalledReplyVoteMsg, err := encodeInner(replyVoteMessage)
 	if err != nil {
 		return err
 	}
 	message := Message{
 		Type:     ReplyVote,
 		SentFrom: r.GetHostId(),
-		Data:     json.RawMessage(marshalledReplyVoteMsg),
+		Data:     marshalledReplyVoteMsg,
 	}
 	err = r.PublishMessage(ctx, message)
 	if err != nil {
@@ -299,7 +298,7 @@ func (r *Raft) sendRequestVote(ctx context.Context) error {
 	requestVoteMessage := RequestVoteMessage{
 		Term: r.Term,
 	}
-	marshalledRequestVoteMsg, err := json.Marshal(requestVoteMessage)
+	marshalledRequestVoteMsg, err := encodeInner(requestVoteMessage)
 	if err != nil {
 		return err
 	}
@@ -307,7 +306,7 @@ func (r *Raft) sendRequestVote(ctx context.Context) error {
 	message := Message{
 		Type:     RequestVote,
 		SentFrom: r.GetHostId(),
-		Data:     json.RawMessage(marshalledRequestVoteMsg),
+		Data:     marshalledRequestVoteMsg,
 	}
 	err = r.PublishMessage(ctx, message)
 	if err != nil {
@@ -454,10 +453,5 @@ func (r *Raft) startElection(ctx context.Context) {
 }
 
 func (r *Raft) unmarshalMessage(data []byte) (Message, error) {
-	var m Message
-	err := json.Unmarshal(data, &m)
-	if err != nil {
-		return Message{}, err
-	}
-	return m, nil
+	return decodeMessage(data)
 }

@@ -28,6 +28,7 @@ require (
 require (
 	github.com/kaiachain/kaia v1.0.4-0.20250311063156-034e4eda1c08
 	github.com/montanaflynn/stats v0.7.1
+	github.com/vmihailenco/msgpack/v5 v5.4.1
 )
 
 require (
@@ -65,6 +66,7 @@ require (
 	github.com/pion/turn/v4 v4.1.1 // indirect
 	github.com/pion/webrtc/v4 v4.1.4 // indirect
 	github.com/rogpeppe/go-internal v1.10.0 // indirect
+	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/wlynxg/anet v0.0.5 // indirect
 	go.yaml.in/yaml/v2 v2.4.3 // indirect
 	golang.org/x/telemetry v0.0.0-20250908211612-aef8a434d053 // indirect
