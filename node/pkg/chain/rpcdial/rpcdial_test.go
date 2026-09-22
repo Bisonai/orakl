@@ -107,7 +107,20 @@ func TestGetBodyRoundTripperPreservesExistingGetBody(t *testing.T) {
 	}
 }
 
-func TestDialContextHTTPUsesGetBodyTransport(t *testing.T) {
+func TestNewHTTPClientWiresGetBodyTransport(t *testing.T) {
+	// Guards the regression the PR fixes: the http client must carry the
+	// GetBody-setting transport, wrapping the shared default transport so the
+	// happy path (pooling/timeouts) is unchanged.
+	rt, ok := newHTTPClient().Transport.(getBodyRoundTripper)
+	if !ok {
+		t.Fatalf("transport = %T, want getBodyRoundTripper", newHTTPClient().Transport)
+	}
+	if rt.base != http.DefaultTransport {
+		t.Fatal("getBodyRoundTripper base is not http.DefaultTransport")
+	}
+}
+
+func TestDialContextHTTP(t *testing.T) {
 	// DialHTTPWithClient is lazy (no network), so this just checks construction.
 	c, err := DialContext(context.Background(), "https://example.com")
 	if err != nil {
