@@ -37,8 +37,6 @@ jobs:
       - run: yarn contracts lint
       - run: yarn contracts clean && yarn contracts build
       - run: yarn contracts test-non-vrf
-        env:
-          L2_PROVIDER: ${{ secrets.L2_PROVIDER }}
       - name: Extract version from package.json
         uses: sergeysova/jq-action@v2
         id: packageJsonVersion

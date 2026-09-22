@@ -91,10 +91,6 @@
     "file": "src/AggregatorProxy.sol",
     "error": "error InvalidProposedAggregator();"
   },
-  "0xed3ba6a62877a99990a32617b4e001f2c85c7886f010c9b166e8438fd38bcb40": {
-    "file": "src/L2EndpointBase.sol",
-    "error": "error Reentrant();"
-  },
   "0x3688124ad82f221eb78a677092ca0117cccfe21e434a0580aae4708fa81ac9b3": {
     "file": "src/CoordinatorBase.sol",
     "error": "error NoCorrespondingRequest();"
@@ -134,26 +130,6 @@
   "0xa4790ee39e8168587bb57070e7257e57f6ad4498f84af6daaae5a8d9a80ec7ff": {
     "file": "src/Prepayment.sol",
     "error": "error FailedToDeposit();"
-  },
-  "0x80fee105c2072ed9e186f4c861f8af91e75494f49bfc0883cbebb2900e492022": {
-    "file": "src/L1EndpointBase.sol",
-    "error": "error OnlyOracle();"
-  },
-  "0x2c34ebbf4c035a75a99ae0583a1c87ed95ed68773bcee27e118bd364c24a0170": {
-    "file": "src/L1EndpointBase.sol",
-    "error": "error ConsumerValid();"
-  },
-  "0xd443d157584d886dc1572efda8ff618310478fef234cf21bd6474dcff9630061": {
-    "file": "src/L1EndpointVRF.sol",
-    "error": "error OnlyVRFCoordinatorCanFulfill(address have, address want);"
-  },
-  "0xbff93c5c4e58ecd14ea39b5e97b748def2b298a392498d6a6b987c36adbddfd1": {
-    "file": "src/L2EndpointBase.sol",
-    "error": "error InvalidSubmitter(address submitter);"
-  },
-  "0x5c8bf34d0efb9c869ef3d02642453dee7ff6788522ea14f1171ebbafe4006f2d": {
-    "file": "src/L2endpoint.sol",
-    "error": "error InvalidAggregator(address aggregator);"
   },
   "0xb42f66e892a890021cc99a072a4941254adf08d9d07497a5763974f07c7c250d": {
     "file": "src/Prepayment.sol",
