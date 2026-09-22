@@ -1,6 +1,7 @@
 package helper
 
 import (
+	"context"
 	"crypto/ecdsa"
 	"math/big"
 	"sync"
@@ -8,6 +9,7 @@ import (
 
 	"bisonai.com/miko/node/pkg/chain/eth_client"
 	"bisonai.com/miko/node/pkg/chain/noncemanagerv2"
+	"bisonai.com/miko/node/pkg/chain/rpcdial"
 	"bisonai.com/miko/node/pkg/chain/utils"
 	"github.com/kaiachain/kaia/client"
 	"github.com/kaiachain/kaia/common"
@@ -89,7 +91,13 @@ const (
 
 var dialFuncs = map[BlockchainType]func(url string) (utils.ClientInterface, error){
 	Kaia: func(rawurl string) (utils.ClientInterface, error) {
-		return client.Dial(rawurl)
+		// Dial over a GetBody-setting transport so a benign HTTP/2 GOAWAY is a
+		// transparent retry rather than a hard failure (issue #2535).
+		c, err := rpcdial.DialContext(context.Background(), rawurl)
+		if err != nil {
+			return nil, err
+		}
+		return client.NewClient(c), nil
 	},
 	Ethereum: func(rawurl string) (utils.ClientInterface, error) {
 		return eth_client.Dial(rawurl)
