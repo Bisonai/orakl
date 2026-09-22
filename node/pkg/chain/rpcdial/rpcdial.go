@@ -12,8 +12,11 @@
 //	http2: Transport received Server's graceful shutdown GOAWAY ... after
 //	Request.Body was written; define Request.GetBody to avoid this error
 //
-// JSON-RPC calls are safe to replay (eth_sendRawTransaction is idempotent by tx
-// hash), so we set GetBody in a RoundTripper wrapper and let the stdlib retry.
+// Replaying is safe: the http2 transport only retries streams the server's
+// GOAWAY LastStreamID guarantees were not yet processed, so the request never
+// hits the server twice. (JSON-RPC calls are idempotent anyway —
+// eth_sendRawTransaction returns "already known" by tx hash, not a double
+// spend.) We set GetBody in a RoundTripper wrapper and let the stdlib retry.
 package rpcdial
 
 import (
