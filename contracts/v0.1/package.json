@@ -97,7 +97,6 @@
     "hardhat": "^2.20.1",
     "hardhat-deploy": "^0.11.45",
     "hardhat-gas-reporter": "^1.0.8",
-    "lint-staged": "^15.2.2",
     "mathjs": "^11.8.0",
     "moment": "^2.29.4",
     "prettier": "^2.8.1",

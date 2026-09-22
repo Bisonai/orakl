@@ -22,9 +22,7 @@
     ]
   },
   "dependencies": {},
-  "devDependencies": {
-    "lint-staged": "^15.2.2"
-  },
+  "devDependencies": {},
   "scripts": {
     "cli": "yarn workspace @bisonai/orakl-cli",
     "contracts": "yarn workspace @bisonai/orakl-contracts",
