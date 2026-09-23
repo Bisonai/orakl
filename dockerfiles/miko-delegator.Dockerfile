@@ -1,4 +1,4 @@
-FROM golang:1.24.0-bullseye as builder
+FROM golang:1.24.7-bookworm as builder
 # https://stackoverflow.com/questions/75209245/golang-cross-compiling-with-cgo-inside-docker-image
 RUN apt-get update && apt-get install -y curl g++-x86-64-linux-gnu libc6-dev-amd64-cross && rm -rf /var/lib/apt/lists/*
 
@@ -10,8 +10,8 @@ WORKDIR /app/node
 
 # https://github.com/klaytn/klaytn/issues/197#issuecomment-612597933
 RUN CGO_ENABLED=1 CGO_CFLAGS="-O -D__BLST_PORTABLE__" CGO_CFLAGS_ALLOW="-O -D__BLST_PORTABLE__" CC=x86_64-linux-gnu-gcc GOOS=linux GOARCH=amd64 go build -o delegatorbin -ldflags="-w -s" ./cmd/delegator/main.go
-# debian:bullseye-slim
-FROM debian@sha256:4b48997afc712259da850373fdbc60315316ee72213a4e77fc5a66032d790b2a
+# debian:bookworm-slim
+FROM debian:bookworm-slim
 
 RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
