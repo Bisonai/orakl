@@ -368,7 +368,7 @@ It checks the service state regularly and sends a Slack message if required.
 ```sh
 # Log level for running the application, options such as `debug`, `info`, `error` are possible
 LOG_LEVEL=error
-# Infra chain info, defaults to baobab
+# Infra chain info, defaults to baobab (Kaia testnet, now branded Kairos)
 CHAIN=baobab
 # Health checker interval, defaults to 10s
 HEALTH_CHECK_INTERVAL=10s
