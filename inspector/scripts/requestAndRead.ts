@@ -10,8 +10,8 @@ async function main() {
       : (process.env.CYPRESS_ACC_ID as string);
   const explorerBaseUrl =
     network.name == "baobab"
-      ? "https://baobab.klaytnfinder.io/tx"
-      : "https://klaytnfinder.io/tx";
+      ? "https://kairos.kaiascan.io/tx"
+      : "https://kaiascan.io/tx";
 
   const _inspectorConsumer = await deployments.get("InspectorConsumer");
   const inspectorConsumer = await ethers.getContractAt(
