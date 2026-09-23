@@ -13,7 +13,7 @@ import (
 //
 // Consistent with the raft outer codec: encode chooses the wire format from the
 // P2P_ENCODING env var (default json), decode accepts BOTH legacy JSON and
-// msgpack. msgpack shrinks bytes by encoding timestamps as int64 unix-millis and
+// msgpack. msgpack shrinks bytes by encoding timestamps as int64 unix-nanos and
 // peer IDs as raw bytes. The in-memory structs keep time.Time / string peer IDs;
 // conversions live here.
 
@@ -57,26 +57,26 @@ func encodeInner(v any) ([]byte, error) {
 		return msgpack.Marshal(&wireTrigger{
 			LeaderID:  leader,
 			RoundID:   m.RoundID,
-			Timestamp: m.Timestamp.UnixMilli(),
+			Timestamp: m.Timestamp.UnixNano(),
 		})
 	case PriceDataMessage:
 		return msgpack.Marshal(&wirePriceData{
 			RoundID:   m.RoundID,
 			PriceData: m.PriceData,
-			Timestamp: m.Timestamp.UnixMilli(),
+			Timestamp: m.Timestamp.UnixNano(),
 		})
 	case PriceFixMessage:
 		return msgpack.Marshal(&wirePriceFix{
 			RoundID:   m.RoundID,
 			PriceData: m.PriceData,
-			Timestamp: m.Timestamp.UnixMilli(),
+			Timestamp: m.Timestamp.UnixNano(),
 		})
 	case ProofMessage:
 		return msgpack.Marshal(&wireProof{
 			RoundID:   m.RoundID,
 			Value:     m.Value,
 			Proof:     m.Proof,
-			Timestamp: m.Timestamp.UnixMilli(),
+			Timestamp: m.Timestamp.UnixNano(),
 		})
 	default:
 		return nil, fmt.Errorf("aggregator: unknown inner message type %T", v)
@@ -102,7 +102,7 @@ func decodeInner(data []byte, v any) error {
 		}
 		m.LeaderID = leader
 		m.RoundID = w.RoundID
-		m.Timestamp = time.UnixMilli(w.Timestamp)
+		m.Timestamp = time.Unix(0, w.Timestamp)
 		return nil
 	case *PriceDataMessage:
 		var w wirePriceData
@@ -111,7 +111,7 @@ func decodeInner(data []byte, v any) error {
 		}
 		m.RoundID = w.RoundID
 		m.PriceData = w.PriceData
-		m.Timestamp = time.UnixMilli(w.Timestamp)
+		m.Timestamp = time.Unix(0, w.Timestamp)
 		return nil
 	case *PriceFixMessage:
 		var w wirePriceFix
@@ -120,7 +120,7 @@ func decodeInner(data []byte, v any) error {
 		}
 		m.RoundID = w.RoundID
 		m.PriceData = w.PriceData
-		m.Timestamp = time.UnixMilli(w.Timestamp)
+		m.Timestamp = time.Unix(0, w.Timestamp)
 		return nil
 	case *ProofMessage:
 		var w wireProof
@@ -130,7 +130,7 @@ func decodeInner(data []byte, v any) error {
 		m.RoundID = w.RoundID
 		m.Value = w.Value
 		m.Proof = w.Proof
-		m.Timestamp = time.UnixMilli(w.Timestamp)
+		m.Timestamp = time.Unix(0, w.Timestamp)
 		return nil
 	default:
 		return fmt.Errorf("aggregator: unknown inner message type %T", v)

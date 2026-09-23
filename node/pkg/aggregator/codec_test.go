@@ -24,7 +24,7 @@ func testPeerID(t *testing.T) string {
 
 func TestAggregatorInnerRoundTripBothFormats(t *testing.T) {
 	pid := testPeerID(t)
-	ts := time.UnixMilli(time.Now().UnixMilli())
+	ts := time.Now()
 
 	trigger := TriggerMessage{LeaderID: pid, RoundID: 42, Timestamp: ts}
 	proof := ProofMessage{RoundID: 7, Value: 12345, Proof: []byte{0xde, 0xad, 0xbe, 0xef}, Timestamp: ts}
@@ -37,7 +37,7 @@ func TestAggregatorInnerRoundTripBothFormats(t *testing.T) {
 		require.NoError(t, decodeInner(b, &got))
 		assert.Equal(t, trigger.LeaderID, got.LeaderID)
 		assert.Equal(t, trigger.RoundID, got.RoundID)
-		assert.Equal(t, ts.UnixMilli(), got.Timestamp.UnixMilli())
+		assert.Equal(t, ts.UnixNano(), got.Timestamp.UnixNano())
 	})
 
 	t.Run("msgpack", func(t *testing.T) {
@@ -51,7 +51,7 @@ func TestAggregatorInnerRoundTripBothFormats(t *testing.T) {
 		require.NoError(t, decodeInner(b, &got))
 		assert.Equal(t, trigger.LeaderID, got.LeaderID, "binary peer ID must reconstruct base58 string")
 		assert.Equal(t, trigger.RoundID, got.RoundID)
-		assert.Equal(t, ts.UnixMilli(), got.Timestamp.UnixMilli(), "millis timestamp must round-trip")
+		assert.Equal(t, ts.UnixNano(), got.Timestamp.UnixNano(), "nanos timestamp must round-trip")
 
 		pb, err := encodeInner(proof)
 		require.NoError(t, err)
@@ -60,7 +60,7 @@ func TestAggregatorInnerRoundTripBothFormats(t *testing.T) {
 		assert.Equal(t, proof.RoundID, gotProof.RoundID)
 		assert.Equal(t, proof.Value, gotProof.Value)
 		assert.Equal(t, proof.Proof, gotProof.Proof)
-		assert.Equal(t, ts.UnixMilli(), gotProof.Timestamp.UnixMilli())
+		assert.Equal(t, ts.UnixNano(), gotProof.Timestamp.UnixNano())
 	})
 
 	// decode-both: JSON-configured node decodes a msgpack payload
@@ -77,7 +77,7 @@ func TestAggregatorInnerRoundTripBothFormats(t *testing.T) {
 			require.NoError(t, decodeInner(data, &got), name)
 			assert.Equal(t, trigger.LeaderID, got.LeaderID, name)
 			assert.Equal(t, trigger.RoundID, got.RoundID, name)
-			assert.Equal(t, ts.UnixMilli(), got.Timestamp.UnixMilli(), name)
+			assert.Equal(t, ts.UnixNano(), got.Timestamp.UnixNano(), name)
 		}
 	})
 }

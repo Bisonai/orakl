@@ -23,11 +23,11 @@ func testPeerID(t *testing.T) string {
 
 // TestCodecOuterRoundTripBothFormats proves decode-both: a Message survives a
 // round-trip through the JSON codec and through the msgpack codec, and that the
-// msgpack form carries a binary peer ID (not the base58 string) and millis.
+// msgpack form carries a binary peer ID (not the base58 string) and preserves
+// full nanosecond precision.
 func TestCodecOuterRoundTripBothFormats(t *testing.T) {
 	pid := testPeerID(t)
-	// millis-aligned so both formats compare exactly at millisecond granularity
-	ts := time.UnixMilli(time.Now().UnixMilli())
+	ts := time.Now()
 
 	base := Message{
 		Type:      Heartbeat,
@@ -46,7 +46,7 @@ func TestCodecOuterRoundTripBothFormats(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, base.Type, got.Type)
 		assert.Equal(t, base.SentFrom, got.SentFrom)
-		assert.Equal(t, ts.UnixMilli(), got.Timestamp.UnixMilli())
+		assert.Equal(t, ts.UnixNano(), got.Timestamp.UnixNano())
 		assert.Equal(t, []byte(base.Data), []byte(got.Data))
 	})
 
@@ -63,7 +63,7 @@ func TestCodecOuterRoundTripBothFormats(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, base.Type, got.Type, "type enum must round-trip")
 		assert.Equal(t, base.SentFrom, got.SentFrom, "binary peer ID must reconstruct base58 string")
-		assert.Equal(t, ts.UnixMilli(), got.Timestamp.UnixMilli(), "millis timestamp must round-trip")
+		assert.Equal(t, ts.UnixNano(), got.Timestamp.UnixNano(), "nanos timestamp must round-trip")
 		assert.Equal(t, []byte(base.Data), []byte(got.Data))
 	})
 }
@@ -72,7 +72,7 @@ func TestCodecOuterRoundTripBothFormats(t *testing.T) {
 // decode a message that was produced by the msgpack encoder, and vice versa.
 func TestCodecDecodeBoth(t *testing.T) {
 	pid := testPeerID(t)
-	ts := time.UnixMilli(time.Now().UnixMilli())
+	ts := time.Now()
 	base := Message{Type: RequestVote, SentFrom: pid, Data: []byte(`{"term":7}`), Timestamp: ts}
 
 	// produce msgpack
@@ -91,7 +91,7 @@ func TestCodecDecodeBoth(t *testing.T) {
 		require.NoError(t, err, name)
 		assert.Equal(t, base.Type, got.Type, name)
 		assert.Equal(t, base.SentFrom, got.SentFrom, name)
-		assert.Equal(t, ts.UnixMilli(), got.Timestamp.UnixMilli(), name)
+		assert.Equal(t, ts.UnixNano(), got.Timestamp.UnixNano(), name)
 	}
 }
 

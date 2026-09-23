@@ -21,7 +21,9 @@ import (
 //
 // msgpack wire format additionally shrinks per-message bytes by:
 //   - encoding peer IDs as raw bytes instead of 52-char base58 strings
-//   - encoding timestamps as int64 unix-millis instead of RFC3339 strings
+//   - encoding timestamps as int64 unix-nanos instead of RFC3339 strings
+//     (unix-nanos is the same 9 bytes as unix-millis in msgpack but keeps the
+//     full nanosecond precision the JSON path already carries)
 //   - encoding message Type as a small int enum instead of the string constant
 //
 // The in-memory Go types (Message, HeartbeatMessage, ...) keep string peer IDs
@@ -114,7 +116,7 @@ func encodeMessage(msg Message) ([]byte, error) {
 		Type:      t,
 		SentFrom:  from,
 		Data:      msg.Data,
-		Timestamp: msg.Timestamp.UnixMilli(),
+		Timestamp: msg.Timestamp.UnixNano(),
 	})
 }
 
@@ -145,7 +147,7 @@ func decodeMessage(data []byte) (Message, error) {
 		Type:      t,
 		SentFrom:  from,
 		Data:      wm.Data,
-		Timestamp: time.UnixMilli(wm.Timestamp),
+		Timestamp: time.Unix(0, wm.Timestamp),
 	}, nil
 }
 
