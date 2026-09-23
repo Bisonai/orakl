@@ -37,7 +37,7 @@ func ExtractExpirationFromContract(ctx context.Context, jsonrpc string, submissi
 func GetSignerAddresses(ctx context.Context, jsonrpc string, submissionProxy string) ([]string, error) {
 	kaiaClient, err := client.Dial(jsonrpc)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to connect to Klaytn client")
+		log.Error().Err(err).Msg("Failed to connect to Kaia client")
 		return nil, err
 	}
 	defer kaiaClient.Close()
