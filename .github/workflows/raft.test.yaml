@@ -38,7 +38,7 @@ jobs:
         ports:
           - 6379:6379
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Cache Go modules
         uses: actions/cache@v4
         with:

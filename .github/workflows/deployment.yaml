@@ -189,7 +189,7 @@ jobs:
       tag_git_hash: ${{ steps.taskflow-tag.outputs.tag_git_hash}}
       img_tag: ${{ steps.taskflow-tag.outputs.img_tag }}
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@v7
       - name: extract tags
         id: taskflow-tag
         run: "IMAGE_TAG=\"${{ github.event.inputs.image }}\"\nVERSION=$(echo \"${IMAGE_TAG}\" | cut -d':' -f2 | cut -d'.' -f1-3)\necho $VERSION\nTAG_DATE=$(echo \"${IMAGE_TAG}\" | cut -d':' -f2 | cut -d'.' -f4-5)\necho $TAG_DATE\nTAG_GIT_HASH=$(echo \"${IMAGE_TAG}\" | cut -d':' -f2 | cut -d'.' -f6)\nTAG_NETWORK=$(echo \"${IMAGE_TAG}\" | cut -d':' -f2 | cut -d'.' -f7)\nif [ -n \"$TAG_NETWORK\" ]; then\n  TAG=\"${VERSION}.${TAG_DATE}.${TAG_GIT_HASH}.${TAG_NETWORK}\"\nelse\n  TAG=\"${VERSION}.${TAG_DATE}.${TAG_GIT_HASH}\"\nfi\necho $TAG\necho $TAG_GIT_HASH\necho \"version=${VERSION}\" >> $GITHUB_OUTPUT\necho \"tag_date=${TAG_DATE}\" >> $GITHUB_OUTPUT\necho \"tag_git_hash=${TAG_GIT_HASH}\" >> $GITHUB_OUTPUT\necho \"img_tag=${TAG}\" >> $GITHUB_OUTPUT\n"
@@ -234,7 +234,7 @@ jobs:
       version: ${{ steps.package.outputs.version }}
       network: ${{ steps.tag.outputs.network }}
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@v7
       - name: get time tag
         id: tag
         run: "# Get the date and git hash\necho \"date=$(date +'%Y%m%d.%H%M')\" >> $GITHUB_OUTPUT\necho \"git_hash=$(git rev-parse --short HEAD)\" >> $GITHUB_OUTPUT\nservice=\"${{ github.event.inputs.application }}\"\n# Set the service name\nif [[ \"$service\" == \"vrf\" || \"$service\" == \"request-response\" ]]; then\n  service=\"core\"\nfi            \n# Set the ecr url\necho \"service=$service\" >> $GITHUB_OUTPUT\necho \"ecr_url=public.ecr.aws/bisonai/orakl-${service}\" >> $GITHUB_OUTPUT\n# Set lowercase network\necho \"network=$(echo '${{ github.event.inputs.network }}' | tr '[:upper:]' '[:lower:]')\" >> $GITHUB_OUTPUT\n# end of the script\n"
@@ -256,7 +256,7 @@ jobs:
     outputs:
       img_tag: ${{ steps.img-tag.outputs.img_tag }}
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@v7
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
@@ -370,7 +370,7 @@ jobs:
       pr_title: ${{ steps.pr_info.outputs.PR_TITLE }}
       truncated_title: ${{ steps.truncate_pr_title.outputs.truncated_title }}
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@v7
         with:
           token: ${{ secrets.WORKFLOW_PAT }}
       - name: get latest merged pull request
