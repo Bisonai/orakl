@@ -425,3 +425,4 @@
 - **delegator** v0.0.1.20260730.0146.5e0c12a.cypress <br> *`PR`*: featdelegator validate fee pay... <br><br> 
 - **delegator** v0.0.1.20260730.0219.6f9474e.baobab <br> *`PR`*: fixdelegator stop the fee paye... <br><br> 
 - **delegator** v0.0.1.20260730.0224.59227df.cypress <br> *`PR`*: fixdelegator stop the fee paye... <br><br> 
+- **reporter** v0.0.1.20260923.0608.39342e0.baobab <br> *`PR`*: reporter dockerfile Debian bul... <br><br> 
