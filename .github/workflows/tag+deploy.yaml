@@ -19,7 +19,7 @@ jobs:
       app_name: ${{ steps.extract_tags.outputs.app_name }}
 
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@v7
 
       - name: get date and git hash
         id: hash
@@ -75,7 +75,7 @@ jobs:
       img_tag: ${{ steps.img-tag.outputs.img_tag }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: docker build ${{ needs.prepare.outputs.service }}
         run: SERVICE_NAME=miko-${{ needs.prepare.outputs.service }} docker compose -f docker-compose.build.yaml build
