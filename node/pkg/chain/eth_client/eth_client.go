@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/big"
 
+	"bisonai.com/miko/node/pkg/chain/rpcdial"
 	"github.com/kaiachain/kaia"
 	"github.com/kaiachain/kaia/api"
 	"github.com/kaiachain/kaia/blockchain/types"
@@ -26,7 +27,7 @@ func Dial(rawurl string) (*EthClient, error) {
 }
 
 func DialContext(ctx context.Context, rawurl string) (*EthClient, error) {
-	c, err := rpc.DialContext(ctx, rawurl)
+	c, err := rpcdial.DialContext(ctx, rawurl)
 	if err != nil {
 		return nil, err
 	}
