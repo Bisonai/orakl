@@ -51,11 +51,6 @@ const config = {
       ...commonConfig,
       gasPrice: 250_000_000_000,
     },
-    l2node: {
-      url: process.env.L2_PROVIDER || '',
-      ...commonConfig,
-      gasPrice: 250_000_000_000,
-    },
   },
   paths: {
     sources: './src',
@@ -200,52 +195,6 @@ task('send-klay', 'Send $KLAY from faucet')
 
     console.log(`After balance of account ${to}: ${balanceKlay} Klay`)
     console.log(txReceipt)
-  })
-
-task('add-aggregator', 'Add aggregator to L2 Endpoint')
-  .addParam('address', 'aggregator contract address')
-  .setAction(async (taskArgs, hre) => {
-    let _deployer
-    if (network.name == 'localhost') {
-      const { deployer } = await hre.getNamedAccounts()
-      _deployer = await ethers.getSigner(deployer)
-    } else {
-      const PROVIDER = process.env.PROVIDER
-      const MNEMONIC = process.env.MNEMONIC || ''
-      const provider = new ethers.providers.JsonRpcProvider(PROVIDER)
-      _deployer = ethers.Wallet.fromMnemonic(MNEMONIC).connect(provider)
-    }
-    const aggegatorAddress = taskArgs.address
-
-    let l2Endpoint = await ethers.getContract('L2Endpoint')
-    l2Endpoint = await ethers.getContractAt('L2Endpoint', l2Endpoint.address, _deployer)
-
-    console.log('add aggregator: ', aggegatorAddress)
-    const tx = await (await l2Endpoint.addAggregator(aggegatorAddress)).wait()
-    console.log('Tx', tx)
-  })
-
-task('add-submitter', 'Add submitter to L2 Endpoint')
-  .addParam('address', 'submitter address')
-  .setAction(async (taskArgs, hre) => {
-    let _deployer
-    if (network.name == 'localhost') {
-      const { deployer } = await hre.getNamedAccounts()
-      _deployer = await ethers.getSigner(deployer)
-    } else {
-      const PROVIDER = process.env.PROVIDER
-      const MNEMONIC = process.env.MNEMONIC || ''
-      const provider = new ethers.providers.JsonRpcProvider(PROVIDER)
-      _deployer = ethers.Wallet.fromMnemonic(MNEMONIC).connect(provider)
-    }
-    const submitter = taskArgs.address
-
-    let l2Endpoint = await ethers.getContract('L2Endpoint')
-    l2Endpoint = await ethers.getContractAt('L2Endpoint', l2Endpoint.address, _deployer)
-
-    console.log('add submitter: ', submitter)
-    const tx = await (await l2Endpoint.addSubmitter(submitter)).wait()
-    console.log('Tx', tx)
   })
 
 task('add-oracle', 'Add oracle to Aggregator')
