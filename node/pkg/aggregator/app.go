@@ -53,9 +53,12 @@ func (a *App) Run(ctx context.Context) error {
 		return err
 	}
 
+	// Best-effort: the heartbeat coordinator is a default-off optimization
+	// (P2P_HEARTBEAT_BATCH), so a transient control-topic join failure must not
+	// abort aggregator startup. On failure the coordinator stays nil and
+	// registerHeartbeatFeeds is a no-op; the per-feed heartbeat path is unaffected.
 	if err = a.setupHeartbeatCoordinator(ctx); err != nil {
-		log.Error().Err(err).Str("Player", "Aggregator").Msg("failed to setup heartbeat coordinator")
-		return err
+		log.Error().Err(err).Str("Player", "Aggregator").Msg("failed to setup heartbeat coordinator, continuing without batched heartbeats")
 	}
 
 	err = a.startAllAggregators(ctx)
