@@ -8,7 +8,7 @@ on:
 jobs:
   prepare:
     name: Prepare
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     outputs:
       tag_date: ${{ steps.hash.outputs.date }}
@@ -64,7 +64,7 @@ jobs:
 
   build:
     name: Build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: prepare
 
     permissions:
