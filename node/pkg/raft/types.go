@@ -15,6 +15,7 @@ type RoleType string
 
 const (
 	Heartbeat          MessageType = "heartbeat"
+	BatchHeartbeat     MessageType = "batchHeartbeat"
 	RequestVote        MessageType = "requestVote"
 	ReplyVote          MessageType = "replyVote"
 	AppendEntries      MessageType = "appendEntries"
@@ -42,6 +43,15 @@ type RequestVoteMessage struct {
 type HeartbeatMessage struct {
 	LeaderID string `json:"leaderID"`
 	Term     int    `json:"term"`
+}
+
+// BatchHeartbeatMessage is one combined heartbeat covering every feed this node
+// currently leads: Terms maps a compact feed id (config ID) to that feed's Raft
+// term. The leader id is carried once by the enclosing Message.SentFrom, so it is
+// not repeated per feed. It rides the shared control topic instead of the ~150
+// per-feed topics, collapsing ~1,500 heartbeat msgs/s into ~10-20/s (issue #2558).
+type BatchHeartbeatMessage struct {
+	Terms map[int32]int `json:"terms"`
 }
 
 type ReplyRequestVoteMessage struct {

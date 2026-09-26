@@ -42,6 +42,7 @@ var typeToInt = map[MessageType]int{
 	MessageType("priceData"): 7,
 	MessageType("priceFix"):  8,
 	MessageType("proof"):     9,
+	BatchHeartbeat:           10,
 }
 
 var intToType = func() map[int]MessageType {
@@ -56,6 +57,20 @@ var intToType = func() map[int]MessageType {
 // Controlled by the P2P_ENCODING env var (values: "json" (default) | "msgpack").
 func UseMsgpack() bool {
 	return strings.EqualFold(strings.TrimSpace(os.Getenv("P2P_ENCODING")), "msgpack")
+}
+
+// HeartbeatBatchEnabled reports whether this node should EMIT combined heartbeats
+// on the shared control topic (Phase 2) instead of per-feed heartbeats on each
+// feed's own topic (Phase 1, default). Controlled by the P2P_HEARTBEAT_BATCH env
+// var (default off). Decode/fan-out of combined heartbeats is always active
+// regardless of this flag, so a mixed fleet stays safe during rollout (#2558).
+func HeartbeatBatchEnabled() bool {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv("P2P_HEARTBEAT_BATCH"))) {
+	case "1", "true", "on", "yes":
+		return true
+	default:
+		return false
+	}
 }
 
 // IsJSON sniffs the first non-space byte: a legacy JSON object starts with '{'.
@@ -157,6 +172,10 @@ type wireHeartbeat struct {
 	Term     int    `msgpack:"tm"`
 }
 
+type wireBatchHeartbeat struct {
+	Terms map[int32]int `msgpack:"tm"`
+}
+
 type wireRequestVote struct {
 	Term int `msgpack:"tm"`
 }
@@ -179,6 +198,8 @@ func encodeInner(v any) ([]byte, error) {
 			return nil, err
 		}
 		return msgpack.Marshal(&wireHeartbeat{LeaderID: leader, Term: m.Term})
+	case BatchHeartbeatMessage:
+		return msgpack.Marshal(&wireBatchHeartbeat{Terms: m.Terms})
 	case RequestVoteMessage:
 		return msgpack.Marshal(&wireRequestVote{Term: m.Term})
 	case ReplyRequestVoteMessage:
@@ -211,6 +232,13 @@ func decodeInner(data []byte, v any) error {
 		}
 		m.LeaderID = leader
 		m.Term = w.Term
+		return nil
+	case *BatchHeartbeatMessage:
+		var w wireBatchHeartbeat
+		if err := msgpack.Unmarshal(data, &w); err != nil {
+			return err
+		}
+		m.Terms = w.Terms
 		return nil
 	case *RequestVoteMessage:
 		var w wireRequestVote
