@@ -9,6 +9,7 @@ import (
 	"bisonai.com/miko/node/pkg/bus"
 	"bisonai.com/miko/node/pkg/chain/helper"
 	"bisonai.com/miko/node/pkg/db"
+	"bisonai.com/miko/node/pkg/raft"
 
 	errorSentinel "bisonai.com/miko/node/pkg/error"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
@@ -51,6 +52,13 @@ func (a *App) Run(ctx context.Context) error {
 		log.Error().Err(err).Str("Player", "Aggregator").Msg("failed to set aggregators")
 		return err
 	}
+
+	if err = a.setupHeartbeatCoordinator(ctx); err != nil {
+		log.Error().Err(err).Str("Player", "Aggregator").Msg("failed to setup heartbeat coordinator")
+		return err
+	}
+	a.registerHeartbeatFeeds()
+
 	err = a.startAllAggregators(ctx)
 	if err != nil {
 		log.Error().Err(err).Str("Player", "Aggregator").Msg("failed to start aggregators")
@@ -89,6 +97,39 @@ func (a *App) setAggregators(ctx context.Context, h host.Host, ps *pubsub.PubSub
 	}
 
 	return a.initializeLoadedAggregators(ctx, configs, h, ps)
+}
+
+// setupHeartbeatCoordinator joins the shared Raft control topic exactly once and
+// starts the node-level heartbeat coordinator. It is a no-op on later calls
+// (e.g. config refresh) since the control topic is joined for the app lifetime
+// and GossipSub rejects a second Join of the same topic (#2558).
+func (a *App) setupHeartbeatCoordinator(ctx context.Context) error {
+	if a.HeartbeatCoordinator != nil {
+		return nil
+	}
+
+	controlTopic, err := a.Pubsub.Join(raft.ControlTopicName())
+	if err != nil {
+		return err
+	}
+
+	a.HeartbeatCoordinator = raft.NewHeartbeatCoordinator(a.Host, a.Pubsub, controlTopic, 1000)
+	go a.HeartbeatCoordinator.Run(ctx)
+	return nil
+}
+
+// registerHeartbeatFeeds hands the coordinator the current feedId -> Raft mapping,
+// so combined heartbeats are emitted for and fanned out to the live aggregators.
+// Called on startup and after every config refresh.
+func (a *App) registerHeartbeatFeeds() {
+	if a.HeartbeatCoordinator == nil {
+		return
+	}
+	feeds := make(map[int32]*raft.Raft, len(a.Aggregators))
+	for id, aggregator := range a.Aggregators {
+		feeds[id] = aggregator.Raft
+	}
+	a.HeartbeatCoordinator.Reset(feeds)
 }
 
 func (a *App) clearAggregators() error {
@@ -337,6 +378,7 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 			bus.HandleMessageError(err, msg, "failed to set aggregators")
 			return
 		}
+		a.registerHeartbeatFeeds()
 		err = a.startAllAggregators(ctx)
 		if err != nil {
 			bus.HandleMessageError(err, msg, "failed to start all aggregators")
