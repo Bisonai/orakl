@@ -110,10 +110,21 @@ func (c *HeartbeatCoordinator) Run(ctx context.Context) {
 }
 
 func (c *HeartbeatCoordinator) subscribe(ctx context.Context) {
-	sub, err := c.topic.Subscribe()
-	if err != nil {
-		log.Error().Err(err).Msg("failed to subscribe to control topic")
-		return
+	// Retry the initial Subscribe: a one-off transient failure here must not
+	// permanently disable heartbeat receive/fan-out, which is the always-on safety
+	// guarantee the mixed-fleet rollout relies on.
+	var sub *pubsub.Subscription
+	for {
+		var err error
+		sub, err = c.topic.Subscribe()
+		if err == nil {
+			break
+		}
+		if ctx.Err() != nil {
+			return
+		}
+		log.Error().Err(err).Msg("failed to subscribe to control topic, retrying")
+		time.Sleep(HEARTBEAT_TIMEOUT)
 	}
 	// Only cancel our subscription; the control topic is joined once for the app
 	// lifetime and shared with the broadcast path, so the coordinator must not
