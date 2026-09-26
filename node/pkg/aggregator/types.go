@@ -46,6 +46,7 @@ type App struct {
 	Pubsub                    *pubsub.PubSub
 	Signer                    *helper.Signer
 	LatestLocalAggregates     *LatestLocalAggregates
+	HeartbeatCoordinator      *raft.HeartbeatCoordinator
 }
 
 type Config struct {

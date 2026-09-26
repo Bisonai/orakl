@@ -128,6 +128,52 @@ func TestCodecInnerRoundTrip(t *testing.T) {
 	})
 }
 
+// TestCodecBatchHeartbeatRoundTrip proves the combined-heartbeat inner payload
+// (issue #2558) survives a round-trip through both the JSON and msgpack codecs,
+// with its feed-id -> term map intact.
+func TestCodecBatchHeartbeatRoundTrip(t *testing.T) {
+	bh := BatchHeartbeatMessage{Terms: map[string]int{"BTC-USDT": 7, "ETH-USDT": 3, "KAIA-USDT": 0}}
+
+	t.Run("json", func(t *testing.T) {
+		b, err := encodeInner(bh)
+		require.NoError(t, err)
+		require.True(t, IsJSON(b))
+		var got BatchHeartbeatMessage
+		require.NoError(t, decodeInner(b, &got))
+		assert.Equal(t, bh, got)
+	})
+
+	t.Run("msgpack", func(t *testing.T) {
+		t.Setenv("P2P_ENCODING", "msgpack")
+		b, err := encodeInner(bh)
+		require.NoError(t, err)
+		require.False(t, IsJSON(b))
+		var got BatchHeartbeatMessage
+		require.NoError(t, decodeInner(b, &got))
+		assert.Equal(t, bh, got)
+	})
+}
+
+// TestCodecBatchHeartbeatDecodeBoth proves a node decodes a combined heartbeat
+// regardless of which wire format the sender used, so a mixed fleet is safe.
+func TestCodecBatchHeartbeatDecodeBoth(t *testing.T) {
+	bh := BatchHeartbeatMessage{Terms: map[string]int{"BTC-USDT": 2, "ETH-USDT": 4}}
+
+	t.Setenv("P2P_ENCODING", "msgpack")
+	mpData, err := encodeInner(bh)
+	require.NoError(t, err)
+
+	t.Setenv("P2P_ENCODING", "json")
+	jsonData, err := encodeInner(bh)
+	require.NoError(t, err)
+
+	for name, data := range map[string][]byte{"json": jsonData, "msgpack": mpData} {
+		var got BatchHeartbeatMessage
+		require.NoError(t, decodeInner(data, &got), name)
+		assert.Equal(t, bh, got, name)
+	}
+}
+
 func mustJSON(t *testing.T, msg Message) []byte {
 	t.Helper()
 	// force JSON regardless of ambient env

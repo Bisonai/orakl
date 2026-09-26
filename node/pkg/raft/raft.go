@@ -133,6 +133,14 @@ func (r *Raft) handleHeartbeat(msg Message) error {
 		return errorSentinel.ErrRaftLeaderIdMismatch
 	}
 
+	return r.applyHeartbeat(heartbeatMessage.LeaderID, heartbeatMessage.Term)
+}
+
+// applyHeartbeat updates this Raft group's liveness state for one heartbeat from
+// leader for the given term. It is the shared core of both the per-feed heartbeat
+// path (handleHeartbeat) and the combined control-topic path (the node-level
+// HeartbeatCoordinator fan-out), so both deliver identical semantics (#2558).
+func (r *Raft) applyHeartbeat(leaderID string, term int) error {
 	r.Mutex.Lock()
 	defer r.Mutex.Unlock()
 
@@ -145,29 +153,41 @@ func (r *Raft) handleHeartbeat(msg Message) error {
 		r.startElectionTimer()
 	}
 
-	if heartbeatMessage.Term > currentTerm {
+	if term > currentTerm {
 		if currentRole == Leader {
 			r.ResignLeader()
 		}
-		r.Term = heartbeatMessage.Term
+		r.Term = term
 		r.Role = Follower
-		r.LeaderID = heartbeatMessage.LeaderID
+		r.LeaderID = leaderID
 
 		return nil
-	} else if heartbeatMessage.Term == currentTerm {
+	} else if term == currentTerm {
 		if currentRole == Leader {
-			if r.GetHostId() < heartbeatMessage.LeaderID {
+			if r.GetHostId() < leaderID {
 				r.ResignLeader()
-				r.LeaderID = heartbeatMessage.LeaderID
+				r.LeaderID = leaderID
 			} else {
 				return nil
 			}
 		} else {
-			r.LeaderID = heartbeatMessage.LeaderID
+			r.LeaderID = leaderID
 		}
 	}
 
 	return nil
+}
+
+// leaderTermSnapshot returns this group's current term and whether this node is
+// its leader, under a single short lock. The node-level HeartbeatCoordinator uses
+// it to snapshot all locally-led feeds each tick, then publishes lock-free.
+func (r *Raft) leaderTermSnapshot() (int, bool) {
+	r.Mutex.Lock()
+	defer r.Mutex.Unlock()
+	if r.Role != Leader {
+		return 0, false
+	}
+	return r.Term, true
 }
 
 func (r *Raft) handleRequestVote(ctx context.Context, msg Message) error {
@@ -366,6 +386,15 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 				return
 
 			case <-r.HeartbeatTicker.C:
+				// Phase 2 (P2P_HEARTBEAT_BATCH on): the node-level HeartbeatCoordinator
+				// emits one combined heartbeat per tick for every locally-led feed on
+				// the shared control topic, so the periodic per-feed heartbeat is
+				// suppressed here to actually cut the message count. The immediate
+				// heartbeat above still fires on election so a new leader is announced
+				// without waiting a tick.
+				if HeartbeatBatchEnabled() {
+					continue
+				}
 				err := r.sendHeartbeat(ctx)
 				if err != nil {
 					log.Error().Err(err).Msg("failed to send heartbeat")
