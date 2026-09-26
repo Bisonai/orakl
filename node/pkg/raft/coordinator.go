@@ -44,7 +44,7 @@ type HeartbeatCoordinator struct {
 	topic *pubsub.Topic
 
 	mu    sync.RWMutex
-	feeds map[int32]*Raft
+	feeds map[string]*Raft
 
 	buffer chan *pubsub.Message
 }
@@ -56,16 +56,17 @@ func NewHeartbeatCoordinator(h host.Host, ps *pubsub.PubSub, topic *pubsub.Topic
 		host:   h,
 		ps:     ps,
 		topic:  topic,
-		feeds:  make(map[int32]*Raft),
+		feeds:  make(map[string]*Raft),
 		buffer: make(chan *pubsub.Message, messageBuffer),
 	}
 }
 
-// Reset replaces the registry of feedId -> Raft. Called on startup and whenever
-// the aggregator app reloads its configs, so the coordinator always tracks the
-// current set of local Raft groups.
-func (c *HeartbeatCoordinator) Reset(feeds map[int32]*Raft) {
-	next := make(map[int32]*Raft, len(feeds))
+// Reset replaces the registry of feed name -> Raft. Called on startup and on every
+// aggregator state change (config refresh, activate/deactivate, start/stop), so
+// the coordinator only ever emits and fans out for the feeds that are actually
+// running locally.
+func (c *HeartbeatCoordinator) Reset(feeds map[string]*Raft) {
+	next := make(map[string]*Raft, len(feeds))
 	for id, r := range feeds {
 		next[id] = r
 	}
@@ -100,7 +101,7 @@ func (c *HeartbeatCoordinator) Run(ctx context.Context) {
 			}(rawMsg)
 		case <-ticker.C:
 			if HeartbeatBatchEnabled() {
-				c.broadcast(ctx)
+				c.tickBroadcast(ctx)
 			}
 		case <-ctx.Done():
 			return
@@ -114,10 +115,10 @@ func (c *HeartbeatCoordinator) subscribe(ctx context.Context) {
 		log.Error().Err(err).Msg("failed to subscribe to control topic")
 		return
 	}
-	defer func() {
-		sub.Cancel()
-		c.topic.Close()
-	}()
+	// Only cancel our subscription; the control topic is joined once for the app
+	// lifetime and shared with the broadcast path, so the coordinator must not
+	// close it.
+	defer sub.Cancel()
 	for {
 		select {
 		case <-ctx.Done():
@@ -140,11 +141,23 @@ func (c *HeartbeatCoordinator) subscribe(ctx context.Context) {
 	}
 }
 
+// tickBroadcast wraps broadcast with panic recovery so a publish-time panic
+// (e.g. publishing during shutdown) can't unwind Run and silently kill the whole
+// coordinator, taking the always-on fan-out down with it.
+func (c *HeartbeatCoordinator) tickBroadcast(ctx context.Context) {
+	defer func() {
+		if rec := recover(); rec != nil {
+			log.Error().Msgf("recovered from panic in heartbeat broadcast: %v", rec)
+		}
+	}()
+	c.broadcast(ctx)
+}
+
 // broadcast snapshots the term of every locally-led feed under short per-Raft
 // locks, then publishes one combined heartbeat lock-free.
 func (c *HeartbeatCoordinator) broadcast(ctx context.Context) {
 	c.mu.RLock()
-	terms := make(map[int32]int, len(c.feeds))
+	terms := make(map[string]int, len(c.feeds))
 	for id, r := range c.feeds {
 		if term, isLeader := r.leaderTermSnapshot(); isLeader {
 			terms[id] = term
@@ -207,7 +220,7 @@ func (c *HeartbeatCoordinator) handleRaw(rawMsg *pubsub.Message) {
 // fanout delivers each {feedId, term} to the matching local Raft group's
 // heartbeat handler. Feeds absent from terms are left untouched and fall through
 // to the existing missed-heartbeat logic.
-func (c *HeartbeatCoordinator) fanout(leaderID string, terms map[int32]int) {
+func (c *HeartbeatCoordinator) fanout(leaderID string, terms map[string]int) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	for id, term := range terms {
@@ -216,7 +229,7 @@ func (c *HeartbeatCoordinator) fanout(leaderID string, terms map[int32]int) {
 			continue
 		}
 		if err := r.applyHeartbeat(leaderID, term); err != nil {
-			log.Error().Err(err).Int32("feedId", id).Msg("failed to apply batched heartbeat")
+			log.Error().Err(err).Str("feed", id).Msg("failed to apply batched heartbeat")
 		}
 	}
 }

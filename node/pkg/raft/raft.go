@@ -268,13 +268,6 @@ func (r *Raft) PublishMessage(ctx context.Context, msg Message) error {
 }
 
 func (r *Raft) sendHeartbeat(ctx context.Context) error {
-	if HeartbeatBatchEnabled() {
-		// Phase 2: heartbeats for every locally-led feed are emitted once per tick
-		// by the node-level HeartbeatCoordinator on the shared control topic, so the
-		// per-feed heartbeat is suppressed here to actually cut the message count.
-		return nil
-	}
-
 	r.Mutex.Lock()
 	heartbeatMessage := HeartbeatMessage{
 		LeaderID: r.GetHostId(),
@@ -393,6 +386,15 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 				return
 
 			case <-r.HeartbeatTicker.C:
+				// Phase 2 (P2P_HEARTBEAT_BATCH on): the node-level HeartbeatCoordinator
+				// emits one combined heartbeat per tick for every locally-led feed on
+				// the shared control topic, so the periodic per-feed heartbeat is
+				// suppressed here to actually cut the message count. The immediate
+				// heartbeat above still fires on election so a new leader is announced
+				// without waiting a tick.
+				if HeartbeatBatchEnabled() {
+					continue
+				}
 				err := r.sendHeartbeat(ctx)
 				if err != nil {
 					log.Error().Err(err).Msg("failed to send heartbeat")

@@ -31,10 +31,10 @@ func TestCoordinatorFanout(t *testing.T) {
 	feed3 := newFollower(0) // not addressed by the leader
 
 	c := &HeartbeatCoordinator{
-		feeds: map[int32]*Raft{1: feed1, 2: feed2, 3: feed3},
+		feeds: map[string]*Raft{"feed1": feed1, "feed2": feed2, "feed3": feed3},
 	}
 
-	c.fanout("leader-peer", map[int32]int{1: 5, 2: 7})
+	c.fanout("leader-peer", map[string]int{"feed1": 5, "feed2": 7})
 
 	assert.Equal(t, 5, feed1.GetCurrentTerm(), "feed1 term follows the batch")
 	assert.Equal(t, "leader-peer", feed1.GetLeader())
@@ -51,9 +51,9 @@ func TestCoordinatorFanout(t *testing.T) {
 // run is silently ignored (no panic, no effect on other feeds).
 func TestCoordinatorFanoutUnknownFeed(t *testing.T) {
 	feed1 := newFollower(0)
-	c := &HeartbeatCoordinator{feeds: map[int32]*Raft{1: feed1}}
+	c := &HeartbeatCoordinator{feeds: map[string]*Raft{"feed1": feed1}}
 
-	c.fanout("leader-peer", map[int32]int{1: 3, 999: 42})
+	c.fanout("leader-peer", map[string]int{"feed1": 3, "unknown-feed": 42})
 
 	assert.Equal(t, 3, feed1.GetCurrentTerm())
 }

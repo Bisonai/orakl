@@ -46,12 +46,19 @@ type HeartbeatMessage struct {
 }
 
 // BatchHeartbeatMessage is one combined heartbeat covering every feed this node
-// currently leads: Terms maps a compact feed id (config ID) to that feed's Raft
-// term. The leader id is carried once by the enclosing Message.SentFrom, so it is
-// not repeated per feed. It rides the shared control topic instead of the ~150
-// per-feed topics, collapsing ~1,500 heartbeat msgs/s into ~10-20/s (issue #2558).
+// currently leads: Terms maps a feed key to that feed's Raft term. The leader id
+// is carried once by the enclosing Message.SentFrom, so it is not repeated per
+// feed. It rides the shared control topic instead of the ~150 per-feed topics,
+// collapsing ~1,500 heartbeat msgs/s into ~10-20/s (issue #2558).
+//
+// The key is the feed's stable name (config.Name), NOT the local config.id: ids
+// are node-local serial primary keys assigned by each node's own insert history
+// (configs are upserted on conflict(name) and never carry a shared id), so an id
+// means different feeds on different nodes. Per-feed data topics key on the name
+// for the same reason; the batch must too or a follower would apply a leader's
+// heartbeat to the wrong feed.
 type BatchHeartbeatMessage struct {
-	Terms map[int32]int `json:"terms"`
+	Terms map[string]int `json:"terms"`
 }
 
 type ReplyRequestVoteMessage struct {
