@@ -181,7 +181,7 @@ on:
 jobs:
   prepare-taskflow:
     name: Prepare
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: ${{ github.event.inputs.image != 'new' }}
     outputs:
       service: ${{ steps.tag.outputs.service }}
@@ -225,7 +225,7 @@ jobs:
     if: ${{ github.event.inputs.network == 'Baobab' && success() }}
   prepare:
     name: Prepare
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: ${{ github.event.inputs.image == 'new' }}
     outputs:
       tag_date: ${{ steps.tag.outputs.date }}
@@ -248,7 +248,7 @@ jobs:
           GH_TOKEN: ${{ secrets.WORKFLOW_PAT }}
   build:
     name: Build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: prepare
     if: ${{ github.event.inputs.image == 'new' }}
     permissions:
@@ -361,7 +361,7 @@ jobs:
   update-workflow-and-readme:
     name: Update Workflow and README
     needs: [prepare, build, image-update]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       id-token: write
       contents: write
