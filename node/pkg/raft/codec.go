@@ -173,7 +173,7 @@ type wireHeartbeat struct {
 }
 
 type wireBatchHeartbeat struct {
-	Terms map[int32]int `msgpack:"tm"`
+	Terms map[string]int `msgpack:"tm"`
 }
 
 type wireRequestVote struct {

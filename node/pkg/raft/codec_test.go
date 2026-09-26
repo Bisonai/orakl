@@ -132,7 +132,7 @@ func TestCodecInnerRoundTrip(t *testing.T) {
 // (issue #2558) survives a round-trip through both the JSON and msgpack codecs,
 // with its feed-id -> term map intact.
 func TestCodecBatchHeartbeatRoundTrip(t *testing.T) {
-	bh := BatchHeartbeatMessage{Terms: map[int32]int{1: 7, 42: 3, 137: 0}}
+	bh := BatchHeartbeatMessage{Terms: map[string]int{"BTC-USDT": 7, "ETH-USDT": 3, "KAIA-USDT": 0}}
 
 	t.Run("json", func(t *testing.T) {
 		b, err := encodeInner(bh)
@@ -157,7 +157,7 @@ func TestCodecBatchHeartbeatRoundTrip(t *testing.T) {
 // TestCodecBatchHeartbeatDecodeBoth proves a node decodes a combined heartbeat
 // regardless of which wire format the sender used, so a mixed fleet is safe.
 func TestCodecBatchHeartbeatDecodeBoth(t *testing.T) {
-	bh := BatchHeartbeatMessage{Terms: map[int32]int{5: 2, 9: 4}}
+	bh := BatchHeartbeatMessage{Terms: map[string]int{"BTC-USDT": 2, "ETH-USDT": 4}}
 
 	t.Setenv("P2P_ENCODING", "msgpack")
 	mpData, err := encodeInner(bh)

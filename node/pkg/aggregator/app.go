@@ -57,13 +57,13 @@ func (a *App) Run(ctx context.Context) error {
 		log.Error().Err(err).Str("Player", "Aggregator").Msg("failed to setup heartbeat coordinator")
 		return err
 	}
-	a.registerHeartbeatFeeds()
 
 	err = a.startAllAggregators(ctx)
 	if err != nil {
 		log.Error().Err(err).Str("Player", "Aggregator").Msg("failed to start aggregators")
 		return err
 	}
+	a.registerHeartbeatFeeds()
 
 	return nil
 }
@@ -118,16 +118,20 @@ func (a *App) setupHeartbeatCoordinator(ctx context.Context) error {
 	return nil
 }
 
-// registerHeartbeatFeeds hands the coordinator the current feedId -> Raft mapping,
-// so combined heartbeats are emitted for and fanned out to the live aggregators.
-// Called on startup and after every config refresh.
+// registerHeartbeatFeeds hands the coordinator the current feed name -> Raft
+// mapping for the RUNNING aggregators, so combined heartbeats are emitted for and
+// fanned out to only the live feeds. Keyed by name (not the node-local config.id)
+// so the key means the same feed on every node. Called on startup and after every
+// aggregator state change (refresh, activate/deactivate, start/stop).
 func (a *App) registerHeartbeatFeeds() {
 	if a.HeartbeatCoordinator == nil {
 		return
 	}
-	feeds := make(map[int32]*raft.Raft, len(a.Aggregators))
-	for id, aggregator := range a.Aggregators {
-		feeds[id] = aggregator.Raft
+	feeds := make(map[string]*raft.Raft, len(a.Aggregators))
+	for _, aggregator := range a.Aggregators {
+		if aggregator.isRunning {
+			feeds[aggregator.Name] = aggregator.Raft
+		}
 	}
 	a.HeartbeatCoordinator.Reset(feeds)
 }
@@ -340,6 +344,7 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 			bus.HandleMessageError(err, msg, "failed to start aggregator")
 			return
 		}
+		a.registerHeartbeatFeeds()
 		log.Debug().Str("Player", "Aggregator").Msg("sending success response for activate aggregator")
 		msg.Response <- bus.MessageResponse{Success: true}
 	case bus.DEACTIVATE_AGGREGATOR:
@@ -356,6 +361,7 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 			bus.HandleMessageError(err, msg, "failed to stop aggregator")
 			return
 		}
+		a.registerHeartbeatFeeds()
 		msg.Response <- bus.MessageResponse{Success: true}
 	case bus.REFRESH_AGGREGATOR_APP:
 		log.Debug().Str("Player", "Aggregator").Msg("refresh aggregator msg received")
@@ -378,12 +384,12 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 			bus.HandleMessageError(err, msg, "failed to set aggregators")
 			return
 		}
-		a.registerHeartbeatFeeds()
 		err = a.startAllAggregators(ctx)
 		if err != nil {
 			bus.HandleMessageError(err, msg, "failed to start all aggregators")
 			return
 		}
+		a.registerHeartbeatFeeds()
 		a.startGlobalAggregateBulkWriter(ctx)
 
 		msg.Response <- bus.MessageResponse{Success: true}
@@ -395,6 +401,7 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 			bus.HandleMessageError(err, msg, "failed to stop all aggregators")
 			return
 		}
+		a.registerHeartbeatFeeds()
 		msg.Response <- bus.MessageResponse{Success: true}
 	case bus.START_AGGREGATOR_APP:
 		log.Debug().Str("Player", "Aggregator").Msg("start aggregator msg received")
@@ -403,6 +410,7 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 			bus.HandleMessageError(err, msg, "failed to start all aggregators")
 			return
 		}
+		a.registerHeartbeatFeeds()
 		a.startGlobalAggregateBulkWriter(ctx)
 		msg.Response <- bus.MessageResponse{Success: true}
 	case bus.RENEW_SIGNER:
