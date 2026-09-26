@@ -126,7 +126,13 @@ func (c *HeartbeatCoordinator) subscribe(ctx context.Context) {
 		default:
 			rawMsg, err := sub.Next(ctx)
 			if err != nil {
+				// exit promptly on shutdown; otherwise back off so a persistent
+				// subscription error can't spin a hot loop flooding the logs.
+				if ctx.Err() != nil {
+					return
+				}
 				log.Error().Err(err).Msg("failed to get message from control topic")
+				time.Sleep(HEARTBEAT_TIMEOUT)
 				continue
 			}
 			c.buffer <- rawMsg
