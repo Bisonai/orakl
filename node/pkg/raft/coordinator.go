@@ -41,7 +41,6 @@ func ControlTopicName() string {
 // to the existing missed-heartbeat logic.
 type HeartbeatCoordinator struct {
 	host  host.Host
-	ps    *pubsub.PubSub
 	topic *pubsub.Topic
 
 	mu    sync.RWMutex
@@ -63,10 +62,9 @@ func (c *HeartbeatCoordinator) IsRunning() bool {
 
 // NewHeartbeatCoordinator builds a coordinator bound to an already-joined control
 // topic. Register the local Raft groups with Reset before/after starting Run.
-func NewHeartbeatCoordinator(h host.Host, ps *pubsub.PubSub, topic *pubsub.Topic, messageBuffer int) *HeartbeatCoordinator {
+func NewHeartbeatCoordinator(h host.Host, topic *pubsub.Topic, messageBuffer int) *HeartbeatCoordinator {
 	return &HeartbeatCoordinator{
 		host:   h,
-		ps:     ps,
 		topic:  topic,
 		feeds:  make(map[string]*Raft),
 		buffer: make(chan *pubsub.Message, messageBuffer),

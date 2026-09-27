@@ -116,7 +116,7 @@ func (a *App) setupHeartbeatCoordinator(ctx context.Context) error {
 		return err
 	}
 
-	a.HeartbeatCoordinator = raft.NewHeartbeatCoordinator(a.Host, a.Pubsub, controlTopic, 1000)
+	a.HeartbeatCoordinator = raft.NewHeartbeatCoordinator(a.Host, controlTopic, 1000)
 	go a.HeartbeatCoordinator.Run(ctx)
 	return nil
 }
