@@ -3,6 +3,8 @@ package tests
 import (
 	"context"
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"strconv"
 	"testing"
 
@@ -11,8 +13,36 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// hermetic fixture: a JSON array matching []config.ConfigInsertModel, with more
+// than one config and their feeds. It must not contain the tmp config/feed that
+// setup() inserts, so the sync handler prunes them.
+const configSyncFixture = `[
+	{
+		"name": "test-aggregate-0",
+		"decimals": 8,
+		"feeds": [
+			{"name": "test-feed-0", "definition": {"url": "https://example.com/0"}}
+		]
+	},
+	{
+		"name": "test-aggregate-1",
+		"decimals": 8,
+		"feeds": [
+			{"name": "test-feed-1", "definition": {"url": "https://example.com/1"}}
+		]
+	}
+]`
+
 func TestConfigSync(t *testing.T) {
 	ctx := context.Background()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(configSyncFixture))
+	}))
+	defer server.Close()
+	t.Setenv("CONFIG_URL", server.URL)
+
 	cleanup, testItems, err := setup(ctx)
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
