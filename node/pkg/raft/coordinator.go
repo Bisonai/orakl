@@ -134,10 +134,11 @@ func (c *HeartbeatCoordinator) Run(ctx context.Context) {
 }
 
 // subscribe keeps a live subscription to the control topic for the coordinator's
-// lifetime. It (re)subscribes with backoff on any failure — both the initial
-// Subscribe and a subscription that dies at runtime — because heartbeat
-// receive/fan-out is the always-on safety guarantee the mixed-fleet rollout
-// relies on. It returns only when ctx is cancelled.
+// lifetime, re-subscribing when the initial Subscribe fails or a subscription
+// dies at runtime — heartbeat receive/fan-out is the always-on safety guarantee
+// the mixed-fleet rollout relies on. A one-off failure re-subscribes immediately;
+// only rapidly-recurring failures back off (to avoid a hot loop). It returns only
+// when ctx is cancelled.
 func (c *HeartbeatCoordinator) subscribe(ctx context.Context) {
 	for ctx.Err() == nil {
 		sub, err := c.topic.Subscribe()
@@ -149,13 +150,22 @@ func (c *HeartbeatCoordinator) subscribe(ctx context.Context) {
 			continue
 		}
 
+		start := time.Now()
 		c.readSubscription(ctx, sub)
-
-		// readSubscription returned: either ctx was cancelled (outer loop exits)
-		// or the subscription errored. Back off before re-subscribing so a
-		// persistent failure can't hot-loop.
-		if !sleepCtx(ctx, HEARTBEAT_TIMEOUT) {
+		if ctx.Err() != nil {
 			return
+		}
+
+		// The subscription errored (not ctx). Re-subscribe IMMEDIATELY after a
+		// subscription that stayed healthy for at least a tick, so a one-off blip
+		// costs no receive gap beyond the reconnect itself (in batch mode leaders
+		// aren't sending per-feed heartbeats, so a dropped tick inflates followers'
+		// MissedHeartbeats). Only back off when errors recur in quick succession,
+		// to avoid a hot loop.
+		if time.Since(start) < HEARTBEAT_TIMEOUT {
+			if !sleepCtx(ctx, HEARTBEAT_TIMEOUT) {
+				return
+			}
 		}
 	}
 }
