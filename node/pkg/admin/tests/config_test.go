@@ -19,6 +19,9 @@ import (
 const configSyncFixture = `[
 	{
 		"name": "test-aggregate-0",
+		"fetchInterval": 2000,
+		"aggregateInterval": 3000,
+		"submitInterval": 15000,
 		"decimals": 8,
 		"feeds": [
 			{"name": "test-feed-0", "definition": {"url": "https://example.com/0"}}
@@ -26,6 +29,9 @@ const configSyncFixture = `[
 	},
 	{
 		"name": "test-aggregate-1",
+		"fetchInterval": 2000,
+		"aggregateInterval": 3000,
+		"submitInterval": 15000,
 		"decimals": 8,
 		"feeds": [
 			{"name": "test-feed-1", "definition": {"url": "https://example.com/1"}}
