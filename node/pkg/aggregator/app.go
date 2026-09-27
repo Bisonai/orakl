@@ -139,6 +139,16 @@ func (a *App) registerHeartbeatFeeds() {
 	a.HeartbeatCoordinator.Reset(feeds)
 }
 
+// clearHeartbeatFeeds unregisters all feeds from the coordinator so it stops
+// broadcasting/fanning-out on behalf of Raft groups that are about to be torn
+// down, before the new set is registered.
+func (a *App) clearHeartbeatFeeds() {
+	if a.HeartbeatCoordinator == nil {
+		return
+	}
+	a.HeartbeatCoordinator.Reset(nil)
+}
+
 func (a *App) clearAggregators() error {
 	if a.Aggregators == nil {
 		return nil
@@ -279,6 +289,12 @@ func (a *App) stopAggregatorById(id int32) error {
 }
 
 func (a *App) stopAllAggregators() error {
+	// Stop emitting/fanning-out combined heartbeats for these feeds before their
+	// Raft groups are cancelled: a cancelled Raft's becomeLeader returns without
+	// demoting to Follower, so leaderTermSnapshot would still report leadership and
+	// the coordinator would broadcast stale heartbeats for dead feeds until the
+	// post-teardown re-register (#2558).
+	a.clearHeartbeatFeeds()
 	for _, aggregator := range a.Aggregators {
 		err := a.stopAggregator(aggregator)
 		if err != nil {
