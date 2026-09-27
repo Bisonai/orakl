@@ -81,13 +81,15 @@ func (c *HeartbeatCoordinator) Reset(feeds map[string]*Raft) {
 		next[id] = r
 	}
 	c.mu.Lock()
+	defer c.mu.Unlock()
 	prev := c.feeds
 	c.feeds = next
-	c.mu.Unlock()
 
-	// Point newly/currently-registered feeds at this coordinator so they suppress
-	// their per-feed heartbeat, and clear the back-ref on dropped feeds so they
-	// resume it.
+	// Update the back-refs under the SAME lock as the map swap, so a feed is never
+	// simultaneously absent from c.feeds yet still pointing at this coordinator —
+	// which would let it suppress a per-feed heartbeat the coordinator no longer
+	// emits. Point current feeds at this coordinator (they suppress their per-feed
+	// heartbeat) and clear the back-ref on dropped feeds (they resume it).
 	for _, r := range next {
 		r.hbCoordinator.Store(c)
 	}
