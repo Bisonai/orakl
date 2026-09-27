@@ -1,0 +1,311 @@
+package raft
+
+import (
+	"context"
+	"os"
+	"strings"
+	"sync"
+	"sync/atomic"
+	"time"
+
+	"github.com/rs/zerolog/log"
+
+	pubsub "github.com/libp2p/go-libp2p-pubsub"
+	"github.com/libp2p/go-libp2p/core/host"
+)
+
+// DefaultControlTopic is the shared GossipSub topic every node joins once for
+// combined Raft heartbeats. It carries control-plane traffic only; per-feed data
+// (trigger/priceData/priceFix/proof) stays on the per-feed topics (#2558).
+const DefaultControlTopic = "orakl-raft-control"
+
+// ControlTopicName returns the shared heartbeat control-topic name, overridable
+// via the P2P_HEARTBEAT_CONTROL_TOPIC env var.
+func ControlTopicName() string {
+	if v := strings.TrimSpace(os.Getenv("P2P_HEARTBEAT_CONTROL_TOPIC")); v != "" {
+		return v
+	}
+	return DefaultControlTopic
+}
+
+// HeartbeatCoordinator collapses the per-feed Raft heartbeats of the ~150 local
+// Raft groups into ONE combined heartbeat per tick on the shared control topic.
+//
+// Send (Phase 2, P2P_HEARTBEAT_BATCH on): each tick it snapshots {feedId -> term}
+// for every locally-led feed and publishes a single BatchHeartbeat, paying the
+// signature/framing/packet overhead once per tick instead of ~150x.
+//
+// Receive (always on, so a mixed fleet is safe): on a BatchHeartbeat it fans each
+// {feedId, term} out to the matching Raft group's applyHeartbeat, identical in
+// effect to a per-feed heartbeat today. Feeds absent from the message fall through
+// to the existing missed-heartbeat logic.
+type HeartbeatCoordinator struct {
+	host  host.Host
+	topic *pubsub.Topic
+
+	mu    sync.RWMutex
+	feeds map[string]*Raft
+
+	buffer chan *pubsub.Message
+
+	// running reports whether Run's loop is live, so a leader only suppresses its
+	// per-feed heartbeat when this coordinator is actually emitting on its behalf.
+	running atomic.Bool
+}
+
+// IsRunning reports whether Run's loop is active. Nil-safe: a nil coordinator (the
+// best-effort setup left it nil) reports false, so callers fall back to per-feed
+// heartbeats.
+func (c *HeartbeatCoordinator) IsRunning() bool {
+	return c != nil && c.running.Load()
+}
+
+// NewHeartbeatCoordinator builds a coordinator bound to an already-joined control
+// topic. Register the local Raft groups with Reset before/after starting Run.
+func NewHeartbeatCoordinator(h host.Host, topic *pubsub.Topic, messageBuffer int) *HeartbeatCoordinator {
+	return &HeartbeatCoordinator{
+		host:   h,
+		topic:  topic,
+		feeds:  make(map[string]*Raft),
+		buffer: make(chan *pubsub.Message, messageBuffer),
+	}
+}
+
+// Reset replaces the registry of feed name -> Raft. Called on startup and on every
+// aggregator state change (config refresh, activate/deactivate, start/stop), so
+// the coordinator only ever emits and fans out for the feeds that are actually
+// running locally.
+func (c *HeartbeatCoordinator) Reset(feeds map[string]*Raft) {
+	next := make(map[string]*Raft, len(feeds))
+	for id, r := range feeds {
+		next[id] = r
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	prev := c.feeds
+	c.feeds = next
+
+	// Update the back-refs under the SAME lock as the map swap, so a feed is never
+	// simultaneously absent from c.feeds yet still pointing at this coordinator —
+	// which would let it suppress a per-feed heartbeat the coordinator no longer
+	// emits. Point current feeds at this coordinator (they suppress their per-feed
+	// heartbeat) and clear the back-ref on dropped feeds (they resume it).
+	for _, r := range next {
+		r.hbCoordinator.Store(c)
+	}
+	for id, r := range prev {
+		if _, ok := next[id]; !ok {
+			r.hbCoordinator.Store(nil)
+		}
+	}
+}
+
+func (c *HeartbeatCoordinator) hostID() string {
+	return c.host.ID().String()
+}
+
+// Run drives the control plane: it subscribes for incoming combined heartbeats
+// and, while P2P_HEARTBEAT_BATCH is enabled, emits one combined heartbeat every
+// HEARTBEAT_TIMEOUT tick. It blocks until ctx is cancelled.
+func (c *HeartbeatCoordinator) Run(ctx context.Context) {
+	c.running.Store(true)
+	defer c.running.Store(false)
+
+	go c.subscribe(ctx)
+
+	ticker := time.NewTicker(HEARTBEAT_TIMEOUT)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case rawMsg := <-c.buffer:
+			// Handle synchronously (in receive order): a goroutine per message let
+			// two heartbeats for the same feed apply out of order, so a stale one
+			// could reset MissedHeartbeats after a newer one (#2558).
+			c.handleRawSafe(rawMsg)
+		case <-ticker.C:
+			if HeartbeatBatchEnabled() {
+				c.tickBroadcast(ctx)
+			}
+		case <-ctx.Done():
+			return
+		}
+	}
+}
+
+// subscribe keeps a live subscription to the control topic for the coordinator's
+// lifetime, re-subscribing when the initial Subscribe fails or a subscription
+// dies at runtime — heartbeat receive/fan-out is the always-on safety guarantee
+// the mixed-fleet rollout relies on. A one-off failure re-subscribes immediately;
+// only rapidly-recurring failures back off (to avoid a hot loop). It returns only
+// when ctx is cancelled.
+func (c *HeartbeatCoordinator) subscribe(ctx context.Context) {
+	for ctx.Err() == nil {
+		sub, err := c.topic.Subscribe()
+		if err != nil {
+			log.Error().Err(err).Msg("failed to subscribe to control topic, retrying")
+			if !sleepCtx(ctx, HEARTBEAT_TIMEOUT) {
+				return
+			}
+			continue
+		}
+
+		start := time.Now()
+		c.readSubscription(ctx, sub)
+		if ctx.Err() != nil {
+			return
+		}
+
+		// The subscription errored (not ctx). Re-subscribe IMMEDIATELY after a
+		// subscription that stayed healthy for at least a tick, so a one-off blip
+		// costs no receive gap beyond the reconnect itself (in batch mode leaders
+		// aren't sending per-feed heartbeats, so a dropped tick inflates followers'
+		// MissedHeartbeats). Only back off when errors recur in quick succession,
+		// to avoid a hot loop.
+		if time.Since(start) < HEARTBEAT_TIMEOUT {
+			if !sleepCtx(ctx, HEARTBEAT_TIMEOUT) {
+				return
+			}
+		}
+	}
+}
+
+// readSubscription forwards messages until the subscription errors (so the caller
+// re-subscribes on a fresh one) or ctx is cancelled. It cancels only its own
+// subscription; the control topic is joined once for the app lifetime and shared
+// with the broadcast path, so the coordinator must never close it.
+func (c *HeartbeatCoordinator) readSubscription(ctx context.Context, sub *pubsub.Subscription) {
+	defer sub.Cancel()
+	for {
+		rawMsg, err := sub.Next(ctx)
+		if err != nil {
+			if ctx.Err() != nil {
+				log.Debug().Msg("control topic context cancelled")
+				return
+			}
+			log.Error().Err(err).Msg("control topic subscription error, re-subscribing")
+			return
+		}
+		// ctx-aware send: if Run has already returned on ctx.Done() and the buffer
+		// is full, a plain send would block forever and leak this goroutine.
+		select {
+		case c.buffer <- rawMsg:
+		case <-ctx.Done():
+			return
+		}
+	}
+}
+
+// sleepCtx sleeps for d, returning false if ctx is cancelled first.
+func sleepCtx(ctx context.Context, d time.Duration) bool {
+	select {
+	case <-ctx.Done():
+		return false
+	case <-time.After(d):
+		return true
+	}
+}
+
+// tickBroadcast wraps broadcast with panic recovery so a publish-time panic
+// (e.g. publishing during shutdown) can't unwind Run and silently kill the whole
+// coordinator, taking the always-on fan-out down with it.
+func (c *HeartbeatCoordinator) tickBroadcast(ctx context.Context) {
+	defer func() {
+		if rec := recover(); rec != nil {
+			log.Error().Msgf("recovered from panic in heartbeat broadcast: %v", rec)
+		}
+	}()
+	c.broadcast(ctx)
+}
+
+// broadcast snapshots the term of every locally-led feed under short per-Raft
+// locks, then publishes one combined heartbeat lock-free.
+func (c *HeartbeatCoordinator) broadcast(ctx context.Context) {
+	c.mu.RLock()
+	terms := make(map[string]int, len(c.feeds))
+	for id, r := range c.feeds {
+		if term, isLeader := r.leaderTermSnapshot(); isLeader {
+			terms[id] = term
+		}
+	}
+	c.mu.RUnlock()
+
+	if len(terms) == 0 {
+		return
+	}
+
+	inner, err := encodeInner(BatchHeartbeatMessage{Terms: terms})
+	if err != nil {
+		log.Error().Err(err).Msg("failed to marshal batch heartbeat message")
+		return
+	}
+
+	message := Message{
+		Type:      BatchHeartbeat,
+		SentFrom:  c.hostID(),
+		Data:      inner,
+		Timestamp: time.Now(),
+	}
+	data, err := encodeMessage(message)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to marshal batch heartbeat")
+		return
+	}
+	if err := c.topic.Publish(ctx, data); err != nil {
+		log.Error().Err(err).Msg("failed to publish batch heartbeat")
+	}
+}
+
+// handleRawSafe runs handleRaw with panic recovery so a single malformed control
+// message can't unwind Run and take down the always-on fan-out.
+func (c *HeartbeatCoordinator) handleRawSafe(rawMsg *pubsub.Message) {
+	defer func() {
+		if rec := recover(); rec != nil {
+			log.Error().Msgf("recovered from panic in heartbeat fan-out: %v", rec)
+		}
+	}()
+	c.handleRaw(rawMsg)
+}
+
+func (c *HeartbeatCoordinator) handleRaw(rawMsg *pubsub.Message) {
+	msg, err := decodeMessage(rawMsg.Data)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to unmarshal control message")
+		return
+	}
+
+	// control plane carries combined heartbeats only
+	if msg.Type != BatchHeartbeat {
+		return
+	}
+
+	// ignore our own combined heartbeat (GossipSub echoes it back)
+	if msg.SentFrom == c.hostID() {
+		return
+	}
+
+	var batch BatchHeartbeatMessage
+	if err := decodeInner(msg.Data, &batch); err != nil {
+		log.Error().Err(err).Msg("failed to unmarshal batch heartbeat message")
+		return
+	}
+
+	c.fanout(msg.SentFrom, batch.Terms)
+}
+
+// fanout delivers each {feedId, term} to the matching local Raft group's
+// heartbeat handler. Feeds absent from terms are left untouched and fall through
+// to the existing missed-heartbeat logic.
+func (c *HeartbeatCoordinator) fanout(leaderID string, terms map[string]int) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	for id, term := range terms {
+		r, ok := c.feeds[id]
+		if !ok {
+			continue
+		}
+		if err := r.applyHeartbeat(leaderID, term); err != nil {
+			log.Error().Err(err).Str("feed", id).Msg("failed to apply batched heartbeat")
+		}
+	}
+}
