@@ -3,7 +3,10 @@ package tests
 import (
 	"context"
 	"encoding/json"
+	"io"
+	"net/http"
 	"strconv"
+	"strings"
 	"testing"
 
 	"bisonai.com/miko/node/pkg/admin/config"
@@ -11,8 +14,61 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// hermetic fixture: a JSON array matching []config.ConfigInsertModel, with more
+// than one config and their feeds. It must not contain the tmp config/feed that
+// setup() inserts, so the sync handler prunes them.
+const configSyncFixture = `[
+	{
+		"name": "test-aggregate-0",
+		"fetchInterval": 2000,
+		"aggregateInterval": 3000,
+		"submitInterval": 15000,
+		"decimals": 8,
+		"feeds": [
+			{"name": "test-feed-0", "definition": {"url": "https://example.com/0"}}
+		]
+	},
+	{
+		"name": "test-aggregate-1",
+		"fetchInterval": 2000,
+		"aggregateInterval": 3000,
+		"submitInterval": 15000,
+		"decimals": 8,
+		"feeds": [
+			{"name": "test-feed-1", "definition": {"url": "https://example.com/1"}}
+		]
+	}
+]`
+
+// configFixtureTransport serves configSyncFixture for requests to the config
+// host and delegates everything else to the wrapped transport. Installing it on
+// http.DefaultTransport keeps TestConfigSync hermetic without any production
+// hook: getConfigUrl() and the request package are unchanged, and the request
+// package's client (no explicit Transport) falls through to http.DefaultTransport.
+type configFixtureTransport struct {
+	base http.RoundTripper
+}
+
+func (t configFixtureTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	if req.URL.Host == "config.orakl.network" {
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Header:     http.Header{"Content-Type": []string{"application/json"}},
+			Body:       io.NopCloser(strings.NewReader(configSyncFixture)),
+			Request:    req,
+		}, nil
+	}
+	return t.base.RoundTrip(req)
+}
+
 func TestConfigSync(t *testing.T) {
 	ctx := context.Background()
+
+	// Intercept the live config.orakl.network fetch inside the sync handler.
+	origTransport := http.DefaultTransport
+	http.DefaultTransport = configFixtureTransport{base: origTransport}
+	defer func() { http.DefaultTransport = origTransport }()
+
 	cleanup, testItems, err := setup(ctx)
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
