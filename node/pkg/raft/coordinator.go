@@ -176,7 +176,13 @@ func (c *HeartbeatCoordinator) readSubscription(ctx context.Context, sub *pubsub
 			log.Error().Err(err).Msg("control topic subscription error, re-subscribing")
 			return
 		}
-		c.buffer <- rawMsg
+		// ctx-aware send: if Run has already returned on ctx.Done() and the buffer
+		// is full, a plain send would block forever and leak this goroutine.
+		select {
+		case c.buffer <- rawMsg:
+		case <-ctx.Done():
+			return
+		}
 	}
 }
 
