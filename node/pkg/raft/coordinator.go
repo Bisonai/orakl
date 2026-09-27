@@ -137,46 +137,60 @@ func (c *HeartbeatCoordinator) Run(ctx context.Context) {
 	}
 }
 
+// subscribe keeps a live subscription to the control topic for the coordinator's
+// lifetime. It (re)subscribes with backoff on any failure — both the initial
+// Subscribe and a subscription that dies at runtime — because heartbeat
+// receive/fan-out is the always-on safety guarantee the mixed-fleet rollout
+// relies on. It returns only when ctx is cancelled.
 func (c *HeartbeatCoordinator) subscribe(ctx context.Context) {
-	// Retry the initial Subscribe: a one-off transient failure here must not
-	// permanently disable heartbeat receive/fan-out, which is the always-on safety
-	// guarantee the mixed-fleet rollout relies on.
-	var sub *pubsub.Subscription
-	for {
-		var err error
-		sub, err = c.topic.Subscribe()
-		if err == nil {
-			break
+	for ctx.Err() == nil {
+		sub, err := c.topic.Subscribe()
+		if err != nil {
+			log.Error().Err(err).Msg("failed to subscribe to control topic, retrying")
+			if !sleepCtx(ctx, HEARTBEAT_TIMEOUT) {
+				return
+			}
+			continue
 		}
-		if ctx.Err() != nil {
+
+		c.readSubscription(ctx, sub)
+
+		// readSubscription returned: either ctx was cancelled (outer loop exits)
+		// or the subscription errored. Back off before re-subscribing so a
+		// persistent failure can't hot-loop.
+		if !sleepCtx(ctx, HEARTBEAT_TIMEOUT) {
 			return
 		}
-		log.Error().Err(err).Msg("failed to subscribe to control topic, retrying")
-		time.Sleep(HEARTBEAT_TIMEOUT)
 	}
-	// Only cancel our subscription; the control topic is joined once for the app
-	// lifetime and shared with the broadcast path, so the coordinator must not
-	// close it.
+}
+
+// readSubscription forwards messages until the subscription errors (so the caller
+// re-subscribes on a fresh one) or ctx is cancelled. It cancels only its own
+// subscription; the control topic is joined once for the app lifetime and shared
+// with the broadcast path, so the coordinator must never close it.
+func (c *HeartbeatCoordinator) readSubscription(ctx context.Context, sub *pubsub.Subscription) {
 	defer sub.Cancel()
 	for {
-		select {
-		case <-ctx.Done():
-			log.Debug().Msg("control topic context cancelled")
-			return
-		default:
-			rawMsg, err := sub.Next(ctx)
-			if err != nil {
-				// exit promptly on shutdown; otherwise back off so a persistent
-				// subscription error can't spin a hot loop flooding the logs.
-				if ctx.Err() != nil {
-					return
-				}
-				log.Error().Err(err).Msg("failed to get message from control topic")
-				time.Sleep(HEARTBEAT_TIMEOUT)
-				continue
+		rawMsg, err := sub.Next(ctx)
+		if err != nil {
+			if ctx.Err() != nil {
+				log.Debug().Msg("control topic context cancelled")
+				return
 			}
-			c.buffer <- rawMsg
+			log.Error().Err(err).Msg("control topic subscription error, re-subscribing")
+			return
 		}
+		c.buffer <- rawMsg
+	}
+}
+
+// sleepCtx sleeps for d, returning false if ctx is cancelled first.
+func sleepCtx(ctx context.Context, d time.Duration) bool {
+	select {
+	case <-ctx.Done():
+		return false
+	case <-time.After(d):
+		return true
 	}
 }
 
