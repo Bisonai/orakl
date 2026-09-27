@@ -3,9 +3,10 @@ package tests
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
-	"net/http/httptest"
 	"strconv"
+	"strings"
 	"testing"
 
 	"bisonai.com/miko/node/pkg/admin/config"
@@ -39,15 +40,34 @@ const configSyncFixture = `[
 	}
 ]`
 
+// configFixtureTransport serves configSyncFixture for requests to the config
+// host and delegates everything else to the wrapped transport. Installing it on
+// http.DefaultTransport keeps TestConfigSync hermetic without any production
+// hook: getConfigUrl() and the request package are unchanged, and the request
+// package's client (no explicit Transport) falls through to http.DefaultTransport.
+type configFixtureTransport struct {
+	base http.RoundTripper
+}
+
+func (t configFixtureTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	if req.URL.Host == "config.orakl.network" {
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Header:     http.Header{"Content-Type": []string{"application/json"}},
+			Body:       io.NopCloser(strings.NewReader(configSyncFixture)),
+			Request:    req,
+		}, nil
+	}
+	return t.base.RoundTrip(req)
+}
+
 func TestConfigSync(t *testing.T) {
 	ctx := context.Background()
 
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(configSyncFixture))
-	}))
-	defer server.Close()
-	t.Setenv("CONFIG_URL", server.URL)
+	// Intercept the live config.orakl.network fetch inside the sync handler.
+	origTransport := http.DefaultTransport
+	http.DefaultTransport = configFixtureTransport{base: origTransport}
+	defer func() { http.DefaultTransport = origTransport }()
 
 	cleanup, testItems, err := setup(ctx)
 	if err != nil {

@@ -231,10 +231,6 @@ func DeleteById(c *fiber.Ctx) error {
 }
 
 func getConfigUrl() string {
-	if url := os.Getenv("CONFIG_URL"); url != "" {
-		return url
-	}
-
 	chain := os.Getenv("CHAIN")
 	if chain == "" {
 		chain = "baobab"
