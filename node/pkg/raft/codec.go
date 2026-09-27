@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -65,12 +66,8 @@ func UseMsgpack() bool {
 // var (default off). Decode/fan-out of combined heartbeats is always active
 // regardless of this flag, so a mixed fleet stays safe during rollout (#2558).
 func HeartbeatBatchEnabled() bool {
-	switch strings.ToLower(strings.TrimSpace(os.Getenv("P2P_HEARTBEAT_BATCH"))) {
-	case "1", "true", "on", "yes":
-		return true
-	default:
-		return false
-	}
+	on, _ := strconv.ParseBool(os.Getenv("P2P_HEARTBEAT_BATCH"))
+	return on
 }
 
 // IsJSON sniffs the first non-space byte: a legacy JSON object starts with '{'.

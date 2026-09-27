@@ -62,13 +62,17 @@ func TestHeartbeatBatchEnabledFlag(t *testing.T) {
 	t.Setenv("P2P_HEARTBEAT_BATCH", "")
 	assert.False(t, HeartbeatBatchEnabled(), "default off")
 
-	for _, v := range []string{"1", "true", "on", "yes", "TRUE"} {
+	for _, v := range []string{"1", "true", "TRUE", "True", "t"} {
 		t.Setenv("P2P_HEARTBEAT_BATCH", v)
 		assert.True(t, HeartbeatBatchEnabled(), v)
 	}
 
-	t.Setenv("P2P_HEARTBEAT_BATCH", "off")
-	assert.False(t, HeartbeatBatchEnabled())
+	// strconv.ParseBool (codebase convention) only accepts the standard bool
+	// literals; on/yes/off and junk are all off.
+	for _, v := range []string{"off", "0", "on", "yes", "garbage"} {
+		t.Setenv("P2P_HEARTBEAT_BATCH", v)
+		assert.False(t, HeartbeatBatchEnabled(), v)
+	}
 }
 
 func TestControlTopicName(t *testing.T) {
