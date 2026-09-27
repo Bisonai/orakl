@@ -119,14 +119,10 @@ func (c *HeartbeatCoordinator) Run(ctx context.Context) {
 	for {
 		select {
 		case rawMsg := <-c.buffer:
-			go func(m *pubsub.Message) {
-				defer func() {
-					if rec := recover(); rec != nil {
-						log.Error().Msgf("recovered from panic in heartbeat fan-out: %v", rec)
-					}
-				}()
-				c.handleRaw(m)
-			}(rawMsg)
+			// Handle synchronously (in receive order): a goroutine per message let
+			// two heartbeats for the same feed apply out of order, so a stale one
+			// could reset MissedHeartbeats after a newer one (#2558).
+			c.handleRawSafe(rawMsg)
 		case <-ticker.C:
 			if HeartbeatBatchEnabled() {
 				c.tickBroadcast(ctx)
@@ -242,6 +238,17 @@ func (c *HeartbeatCoordinator) broadcast(ctx context.Context) {
 	if err := c.topic.Publish(ctx, data); err != nil {
 		log.Error().Err(err).Msg("failed to publish batch heartbeat")
 	}
+}
+
+// handleRawSafe runs handleRaw with panic recovery so a single malformed control
+// message can't unwind Run and take down the always-on fan-out.
+func (c *HeartbeatCoordinator) handleRawSafe(rawMsg *pubsub.Message) {
+	defer func() {
+		if rec := recover(); rec != nil {
+			log.Error().Msgf("recovered from panic in heartbeat fan-out: %v", rec)
+		}
+	}()
+	c.handleRaw(rawMsg)
 }
 
 func (c *HeartbeatCoordinator) handleRaw(rawMsg *pubsub.Message) {

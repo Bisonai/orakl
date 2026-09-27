@@ -144,10 +144,18 @@ func (r *Raft) applyHeartbeat(leaderID string, term int) error {
 	r.Mutex.Lock()
 	defer r.Mutex.Unlock()
 
-	r.MissedHeartbeats = 0
-
 	currentRole := r.Role
 	currentTerm := r.Term
+
+	// Ignore stale heartbeats (term < currentTerm) — e.g. a delayed combined
+	// heartbeat from a deposed leader, now reorderable under the concurrent
+	// control-plane fan-out. Resetting MissedHeartbeats / the election timer on a
+	// stale heartbeat would wrongly suppress a legitimate election (#2558).
+	if term < currentTerm {
+		return nil
+	}
+
+	r.MissedHeartbeats = 0
 
 	if r.Role == Follower {
 		r.startElectionTimer()
