@@ -91,6 +91,17 @@ func TestConfigSync(t *testing.T) {
 	}
 	assert.Greater(t, len(readResult), 1)
 
+	// Assert the fixture (not the live CDN) was served: the interceptor's
+	// config names must be present. Without this, a silent fallback to
+	// config.orakl.network would still satisfy len>1 and pass — defeating the
+	// hermetic guarantee.
+	loadedNames := make(map[string]bool, len(readResult))
+	for _, cfg := range readResult {
+		loadedNames[cfg.Name] = true
+	}
+	assert.True(t, loadedNames["test-aggregate-0"], "fixture config not loaded; sync may have hit the live CDN: %+v", readResult)
+	assert.True(t, loadedNames["test-aggregate-1"], "fixture config not loaded; sync may have hit the live CDN: %+v", readResult)
+
 	// should remove previously inserted config and feed which doesn't exist in miko-config
 	readTmpConfigResult, err := GetRequest[config.ConfigModel](testItems.app, "/api/v1/config/"+strconv.Itoa(int(testItems.tmpData.config.ID)), nil)
 	if err != nil {
