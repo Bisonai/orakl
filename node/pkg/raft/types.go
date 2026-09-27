@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
@@ -93,4 +94,11 @@ type Raft struct {
 
 	CooldownPeriod   time.Duration
 	LastElectionTime time.Time
+
+	// hbCoordinator points at the node-level HeartbeatCoordinator that emits a
+	// combined heartbeat on this feed's behalf, or nil when none is doing so.
+	// becomeLeader only suppresses its per-feed heartbeat when this is a RUNNING
+	// coordinator, so a failed/absent coordinator falls back to per-feed
+	// heartbeats instead of going silent (#2558).
+	hbCoordinator atomic.Pointer[HeartbeatCoordinator]
 }

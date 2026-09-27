@@ -392,7 +392,12 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 				// suppressed here to actually cut the message count. The immediate
 				// heartbeat above still fires on election so a new leader is announced
 				// without waiting a tick.
-				if HeartbeatBatchEnabled() {
+				//
+				// Suppress ONLY when a running coordinator is emitting on our behalf:
+				// if the best-effort control-topic join failed (coordinator nil) or it
+				// isn't running, fall through to the per-feed heartbeat so leaders never
+				// go silent (#2558).
+				if HeartbeatBatchEnabled() && r.hbCoordinator.Load().IsRunning() {
 					continue
 				}
 				err := r.sendHeartbeat(ctx)

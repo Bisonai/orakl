@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -47,6 +48,17 @@ type HeartbeatCoordinator struct {
 	feeds map[string]*Raft
 
 	buffer chan *pubsub.Message
+
+	// running reports whether Run's loop is live, so a leader only suppresses its
+	// per-feed heartbeat when this coordinator is actually emitting on its behalf.
+	running atomic.Bool
+}
+
+// IsRunning reports whether Run's loop is active. Nil-safe: a nil coordinator (the
+// best-effort setup left it nil) reports false, so callers fall back to per-feed
+// heartbeats.
+func (c *HeartbeatCoordinator) IsRunning() bool {
+	return c != nil && c.running.Load()
 }
 
 // NewHeartbeatCoordinator builds a coordinator bound to an already-joined control
@@ -71,8 +83,21 @@ func (c *HeartbeatCoordinator) Reset(feeds map[string]*Raft) {
 		next[id] = r
 	}
 	c.mu.Lock()
+	prev := c.feeds
 	c.feeds = next
 	c.mu.Unlock()
+
+	// Point newly/currently-registered feeds at this coordinator so they suppress
+	// their per-feed heartbeat, and clear the back-ref on dropped feeds so they
+	// resume it.
+	for _, r := range next {
+		r.hbCoordinator.Store(c)
+	}
+	for id, r := range prev {
+		if _, ok := next[id]; !ok {
+			r.hbCoordinator.Store(nil)
+		}
+	}
 }
 
 func (c *HeartbeatCoordinator) hostID() string {
@@ -83,6 +108,9 @@ func (c *HeartbeatCoordinator) hostID() string {
 // and, while P2P_HEARTBEAT_BATCH is enabled, emits one combined heartbeat every
 // HEARTBEAT_TIMEOUT tick. It blocks until ctx is cancelled.
 func (c *HeartbeatCoordinator) Run(ctx context.Context) {
+	c.running.Store(true)
+	defer c.running.Store(false)
+
 	go c.subscribe(ctx)
 
 	ticker := time.NewTicker(HEARTBEAT_TIMEOUT)
