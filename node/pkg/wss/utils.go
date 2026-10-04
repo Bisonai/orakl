@@ -87,10 +87,22 @@ func (ws *WebsocketHelper) Run(ctx context.Context, router func(context.Context,
 	defer inactivityTimer.Stop()
 
 	for {
+		if ctx.Err() != nil {
+			log.Info().Str("endpoint", ws.Endpoint).Msg("context cancelled, stopping websocket")
+			return
+		}
+
 		err := ws.dialAndSubscribe(ctx)
 		if err != nil {
+			if ctx.Err() != nil {
+				log.Info().Str("endpoint", ws.Endpoint).Msg("context cancelled, stopping websocket")
+				return
+			}
 			log.Warn().Err(err).Str("endpoint", ws.Endpoint).Msg("error dialing and subscribing to websocket")
-			time.Sleep(time.Second)
+			if sleepCtx(ctx, time.Second) != nil {
+				log.Info().Str("endpoint", ws.Endpoint).Msg("context cancelled, stopping websocket")
+				return
+			}
 			continue
 		}
 	innerLoop:
@@ -137,10 +149,16 @@ func (ws *WebsocketHelper) Run(ctx context.Context, router func(context.Context,
 
 func (ws *WebsocketHelper) dialAndSubscribe(ctx context.Context) error {
 	dialJob := func() error {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		return ws.Dial(ctx)
 	}
 
 	subscribeJob := func() error {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		for _, subscription := range ws.Subscriptions {
 			switch casted := subscription.(type) {
 			case []byte:
@@ -152,7 +170,9 @@ func (ws *WebsocketHelper) dialAndSubscribe(ctx context.Context) error {
 					return err
 				}
 			}
-			time.Sleep(time.Second)
+			if err := sleepCtx(ctx, time.Second); err != nil {
+				return err
+			}
 		}
 		return nil
 	}
@@ -163,10 +183,13 @@ func (ws *WebsocketHelper) dialAndSubscribe(ctx context.Context) error {
 	}
 
 	// Some providers block immediate subscription after dialing
-	time.Sleep(time.Second)
-
-	err = retrier.Retry(subscribeJob, 3, 1, 10)
+	err = sleepCtx(ctx, time.Second)
+	if err == nil {
+		err = retrier.Retry(subscribeJob, 3, 1, 10)
+	}
 	if err != nil {
+		// close half-open conn so it isn't leaked on retry or exit
+		ws.Close()
 		return err
 	}
 
@@ -225,6 +248,18 @@ func (ws *WebsocketHelper) IsAlive(ctx context.Context) error {
 		return err
 	}
 	return nil
+}
+
+// sleepCtx sleeps for d or until ctx is done, returning ctx.Err() in the latter case
+func sleepCtx(ctx context.Context, d time.Duration) error {
+	timer := time.NewTimer(d)
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-timer.C:
+		return nil
+	}
 }
 
 func isErrorNormalClosure(err error) bool {
