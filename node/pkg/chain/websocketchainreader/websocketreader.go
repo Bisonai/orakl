@@ -154,6 +154,25 @@ func New(opts ...ChainReaderOption) (*ChainReader, error) {
 	}, nil
 }
 
+// Close closes all dialed clients. Unset optional chains (typed-nil) are skipped.
+func (c *ChainReader) Close() {
+	for _, cl := range []utils.ClientInterface{c.EthClient, c.KaiaClient, c.BscClient, c.PolygonClient, c.BaseClient, c.ArbitrumClient} {
+		switch v := cl.(type) {
+		case nil:
+			continue
+		case *eth_client.EthClient:
+			if v == nil {
+				continue
+			}
+		case *client.Client:
+			if v == nil {
+				continue
+			}
+		}
+		cl.Close()
+	}
+}
+
 func (c *ChainReader) BlockNumber(ctx context.Context, chainType BlockchainType) (*big.Int, error) {
 	websocketClient := c.client(chainType)
 	return websocketClient.BlockNumber(ctx)
