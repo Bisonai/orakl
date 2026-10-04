@@ -120,6 +120,10 @@ func New() *App {
 }
 
 func (a *App) Init(ctx context.Context, opts ...AppOption) error {
+	// Init is re-run on fetcher refresh (Stop -> Init -> Start); drop the
+	// previous fetchers and chain reader so Start doesn't run stale fetchers
+	// writing into an undrained old buffer.
+	a.reset()
 
 	cexFactories := map[string]func(context.Context, ...common.FetcherOption) (common.FetcherInterface, error){
 		"binance":  binance.New,
@@ -186,6 +190,14 @@ func (a *App) Init(ctx context.Context, opts ...AppOption) error {
 	}
 
 	return nil
+}
+
+func (a *App) reset() {
+	a.fetchers = nil
+	if a.chainReader != nil {
+		a.chainReader.Close()
+		a.chainReader = nil
+	}
 }
 
 func (a *App) initializeCex(ctx context.Context, appConfig AppConfig) error {
