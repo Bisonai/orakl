@@ -91,7 +91,7 @@ type lastInfo struct {
 }
 
 type urlEntry struct {
-	adapterEndpoint, aggregatorEndpoint string
-	useProxy                            bool
-	useDelegatedTx                      bool
+	endpoint       string
+	useProxy       bool
+	useDelegatedTx bool
 }
