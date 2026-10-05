@@ -86,5 +86,5 @@ func loadPegPorConfigUrl(chain string) string {
 }
 
 func loadAggregatorInfoUrl(chain string) string {
-	return fmt.Sprintf("https://config.orakl.network/%s_aggregators.json", chain)
+	return fmt.Sprintf("https://config.orakl.network/%s_mag7.json", chain)
 }

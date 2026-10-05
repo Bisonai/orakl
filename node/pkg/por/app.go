@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"math"
 	"math/big"
 	"net/http"
@@ -30,53 +31,61 @@ const (
 	maxTxSubmissionRetries = 3
 	defaultInterval        = 60 * time.Second
 	submissionBuffer       = 5 * time.Second
-	adapterBaseUrl         = "https://config.orakl.network/adapter"
-	aggregatorBaseUrl      = "https://config.orakl.network/aggregator"
+	mag7BaseUrl            = "https://config.orakl.network/mag7"
 )
 
 var urls = map[string]urlEntry{
 	"aapl": {
-		"/{CHAIN}/aapl-{CHAIN}.json",
 		"/{CHAIN}/aapl.json",
 		true,
 		true,
 	},
 	"amzn": {
-		"/{CHAIN}/amzn-{CHAIN}.json",
 		"/{CHAIN}/amzn.json",
 		true,
 		true,
 	},
 	"googl": {
-		"/{CHAIN}/googl-{CHAIN}.json",
 		"/{CHAIN}/googl.json",
 		true,
 		true,
 	},
 	"meta": {
-		"/{CHAIN}/meta-{CHAIN}.json",
 		"/{CHAIN}/meta.json",
 		true,
 		true,
 	},
 	"msft": {
-		"/{CHAIN}/msft-{CHAIN}.json",
 		"/{CHAIN}/msft.json",
 		true,
 		true,
 	},
 	"nvda": {
-		"/{CHAIN}/nvda-{CHAIN}.json",
 		"/{CHAIN}/nvda.json",
 		true,
 		true,
 	},
 	"tsla": {
-		"/{CHAIN}/tsla-{CHAIN}.json",
 		"/{CHAIN}/tsla.json",
 		true,
 		true,
 	},
+}
+
+// fetchConfigBytes fetches a merged mag7 config and returns the raw response
+// body so it can be unmarshalled into multiple structs.
+func fetchConfigBytes(endpoint string) ([]byte, error) {
+	resp, err := request.RequestRaw(request.WithEndpoint(endpoint))
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to fetch %s: status %d", endpoint, resp.StatusCode)
+	}
+
+	return io.ReadAll(resp.Body)
 }
 
 func New(ctx context.Context) (*app, error) {
@@ -95,20 +104,26 @@ func New(ctx context.Context) (*app, error) {
 
 	entries := map[string]entry{}
 	for n, u := range urls {
-		adapterUrl := adapterBaseUrl + strings.ReplaceAll(u.adapterEndpoint, "{CHAIN}", chain)
-		aggregatorUrl := aggregatorBaseUrl + strings.ReplaceAll(u.aggregatorEndpoint, "{CHAIN}", chain)
+		mag7Url := mag7BaseUrl + strings.ReplaceAll(u.endpoint, "{CHAIN}", chain)
 
-		ad, err := request.Request[adaptor](request.WithEndpoint(adapterUrl))
+		// The merged mag7 config carries fields for both the adaptor and the
+		// aggregator, so fetch once and unmarshal the same bytes into both.
+		body, err := fetchConfigBytes(mag7Url)
 		if err != nil {
 			return nil, err
 		}
 
-		if len(ad.Feeds) == 0 {
-			return nil, fmt.Errorf("feeds not found for %s", adapterUrl)
+		var ad adaptor
+		if err = json.Unmarshal(body, &ad); err != nil {
+			return nil, err
 		}
 
-		ag, err := request.Request[aggregator](request.WithEndpoint(aggregatorUrl))
-		if err != nil {
+		if len(ad.Feeds) == 0 {
+			return nil, fmt.Errorf("feeds not found for %s", mag7Url)
+		}
+
+		var ag aggregator
+		if err = json.Unmarshal(body, &ag); err != nil {
 			return nil, err
 		}
 
