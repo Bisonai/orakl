@@ -111,7 +111,7 @@ func (n *Aggregator) HandleTriggerMessage(ctx context.Context, msg raft.Message)
 
 	currentLeader := n.Raft.GetLeader()
 	if msg.SentFrom != currentLeader {
-		log.Warn().Str("Player", "Aggregator").Str("Sender", msg.SentFrom).Str("CurrentLeader", currentLeader).Str("Me", n.Raft.GetHostId()).Msg("trigger message sent from non-leader")
+		log.Debug().Str("Player", "Aggregator").Str("Sender", msg.SentFrom).Str("CurrentLeader", currentLeader).Str("Me", n.Raft.GetHostId()).Msg("trigger message sent from non-leader")
 		return errorSentinel.ErrAggregatorNonLeaderRaftMessage
 	}
 
@@ -125,7 +125,7 @@ func (n *Aggregator) HandleTriggerMessage(ctx context.Context, msg raft.Message)
 	defer n.roundTriggers.mu.Unlock()
 
 	if n.roundTriggers.locked[triggerMessage.RoundID] {
-		log.Warn().Str("Player", "Aggregator").Str("Sender", msg.SentFrom).Str("CurrentLeader", currentLeader).Str("Me", n.Raft.GetHostId()).Int32("RoundID", triggerMessage.RoundID).Msg("trigger message already processed")
+		log.Debug().Str("Player", "Aggregator").Str("Sender", msg.SentFrom).Str("CurrentLeader", currentLeader).Str("Me", n.Raft.GetHostId()).Int32("RoundID", triggerMessage.RoundID).Msg("trigger message already processed")
 		return nil
 	}
 	n.roundTriggers.locked[triggerMessage.RoundID] = true
@@ -162,12 +162,12 @@ func (n *Aggregator) HandlePriceDataMessage(ctx context.Context, msg raft.Messag
 	defer n.roundPrices.mu.Unlock()
 
 	if n.roundPrices.locked[priceDataMessage.RoundID] {
-		log.Warn().Str("Player", "Aggregator").Str("Sender", msg.SentFrom).Str("Me", n.Raft.GetHostId()).Str("transmissionDelay", time.Since(msg.Timestamp).String()).Int32("RoundID", priceDataMessage.RoundID).Msg("price data message already processed")
+		log.Debug().Str("Player", "Aggregator").Str("Sender", msg.SentFrom).Str("Me", n.Raft.GetHostId()).Str("transmissionDelay", time.Since(msg.Timestamp).String()).Int32("RoundID", priceDataMessage.RoundID).Msg("price data message already processed")
 		return nil
 	}
 
 	if n.roundPrices.isReplay(priceDataMessage.RoundID, msg.SentFrom) {
-		log.Warn().Str("Player", "Aggregator").Str("Sender", msg.SentFrom).Str("Me", n.Raft.GetHostId()).Int32("RoundID", priceDataMessage.RoundID).Msg("price data message replayed")
+		log.Debug().Str("Player", "Aggregator").Str("Sender", msg.SentFrom).Str("Me", n.Raft.GetHostId()).Int32("RoundID", priceDataMessage.RoundID).Msg("price data message replayed")
 		return nil
 	}
 
@@ -251,14 +251,14 @@ func (n *Aggregator) HandlePriceFixMessage(ctx context.Context, msg raft.Message
 
 	currentLeader := n.Raft.GetLeader()
 	if msg.SentFrom != currentLeader {
-		log.Warn().Str("Player", "Aggregator").Str("Sender", msg.SentFrom).Str("CurrentLeader", currentLeader).Str("Me", n.Raft.GetHostId()).Msg("price fix message sent from non-leader")
+		log.Debug().Str("Player", "Aggregator").Str("Sender", msg.SentFrom).Str("CurrentLeader", currentLeader).Str("Me", n.Raft.GetHostId()).Msg("price fix message sent from non-leader")
 		return errorSentinel.ErrAggregatorNonLeaderRaftMessage
 	}
 
 	n.roundPriceFixes.mu.Lock()
 	defer n.roundPriceFixes.mu.Unlock()
 	if n.roundPriceFixes.locked[priceFixMessage.RoundID] {
-		log.Warn().Str("Player", "Aggregator").Int32("RoundID", priceFixMessage.RoundID).Msg("price fix message already processed")
+		log.Debug().Str("Player", "Aggregator").Int32("RoundID", priceFixMessage.RoundID).Msg("price fix message already processed")
 		return nil
 	}
 
@@ -296,12 +296,12 @@ func (n *Aggregator) HandleProofMessage(ctx context.Context, msg raft.Message) e
 	defer n.roundProofs.mu.Unlock()
 
 	if n.roundProofs.locked[proofMessage.RoundID] {
-		log.Warn().Str("Player", "Aggregator").Str("Sender", msg.SentFrom).Str("Me", n.Raft.GetHostId()).Str("transmissionDelay", time.Since(msg.Timestamp).String()).Int32("RoundID", proofMessage.RoundID).Msg("proof message already processed")
+		log.Debug().Str("Player", "Aggregator").Str("Sender", msg.SentFrom).Str("Me", n.Raft.GetHostId()).Str("transmissionDelay", time.Since(msg.Timestamp).String()).Int32("RoundID", proofMessage.RoundID).Msg("proof message already processed")
 		return nil
 	}
 
 	if n.roundProofs.isReplay(proofMessage.RoundID, msg.SentFrom) {
-		log.Warn().Str("Player", "Aggregator").Str("Sender", msg.SentFrom).Str("Me", n.Raft.GetHostId()).Int32("RoundID", proofMessage.RoundID).Msg("proof message replayed")
+		log.Debug().Str("Player", "Aggregator").Str("Sender", msg.SentFrom).Str("Me", n.Raft.GetHostId()).Int32("RoundID", proofMessage.RoundID).Msg("proof message replayed")
 		return nil
 	}
 
