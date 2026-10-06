@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"sync"
 
 	"bisonai.com/miko/node/pkg/chain/helper"
@@ -139,7 +140,11 @@ func fetchConfigs() ([]Config, error) {
 		log.Info().Str("Player", "Reporter").Msg("CHAIN env not set, defaulting to baobab")
 		chain = "baobab"
 	}
-	endpoint := fmt.Sprintf("https://config.orakl.network/%s_configs.json", chain)
+	baseUrl := os.Getenv("ORAKL_CONFIG_BASE_URL")
+	if baseUrl == "" {
+		baseUrl = "https://config.orakl.network"
+	}
+	endpoint := fmt.Sprintf("%s/%s_configs.json", strings.TrimRight(baseUrl, "/"), chain)
 	configs, err := request.Request[[]Config](request.WithEndpoint(endpoint))
 	if err != nil {
 		return nil, err
