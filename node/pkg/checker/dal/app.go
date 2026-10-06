@@ -78,12 +78,28 @@ func Start(ctx context.Context) error {
 	}
 
 	var endpoint, wsEndpoint string
-	if chain == "baobab" {
+	// In-cluster gate: testnet uses the in-cluster DAL. Gate on the normalized
+	// value so it keeps selecting in-cluster after a CHAIN flip baobab->kairos.
+	if chainname.Normalize(chain) == "kairos" {
 		endpoint = "http://orakl-dal.orakl.svc.cluster.local"
 		wsEndpoint = "ws://orakl-dal.orakl.svc.cluster.local/ws"
 	} else {
+		// External host is REAL external DNS (not a served config name), so the
+		// raw chain is used here unchanged: dal.cypress.orakl.network today. The
+		// mainnet/cypress DAL runs in KakaoCloud; whether that DNS becomes
+		// dal.mainnet.orakl.network is a Phase-4 infra decision, so we do not
+		// build dal.mainnet... blindly. The DAL_CHECK_* overrides below are the
+		// flip-safe seam for infra to set the real host.
 		endpoint = fmt.Sprintf("https://dal.%s.orakl.network", chain)
 		wsEndpoint = fmt.Sprintf("ws://dal.%s.orakl.network/ws", chain)
+	}
+	// Phase-4 infra seam: if set, these overrides win verbatim over the
+	// chain-based construction above (and over the in-cluster default).
+	if v := os.Getenv("DAL_CHECK_REST_URL"); v != "" {
+		endpoint = v
+	}
+	if v := os.Getenv("DAL_CHECK_WS_URL"); v != "" {
+		wsEndpoint = v
 	}
 
 	configs, err := fetchConfigs()
