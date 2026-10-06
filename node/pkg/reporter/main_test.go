@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"net/http"
 	"net/http/httptest"
 
 	"bisonai.com/miko/node/pkg/aggregator"
@@ -22,9 +23,49 @@ import (
 	"github.com/rs/zerolog"
 )
 
+// testConfigsFixture mirrors the shape of a real <chain>_configs.json entry
+// (name, intervals, feeds) but is served locally so the reporter test suite is
+// self-contained. The reporter only reads name/submitInterval; the extra fields
+// document the real shape and are ignored on unmarshal.
+const testConfigsFixture = `[
+	{
+		"id": 1,
+		"name": "test-aggregate",
+		"fetchInterval": 2000,
+		"aggregateInterval": 3000,
+		"submitInterval": 15000,
+		"feeds": [
+			{"name": "test-feed-0", "definition": {"url": "https://example.com/0"}}
+		]
+	},
+	{
+		"id": 2,
+		"name": "test-aggregate-2",
+		"fetchInterval": 2000,
+		"aggregateInterval": 3000,
+		"submitInterval": 15000,
+		"feeds": [
+			{"name": "test-feed-1", "definition": {"url": "https://example.com/1"}}
+		]
+	}
+]`
+
 func TestMain(m *testing.M) {
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+
+	// Serve the config bundle locally so the reporter tests never hit the live
+	// config.orakl.network CDN (whose test_configs.json was removed in
+	// orakl-config #208 -> 404). The handler is path-agnostic, so it keeps
+	// working across the _configs.json -> _feeds.json rename (#2587).
+	configServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(testConfigsFixture))
+	}))
+	os.Setenv("ORAKL_CONFIG_BASE_URL", configServer.URL)
+
 	code := m.Run()
+
+	configServer.Close()
 	os.Exit(code)
 }
 
