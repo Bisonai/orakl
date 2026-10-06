@@ -79,7 +79,7 @@ func mockDalWsServer(ctx context.Context) (*wss.WebsocketHelper, *types.Config, 
 	}
 
 	keyCache := keycache.NewAPIKeyCache(1 * time.Hour)
-	keyCache.CleanupLoop(10 * time.Minute)
+	keyCache.CleanupLoop(ctx, 10 * time.Minute)
 
 	collector, err := collector.NewCollector(ctx, []types.Config{tmpConfig})
 	if err != nil {
