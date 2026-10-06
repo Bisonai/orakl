@@ -61,7 +61,7 @@ func TestMain(m *testing.M) {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(testConfigsFixture))
 	}))
-	os.Setenv("ORAKL_CONFIG_BASE_URL", configServer.URL)
+	configBaseURL = configServer.URL
 
 	code := m.Run()
 

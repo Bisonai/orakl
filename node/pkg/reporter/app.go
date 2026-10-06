@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strings"
 	"sync"
 
 	"bisonai.com/miko/node/pkg/chain/helper"
@@ -134,17 +133,18 @@ func (a *App) startReporters(ctx context.Context) {
 	}
 }
 
+// configBaseURL is the base for config.orakl.network bundle fetches.
+// In-package tests override it to point at a local httptest server;
+// production always uses the default.
+var configBaseURL = "https://config.orakl.network"
+
 func fetchConfigs() ([]Config, error) {
 	chain := os.Getenv("CHAIN")
 	if chain == "" {
 		log.Info().Str("Player", "Reporter").Msg("CHAIN env not set, defaulting to baobab")
 		chain = "baobab"
 	}
-	baseUrl := strings.TrimRight(os.Getenv("ORAKL_CONFIG_BASE_URL"), "/")
-	if baseUrl == "" {
-		baseUrl = "https://config.orakl.network"
-	}
-	endpoint := fmt.Sprintf("%s/%s_configs.json", baseUrl, chain)
+	endpoint := fmt.Sprintf("%s/%s_configs.json", configBaseURL, chain)
 	configs, err := request.Request[[]Config](request.WithEndpoint(endpoint))
 	if err != nil {
 		return nil, err
