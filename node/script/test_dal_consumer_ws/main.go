@@ -25,7 +25,10 @@ type Subscription struct {
 
 func main() {
 	ctx := context.Background()
-	chain := "baobab"
+	chain := os.Getenv("CHAIN")
+	if chain == "" {
+		chain = "baobab"
+	}
 	key := ""
 	configs, err := fetchConfigs()
 	if err != nil {
