@@ -6,6 +6,7 @@ import (
 	"os"
 	"sync"
 
+	chainname "bisonai.com/miko/node/pkg/chain"
 	"bisonai.com/miko/node/pkg/chain/helper"
 	errorSentinel "bisonai.com/miko/node/pkg/error"
 	"bisonai.com/miko/node/pkg/secrets"
@@ -144,7 +145,7 @@ func fetchConfigs() ([]Config, error) {
 		log.Info().Str("Player", "Reporter").Msg("CHAIN env not set, defaulting to baobab")
 		chain = "baobab"
 	}
-	endpoint := fmt.Sprintf("%s/%s_configs.json", configBaseURL, chain)
+	endpoint := fmt.Sprintf("%s/%s_feeds.json", configBaseURL, chainname.Normalize(chain))
 	configs, err := request.Request[[]Config](request.WithEndpoint(endpoint))
 	if err != nil {
 		return nil, err

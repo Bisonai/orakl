@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	chainname "bisonai.com/miko/node/pkg/chain"
 	"bisonai.com/miko/node/pkg/common/types"
 	"bisonai.com/miko/node/pkg/dal/apiv2"
 	"bisonai.com/miko/node/pkg/dal/collector"
@@ -20,7 +21,7 @@ import (
 
 type Config = types.Config
 
-const baseMikoConfigUrl = "https://config.orakl.network/%s_configs.json"
+const baseMikoConfigUrl = "https://config.orakl.network/%s_feeds.json"
 
 func Run(ctx context.Context) error {
 	log.Debug().Msg("Starting DAL API server")
@@ -64,6 +65,6 @@ func Run(ctx context.Context) error {
 
 func fetchConfigs(chain string) ([]Config, error) {
 	return request.Request[[]Config](
-		request.WithEndpoint(fmt.Sprintf(baseMikoConfigUrl, chain)),
+		request.WithEndpoint(fmt.Sprintf(baseMikoConfigUrl, chainname.Normalize(chain))),
 		request.WithTimeout(5*time.Second))
 }
