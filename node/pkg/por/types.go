@@ -95,3 +95,18 @@ type urlEntry struct {
 	useProxy       bool
 	useDelegatedTx bool
 }
+
+// normalizeChain maps the infra-injected chain value to the chain name that
+// config.orakl.network serves after the chain rename: cypress->mainnet,
+// baobab->kairos. mainnet/kairos pass through unchanged so this keeps working
+// both before and after infra flips the injected chain value.
+func normalizeChain(chain string) string {
+	switch chain {
+	case "cypress":
+		return "mainnet"
+	case "baobab":
+		return "kairos"
+	default:
+		return chain
+	}
+}

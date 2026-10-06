@@ -36,37 +36,37 @@ const (
 
 var urls = map[string]urlEntry{
 	"aapl": {
-		"/{CHAIN}/aapl.json",
+		"/{CHAIN}/AAPL.json",
 		true,
 		true,
 	},
 	"amzn": {
-		"/{CHAIN}/amzn.json",
+		"/{CHAIN}/AMZN.json",
 		true,
 		true,
 	},
 	"googl": {
-		"/{CHAIN}/googl.json",
+		"/{CHAIN}/GOOGL.json",
 		true,
 		true,
 	},
 	"meta": {
-		"/{CHAIN}/meta.json",
+		"/{CHAIN}/META.json",
 		true,
 		true,
 	},
 	"msft": {
-		"/{CHAIN}/msft.json",
+		"/{CHAIN}/MSFT.json",
 		true,
 		true,
 	},
 	"nvda": {
-		"/{CHAIN}/nvda.json",
+		"/{CHAIN}/NVDA.json",
 		true,
 		true,
 	},
 	"tsla": {
-		"/{CHAIN}/tsla.json",
+		"/{CHAIN}/TSLA.json",
 		true,
 		true,
 	},
@@ -104,7 +104,7 @@ func New(ctx context.Context) (*app, error) {
 
 	entries := map[string]entry{}
 	for n, u := range urls {
-		mag7Url := mag7BaseUrl + strings.ReplaceAll(u.endpoint, "{CHAIN}", chain)
+		mag7Url := mag7BaseUrl + strings.ReplaceAll(u.endpoint, "{CHAIN}", normalizeChain(chain))
 
 		// The merged mag7 config carries fields for both the adaptor and the
 		// aggregator, so fetch once and unmarshal the same bytes into both.
