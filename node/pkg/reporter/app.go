@@ -140,11 +140,11 @@ func fetchConfigs() ([]Config, error) {
 		log.Info().Str("Player", "Reporter").Msg("CHAIN env not set, defaulting to baobab")
 		chain = "baobab"
 	}
-	baseUrl := os.Getenv("ORAKL_CONFIG_BASE_URL")
+	baseUrl := strings.TrimRight(os.Getenv("ORAKL_CONFIG_BASE_URL"), "/")
 	if baseUrl == "" {
 		baseUrl = "https://config.orakl.network"
 	}
-	endpoint := fmt.Sprintf("%s/%s_configs.json", strings.TrimRight(baseUrl, "/"), chain)
+	endpoint := fmt.Sprintf("%s/%s_configs.json", baseUrl, chain)
 	configs, err := request.Request[[]Config](request.WithEndpoint(endpoint))
 	if err != nil {
 		return nil, err
