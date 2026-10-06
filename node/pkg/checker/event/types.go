@@ -77,8 +77,23 @@ func loadUnfullfilledVRFEventQuery(schemaName string, eventName string) string {
 	return fmt.Sprintf(`SELECT block$, id, time FROM %s.%s WHERE success = false ORDER BY time DESC;`, schemaName, eventName)
 }
 
+// normalizeChain maps the infra-injected chain value to the chain name that
+// config.orakl.network serves after the chain rename: cypress->mainnet,
+// baobab->kairos. mainnet/kairos pass through unchanged so this keeps working
+// both before and after infra flips the injected chain value.
+func normalizeChain(chain string) string {
+	switch chain {
+	case "cypress":
+		return "mainnet"
+	case "baobab":
+		return "kairos"
+	default:
+		return chain
+	}
+}
+
 func loadMikoConfigUrl(chain string) string {
-	return fmt.Sprintf("https://config.orakl.network/%s_configs.json", chain)
+	return fmt.Sprintf("https://config.orakl.network/%s_feeds.json", normalizeChain(chain))
 }
 
 func loadPegPorConfigUrl(chain string) string {
@@ -86,5 +101,5 @@ func loadPegPorConfigUrl(chain string) string {
 }
 
 func loadPorInfoUrl(chain string) string {
-	return fmt.Sprintf("https://config.orakl.network/%s_mag7.json", chain)
+	return fmt.Sprintf("https://config.orakl.network/%s_mag7.json", normalizeChain(chain))
 }
