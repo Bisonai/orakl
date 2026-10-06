@@ -6,18 +6,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNormalizeChain(t *testing.T) {
-	cases := map[string]string{
-		"cypress": "mainnet",
-		"baobab":  "kairos",
-		"mainnet": "mainnet",
-		"kairos":  "kairos",
-	}
-	for in, want := range cases {
-		assert.Equal(t, want, normalizeChain(in), "normalizeChain(%q)", in)
-	}
-}
-
 // TestConfigUrls verifies the migrated bundle URLs resolve to the new canonical
 // chain-renamed form while infra still injects the old chain value, and that
 // the untouched peg.por URL keeps the raw chain value.

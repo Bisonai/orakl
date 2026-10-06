@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"bisonai.com/miko/node/pkg/alert"
+	chainname "bisonai.com/miko/node/pkg/chain"
 	"bisonai.com/miko/node/pkg/checker"
 	"bisonai.com/miko/node/pkg/db"
 	"bisonai.com/miko/node/pkg/secrets"
@@ -236,7 +237,7 @@ func fetchConfigs() ([]Config, error) {
 		log.Info().Str("Player", "Reporter").Msg("CHAIN env not set, defaulting to baobab")
 		chain = "baobab"
 	}
-	endpoint := fmt.Sprintf("https://config.orakl.network/%s_configs.json", chain)
+	endpoint := fmt.Sprintf("https://config.orakl.network/%s_feeds.json", chainname.Normalize(chain))
 	configs, err := request.Request[[]Config](request.WithEndpoint(endpoint))
 	if err != nil {
 		return nil, err

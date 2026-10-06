@@ -4,27 +4,16 @@ import (
 	"strings"
 	"testing"
 
+	chainname "bisonai.com/miko/node/pkg/chain"
 	"github.com/stretchr/testify/assert"
 )
-
-func TestNormalizeChain(t *testing.T) {
-	cases := map[string]string{
-		"cypress": "mainnet",
-		"baobab":  "kairos",
-		"mainnet": "mainnet",
-		"kairos":  "kairos",
-	}
-	for in, want := range cases {
-		assert.Equal(t, want, normalizeChain(in), "normalizeChain(%q)", in)
-	}
-}
 
 // TestMergedURLResolution verifies that the per-feed mag7 URL built from the
 // urls map resolves to the new canonical uppercase/new-chain form even while
 // infra still injects the old chain value (cypress/baobab).
 func TestMergedURLResolution(t *testing.T) {
 	build := func(chain, name string) string {
-		return mag7BaseUrl + strings.ReplaceAll(urls[name].endpoint, "{CHAIN}", normalizeChain(chain))
+		return mag7BaseUrl + strings.ReplaceAll(urls[name].endpoint, "{CHAIN}", chainname.Normalize(chain))
 	}
 
 	assert.Equal(t, "https://config.orakl.network/mag7/mainnet/AAPL.json", build("cypress", "aapl"))
