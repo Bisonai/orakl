@@ -16,6 +16,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 
+	chainname "bisonai.com/miko/node/pkg/chain"
 	"bisonai.com/miko/node/pkg/chain/helper"
 	chainUtils "bisonai.com/miko/node/pkg/chain/utils"
 	"bisonai.com/miko/node/pkg/common/types"
@@ -104,7 +105,7 @@ func New(ctx context.Context) (*app, error) {
 
 	entries := map[string]entry{}
 	for n, u := range urls {
-		mag7Url := mag7BaseUrl + strings.ReplaceAll(u.endpoint, "{CHAIN}", normalizeChain(chain))
+		mag7Url := mag7BaseUrl + strings.ReplaceAll(u.endpoint, "{CHAIN}", chainname.Normalize(chain))
 
 		// The merged mag7 config carries fields for both the adaptor and the
 		// aggregator, so fetch once and unmarshal the same bytes into both.
