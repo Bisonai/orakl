@@ -430,3 +430,4 @@
 - **por** v0.0.1.20261005.0813.b5e6347.cypress <br> *`PR`*: featporevent consume merged ma... <br><br> 
 - **por** v0.0.1.20261006.0527.fa959d3.baobab <br> *`PR`*: por  event checker fetch chain... <br><br> 
 - **por** v0.0.1.20261006.0541.011611e.cypress <br> *`PR`*: por  event checker fetch chain... <br><br> 
+- **dal** v0.0.1.20261007.0600.d7b4900.baobab <br> *`PR`*: Fix chainkeyed serviceinfra ga... <br><br> 
