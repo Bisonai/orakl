@@ -184,6 +184,7 @@ on:
           - por:v0.0.1.20261006.0541.011611e.cypress:por  event checker fetch chain...
           - dal:v0.0.1.20261007.0600.d7b4900.baobab:Fix chainkeyed serviceinfra ga...
           - api:v0.0.1.20261007.0604.bb54faa.baobab:Remove vscode editor config
+          - sentinel:v0.0.1.20261007.0608.c48f614.baobab:Remove vscode editor config
 jobs:
   prepare-taskflow:
     name: Prepare
