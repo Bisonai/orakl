@@ -186,6 +186,7 @@ on:
           - api:v0.0.1.20261007.0604.bb54faa.baobab:Remove vscode editor config
           - sentinel:v0.0.1.20261007.0608.c48f614.baobab:Remove vscode editor config
           - reporter:v0.0.1.20261007.0613.1577c67.baobab:Remove vscode editor config
+          - api:v0.0.1.20261007.0645.522b3d0.cypress:chore remove unused supervisor...
 jobs:
   prepare-taskflow:
     name: Prepare
