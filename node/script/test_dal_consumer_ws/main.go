@@ -4,10 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"strconv"
 	"sync"
 	"time"
 
+	chainname "bisonai.com/miko/node/pkg/chain"
 	"bisonai.com/miko/node/pkg/common/types"
 	"bisonai.com/miko/node/pkg/utils/request"
 	"bisonai.com/miko/node/pkg/wss"
@@ -23,7 +25,10 @@ type Subscription struct {
 
 func main() {
 	ctx := context.Background()
-	chain := "baobab"
+	chain := os.Getenv("CHAIN")
+	if chain == "" {
+		chain = "baobab"
+	}
 	key := ""
 	configs, err := fetchConfigs()
 	if err != nil {
@@ -58,7 +63,11 @@ func main() {
 
 func fetchConfigs() ([]Config, error) {
 
-	endpoint := "https://config.orakl.network/baobab_configs.json"
+	chainEnv := os.Getenv("CHAIN")
+	if chainEnv == "" {
+		chainEnv = "baobab"
+	}
+	endpoint := fmt.Sprintf("https://config.orakl.network/%s_feeds.json", chainname.Normalize(chainEnv))
 	configs, err := request.Request[[]Config](request.WithEndpoint(endpoint))
 	if err != nil {
 		return nil, err
