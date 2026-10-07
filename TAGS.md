@@ -431,3 +431,4 @@
 - **por** v0.0.1.20261006.0527.fa959d3.baobab <br> *`PR`*: por  event checker fetch chain... <br><br> 
 - **por** v0.0.1.20261006.0541.011611e.cypress <br> *`PR`*: por  event checker fetch chain... <br><br> 
 - **dal** v0.0.1.20261007.0600.d7b4900.baobab <br> *`PR`*: Fix chainkeyed serviceinfra ga... <br><br> 
+- **api** v0.0.1.20261007.0604.bb54faa.baobab <br> *`PR`*: Remove vscode editor config <br><br> 
