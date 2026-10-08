@@ -68,7 +68,7 @@ node ./script/collect-addresses.cjs
 
 ## Migration Examples
 
-### `./migration/{CHAIN(local/baobab/cypress)}/Feed/{migrationFile}.json`
+### `./migration/{CHAIN(local/kairos/mainnet)}/Feed/{migrationFile}.json`
 
 - Deploy `Feed` & `FeedProxy` Contracts
 
@@ -129,7 +129,7 @@ node ./script/collect-addresses.cjs
 }
 ```
 
-### `./migration/{CHAIN(local/baobab/cypress)}/FeedRouter/{migrationFile}.json`
+### `./migration/{CHAIN(local/kairos/mainnet)}/FeedRouter/{migrationFile}.json`
 
 - Deploy `FeedRouter`
 
@@ -153,7 +153,7 @@ node ./script/collect-addresses.cjs
 }
 ```
 
-### `./migration/{CHAIN(local/baobab/cypress)}/SubmissionProxy/{migrationFile}.json`
+### `./migration/{CHAIN(local/kairos/mainnet)}/SubmissionProxy/{migrationFile}.json`
 
 - Deploy `SubmissionProxy` and Register Oracle
 
