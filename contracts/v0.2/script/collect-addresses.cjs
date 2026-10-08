@@ -8,7 +8,7 @@ const ValidChains = ["baobab", "cypress"];
 const addressesPath = path.join(__dirname, "../addresses/");
 
 const fetchTags = async () => {
-  const url = "https://config.orakl.network/cypress_configs.json";
+  const url = "https://config.orakl.network/mainnet_feeds.json";
   let tags = {};
 
   try {
