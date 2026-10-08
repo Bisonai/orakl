@@ -115,7 +115,7 @@ SIGNER_PK=<Your Signer PK>
 # Encrypt Password, this is referenced to store encrypted wallet pk into table. defaults to 'anything'
 ENCRYPT_PASSWORD=<Your Encrypt Password>
 
-# Chain name, 'baobab', 'cypress', or 'test'
+# Chain name, 'kairos', 'mainnet', or 'test'
 CHAIN=<Your Chain Name>
 
 # tx submission wallet for `kaia_helper`
@@ -368,8 +368,8 @@ It checks the service state regularly and sends a Slack message if required.
 ```sh
 # Log level for running the application, options such as `debug`, `info`, `error` are possible
 LOG_LEVEL=error
-# Infra chain info, defaults to baobab (Kaia testnet, now branded Kairos)
-CHAIN=baobab
+# Infra chain info, defaults to kairos (Kaia testnet)
+CHAIN=kairos
 # Health checker interval, defaults to 10s
 HEALTH_CHECK_INTERVAL=10s
 # Balance checker interval, this is balance update interval and defaults to 10s
