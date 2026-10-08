@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"bisonai.com/miko/node/pkg/admin/feed"
-	chainname "bisonai.com/miko/node/pkg/chain"
 	"bisonai.com/miko/node/pkg/db"
 	"bisonai.com/miko/node/pkg/utils/request"
 	"github.com/gofiber/fiber/v2"
@@ -234,10 +233,10 @@ func DeleteById(c *fiber.Ctx) error {
 func getConfigUrl() string {
 	chain := os.Getenv("CHAIN")
 	if chain == "" {
-		chain = "baobab"
+		chain = "kairos"
 	}
 
-	return fmt.Sprintf("https://config.orakl.network/%s_feeds.json", chainname.Normalize(chain))
+	return fmt.Sprintf("https://config.orakl.network/%s_feeds.json", chain)
 }
 
 func bulkUpsertConfigs(ctx context.Context, configs []ConfigInsertModel) error {

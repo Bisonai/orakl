@@ -3,7 +3,6 @@ package event
 import (
 	"fmt"
 
-	chainname "bisonai.com/miko/node/pkg/chain"
 )
 
 const (
@@ -80,7 +79,7 @@ func loadUnfullfilledVRFEventQuery(schemaName string, eventName string) string {
 }
 
 func loadMikoConfigUrl(chain string) string {
-	return fmt.Sprintf("https://config.orakl.network/%s_feeds.json", chainname.Normalize(chain))
+	return fmt.Sprintf("https://config.orakl.network/%s_feeds.json", chain)
 }
 
 func loadPegPorConfigUrl(chain string) string {
@@ -88,5 +87,5 @@ func loadPegPorConfigUrl(chain string) string {
 }
 
 func loadPorInfoUrl(chain string) string {
-	return fmt.Sprintf("https://config.orakl.network/%s_mag7.json", chainname.Normalize(chain))
+	return fmt.Sprintf("https://config.orakl.network/%s_mag7.json", chain)
 }

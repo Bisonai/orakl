@@ -17,7 +17,6 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"bisonai.com/miko/node/pkg/alert"
-	chainname "bisonai.com/miko/node/pkg/chain"
 	"bisonai.com/miko/node/pkg/utils/request"
 )
 
@@ -83,7 +82,7 @@ func Start(ctx context.Context) error {
 func loadEnvs() {
 	SubmitterAlarmAmount = 25
 	DelegatorAlarmAmount = 10000
-	if chainname.Normalize(os.Getenv("CHAIN")) == "mainnet" {
+	if os.Getenv("CHAIN") == "mainnet" {
 		DelegatorAlarmAmount = 50000
 	}
 	BalanceCheckInterval = 60 * time.Second

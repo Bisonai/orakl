@@ -9,7 +9,6 @@ import (
 	"sync"
 	"time"
 
-	chainname "bisonai.com/miko/node/pkg/chain"
 	"bisonai.com/miko/node/pkg/common/types"
 	"bisonai.com/miko/node/pkg/utils/request"
 	"bisonai.com/miko/node/pkg/wss"
@@ -27,7 +26,7 @@ func main() {
 	ctx := context.Background()
 	chain := os.Getenv("CHAIN")
 	if chain == "" {
-		chain = "baobab"
+		chain = "kairos"
 	}
 	key := ""
 	configs, err := fetchConfigs()
@@ -65,9 +64,9 @@ func fetchConfigs() ([]Config, error) {
 
 	chainEnv := os.Getenv("CHAIN")
 	if chainEnv == "" {
-		chainEnv = "baobab"
+		chainEnv = "kairos"
 	}
-	endpoint := fmt.Sprintf("https://config.orakl.network/%s_feeds.json", chainname.Normalize(chainEnv))
+	endpoint := fmt.Sprintf("https://config.orakl.network/%s_feeds.json", chainEnv)
 	configs, err := request.Request[[]Config](request.WithEndpoint(endpoint))
 	if err != nil {
 		return nil, err
