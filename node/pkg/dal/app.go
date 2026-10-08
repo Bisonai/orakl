@@ -6,7 +6,6 @@ import (
 	"os"
 	"time"
 
-	chainname "bisonai.com/miko/node/pkg/chain"
 	"bisonai.com/miko/node/pkg/common/types"
 	"bisonai.com/miko/node/pkg/dal/apiv2"
 	"bisonai.com/miko/node/pkg/dal/collector"
@@ -65,6 +64,6 @@ func Run(ctx context.Context) error {
 
 func fetchConfigs(chain string) ([]Config, error) {
 	return request.Request[[]Config](
-		request.WithEndpoint(fmt.Sprintf(baseMikoConfigUrl, chainname.Normalize(chain))),
+		request.WithEndpoint(fmt.Sprintf(baseMikoConfigUrl, chain)),
 		request.WithTimeout(5*time.Second))
 }

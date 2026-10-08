@@ -10,23 +10,17 @@ import (
 )
 
 func TestSelectHealthCheckJSON(t *testing.T) {
-	// cypress and its post-flip alias mainnet must both pick the cypress bundle;
-	// baobab and its post-flip alias kairos must both pick the baobab bundle.
-	cypress := []string{"cypress", "mainnet"}
-	for _, chain := range cypress {
-		raw, ok := selectHealthCheckJSON(chain)
-		assert.True(t, ok, "chain %q should select a bundle", chain)
-		assert.True(t, bytes.Equal(raw, cypressJSON), "chain %q should pick cypress_healthcheck.json", chain)
-	}
+	// mainnet picks the cypress bundle; kairos picks the baobab bundle
+	// (the embedded JSON filenames stay literal).
+	raw, ok := selectHealthCheckJSON("mainnet")
+	assert.True(t, ok, "mainnet should select a bundle")
+	assert.True(t, bytes.Equal(raw, cypressJSON), "mainnet should pick cypress_healthcheck.json")
 
-	baobab := []string{"baobab", "kairos"}
-	for _, chain := range baobab {
-		raw, ok := selectHealthCheckJSON(chain)
-		assert.True(t, ok, "chain %q should select a bundle", chain)
-		assert.True(t, bytes.Equal(raw, baobabJSON), "chain %q should pick baobab_healthcheck.json", chain)
-	}
+	raw, ok = selectHealthCheckJSON("kairos")
+	assert.True(t, ok, "kairos should select a bundle")
+	assert.True(t, bytes.Equal(raw, baobabJSON), "kairos should pick baobab_healthcheck.json")
 
-	_, ok := selectHealthCheckJSON("invalid")
+	_, ok = selectHealthCheckJSON("invalid")
 	assert.False(t, ok, "unknown chain should not select a bundle")
 }
 

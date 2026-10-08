@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"bisonai.com/miko/node/pkg/alert"
-	chainname "bisonai.com/miko/node/pkg/chain"
 	"bisonai.com/miko/node/pkg/secrets"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
@@ -33,12 +32,11 @@ var HealthCheckUrls []HealthCheckUrl
 var HealthCheckInterval time.Duration
 
 // selectHealthCheckJSON picks the embedded healthcheck bundle for the given
-// chain. The selection gate runs through chain.Normalize so it survives a
-// future CHAIN flip to mainnet/kairos (Phase 4): kairos (<-baobab) keeps the
-// baobab bundle, mainnet (<-cypress) keeps the cypress bundle. The embedded
+// chain. kairos keeps the baobab bundle, mainnet keeps the cypress bundle
+// (the embedded healthcheck JSON filenames stay literal). The embedded
 // file names stay literal on purpose.
 func selectHealthCheckJSON(chain string) ([]byte, bool) {
-	switch chainname.Normalize(chain) {
+	switch chain {
 	case "kairos":
 		return baobabJSON, true
 	case "mainnet":

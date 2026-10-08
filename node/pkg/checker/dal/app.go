@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"bisonai.com/miko/node/pkg/alert"
-	chainname "bisonai.com/miko/node/pkg/chain"
 	"bisonai.com/miko/node/pkg/checker"
 	"bisonai.com/miko/node/pkg/db"
 	"bisonai.com/miko/node/pkg/secrets"
@@ -80,7 +79,7 @@ func Start(ctx context.Context) error {
 	var endpoint, wsEndpoint string
 	// In-cluster gate: testnet uses the in-cluster DAL. Gate on the normalized
 	// value so it keeps selecting in-cluster after a CHAIN flip baobab->kairos.
-	if chainname.Normalize(chain) == "kairos" {
+	if chain == "kairos" {
 		endpoint = "http://orakl-dal.orakl.svc.cluster.local"
 		wsEndpoint = "ws://orakl-dal.orakl.svc.cluster.local/ws"
 	} else {
@@ -253,7 +252,7 @@ func fetchConfigs() ([]Config, error) {
 		log.Info().Str("Player", "Reporter").Msg("CHAIN env not set, defaulting to baobab")
 		chain = "baobab"
 	}
-	endpoint := fmt.Sprintf("https://config.orakl.network/%s_feeds.json", chainname.Normalize(chain))
+	endpoint := fmt.Sprintf("https://config.orakl.network/%s_feeds.json", chain)
 	configs, err := request.Request[[]Config](request.WithEndpoint(endpoint))
 	if err != nil {
 		return nil, err
