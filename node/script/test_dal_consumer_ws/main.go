@@ -26,7 +26,7 @@ func main() {
 	ctx := context.Background()
 	chain := os.Getenv("CHAIN")
 	if chain == "" {
-		chain = "baobab"
+		chain = "kairos"
 	}
 	key := ""
 	configs, err := fetchConfigs()
@@ -64,7 +64,7 @@ func fetchConfigs() ([]Config, error) {
 
 	chainEnv := os.Getenv("CHAIN")
 	if chainEnv == "" {
-		chainEnv = "baobab"
+		chainEnv = "kairos"
 	}
 	endpoint := fmt.Sprintf("https://config.orakl.network/%s_feeds.json", chainEnv)
 	configs, err := request.Request[[]Config](request.WithEndpoint(endpoint))

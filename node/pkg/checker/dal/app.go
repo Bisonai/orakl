@@ -249,8 +249,8 @@ func isDataEmpty(data *OutgoingSubmissionData) bool {
 func fetchConfigs() ([]Config, error) {
 	chain := os.Getenv("CHAIN")
 	if chain == "" {
-		log.Info().Str("Player", "Reporter").Msg("CHAIN env not set, defaulting to baobab")
-		chain = "baobab"
+		log.Info().Str("Player", "Reporter").Msg("CHAIN env not set, defaulting to kairos")
+		chain = "kairos"
 	}
 	endpoint := fmt.Sprintf("https://config.orakl.network/%s_feeds.json", chain)
 	configs, err := request.Request[[]Config](request.WithEndpoint(endpoint))

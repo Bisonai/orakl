@@ -141,8 +141,8 @@ var configBaseURL = "https://config.orakl.network"
 func fetchConfigs() ([]Config, error) {
 	chain := os.Getenv("CHAIN")
 	if chain == "" {
-		log.Info().Str("Player", "Reporter").Msg("CHAIN env not set, defaulting to baobab")
-		chain = "baobab"
+		log.Info().Str("Player", "Reporter").Msg("CHAIN env not set, defaulting to kairos")
+		chain = "kairos"
 	}
 	endpoint := fmt.Sprintf("%s/%s_feeds.json", configBaseURL, chain)
 	configs, err := request.Request[[]Config](request.WithEndpoint(endpoint))

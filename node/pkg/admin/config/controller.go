@@ -233,7 +233,7 @@ func DeleteById(c *fiber.Ctx) error {
 func getConfigUrl() string {
 	chain := os.Getenv("CHAIN")
 	if chain == "" {
-		chain = "baobab"
+		chain = "kairos"
 	}
 
 	return fmt.Sprintf("https://config.orakl.network/%s_feeds.json", chain)

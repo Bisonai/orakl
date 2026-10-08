@@ -91,7 +91,7 @@ func fetchConfigBytes(endpoint string) ([]byte, error) {
 func New(ctx context.Context) (*app, error) {
 	chain := os.Getenv("POR_CHAIN")
 	if chain == "" {
-		chain = "baobab"
+		chain = "kairos"
 	}
 
 	providerUrl := os.Getenv("POR_PROVIDER_URL")

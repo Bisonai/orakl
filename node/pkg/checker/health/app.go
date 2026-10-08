@@ -49,7 +49,7 @@ func selectHealthCheckJSON(chain string) ([]byte, bool) {
 func setUp() error {
 	chain := os.Getenv("CHAIN")
 	if chain == "" {
-		chain = "baobab"
+		chain = "kairos"
 	}
 	HealthCheckInterval = 10 * time.Second
 
