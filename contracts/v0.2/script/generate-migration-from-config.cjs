@@ -12,7 +12,7 @@ const readArgs = async () => {
 };
 
 const fetchConfigData = async (chain) => {
-  const url = `https://config.orakl.network/${chain}_configs.json`;
+  const url = `https://config.orakl.network/${chain}_feeds.json`;
   try {
     const { data } = await axios.get(url);
     return data.map((config) => config.name);
