@@ -438,3 +438,4 @@
 - **sentinel** v0.0.1.20261007.0651.1538114.cypress <br> *`PR`*: chore remove unused supervisor... <br><br> 
 - **reporter** v0.0.1.20261007.0657.40d9d43.cypress <br> *`PR`*: chore remove unused supervisor... <br><br> 
 - **dal** v0.0.1.20261007.0710.ff8cf1d.cypress <br> *`PR`*: chore remove unused supervisor... <br><br> 
+- **sentinel** v0.0.1.20261008.0618.83cbee6.cypress <br> *`PR`*: chore extend license year to 2... <br><br> 
