@@ -51,5 +51,5 @@ jobs:
           cd ./node
           task local:test-sentinel
         env:
-          CHAIN: "baobab"
+          CHAIN: "kairos"
           JSON_RPC_URL: "https://public-en-kairos.node.kaia.io"
