@@ -1,6 +1,7 @@
 package websocketfetcher
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"testing"
@@ -8,6 +9,8 @@ import (
 	"bisonai.com/miko/node/pkg/chain/utils"
 	"bisonai.com/miko/node/pkg/chain/websocketchainreader"
 	"bisonai.com/miko/node/pkg/websocketfetcher/common"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -79,6 +82,11 @@ func TestInitializeCexSkipsUnknownProvider(t *testing.T) {
 		{ID: 2, Name: "coinex-wss-BTC-USDT", Definition: json.RawMessage(`{"type": "wss", "provider": "coinex", "base": "btc", "quote": "usdt"}`), ConfigID: 2},
 	}
 
+	var logBuf bytes.Buffer
+	prevLogger := log.Logger
+	log.Logger = zerolog.New(&logBuf)
+	t.Cleanup(func() { log.Logger = prevLogger })
+
 	a := New()
 	err := a.initializeCex(context.Background(), AppConfig{
 		Feeds:        feeds,
@@ -88,4 +96,5 @@ func TestInitializeCexSkipsUnknownProvider(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, []string{"binance"}, created)
 	assert.Len(t, a.fetchers, 1)
+	assert.Contains(t, logBuf.String(), `"provider":"coinex"`, "unknown provider not logged")
 }
