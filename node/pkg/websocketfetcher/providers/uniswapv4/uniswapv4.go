@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math"
 	"math/big"
 	"strings"
@@ -82,7 +83,7 @@ func (f *V4Fetcher) Run(ctx context.Context) {
 
 func (f *V4Fetcher) run(ctx context.Context, feed common.Feed) {
 	// 1. Initial read through StateView.getSlot0(poolId).
-	price, err := f.getInitialPrice(ctx, feed)
+	price, err := common.FetchInitialPrice(ctx, common.DefaultInitialPriceBackoff, "UniswapV4", feed.ID, feed.Name, f.getInitialPriceFor(feed))
 	if err != nil {
 		log.Error().Str("Player", "UniswapV4").Err(err).
 			Int32("feedID", feed.ID).Str("name", feed.Name).
@@ -160,7 +161,9 @@ func (f *V4Fetcher) getPriceThroughSlot0(ctx context.Context, definition *common
 
 	poolID, err := ParsePoolID(definition.PoolID)
 	if err != nil {
-		return nil, err
+		// Invalid poolId is a config error: mark permanent so the initial
+		// read does not retry it forever.
+		return nil, fmt.Errorf("%w: %w", errorSentinel.ErrFetcherInvalidDexFetcherDefinition, err)
 	}
 
 	rawResult, err := f.WebsocketChainReader.ReadContractOnce(ctx, chainType, chainCfg.StateView, GET_SLOT0, poolID)

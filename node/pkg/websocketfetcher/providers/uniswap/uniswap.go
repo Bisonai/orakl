@@ -54,7 +54,7 @@ func (f *UniswapFetcher) Run(ctx context.Context) {
 
 func (f *UniswapFetcher) run(ctx context.Context, feed common.Feed) {
 	// 1. get initial data once through contract call
-	price, err := f.getInitialPrice(ctx, feed)
+	price, err := common.FetchInitialPrice(ctx, common.DefaultInitialPriceBackoff, "Uniswap", feed.ID, feed.Name, f.getInitialPriceFor(feed))
 	if err != nil {
 		log.Error().Str("Player", "Uniswap").Err(err).Msg("error in uniswap.run, failed to get initial price")
 		return

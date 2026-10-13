@@ -61,7 +61,7 @@ func (f *CapybaraFetcher) Run(ctx context.Context) {
 }
 
 func (f *CapybaraFetcher) run(ctx context.Context, feed common.Feed) {
-	price, err := f.getInitialPrice(ctx, feed)
+	price, err := common.FetchInitialPrice(ctx, common.DefaultInitialPriceBackoff, "Capybara", feed.ID, feed.Name, f.getInitialPriceFor(feed))
 	if err != nil {
 		log.Error().Str("Player", "Capybara").Err(err).Msg("error in capybara.run, failed to get initial price")
 		return

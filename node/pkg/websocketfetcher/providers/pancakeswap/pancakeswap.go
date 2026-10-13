@@ -63,7 +63,7 @@ func (f *PancakeswapFetcher) Run(ctx context.Context) {
 }
 
 func (f *PancakeswapFetcher) run(ctx context.Context, feed common.Feed) {
-	price, err := f.getInitialPrice(ctx, feed)
+	price, err := common.FetchInitialPrice(ctx, common.DefaultInitialPriceBackoff, "Pancakeswap", feed.ID, feed.Name, f.getInitialPriceFor(feed))
 	if err != nil {
 		log.Error().Str("Player", "Pancakeswap").Err(err).Msg("error in pancakeswap.run, failed to get initial price")
 		return
