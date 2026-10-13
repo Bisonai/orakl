@@ -141,7 +141,7 @@ func (f *V4Fetcher) getInitialPrice(ctx context.Context, feed common.Feed) (*flo
 	definition := new(common.DexFeedDefinition)
 	if err := json.Unmarshal(feed.Definition, &definition); err != nil {
 		log.Error().Str("Player", "UniswapV4").Err(err).Msg("error in uniswapv4.getInitialPrice, failed to unmarshal definition")
-		return nil, err
+		return nil, fmt.Errorf("%w: %w", errorSentinel.ErrFetcherInvalidDexFetcherDefinition, err)
 	}
 	return f.getPriceThroughSlot0(ctx, definition)
 }

@@ -3,6 +3,7 @@ package pancakeswap
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"math"
 	"math/big"
 	"time"
@@ -115,7 +116,7 @@ func (f *PancakeswapFetcher) getInitialPrice(ctx context.Context, feed common.Fe
 	err := json.Unmarshal(feed.Definition, &definition)
 	if err != nil {
 		log.Error().Str("Player", "Pancakeswap").Err(err).Msg("error in pancakeswap.getInitialPrice, failed to unmarshal definition")
-		return nil, err
+		return nil, fmt.Errorf("%w: %w", errorSentinel.ErrFetcherInvalidDexFetcherDefinition, err)
 	}
 
 	return f.getPriceThroughSlotCall(ctx, definition)

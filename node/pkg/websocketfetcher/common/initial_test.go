@@ -56,16 +56,13 @@ func TestFetchInitialPrice_PermanentErrorReturnsWithoutRetry(t *testing.T) {
 	var def struct{ A int }
 	jsonErr := json.Unmarshal([]byte(`{"A":"x"}`), &def)
 	require.Error(t, jsonErr)
-	var v any
-	syntaxErr := json.Unmarshal([]byte(`{`), &v)
-	require.Error(t, syntaxErr)
 
 	for name, permErr := range map[string]error{
 		"no chain":         errorSentinel.ErrFetcherNoMatchingChainID,
 		"wrapped no chain": fmt.Errorf("ctx: %w", errorSentinel.ErrFetcherNoMatchingChainID),
 		"bad definition":   fmt.Errorf("%w: %w", errorSentinel.ErrFetcherInvalidDexFetcherDefinition, errors.New("bad poolId")),
-		"json type":        jsonErr,
-		"json syntax":      syntaxErr,
+		"bad json def":     fmt.Errorf("%w: %w", errorSentinel.ErrFetcherInvalidDexFetcherDefinition, jsonErr),
+		"empty address":    errorSentinel.ErrChainEmptyAddressParam,
 	} {
 		t.Run(name, func(t *testing.T) {
 			var calls atomic.Int32
@@ -175,7 +172,13 @@ func TestFetchInitialPrice_AttemptTimeoutUnblocksHungRead(t *testing.T) {
 }
 
 func TestIsPermanentInitialPriceError_TransientErrors(t *testing.T) {
+	// Bare json errors can come from RPC response decoding; only the
+	// sentinel-wrapped definition unmarshal error is permanent.
+	var v any
+	syntaxErr := json.Unmarshal([]byte(`{`), &v)
+	require.Error(t, syntaxErr)
 	for _, err := range []error{
+		syntaxErr,
 		errors.New("use of closed network connection"),
 		context.DeadlineExceeded,
 		errorSentinel.ErrFetcherFailedToGetDexResultSlice,

@@ -2,7 +2,6 @@ package common
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"time"
 
@@ -34,19 +33,15 @@ var DefaultInitialPriceBackoff = InitialPriceBackoff{
 }
 
 // IsPermanentInitialPriceError reports whether err can never succeed on
-// retry: a feed definition that does not unmarshal / is invalid, or a
-// chainId this node has no websocket URL (or V4 deployment) for.
-// Everything else (dial / reset / closed conn / timeout / RPC / result
-// shape) is treated as transient.
+// retry: an invalid feed definition (providers wrap definition unmarshal /
+// poolId errors in ErrFetcherInvalidDexFetcherDefinition), an empty pool
+// address, or a chainId this node has no websocket URL (or V4 deployment)
+// for.  Everything else (dial / reset / closed conn / timeout / RPC,
+// including RPC response decode errors / result shape) is transient.
 func IsPermanentInitialPriceError(err error) bool {
-	if errors.Is(err, errorSentinel.ErrFetcherNoMatchingChainID) ||
-		errors.Is(err, errorSentinel.ErrFetcherInvalidDexFetcherDefinition) {
-		return true
-	}
-	var syntaxErr *json.SyntaxError
-	var typeErr *json.UnmarshalTypeError
-	var invalidErr *json.InvalidUnmarshalError
-	return errors.As(err, &syntaxErr) || errors.As(err, &typeErr) || errors.As(err, &invalidErr)
+	return errors.Is(err, errorSentinel.ErrFetcherNoMatchingChainID) ||
+		errors.Is(err, errorSentinel.ErrFetcherInvalidDexFetcherDefinition) ||
+		errors.Is(err, errorSentinel.ErrChainEmptyAddressParam)
 }
 
 // FetchInitialPrice calls fetchPrice until it returns a price, retrying
