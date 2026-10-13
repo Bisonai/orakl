@@ -64,6 +64,15 @@ func TestParsePoolID_RejectsNonHex(t *testing.T) {
 	require.Error(t, err)
 }
 
+// Invalid poolId is a config error; the initial-price retry must not loop on it.
+func TestParsePoolID_ErrorsArePermanent(t *testing.T) {
+	for _, bad := range []string{"", "0x1234", "0xZZ" + strings.Repeat("00", 31)} {
+		_, err := ParsePoolID(bad)
+		require.Error(t, err)
+		assert.True(t, common.IsPermanentInitialPriceError(err), "expected permanent for %q", bad)
+	}
+}
+
 func TestParsePoolID_RoundTripsToHash(t *testing.T) {
 	in := "0x4643e3152a6ea3957e087cefbba74a1c628aa643e6b8a0edfae23a5796dde012"
 	parsed, err := ParsePoolID(in)

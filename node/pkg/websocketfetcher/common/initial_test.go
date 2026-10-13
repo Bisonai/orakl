@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var testBackoff = InitialPriceBackoff{Initial: time.Millisecond, Max: 4 * time.Millisecond}
+var testBackoff = InitialPriceBackoff{Initial: minInitialPriceBackoff, Max: 2 * minInitialPriceBackoff}
 
 // Regression for #2609: a pool whose first read fails must recover
 // without a restart once the read starts succeeding.
@@ -135,9 +135,43 @@ func TestFetchInitialPrice_BackoffCapped(t *testing.T) {
 		},
 	)
 	require.NoError(t, err)
-	// Uncapped doubling from 1ms over 10 failures would be ~1s; capped at
-	// 4ms it is ~1+2+4*8 = 35ms.
-	assert.Less(t, time.Since(start), 500*time.Millisecond)
+	// Uncapped doubling from 10ms over 10 failures would be ~10s; capped at
+	// 20ms it is ~10+20*9 = 190ms.
+	assert.Less(t, time.Since(start), 2*time.Second)
+}
+
+func TestFetchInitialPrice_ZeroBackoffIsClamped(t *testing.T) {
+	var calls atomic.Int32
+	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	defer cancel()
+	_, err := FetchInitialPrice(ctx, InitialPriceBackoff{}, "Test", 7, "test-feed",
+		func(ctx context.Context) (*float64, error) {
+			calls.Add(1)
+			return nil, errors.New("transient")
+		},
+	)
+	assert.ErrorIs(t, err, context.DeadlineExceeded)
+	// 50ms / 10ms min backoff ≈ 5 calls; a busy loop would be thousands.
+	assert.LessOrEqual(t, calls.Load(), int32(10))
+}
+
+// A hung read must not stall the retry loop: each attempt gets its own deadline.
+func TestFetchInitialPrice_AttemptTimeoutUnblocksHungRead(t *testing.T) {
+	var calls atomic.Int32
+	b := InitialPriceBackoff{Initial: minInitialPriceBackoff, Max: minInitialPriceBackoff, AttemptTimeout: 20 * time.Millisecond}
+	price, err := FetchInitialPrice(context.Background(), b, "Test", 7, "test-feed",
+		func(ctx context.Context) (*float64, error) {
+			if calls.Add(1) == 1 {
+				<-ctx.Done() // hang until the per-attempt deadline
+				return nil, ctx.Err()
+			}
+			v := 3.0
+			return &v, nil
+		},
+	)
+	require.NoError(t, err)
+	assert.Equal(t, 3.0, *price)
+	assert.Equal(t, int32(2), calls.Load())
 }
 
 func TestIsPermanentInitialPriceError_TransientErrors(t *testing.T) {

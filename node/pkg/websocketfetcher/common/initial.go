@@ -12,18 +12,25 @@ import (
 
 // InitialPriceBackoff controls the retry delay of FetchInitialPrice.  The
 // delay starts at Initial and doubles after every failed attempt, capped
-// at Max.
+// at Max.  AttemptTimeout (if > 0) bounds each fetchPrice call so a hung
+// read on a half-open connection cannot stall the retry loop.
 type InitialPriceBackoff struct {
-	Initial time.Duration
-	Max     time.Duration
+	Initial        time.Duration
+	Max            time.Duration
+	AttemptTimeout time.Duration
 }
+
+// minInitialPriceBackoff guards against a zero/negative backoff turning
+// the retry loop into a busy loop.
+const minInitialPriceBackoff = 10 * time.Millisecond
 
 // DefaultInitialPriceBackoff is used by the DEX providers: 1s, 2s, 4s, ...
 // capped at 60s — roughly the heartbeat poll cadence, so a pool that keeps
 // failing logs no more often than HeartbeatPoll would.
 var DefaultInitialPriceBackoff = InitialPriceBackoff{
-	Initial: 1 * time.Second,
-	Max:     60 * time.Second,
+	Initial:        1 * time.Second,
+	Max:            60 * time.Second,
+	AttemptTimeout: 30 * time.Second,
 }
 
 // IsPermanentInitialPriceError reports whether err can never succeed on
@@ -58,9 +65,10 @@ func FetchInitialPrice(
 	feedName string,
 	fetchPrice func(context.Context) (*float64, error),
 ) (*float64, error) {
-	delay := backoff.Initial
+	maxDelay := max(backoff.Max, minInitialPriceBackoff)
+	delay := min(max(backoff.Initial, minInitialPriceBackoff), maxDelay)
 	for attempt := 1; ; attempt++ {
-		price, err := fetchPrice(ctx)
+		price, err := fetchAttempt(ctx, backoff.AttemptTimeout, fetchPrice)
 		if err == nil && price != nil {
 			if attempt > 1 {
 				log.Info().Str("Player", player).Int32("feedID", feedID).Str("name", feedName).
@@ -87,9 +95,19 @@ func FetchInitialPrice(
 		case <-timer.C:
 		}
 
-		delay *= 2
-		if delay > backoff.Max {
-			delay = backoff.Max
-		}
+		delay = min(delay*2, maxDelay)
 	}
+}
+
+func fetchAttempt(
+	ctx context.Context,
+	timeout time.Duration,
+	fetchPrice func(context.Context) (*float64, error),
+) (*float64, error) {
+	if timeout <= 0 {
+		return fetchPrice(ctx)
+	}
+	attemptCtx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+	return fetchPrice(attemptCtx)
 }
