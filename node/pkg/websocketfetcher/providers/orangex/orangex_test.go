@@ -72,8 +72,11 @@ func TestNew_OneConnectionPerChunk(t *testing.T) {
 	require.Len(t, conns, 3)
 
 	total := 0
-	for _, ws := range conns {
+	for _, connection := range conns {
+		ws := connection.Ws
+		assert.NotNil(t, ws.CustomDialFunc, "dial must publish the conn for pingJob")
 		assert.Equal(t, URL, ws.Endpoint)
+		assert.NotNil(t, ws.CustomReadFunc, "reads must be bounded by ReadTimeout")
 		require.Len(t, ws.Subscriptions, 1)
 		raw, ok := ws.Subscriptions[0].([]byte)
 		require.True(t, ok, "subscription must be pre-marshalled bytes")
