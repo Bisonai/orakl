@@ -146,7 +146,7 @@ tasks:
   test-websocketfetcher:
     dotenv: [".env"]
     cmds:
-      - go test ./pkg/websocketfetcher/tests -v
+      - go test ./pkg/websocketfetcher/... -v
   test-dal:
     dotenv: [".env"]
     cmds:
