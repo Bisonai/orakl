@@ -162,8 +162,9 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 }
 
 // BuildSubscriptions returns one subscribe request per connection, each with at
-// most MaxChannelsPerConnection channels. Feeds are sorted so the split is
-// deterministic across restarts.
+// most MaxChannelsPerConnection channels, spread evenly so no connection is
+// left with a few (possibly never-ticking) channels that would keep hitting
+// ReadTimeout. Feeds are sorted so the split is deterministic across restarts.
 func BuildSubscriptions(feeds []string) []Subscription {
 	channels := make([]string, 0, len(feeds))
 	for _, feed := range feeds {
@@ -171,7 +172,11 @@ func BuildSubscriptions(feeds []string) []Subscription {
 	}
 	sort.Strings(channels)
 
-	chunks := arr.SplitByChunkSize(channels, MaxChannelsPerConnection)
+	var chunks [][]string
+	if len(channels) > 0 {
+		numConns := (len(channels) + MaxChannelsPerConnection - 1) / MaxChannelsPerConnection
+		chunks = arr.SplitByChunkSize(channels, (len(channels)+numConns-1)/numConns)
+	}
 	subscriptions := make([]Subscription, 0, len(chunks))
 	for i, chunk := range chunks {
 		subscriptions = append(subscriptions, Subscription{
@@ -186,7 +191,7 @@ func BuildSubscriptions(feeds []string) []Subscription {
 
 // ParseErrorResponse reports whether message is a JSON-RPC error reply.
 func ParseErrorResponse(message map[string]any) (ErrorResponse, bool) {
-	if message["error"] == nil {
+	if _, isObject := message["error"].(map[string]any); !isObject {
 		return ErrorResponse{}, false
 	}
 	response, err := common.MessageToStruct[ErrorResponse](message)

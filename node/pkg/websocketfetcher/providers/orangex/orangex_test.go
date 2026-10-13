@@ -28,8 +28,10 @@ func TestBuildSubscriptions_ChunksAtLimit(t *testing.T) {
 		{feeds: 0, wantSizes: []int{}},
 		{feeds: 1, wantSizes: []int{1}},
 		{feeds: 30, wantSizes: []int{30}},
-		{feeds: 31, wantSizes: []int{30, 1}},
-		{feeds: 87, wantSizes: []int{30, 30, 27}},
+		{feeds: 31, wantSizes: []int{16, 15}},
+		{feeds: 61, wantSizes: []int{21, 21, 19}},
+		{feeds: 87, wantSizes: []int{29, 29, 29}},
+		{feeds: 91, wantSizes: []int{23, 23, 23, 22}},
 	} {
 		t.Run(fmt.Sprintf("%d feeds", tc.feeds), func(t *testing.T) {
 			subs := BuildSubscriptions(feedNames(tc.feeds))
@@ -123,6 +125,7 @@ func TestParseErrorResponse_NonErrors(t *testing.T) {
 		"subscribe ack": `{"id":"1","jsonrpc":"2.0","result":["ticker.BTC-USDT.raw"]}`,
 		"ping reply":    `{"id":"0","jsonrpc":"2.0","result":{}}`,
 		"null error":    `{"id":"1","jsonrpc":"2.0","result":["ticker.BTC-USDT.raw"],"error":null}`,
+		"string error":  `{"id":"1","jsonrpc":"2.0","result":["ticker.BTC-USDT.raw"],"error":""}`,
 		"ticker":        `{"params":{"data":{"instrument_name":"BTC-USDT","last_price":"1"},"channel":"ticker.BTC-USDT.raw"},"method":"subscription","jsonrpc":"2.0"}`,
 	} {
 		t.Run(name, func(t *testing.T) {
