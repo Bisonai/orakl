@@ -19,6 +19,8 @@ type InitialPriceBackoff struct {
 	AttemptTimeout time.Duration
 }
 
+var errNilInitialPrice = errors.New("fetchPrice returned nil price")
+
 // minInitialPriceBackoff guards against a zero/negative backoff turning
 // the retry loop into a busy loop.
 const minInitialPriceBackoff = 10 * time.Millisecond
@@ -71,7 +73,10 @@ func FetchInitialPrice(
 			}
 			return price, nil
 		}
-		if err != nil && IsPermanentInitialPriceError(err) {
+		if err == nil {
+			err = errNilInitialPrice
+		}
+		if IsPermanentInitialPriceError(err) {
 			return nil, err
 		}
 		if ctxErr := ctx.Err(); ctxErr != nil {
