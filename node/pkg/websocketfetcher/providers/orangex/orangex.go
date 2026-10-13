@@ -27,14 +27,16 @@ const (
 
 	// The server closes a connection ~30s after the last client message (error
 	// 9901 "websocket closing connection automatically") even while tickers are
-	// streaming; a JSON-RPC /public/ping every 10s keeps it open.
+	// streaming; a websocket ping frame every 10s keeps it open. Ping frames
+	// (not JSON-RPC /public/ping) so the replies don't reach the read loop:
+	// otherwise they would reset the helper's inactivity timer and hide a
+	// connection whose subscription was rejected.
 	PingInterval = 10 * time.Second
+	PingTimeout  = 5 * time.Second
 
 	// ErrCodeAutoClose is sent right before the server drops an idle connection.
 	ErrCodeAutoClose = 9901
 )
-
-var pingMessage = []byte(`{"jsonrpc":"2.0","method":"/public/ping","params":{},"id":0}`)
 
 type OrangeXFetcher struct {
 	FeedMap        map[string][]int32
@@ -155,7 +157,7 @@ func BuildSubscriptions(feeds []string) []Subscription {
 
 // ParseErrorResponse reports whether message is a JSON-RPC error reply.
 func ParseErrorResponse(message map[string]any) (ErrorResponse, bool) {
-	if _, exists := message["error"]; !exists {
+	if message["error"] == nil {
 		return ErrorResponse{}, false
 	}
 	response, err := common.MessageToStruct[ErrorResponse](message)
@@ -217,8 +219,9 @@ func (f *OrangeXFetcher) Run(ctx context.Context) {
 	wg.Wait()
 }
 
-// pingJob keeps a connection from being auto-closed by the server. Write
-// errors are expected while the helper is reconnecting, so keep ticking.
+// pingJob keeps a connection from being auto-closed by the server. Ping
+// errors are expected while the helper is reconnecting, so keep ticking; the
+// per-ping timeout keeps a stalled connection from blocking the job.
 func pingJob(ctx context.Context, ws *wss.WebsocketHelper) {
 	ticker := time.NewTicker(PingInterval)
 	defer ticker.Stop()
@@ -228,7 +231,14 @@ func pingJob(ctx context.Context, ws *wss.WebsocketHelper) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			if err := ws.RawWrite(ctx, string(pingMessage)); err != nil {
+			conn := ws.Conn
+			if conn == nil {
+				continue
+			}
+			pingCtx, cancel := context.WithTimeout(ctx, PingTimeout)
+			err := conn.Ping(pingCtx)
+			cancel()
+			if err != nil {
 				log.Debug().Str("Player", "OrangeX").Err(err).Msg("error in orangex.pingJob")
 			}
 		}

@@ -119,6 +119,7 @@ func TestParseErrorResponse_NonErrors(t *testing.T) {
 	for name, raw := range map[string]string{
 		"subscribe ack": `{"id":"1","jsonrpc":"2.0","result":["ticker.BTC-USDT.raw"]}`,
 		"ping reply":    `{"id":"0","jsonrpc":"2.0","result":{}}`,
+		"null error":    `{"id":"1","jsonrpc":"2.0","result":["ticker.BTC-USDT.raw"],"error":null}`,
 		"ticker":        `{"params":{"data":{"instrument_name":"BTC-USDT","last_price":"1"},"channel":"ticker.BTC-USDT.raw"},"method":"subscription","jsonrpc":"2.0"}`,
 	} {
 		t.Run(name, func(t *testing.T) {
