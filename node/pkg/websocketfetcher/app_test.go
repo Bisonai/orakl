@@ -1,6 +1,7 @@
 package websocketfetcher
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"testing"
@@ -8,6 +9,8 @@ import (
 	"bisonai.com/miko/node/pkg/chain/utils"
 	"bisonai.com/miko/node/pkg/chain/websocketchainreader"
 	"bisonai.com/miko/node/pkg/websocketfetcher/common"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -62,4 +65,36 @@ func TestInitResetsFetchersOnReinit(t *testing.T) {
 	}
 	assert.True(t, old.closed, "old chain reader not closed on re-Init")
 	assert.Nil(t, a.chainReader)
+}
+
+// A feed whose provider has no registered factory (e.g. a removed exchange
+// still in config) must be skipped without failing init of other providers.
+func TestInitializeCexSkipsUnknownProvider(t *testing.T) {
+	var created []string
+	cexFactories := map[string]func(context.Context, ...common.FetcherOption) (common.FetcherInterface, error){
+		"binance": func(context.Context, ...common.FetcherOption) (common.FetcherInterface, error) {
+			created = append(created, "binance")
+			return &stubFetcher{}, nil
+		},
+	}
+	feeds := []common.Feed{
+		{ID: 1, Name: "binance-wss-BTC-USDT", Definition: json.RawMessage(`{"type": "wss", "provider": "binance", "base": "btc", "quote": "usdt"}`), ConfigID: 1},
+		{ID: 2, Name: "coinex-wss-BTC-USDT", Definition: json.RawMessage(`{"type": "wss", "provider": "coinex", "base": "btc", "quote": "usdt"}`), ConfigID: 2},
+	}
+
+	var logBuf bytes.Buffer
+	prevLogger := log.Logger
+	log.Logger = zerolog.New(&logBuf)
+	t.Cleanup(func() { log.Logger = prevLogger })
+
+	a := New()
+	err := a.initializeCex(context.Background(), AppConfig{
+		Feeds:        feeds,
+		CexFactories: cexFactories,
+		BufferSize:   1,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, []string{"binance"}, created)
+	assert.Len(t, a.fetchers, 1)
+	assert.Contains(t, logBuf.String(), `"provider":"coinex"`, "unknown provider not logged")
 }

@@ -22,7 +22,6 @@ import (
 	"bisonai.com/miko/node/pkg/websocketfetcher/providers/bybit"
 	"bisonai.com/miko/node/pkg/websocketfetcher/providers/capybara"
 	"bisonai.com/miko/node/pkg/websocketfetcher/providers/coinbase"
-	"bisonai.com/miko/node/pkg/websocketfetcher/providers/coinex"
 	"bisonai.com/miko/node/pkg/websocketfetcher/providers/coinone"
 	"bisonai.com/miko/node/pkg/websocketfetcher/providers/crypto"
 	"bisonai.com/miko/node/pkg/websocketfetcher/providers/gateio"
@@ -137,7 +136,6 @@ func (a *App) Init(ctx context.Context, opts ...AppOption) error {
 		"btse":     btse.New,
 		"bithumb":  bithumb.New,
 		"gateio":   gateio.New,
-		"coinex":   coinex.New,
 		"huobi":    huobi.New,
 		"mexc":     mexc.New,
 		"bitstamp": bitstamp.New,
@@ -220,6 +218,14 @@ func (a *App) initializeCex(ctx context.Context, appConfig AppConfig) error {
 	a.storeInterval = appConfig.StoreInterval
 
 	wsProxy := os.Getenv("WS_PROXY")
+
+	// Feeds for providers without a factory (e.g. removed exchanges still
+	// listed in config) are skipped, not fatal.
+	for name := range feedMap {
+		if _, ok := appConfig.CexFactories[name]; !ok {
+			log.Warn().Str("provider", name).Msg("no websocket fetcher for provider, skipping its feeds")
+		}
+	}
 
 	for name, factory := range appConfig.CexFactories {
 		if _, ok := feedMap[name]; !ok {
