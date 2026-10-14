@@ -68,7 +68,7 @@ node ./script/collect-addresses.cjs
 node ./script/collect-addresses.cjs --check
 ```
 
-The `contracts: collect addresses` workflow runs this when orakl-config is published (`repository_dispatch`), on pushes to the address dirs, and daily as a fallback; it opens a PR when the output changes.
+The `contracts: collect addresses` workflow runs this when orakl-config master changes (`repository_dispatch` from orakl-config), on pushes to the address dirs, and daily as a fallback; it opens a PR when the output changes.
 
 ## Migration Examples
 

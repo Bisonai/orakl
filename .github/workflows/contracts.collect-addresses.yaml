@@ -2,7 +2,7 @@ name: "contracts: collect addresses"
 
 on:
   workflow_dispatch:
-  # Sent by orakl-config after its GitHub Pages build (config.orakl.network) finishes.
+  # Sent by orakl-config on push to master with client_payload.sha.
   repository_dispatch:
     types: [orakl-config-published]
   # Fallback in case a dispatch is missed.
@@ -36,6 +36,9 @@ jobs:
           node-version: "20"
       - name: Collect addresses
         working-directory: contracts/v0.2
+        env:
+          # Dispatch: read config at the pushed commit (config.orakl.network is CDN-cached up to 10 min).
+          CONFIG_BASE_URL: ${{ github.event.client_payload.sha && format('https://raw.githubusercontent.com/Bisonai/orakl-config/{0}', github.event.client_payload.sha) || 'https://config.orakl.network' }}
         run: node ./script/collect-addresses.cjs
       - name: Open PR if changed
         uses: peter-evans/create-pull-request@v7
