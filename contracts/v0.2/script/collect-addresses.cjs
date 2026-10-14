@@ -1,5 +1,7 @@
 // Collects deployed addresses from ./addresses/<chain>/*.json into
-// ./addresses/datafeeds-addresses.json and ./addresses/others-addresses.json.
+// ./addresses/feeds.json (data feeds) and ./addresses/core.json (FeedRouter, SubmissionProxy).
+// datafeeds-addresses.json and others-addresses.json are deprecated copies kept for
+// existing consumers of their raw GitHub URLs.
 //
 // Only pairs present in the live config (https://config.orakl.network/<chain>_feeds.json)
 // are published, so removing a pair from orakl-config drops it here on next run.
@@ -15,6 +17,10 @@ const Chains = ["mainnet", "kairos"];
 // Deprecated aliases kept in the output so existing consumers keep working.
 const LegacyChainNames = { mainnet: "cypress", kairos: "baobab" };
 const addressesPath = path.join(__dirname, "../addresses/");
+const LegacyFileNames = {
+  "feeds.json": "datafeeds-addresses.json",
+  "core.json": "others-addresses.json",
+};
 
 const fetchConfig = async (chain) => {
   const url = `${CONFIG_BASE_URL}/${chain}_feeds.json`;
@@ -125,9 +131,12 @@ async function main() {
   const { feeds, others } = await collect();
 
   const outputs = {
-    "datafeeds-addresses.json": JSON.stringify(feeds, null, 2) + "\n",
-    "others-addresses.json": JSON.stringify(others, null, 2) + "\n",
+    "feeds.json": JSON.stringify(feeds, null, 2) + "\n",
+    "core.json": JSON.stringify(others, null, 2) + "\n",
   };
+  for (const [file, legacyFile] of Object.entries(LegacyFileNames)) {
+    outputs[legacyFile] = outputs[file];
+  }
 
   let stale = false;
   for (const [file, content] of Object.entries(outputs)) {

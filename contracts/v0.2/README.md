@@ -60,7 +60,7 @@ node ./script/generate-migration-from-config.cjs --chain test
 
 ### Generated Collected Addresses
 
-Following command collects deployed addresses (`./addresses/{mainnet,kairos}/*.json`) into json files `datafeeds-addresses.json` and `others-addresses.json`. Stores in ./addresses path. Only pairs listed in the live config (`https://config.orakl.network/<chain>_feeds.json`) are included. Output is keyed by `mainnet`/`kairos`; deprecated `cypress`/`baobab` aliases are kept for existing consumers.
+Following command collects deployed addresses (`./addresses/{mainnet,kairos}/*.json`) into `feeds.json` (data feeds) and `core.json` (FeedRouter, SubmissionProxy). Stores in ./addresses path. `datafeeds-addresses.json` and `others-addresses.json` are deprecated copies with identical content. Only pairs listed in the live config (`https://config.orakl.network/<chain>_feeds.json`) are included. Output is keyed by `mainnet`/`kairos`; deprecated `cypress`/`baobab` aliases are kept for existing consumers.
 
 ```shell
 node ./script/collect-addresses.cjs
@@ -68,7 +68,7 @@ node ./script/collect-addresses.cjs
 node ./script/collect-addresses.cjs --check
 ```
 
-The `contracts: collect addresses` workflow runs this daily and opens a PR when the output changes.
+The `contracts: collect addresses` workflow runs this when orakl-config is published (`repository_dispatch`), on pushes to the address dirs, and daily as a fallback; it opens a PR when the output changes.
 
 ## Migration Examples
 

@@ -3,7 +3,7 @@ import argparse
 import os
 from datetime import datetime
 
-file_path = "./addresses/datafeeds-addresses.json"
+file_path = "./addresses/feeds.json"
 
 def prepareForSubmissionProxy(data, network):
     entries = []
