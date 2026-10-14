@@ -60,9 +60,9 @@ jobs:
       - name: Verify and Checkout Branch
         run: |
           cd ./gitops_tmp/
-          git fetch origin idc-fly
-          git checkout idc-fly
-          git reset --hard origin/idc-fly
+          git fetch origin main
+          git checkout main
+          git reset --hard origin/main
 
       - name: Update image tag in values.${{ inputs.network }}.yaml files
         run: |
@@ -102,5 +102,5 @@ jobs:
         run: |
           cd ./gitops_tmp/
           git commit -m 'v${{ inputs.version }}.${{ inputs.tag_date }}.${{ inputs.tag_git_hash }} is updated'
-          git push origin idc-fly
+          git push origin main
         shell: bash
