@@ -44,7 +44,7 @@ jobs:
         id: generate-token
         uses: actions/create-github-app-token@v3
         with:
-          app-id: ${{ secrets.GH_ORAKL_BOT_APP_ID }}
+          client-id: Iv1.c13a65499d8e95e6
           private-key: ${{ secrets.GH_ORAKL_BOT_PRIVATE_KEY }}
           owner: bisonai
           repositories: orakl-helm-charts
