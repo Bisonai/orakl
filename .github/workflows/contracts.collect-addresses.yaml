@@ -48,8 +48,6 @@ jobs:
           add-paths: |
             contracts/v0.2/addresses/feeds.json
             contracts/v0.2/addresses/core.json
-            contracts/v0.2/addresses/datafeeds-addresses.json
-            contracts/v0.2/addresses/others-addresses.json
           commit-message: "chore: regenerate feed/core addresses"
           title: "chore: regenerate feed/core addresses"
           body: |
