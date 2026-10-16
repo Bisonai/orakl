@@ -16,6 +16,8 @@ import (
 
 type XtFetcher common.Fetcher
 
+const pingInterval = 10 * time.Second
+
 func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInterface, error) {
 	config := &common.FetcherConfig{}
 	for _, opt := range opts {
@@ -82,16 +84,22 @@ func (f *XtFetcher) handleMessage(ctx context.Context, message map[string]any) e
 }
 
 func (f *XtFetcher) Run(ctx context.Context) {
-	go f.ping(ctx)
+	go f.ping(ctx, pingInterval)
 	f.Ws.Run(ctx, f.handleMessage)
 }
 
-func (f *XtFetcher) ping(ctx context.Context) {
-	ticker := time.NewTicker(10 * time.Second)
-	for range ticker.C {
-		err := f.Ws.RawWrite(ctx, "ping")
-		if err != nil {
-			log.Error().Str("Player", "Xt").Err(err).Msg("error in xt.ping")
+func (f *XtFetcher) ping(ctx context.Context, interval time.Duration) {
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			err := f.Ws.RawWrite(ctx, "ping")
+			if err != nil {
+				log.Error().Str("Player", "Xt").Err(err).Msg("error in xt.ping")
+			}
 		}
 	}
 }
