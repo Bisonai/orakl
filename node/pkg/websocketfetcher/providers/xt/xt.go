@@ -96,6 +96,9 @@ func (f *XtFetcher) ping(ctx context.Context, interval time.Duration) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
+			if ctx.Err() != nil {
+				return
+			}
 			err := f.Ws.RawWrite(ctx, "ping")
 			if err != nil {
 				log.Error().Str("Player", "Xt").Err(err).Msg("error in xt.ping")
