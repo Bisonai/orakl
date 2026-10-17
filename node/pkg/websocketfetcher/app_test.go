@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -101,22 +101,37 @@ func TestInitializeCexSkipsUnknownProvider(t *testing.T) {
 	assert.Contains(t, logBuf.String(), `"provider":"coinex"`, "unknown provider not logged")
 }
 
+type blockingFetcher struct {
+	runs  atomic.Int32
+	exits chan struct{}
+}
+
+func (f *blockingFetcher) Run(ctx context.Context) {
+	f.runs.Add(1)
+	<-ctx.Done()
+	f.exits <- struct{}{}
+}
+
 // Start must set cancel before returning and must not orphan a running run
 // when called again (fetcher START while already running).
 func TestAppStartIdempotentAndStoppable(t *testing.T) {
-	app := &App{storeInterval: 10 * time.Millisecond}
+	fetcher := &blockingFetcher{exits: make(chan struct{}, 4)}
+	app := &App{storeInterval: 10 * time.Millisecond, fetchers: []common.FetcherInterface{fetcher}}
 
 	app.Start(context.Background())
 	require.NotNil(t, app.cancel)
-	first := fmt.Sprintf("%p", app.cancel)
-
 	app.Start(context.Background())
-	assert.Equal(t, first, fmt.Sprintf("%p", app.cancel), "second Start replaced running cancel")
 
 	app.Stop()
 	assert.Nil(t, app.cancel)
 
-	app.Start(context.Background())
-	assert.NotNil(t, app.cancel)
-	app.Stop()
+	// every Run started must exit after a single Stop
+	select {
+	case <-fetcher.exits:
+	case <-time.After(time.Second):
+		t.Fatal("fetcher run not stopped")
+	}
+	time.Sleep(50 * time.Millisecond)
+	assert.Equal(t, int32(1), fetcher.runs.Load(), "second Start launched another run")
+	assert.Len(t, fetcher.exits, 0, "orphaned run")
 }
