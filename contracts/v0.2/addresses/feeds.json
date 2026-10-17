@@ -297,7 +297,7 @@
     }
   },
   "BEAM-USDT": {
-    "tag": "standard",
+    "tag": "basic",
     "mainnet": {
       "proxy": "0x173f754e8b7b06b6f28e92ee146c32cea424dde6",
       "feed": "0x9c1bb76a63406f7952318a26ba114c44e2d20371"
@@ -363,7 +363,7 @@
     }
   },
   "BONK-KRW": {
-    "tag": "basic",
+    "tag": "single",
     "mainnet": {
       "proxy": "0x6481162ffc2d39552d11cf1571707dbdd0953f8b",
       "feed": "0x5cb0515a63f8d37efd6e25c093358e163823aa96"
