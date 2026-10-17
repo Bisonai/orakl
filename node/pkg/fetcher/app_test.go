@@ -6,7 +6,9 @@ import (
 	"testing"
 	"time"
 
+	"bisonai.com/miko/node/pkg/bus"
 	"bisonai.com/miko/node/pkg/db"
+	errorSentinel "bisonai.com/miko/node/pkg/error"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -112,4 +114,29 @@ func TestAppRun(t *testing.T) {
 		t.Fatalf("error querying local aggregates: %v", err)
 	}
 	assert.Greater(t, len(localAggregateResult), 0)
+}
+
+func TestHandleMessageRejectsOverlappingLifecycleCommand(t *testing.T) {
+	app := &App{}
+	// simulate a start/stop/refresh already in flight
+	app.lifecycleMu.Lock()
+	defer app.lifecycleMu.Unlock()
+
+	for _, command := range []string{bus.STOP_FETCHER_APP, bus.START_FETCHER_APP, bus.REFRESH_FETCHER_APP} {
+		msg := bus.Message{
+			From:     bus.ADMIN,
+			To:       bus.FETCHER,
+			Content:  bus.MessageContent{Command: command},
+			Response: make(chan bus.MessageResponse, 1),
+		}
+		app.handleMessage(context.Background(), msg)
+
+		select {
+		case resp := <-msg.Response:
+			assert.False(t, resp.Success, command)
+			assert.Equal(t, errorSentinel.ErrFetcherLifecycleInProgress.Error(), resp.Args["error"], command)
+		default:
+			t.Fatalf("%s: no response while lifecycle in progress", command)
+		}
+	}
 }

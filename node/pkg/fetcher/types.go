@@ -137,6 +137,10 @@ type App struct {
 	LocalAggregateValueMap   *LocalAggregateValueMap
 	Proxies                  []Proxy
 	FeedDataDumpChannel      chan *FeedData
+
+	// lifecycleMu rejects overlapping start/stop/refresh commands, which race
+	// on Fetchers/LocalAggregators/bulk writers and can orphan running workers.
+	lifecycleMu sync.Mutex
 }
 
 type Definition struct {

@@ -30,6 +30,9 @@ func New(bus *bus.MessageBus) *App {
 }
 
 func (a *App) Run(ctx context.Context) error {
+	a.lifecycleMu.Lock()
+	defer a.lifecycleMu.Unlock()
+
 	err := a.initialize(ctx)
 	if err != nil {
 		return err
@@ -72,6 +75,15 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 	if msg.To != bus.FETCHER {
 		log.Debug().Str("Player", "Fetcher").Msg("message not for fetcher")
 		return
+	}
+
+	switch msg.Content.Command {
+	case bus.STOP_FETCHER_APP, bus.START_FETCHER_APP, bus.REFRESH_FETCHER_APP:
+		if !a.lifecycleMu.TryLock() {
+			bus.HandleMessageError(errorSentinel.ErrFetcherLifecycleInProgress, msg, "rejected fetcher command: "+msg.Content.Command)
+			return
+		}
+		defer a.lifecycleMu.Unlock()
 	}
 
 	switch msg.Content.Command {
