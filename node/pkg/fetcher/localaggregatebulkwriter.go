@@ -36,7 +36,8 @@ func (a *LocalAggregateBulkWriter) Run(ctx context.Context) {
 }
 
 func (a *LocalAggregateBulkWriter) bulkWriterJob(ctx context.Context) {
-	if len(a.localAggregatesChannel) == 0 {
+	// a tick can race with stop; don't drain into a BulkCopy that will fail
+	if ctx.Err() != nil || len(a.localAggregatesChannel) == 0 {
 		return
 	}
 	var localAggregatesDataPgsql [][]any

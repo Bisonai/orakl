@@ -39,6 +39,8 @@ func (a *App) Run(ctx context.Context) error {
 	}
 
 	a.subscribe(ctx)
+	// once per app lifetime; initialize re-runs on every refresh
+	go a.LatestFeedDataMap.CleanupJob(ctx)
 
 	return a.startAll(ctx)
 }
@@ -143,7 +145,7 @@ func (a *App) startAll(ctx context.Context) error {
 		return err
 	}
 
-	go a.WebsocketFetcher.Start(ctx)
+	a.WebsocketFetcher.Start(ctx)
 
 	return a.startFeedDataBulkWriter(ctx)
 }
@@ -399,8 +401,6 @@ func (a *App) initialize(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-
-	go a.LatestFeedDataMap.CleanupJob(ctx)
 
 	return nil
 }

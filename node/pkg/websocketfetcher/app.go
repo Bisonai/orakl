@@ -295,6 +295,8 @@ func (a *App) initializeDex(ctx context.Context, appConfig AppConfig) error {
 	return nil
 }
 
+// Start is non-blocking: cancel is set before it returns so a following Stop
+// always cancels this run.
 func (a *App) Start(ctx context.Context) {
 	ctxWithCancel, cancel := context.WithCancel(ctx)
 	a.cancel = cancel
@@ -304,15 +306,17 @@ func (a *App) Start(ctx context.Context) {
 	}
 
 	ticker := time.NewTicker(a.storeInterval)
-	for {
-		select {
-		case <-ctxWithCancel.Done():
-			ticker.Stop()
-			return
-		case <-ticker.C:
-			go a.storeFeedData(ctxWithCancel)
+	go func() {
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctxWithCancel.Done():
+				return
+			case <-ticker.C:
+				go a.storeFeedData(ctxWithCancel)
+			}
 		}
-	}
+	}()
 }
 
 func (a *App) Stop() {

@@ -70,7 +70,8 @@ func TestLocalAggregateBulkWriter(t *testing.T) {
 
 	assert.Equal(t, DUMMY_FEED_VALUE*math.Pow10(*decimals), float64(data.Value))
 
-	go app.LocalAggregateBulkWriter.Run(ctx)
+	app.LocalAggregateBulkWriter.Run(ctx)
+	defer app.LocalAggregateBulkWriter.cancel()
 
 	time.Sleep(DefaultLocalAggregateInterval * 4)
 
