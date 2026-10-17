@@ -128,8 +128,9 @@ func (f *KucoinFetcher) pingJob(ctx context.Context, interval time.Duration) {
 				Type: "ping",
 			})
 			if err != nil {
+				// Keep pinging: Ws.Run reconnects, so a write failing during the
+				// close-to-redial window must not stop pings on later conns.
 				log.Error().Str("Player", "Kucoin").Err(err).Msg("error in kucoin.pingJob")
-				return
 			}
 		}
 	}

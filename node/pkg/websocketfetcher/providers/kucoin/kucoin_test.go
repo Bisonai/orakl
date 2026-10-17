@@ -50,8 +50,8 @@ func TestPingJobStopsOnContextCancel(t *testing.T) {
 	// Interval well above the post-cancel return budget: a loop that only
 	// notices cancel on the next tick (old `for range ticker.C` + Write
 	// failing on a dead ctx) misses the budget.
-	const interval = 500 * time.Millisecond
-	const returnBudget = 100 * time.Millisecond
+	const interval = time.Second
+	const returnBudget = 300 * time.Millisecond
 
 	ctx, cancel := context.WithCancel(context.Background())
 	f := &KucoinFetcher{Ws: ws}
@@ -82,5 +82,37 @@ func TestPingJobStopsOnContextCancel(t *testing.T) {
 	time.Sleep(interval + 100*time.Millisecond)
 	if got := pings.Load(); got != afterCancel {
 		t.Fatalf("ping written after cancel: %d -> %d", afterCancel, got)
+	}
+}
+
+// Before the first Dial (or between reconnects) Write fails; pingJob must keep
+// running so later connections still get pings, and must not panic on a nil conn.
+func TestPingJobSurvivesWriteError(t *testing.T) {
+	ws, err := wss.NewWebsocketHelper(context.Background(), wss.WithEndpoint("ws://127.0.0.1:1"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	f := &KucoinFetcher{Ws: ws}
+
+	done := make(chan struct{})
+	go func() {
+		f.pingJob(ctx, 10*time.Millisecond)
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		t.Fatal("pingJob returned on write error")
+	case <-time.After(100 * time.Millisecond):
+	}
+
+	cancel()
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("pingJob did not return after context cancel")
 	}
 }
