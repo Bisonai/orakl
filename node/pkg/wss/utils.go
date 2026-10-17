@@ -197,6 +197,10 @@ func (ws *WebsocketHelper) dialAndSubscribe(ctx context.Context) error {
 }
 
 func (ws *WebsocketHelper) Write(ctx context.Context, message interface{}) error {
+	if ws.Conn == nil {
+		return errors.New("websocket is not running")
+	}
+
 	err := wsjson.Write(ctx, ws.Conn, message)
 	if err != nil {
 		return err
