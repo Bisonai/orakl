@@ -2,6 +2,7 @@
 package fetcher
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -264,4 +265,152 @@ func TestFilterStaleFeeds_IntegrationWithCollectFlow(t *testing.T) {
 	for _, feed := range filtered {
 		assert.NotEqual(t, int32(12), feed.FeedID, "feed 12 (bitmart stuck) should be excluded")
 	}
+}
+
+func wssFeed(id int32) Feed {
+	return Feed{ID: id, Name: "wss", Definition: []byte(`{"type":"wss","provider":"upbit","base":"MTL","quote":"KRW"}`), ConfigID: 1}
+}
+
+func dexFeed(id int32) Feed {
+	return Feed{ID: id, Name: "dex", Definition: []byte(`{"type":"UniswapPool","chainId":"1","address":"0x0"}`), ConfigID: 1}
+}
+
+func httpFeed(id int32) Feed {
+	return Feed{ID: id, Name: "http", Definition: []byte(`{"url":"https://example.com","method":"GET"}`), ConfigID: 1}
+}
+
+func newTypedLocalAggregator(feeds []Feed, data map[int32]*FeedData) *LocalAggregator {
+	freshness := 60000
+	return NewLocalAggregator(
+		Config{ID: 1, Name: "MTL-KRW", FetchInterval: 2000, FeedDataFreshness: &freshness},
+		feeds,
+		make(chan *LocalAggregate, 1),
+		nil,
+		&LatestFeedDataMap{FeedDataMap: data},
+		nil,
+	)
+}
+
+func feedIDs(feeds []*FeedData) []int32 {
+	ids := make([]int32, 0, len(feeds))
+	for _, f := range feeds {
+		ids = append(ids, f.FeedID)
+	}
+	return ids
+}
+
+func TestBuildWssFeedIDs(t *testing.T) {
+	ids := buildWssFeedIDs([]Feed{wssFeed(1), dexFeed(2), httpFeed(3), {ID: 4, Definition: []byte(`bad`)}})
+	assert.Equal(t, map[int32]bool{1: true}, ids)
+}
+
+func TestFilterStaleFeeds_WssVolumeZeroNotExempt(t *testing.T) {
+	now := time.Now()
+	stale := now.Add(-5 * time.Minute)
+	la := newTypedLocalAggregator([]Feed{wssFeed(1), wssFeed(2), dexFeed(3), httpFeed(4)}, nil)
+
+	feeds := []*FeedData{
+		{FeedID: 1, Value: 100, Volume: 1, Timestamp: &now},
+		{FeedID: 2, Value: 110, Volume: 0, Timestamp: &stale}, // wss vol 0, stale
+		{FeedID: 3, Value: 101, Volume: 0, Timestamp: &stale}, // dex, exempt
+		{FeedID: 4, Value: 102, Volume: 0, Timestamp: &stale}, // http, exempt
+	}
+
+	result := la.filterStaleFeeds(feeds)
+	assert.ElementsMatch(t, []int32{1, 3, 4}, feedIDs(result))
+}
+
+func TestFilterZombieWssFeeds_KeptWhileLiveWssPresent(t *testing.T) {
+	now := time.Now()
+	la := newTypedLocalAggregator([]Feed{wssFeed(1), wssFeed(2), wssFeed(3)}, nil)
+
+	feeds := []*FeedData{
+		{FeedID: 1, Value: 100, Volume: 5, Timestamp: &now},
+		{FeedID: 2, Value: 110, Volume: 0, Timestamp: &now},
+		{FeedID: 3, Value: 111, Volume: 0, Timestamp: &now},
+	}
+
+	result := la.filterZombieWssFeeds(feeds)
+	assert.ElementsMatch(t, []int32{1, 2, 3}, feedIDs(result))
+}
+
+func TestFilterZombieWssFeeds_NoWssFeedsUnchanged(t *testing.T) {
+	now := time.Now()
+	la := newTypedLocalAggregator([]Feed{httpFeed(1), httpFeed(2)}, nil)
+
+	feeds := []*FeedData{
+		{FeedID: 1, Value: 100, Timestamp: &now},
+		{FeedID: 2, Value: 101, Timestamp: &now},
+	}
+
+	result := la.filterZombieWssFeeds(feeds)
+	assert.ElementsMatch(t, []int32{1, 2}, feedIDs(result))
+}
+
+// Thin config: 2 live wss feeds gone stale + 2 wss feeds with venue volume 0
+// (fresh timestamps, old price). Must not publish a zombie-only value.
+func TestLocalAggregatorJob_ZombieOnlyNotPublished(t *testing.T) {
+	now := time.Now()
+	stale := now.Add(-3 * time.Minute)
+	la := newTypedLocalAggregator(
+		[]Feed{wssFeed(1), wssFeed(2), wssFeed(3), wssFeed(4)},
+		map[int32]*FeedData{
+			1: {FeedID: 1, Value: 369, Volume: 1000, Timestamp: &stale},
+			2: {FeedID: 2, Value: 370, Volume: 800, Timestamp: &stale},
+			3: {FeedID: 3, Value: 406.4, Volume: 0, Timestamp: &now},
+			4: {FeedID: 4, Value: 406.4, Volume: 0, Timestamp: &now},
+		},
+	)
+
+	feeds, err := la.collect(context.Background())
+	assert.NoError(t, err)
+	assert.Empty(t, feeds)
+
+	assert.NoError(t, la.Job(context.Background()))
+	select {
+	case agg := <-la.localAggregatesChannel:
+		t.Fatalf("unexpected local aggregate published: %+v", agg)
+	default:
+	}
+}
+
+// Same thin config plus DEX/HTTP feeds: zombies dropped, DEX/HTTP still
+// exempt from freshness and kept.
+func TestLocalAggregatorCollect_ZombiesDroppedDexHttpKept(t *testing.T) {
+	now := time.Now()
+	stale := now.Add(-3 * time.Minute)
+	la := newTypedLocalAggregator(
+		[]Feed{wssFeed(1), wssFeed(2), wssFeed(3), wssFeed(4), dexFeed(5), httpFeed(6)},
+		map[int32]*FeedData{
+			1: {FeedID: 1, Value: 369, Volume: 1000, Timestamp: &stale},
+			2: {FeedID: 2, Value: 370, Volume: 800, Timestamp: &stale},
+			3: {FeedID: 3, Value: 406.4, Volume: 0, Timestamp: &now},
+			4: {FeedID: 4, Value: 406.4, Volume: 0, Timestamp: &now},
+			5: {FeedID: 5, Value: 369.5, Volume: 0, Timestamp: &stale},
+			6: {FeedID: 6, Value: 369.8, Volume: 0, Timestamp: &stale},
+		},
+	)
+
+	feeds, err := la.collect(context.Background())
+	assert.NoError(t, err)
+	assert.ElementsMatch(t, []int32{5, 6}, feedIDs(feeds))
+}
+
+// One live wss feed still fresh: zombies stay (median bucket only).
+func TestLocalAggregatorCollect_ZombiesKeptWithLiveWss(t *testing.T) {
+	now := time.Now()
+	stale := now.Add(-3 * time.Minute)
+	la := newTypedLocalAggregator(
+		[]Feed{wssFeed(1), wssFeed(2), wssFeed(3), wssFeed(4)},
+		map[int32]*FeedData{
+			1: {FeedID: 1, Value: 369, Volume: 1000, Timestamp: &now},
+			2: {FeedID: 2, Value: 370, Volume: 800, Timestamp: &stale},
+			3: {FeedID: 3, Value: 406.4, Volume: 0, Timestamp: &now},
+			4: {FeedID: 4, Value: 406.4, Volume: 0, Timestamp: &stale},
+		},
+	)
+
+	feeds, err := la.collect(context.Background())
+	assert.NoError(t, err)
+	assert.ElementsMatch(t, []int32{1, 3}, feedIDs(feeds))
 }
