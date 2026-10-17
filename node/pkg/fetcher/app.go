@@ -85,7 +85,19 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 			bus.HandleMessageError(errorSentinel.ErrFetcherLifecycleInProgress, msg, "rejected fetcher command: "+msg.Content.Command)
 			return
 		}
-		defer a.lifecycleMu.Unlock()
+		// handlers below reply into a buffered chan; forward it only after
+		// unlocking so a slow/absent reader can't pin lifecycleMu
+		reply := msg.Response
+		buffered := make(chan bus.MessageResponse, 1)
+		msg.Response = buffered
+		defer func() {
+			a.lifecycleMu.Unlock()
+			select {
+			case resp := <-buffered:
+				reply <- resp
+			default:
+			}
+		}()
 	}
 
 	switch msg.Content.Command {

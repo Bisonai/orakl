@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"testing"
+	"time"
 
 	"bisonai.com/miko/node/pkg/chain/utils"
 	"bisonai.com/miko/node/pkg/chain/websocketchainreader"
@@ -97,4 +99,24 @@ func TestInitializeCexSkipsUnknownProvider(t *testing.T) {
 	assert.Equal(t, []string{"binance"}, created)
 	assert.Len(t, a.fetchers, 1)
 	assert.Contains(t, logBuf.String(), `"provider":"coinex"`, "unknown provider not logged")
+}
+
+// Start must set cancel before returning and must not orphan a running run
+// when called again (fetcher START while already running).
+func TestAppStartIdempotentAndStoppable(t *testing.T) {
+	app := &App{storeInterval: 10 * time.Millisecond}
+
+	app.Start(context.Background())
+	require.NotNil(t, app.cancel)
+	first := fmt.Sprintf("%p", app.cancel)
+
+	app.Start(context.Background())
+	assert.Equal(t, first, fmt.Sprintf("%p", app.cancel), "second Start replaced running cancel")
+
+	app.Stop()
+	assert.Nil(t, app.cancel)
+
+	app.Start(context.Background())
+	assert.NotNil(t, app.cancel)
+	app.Stop()
 }

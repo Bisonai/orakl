@@ -124,6 +124,7 @@ type LocalAggregateBulkWriter struct {
 	cancel                 context.CancelFunc
 	isRunning              bool
 	localAggregatesChannel chan *LocalAggregate
+	done                   chan struct{} // closed when the Run loop exits
 }
 
 type App struct {

@@ -99,12 +99,15 @@ func TestLocalAggregateBulkWriterStopsOnOwnCancel(t *testing.T) {
 	}
 	writer.cancel()
 
-	// give a running loop a chance to exit, then feed data; a leaked loop would
-	// drain it via bulkWriterJob on the next tick
-	time.Sleep(50 * time.Millisecond)
+	select {
+	case <-writer.done:
+	case <-time.After(time.Second):
+		t.Fatal("writer loop kept running after its ctx was cancelled")
+	}
+
+	// no job may drain data pushed after stop
 	writer.localAggregatesChannel <- &LocalAggregate{ConfigID: 1, Value: 1}
 	time.Sleep(10 * writer.Interval)
-
-	assert.Equal(t, 1, len(writer.localAggregatesChannel), "writer loop kept running after its ctx was cancelled")
+	assert.Equal(t, 1, len(writer.localAggregatesChannel))
 	assert.NoError(t, parentCtx.Err())
 }

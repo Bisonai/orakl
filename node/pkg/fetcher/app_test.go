@@ -140,3 +140,28 @@ func TestHandleMessageRejectsOverlappingLifecycleCommand(t *testing.T) {
 		}
 	}
 }
+
+// reply is delivered on the caller's (unbuffered) channel only after
+// lifecycleMu is released
+func TestHandleMessageRepliesAfterUnlock(t *testing.T) {
+	app := New(nil)
+	app.LocalAggregateBulkWriter = NewLocalAggregateBulkWriter(DefaultLocalAggregateInterval)
+	app.FeedDataBulkWriter = NewFeedDataBulkWriter(DefaultFeedDataDumpInterval, app.FeedDataDumpChannel)
+
+	msg := bus.Message{
+		From:     bus.ADMIN,
+		To:       bus.FETCHER,
+		Content:  bus.MessageContent{Command: bus.STOP_FETCHER_APP},
+		Response: make(chan bus.MessageResponse),
+	}
+	go app.handleMessage(context.Background(), msg)
+
+	select {
+	case resp := <-msg.Response:
+		assert.True(t, resp.Success)
+	case <-time.After(time.Second):
+		t.Fatal("no response")
+	}
+	assert.True(t, app.lifecycleMu.TryLock(), "lifecycleMu still held after reply")
+	app.lifecycleMu.Unlock()
+}

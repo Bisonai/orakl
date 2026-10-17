@@ -298,6 +298,10 @@ func (a *App) initializeDex(ctx context.Context, appConfig AppConfig) error {
 // Start is non-blocking: cancel is set before it returns so a following Stop
 // always cancels this run.
 func (a *App) Start(ctx context.Context) {
+	if a.cancel != nil {
+		log.Debug().Str("Player", "WebsocketFetcher").Msg("websocket fetcher already running")
+		return
+	}
 	ctxWithCancel, cancel := context.WithCancel(ctx)
 	a.cancel = cancel
 
@@ -322,6 +326,7 @@ func (a *App) Start(ctx context.Context) {
 func (a *App) Stop() {
 	if a.cancel != nil {
 		a.cancel()
+		a.cancel = nil
 	}
 }
 

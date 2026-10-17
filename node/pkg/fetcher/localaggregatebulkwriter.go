@@ -19,9 +19,12 @@ func (a *LocalAggregateBulkWriter) Run(ctx context.Context) {
 	a.bulkWriterCtx = bulkWriterCtx
 	a.cancel = cancel
 	a.isRunning = true
+	done := make(chan struct{})
+	a.done = done
 
 	ticker := time.NewTicker(a.Interval)
 	go func() {
+		defer close(done)
 		defer ticker.Stop()
 		for {
 			select {
