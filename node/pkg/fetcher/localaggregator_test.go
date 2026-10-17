@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"bisonai.com/miko/node/pkg/bus"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -280,12 +281,15 @@ func httpFeed(id int32) Feed {
 }
 
 func newTypedLocalAggregator(feeds []Feed, data map[int32]*FeedData) *LocalAggregator {
-	freshness := 60000
+	return newTypedLocalAggregatorWithFreshness(intPtr(60000), feeds, data)
+}
+
+func newTypedLocalAggregatorWithFreshness(freshness *int, feeds []Feed, data map[int32]*FeedData) *LocalAggregator {
 	return NewLocalAggregator(
-		Config{ID: 1, Name: "MTL-KRW", FetchInterval: 2000, FeedDataFreshness: &freshness},
+		Config{ID: 1, Name: "MTL-KRW", FetchInterval: 2000, FeedDataFreshness: freshness},
 		feeds,
 		make(chan *LocalAggregate, 1),
-		nil,
+		bus.New(10),
 		&LatestFeedDataMap{FeedDataMap: data},
 		nil,
 	)
@@ -332,6 +336,19 @@ func TestFilterZombieWssFeeds_KeptWhileLiveWssPresent(t *testing.T) {
 
 	result := la.filterZombieWssFeeds(feeds)
 	assert.ElementsMatch(t, []int32{1, 2, 3}, feedIDs(result))
+}
+
+func TestFilterZombieWssFeeds_DisabledWithoutFreshness(t *testing.T) {
+	now := time.Now()
+	la := newTypedLocalAggregatorWithFreshness(nil, []Feed{wssFeed(1), wssFeed(2)}, nil)
+
+	feeds := []*FeedData{
+		{FeedID: 1, Value: 100, Volume: 0, Timestamp: &now},
+		{FeedID: 2, Value: 101, Volume: 0, Timestamp: &now},
+	}
+
+	result := la.filterZombieWssFeeds(feeds)
+	assert.ElementsMatch(t, []int32{1, 2}, feedIDs(result))
 }
 
 func TestFilterZombieWssFeeds_NoWssFeedsUnchanged(t *testing.T) {

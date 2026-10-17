@@ -39,10 +39,8 @@ func NewLocalAggregator(
 func buildWssFeedIDs(feeds []Feed) map[int32]bool {
 	ids := make(map[int32]bool)
 	for _, feed := range feeds {
-		defn := struct {
-			Type *string `json:"type"`
-		}{}
-		if err := json.Unmarshal(feed.Definition, &defn); err != nil {
+		defn := new(Definition)
+		if err := json.Unmarshal(feed.Definition, defn); err != nil {
 			continue
 		}
 		if defn.Type != nil && *defn.Type == "wss" {
@@ -330,7 +328,12 @@ func (c *LocalAggregator) collect(ctx context.Context) ([]*FeedData, error) {
 // aggregate stands. Volume-0 wss feeds are kept while a volume > 0 wss feed
 // is present, since some providers transiently report 0 volume for real
 // trades (e.g. bitstamp/gemini/btse when their volume cache is stale).
+// Only applies when freshness filtering is enabled, since that is what
+// removes the live feeds and leaves zombies alone.
 func (c *LocalAggregator) filterZombieWssFeeds(feeds []*FeedData) []*FeedData {
+	if c.Config.FeedDataFreshness == nil || *c.Config.FeedDataFreshness <= 0 {
+		return feeds
+	}
 	if len(c.wssFeedIDs) == 0 {
 		return feeds
 	}
