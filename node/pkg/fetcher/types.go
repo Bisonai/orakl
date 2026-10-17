@@ -106,6 +106,10 @@ type LocalAggregator struct {
 	localAggregatesChannel chan *LocalAggregate
 	latestFeedDataMap      *LatestFeedDataMap
 	localAggregateValueMap *LocalAggregateValueMap
+
+	// IDs of Feeds whose definition type is "wss" (CEX websocket), built
+	// once in NewLocalAggregator.
+	wssFeedIDs map[int32]bool
 }
 
 type FeedDataBulkWriter struct {
