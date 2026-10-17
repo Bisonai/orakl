@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"bisonai.com/miko/node/pkg/chain/utils"
 	"bisonai.com/miko/node/pkg/chain/websocketchainreader"
@@ -97,4 +99,39 @@ func TestInitializeCexSkipsUnknownProvider(t *testing.T) {
 	assert.Equal(t, []string{"binance"}, created)
 	assert.Len(t, a.fetchers, 1)
 	assert.Contains(t, logBuf.String(), `"provider":"coinex"`, "unknown provider not logged")
+}
+
+type blockingFetcher struct {
+	runs  atomic.Int32
+	exits chan struct{}
+}
+
+func (f *blockingFetcher) Run(ctx context.Context) {
+	f.runs.Add(1)
+	<-ctx.Done()
+	f.exits <- struct{}{}
+}
+
+// Start must set cancel before returning and must not orphan a running run
+// when called again (fetcher START while already running).
+func TestAppStartIdempotentAndStoppable(t *testing.T) {
+	fetcher := &blockingFetcher{exits: make(chan struct{}, 4)}
+	app := &App{storeInterval: 10 * time.Millisecond, fetchers: []common.FetcherInterface{fetcher}}
+
+	app.Start(context.Background())
+	require.NotNil(t, app.cancel)
+	app.Start(context.Background())
+
+	app.Stop()
+	assert.Nil(t, app.cancel)
+
+	// every Run started must exit after a single Stop
+	select {
+	case <-fetcher.exits:
+	case <-time.After(time.Second):
+		t.Fatal("fetcher run not stopped")
+	}
+	time.Sleep(50 * time.Millisecond)
+	assert.Equal(t, int32(1), fetcher.runs.Load(), "second Start launched another run")
+	assert.Len(t, fetcher.exits, 0, "orphaned run")
 }

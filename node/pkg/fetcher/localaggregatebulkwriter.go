@@ -19,23 +19,28 @@ func (a *LocalAggregateBulkWriter) Run(ctx context.Context) {
 	a.bulkWriterCtx = bulkWriterCtx
 	a.cancel = cancel
 	a.isRunning = true
+	done := make(chan struct{})
+	a.done = done
 
 	ticker := time.NewTicker(a.Interval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ticker.C:
-			go a.bulkWriterJob(bulkWriterCtx)
-		case <-ctx.Done():
-			log.Debug().Str("Player", "Fetcher").Msg("fetcher local aggregates channel goroutine stopped")
-			return
+	go func() {
+		defer close(done)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				go a.bulkWriterJob(bulkWriterCtx)
+			case <-bulkWriterCtx.Done():
+				log.Debug().Str("Player", "Fetcher").Msg("fetcher local aggregates channel goroutine stopped")
+				return
+			}
 		}
-	}
+	}()
 }
 
 func (a *LocalAggregateBulkWriter) bulkWriterJob(ctx context.Context) {
-	if len(a.localAggregatesChannel) == 0 {
+	// a tick can race with stop; don't drain into a BulkCopy that will fail
+	if ctx.Err() != nil || len(a.localAggregatesChannel) == 0 {
 		return
 	}
 	var localAggregatesDataPgsql [][]any

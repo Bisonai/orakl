@@ -151,6 +151,7 @@ var (
 	ErrLocalAggregatorZeroVolume              = &CustomError{Service: Fetcher, Code: InvalidInputError, Message: "Zero volume"}
 	ErrFeedDataBulkWriterCancelNotFound       = &CustomError{Service: Fetcher, Code: InternalError, Message: "FeedDataBulkWriter cancel function not found"}
 	ErrLocalAggregateBulkWriterCancelNotFound = &CustomError{Service: Fetcher, Code: InternalError, Message: "LocalAggregateBulkWriter cancel function not found"}
+	ErrFetcherLifecycleInProgress             = &CustomError{Service: Fetcher, Code: InternalError, Message: "fetcher start/stop/refresh already in progress"}
 	ErrFetcherNoMatchingChainID               = &CustomError{Service: Fetcher, Code: InvalidInputError, Message: "No matching chain ID"}
 	ErrFetcherFailedToGetDexResultSlice       = &CustomError{Service: Fetcher, Code: InternalError, Message: "Failed to get dex result slice"}
 	ErrFetcherFailedBigIntConvert             = &CustomError{Service: Fetcher, Code: InternalError, Message: "Failed to convert to fetched data to big.Int"}

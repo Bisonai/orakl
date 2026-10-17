@@ -6,7 +6,9 @@ import (
 	"testing"
 	"time"
 
+	"bisonai.com/miko/node/pkg/bus"
 	"bisonai.com/miko/node/pkg/db"
+	errorSentinel "bisonai.com/miko/node/pkg/error"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -112,4 +114,54 @@ func TestAppRun(t *testing.T) {
 		t.Fatalf("error querying local aggregates: %v", err)
 	}
 	assert.Greater(t, len(localAggregateResult), 0)
+}
+
+func TestHandleMessageRejectsOverlappingLifecycleCommand(t *testing.T) {
+	app := &App{}
+	// simulate a start/stop/refresh already in flight
+	app.lifecycleMu.Lock()
+	defer app.lifecycleMu.Unlock()
+
+	for _, command := range []string{bus.STOP_FETCHER_APP, bus.START_FETCHER_APP, bus.REFRESH_FETCHER_APP} {
+		msg := bus.Message{
+			From:     bus.ADMIN,
+			To:       bus.FETCHER,
+			Content:  bus.MessageContent{Command: command},
+			Response: make(chan bus.MessageResponse, 1),
+		}
+		app.handleMessage(context.Background(), msg)
+
+		select {
+		case resp := <-msg.Response:
+			assert.False(t, resp.Success, command)
+			assert.Equal(t, errorSentinel.ErrFetcherLifecycleInProgress.Error(), resp.Args["error"], command)
+		default:
+			t.Fatalf("%s: no response while lifecycle in progress", command)
+		}
+	}
+}
+
+// reply is delivered on the caller's (unbuffered) channel only after
+// lifecycleMu is released
+func TestHandleMessageRepliesAfterUnlock(t *testing.T) {
+	app := New(nil)
+	app.LocalAggregateBulkWriter = NewLocalAggregateBulkWriter(DefaultLocalAggregateInterval)
+	app.FeedDataBulkWriter = NewFeedDataBulkWriter(DefaultFeedDataDumpInterval, app.FeedDataDumpChannel)
+
+	msg := bus.Message{
+		From:     bus.ADMIN,
+		To:       bus.FETCHER,
+		Content:  bus.MessageContent{Command: bus.STOP_FETCHER_APP},
+		Response: make(chan bus.MessageResponse),
+	}
+	go app.handleMessage(context.Background(), msg)
+
+	select {
+	case resp := <-msg.Response:
+		assert.True(t, resp.Success)
+	case <-time.After(time.Second):
+		t.Fatal("no response")
+	}
+	assert.True(t, app.lifecycleMu.TryLock(), "lifecycleMu still held after reply")
+	app.lifecycleMu.Unlock()
 }
