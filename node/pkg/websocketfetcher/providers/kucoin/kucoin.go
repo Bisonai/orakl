@@ -106,22 +106,31 @@ func (f *KucoinFetcher) handleMessage(ctx context.Context, message map[string]an
 }
 
 func (f *KucoinFetcher) Run(ctx context.Context) {
-	go f.pingJob(ctx)
+	go f.pingJob(ctx, time.Duration(pingInterval)*time.Millisecond)
 	f.Ws.Run(ctx, f.handleMessage)
 }
 
-func (f *KucoinFetcher) pingJob(ctx context.Context) {
-	pingTicker := time.NewTicker(time.Duration(pingInterval) * time.Millisecond)
+func (f *KucoinFetcher) pingJob(ctx context.Context, interval time.Duration) {
+	pingTicker := time.NewTicker(interval)
+	defer pingTicker.Stop()
 
-	for range pingTicker.C {
-		log.Debug().Msg("sending ping message to kucoin server")
-		err := f.Ws.Write(ctx, Ping{
-			ID:   1,
-			Type: "ping",
-		})
-		if err != nil {
-			log.Error().Str("Player", "Kucoin").Err(err).Msg("error in kucoin.pingJob")
+	for {
+		select {
+		case <-ctx.Done():
 			return
+		case <-pingTicker.C:
+			if ctx.Err() != nil {
+				return
+			}
+			log.Debug().Msg("sending ping message to kucoin server")
+			err := f.Ws.Write(ctx, Ping{
+				ID:   1,
+				Type: "ping",
+			})
+			if err != nil {
+				log.Error().Str("Player", "Kucoin").Err(err).Msg("error in kucoin.pingJob")
+				return
+			}
 		}
 	}
 }
