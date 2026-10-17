@@ -85,34 +85,61 @@ func TestPingJobStopsOnContextCancel(t *testing.T) {
 	}
 }
 
-// Before the first Dial (or between reconnects) Write fails; pingJob must keep
-// running so later connections still get pings, and must not panic on a nil conn.
+// Write fails before the first Dial (nil conn) and between Ws.Run's Close and
+// redial (closed conn); pingJob must keep running so later connections still
+// get pings, and must not panic.
 func TestPingJobSurvivesWriteError(t *testing.T) {
-	ws, err := wss.NewWebsocketHelper(context.Background(), wss.WithEndpoint("ws://127.0.0.1:1"))
-	if err != nil {
-		t.Fatal(err)
+	var pings atomic.Int64
+	server := pingCounterServer(&pings)
+	defer server.Close()
+
+	cases := map[string]func(t *testing.T) *wss.WebsocketHelper{
+		"nil conn": func(t *testing.T) *wss.WebsocketHelper {
+			ws, err := wss.NewWebsocketHelper(context.Background(), wss.WithEndpoint("ws://127.0.0.1:1"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			return ws
+		},
+		"closed conn": func(t *testing.T) *wss.WebsocketHelper {
+			ws, err := wss.NewWebsocketHelper(context.Background(), wss.WithEndpoint("ws"+server.URL[len("http"):]))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err = ws.Dial(context.Background()); err != nil {
+				t.Fatal(err)
+			}
+			if err = ws.Close(); err != nil {
+				t.Fatal(err)
+			}
+			return ws
+		},
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	f := &KucoinFetcher{Ws: ws}
+	for name, newWs := range cases {
+		t.Run(name, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			f := &KucoinFetcher{Ws: newWs(t)}
 
-	done := make(chan struct{})
-	go func() {
-		f.pingJob(ctx, 10*time.Millisecond)
-		close(done)
-	}()
+			done := make(chan struct{})
+			go func() {
+				f.pingJob(ctx, 10*time.Millisecond)
+				close(done)
+			}()
 
-	select {
-	case <-done:
-		t.Fatal("pingJob returned on write error")
-	case <-time.After(100 * time.Millisecond):
-	}
+			select {
+			case <-done:
+				t.Fatal("pingJob returned on write error")
+			case <-time.After(100 * time.Millisecond):
+			}
 
-	cancel()
-	select {
-	case <-done:
-	case <-time.After(time.Second):
-		t.Fatal("pingJob did not return after context cancel")
+			cancel()
+			select {
+			case <-done:
+			case <-time.After(time.Second):
+				t.Fatal("pingJob did not return after context cancel")
+			}
+		})
 	}
 }
