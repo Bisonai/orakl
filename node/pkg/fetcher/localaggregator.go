@@ -30,7 +30,24 @@ func NewLocalAggregator(
 		localAggregatesChannel: localAggregatesChannel,
 		latestFeedDataMap:      latestFeedDataMap,
 		localAggregateValueMap: localAggregateValueMap,
+		wssFeedIDs:             buildWssFeedIDs(feeds),
 	}
+}
+
+// buildWssFeedIDs returns the IDs of feeds whose definition type is "wss"
+// (CEX websocket). DEX pools ("*Pool") and HTTP feeds (no type) are excluded.
+func buildWssFeedIDs(feeds []Feed) map[int32]bool {
+	ids := make(map[int32]bool)
+	for _, feed := range feeds {
+		defn := new(Definition)
+		if err := json.Unmarshal(feed.Definition, defn); err != nil {
+			continue
+		}
+		if defn.Type != nil && *defn.Type == "wss" {
+			ids[feed.ID] = true
+		}
+	}
+	return ids
 }
 
 func (c *LocalAggregator) Run(ctx context.Context) {
@@ -298,7 +315,48 @@ func (c *LocalAggregator) collect(ctx context.Context) ([]*FeedData, error) {
 	}
 
 	feeds = c.applyPerFeedMultipliers(feeds)
-	return c.filterStaleFeeds(feeds), nil
+	feeds = c.filterStaleFeeds(feeds)
+	return c.filterZombieWssFeeds(feeds), nil
+}
+
+// filterZombieWssFeeds drops volume-0 wss feeds when no wss feed with
+// volume > 0 is left. A CEX ticker with 24h volume 0 keeps resending an old
+// last price; while live CEX feeds exist it only sits in the small median
+// bucket, but once they are all stale it would become the whole aggregate.
+// In that case the zombies are dropped so only DEX/HTTP feeds (or nothing)
+// remain; if that falls below quorum the round is skipped and the last
+// aggregate stands. Volume-0 wss feeds are kept while a volume > 0 wss feed
+// is present, since some providers transiently report 0 volume for real
+// trades (e.g. bitstamp/gemini/btse when their volume cache is stale).
+// Only applies when freshness filtering is enabled, since that is what
+// removes the live feeds and leaves zombies alone.
+func (c *LocalAggregator) filterZombieWssFeeds(feeds []*FeedData) []*FeedData {
+	if c.Config.FeedDataFreshness == nil || *c.Config.FeedDataFreshness <= 0 {
+		return feeds
+	}
+	if len(c.wssFeedIDs) == 0 {
+		return feeds
+	}
+
+	for _, feed := range feeds {
+		if c.wssFeedIDs[feed.FeedID] && feed.Volume > 0 {
+			return feeds
+		}
+	}
+
+	out := make([]*FeedData, 0, len(feeds))
+	for _, feed := range feeds {
+		if c.wssFeedIDs[feed.FeedID] && feed.Volume == 0 {
+			log.Debug().Str("Player", "LocalAggregator").
+				Str("config", c.Name).
+				Int32("feedID", feed.FeedID).
+				Float64("value", feed.Value).
+				Msg("excluding zero-volume wss feed: no live wss feed left")
+			continue
+		}
+		out = append(out, feed)
+	}
+	return out
 }
 
 // applyPerFeedMultipliers walks each FeedData against its source Feed
@@ -388,8 +446,9 @@ func (c *LocalAggregator) filterStaleFeeds(feeds []*FeedData) []*FeedData {
 	fresh := make([]*FeedData, 0, len(feeds))
 
 	for _, feed := range feeds {
-		// DEX/HTTP feeds (volume == 0) are not subject to freshness filtering
-		if feed.Volume == 0 {
+		// DEX/HTTP feeds (volume == 0) are not subject to freshness filtering.
+		// wss (CEX) feeds always are, even with volume 0 (venue 24h volume 0).
+		if feed.Volume == 0 && !c.wssFeedIDs[feed.FeedID] {
 			fresh = append(fresh, feed)
 			continue
 		}
