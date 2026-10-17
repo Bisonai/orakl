@@ -196,9 +196,10 @@ func (a *App) startFeedDataBulkWriter(ctx context.Context) error {
 func (a *App) startLocalAggregateBulkWriter(ctx context.Context) {
 	if a.LocalAggregateBulkWriter.isRunning {
 		log.Debug().Str("Player", "Fetcher").Msg("LocalAggregateBulkWriter already running")
+		return
 	}
 
-	go a.LocalAggregateBulkWriter.Run(ctx)
+	a.LocalAggregateBulkWriter.Run(ctx)
 
 	log.Debug().Str("Player", "Fetcher").Msg("LocalAggregateBulkWriter started")
 }

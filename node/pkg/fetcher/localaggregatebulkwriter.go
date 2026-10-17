@@ -21,17 +21,18 @@ func (a *LocalAggregateBulkWriter) Run(ctx context.Context) {
 	a.isRunning = true
 
 	ticker := time.NewTicker(a.Interval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ticker.C:
-			go a.bulkWriterJob(bulkWriterCtx)
-		case <-ctx.Done():
-			log.Debug().Str("Player", "Fetcher").Msg("fetcher local aggregates channel goroutine stopped")
-			return
+	go func() {
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				go a.bulkWriterJob(bulkWriterCtx)
+			case <-bulkWriterCtx.Done():
+				log.Debug().Str("Player", "Fetcher").Msg("fetcher local aggregates channel goroutine stopped")
+				return
+			}
 		}
-	}
+	}()
 }
 
 func (a *LocalAggregateBulkWriter) bulkWriterJob(ctx context.Context) {

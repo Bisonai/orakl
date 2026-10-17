@@ -82,3 +82,28 @@ func TestLocalAggregateBulkWriter(t *testing.T) {
 	}
 	assert.Equal(t, DUMMY_FEED_VALUE*math.Pow10(*decimals), float64(pgsqlData.Value))
 }
+
+// Stopping the writer via its own cancel (as stopLocalAggregateBulkWriter does on
+// refresh) must stop the ticker loop, even while the parent ctx is still alive.
+func TestLocalAggregateBulkWriterStopsOnOwnCancel(t *testing.T) {
+	parentCtx, parentCancel := context.WithCancel(context.Background())
+	defer parentCancel()
+
+	writer := NewLocalAggregateBulkWriter(10 * time.Millisecond)
+	writer.localAggregatesChannel = make(chan *LocalAggregate, 1)
+
+	writer.Run(parentCtx)
+	if writer.cancel == nil {
+		t.Fatal("cancel not set after Run")
+	}
+	writer.cancel()
+
+	// give a running loop a chance to exit, then feed data; a leaked loop would
+	// drain it via bulkWriterJob on the next tick
+	time.Sleep(50 * time.Millisecond)
+	writer.localAggregatesChannel <- &LocalAggregate{ConfigID: 1, Value: 1}
+	time.Sleep(10 * writer.Interval)
+
+	assert.Equal(t, 1, len(writer.localAggregatesChannel), "writer loop kept running after its ctx was cancelled")
+	assert.NoError(t, parentCtx.Err())
+}
