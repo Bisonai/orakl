@@ -10,6 +10,7 @@ import (
 	"bisonai.com/miko/node/pkg/bus"
 	"bisonai.com/miko/node/pkg/db"
 	errorSentinel "bisonai.com/miko/node/pkg/error"
+	"bisonai.com/miko/node/pkg/websocketfetcher"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -167,6 +168,20 @@ func TestHandleMessageRepliesAfterUnlock(t *testing.T) {
 	app.lifecycleMu.Unlock()
 }
 
+// single-config set with long intervals, buildable without DB
+func newTestFetcherState(app *App) *fetcherState {
+	config := Config{ID: 1, Name: "TEST-USDT", FetchInterval: 3600000}
+	localAggregateBulkWriter := NewLocalAggregateBulkWriter(time.Hour)
+	localAggregateBulkWriter.localAggregatesChannel = make(chan *LocalAggregate, 1)
+	return &fetcherState{
+		fetchers:                 map[int32]*Fetcher{1: NewFetcher(config, nil, app.LatestFeedDataMap, app.FeedDataDumpChannel)},
+		localAggregators:         map[int32]*LocalAggregator{1: NewLocalAggregator(config, nil, localAggregateBulkWriter.localAggregatesChannel, nil, app.LatestFeedDataMap, app.LocalAggregateValueMap)},
+		localAggregateBulkWriter: localAggregateBulkWriter,
+		feedDataBulkWriter:       NewFeedDataBulkWriter(time.Hour, app.FeedDataDumpChannel),
+		websocketFetcher:         websocketfetcher.New(),
+	}
+}
+
 // a refresh whose rebuild fails mid-way must leave the previous set assigned
 // and running, not stopped with partial maps
 func TestRefreshKeepsPreviousSetOnInitializeFailure(t *testing.T) {
@@ -174,12 +189,7 @@ func TestRefreshKeepsPreviousSetOnInitializeFailure(t *testing.T) {
 	defer cancel()
 
 	app := New(nil)
-	config := Config{ID: 1, Name: "TEST-USDT", FetchInterval: 3600000}
-	app.Fetchers = map[int32]*Fetcher{1: NewFetcher(config, nil, app.LatestFeedDataMap, app.FeedDataDumpChannel)}
-	app.LocalAggregateBulkWriter = NewLocalAggregateBulkWriter(time.Hour)
-	app.LocalAggregateBulkWriter.localAggregatesChannel = make(chan *LocalAggregate, 1)
-	app.LocalAggregators = map[int32]*LocalAggregator{1: NewLocalAggregator(config, nil, app.LocalAggregateBulkWriter.localAggregatesChannel, nil, app.LatestFeedDataMap, app.LocalAggregateValueMap)}
-	app.FeedDataBulkWriter = NewFeedDataBulkWriter(time.Hour, app.FeedDataDumpChannel)
+	app.applyState(newTestFetcherState(app))
 	if err := app.startAll(ctx); err != nil {
 		t.Fatalf("error starting fetchers: %v", err)
 	}
@@ -217,6 +227,56 @@ func TestRefreshKeepsPreviousSetOnInitializeFailure(t *testing.T) {
 	assert.Same(t, feedDataBulkWriter, app.FeedDataBulkWriter)
 	assert.Same(t, localAggregateBulkWriter, app.LocalAggregateBulkWriter)
 	assert.Same(t, websocketFetcher, app.WebsocketFetcher)
+
+	assert.True(t, app.Fetchers[1].isRunning)
+	assert.True(t, app.LocalAggregators[1].isRunning)
+	assert.True(t, app.FeedDataBulkWriter.isRunning)
+	assert.True(t, app.LocalAggregateBulkWriter.isRunning)
+}
+
+// a successful refresh stops the previous set and swaps in the new one
+func TestRefreshSwapsInNewSet(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	app := New(nil)
+	old := newTestFetcherState(app)
+	app.applyState(old)
+	if err := app.startAll(ctx); err != nil {
+		t.Fatalf("error starting fetchers: %v", err)
+	}
+
+	next := newTestFetcherState(app)
+	orig := buildFetcherState
+	buildFetcherState = func(*App, context.Context) (*fetcherState, error) { return next, nil }
+	defer func() { buildFetcherState = orig }()
+
+	msg := bus.Message{
+		From:     bus.ADMIN,
+		To:       bus.FETCHER,
+		Content:  bus.MessageContent{Command: bus.REFRESH_FETCHER_APP},
+		Response: make(chan bus.MessageResponse, 1),
+	}
+	app.handleMessage(ctx, msg)
+	defer app.stopAll(ctx)
+
+	select {
+	case resp := <-msg.Response:
+		assert.True(t, resp.Success)
+	default:
+		t.Fatal("no response")
+	}
+
+	assert.Same(t, next.fetchers[1], app.Fetchers[1])
+	assert.Same(t, next.localAggregators[1], app.LocalAggregators[1])
+	assert.Same(t, next.feedDataBulkWriter, app.FeedDataBulkWriter)
+	assert.Same(t, next.localAggregateBulkWriter, app.LocalAggregateBulkWriter)
+	assert.Same(t, next.websocketFetcher, app.WebsocketFetcher)
+
+	assert.False(t, old.fetchers[1].isRunning)
+	assert.False(t, old.localAggregators[1].isRunning)
+	assert.False(t, old.feedDataBulkWriter.isRunning)
+	assert.False(t, old.localAggregateBulkWriter.isRunning)
 
 	assert.True(t, app.Fetchers[1].isRunning)
 	assert.True(t, app.LocalAggregators[1].isRunning)

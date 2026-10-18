@@ -397,7 +397,7 @@ func (a *App) initialize(ctx context.Context) error {
 // applyState swaps in a built set; the previous set must already be stopped.
 func (a *App) applyState(state *fetcherState) {
 	// release the replaced websocket fetcher's chain reader
-	if a.WebsocketFetcher != nil && a.WebsocketFetcher != state.websocketFetcher {
+	if a.WebsocketFetcher != nil {
 		a.WebsocketFetcher.Close()
 	}
 
