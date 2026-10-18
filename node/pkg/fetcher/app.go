@@ -30,12 +30,17 @@ func New(bus *bus.MessageBus) *App {
 }
 
 func (a *App) Run(ctx context.Context) error {
+	a.lifecycleMu.Lock()
+	defer a.lifecycleMu.Unlock()
+
 	err := a.initialize(ctx)
 	if err != nil {
 		return err
 	}
 
 	a.subscribe(ctx)
+	// once per app lifetime; initialize re-runs on every refresh
+	go a.LatestFeedDataMap.CleanupJob(ctx)
 
 	return a.startAll(ctx)
 }
@@ -72,6 +77,27 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 	if msg.To != bus.FETCHER {
 		log.Debug().Str("Player", "Fetcher").Msg("message not for fetcher")
 		return
+	}
+
+	switch msg.Content.Command {
+	case bus.STOP_FETCHER_APP, bus.START_FETCHER_APP, bus.REFRESH_FETCHER_APP:
+		if !a.lifecycleMu.TryLock() {
+			bus.HandleMessageError(errorSentinel.ErrFetcherLifecycleInProgress, msg, "rejected fetcher command: "+msg.Content.Command)
+			return
+		}
+		// handlers below reply into a buffered chan; forward it only after
+		// unlocking so a slow/absent reader can't pin lifecycleMu
+		reply := msg.Response
+		buffered := make(chan bus.MessageResponse, 1)
+		msg.Response = buffered
+		defer func() {
+			a.lifecycleMu.Unlock()
+			select {
+			case resp := <-buffered:
+				reply <- resp
+			default:
+			}
+		}()
 	}
 
 	switch msg.Content.Command {
@@ -131,7 +157,7 @@ func (a *App) startAll(ctx context.Context) error {
 		return err
 	}
 
-	go a.WebsocketFetcher.Start(ctx)
+	a.WebsocketFetcher.Start(ctx)
 
 	return a.startFeedDataBulkWriter(ctx)
 }
@@ -196,9 +222,10 @@ func (a *App) startFeedDataBulkWriter(ctx context.Context) error {
 func (a *App) startLocalAggregateBulkWriter(ctx context.Context) {
 	if a.LocalAggregateBulkWriter.isRunning {
 		log.Debug().Str("Player", "Fetcher").Msg("LocalAggregateBulkWriter already running")
+		return
 	}
 
-	go a.LocalAggregateBulkWriter.Run(ctx)
+	a.LocalAggregateBulkWriter.Run(ctx)
 
 	log.Debug().Str("Player", "Fetcher").Msg("LocalAggregateBulkWriter started")
 }
@@ -386,8 +413,6 @@ func (a *App) initialize(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-
-	go a.LatestFeedDataMap.CleanupJob(ctx)
 
 	return nil
 }
