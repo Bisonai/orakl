@@ -115,7 +115,8 @@ type App struct {
 }
 
 func New() *App {
-	return &App{}
+	// default interval so Start on an un-Init'd App doesn't panic in NewTicker
+	return &App{storeInterval: DefaultStoreInterval}
 }
 
 func (a *App) Init(ctx context.Context, opts ...AppOption) error {
@@ -328,6 +329,13 @@ func (a *App) Stop() {
 		a.cancel()
 		a.cancel = nil
 	}
+}
+
+// Close stops the App and releases its chain reader; for discarding an App
+// replaced by (or left half-built by) a fetcher refresh.
+func (a *App) Close() {
+	a.Stop()
+	a.reset()
 }
 
 func (a *App) storeFeedData(ctx context.Context) {
