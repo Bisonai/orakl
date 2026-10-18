@@ -210,8 +210,10 @@ func TestRefreshKeepsPreviousSetOnInitializeFailure(t *testing.T) {
 		t.Fatal("no response")
 	}
 
-	assert.Equal(t, fetchers, app.Fetchers)
-	assert.Equal(t, localAggregators, app.LocalAggregators)
+	assert.Len(t, app.Fetchers, len(fetchers))
+	assert.Same(t, fetchers[1], app.Fetchers[1])
+	assert.Len(t, app.LocalAggregators, len(localAggregators))
+	assert.Same(t, localAggregators[1], app.LocalAggregators[1])
 	assert.Same(t, feedDataBulkWriter, app.FeedDataBulkWriter)
 	assert.Same(t, localAggregateBulkWriter, app.LocalAggregateBulkWriter)
 	assert.Same(t, websocketFetcher, app.WebsocketFetcher)

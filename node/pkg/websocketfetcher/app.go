@@ -120,7 +120,7 @@ func New() *App {
 }
 
 func (a *App) Init(ctx context.Context, opts ...AppOption) error {
-	// Init is re-run on fetcher refresh (Stop -> Init -> Start); drop the
+	// fetcher refresh Inits a fresh App; if an App is ever re-Init'd, drop the
 	// previous fetchers and chain reader so Start doesn't run stale fetchers
 	// writing into an undrained old buffer.
 	a.reset()
