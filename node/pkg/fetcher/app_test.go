@@ -3,6 +3,7 @@ package fetcher
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -164,4 +165,59 @@ func TestHandleMessageRepliesAfterUnlock(t *testing.T) {
 	}
 	assert.True(t, app.lifecycleMu.TryLock(), "lifecycleMu still held after reply")
 	app.lifecycleMu.Unlock()
+}
+
+// a refresh whose rebuild fails mid-way must leave the previous set assigned
+// and running, not stopped with partial maps
+func TestRefreshKeepsPreviousSetOnInitializeFailure(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	app := New(nil)
+	config := Config{ID: 1, Name: "TEST-USDT", FetchInterval: 3600000}
+	app.Fetchers = map[int32]*Fetcher{1: NewFetcher(config, nil, app.LatestFeedDataMap, app.FeedDataDumpChannel)}
+	app.LocalAggregateBulkWriter = NewLocalAggregateBulkWriter(time.Hour)
+	app.LocalAggregateBulkWriter.localAggregatesChannel = make(chan *LocalAggregate, 1)
+	app.LocalAggregators = map[int32]*LocalAggregator{1: NewLocalAggregator(config, nil, app.LocalAggregateBulkWriter.localAggregatesChannel, nil, app.LatestFeedDataMap, app.LocalAggregateValueMap)}
+	app.FeedDataBulkWriter = NewFeedDataBulkWriter(time.Hour, app.FeedDataDumpChannel)
+	if err := app.startAll(ctx); err != nil {
+		t.Fatalf("error starting fetchers: %v", err)
+	}
+	defer app.stopAll(ctx)
+
+	fetchers, localAggregators := app.Fetchers, app.LocalAggregators
+	feedDataBulkWriter, localAggregateBulkWriter := app.FeedDataBulkWriter, app.LocalAggregateBulkWriter
+	websocketFetcher := app.WebsocketFetcher
+
+	injected := errors.New("injected build failure")
+	orig := buildFetcherState
+	buildFetcherState = func(*App, context.Context) (*fetcherState, error) { return nil, injected }
+	defer func() { buildFetcherState = orig }()
+
+	msg := bus.Message{
+		From:     bus.ADMIN,
+		To:       bus.FETCHER,
+		Content:  bus.MessageContent{Command: bus.REFRESH_FETCHER_APP},
+		Response: make(chan bus.MessageResponse, 1),
+	}
+	app.handleMessage(ctx, msg)
+
+	select {
+	case resp := <-msg.Response:
+		assert.False(t, resp.Success)
+		assert.Equal(t, injected.Error(), resp.Args["error"])
+	default:
+		t.Fatal("no response")
+	}
+
+	assert.Equal(t, fetchers, app.Fetchers)
+	assert.Equal(t, localAggregators, app.LocalAggregators)
+	assert.Same(t, feedDataBulkWriter, app.FeedDataBulkWriter)
+	assert.Same(t, localAggregateBulkWriter, app.LocalAggregateBulkWriter)
+	assert.Same(t, websocketFetcher, app.WebsocketFetcher)
+
+	assert.True(t, app.Fetchers[1].isRunning)
+	assert.True(t, app.LocalAggregators[1].isRunning)
+	assert.True(t, app.FeedDataBulkWriter.isRunning)
+	assert.True(t, app.LocalAggregateBulkWriter.isRunning)
 }
