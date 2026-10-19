@@ -120,18 +120,22 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 		}
 		msg.Response <- bus.MessageResponse{Success: true}
 	case bus.REFRESH_FETCHER_APP:
-		err := a.stopAll(ctx)
-		if err != nil {
-			log.Error().Err(err).Str("Player", "Fetcher").Msg("failed to stop all fetchers")
-			bus.HandleMessageError(err, msg, "failed to stop all fetchers")
-			return
-		}
-		err = a.initialize(ctx)
+		// build the new set before stopping the running one, so a failed build
+		// (e.g. transient DB error) leaves the previous set assigned and running
+		state, err := buildFetcherState(a, ctx)
 		if err != nil {
 			log.Error().Err(err).Str("Player", "Fetcher").Msg("failed to initialize fetchers")
 			bus.HandleMessageError(err, msg, "failed to initialize fetchers")
 			return
 		}
+		err = a.stopAll(ctx)
+		if err != nil {
+			state.websocketFetcher.Close()
+			log.Error().Err(err).Str("Player", "Fetcher").Msg("failed to stop all fetchers")
+			bus.HandleMessageError(err, msg, "failed to stop all fetchers")
+			return
+		}
+		a.applyState(state)
 		err = a.startAll(ctx)
 		if err != nil {
 			log.Error().Err(err).Str("Player", "Fetcher").Msg("failed to start all fetchers")
@@ -367,54 +371,101 @@ func (a *App) getProxies(ctx context.Context) ([]Proxy, error) {
 	return proxies, err
 }
 
+// fetcherState is a fully built fetcher set, swapped into the App only once
+// every part of it was built.
+type fetcherState struct {
+	fetchers                 map[int32]*Fetcher
+	localAggregators         map[int32]*LocalAggregator
+	localAggregateBulkWriter *LocalAggregateBulkWriter
+	feedDataBulkWriter       *FeedDataBulkWriter
+	proxies                  []Proxy
+	websocketFetcher         *websocketfetcher.App
+}
+
+// buildFetcherState is a seam so tests can inject build failures.
+var buildFetcherState = (*App).buildState
+
 func (a *App) initialize(ctx context.Context) error {
-	configs, err := a.getConfigs(ctx)
+	state, err := buildFetcherState(a, ctx)
 	if err != nil {
 		return err
 	}
+	a.applyState(state)
+	return nil
+}
 
-	a.Fetchers = make(map[int32]*Fetcher, len(configs))
-	a.LocalAggregators = make(map[int32]*LocalAggregator, len(configs))
-	a.LocalAggregateBulkWriter = NewLocalAggregateBulkWriter(DefaultLocalAggregateInterval)
-	a.LocalAggregateBulkWriter.localAggregatesChannel = make(chan *LocalAggregate, LocalAggregatesChannelSize)
+// applyState swaps in a built set; the previous set must already be stopped.
+func (a *App) applyState(state *fetcherState) {
+	// release the replaced websocket fetcher's chain reader
+	if a.WebsocketFetcher != nil {
+		a.WebsocketFetcher.Close()
+	}
+
+	a.Fetchers = state.fetchers
+	a.LocalAggregators = state.localAggregators
+	a.LocalAggregateBulkWriter = state.localAggregateBulkWriter
+	a.FeedDataBulkWriter = state.feedDataBulkWriter
+	a.Proxies = state.proxies
+	a.WebsocketFetcher = state.websocketFetcher
+}
+
+func (a *App) buildState(ctx context.Context) (*fetcherState, error) {
+	configs, err := a.getConfigs(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	fetchers := make(map[int32]*Fetcher, len(configs))
+	localAggregators := make(map[int32]*LocalAggregator, len(configs))
+	localAggregateBulkWriter := NewLocalAggregateBulkWriter(DefaultLocalAggregateInterval)
+	localAggregateBulkWriter.localAggregatesChannel = make(chan *LocalAggregate, LocalAggregatesChannelSize)
 
 	for _, config := range configs {
 		// for fetcher it'll get fetcherFeeds without websocket fetcherFeeds
 		fetcherFeeds, getFeedsErr := a.getFeedsWithoutWss(ctx, config.ID)
 		if getFeedsErr != nil {
-			return getFeedsErr
+			return nil, getFeedsErr
 		}
 
 		if len(fetcherFeeds) > 0 {
-			a.Fetchers[config.ID] = NewFetcher(config, fetcherFeeds, a.LatestFeedDataMap, a.FeedDataDumpChannel)
+			fetchers[config.ID] = NewFetcher(config, fetcherFeeds, a.LatestFeedDataMap, a.FeedDataDumpChannel)
 		}
 
 		// for localAggregator it'll get all feeds to be collected
 		localAggregatorFeeds, getFeedsErr := a.getFeeds(ctx, config.ID)
 		if getFeedsErr != nil {
-			return getFeedsErr
+			return nil, getFeedsErr
 		}
-		a.LocalAggregators[config.ID] = NewLocalAggregator(config, localAggregatorFeeds, a.LocalAggregateBulkWriter.localAggregatesChannel, a.Bus, a.LatestFeedDataMap, a.LocalAggregateValueMap)
+		localAggregators[config.ID] = NewLocalAggregator(config, localAggregatorFeeds, localAggregateBulkWriter.localAggregatesChannel, a.Bus, a.LatestFeedDataMap, a.LocalAggregateValueMap)
 	}
 	feedDataDumpIntervalRaw := os.Getenv("FEED_DATA_STREAM_INTERVAL")
 	dumpInterval, err := time.ParseDuration(feedDataDumpIntervalRaw)
 	if err != nil {
 		dumpInterval = DefaultFeedDataDumpInterval
 	}
-	a.FeedDataBulkWriter = NewFeedDataBulkWriter(dumpInterval, a.FeedDataDumpChannel)
+	feedDataBulkWriter := NewFeedDataBulkWriter(dumpInterval, a.FeedDataDumpChannel)
 
 	proxies, getProxyErr := a.getProxies(ctx)
 	if getProxyErr != nil {
-		return getProxyErr
+		return nil, getProxyErr
 	}
-	a.Proxies = proxies
 
-	err = a.WebsocketFetcher.Init(ctx, websocketfetcher.WithLatestFeedDataMap(a.LatestFeedDataMap), websocketfetcher.WithFeedDataDumpChannel(a.FeedDataDumpChannel))
+	// fresh instance so Init doesn't touch the running one
+	websocketFetcher := websocketfetcher.New()
+	err = websocketFetcher.Init(ctx, websocketfetcher.WithLatestFeedDataMap(a.LatestFeedDataMap), websocketfetcher.WithFeedDataDumpChannel(a.FeedDataDumpChannel))
 	if err != nil {
-		return err
+		websocketFetcher.Close()
+		return nil, err
 	}
 
-	return nil
+	return &fetcherState{
+		fetchers:                 fetchers,
+		localAggregators:         localAggregators,
+		localAggregateBulkWriter: localAggregateBulkWriter,
+		feedDataBulkWriter:       feedDataBulkWriter,
+		proxies:                  proxies,
+		websocketFetcher:         websocketFetcher,
+	}, nil
 }
 
 func (a *App) String() string {
