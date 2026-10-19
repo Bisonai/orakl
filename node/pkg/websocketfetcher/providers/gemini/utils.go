@@ -1,6 +1,7 @@
 package gemini
 
 import (
+	"context"
 	"strings"
 	"time"
 
@@ -45,8 +46,11 @@ func TradeResponseToFeedDataList(data Response, feedMap map[string][]int32, volu
 	return feedDataList, nil
 }
 
-func fetchVolumes(feedMap map[string][]int32, volumeCacheMap *common.VolumeCacheMap) {
+func fetchVolumes(ctx context.Context, feedMap map[string][]int32, volumeCacheMap *common.VolumeCacheMap) {
 	for symbol, ids := range feedMap {
+		if ctx.Err() != nil {
+			return
+		}
 		endpoint := TICKER_ENDPOINT + strings.ToLower(symbol)
 		result, err := request.Request[HttpTickerResponse](request.WithEndpoint(endpoint), request.WithTimeout(common.VolumeFetchTimeout))
 		if err != nil {
@@ -85,6 +89,10 @@ func fetchVolumes(feedMap map[string][]int32, volumeCacheMap *common.VolumeCache
 		}
 
 		// gemini recommends 1 request per second
-		time.Sleep(1 * time.Second)
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(1 * time.Second):
+		}
 	}
 }

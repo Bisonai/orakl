@@ -103,6 +103,9 @@ func (f *BtseFetcher) CacheVolumes(ctx context.Context) {
 	volumeTicker := time.NewTicker(common.VolumeFetchInterval * time.Millisecond)
 	defer volumeTicker.Stop()
 
+	if ctx.Err() != nil {
+		return
+	}
 	err := volumeFetcher(f.FeedMap, &f.VolumeCacheMap)
 	if err != nil {
 		log.Error().Str("Player", "Btse").Err(err).Msg("error in fetchVolumes")
@@ -113,6 +116,9 @@ func (f *BtseFetcher) CacheVolumes(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-volumeTicker.C:
+			if ctx.Err() != nil {
+				return
+			}
 			err := volumeFetcher(f.FeedMap, &f.VolumeCacheMap)
 			if err != nil {
 				log.Error().Str("Player", "Btse").Err(err).Msg("error in fetchVolumes")

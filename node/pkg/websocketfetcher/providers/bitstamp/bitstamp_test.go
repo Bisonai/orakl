@@ -21,7 +21,6 @@ func TestCacheVolumesExitsOnCancel(t *testing.T) {
 		}
 		return nil
 	}
-	t.Cleanup(func() { volumeFetcher = orig })
 
 	f := &BitstampFetcher{}
 	ctx, cancel := context.WithCancel(context.Background())
@@ -41,8 +40,10 @@ func TestCacheVolumesExitsOnCancel(t *testing.T) {
 	select {
 	case <-done:
 	case <-time.After(2 * time.Second):
+		// leave volumeFetcher swapped: leaked goroutine may still read it
 		t.Fatal("CacheVolumes did not exit after ctx cancel")
 	}
+	volumeFetcher = orig
 	if got := calls.Load(); got != 1 {
 		t.Fatalf("expected 1 fetch call, got %d", got)
 	}
