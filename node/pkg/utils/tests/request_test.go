@@ -2,6 +2,7 @@
 package tests
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -415,5 +416,29 @@ func TestRequestRawMultipleCases(t *testing.T) {
 				t.Errorf("RequestRaw() error message = %s, wantErrMessage %s", err.Error(), tt.errMessage)
 			}
 		})
+	}
+}
+
+func TestRequestWithContextCancelsInFlight(t *testing.T) {
+	release := make(chan struct{})
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		select {
+		case <-r.Context().Done():
+		case <-release:
+		}
+	}))
+	defer server.Close()
+	defer close(release)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	time.AfterFunc(100*time.Millisecond, cancel)
+
+	start := time.Now()
+	_, err := request.Request[TestResponse](request.WithContext(ctx), request.WithEndpoint(server.URL), request.WithTimeout(5*time.Second))
+	if err == nil {
+		t.Fatal("expected error on cancelled ctx")
+	}
+	if elapsed := time.Since(start); elapsed > 2*time.Second {
+		t.Fatalf("request not interrupted by ctx cancel: %v", elapsed)
 	}
 }

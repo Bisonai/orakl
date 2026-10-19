@@ -1,6 +1,7 @@
 package bitstamp
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
@@ -50,8 +51,8 @@ func TradeEventToFeedData(data TradeEvent, feedMap map[string][]int32, volumeCac
 	return result, nil
 }
 
-func FetchVolumes(feedMap map[string][]int32, volumeCacheMap *common.VolumeCacheMap) error {
-	result, err := request.Request[[]VolumeEntry](request.WithEndpoint(ALL_CURRENCY_PAIR_TICKER_ENDPOINT), request.WithTimeout(common.VolumeFetchTimeout))
+func FetchVolumes(ctx context.Context, feedMap map[string][]int32, volumeCacheMap *common.VolumeCacheMap) error {
+	result, err := request.Request[[]VolumeEntry](request.WithContext(ctx), request.WithEndpoint(ALL_CURRENCY_PAIR_TICKER_ENDPOINT), request.WithTimeout(common.VolumeFetchTimeout))
 	if err != nil {
 		log.Error().Str("Player", "Bitstamp").Err(err).Msg("error in FetchVolumes")
 		return err

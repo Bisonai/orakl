@@ -77,23 +77,37 @@ func (f *BitstampFetcher) handleMessage(ctx context.Context, message map[string]
 }
 
 func (f *BitstampFetcher) Run(ctx context.Context) {
-	go f.CacheVolumes()
+	go f.CacheVolumes(ctx)
 	f.Ws.Run(ctx, f.handleMessage)
 }
 
-func (f *BitstampFetcher) CacheVolumes() {
+// volumeFetcher is overridable in tests.
+var volumeFetcher = FetchVolumes
+
+func (f *BitstampFetcher) CacheVolumes(ctx context.Context) {
 	volumeTicker := time.NewTicker(common.VolumeFetchInterval * time.Millisecond)
 	defer volumeTicker.Stop()
 
-	err := FetchVolumes(f.FeedMap, &f.VolumeCacheMap)
+	if ctx.Err() != nil {
+		return
+	}
+	err := volumeFetcher(ctx, f.FeedMap, &f.VolumeCacheMap)
 	if err != nil {
 		log.Error().Str("Player", "Bitstamp").Err(err).Msg("error in fetchVolumes")
 	}
 
-	for range volumeTicker.C {
-		err := FetchVolumes(f.FeedMap, &f.VolumeCacheMap)
-		if err != nil {
-			log.Error().Str("Player", "Bitstamp").Err(err).Msg("error in fetchVolumes")
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-volumeTicker.C:
+			if ctx.Err() != nil {
+				return
+			}
+			err := volumeFetcher(ctx, f.FeedMap, &f.VolumeCacheMap)
+			if err != nil {
+				log.Error().Str("Player", "Bitstamp").Err(err).Msg("error in fetchVolumes")
+			}
 		}
 	}
 }
