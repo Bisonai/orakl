@@ -29,6 +29,15 @@ func TestCacheVolumesExitsOnCancel(t *testing.T) {
 		f.CacheVolumes(ctx)
 		close(done)
 	}()
+	// restore only once the poller has exited, so a leaked goroutine never races the write
+	t.Cleanup(func() {
+		cancel()
+		select {
+		case <-done:
+			volumeFetcher = orig
+		case <-time.After(2 * time.Second):
+		}
+	})
 
 	select {
 	case <-called:
@@ -40,10 +49,8 @@ func TestCacheVolumesExitsOnCancel(t *testing.T) {
 	select {
 	case <-done:
 	case <-time.After(2 * time.Second):
-		// leave volumeFetcher swapped: leaked goroutine may still read it
 		t.Fatal("CacheVolumes did not exit after ctx cancel")
 	}
-	volumeFetcher = orig
 	if got := calls.Load(); got != 1 {
 		t.Fatalf("expected 1 fetch call, got %d", got)
 	}
