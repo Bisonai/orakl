@@ -13,7 +13,7 @@ func TestCacheVolumesExitsOnCancel(t *testing.T) {
 	var calls atomic.Int64
 	called := make(chan struct{}, 1)
 	orig := volumeFetcher
-	volumeFetcher = func(map[string][]int32, *common.VolumeCacheMap) error {
+	volumeFetcher = func(context.Context, map[string][]int32, *common.VolumeCacheMap) error {
 		calls.Add(1)
 		select {
 		case called <- struct{}{}:

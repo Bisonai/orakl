@@ -1,6 +1,7 @@
 package btse
 
 import (
+	"context"
 	"time"
 
 	"bisonai.com/miko/node/pkg/utils/request"
@@ -43,8 +44,8 @@ func ResponseToFeedDataList(data Response, feedMap map[string][]int32, volumeCac
 	return feedData, nil
 }
 
-func FetchVolumes(feedMap map[string][]int32, volumeCacheMap *common.VolumeCacheMap) error {
-	result, err := request.Request[[]MarketSummary](request.WithEndpoint(MARKET_SUMMARY_ENDPOINT), request.WithTimeout(common.VolumeFetchTimeout))
+func FetchVolumes(ctx context.Context, feedMap map[string][]int32, volumeCacheMap *common.VolumeCacheMap) error {
+	result, err := request.Request[[]MarketSummary](request.WithContext(ctx), request.WithEndpoint(MARKET_SUMMARY_ENDPOINT), request.WithTimeout(common.VolumeFetchTimeout))
 	if err != nil {
 		log.Error().Str("Player", "btse").Err(err).Msg("error in FetchVolumes")
 		return err

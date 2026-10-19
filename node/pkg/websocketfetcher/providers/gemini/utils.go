@@ -52,7 +52,7 @@ func fetchVolumes(ctx context.Context, feedMap map[string][]int32, volumeCacheMa
 			return
 		}
 		endpoint := TICKER_ENDPOINT + strings.ToLower(symbol)
-		result, err := request.Request[HttpTickerResponse](request.WithEndpoint(endpoint), request.WithTimeout(common.VolumeFetchTimeout))
+		result, err := request.Request[HttpTickerResponse](request.WithContext(ctx), request.WithEndpoint(endpoint), request.WithTimeout(common.VolumeFetchTimeout))
 		if err != nil {
 			log.Warn().Str("Player", "Gemini").Err(err).Msg("fetch volumes, http request failed")
 			continue
