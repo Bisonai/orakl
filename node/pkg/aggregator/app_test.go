@@ -296,7 +296,7 @@ func TestStartAppByAdmin(t *testing.T) {
 	if err != nil {
 		t.Fatal("error getting configs")
 	}
-	testItems.app.setGlobalAggregateBulkWriter(configs)
+	testItems.app.setGlobalAggregateBulkWriter()
 	err = testItems.app.setAggregators(ctx, testItems.app.Host, testItems.app.Pubsub, configs)
 	if err != nil {
 		t.Fatal("error initializing app")
@@ -331,7 +331,7 @@ func TestStopAppByAdmin(t *testing.T) {
 	if err != nil {
 		t.Fatal("error getting configs")
 	}
-	testItems.app.setGlobalAggregateBulkWriter(configs)
+	testItems.app.setGlobalAggregateBulkWriter()
 	err = testItems.app.setAggregators(ctx, testItems.app.Host, testItems.app.Pubsub, configs)
 	if err != nil {
 		t.Fatal("error initializing app")
@@ -373,7 +373,7 @@ func TestRefreshAppByAdmin(t *testing.T) {
 	if err != nil {
 		t.Fatal("error getting configs")
 	}
-	testItems.app.setGlobalAggregateBulkWriter(configs)
+	testItems.app.setGlobalAggregateBulkWriter()
 	err = testItems.app.setAggregators(ctx, testItems.app.Host, testItems.app.Pubsub, configs)
 	if err != nil {
 		t.Fatal("error initializing app")

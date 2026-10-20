@@ -5,9 +5,9 @@ import (
 	"errors"
 	"sort"
 	"sync"
+	"sync/atomic"
 	"time"
 
-	"bisonai.com/miko/node/pkg/common/keys"
 	"bisonai.com/miko/node/pkg/db"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/rs/zerolog/log"
@@ -24,13 +24,24 @@ const pgDeadlockSQLState = "40P01"
 // migrations running mid-flight, etc.).
 const storeProofsRetryAttempts = 3
 
+// enqueueDropWarnInterval rate-limits the "buffer full" warning.
+const enqueueDropWarnInterval = 10 * time.Second
+
+var (
+	enqueueDropped      atomic.Int64
+	enqueueLastWarnNano atomic.Int64
+)
+
 /*
 bulk insert proofs and aggregates into pgsql
+
+Aggregators hand SubmissionData to the writer in-process via Buffer (see
+enqueueSubmissionData). The redis submissionDataStream publish is kept only
+for external consumers (DAL); the writer no longer subscribes to it.
 */
 
 type GlobalAggregateBulkWriter struct {
-	ReceiveChannels map[string]chan SubmissionData
-	Buffer          chan SubmissionData
+	Buffer chan SubmissionData
 
 	LatestDataUpdateInterval time.Duration
 	PgsqlBulkInsertInterval  time.Duration
@@ -53,7 +64,7 @@ const DefaultBufferSize = 2000
 type GlobalAggregateBulkWriterConfig struct {
 	PgsqlBulkInsertInterval time.Duration
 	BufferSize              int
-	ConfigNames             []string
+	Buffer                  chan SubmissionData
 }
 
 type GlobalAggregateBulkWriterOption func(*GlobalAggregateBulkWriterConfig)
@@ -70,9 +81,14 @@ func WithBufferSize(size int) GlobalAggregateBulkWriterOption {
 	}
 }
 
-func WithConfigNames(configNames []string) GlobalAggregateBulkWriterOption {
+// WithBuffer makes the writer drain an externally owned channel instead of
+// allocating its own. The App passes one long-lived channel so that items
+// enqueued around a REFRESH_AGGREGATOR_APP (old writer stopped, new writer
+// not yet started) are picked up by the next writer instead of being lost.
+// BufferSize is ignored when a buffer is supplied.
+func WithBuffer(buffer chan SubmissionData) GlobalAggregateBulkWriterOption {
 	return func(config *GlobalAggregateBulkWriterConfig) {
-		config.ConfigNames = configNames
+		config.Buffer = buffer
 	}
 }
 
@@ -85,18 +101,35 @@ func NewGlobalAggregateBulkWriter(opts ...GlobalAggregateBulkWriterOption) *Glob
 		opt(config)
 	}
 
-	result := &GlobalAggregateBulkWriter{
-		ReceiveChannels: make(map[string]chan SubmissionData, len(config.ConfigNames)),
-		Buffer:          make(chan SubmissionData, config.BufferSize),
+	buffer := config.Buffer
+	if buffer == nil {
+		buffer = make(chan SubmissionData, config.BufferSize)
+	}
+
+	return &GlobalAggregateBulkWriter{
+		Buffer: buffer,
 
 		PgsqlBulkInsertInterval: config.PgsqlBulkInsertInterval,
 	}
+}
 
-	for _, configName := range config.ConfigNames {
-		result.ReceiveChannels[configName] = make(chan SubmissionData)
+// enqueueSubmissionData hands data to the bulk writer without ever blocking
+// the caller (the aggregator round). If the buffer is full or nil the item is
+// dropped and a (rate-limited) warning logged; it is still published to redis
+// for DAL.
+func enqueueSubmissionData(buffer chan<- SubmissionData, data SubmissionData) bool {
+	select {
+	case buffer <- data:
+		return true
+	default:
+		dropped := enqueueDropped.Add(1)
+		now := time.Now().UnixNano()
+		last := enqueueLastWarnNano.Load()
+		if now-last >= int64(enqueueDropWarnInterval) && enqueueLastWarnNano.CompareAndSwap(last, now) {
+			log.Warn().Str("Player", "Aggregator").Str("name", data.Symbol).Int32("round", data.GlobalAggregate.Round).Int64("droppedTotal", dropped).Msg("global aggregate bulk writer buffer full or unset, dropping DB write")
+		}
+		return false
 	}
-
-	return result
 }
 
 func (s *GlobalAggregateBulkWriter) Start(ctx context.Context) {
@@ -109,7 +142,6 @@ func (s *GlobalAggregateBulkWriter) Start(ctx context.Context) {
 	s.cancelFunc = cancel
 	s.ctx = ctxWithCancel
 
-	s.receive(ctxWithCancel)
 	s.bulkInsertJob(ctxWithCancel)
 }
 
@@ -123,9 +155,10 @@ func (s *GlobalAggregateBulkWriter) Stop() {
 	s.cancelFunc = nil
 	s.ctx = nil
 
-	// Wait for any in-flight bulkInsert to finish before returning. The
-	// REFRESH_AGGREGATOR_APP handler calls Stop() then immediately creates
-	// a new GlobalAggregateBulkWriter (with its own mutex) and starts it.
+	// Wait for any in-flight bulkInsert to finish before returning. A caller
+	// may create a new GlobalAggregateBulkWriter (with its own mutex) right
+	// after Stop() (setGlobalAggregateBulkWriter); REFRESH_AGGREGATOR_APP no
+	// longer does, the writer keeps running across a refresh.
 	// Without this drain the old goroutine's BulkUpsert and the new one's
 	// next tick can both run concurrently against the proofs table — each
 	// holds its own per-instance mutex, so they don't serialize, and the
@@ -135,27 +168,6 @@ func (s *GlobalAggregateBulkWriter) Stop() {
 	// so the handoff to the next instance is sequential.
 	s.bulkInsertMu.Lock()
 	s.bulkInsertMu.Unlock()
-}
-
-func (s *GlobalAggregateBulkWriter) receive(ctx context.Context) {
-	for name := range s.ReceiveChannels {
-		go s.receiveEach(ctx, name)
-	}
-}
-
-func (s *GlobalAggregateBulkWriter) receiveEach(ctx context.Context, configName string) {
-	err := db.Subscribe(ctx, keys.SubmissionDataStreamKey(configName), s.ReceiveChannels[configName])
-	if err != nil {
-		log.Error().Err(err).Str("Player", "Aggregator").Msg("failed to subscribe to submission stream")
-	}
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case data := <-s.ReceiveChannels[configName]:
-			s.Buffer <- data
-		}
-	}
 }
 
 func (s *GlobalAggregateBulkWriter) bulkInsertJob(ctx context.Context) {
@@ -185,14 +197,24 @@ func (s *GlobalAggregateBulkWriter) bulkInsertJob(ctx context.Context) {
 }
 
 func (s *GlobalAggregateBulkWriter) bulkInsert(ctx context.Context) {
-	select {
-	case <-ctx.Done():
+	// The buffer is App-owned and outlives this writer. A stopped writer must
+	// not take items from it: Stop() cancels ctx before taking bulkInsertMu,
+	// so any bulkInsert that starts after Stop() sees this. An in-flight
+	// drain also stops taking items once ctx is canceled.
+	if ctx.Err() != nil {
 		return
+	}
+
+	select {
 	case submissionData := <-s.Buffer:
 		proofBatch := []Proof{submissionData.Proof}
 		globalAggregateBatch := []GlobalAggregate{submissionData.GlobalAggregate}
 	loop:
 		for {
+			// Stop taking items once stopped; leave them for the next writer.
+			if ctx.Err() != nil {
+				break loop
+			}
 			select {
 			case submissionData := <-s.Buffer:
 				proofBatch = append(proofBatch, submissionData.Proof)

@@ -46,6 +46,10 @@ type App struct {
 	Pubsub                    *pubsub.PubSub
 	Signer                    *helper.Signer
 	LatestLocalAggregates     *LatestLocalAggregates
+
+	// submissionBuffer is the long-lived in-process handoff from aggregators
+	// to the GlobalAggregateBulkWriter; it outlives writer refreshes.
+	submissionBuffer chan SubmissionData
 }
 
 type Config struct {
@@ -194,6 +198,10 @@ type Aggregator struct {
 
 	RoundID int32
 	Signer  *helper.Signer
+
+	// submissionBuffer receives SubmissionData for the DB bulk writer
+	// (non-blocking send; see enqueueSubmissionData).
+	submissionBuffer chan<- SubmissionData
 
 	nodeCtx    context.Context
 	nodeCancel context.CancelFunc

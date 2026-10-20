@@ -23,6 +23,7 @@ func New(bus *bus.MessageBus, h host.Host, ps *pubsub.PubSub) *App {
 		Host:                  h,
 		Pubsub:                ps,
 		LatestLocalAggregates: NewLatestLocalAggregates(),
+		submissionBuffer:      make(chan SubmissionData, DefaultBufferSize),
 	}
 }
 
@@ -43,7 +44,7 @@ func (a *App) Run(ctx context.Context) error {
 		return err
 	}
 
-	a.setGlobalAggregateBulkWriter(configs)
+	a.setGlobalAggregateBulkWriter()
 	a.startGlobalAggregateBulkWriter(ctx)
 
 	err = a.setAggregators(ctx, a.Host, a.Pubsub, configs)
@@ -60,17 +61,12 @@ func (a *App) Run(ctx context.Context) error {
 	return nil
 }
 
-func (a *App) setGlobalAggregateBulkWriter(configs []Config) {
+func (a *App) setGlobalAggregateBulkWriter() {
 	if a.GlobalAggregateBulkWriter != nil {
 		a.stopGlobalAggregateBulkWriter()
 	}
 
-	configNames := make([]string, len(configs))
-	for i, config := range configs {
-		configNames[i] = config.Name
-	}
-
-	a.GlobalAggregateBulkWriter = NewGlobalAggregateBulkWriter(WithConfigNames(configNames))
+	a.GlobalAggregateBulkWriter = NewGlobalAggregateBulkWriter(WithBuffer(a.submissionBuffer))
 }
 
 func (a *App) startGlobalAggregateBulkWriter(ctx context.Context) {
@@ -150,7 +146,7 @@ func (a *App) initializeLoadedAggregators(ctx context.Context, loadedConfigs []C
 		}
 
 		topicString := config.Name + "-global-aggregator-topic-" + strconv.Itoa(int(config.AggregateInterval))
-		tmpNode, err := NewAggregator(h, ps, topicString, config, a.Signer, a.LatestLocalAggregates)
+		tmpNode, err := NewAggregator(h, ps, topicString, config, a.Signer, a.LatestLocalAggregates, a.submissionBuffer)
 		if err != nil {
 			return err
 		}
@@ -318,7 +314,8 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 		msg.Response <- bus.MessageResponse{Success: true}
 	case bus.REFRESH_AGGREGATOR_APP:
 		log.Debug().Str("Player", "Aggregator").Msg("refresh aggregator msg received")
-		a.stopGlobalAggregateBulkWriter()
+		// The bulk writer does not depend on configs, so it keeps running
+		// (draining the shared buffer) across the refresh.
 		err := a.stopAllAggregators()
 		if err != nil {
 			bus.HandleMessageError(err, msg, "failed to stop all aggregators")
@@ -331,7 +328,6 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 			return
 		}
 
-		a.setGlobalAggregateBulkWriter(configs)
 		err = a.setAggregators(ctx, a.Host, a.Pubsub, configs)
 		if err != nil {
 			bus.HandleMessageError(err, msg, "failed to set aggregators")
@@ -342,6 +338,8 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 			bus.HandleMessageError(err, msg, "failed to start all aggregators")
 			return
 		}
+		// No-op if already running; restarts the writer if a prior
+		// STOP_AGGREGATOR_APP stopped it.
 		a.startGlobalAggregateBulkWriter(ctx)
 
 		msg.Response <- bus.MessageResponse{Success: true}

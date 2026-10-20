@@ -17,7 +17,7 @@ import (
 
 const maxLeaderMsgReceiveTimeout = 150 * time.Millisecond
 
-func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string, config Config, signHelper *helper.Signer, latestLocalAggregates *LatestLocalAggregates) (*Aggregator, error) {
+func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string, config Config, signHelper *helper.Signer, latestLocalAggregates *LatestLocalAggregates, submissionBuffer chan<- SubmissionData) (*Aggregator, error) {
 	if h == nil || ps == nil || topicString == "" {
 		return nil, errorSentinel.ErrAggregatorInvalidInitValue
 	}
@@ -54,6 +54,7 @@ func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string, config Co
 		RoundID:               1,
 		Signer:                signHelper,
 		LatestLocalAggregates: latestLocalAggregates,
+		submissionBuffer:      submissionBuffer,
 	}
 	aggregator.Raft.LeaderJob = aggregator.LeaderJob
 	aggregator.Raft.HandleCustomMessage = aggregator.HandleCustomMessage
@@ -363,7 +364,15 @@ func (n *Aggregator) processCollectedProofs(ctx context.Context, proofMessage Pr
 	concatProof := bytes.Join(n.roundProofs.proofs[proofMessage.RoundID], nil)
 	proof := Proof{ConfigID: n.ID, Round: proofMessage.RoundID, Proof: concatProof}
 
-	err := PublishGlobalAggregateAndProof(ctx, n.Name, globalAggregate, proof)
+	// Hand off to the DB bulk writer in-process first so persistence does
+	// not depend on redis; the redis publish below is for DAL only.
+	data, ok := newSubmissionData(n.Name, globalAggregate, proof)
+	if !ok {
+		return nil
+	}
+	enqueueSubmissionData(n.submissionBuffer, data)
+
+	err := publishSubmissionData(ctx, data)
 	if err != nil {
 		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to publish global aggregate and proof")
 		return err
