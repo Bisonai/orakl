@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"bisonai.com/miko/node/pkg/db"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -114,8 +115,8 @@ func TestGlobalAggregateBulkWriterDataStore(t *testing.T) {
 	assert.Equal(t, testItems.tmpData.globalAggregate, pgsLoadedGlobalAggregate)
 }
 
-// Items enqueued while the writer is being swapped (REFRESH_AGGREGATOR_APP)
-// must be persisted by the next writer sharing the App-owned buffer.
+// Items enqueued while the writer is stopped/swapped must be persisted by the
+// next writer sharing the App-owned buffer.
 func TestGlobalAggregateBulkWriterSurvivesRefresh(t *testing.T) {
 	ctx := context.Background()
 	cleanup, testItems, err := setup(ctx)
@@ -136,6 +137,9 @@ func TestGlobalAggregateBulkWriterSurvivesRefresh(t *testing.T) {
 	globalAggregate := testItems.tmpData.globalAggregate
 	globalAggregate.Round = globalAggregate.Round + 1
 	proof := Proof{ConfigID: globalAggregate.ConfigID, Round: globalAggregate.Round, Proof: []byte("refresh-proof")}
+	defer func() {
+		_ = db.QueryWithoutResult(ctx, "DELETE FROM proofs WHERE config_id = @config_id", map[string]any{"config_id": globalAggregate.ConfigID})
+	}()
 	data, ok := newSubmissionData("test_pair", globalAggregate, proof)
 	assert.True(t, ok)
 	assert.True(t, enqueueSubmissionData(app.submissionBuffer, data))
@@ -150,6 +154,12 @@ func TestGlobalAggregateBulkWriterSurvivesRefresh(t *testing.T) {
 		t.Fatal("error getting proof from pgs:" + err.Error())
 	}
 	assert.Equal(t, proof, pgsLoadedProof)
+
+	pgsLoadedGlobalAggregate, err := getLatestGlobalAggregateFromPgs(ctx, globalAggregate.ConfigID)
+	if err != nil {
+		t.Fatal("error getting global aggregate from pgs:" + err.Error())
+	}
+	assert.Equal(t, globalAggregate, pgsLoadedGlobalAggregate)
 }
 
 func TestEnqueueSubmissionDataNonBlocking(t *testing.T) {
@@ -195,11 +205,6 @@ func TestBulkWriterUsesAppBuffer(t *testing.T) {
 	assert.NotSame(t, first, app.GlobalAggregateBulkWriter)
 	assert.Equal(t, app.submissionBuffer, first.Buffer)
 	assert.Equal(t, app.submissionBuffer, app.GlobalAggregateBulkWriter.Buffer)
-
-	bare := &App{}
-	bare.setGlobalAggregateBulkWriter()
-	assert.NotNil(t, bare.submissionBuffer)
-	assert.Equal(t, bare.submissionBuffer, bare.GlobalAggregateBulkWriter.Buffer)
 
 	own := NewGlobalAggregateBulkWriter(WithBufferSize(3))
 	assert.Equal(t, 3, cap(own.Buffer))

@@ -85,7 +85,7 @@ func TestGetLatestRoundId(t *testing.T) {
 	assert.Equal(t, roundId, testItems.tmpData.globalAggregate.Round)
 }
 
-func TestPublishGlobalAggregateAndProof(t *testing.T) {
+func TestPublishSubmissionData(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cleanup, testItems, err := setup(ctx)
 	if err != nil {
@@ -126,7 +126,9 @@ func TestPublishGlobalAggregateAndProof(t *testing.T) {
 		t.Fatal("error subscribing to stream")
 	}
 
-	err = PublishGlobalAggregateAndProof(ctx, "test_pair", testItems.tmpData.globalAggregate, proof)
+	submissionData, ok := newSubmissionData("test_pair", testItems.tmpData.globalAggregate, proof)
+	assert.True(t, ok)
+	err = publishSubmissionData(ctx, submissionData)
 	if err != nil {
 		t.Fatal("error publishing global aggregate and proof")
 	}

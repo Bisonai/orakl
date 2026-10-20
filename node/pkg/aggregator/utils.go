@@ -32,14 +32,6 @@ func newSubmissionData(name string, globalAggregate GlobalAggregate, proof Proof
 	}, true
 }
 
-func PublishGlobalAggregateAndProof(ctx context.Context, name string, globalAggregate GlobalAggregate, proof Proof) error {
-	data, ok := newSubmissionData(name, globalAggregate, proof)
-	if !ok {
-		return nil
-	}
-	return publishSubmissionData(ctx, data)
-}
-
 // publishSubmissionData publishes to redis submissionDataStream:<symbol> for
 // external consumers (DAL). The node's own DB write does not use it.
 func publishSubmissionData(ctx context.Context, data SubmissionData) error {

@@ -27,7 +27,7 @@ const storeProofsRetryAttempts = 3
 // bulkInsertStoreTimeout bounds a batch write. The store ctx is detached from
 // the writer ctx so a batch already taken from the shared buffer is not lost
 // when Stop() cancels the writer mid-write (e.g. REFRESH_AGGREGATOR_APP).
-const bulkInsertStoreTimeout = 30 * time.Second
+const bulkInsertStoreTimeout = 10 * time.Second
 
 // enqueueDropWarnInterval rate-limits the "buffer full" warning.
 const enqueueDropWarnInterval = 10 * time.Second
@@ -201,9 +201,10 @@ func (s *GlobalAggregateBulkWriter) bulkInsertJob(ctx context.Context) {
 }
 
 func (s *GlobalAggregateBulkWriter) bulkInsert(ctx context.Context) {
-	// The buffer is shared with the next writer after a refresh. A stopped
-	// writer must not take items from it: Stop() cancels ctx before taking
-	// bulkInsertMu, so any bulkInsert that starts after Stop() sees this.
+	// The buffer is App-owned and outlives this writer. A stopped writer must
+	// not take items from it: Stop() cancels ctx before taking bulkInsertMu,
+	// so any bulkInsert that starts after Stop() sees this. An in-flight
+	// drain also stops taking items once ctx is canceled.
 	if ctx.Err() != nil {
 		return
 	}
@@ -214,6 +215,10 @@ func (s *GlobalAggregateBulkWriter) bulkInsert(ctx context.Context) {
 		globalAggregateBatch := []GlobalAggregate{submissionData.GlobalAggregate}
 	loop:
 		for {
+			// Stop taking items once stopped; leave them for the next writer.
+			if ctx.Err() != nil {
+				break loop
+			}
 			select {
 			case submissionData := <-s.Buffer:
 				proofBatch = append(proofBatch, submissionData.Proof)
