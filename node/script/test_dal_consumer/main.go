@@ -22,7 +22,7 @@ const (
 
 func main() {
 	ctx := context.Background()
-	url := "https://dal.baobab.orakl.network/latest-data-feeds/all"
+	url := "https://dal.kairos.orakl.network/latest-data-feeds/all"
 	contractAddr := os.Getenv("SUBMISSION_PROXY_CONTRACT")
 	if contractAddr == "" {
 		log.Error().Msg("Missing SUBMISSION_PROXY_CONTRACT")

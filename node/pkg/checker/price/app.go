@@ -19,7 +19,7 @@ import (
 
 const (
 	defaultTimeout            = 5 * time.Second
-	dalEndpoint               = "https://dal.cypress.orakl.network"
+	dalEndpoint               = "https://dal.mainnet.orakl.network"
 	binanceEndpoint           = "https://api.binance.com/api/v3/ticker/price"
 	pythEndpoint              = "https://hermes.pyth.network"
 	defaultPriceDiffThreshold = 0.01 // 1%
