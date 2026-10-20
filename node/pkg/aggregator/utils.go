@@ -37,7 +37,13 @@ func PublishGlobalAggregateAndProof(ctx context.Context, name string, globalAggr
 	if !ok {
 		return nil
 	}
-	return db.Publish(ctx, keys.SubmissionDataStreamKey(name), data)
+	return publishSubmissionData(ctx, data)
+}
+
+// publishSubmissionData publishes to redis submissionDataStream:<symbol> for
+// external consumers (DAL). The node's own DB write does not use it.
+func publishSubmissionData(ctx context.Context, data SubmissionData) error {
+	return db.Publish(ctx, keys.SubmissionDataStreamKey(data.Symbol), data)
 }
 
 func getLatestRoundId(ctx context.Context, configId int32) (int32, error) {

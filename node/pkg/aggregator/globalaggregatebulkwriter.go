@@ -5,6 +5,7 @@ import (
 	"errors"
 	"sort"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"bisonai.com/miko/node/pkg/db"
@@ -22,6 +23,19 @@ const pgDeadlockSQLState = "40P01"
 // for any remaining edge cases (concurrent ad-hoc admin writers, future
 // migrations running mid-flight, etc.).
 const storeProofsRetryAttempts = 3
+
+// bulkInsertStoreTimeout bounds a batch write. The store ctx is detached from
+// the writer ctx so a batch already taken from the shared buffer is not lost
+// when Stop() cancels the writer mid-write (e.g. REFRESH_AGGREGATOR_APP).
+const bulkInsertStoreTimeout = 30 * time.Second
+
+// enqueueDropWarnInterval rate-limits the "buffer full" warning.
+const enqueueDropWarnInterval = 10 * time.Second
+
+var (
+	enqueueDropped      atomic.Int64
+	enqueueLastWarnNano atomic.Int64
+)
 
 /*
 bulk insert proofs and aggregates into pgsql
@@ -106,13 +120,19 @@ func NewGlobalAggregateBulkWriter(opts ...GlobalAggregateBulkWriterOption) *Glob
 
 // enqueueSubmissionData hands data to the bulk writer without ever blocking
 // the caller (the aggregator round). If the buffer is full or nil the item is
-// dropped and a warning logged; it is still published to redis for DAL.
+// dropped and a (rate-limited) warning logged; it is still published to redis
+// for DAL.
 func enqueueSubmissionData(buffer chan<- SubmissionData, data SubmissionData) bool {
 	select {
 	case buffer <- data:
 		return true
 	default:
-		log.Warn().Str("Player", "Aggregator").Str("name", data.Symbol).Int32("round", data.GlobalAggregate.Round).Msg("global aggregate bulk writer buffer full or unset, dropping DB write")
+		dropped := enqueueDropped.Add(1)
+		now := time.Now().UnixNano()
+		last := enqueueLastWarnNano.Load()
+		if now-last >= int64(enqueueDropWarnInterval) && enqueueLastWarnNano.CompareAndSwap(last, now) {
+			log.Warn().Str("Player", "Aggregator").Str("name", data.Symbol).Int32("round", data.GlobalAggregate.Round).Int64("droppedTotal", dropped).Msg("global aggregate bulk writer buffer full or unset, dropping DB write")
+		}
 		return false
 	}
 }
@@ -181,9 +201,14 @@ func (s *GlobalAggregateBulkWriter) bulkInsertJob(ctx context.Context) {
 }
 
 func (s *GlobalAggregateBulkWriter) bulkInsert(ctx context.Context) {
-	select {
-	case <-ctx.Done():
+	// The buffer is shared with the next writer after a refresh. A stopped
+	// writer must not take items from it: Stop() cancels ctx before taking
+	// bulkInsertMu, so any bulkInsert that starts after Stop() sees this.
+	if ctx.Err() != nil {
 		return
+	}
+
+	select {
 	case submissionData := <-s.Buffer:
 		proofBatch := []Proof{submissionData.Proof}
 		globalAggregateBatch := []GlobalAggregate{submissionData.GlobalAggregate}
@@ -197,11 +222,13 @@ func (s *GlobalAggregateBulkWriter) bulkInsert(ctx context.Context) {
 				break loop
 			}
 		}
-		err := storeProofs(ctx, proofBatch)
+		storeCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), bulkInsertStoreTimeout)
+		defer cancel()
+		err := storeProofs(storeCtx, proofBatch)
 		if err != nil {
 			log.Error().Err(err).Msg("failed to store proofs")
 		}
-		err = storeGlobalAggregates(ctx, globalAggregateBatch)
+		err = storeGlobalAggregates(storeCtx, globalAggregateBatch)
 		if err != nil {
 			log.Error().Err(err).Msg("failed to store global aggregates")
 		}

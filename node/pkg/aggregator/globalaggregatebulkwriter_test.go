@@ -74,7 +74,7 @@ func TestGlobalAggregateBulkWriterDataStore(t *testing.T) {
 	defer bulkWriter.Stop()
 	assert.NotEqual(t, nil, bulkWriter.ctx)
 
-	node, err := NewAggregator(testItems.app.Host, testItems.app.Pubsub, testItems.topicString, testItems.tmpData.config, testItems.signer, testItems.latestLocalAggMap)
+	node, err := NewAggregator(testItems.app.Host, testItems.app.Pubsub, testItems.topicString, testItems.tmpData.config, testItems.signer, testItems.latestLocalAggMap, nil)
 	if err != nil {
 		t.Fatal("error creating new node")
 	}
@@ -129,7 +129,7 @@ func TestGlobalAggregateBulkWriterSurvivesRefresh(t *testing.T) {
 	}()
 
 	app := testItems.app
-	app.setGlobalAggregateBulkWriter(nil)
+	app.setGlobalAggregateBulkWriter()
 	app.startGlobalAggregateBulkWriter(ctx)
 	app.stopGlobalAggregateBulkWriter()
 
@@ -140,7 +140,7 @@ func TestGlobalAggregateBulkWriterSurvivesRefresh(t *testing.T) {
 	assert.True(t, ok)
 	assert.True(t, enqueueSubmissionData(app.submissionBuffer, data))
 
-	app.setGlobalAggregateBulkWriter(nil)
+	app.setGlobalAggregateBulkWriter()
 	app.startGlobalAggregateBulkWriter(ctx)
 	defer app.stopGlobalAggregateBulkWriter()
 	time.Sleep(time.Second * 3)
@@ -188,14 +188,41 @@ func TestBulkWriterUsesAppBuffer(t *testing.T) {
 	app := New(nil, nil, nil)
 	assert.NotNil(t, app.submissionBuffer)
 
-	app.setGlobalAggregateBulkWriter(nil)
+	app.setGlobalAggregateBulkWriter()
 	first := app.GlobalAggregateBulkWriter
-	app.setGlobalAggregateBulkWriter(nil)
+	app.setGlobalAggregateBulkWriter()
 
 	assert.NotSame(t, first, app.GlobalAggregateBulkWriter)
 	assert.Equal(t, app.submissionBuffer, first.Buffer)
 	assert.Equal(t, app.submissionBuffer, app.GlobalAggregateBulkWriter.Buffer)
 
+	bare := &App{}
+	bare.setGlobalAggregateBulkWriter()
+	assert.NotNil(t, bare.submissionBuffer)
+	assert.Equal(t, bare.submissionBuffer, bare.GlobalAggregateBulkWriter.Buffer)
+
 	own := NewGlobalAggregateBulkWriter(WithBufferSize(3))
 	assert.Equal(t, 3, cap(own.Buffer))
+}
+
+// A writer whose ctx is canceled (Stop() during refresh) must leave items in
+// the shared buffer for the next writer.
+func TestBulkInsertCanceledLeavesBuffer(t *testing.T) {
+	buffer := make(chan SubmissionData, 2)
+	bulkWriter := NewGlobalAggregateBulkWriter(WithBuffer(buffer))
+	buffer <- SubmissionData{Symbol: "test_pair"}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	bulkWriter.bulkInsert(ctx)
+
+	assert.Equal(t, 1, len(buffer))
+}
+
+func TestEnqueueSubmissionDataCountsDrops(t *testing.T) {
+	before := enqueueDropped.Load()
+	for i := 0; i < 5; i++ {
+		assert.False(t, enqueueSubmissionData(nil, SubmissionData{Symbol: "test_pair"}))
+	}
+	assert.Equal(t, before+5, enqueueDropped.Load())
 }
