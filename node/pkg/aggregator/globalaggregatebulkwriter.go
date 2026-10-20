@@ -24,11 +24,6 @@ const pgDeadlockSQLState = "40P01"
 // migrations running mid-flight, etc.).
 const storeProofsRetryAttempts = 3
 
-// bulkInsertStoreTimeout bounds a batch write. The store ctx is detached from
-// the writer ctx so a batch already taken from the shared buffer is not lost
-// when Stop() cancels the writer mid-write (e.g. REFRESH_AGGREGATOR_APP).
-const bulkInsertStoreTimeout = 10 * time.Second
-
 // enqueueDropWarnInterval rate-limits the "buffer full" warning.
 const enqueueDropWarnInterval = 10 * time.Second
 
@@ -160,9 +155,10 @@ func (s *GlobalAggregateBulkWriter) Stop() {
 	s.cancelFunc = nil
 	s.ctx = nil
 
-	// Wait for any in-flight bulkInsert to finish before returning. The
-	// REFRESH_AGGREGATOR_APP handler calls Stop() then immediately creates
-	// a new GlobalAggregateBulkWriter (with its own mutex) and starts it.
+	// Wait for any in-flight bulkInsert to finish before returning. A caller
+	// may create a new GlobalAggregateBulkWriter (with its own mutex) right
+	// after Stop() (setGlobalAggregateBulkWriter); REFRESH_AGGREGATOR_APP no
+	// longer does, the writer keeps running across a refresh.
 	// Without this drain the old goroutine's BulkUpsert and the new one's
 	// next tick can both run concurrently against the proofs table — each
 	// holds its own per-instance mutex, so they don't serialize, and the
@@ -227,13 +223,11 @@ func (s *GlobalAggregateBulkWriter) bulkInsert(ctx context.Context) {
 				break loop
 			}
 		}
-		storeCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), bulkInsertStoreTimeout)
-		defer cancel()
-		err := storeProofs(storeCtx, proofBatch)
+		err := storeProofs(ctx, proofBatch)
 		if err != nil {
 			log.Error().Err(err).Msg("failed to store proofs")
 		}
-		err = storeGlobalAggregates(storeCtx, globalAggregateBatch)
+		err = storeGlobalAggregates(ctx, globalAggregateBatch)
 		if err != nil {
 			log.Error().Err(err).Msg("failed to store global aggregates")
 		}

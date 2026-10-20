@@ -338,6 +338,8 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 			bus.HandleMessageError(err, msg, "failed to start all aggregators")
 			return
 		}
+		// No-op if already running; restarts the writer if a prior
+		// STOP_AGGREGATOR_APP stopped it.
 		a.startGlobalAggregateBulkWriter(ctx)
 
 		msg.Response <- bus.MessageResponse{Success: true}
