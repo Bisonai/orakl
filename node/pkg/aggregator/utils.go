@@ -18,14 +18,24 @@ func FilterNegative(values []int64) []int64 {
 	return result
 }
 
-func PublishGlobalAggregateAndProof(ctx context.Context, name string, globalAggregate GlobalAggregate, proof Proof) error {
+// newSubmissionData builds the payload shared by the DB bulk writer and the
+// redis submissionDataStream; ok is false for empty aggregates, which are
+// neither stored nor published.
+func newSubmissionData(name string, globalAggregate GlobalAggregate, proof Proof) (SubmissionData, bool) {
 	if globalAggregate.Value == 0 || globalAggregate.Timestamp.IsZero() {
-		return nil
+		return SubmissionData{}, false
 	}
-	data := SubmissionData{
+	return SubmissionData{
 		Symbol:          name,
 		GlobalAggregate: globalAggregate,
 		Proof:           proof,
+	}, true
+}
+
+func PublishGlobalAggregateAndProof(ctx context.Context, name string, globalAggregate GlobalAggregate, proof Proof) error {
+	data, ok := newSubmissionData(name, globalAggregate, proof)
+	if !ok {
+		return nil
 	}
 	return db.Publish(ctx, keys.SubmissionDataStreamKey(name), data)
 }

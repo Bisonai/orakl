@@ -23,6 +23,7 @@ func New(bus *bus.MessageBus, h host.Host, ps *pubsub.PubSub) *App {
 		Host:                  h,
 		Pubsub:                ps,
 		LatestLocalAggregates: NewLatestLocalAggregates(),
+		submissionBuffer:      make(chan SubmissionData, DefaultBufferSize),
 	}
 }
 
@@ -65,12 +66,7 @@ func (a *App) setGlobalAggregateBulkWriter(configs []Config) {
 		a.stopGlobalAggregateBulkWriter()
 	}
 
-	configNames := make([]string, len(configs))
-	for i, config := range configs {
-		configNames[i] = config.Name
-	}
-
-	a.GlobalAggregateBulkWriter = NewGlobalAggregateBulkWriter(WithConfigNames(configNames))
+	a.GlobalAggregateBulkWriter = NewGlobalAggregateBulkWriter(WithBuffer(a.submissionBuffer))
 }
 
 func (a *App) startGlobalAggregateBulkWriter(ctx context.Context) {
@@ -154,6 +150,7 @@ func (a *App) initializeLoadedAggregators(ctx context.Context, loadedConfigs []C
 		if err != nil {
 			return err
 		}
+		tmpNode.submissionBuffer = a.submissionBuffer
 		a.Aggregators[config.ID] = tmpNode
 
 	}

@@ -363,6 +363,12 @@ func (n *Aggregator) processCollectedProofs(ctx context.Context, proofMessage Pr
 	concatProof := bytes.Join(n.roundProofs.proofs[proofMessage.RoundID], nil)
 	proof := Proof{ConfigID: n.ID, Round: proofMessage.RoundID, Proof: concatProof}
 
+	// Hand off to the DB bulk writer in-process first so persistence does
+	// not depend on redis; the redis publish below is for DAL only.
+	if data, ok := newSubmissionData(n.Name, globalAggregate, proof); ok {
+		enqueueSubmissionData(n.submissionBuffer, data)
+	}
+
 	err := PublishGlobalAggregateAndProof(ctx, n.Name, globalAggregate, proof)
 	if err != nil {
 		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to publish global aggregate and proof")
