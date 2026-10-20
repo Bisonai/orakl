@@ -11,26 +11,14 @@ import (
 )
 
 func TestNewGlobalAggregateBulkWriter(t *testing.T) {
-	ctx := context.Background()
-	cleanup, testItems, err := setup(ctx)
-	if err != nil {
-		t.Fatalf("error setting up test: %v", err)
-	}
-	defer func() {
-		if cleanupErr := cleanup(); cleanupErr != nil {
-			t.Logf("Cleanup failed: %v", cleanupErr)
-		}
-	}()
-
-	_ = NewGlobalAggregateBulkWriter(WithConfigNames([]string{testItems.tmpData.config.Name}))
-	if err != nil {
-		t.Fatal("error creating new node")
-	}
+	bulkWriter := NewGlobalAggregateBulkWriter()
+	assert.Equal(t, DefaultBufferSize, cap(bulkWriter.Buffer))
+	assert.Equal(t, DefaultPgsqlBulkInsertInterval, bulkWriter.PgsqlBulkInsertInterval)
 }
 
 func TestGlobalAggregateBulkWriterStart(t *testing.T) {
 	ctx := context.Background()
-	cleanup, testItems, err := setup(ctx)
+	cleanup, _, err := setup(ctx)
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
@@ -40,7 +28,7 @@ func TestGlobalAggregateBulkWriterStart(t *testing.T) {
 		}
 	}()
 
-	bulkWriter := NewGlobalAggregateBulkWriter(WithConfigNames([]string{testItems.tmpData.config.Name}))
+	bulkWriter := NewGlobalAggregateBulkWriter()
 
 	bulkWriter.Start(ctx)
 
@@ -49,7 +37,7 @@ func TestGlobalAggregateBulkWriterStart(t *testing.T) {
 
 func TestGlobalAggregateBulkWriterStop(t *testing.T) {
 	ctx := context.Background()
-	cleanup, testItems, err := setup(ctx)
+	cleanup, _, err := setup(ctx)
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
@@ -59,7 +47,7 @@ func TestGlobalAggregateBulkWriterStop(t *testing.T) {
 		}
 	}()
 
-	bulkWriter := NewGlobalAggregateBulkWriter(WithConfigNames([]string{testItems.tmpData.config.Name}))
+	bulkWriter := NewGlobalAggregateBulkWriter()
 
 	bulkWriter.Start(ctx)
 
@@ -80,7 +68,7 @@ func TestGlobalAggregateBulkWriterDataStore(t *testing.T) {
 		}
 	}()
 
-	bulkWriter := NewGlobalAggregateBulkWriter(WithConfigNames([]string{testItems.tmpData.config.Name}))
+	bulkWriter := NewGlobalAggregateBulkWriter()
 
 	bulkWriter.Start(ctx)
 	defer bulkWriter.Stop()
@@ -108,11 +96,9 @@ func TestGlobalAggregateBulkWriterDataStore(t *testing.T) {
 		Proof:    concatProof,
 	}
 
-	time.Sleep(time.Millisecond * 50)
-	err = PublishGlobalAggregateAndProof(ctx, "test_pair", testItems.tmpData.globalAggregate, proof)
-	if err != nil {
-		t.Fatal("error publishing global aggregate and proof")
-	}
+	data, ok := newSubmissionData("test_pair", testItems.tmpData.globalAggregate, proof)
+	assert.True(t, ok)
+	assert.True(t, enqueueSubmissionData(bulkWriter.Buffer, data))
 	time.Sleep(time.Second * 3)
 
 	pgsLoadedProof, err := getProofFromPgs(ctx, testItems.tmpData.globalAggregate.ConfigID, testItems.tmpData.globalAggregate.Round)
@@ -126,4 +112,90 @@ func TestGlobalAggregateBulkWriterDataStore(t *testing.T) {
 		t.Fatal("error getting global aggregate from pgs" + err.Error())
 	}
 	assert.Equal(t, testItems.tmpData.globalAggregate, pgsLoadedGlobalAggregate)
+}
+
+// Items enqueued while the writer is being swapped (REFRESH_AGGREGATOR_APP)
+// must be persisted by the next writer sharing the App-owned buffer.
+func TestGlobalAggregateBulkWriterSurvivesRefresh(t *testing.T) {
+	ctx := context.Background()
+	cleanup, testItems, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer func() {
+		if cleanupErr := cleanup(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
+		}
+	}()
+
+	app := testItems.app
+	app.setGlobalAggregateBulkWriter(nil)
+	app.startGlobalAggregateBulkWriter(ctx)
+	app.stopGlobalAggregateBulkWriter()
+
+	globalAggregate := testItems.tmpData.globalAggregate
+	globalAggregate.Round = globalAggregate.Round + 1
+	proof := Proof{ConfigID: globalAggregate.ConfigID, Round: globalAggregate.Round, Proof: []byte("refresh-proof")}
+	data, ok := newSubmissionData("test_pair", globalAggregate, proof)
+	assert.True(t, ok)
+	assert.True(t, enqueueSubmissionData(app.submissionBuffer, data))
+
+	app.setGlobalAggregateBulkWriter(nil)
+	app.startGlobalAggregateBulkWriter(ctx)
+	defer app.stopGlobalAggregateBulkWriter()
+	time.Sleep(time.Second * 3)
+
+	pgsLoadedProof, err := getProofFromPgs(ctx, globalAggregate.ConfigID, globalAggregate.Round)
+	if err != nil {
+		t.Fatal("error getting proof from pgs:" + err.Error())
+	}
+	assert.Equal(t, proof, pgsLoadedProof)
+}
+
+func TestEnqueueSubmissionDataNonBlocking(t *testing.T) {
+	buffer := make(chan SubmissionData, 1)
+	data := SubmissionData{Symbol: "test_pair"}
+
+	assert.True(t, enqueueSubmissionData(buffer, data))
+
+	done := make(chan bool)
+	go func() { done <- enqueueSubmissionData(buffer, data) }()
+	select {
+	case ok := <-done:
+		assert.False(t, ok, "full buffer must drop")
+	case <-time.After(time.Second):
+		t.Fatal("enqueueSubmissionData blocked on full buffer")
+	}
+
+	assert.False(t, enqueueSubmissionData(nil, data), "nil buffer must drop")
+	assert.Equal(t, 1, len(buffer))
+}
+
+func TestNewSubmissionDataSkipsEmpty(t *testing.T) {
+	_, ok := newSubmissionData("test_pair", GlobalAggregate{Value: 0, Timestamp: time.Now()}, Proof{})
+	assert.False(t, ok)
+	_, ok = newSubmissionData("test_pair", GlobalAggregate{Value: 1}, Proof{})
+	assert.False(t, ok)
+
+	globalAggregate := GlobalAggregate{ConfigID: 1, Value: 1, Round: 2, Timestamp: time.Now()}
+	proof := Proof{ConfigID: 1, Round: 2, Proof: []byte{1}}
+	data, ok := newSubmissionData("test_pair", globalAggregate, proof)
+	assert.True(t, ok)
+	assert.Equal(t, SubmissionData{Symbol: "test_pair", GlobalAggregate: globalAggregate, Proof: proof}, data)
+}
+
+func TestBulkWriterUsesAppBuffer(t *testing.T) {
+	app := New(nil, nil, nil)
+	assert.NotNil(t, app.submissionBuffer)
+
+	app.setGlobalAggregateBulkWriter(nil)
+	first := app.GlobalAggregateBulkWriter
+	app.setGlobalAggregateBulkWriter(nil)
+
+	assert.NotSame(t, first, app.GlobalAggregateBulkWriter)
+	assert.Equal(t, app.submissionBuffer, first.Buffer)
+	assert.Equal(t, app.submissionBuffer, app.GlobalAggregateBulkWriter.Buffer)
+
+	own := NewGlobalAggregateBulkWriter(WithBufferSize(3))
+	assert.Equal(t, 3, cap(own.Buffer))
 }
