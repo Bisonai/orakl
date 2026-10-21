@@ -441,3 +441,4 @@
 - **sentinel** v0.0.1.20261008.0618.83cbee6.cypress <br> *`PR`*: chore extend license year to 2... <br><br> 
 - **sentinel** v0.0.1.20261008.0618.83cbee6.baobab <br> *`PR`*: chore extend license year to 2... <br><br> 
 - **sentinel** v0.0.1.20261021.0144.5d6bf4b.baobab <br> *`PR`*: chore DAL hostnames  dalmainne... <br><br> 
+- **sentinel** v0.0.1.20261021.0148.d03f421.cypress <br> *`PR`*: chore DAL hostnames  dalmainne... <br><br> 
