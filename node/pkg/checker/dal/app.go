@@ -84,11 +84,10 @@ func Start(ctx context.Context) error {
 		wsEndpoint = "ws://orakl-dal.orakl.svc.cluster.local/ws"
 	} else {
 		// External host is REAL external DNS (not a served config name), so the
-		// raw chain is used here unchanged: dal.cypress.orakl.network today. The
-		// mainnet/cypress DAL runs in KakaoCloud; whether that DNS becomes
-		// dal.mainnet.orakl.network is a Phase-4 infra decision, so we do not
-		// build dal.mainnet... blindly. The DAL_CHECK_* overrides below are the
-		// flip-safe seam for infra to set the real host.
+		// raw chain is used here unchanged: CHAIN=mainnet yields
+		// dal.mainnet.orakl.network (live; the mainnet DAL runs in KakaoCloud).
+		// The DAL_CHECK_* overrides below remain a seam for infra to set a
+		// different host.
 		endpoint = fmt.Sprintf("https://dal.%s.orakl.network", chain)
 		wsEndpoint = fmt.Sprintf("ws://dal.%s.orakl.network/ws", chain)
 	}

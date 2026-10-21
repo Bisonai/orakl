@@ -13,7 +13,7 @@ export const options = {
 
 export default function () {
   const url =
-    "https://dal.cypress.orakl.network/latest-data-feeds/transpose/all";
+    "https://dal.mainnet.orakl.network/latest-data-feeds/transpose/all";
   const params = {
     headers: {
       "X-API-KEY": API_KEY,
