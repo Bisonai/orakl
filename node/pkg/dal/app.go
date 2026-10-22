@@ -11,7 +11,7 @@ import (
 	"bisonai.com/miko/node/pkg/dal/collector"
 	"bisonai.com/miko/node/pkg/dal/hub"
 	"bisonai.com/miko/node/pkg/dal/utils/keycache"
-	"bisonai.com/miko/node/pkg/dal/utils/stats"
+	"bisonai.com/miko/node/pkg/dal/utils/keystore"
 	errorsentinel "bisonai.com/miko/node/pkg/error"
 	"bisonai.com/miko/node/pkg/utils/request"
 
@@ -25,8 +25,20 @@ const baseMikoConfigUrl = "https://config.orakl.network/%s_feeds.json"
 func Run(ctx context.Context) error {
 	log.Debug().Msg("Starting DAL API server")
 
-	statsApp := stats.Start(ctx)
-	defer statsApp.Stop()
+	keyStore, err := keystore.OpenFromEnv(ctx)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to open key store")
+		return err
+	}
+	defer keyStore.Close()
+
+	if n, countErr := keyStore.Count(ctx); countErr != nil {
+		log.Error().Err(countErr).Msg("Failed to count API keys")
+	} else if n == 0 {
+		log.Warn().Msg("Key store has no API keys; all authenticated requests will be rejected")
+	} else {
+		log.Info().Int("keys", n).Msg("Loaded key store")
+	}
 
 	keyCache := keycache.NewAPIKeyCache(1 * time.Hour)
 	keyCache.CleanupLoop(ctx, 10*time.Minute)
@@ -53,7 +65,7 @@ func Run(ctx context.Context) error {
 	hub := hub.HubSetup(ctx, configs)
 	go hub.Start(ctx, collector)
 
-	err = apiv2.Start(ctx, apiv2.WithCollector(collector), apiv2.WithHub(hub), apiv2.WithKeyCache(keyCache), apiv2.WithStatsApp(statsApp))
+	err = apiv2.Start(ctx, apiv2.WithCollector(collector), apiv2.WithHub(hub), apiv2.WithKeyCache(keyCache), apiv2.WithKeyStore(keyStore))
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to start DAL WS server")
 		return err

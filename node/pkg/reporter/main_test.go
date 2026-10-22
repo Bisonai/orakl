@@ -4,6 +4,7 @@ package reporter
 import (
 	"context"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -17,8 +18,7 @@ import (
 	"bisonai.com/miko/node/pkg/dal/collector"
 	"bisonai.com/miko/node/pkg/dal/hub"
 	"bisonai.com/miko/node/pkg/dal/utils/keycache"
-	"bisonai.com/miko/node/pkg/dal/utils/stats"
-	"bisonai.com/miko/node/pkg/db"
+	"bisonai.com/miko/node/pkg/dal/utils/keystore"
 	"bisonai.com/miko/node/pkg/wss"
 	"github.com/rs/zerolog"
 )
@@ -105,12 +105,15 @@ func generateSampleSubmissionData(configId int32, value int64, timestamp time.Ti
 
 func mockDalWsServer(ctx context.Context) (*wss.WebsocketHelper, *types.Config, []string, error) {
 	apiKey := "testApiKey"
-	err := db.QueryWithoutResult(
-		ctx,
-		"INSERT INTO keys (key) VALUES (@newkey);",
-		map[string]any{"newkey": apiKey},
-	)
+	keyDir, err := os.MkdirTemp("", "dal-keys-")
 	if err != nil {
+		return nil, nil, nil, err
+	}
+	keyStore, err := keystore.Open(ctx, filepath.Join(keyDir, "dal.db"))
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	if err = keyStore.Upsert(ctx, apiKey, "test"); err != nil {
 		return nil, nil, nil, err
 	}
 
@@ -131,10 +134,7 @@ func mockDalWsServer(ctx context.Context) (*wss.WebsocketHelper, *types.Config, 
 	h := hub.HubSetup(ctx, []types.Config{tmpConfig})
 	go h.Start(ctx, collector)
 
-	statsApp := stats.NewStatsApp(ctx, stats.WithBulkLogsCopyInterval(1*time.Second))
-	go statsApp.Run(ctx)
-
-	server := apiv2.NewServer(collector, keyCache, h, statsApp)
+	server := apiv2.NewServer(collector, keyCache, keyStore, h)
 
 	mockDal := httptest.NewServer(server)
 

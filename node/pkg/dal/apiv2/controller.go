@@ -12,33 +12,12 @@ import (
 	dalcommon "bisonai.com/miko/node/pkg/dal/common"
 	"bisonai.com/miko/node/pkg/dal/hub"
 	"bisonai.com/miko/node/pkg/dal/utils/keycache"
-	"bisonai.com/miko/node/pkg/dal/utils/stats"
+	"bisonai.com/miko/node/pkg/dal/utils/keystore"
 	errorsentinel "bisonai.com/miko/node/pkg/error"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog/log"
 	"nhooyr.io/websocket"
 	"nhooyr.io/websocket/wsjson"
-)
-
-var (
-	wsActiveConnections = promauto.NewGauge(prometheus.GaugeOpts{
-		Name: "dal_websocket_active_connections",
-		Help: "Current number of active WebSocket connections",
-	})
-	wsConnectionsTotal = promauto.NewCounter(prometheus.CounterOpts{
-		Name: "dal_websocket_connections_total",
-		Help: "Total number of WebSocket connections",
-	})
-	wsSubscriptionsTotal = promauto.NewCounter(prometheus.CounterOpts{
-		Name: "dal_websocket_subscriptions_total",
-		Help: "Total number of WebSocket subscriptions",
-	})
-	restRequestsTotal = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name: "dal_rest_requests_total",
-		Help: "Total number of REST API requests",
-	}, []string{"method", "path"})
 )
 
 func Start(ctx context.Context, opts ...ServerV2Option) error {
@@ -66,12 +45,16 @@ func Start(ctx context.Context, opts ...ServerV2Option) error {
 		return errorsentinel.ErrDalKeyCacheNotFound
 	}
 
+	if config.KeyStore == nil {
+		return errorsentinel.ErrDalKeyStoreNotFound
+	}
+
 	l, err := net.Listen("tcp", ":"+config.Port)
 	if err != nil {
 		return err
 	}
 
-	wsServer := NewServer(config.Collector, config.KeyCache, config.Hub, config.StatsApp)
+	wsServer := NewServer(config.Collector, config.KeyCache, config.KeyStore, config.Hub)
 	httpServer := &http.Server{
 		Handler: wsServer,
 		BaseContext: func(_ net.Listener) context.Context {
@@ -87,10 +70,11 @@ func Start(ctx context.Context, opts ...ServerV2Option) error {
 	return nil
 }
 
-func NewServer(collector *collector.Collector, keyCache *keycache.KeyCache, hub *hub.Hub, statsApp *stats.StatsApp) *ServerV2 {
+func NewServer(collector *collector.Collector, keyCache *keycache.KeyCache, keyStore *keystore.Store, hub *hub.Hub) *ServerV2 {
 	s := &ServerV2{
 		collector: collector,
 		keyCache:  keyCache,
+		keyStore:  keyStore,
 		hub:       hub,
 	}
 	serveMux := http.NewServeMux()
@@ -107,27 +91,26 @@ func NewServer(collector *collector.Collector, keyCache *keycache.KeyCache, hub 
 	serveMux.Handle("GET /metrics", promhttp.Handler())
 	serveMux.HandleFunc("/", s.HealthCheckHandler)
 
-	// Apply the RequestLoggerMiddleware to the ServeMux
-	loggedMux := statsApp.RequestLoggerMiddleware(serveMux)
-
-	s.handler = metricsMiddleware(loggedMux)
+	s.mux = serveMux
 
 	return s
 }
 
-func metricsMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/ws" && r.URL.Path != "/metrics" && r.URL.Path != "/" {
-			restRequestsTotal.WithLabelValues(r.Method, r.URL.Path).Inc()
-		}
-		next.ServeHTTP(w, r)
-	})
-}
-
 func (s *ServerV2) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	key := r.Header.Get("X-API-Key")
+	if r.RequestURI == "/" || r.RequestURI == "/metrics" {
+		s.mux.ServeHTTP(w, r)
+		return
+	}
 
-	if r.RequestURI != "/" && r.RequestURI != "/metrics" && !s.checkAPIKey(r.Context(), key) {
+	_, pattern := s.mux.Handler(r)
+	endpoint := endpointLabel(pattern)
+	isWS := r.URL.Path == "/ws"
+
+	label, ok := s.checkAPIKey(r.Context(), r.Header.Get("X-API-Key"))
+	if !ok {
+		if !isWS {
+			observeREST(UnknownKeyLabel, endpoint, http.StatusUnauthorized)
+		}
 		w.WriteHeader(http.StatusUnauthorized)
 		_, err := w.Write([]byte("Unauthorized"))
 		if err != nil {
@@ -136,24 +119,41 @@ func (s *ServerV2) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.handler.ServeHTTP(w, r)
+	r = r.WithContext(withKeyLabel(r.Context(), label))
+
+	// websocket traffic is tracked by the dal_websocket_* metrics
+	if isWS {
+		s.mux.ServeHTTP(w, r)
+		return
+	}
+
+	rec := newStatusRecorder(w)
+	s.mux.ServeHTTP(rec, r)
+	observeREST(label, endpoint, rec.status)
 }
 
-func (s *ServerV2) checkAPIKey(ctx context.Context, key string) bool {
+// checkAPIKey validates key against the cache, then the key store. It returns
+// the key's metric label (its description) and whether the key is valid.
+func (s *ServerV2) checkAPIKey(ctx context.Context, key string) (string, bool) {
 	if key == "" {
-		return false
+		return "", false
 	}
 
-	if s.keyCache.Get(key) {
-		return true
+	if description, ok := s.keyCache.Get(key); ok {
+		return keyLabel(description), true
 	}
 
-	if keycache.ValidateApiKeyFromDB(ctx, key) {
-		s.keyCache.Set(key)
-		return true
+	description, ok, err := s.keyStore.Lookup(ctx, key)
+	if err != nil {
+		log.Error().Err(err).Msg("Error validating API key")
+		return "", false
+	}
+	if !ok {
+		return "", false
 	}
 
-	return false
+	s.keyCache.Set(key, description)
+	return keyLabel(description), true
 }
 
 func (s *ServerV2) WSHandler(w http.ResponseWriter, r *http.Request) {
@@ -164,27 +164,15 @@ func (s *ServerV2) WSHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer c.Close(websocket.StatusInternalError, "the sky is falling")
 
-	s.hub.Register <- c
-	wsConnectionsTotal.Inc()
-	wsActiveConnections.Set(float64(s.hub.ConnectionCount()))
+	label := keyLabelFrom(r.Context())
 
-	key := r.Header.Get("X-API-Key")
-	id, err := stats.InsertWebsocketConnection(r.Context(), key)
-	if err != nil {
-		log.Error().Err(err).Msg("failed to insert websocket connection")
-		return
-	}
-	log.Info().Int32("id", id).Msg("inserted websocket connection")
+	s.hub.Register <- c
+	wsConnectionsTotal.WithLabelValues(label).Inc()
+	wsActiveConnections.WithLabelValues(label).Inc()
 
 	defer func() {
 		s.hub.Unregister <- c
-		wsActiveConnections.Set(float64(s.hub.ConnectionCount()))
-		err = stats.UpdateWebsocketConnection(r.Context(), id)
-		if err != nil {
-			log.Error().Err(err).Msg("failed to update websocket connection")
-			return
-		}
-		log.Info().Int32("id", id).Msg("updated websocket connection")
+		wsActiveConnections.WithLabelValues(label).Dec()
 	}()
 
 	for {
@@ -195,8 +183,8 @@ func (s *ServerV2) WSHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if msg.Method == "SUBSCRIBE" {
-			s.hub.HandleSubscription(r.Context(), c, msg, id)
-			wsSubscriptionsTotal.Add(float64(len(msg.Params)))
+			valid := s.hub.HandleSubscription(c, msg)
+			wsSubscriptionsTotal.WithLabelValues(label).Add(float64(valid))
 		}
 	}
 }
