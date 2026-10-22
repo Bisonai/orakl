@@ -12,7 +12,6 @@ import (
 
 	"bisonai.com/miko/node/pkg/checker/balance"
 	"bisonai.com/miko/node/pkg/checker/dal"
-	"bisonai.com/miko/node/pkg/checker/dalstats"
 	"bisonai.com/miko/node/pkg/checker/dbcronjob"
 	"bisonai.com/miko/node/pkg/checker/health"
 	"bisonai.com/miko/node/pkg/checker/inspect"
@@ -110,18 +109,6 @@ func main() {
 	}()
 
 	log.Info().Msg("dal checker started")
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		err := dalstats.Start(ctx)
-		if err != nil {
-			log.Error().Err(err).Msg("error starting dalstats checker")
-			os.Exit(1)
-		}
-	}()
-
-	log.Info().Msg("dal stats checker started")
 
 	wg.Add(1)
 	go func() {
