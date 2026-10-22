@@ -22,10 +22,13 @@ commands:
   list                         print all keys as "key<TAB>description"
   add <key> <description>      add a key, or update its description
   remove <key>                 remove a key
-  import <file.csv|->          upsert "key,description" CSV rows (no header)
+  import <file.csv|->          upsert "key,description" CSV rows (no header);
+                               never deletes keys missing from the file
 
 New keys work immediately. A removed key, or a changed description, can take
-up to the key cache TTL (1h) to apply in a running DAL; restart to apply at once.
+up to the key cache TTL (1h) to apply to new requests and new WebSocket
+connections in a running DAL. Established WebSocket connections are not
+re-checked; restart DAL to apply at once and drop them.
 To keep a key out of shell history, use: printf 'key,desc\n' | dalbin keys import -
 `
 

@@ -238,7 +238,9 @@ dalbin keys import keys.csv            # "key,description" rows, no header; "-" 
 
 `keys add` takes the key as an argument; to keep it out of shell history use `printf 'key,description\n' | dalbin keys import -`.
 
-The description is used as the `key` label of the metrics, so give every key a short, unique one. A new key works immediately. A removed key, or a changed description, can take up to 1 hour (key cache TTL) to apply; restart DAL to apply at once.
+The description is used as the `key` label of the metrics, so give every key a short, unique one. A new key works immediately. A removed key, or a changed description, can take up to 1 hour (key cache TTL) to apply to new requests and new WebSocket connections. Established WebSocket connections are only checked at connect time and are not dropped when their key is removed; restart DAL to apply at once and drop them.
+
+`keys import` only adds or updates keys; it never deletes keys missing from the CSV.
 
 The file can also be edited with `sqlite3` (`keys(key TEXT UNIQUE, description TEXT)`).
 
@@ -255,15 +257,20 @@ Served at `GET /metrics` on the API port (8090). `key` is the key description, `
 
 ### Migrating keys from PostgreSQL
 
-One-time export of the old `keys` table and import into SQLite. Usage history is not migrated.
+One-time export of the old `keys` table and import into a **new, empty** SQLite file. Usage history is not migrated.
 
 ```sh
-psql "$OLD_DATABASE_URL" -c "\copy (SELECT key, COALESCE(description, '') FROM keys ORDER BY id) TO 'keys.csv' WITH CSV"
-DAL_SQLITE_PATH=/app/data/dal.db dalbin keys import keys.csv
+umask 077
+export_dir="$(mktemp -d)"
+psql "$OLD_DATABASE_URL" -c "\copy (SELECT key, COALESCE(description, '') FROM keys ORDER BY id) TO '$export_dir/keys.csv' WITH CSV"
+DAL_SQLITE_PATH=/app/data/dal.db dalbin keys import "$export_dir/keys.csv"
 DAL_SQLITE_PATH=/app/data/dal.db dalbin keys list
+rm -rf -- "$export_dir"
 ```
 
-`keys.csv` holds live API keys; delete it after the import.
+The CSV holds live API keys, hence the private directory under `umask 077`, removed after the import.
+
+Because `import` never deletes, re-running it against an existing file keeps keys that were revoked in PostgreSQL since the last run. To repeat the migration, delete the SQLite file first, or remove the revoked keys with `dalbin keys remove` and check `dalbin keys list` against PostgreSQL before cutover.
 
 ## Other Task Commands
 
