@@ -55,10 +55,14 @@ func keyLabelFrom(ctx context.Context) string {
 	return UnknownKeyLabel
 }
 
-// keyLabel maps a key description to the `key` metric label.
+// keyLabel maps a key description to the `key` metric label. Descriptions
+// equal to a reserved label are prefixed so they never merge with it.
 func keyLabel(description string) string {
-	if description == "" {
+	switch description {
+	case "":
 		return UnnamedKeyLabel
+	case UnknownKeyLabel, KeyStoreErrorLabel, UnnamedKeyLabel:
+		return "key_" + description
 	}
 	return description
 }

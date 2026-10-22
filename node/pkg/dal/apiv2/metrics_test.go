@@ -67,6 +67,14 @@ func restCount(key, endpoint, status string) float64 {
 	return testutil.ToFloat64(restRequestsTotal.WithLabelValues(key, endpoint, status))
 }
 
+func TestKeyLabel(t *testing.T) {
+	assert.Equal(t, "alice", keyLabel("alice"))
+	assert.Equal(t, UnnamedKeyLabel, keyLabel(""))
+	assert.Equal(t, "key_unknown", keyLabel(UnknownKeyLabel))
+	assert.Equal(t, "key_error", keyLabel(KeyStoreErrorLabel))
+	assert.Equal(t, "key_unnamed", keyLabel(UnnamedKeyLabel))
+}
+
 func TestEndpointLabel(t *testing.T) {
 	assert.Equal(t, "/latest-data-feeds/{symbols}", endpointLabel("GET /latest-data-feeds/{symbols}"))
 	assert.Equal(t, "/ws", endpointLabel("/ws"))

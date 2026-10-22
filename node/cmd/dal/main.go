@@ -65,7 +65,8 @@ func main() {
 }
 
 func runKeys(ctx context.Context, args []string, stdin io.Reader, stdout io.Writer) error {
-	if len(args) == 0 {
+	wantArgs := map[string]int{"list": 1, "add": 3, "remove": 2, "import": 2}
+	if len(args) == 0 || wantArgs[args[0]] != len(args) {
 		return fmt.Errorf("%s", keysUsage)
 	}
 

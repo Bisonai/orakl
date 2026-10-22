@@ -244,7 +244,7 @@ The file can also be edited with `sqlite3` (`keys(key TEXT UNIQUE, description T
 
 ### Metrics
 
-Served at `GET /metrics` on the API port (8090). `key` is the key description, `unknown` for a missing or invalid key, `unnamed` for a key with an empty description. `endpoint` is the route template (e.g. `/latest-data-feeds/{symbols}`), `other` for unmatched paths. A key-store failure returns 503 (`key="error"`). `dal_websocket_subscriptions_total` counts new subscriptions to known symbols (repeats not counted).
+Served at `GET /metrics` on the API port (8090). `key` is the key description, `unknown` for a missing or invalid key, `unnamed` for a key with an empty description. `endpoint` is the route template (e.g. `/latest-data-feeds/{symbols}`), `other` for unmatched paths. Descriptions equal to a reserved label (`unknown`, `error`, `unnamed`) are exported as `key_<description>`. A key-store failure returns 503 (`key="error"`). `dal_websocket_subscriptions_total` counts new subscriptions to known symbols (repeats not counted).
 
 `/metrics` needs no API key and exposes key descriptions with their traffic; do not expose it publicly.
 

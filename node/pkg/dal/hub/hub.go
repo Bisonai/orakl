@@ -95,12 +95,6 @@ func (h *Hub) HandleSubscription(client *websocket.Conn, msg Subscription) int {
 	return valid
 }
 
-func (h *Hub) ConnectionCount() int {
-	h.mu.RLock()
-	defer h.mu.RUnlock()
-	return len(h.Clients)
-}
-
 func (h *Hub) handleClientRegistration(ctx context.Context) {
 	for {
 		select {
