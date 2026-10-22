@@ -10,6 +10,7 @@ import (
 	"io"
 	"net/url"
 	"os"
+	"strings"
 
 	_ "modernc.org/sqlite" // pure-Go SQLite driver, registers "sqlite"
 )
@@ -47,7 +48,7 @@ func OpenFromEnv(ctx context.Context, mustExist bool) (*Store, error) {
 	}
 	if mustExist {
 		if _, err := os.Stat(path); err != nil {
-			return nil, fmt.Errorf("key store %s: %w (create it with the 'keys' command)", path, err)
+			return nil, fmt.Errorf("key store %s: %w (create it with 'keys add' or 'keys import')", path, err)
 		}
 	}
 	return Open(ctx, path)
@@ -55,6 +56,9 @@ func OpenFromEnv(ctx context.Context, mustExist bool) (*Store, error) {
 
 // Open opens (creating if missing) the SQLite file at path and ensures the schema.
 func Open(ctx context.Context, path string) (*Store, error) {
+	if strings.ContainsAny(path, "?#") {
+		return nil, fmt.Errorf("key store path %q must not contain '?' or '#'", path)
+	}
 	q := url.Values{}
 	q.Add("_pragma", "busy_timeout(5000)")
 	q.Add("_pragma", "journal_mode(WAL)")

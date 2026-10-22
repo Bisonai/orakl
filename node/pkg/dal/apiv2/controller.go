@@ -106,13 +106,13 @@ func (s *ServerV2) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	label, ok, err := s.checkAPIKey(r.Context(), r.Header.Get("X-API-Key"))
 	if err != nil || !ok {
-		status, body := http.StatusUnauthorized, "Unauthorized"
+		status, body, metricKey := http.StatusUnauthorized, "Unauthorized", UnknownKeyLabel
 		if err != nil {
-			status, body = http.StatusServiceUnavailable, "Service Unavailable"
+			status, body, metricKey = http.StatusServiceUnavailable, "Service Unavailable", KeyStoreErrorLabel
 		}
 		if !isWS {
 			_, pattern := s.mux.Handler(r)
-			observeREST(UnknownKeyLabel, endpointLabel(pattern), status)
+			observeREST(metricKey, endpointLabel(pattern), status)
 		}
 		w.WriteHeader(status)
 		if _, err := w.Write([]byte(body)); err != nil {
@@ -175,8 +175,8 @@ func (s *ServerV2) WSHandler(w http.ResponseWriter, r *http.Request) {
 	wsActiveConnections.WithLabelValues(label).Inc()
 
 	defer func() {
-		s.hub.Unregister <- c
 		wsActiveConnections.WithLabelValues(label).Dec()
+		s.hub.Unregister <- c
 	}()
 
 	for {

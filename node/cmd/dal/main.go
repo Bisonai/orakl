@@ -16,7 +16,7 @@ import (
 
 const keysUsage = `usage: dalbin [-env file] keys <command>
 
-API keys are stored in the SQLite file at $DAL_SQLITE_PATH (created if missing).
+API keys are stored in the SQLite file at $DAL_SQLITE_PATH (add/import create it).
 
 commands:
   list                         print all keys as "key<TAB>description"
@@ -69,7 +69,9 @@ func runKeys(ctx context.Context, args []string, stdin io.Reader, stdout io.Writ
 		return fmt.Errorf("%s", keysUsage)
 	}
 
-	store, err := keystore.OpenFromEnv(ctx, false)
+	// only add/import may create the file; list/remove on a missing file is a mistake (wrong path, unmounted volume)
+	create := args[0] == "add" || args[0] == "import"
+	store, err := keystore.OpenFromEnv(ctx, !create)
 	if err != nil {
 		return err
 	}

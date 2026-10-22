@@ -15,6 +15,8 @@ import (
 const (
 	// UnknownKeyLabel labels requests rejected for a missing or invalid key.
 	UnknownKeyLabel = "unknown"
+	// KeyStoreErrorLabel labels requests rejected because the key store failed.
+	KeyStoreErrorLabel = "error"
 	// UnnamedKeyLabel labels valid keys that have an empty description.
 	UnnamedKeyLabel = "unnamed"
 	// OtherEndpointLabel labels requests that match no route.
@@ -32,7 +34,7 @@ var (
 	}, []string{"key"})
 	wsSubscriptionsTotal = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "dal_websocket_subscriptions_total",
-		Help: "Total number of valid WebSocket subscriptions",
+		Help: "Total number of new WebSocket subscriptions to known symbols",
 	}, []string{"key"})
 	restRequestsTotal = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "dal_rest_requests_total",

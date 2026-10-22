@@ -68,7 +68,7 @@ func (h *Hub) Start(ctx context.Context, collector *collector.Collector) {
 }
 
 // HandleSubscription subscribes client to the known symbols in msg and returns
-// the number of valid subscriptions.
+// the number of new subscriptions (known symbols not already subscribed).
 func (h *Hub) HandleSubscription(client *websocket.Conn, msg Subscription) int {
 	h.mu.Lock()
 	defer h.mu.Unlock()
@@ -82,6 +82,9 @@ func (h *Hub) HandleSubscription(client *websocket.Conn, msg Subscription) int {
 	for _, param := range msg.Params {
 		symbol := strings.TrimPrefix(param, "submission@")
 		if _, ok := h.Symbols[symbol]; !ok {
+			continue
+		}
+		if _, dup := subscriptions[symbol]; dup {
 			continue
 		}
 		subscriptions[symbol] = struct{}{}

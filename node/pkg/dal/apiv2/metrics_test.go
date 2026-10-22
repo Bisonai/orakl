@@ -117,9 +117,9 @@ func TestKeyStoreErrorIsUnavailable(t *testing.T) {
 	srv, store := newTestServerWithStore(t)
 	require.NoError(t, store.Close())
 
-	before := restCount(UnknownKeyLabel, "/symbols", "503")
+	before := restCount(KeyStoreErrorLabel, "/symbols", "503")
 	assert.Equal(t, 503, get(t, srv.URL+"/symbols", namedKey))
-	assert.Equal(t, before+1, restCount(UnknownKeyLabel, "/symbols", "503"))
+	assert.Equal(t, before+1, restCount(KeyStoreErrorLabel, "/symbols", "503"))
 }
 
 func TestHealthAndMetricsNotCounted(t *testing.T) {
@@ -149,9 +149,17 @@ func TestWebsocketMetrics(t *testing.T) {
 		Params: []string{"submission@" + testSymbol, "submission@UNKNOWN-USDT"},
 	}))
 
+	// repeat subscription is not counted again
+	require.NoError(t, wsjson.Write(ctx, c, hub.Subscription{
+		Method: "SUBSCRIBE",
+		Params: []string{"submission@" + testSymbol},
+	}))
+
 	assert.Eventually(t, func() bool {
 		return testutil.ToFloat64(wsSubscriptionsTotal.WithLabelValues(keyDesc)) == subs+1
-	}, 2*time.Second, 10*time.Millisecond, "only the valid subscription is counted")
+	}, 2*time.Second, 10*time.Millisecond, "only the new, valid subscription is counted")
+	time.Sleep(50 * time.Millisecond)
+	assert.Equal(t, subs+1, testutil.ToFloat64(wsSubscriptionsTotal.WithLabelValues(keyDesc)))
 	assert.Equal(t, conns+1, testutil.ToFloat64(wsConnectionsTotal.WithLabelValues(keyDesc)))
 	assert.Equal(t, float64(1), testutil.ToFloat64(wsActiveConnections.WithLabelValues(keyDesc)))
 
