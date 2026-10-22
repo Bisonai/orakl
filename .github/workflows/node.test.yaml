@@ -8,7 +8,6 @@ on:
       - "node/**"
       - "!node/**.md"
       - "!node/pkg/dal/**"
-      - "!node/migrations/dal/**"
       - "!node/pkg/boot/**"
       - "!node/migrations/boot/**"
       - "!node/pkg/checker/**"

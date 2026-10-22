@@ -14,6 +14,10 @@
   - [Database Initialization](#database-initialization)
   - [Optional Setups](#optional-setups)
   - [Run Node](#run-node)
+- [DAL](#dal)
+  - [API keys](#api-keys)
+  - [Metrics](#metrics)
+  - [Migrating keys from PostgreSQL](#migrating-keys-from-postgresql)
 - [Other Task Commands](#other-task-commands)
   - [Unit Test](#unit-test)
   - [Commands](#commands)
@@ -210,6 +214,52 @@ cp .env.local .env
    ```sh
    task local:node
    ```
+
+## DAL
+
+DAL does not use PostgreSQL. API keys are stored in a SQLite file and usage is exposed as Prometheus metrics.
+
+| Env               | Description                                                                                      |
+| ----------------- | ------------------------------------------------------------------------------------------------ |
+| `DAL_SQLITE_PATH` | Required. Path of the SQLite key file, e.g. `/app/data/dal.db`. Put it on a persistent volume. Created if missing. |
+| `CHAIN`           | Required. `kairos`, `mainnet` or `test`.                                                          |
+| `REDIS_HOST`, `REDIS_PORT` | Redis used by the collector.                                                            |
+
+### API keys
+
+Keys are managed with the `keys` subcommand of the DAL binary (`dalbin` in the image, `go run ./cmd/dal` locally), against the file at `DAL_SQLITE_PATH`:
+
+```sh
+dalbin keys list                       # key<TAB>description
+dalbin keys add <key> <description>    # add, or update description
+dalbin keys remove <key>
+dalbin keys import keys.csv            # "key,description" rows, no header; "-" reads stdin
+```
+
+The description is used as the `key` label of the metrics, so give every key a short, unique one. A new key works immediately. A removed key can stay valid for up to 1 hour (key cache TTL); restart DAL to revoke it at once.
+
+The file can also be edited with `sqlite3` (`keys(key TEXT UNIQUE, description TEXT)`).
+
+### Metrics
+
+Served at `GET /metrics` on the API port (8090). `key` is the key description, `unknown` for a missing or invalid key, `unnamed` for a key with an empty description. `endpoint` is the route template (e.g. `/latest-data-feeds/{symbols}`).
+
+- `dal_rest_requests_total{key, endpoint, status}`
+- `dal_websocket_connections_total{key}`
+- `dal_websocket_active_connections{key}`
+- `dal_websocket_subscriptions_total{key}` (valid symbols only)
+
+### Migrating keys from PostgreSQL
+
+One-time export of the old `keys` table and import into SQLite. Usage history is not migrated.
+
+```sh
+psql "$OLD_DATABASE_URL" -c "\copy (SELECT key, COALESCE(description, '') FROM keys ORDER BY id) TO 'keys.csv' WITH CSV"
+DAL_SQLITE_PATH=/app/data/dal.db dalbin keys import keys.csv
+DAL_SQLITE_PATH=/app/data/dal.db dalbin keys list
+```
+
+`keys.csv` holds live API keys; delete it after the import.
 
 ## Other Task Commands
 
