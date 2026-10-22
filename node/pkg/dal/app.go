@@ -25,7 +25,7 @@ const baseMikoConfigUrl = "https://config.orakl.network/%s_feeds.json"
 func Run(ctx context.Context) error {
 	log.Debug().Msg("Starting DAL API server")
 
-	keyStore, err := keystore.OpenFromEnv(ctx)
+	keyStore, err := keystore.OpenFromEnv(ctx, true)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to open key store")
 		return err

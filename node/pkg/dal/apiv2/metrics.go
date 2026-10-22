@@ -63,9 +63,10 @@ func keyLabel(description string) string {
 
 // endpointLabel maps a ServeMux pattern ("GET /latest-data-feeds/{symbols}")
 // to its route template ("/latest-data-feeds/{symbols}") so the label stays
-// bounded regardless of the raw request path.
+// bounded regardless of the raw request path. No match, or only the "/"
+// catch-all (health check, never metered itself), maps to "other".
 func endpointLabel(pattern string) string {
-	if pattern == "" {
+	if pattern == "" || pattern == "/" {
 		return OtherEndpointLabel
 	}
 	if i := strings.IndexByte(pattern, ' '); i >= 0 {

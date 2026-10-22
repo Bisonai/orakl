@@ -14,9 +14,9 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-const keysUsage = `usage: dal [-env file] keys <command>
+const keysUsage = `usage: dalbin [-env file] keys <command>
 
-API keys are stored in the SQLite file at $DAL_SQLITE_PATH.
+API keys are stored in the SQLite file at $DAL_SQLITE_PATH (created if missing).
 
 commands:
   list                         print all keys as "key<TAB>description"
@@ -24,8 +24,9 @@ commands:
   remove <key>                 remove a key
   import <file.csv|->          upsert "key,description" CSV rows (no header)
 
-Changes are picked up immediately for new keys; a removed key can stay
-valid in a running DAL for up to the key cache TTL (1h) unless DAL is restarted.
+New keys work immediately. A removed key, or a changed description, can take
+up to the key cache TTL (1h) to apply in a running DAL; restart to apply at once.
+To keep a key out of shell history, use: printf 'key,desc\n' | dalbin keys import -
 `
 
 func LoadEnvFromFile() {
@@ -68,7 +69,7 @@ func runKeys(ctx context.Context, args []string, stdin io.Reader, stdout io.Writ
 		return fmt.Errorf("%s", keysUsage)
 	}
 
-	store, err := keystore.OpenFromEnv(ctx)
+	store, err := keystore.OpenFromEnv(ctx, false)
 	if err != nil {
 		return err
 	}

@@ -221,7 +221,7 @@ DAL does not use PostgreSQL. API keys are stored in a SQLite file and usage is e
 
 | Env               | Description                                                                                      |
 | ----------------- | ------------------------------------------------------------------------------------------------ |
-| `DAL_SQLITE_PATH` | Required. Path of the SQLite key file, e.g. `/app/data/dal.db`. Put it on a persistent volume. Created if missing. |
+| `DAL_SQLITE_PATH` | Required. Path of the SQLite key file, e.g. `/app/data/dal.db`. Put it on a persistent volume. DAL refuses to start if the file does not exist; the `keys` commands create it. |
 | `CHAIN`           | Required. `kairos`, `mainnet` or `test`.                                                          |
 | `REDIS_HOST`, `REDIS_PORT` | Redis used by the collector.                                                            |
 
@@ -236,13 +236,17 @@ dalbin keys remove <key>
 dalbin keys import keys.csv            # "key,description" rows, no header; "-" reads stdin
 ```
 
-The description is used as the `key` label of the metrics, so give every key a short, unique one. A new key works immediately. A removed key can stay valid for up to 1 hour (key cache TTL); restart DAL to revoke it at once.
+`keys add` takes the key as an argument; to keep it out of shell history use `printf 'key,description\n' | dalbin keys import -`.
+
+The description is used as the `key` label of the metrics, so give every key a short, unique one. A new key works immediately. A removed key, or a changed description, can take up to 1 hour (key cache TTL) to apply; restart DAL to apply at once.
 
 The file can also be edited with `sqlite3` (`keys(key TEXT UNIQUE, description TEXT)`).
 
 ### Metrics
 
-Served at `GET /metrics` on the API port (8090). `key` is the key description, `unknown` for a missing or invalid key, `unnamed` for a key with an empty description. `endpoint` is the route template (e.g. `/latest-data-feeds/{symbols}`).
+Served at `GET /metrics` on the API port (8090). `key` is the key description, `unknown` for a missing or invalid key, `unnamed` for a key with an empty description. `endpoint` is the route template (e.g. `/latest-data-feeds/{symbols}`), `other` for unmatched paths. A key-store failure returns 503 (`key="unknown"`).
+
+`/metrics` needs no API key and exposes key descriptions with their traffic; do not expose it publicly.
 
 - `dal_rest_requests_total{key, endpoint, status}`
 - `dal_websocket_connections_total{key}`

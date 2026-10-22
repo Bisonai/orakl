@@ -37,11 +37,18 @@ type Store struct {
 	db *sql.DB
 }
 
-// OpenFromEnv opens the store at the path in DAL_SQLITE_PATH.
-func OpenFromEnv(ctx context.Context) (*Store, error) {
+// OpenFromEnv opens the store at the path in DAL_SQLITE_PATH. With
+// mustExist, a missing file is an error instead of a new empty store, so a
+// wrong path or unmounted volume fails loudly.
+func OpenFromEnv(ctx context.Context, mustExist bool) (*Store, error) {
 	path := os.Getenv(EnvPath)
 	if path == "" {
 		return nil, ErrPathNotSet
+	}
+	if mustExist {
+		if _, err := os.Stat(path); err != nil {
+			return nil, fmt.Errorf("key store %s: %w (create it with the 'keys' command)", path, err)
+		}
 	}
 	return Open(ctx, path)
 }

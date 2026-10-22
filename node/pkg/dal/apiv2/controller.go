@@ -97,23 +97,25 @@ func NewServer(collector *collector.Collector, keyCache *keycache.KeyCache, keyS
 }
 
 func (s *ServerV2) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if r.RequestURI == "/" || r.RequestURI == "/metrics" {
+	if r.URL.Path == "/" || r.URL.Path == "/metrics" {
 		s.mux.ServeHTTP(w, r)
 		return
 	}
 
-	_, pattern := s.mux.Handler(r)
-	endpoint := endpointLabel(pattern)
 	isWS := r.URL.Path == "/ws"
 
-	label, ok := s.checkAPIKey(r.Context(), r.Header.Get("X-API-Key"))
-	if !ok {
-		if !isWS {
-			observeREST(UnknownKeyLabel, endpoint, http.StatusUnauthorized)
-		}
-		w.WriteHeader(http.StatusUnauthorized)
-		_, err := w.Write([]byte("Unauthorized"))
+	label, ok, err := s.checkAPIKey(r.Context(), r.Header.Get("X-API-Key"))
+	if err != nil || !ok {
+		status, body := http.StatusUnauthorized, "Unauthorized"
 		if err != nil {
+			status, body = http.StatusServiceUnavailable, "Service Unavailable"
+		}
+		if !isWS {
+			_, pattern := s.mux.Handler(r)
+			observeREST(UnknownKeyLabel, endpointLabel(pattern), status)
+		}
+		w.WriteHeader(status)
+		if _, err := w.Write([]byte(body)); err != nil {
 			log.Error().Err(err).Msg("failed to write response")
 		}
 		return
@@ -129,31 +131,33 @@ func (s *ServerV2) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	rec := newStatusRecorder(w)
 	s.mux.ServeHTTP(rec, r)
-	observeREST(label, endpoint, rec.status)
+	// ServeMux sets r.Pattern on the request it routes
+	observeREST(label, endpointLabel(r.Pattern), rec.status)
 }
 
 // checkAPIKey validates key against the cache, then the key store. It returns
-// the key's metric label (its description) and whether the key is valid.
-func (s *ServerV2) checkAPIKey(ctx context.Context, key string) (string, bool) {
+// the key's metric label (its description) and whether the key is valid; err
+// is set when the key store could not be queried.
+func (s *ServerV2) checkAPIKey(ctx context.Context, key string) (string, bool, error) {
 	if key == "" {
-		return "", false
+		return "", false, nil
 	}
 
 	if description, ok := s.keyCache.Get(key); ok {
-		return keyLabel(description), true
+		return keyLabel(description), true, nil
 	}
 
 	description, ok, err := s.keyStore.Lookup(ctx, key)
 	if err != nil {
 		log.Error().Err(err).Msg("Error validating API key")
-		return "", false
+		return "", false, err
 	}
 	if !ok {
-		return "", false
+		return "", false, nil
 	}
 
 	s.keyCache.Set(key, description)
-	return keyLabel(description), true
+	return keyLabel(description), true, nil
 }
 
 func (s *ServerV2) WSHandler(w http.ResponseWriter, r *http.Request) {

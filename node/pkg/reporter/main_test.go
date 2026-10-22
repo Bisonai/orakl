@@ -50,6 +50,9 @@ const testConfigsFixture = `[
 	}
 ]`
 
+// dalKeyDir holds the mock DAL's SQLite key file; removed after the tests.
+var dalKeyDir string
+
 func TestMain(m *testing.M) {
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 
@@ -63,9 +66,16 @@ func TestMain(m *testing.M) {
 	}))
 	configBaseURL = configServer.URL
 
+	var err error
+	dalKeyDir, err = os.MkdirTemp("", "dal-keys-")
+	if err != nil {
+		panic(err)
+	}
+
 	code := m.Run()
 
 	configServer.Close()
+	_ = os.RemoveAll(dalKeyDir)
 	os.Exit(code)
 }
 
@@ -105,11 +115,7 @@ func generateSampleSubmissionData(configId int32, value int64, timestamp time.Ti
 
 func mockDalWsServer(ctx context.Context) (*wss.WebsocketHelper, *types.Config, []string, error) {
 	apiKey := "testApiKey"
-	keyDir, err := os.MkdirTemp("", "dal-keys-")
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	keyStore, err := keystore.Open(ctx, filepath.Join(keyDir, "dal.db"))
+	keyStore, err := keystore.Open(ctx, filepath.Join(dalKeyDir, "dal.db"))
 	if err != nil {
 		return nil, nil, nil, err
 	}

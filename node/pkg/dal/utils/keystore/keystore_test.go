@@ -2,6 +2,7 @@ package keystore
 
 import (
 	"context"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -108,12 +109,20 @@ func TestImportCSVRollsBackOnError(t *testing.T) {
 }
 
 func TestOpenFromEnv(t *testing.T) {
+	ctx := context.Background()
 	t.Setenv(EnvPath, "")
-	_, err := OpenFromEnv(context.Background())
+	_, err := OpenFromEnv(ctx, false)
 	assert.ErrorIs(t, err, ErrPathNotSet)
 
 	t.Setenv(EnvPath, filepath.Join(t.TempDir(), "dal.db"))
-	s, err := OpenFromEnv(context.Background())
+	_, err = OpenFromEnv(ctx, true)
+	assert.ErrorIs(t, err, os.ErrNotExist, "mustExist must not create the file")
+
+	s, err := OpenFromEnv(ctx, false)
+	require.NoError(t, err)
+	require.NoError(t, s.Close())
+
+	s, err = OpenFromEnv(ctx, true)
 	require.NoError(t, err)
 	assert.NoError(t, s.Close())
 }

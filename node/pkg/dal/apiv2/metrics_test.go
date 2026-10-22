@@ -27,6 +27,11 @@ const (
 )
 
 func newTestServer(t *testing.T) *httptest.Server {
+	srv, _ := newTestServerWithStore(t)
+	return srv
+}
+
+func newTestServerWithStore(t *testing.T) (*httptest.Server, *keystore.Store) {
 	t.Helper()
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
@@ -42,7 +47,7 @@ func newTestServer(t *testing.T) *httptest.Server {
 
 	srv := httptest.NewServer(NewServer(nil, keycache.NewAPIKeyCache(time.Hour), store, h))
 	t.Cleanup(srv.Close)
-	return srv
+	return srv, store
 }
 
 func get(t *testing.T, url, key string) int {
@@ -66,6 +71,7 @@ func TestEndpointLabel(t *testing.T) {
 	assert.Equal(t, "/latest-data-feeds/{symbols}", endpointLabel("GET /latest-data-feeds/{symbols}"))
 	assert.Equal(t, "/ws", endpointLabel("/ws"))
 	assert.Equal(t, OtherEndpointLabel, endpointLabel(""))
+	assert.Equal(t, OtherEndpointLabel, endpointLabel("/"))
 }
 
 func TestRESTMetricsLabels(t *testing.T) {
@@ -94,12 +100,35 @@ func TestRESTMetricsLabels(t *testing.T) {
 	assert.Zero(t, restCount(namedKey, "/symbols", "200"))
 }
 
+func TestRESTMetricsUnmatchedRoute(t *testing.T) {
+	srv := newTestServer(t)
+
+	notFound := restCount(keyDesc, OtherEndpointLabel, "404")
+	unauth := restCount(UnknownKeyLabel, OtherEndpointLabel, "401")
+
+	assert.Equal(t, 404, get(t, srv.URL+"/no-such-route", namedKey))
+	assert.Equal(t, 401, get(t, srv.URL+"/wp-login.php", ""))
+
+	assert.Equal(t, notFound+1, restCount(keyDesc, OtherEndpointLabel, "404"))
+	assert.Equal(t, unauth+1, restCount(UnknownKeyLabel, OtherEndpointLabel, "401"))
+}
+
+func TestKeyStoreErrorIsUnavailable(t *testing.T) {
+	srv, store := newTestServerWithStore(t)
+	require.NoError(t, store.Close())
+
+	before := restCount(UnknownKeyLabel, "/symbols", "503")
+	assert.Equal(t, 503, get(t, srv.URL+"/symbols", namedKey))
+	assert.Equal(t, before+1, restCount(UnknownKeyLabel, "/symbols", "503"))
+}
+
 func TestHealthAndMetricsNotCounted(t *testing.T) {
 	srv := newTestServer(t)
 
 	before := testutil.CollectAndCount(restRequestsTotal)
 	assert.Equal(t, 200, get(t, srv.URL+"/", ""))
 	assert.Equal(t, 200, get(t, srv.URL+"/metrics", ""))
+	assert.Equal(t, 200, get(t, srv.URL+"/metrics?x=1", ""))
 	assert.Equal(t, before, testutil.CollectAndCount(restRequestsTotal))
 }
 
