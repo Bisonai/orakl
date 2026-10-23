@@ -4,42 +4,42 @@ import (
 	"context"
 	"sync"
 	"time"
-
-	"bisonai.com/miko/node/pkg/db"
-	"github.com/rs/zerolog/log"
 )
 
-type KeyCache struct {
-	mu   sync.RWMutex
-	keys map[string]time.Time
-	ttl  time.Duration
+type entry struct {
+	description string
+	expiry      time.Time
 }
 
-type DBKeyResult struct {
-	Exist bool `db:"exists"`
+// KeyCache caches validated API keys with their description for ttl.
+type KeyCache struct {
+	mu   sync.RWMutex
+	keys map[string]entry
+	ttl  time.Duration
 }
 
 func NewAPIKeyCache(ttl time.Duration) *KeyCache {
 	return &KeyCache{
-		keys: make(map[string]time.Time),
+		keys: make(map[string]entry),
 		ttl:  ttl,
 	}
 }
 
-func (c *KeyCache) Set(key string) {
+func (c *KeyCache) Set(key, description string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	c.keys[key] = time.Now().Add(c.ttl)
+	c.keys[key] = entry{description: description, expiry: time.Now().Add(c.ttl)}
 }
 
-func (c *KeyCache) Get(key string) bool {
+// Get returns the cached description of key and whether it is cached and unexpired.
+func (c *KeyCache) Get(key string) (string, bool) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	expiry, exists := c.keys[key]
-	if !exists || time.Now().After(expiry) {
-		return false
+	e, exists := c.keys[key]
+	if !exists || time.Now().After(e.expiry) {
+		return "", false
 	}
-	return true
+	return e.description, true
 }
 
 func (c *KeyCache) CleanupLoop(ctx context.Context, interval time.Duration) {
@@ -61,17 +61,9 @@ func (c *KeyCache) Cleanup() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	now := time.Now()
-	for key, expiry := range c.keys {
-		if now.After(expiry) {
+	for key, e := range c.keys {
+		if now.After(e.expiry) {
 			delete(c.keys, key)
 		}
 	}
-}
-
-func ValidateApiKeyFromDB(ctx context.Context, apiKey string) bool {
-	res, err := db.QueryRow[DBKeyResult](ctx, "SELECT true as exists FROM keys WHERE key = @key", map[string]any{"key": apiKey})
-	if err != nil {
-		log.Error().Err(err).Msg("Error validating API key")
-	}
-	return res.Exist && err == nil
 }

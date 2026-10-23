@@ -14,6 +14,10 @@
   - [Database Initialization](#database-initialization)
   - [Optional Setups](#optional-setups)
   - [Run Node](#run-node)
+- [DAL](#dal)
+  - [API keys](#api-keys)
+  - [Metrics](#metrics)
+  - [Migrating keys from PostgreSQL](#migrating-keys-from-postgresql)
 - [Other Task Commands](#other-task-commands)
   - [Unit Test](#unit-test)
   - [Commands](#commands)
@@ -210,6 +214,73 @@ cp .env.local .env
    ```sh
    task local:node
    ```
+
+## DAL
+
+DAL does not use PostgreSQL. API keys are stored in a SQLite file and usage is exposed as Prometheus metrics.
+
+| Env               | Description                                                                                      |
+| ----------------- | ------------------------------------------------------------------------------------------------ |
+| `DAL_SQLITE_PATH` | Required. Path of the SQLite key file, e.g. `/app/data/dal.db`. Put it on a persistent volume. DAL refuses to start if the file does not exist; `keys add`/`keys import` create it. The directory must be writable (SQLite WAL files). |
+| `CHAIN`           | Required. `kairos`, `mainnet` or `test`.                                                          |
+| `REDIS_HOST`, `REDIS_PORT` | Redis used by the collector.                                                            |
+
+### API keys
+
+Keys are managed with the `keys` subcommand of the DAL binary (`dalbin` in the image, `go run ./cmd/dal` locally), against the file at `DAL_SQLITE_PATH`:
+
+```sh
+dalbin keys list                       # key<TAB>description
+dalbin keys add <key> <description>    # add, or update description
+dalbin keys remove <key>
+dalbin keys import keys.csv            # "key,description" rows, no header; "-" reads stdin
+```
+
+`keys add` takes the key as an argument, so it lands in shell history. To avoid that, read the key silently and pipe it:
+
+```sh
+read -rs -p 'API key: ' k; echo
+printf '%s,%s\n' "$k" "<description>" | dalbin keys import -
+unset k
+```
+
+The description is used as the `key` label of the metrics, so give every key a short, unique one. A new key works immediately. A removed key, or a changed description, can take up to 1 hour (key cache TTL) to apply to new requests and new WebSocket connections. Established WebSocket connections are only checked at connect time and are not dropped when their key is removed; restart DAL to apply at once and drop them.
+
+`keys import` only adds or updates keys; it never deletes keys missing from the CSV.
+
+The file can also be edited with `sqlite3` (`keys(key TEXT UNIQUE, description TEXT)`).
+
+### Metrics
+
+Served at `GET /metrics` on the API port (8090). `key` is the key description, `unknown` for a missing or invalid key, `unnamed` for a key with an empty description. `endpoint` is the route template (e.g. `/latest-data-feeds/{symbols}`), `other` for unmatched paths. Descriptions equal to a reserved label (`unknown`, `error`, `unnamed`) or starting with `key_` are exported as `key_<description>`, so distinct descriptions never share a label. A key-store failure returns 503 (`key="error"`). `dal_websocket_subscriptions_total` counts new subscriptions to known symbols (repeats not counted).
+
+`/metrics` needs no API key and exposes key descriptions with their traffic; do not expose it publicly.
+
+- `dal_rest_requests_total{key, endpoint, status}`
+- `dal_websocket_connections_total{key}`
+- `dal_websocket_active_connections{key}`
+- `dal_websocket_subscriptions_total{key}` (valid symbols only)
+
+### Migrating keys from PostgreSQL
+
+One-time export of the old `keys` table and import into a **new, empty** SQLite file. Usage history is not migrated.
+
+```sh
+(
+  set -euo pipefail
+  umask 077
+  export_dir="$(mktemp -d)"
+  trap 'rm -rf -- "$export_dir"' EXIT
+  psql -v ON_ERROR_STOP=1 "$OLD_DATABASE_URL" -c "\copy (SELECT key, COALESCE(description, '') FROM keys ORDER BY id) TO '$export_dir/keys.csv' WITH CSV"
+  test -s "$export_dir/keys.csv"
+  DAL_SQLITE_PATH=/app/data/dal.db dalbin keys import "$export_dir/keys.csv"
+  DAL_SQLITE_PATH=/app/data/dal.db dalbin keys list
+)
+```
+
+The CSV holds live API keys, hence the private directory under `umask 077`, removed on exit. The subshell stops at the first failure (failed export, empty CSV, failed import), so it never finishes "successfully" with an empty key store.
+
+Because `import` never deletes, re-running it against an existing file keeps keys that were revoked in PostgreSQL since the last run. To repeat the migration, delete the SQLite file first, or remove the revoked keys with `dalbin keys remove` and check `dalbin keys list` against PostgreSQL before cutover.
 
 ## Other Task Commands
 

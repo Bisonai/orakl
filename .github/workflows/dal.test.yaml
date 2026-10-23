@@ -6,6 +6,7 @@ on:
       - "master"
     paths:
       - "node/pkg/dal/**"
+      - "node/cmd/dal/**"
   workflow_dispatch:
 
 jobs:
@@ -16,19 +17,6 @@ jobs:
     timeout-minutes: 10
 
     services:
-      postgres:
-        image: postgres
-        env:
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: miko-test
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-
       redis:
         image: redis
         options: >-
@@ -49,16 +37,6 @@ jobs:
           cache-dependency-path: |
             ./node/go.sum
 
-      - name: Install golang-migrate
-        run: |
-          curl -L https://github.com/golang-migrate/migrate/releases/download/v4.17.0/migrate.linux-amd64.tar.gz | tar xvz
-          sudo mv ./migrate /usr/bin
-
-      - name: Migrate up
-        run: |
-          cd ./node
-          migrate -database "postgresql://postgres:postgres@localhost:5432/miko-test?search_path=public&sslmode=disable" -verbose -path ./migrations/dal up
-
       - name: Install dependencies
         run: |
           cd ./node
@@ -74,7 +52,6 @@ jobs:
           cd ./node
           task local:test-dal
         env:
-          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/miko-test?search_path=public"
           REDIS_HOST: "localhost"
           REDIS_PORT: "6379"
           KAIA_PROVIDER_URL: "https://public-en-kairos.node.kaia.io"

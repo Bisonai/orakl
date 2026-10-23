@@ -6,7 +6,7 @@ import (
 	"bisonai.com/miko/node/pkg/dal/collector"
 	"bisonai.com/miko/node/pkg/dal/hub"
 	"bisonai.com/miko/node/pkg/dal/utils/keycache"
-	"bisonai.com/miko/node/pkg/dal/utils/stats"
+	"bisonai.com/miko/node/pkg/dal/utils/keystore"
 )
 
 type BulkResponse struct {
@@ -22,7 +22,8 @@ type ServerV2 struct {
 	collector *collector.Collector
 	hub       *hub.Hub
 	keyCache  *keycache.KeyCache
-	handler   http.Handler
+	keyStore  *keystore.Store
+	mux       *http.ServeMux
 }
 
 type ServerV2Config struct {
@@ -30,7 +31,7 @@ type ServerV2Config struct {
 	Collector *collector.Collector
 	Hub       *hub.Hub
 	KeyCache  *keycache.KeyCache
-	StatsApp  *stats.StatsApp
+	KeyStore  *keystore.Store
 }
 
 type ServerV2Option func(*ServerV2Config)
@@ -53,9 +54,9 @@ func WithHub(h *hub.Hub) ServerV2Option {
 	}
 }
 
-func WithStatsApp(s *stats.StatsApp) ServerV2Option {
+func WithKeyStore(k *keystore.Store) ServerV2Option {
 	return func(config *ServerV2Config) {
-		config.StatsApp = s
+		config.KeyStore = k
 	}
 }
 

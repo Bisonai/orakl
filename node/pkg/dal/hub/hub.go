@@ -9,7 +9,6 @@ import (
 	"bisonai.com/miko/node/pkg/common/types"
 	"bisonai.com/miko/node/pkg/dal/collector"
 	dalcommon "bisonai.com/miko/node/pkg/dal/common"
-	"bisonai.com/miko/node/pkg/dal/utils/stats"
 	"github.com/rs/zerolog/log"
 	"nhooyr.io/websocket"
 	"nhooyr.io/websocket/wsjson"
@@ -68,7 +67,9 @@ func (h *Hub) Start(ctx context.Context, collector *collector.Collector) {
 	go h.cleanupJob(ctx)
 }
 
-func (h *Hub) HandleSubscription(ctx context.Context, client *websocket.Conn, msg Subscription, id int32) {
+// HandleSubscription subscribes client to the known symbols in msg and returns
+// the number of new subscriptions (known symbols not already subscribed).
+func (h *Hub) HandleSubscription(client *websocket.Conn, msg Subscription) int {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
@@ -77,32 +78,21 @@ func (h *Hub) HandleSubscription(ctx context.Context, client *websocket.Conn, ms
 		subscriptions = map[string]struct{}{}
 	}
 
-	valid := []string{}
+	valid := 0
 	for _, param := range msg.Params {
 		symbol := strings.TrimPrefix(param, "submission@")
 		if _, ok := h.Symbols[symbol]; !ok {
 			continue
 		}
+		if _, dup := subscriptions[symbol]; dup {
+			continue
+		}
 		subscriptions[symbol] = struct{}{}
-		valid = append(valid, param)
+		valid++
 	}
 	h.Clients[client] = subscriptions
 
-	defer func(subscribed []string) {
-		if len(valid) == 0 {
-			return
-		}
-
-		if err := stats.InsertWebsocketSubscriptions(ctx, id, valid); err != nil {
-			log.Error().Err(err).Msg("failed to insert websocket subscriptions")
-		}
-	}(valid)
-}
-
-func (h *Hub) ConnectionCount() int {
-	h.mu.RLock()
-	defer h.mu.RUnlock()
-	return len(h.Clients)
+	return valid
 }
 
 func (h *Hub) handleClientRegistration(ctx context.Context) {
