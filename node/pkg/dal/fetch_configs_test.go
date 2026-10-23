@@ -102,17 +102,19 @@ func TestFetchConfigsNoRetryOnBadJSON(t *testing.T) {
 }
 
 func TestFetchConfigsStopsOnContextCancel(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	var calls atomic.Int32
 	withFetchServer(t, func(w http.ResponseWriter, r *http.Request) {
-		calls.Add(1)
+		if calls.Add(1) == 1 {
+			// Cancel well after this (fast, local) 503 reaches the client,
+			// i.e. while fetchConfigs waits out the 1h backoff.
+			time.AfterFunc(50*time.Millisecond, cancel)
+		}
 		w.WriteHeader(http.StatusServiceUnavailable)
 	})
 	fetchConfigsBackoff = time.Hour
-
-	ctx, cancel := context.WithCancel(context.Background())
-	// Cancel well after the first (fast, local) attempt returned, i.e.
-	// while fetchConfigs waits out the 1h backoff.
-	time.AfterFunc(50*time.Millisecond, cancel)
 
 	_, err := fetchConfigs(ctx, "mainnet")
 	require.ErrorIs(t, err, context.Canceled)

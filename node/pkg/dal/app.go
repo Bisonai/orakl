@@ -115,17 +115,18 @@ func fetchConfigs(ctx context.Context, chain string) ([]Config, error) {
 			return nil, fmt.Errorf("fetch configs from %s failed (attempt %d/%d): %w", endpoint, attempt, fetchConfigsAttempts, err)
 		}
 
+		wait := withJitter(backoff)
 		log.Warn().Err(err).
 			Int("attempt", attempt).
 			Int("attempts", fetchConfigsAttempts).
-			Dur("backoff", backoff).
+			Dur("backoff", wait).
 			Str("url", endpoint).
 			Msg("Failed to fetch configs, retrying")
 
 		select {
 		case <-ctx.Done():
 			return nil, ctx.Err()
-		case <-time.After(withJitter(backoff)):
+		case <-time.After(wait):
 		}
 		backoff *= 2
 	}
