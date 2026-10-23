@@ -238,10 +238,15 @@ bootbin peers import peers.txt   # one multiaddr per line, known urls skipped, i
 Optional: a new empty file refills as nodes re-register. Nodes only call `/peer/sync` at startup and after a disconnect, so a new file stays empty until then; to keep the current mesh discoverable, import the old table once:
 
 ```sh
-psql -v ON_ERROR_STOP=1 -At "$OLD_DATABASE_URL" -c "SELECT url FROM peers ORDER BY id" \
-  | BOOT_SQLITE_PATH=/app/data/boot.db bootbin peers import -
-BOOT_SQLITE_PATH=/app/data/boot.db bootbin peers list
+(
+  set -euo pipefail
+  psql -v ON_ERROR_STOP=1 -At "$OLD_DATABASE_URL" -c "SELECT url FROM peers ORDER BY id" \
+    | BOOT_SQLITE_PATH=/app/data/boot.db bootbin peers import -
+  BOOT_SQLITE_PATH=/app/data/boot.db bootbin peers list
+)
 ```
+
+The subshell stops at the first failure, so a failed export is not reported as `imported 0 new peers`.
 
 Stale urls are removed by the refresh loop once Boot API runs.
 
