@@ -29,7 +29,8 @@ New keys work immediately. A removed key, or a changed description, can take
 up to the key cache TTL (1h) to apply to new requests and new WebSocket
 connections in a running DAL. Established WebSocket connections are not
 re-checked; restart DAL to apply at once and drop them.
-To keep a key out of shell history, use: printf 'key,desc\n' | dalbin keys import -
+To keep a key out of shell history, read it silently and pipe it:
+  read -rs k; printf '%s,desc\n' "$k" | dalbin keys import -; unset k
 `
 
 func LoadEnvFromFile() {
