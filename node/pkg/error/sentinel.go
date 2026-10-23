@@ -91,8 +91,6 @@ var (
 	ErrAggregatorCancelNotFound           = &CustomError{Service: Aggregator, Code: InternalError, Message: "Aggregator cancel function not found"}
 	ErrAggregatorEmptyProof               = &CustomError{Service: Aggregator, Code: InternalError, Message: "Empty proof"}
 
-	ErrBootAPIDbPoolNotFound = &CustomError{Service: BootAPI, Code: InternalError, Message: "db pool not found"}
-
 	ErrBusChannelNotFound  = &CustomError{Service: Others, Code: InternalError, Message: "Channel not found"}
 	ErrBusMsgPublishFail   = &CustomError{Service: Others, Code: InternalError, Message: "Failed to send message to channel"}
 	ErrBusParamNotFound    = &CustomError{Service: Others, Code: InternalError, Message: "Param not found in message"}

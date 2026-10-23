@@ -9,7 +9,7 @@ import (
 
 	"bisonai.com/miko/node/pkg/boot/peer"
 	"bisonai.com/miko/node/pkg/boot/utils"
-	"bisonai.com/miko/node/pkg/db"
+	"bisonai.com/miko/node/pkg/boot/utils/peerstore"
 	errorSentinel "bisonai.com/miko/node/pkg/error"
 	libp2pSetup "bisonai.com/miko/node/pkg/libp2p/setup"
 	libp2pUtils "bisonai.com/miko/node/pkg/libp2p/utils"
@@ -29,7 +29,15 @@ func Run(ctx context.Context) error {
 		return err
 	}
 
-	app, err := utils.Setup(ctx, &h)
+	// a missing file is created empty: nodes re-register through /peer/sync
+	store, err := peerstore.OpenFromEnv(ctx, false)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to open peer store")
+		return err
+	}
+	defer store.Close()
+
+	app, err := utils.Setup(ctx, &h, store)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to setup boot server")
 		return err
@@ -39,7 +47,7 @@ func Run(ctx context.Context) error {
 	v1.Get("/", func(c *fiber.Ctx) error {
 		return c.SendString("Miko Node Boot API")
 	})
-	peer.Routes(v1)
+	peer.Routes(v1, store)
 
 	port := os.Getenv("BOOT_API_PORT")
 	if port == "" {
@@ -51,9 +59,9 @@ func Run(ctx context.Context) error {
 		for {
 			select {
 			case <-refreshTicker.C:
-				err = RefreshJob(ctx, h)
-				if err != nil {
-					log.Error().Err(err).Msg("Failed to refresh peers")
+				refreshErr := RefreshJob(ctx, h, store)
+				if refreshErr != nil {
+					log.Error().Err(refreshErr).Msg("Failed to refresh peers")
 				}
 			case <-ctx.Done():
 				log.Debug().Msg("context cancelled")
@@ -78,9 +86,9 @@ func Run(ctx context.Context) error {
 
 }
 
-func RefreshJob(ctx context.Context, h host.Host) error {
+func RefreshJob(ctx context.Context, h host.Host, store *peerstore.Store) error {
 	log.Info().Msg("Refreshing peers")
-	peers, err := db.QueryRows[peer.PeerModel](ctx, peer.GetPeer, nil)
+	peers, err := store.List(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to get peers")
 		return err
@@ -103,7 +111,7 @@ func RefreshJob(ctx context.Context, h host.Host) error {
 		}
 
 		log.Info().Str("peer", p.Url).Msg("Peer is not alive")
-		err = db.QueryWithoutResult(ctx, peer.DeletePeerById, map[string]any{"id": p.ID})
+		_, err = store.DeleteByID(ctx, p.ID)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to delete peer")
 		}
