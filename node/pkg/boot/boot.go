@@ -36,7 +36,6 @@ func Run(ctx context.Context) error {
 		return err
 	}
 	defer store.Close()
-	// stops the refresh loop on return, before store.Close (defers run LIFO)
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -58,7 +57,14 @@ func Run(ctx context.Context) error {
 	}
 
 	refreshTicker := time.NewTicker(REFRESH_INTERVAL)
+	refreshDone := make(chan struct{})
+	// on return: stop the refresh loop and wait for it, before store.Close (defers run LIFO)
+	defer func() {
+		cancel()
+		<-refreshDone
+	}()
 	go func() {
+		defer close(refreshDone)
 		for {
 			select {
 			case <-refreshTicker.C:
@@ -76,7 +82,7 @@ func Run(ctx context.Context) error {
 
 	err = app.Listen(fmt.Sprintf(":%s", port))
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to start boot server")
+		log.Error().Err(err).Msg("Failed to start boot server")
 		return err
 	}
 

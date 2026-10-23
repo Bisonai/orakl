@@ -132,16 +132,13 @@ func (s *Store) DeleteByID(ctx context.Context, id int64) (bool, error) {
 
 // ImportURLs inserts one url per line from r in one transaction, skipping
 // blank lines and urls already stored. If validate is set, an invalid line
-// aborts the whole import. Returns the number of new peers.
+// aborts the whole import. Input is read before the write transaction starts,
+// so a slow reader does not hold the SQLite write lock. Returns the number of
+// new peers.
 func (s *Store) ImportURLs(ctx context.Context, r io.Reader, validate func(string) error) (int, error) {
-	tx, err := s.db.BeginTx(ctx, nil)
-	if err != nil {
-		return 0, err
-	}
-	defer func() { _ = tx.Rollback() }()
-
+	var urls []string
 	scanner := bufio.NewScanner(r)
-	n, lineNo := 0, 0
+	lineNo := 0
 	for scanner.Scan() {
 		lineNo++
 		line := strings.TrimSpace(scanner.Text())
@@ -153,7 +150,21 @@ func (s *Store) ImportURLs(ctx context.Context, r io.Reader, validate func(strin
 				return 0, fmt.Errorf("line %d: %w", lineNo, err)
 			}
 		}
-		res, err := tx.ExecContext(ctx, "INSERT INTO peers (url) VALUES (?) ON CONFLICT(url) DO NOTHING", line)
+		urls = append(urls, line)
+	}
+	if err := scanner.Err(); err != nil {
+		return 0, err
+	}
+
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return 0, err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	n := 0
+	for _, u := range urls {
+		res, err := tx.ExecContext(ctx, "INSERT INTO peers (url) VALUES (?) ON CONFLICT(url) DO NOTHING", u)
 		if err != nil {
 			return 0, err
 		}
@@ -162,9 +173,6 @@ func (s *Store) ImportURLs(ctx context.Context, r io.Reader, validate func(strin
 			return 0, err
 		}
 		n += int(added)
-	}
-	if err := scanner.Err(); err != nil {
-		return 0, err
 	}
 	return n, tx.Commit()
 }
