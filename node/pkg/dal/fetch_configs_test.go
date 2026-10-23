@@ -33,6 +33,7 @@ func withFetchServer(t *testing.T, handler http.HandlerFunc) {
 	})
 }
 
+// Retries 503, 429 and a stalled response, then succeeds on attempt 4.
 func TestFetchConfigsRetriesThenSucceeds(t *testing.T) {
 	var calls atomic.Int32
 	withFetchServer(t, func(w http.ResponseWriter, r *http.Request) {
@@ -41,6 +42,8 @@ func TestFetchConfigsRetriesThenSucceeds(t *testing.T) {
 		case 1:
 			w.WriteHeader(http.StatusServiceUnavailable)
 		case 2:
+			w.WriteHeader(http.StatusTooManyRequests)
+		case 3:
 			// Stall past the per-attempt client timeout.
 			select {
 			case <-r.Context().Done():
@@ -55,7 +58,7 @@ func TestFetchConfigsRetriesThenSucceeds(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, configs, 1)
 	assert.Equal(t, "BTC-USDT", configs[0].Name)
-	assert.Equal(t, int32(3), calls.Load())
+	assert.Equal(t, int32(4), calls.Load())
 }
 
 func TestFetchConfigsAllAttemptsFail(t *testing.T) {
@@ -106,14 +109,24 @@ func TestFetchConfigsStopsOnContextCancel(t *testing.T) {
 	fetchConfigsBackoff = time.Hour
 
 	ctx, cancel := context.WithCancel(context.Background())
-	go func() {
-		for calls.Load() == 0 {
-			time.Sleep(time.Millisecond)
-		}
-		cancel()
-	}()
+	// Cancel well after the first (fast, local) attempt returned, i.e.
+	// while fetchConfigs waits out the 1h backoff.
+	time.AfterFunc(50*time.Millisecond, cancel)
 
 	_, err := fetchConfigs(ctx, "mainnet")
 	require.ErrorIs(t, err, context.Canceled)
 	assert.Equal(t, int32(1), calls.Load())
+}
+
+func TestFetchConfigsInvalidURLNoRetry(t *testing.T) {
+	var calls atomic.Int32
+	withFetchServer(t, func(w http.ResponseWriter, r *http.Request) {
+		calls.Add(1)
+	})
+	baseMikoConfigUrl = "not-a-url/%s_feeds.json"
+
+	_, err := fetchConfigs(context.Background(), "mainnet")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid config url")
+	assert.Equal(t, int32(0), calls.Load())
 }

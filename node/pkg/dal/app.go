@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"time"
 
@@ -28,7 +29,8 @@ type Config = types.Config
 // production always uses the default.
 var baseMikoConfigUrl = "https://config.orakl.network/%s_feeds.json"
 
-// Startup config fetch retry policy. Package vars so tests can shrink them.
+// Startup config fetch retry policy (worst case ~40s: 5x5s + 1+2+4+8s).
+// Package vars so tests can shrink them.
 var (
 	fetchConfigsAttempts = 5
 	fetchConfigsBackoff  = 1 * time.Second // doubled after each failed attempt
@@ -88,16 +90,23 @@ func Run(ctx context.Context) error {
 }
 
 // fetchConfigs fetches the chain's config bundle, retrying transient
-// failures (network errors, timeouts, HTTP 5xx) with exponential backoff.
-// 4xx and other non-200 statuses and JSON decode errors fail immediately.
+// failures (network errors, timeouts, HTTP 5xx/408/429) with exponential
+// backoff. Other non-200 statuses, an invalid URL and JSON decode errors
+// fail immediately. Cancellation returns ctx.Err().
 func fetchConfigs(ctx context.Context, chain string) ([]Config, error) {
 	endpoint := fmt.Sprintf(baseMikoConfigUrl, chain)
+	if _, err := url.ParseRequestURI(endpoint); err != nil {
+		return nil, fmt.Errorf("invalid config url %q: %w", endpoint, err)
+	}
 	backoff := fetchConfigsBackoff
 
 	for attempt := 1; ; attempt++ {
 		configs, retryable, err := fetchConfigsOnce(ctx, endpoint)
 		if err == nil {
 			return configs, nil
+		}
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return nil, ctxErr
 		}
 
 		if !retryable || attempt >= fetchConfigsAttempts {
@@ -128,21 +137,25 @@ func fetchConfigsOnce(ctx context.Context, endpoint string) (configs []Config, r
 		request.WithEndpoint(endpoint),
 		request.WithTimeout(fetchConfigsTimeout))
 	if err != nil {
-		return nil, ctx.Err() == nil, err
+		return nil, true, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, resp.StatusCode >= 500, fmt.Errorf("%w: status %d", errorsentinel.ErrRequestStatusNotOk, resp.StatusCode)
+		return nil, isRetryableStatus(resp.StatusCode), fmt.Errorf("%w: status %d", errorsentinel.ErrRequestStatusNotOk, resp.StatusCode)
 	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, ctx.Err() == nil, err
+		return nil, true, err
 	}
 
 	if err := json.Unmarshal(body, &configs); err != nil {
 		return nil, false, err
 	}
 	return configs, false, nil
+}
+
+func isRetryableStatus(code int) bool {
+	return code >= 500 || code == http.StatusRequestTimeout || code == http.StatusTooManyRequests
 }
