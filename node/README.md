@@ -230,7 +230,7 @@ Peers can be inspected or seeded with the `peers` subcommand (`bootbin` in the i
 
 ```sh
 bootbin peers list               # id<TAB>url
-bootbin peers import peers.txt   # one url per line, known urls skipped; "-" reads stdin
+bootbin peers import peers.txt   # one multiaddr per line, known urls skipped, invalid line aborts; "-" reads stdin
 ```
 
 ### Migrating peers from PostgreSQL

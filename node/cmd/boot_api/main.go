@@ -8,6 +8,7 @@ import (
 
 	"bisonai.com/miko/node/pkg/boot"
 	"bisonai.com/miko/node/pkg/boot/utils/peerstore"
+	libp2pUtils "bisonai.com/miko/node/pkg/libp2p/utils"
 	"bisonai.com/miko/node/pkg/utils/loginit"
 	"github.com/rs/zerolog/log"
 )
@@ -18,8 +19,9 @@ Peers are stored in the SQLite file at $BOOT_SQLITE_PATH.
 
 commands:
   list                print all peers as "id<TAB>url"
-  import <file|->     add one peer url per line, skipping known urls;
-                      creates the file if missing
+  import <file|->     add one peer multiaddr per line (/ip4/.../p2p/<id>),
+                      skipping known urls; any invalid line aborts the
+                      import; creates the file if missing
 
 Nodes register themselves through POST /api/v1/peer/sync, and the boot API
 removes unreachable peers every refresh interval, so import is only needed
@@ -80,7 +82,10 @@ func runPeers(ctx context.Context, args []string, stdin io.Reader, stdout io.Wri
 			defer f.Close()
 			in = f
 		}
-		n, err := store.ImportURLs(ctx, in)
+		n, err := store.ImportURLs(ctx, in, func(u string) error {
+			_, err := libp2pUtils.ConnectionUrl2AddrInfo(u)
+			return err
+		})
 		if err != nil {
 			return err
 		}

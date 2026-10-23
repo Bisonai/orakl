@@ -32,6 +32,7 @@ func setup(ctx context.Context, t *testing.T) (func() error, *TestItems, error) 
 		return nil, nil, err
 	}
 	testItems.store = store
+	t.Cleanup(func() { _ = store.Close() })
 
 	bootHost, err := libp2pSetup.NewHost(ctx)
 	if err != nil {
@@ -77,8 +78,6 @@ func bootCleanup(testItems *TestItems) func() error {
 		if err != nil {
 			return err
 		}
-		testItems.host.Close()
-
-		return testItems.store.Close()
+		return testItems.host.Close()
 	}
 }

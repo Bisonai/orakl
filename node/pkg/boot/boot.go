@@ -36,6 +36,9 @@ func Run(ctx context.Context) error {
 		return err
 	}
 	defer store.Close()
+	// stops the refresh loop on return, before store.Close (defers run LIFO)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 
 	app, err := utils.Setup(ctx, &h, store)
 	if err != nil {

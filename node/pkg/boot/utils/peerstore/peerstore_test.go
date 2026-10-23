@@ -3,6 +3,7 @@ package peerstore
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -99,7 +100,7 @@ func TestImportURLs(t *testing.T) {
 	_, _, err := s.Insert(ctx, "/ip4/127.0.0.1/tcp/10001/p2p/a")
 	require.NoError(t, err)
 
-	n, err := s.ImportURLs(ctx, strings.NewReader("/ip4/127.0.0.1/tcp/10001/p2p/a\n\n  /ip4/127.0.0.1/tcp/10002/p2p/b  \n/ip4/127.0.0.1/tcp/10003/p2p/c"))
+	n, err := s.ImportURLs(ctx, strings.NewReader("/ip4/127.0.0.1/tcp/10001/p2p/a\n\n  /ip4/127.0.0.1/tcp/10002/p2p/b  \n/ip4/127.0.0.1/tcp/10003/p2p/c"), nil)
 	require.NoError(t, err)
 	assert.Equal(t, 2, n)
 
@@ -107,6 +108,24 @@ func TestImportURLs(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, peers, 3)
 	assert.Equal(t, "/ip4/127.0.0.1/tcp/10002/p2p/b", peers[1].Url)
+}
+
+func TestImportURLsInvalidLineAbortsAll(t *testing.T) {
+	ctx := context.Background()
+	s, _ := openTemp(t)
+	validate := func(u string) error {
+		if u == "bad" {
+			return errors.New("invalid")
+		}
+		return nil
+	}
+
+	_, err := s.ImportURLs(ctx, strings.NewReader("/ip4/127.0.0.1/tcp/10001/p2p/a\nbad\n"), validate)
+	assert.ErrorContains(t, err, "line 2")
+
+	peers, err := s.List(ctx)
+	require.NoError(t, err)
+	assert.Empty(t, peers)
 }
 
 func TestOpenRejectsURIChars(t *testing.T) {

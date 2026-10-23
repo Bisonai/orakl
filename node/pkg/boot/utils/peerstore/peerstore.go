@@ -131,8 +131,9 @@ func (s *Store) DeleteByID(ctx context.Context, id int64) (bool, error) {
 }
 
 // ImportURLs inserts one url per line from r in one transaction, skipping
-// blank lines and urls already stored. Returns the number of new peers.
-func (s *Store) ImportURLs(ctx context.Context, r io.Reader) (int, error) {
+// blank lines and urls already stored. If validate is set, an invalid line
+// aborts the whole import. Returns the number of new peers.
+func (s *Store) ImportURLs(ctx context.Context, r io.Reader, validate func(string) error) (int, error) {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return 0, err
@@ -140,11 +141,17 @@ func (s *Store) ImportURLs(ctx context.Context, r io.Reader) (int, error) {
 	defer func() { _ = tx.Rollback() }()
 
 	scanner := bufio.NewScanner(r)
-	n := 0
+	n, lineNo := 0, 0
 	for scanner.Scan() {
+		lineNo++
 		line := strings.TrimSpace(scanner.Text())
 		if line == "" {
 			continue
+		}
+		if validate != nil {
+			if err := validate(line); err != nil {
+				return 0, fmt.Errorf("line %d: %w", lineNo, err)
+			}
 		}
 		res, err := tx.ExecContext(ctx, "INSERT INTO peers (url) VALUES (?) ON CONFLICT(url) DO NOTHING", line)
 		if err != nil {

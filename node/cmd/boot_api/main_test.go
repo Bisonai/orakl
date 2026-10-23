@@ -22,11 +22,16 @@ func TestRunPeers(t *testing.T) {
 	// list does not create a missing file
 	assert.Error(t, runPeers(ctx, []string{"list"}, nil, &out))
 
-	in := strings.NewReader("/ip4/127.0.0.1/tcp/10001/p2p/a\n/ip4/127.0.0.1/tcp/10002/p2p/b\n/ip4/127.0.0.1/tcp/10001/p2p/a\n")
+	// invalid multiaddr aborts the import
+	assert.Error(t, runPeers(ctx, []string{"import", "-"}, strings.NewReader("not-a-multiaddr\n"), &out))
+
+	const a = "/ip4/127.0.0.1/tcp/10001/p2p/12D3KooWERrdEepSi8HPRNsfjj3Nd7XcxV9SJcHdovpPLyYUtuch"
+	const b = "/ip4/127.0.0.1/tcp/10002/p2p/12D3KooWM9EDkdjgi7u5arvKuNXMHTfBKf54jdr446e31CkxJoxs"
+	in := strings.NewReader(a + "\n" + b + "\n" + a + "\n")
 	require.NoError(t, runPeers(ctx, []string{"import", "-"}, in, &out))
 	assert.Equal(t, "imported 2 new peers\n", out.String())
 
 	out.Reset()
 	require.NoError(t, runPeers(ctx, []string{"list"}, nil, &out))
-	assert.Equal(t, "1\t/ip4/127.0.0.1/tcp/10001/p2p/a\n2\t/ip4/127.0.0.1/tcp/10002/p2p/b\n", out.String())
+	assert.Equal(t, "1\t"+a+"\n2\t"+b+"\n", out.String())
 }
