@@ -2112,7 +2112,7 @@
     }
   },
   "TFUEL-USDT": {
-    "tag": "standard",
+    "tag": "basic",
     "mainnet": {
       "proxy": "0xdb7cba1973dea7fa7e9bbf29eab155cad89266b9",
       "feed": "0xd9e9220703cfc98832dccdf30c25a2653de83361"
