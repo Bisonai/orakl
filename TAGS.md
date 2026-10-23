@@ -443,3 +443,4 @@
 - **sentinel** v0.0.1.20261021.0144.5d6bf4b.baobab <br> *`PR`*: chore DAL hostnames  dalmainne... <br><br> 
 - **sentinel** v0.0.1.20261021.0148.d03f421.cypress <br> *`PR`*: chore DAL hostnames  dalmainne... <br><br> 
 - **dal** v0.0.1.20261023.0014.2a83355.baobab <br> *`PR`*: dal replace Postgres with SQLi... <br><br> 
+- **dal** v0.0.1.20261023.0020.2bf5ffa.cypress <br> *`PR`*: dal replace Postgres with SQLi... <br><br> 
