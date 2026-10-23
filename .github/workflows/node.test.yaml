@@ -9,7 +9,6 @@ on:
       - "!node/**.md"
       - "!node/pkg/dal/**"
       - "!node/pkg/boot/**"
-      - "!node/migrations/boot/**"
       - "!node/pkg/checker/**"
       - "!node/pkg/delegator/**"
       - "!node/migrations/delegator/**"

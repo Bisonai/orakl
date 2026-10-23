@@ -131,7 +131,7 @@ tasks:
   test-boot:
     dotenv: [".env"]
     cmds:
-      - go test ./pkg/boot/tests -v
+      - go test ./pkg/boot/... ./cmd/boot_api/... -v
   test-chain:
     dotenv: [".env"]
     cmds:
