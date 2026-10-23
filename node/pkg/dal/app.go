@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math/rand/v2"
 	"net/http"
 	"net/url"
 	"os"
@@ -29,7 +30,8 @@ type Config = types.Config
 // production always uses the default.
 var baseMikoConfigUrl = "https://config.orakl.network/%s_feeds.json"
 
-// Startup config fetch retry policy (worst case ~40s: 5x5s + 1+2+4+8s).
+// Startup config fetch retry policy (worst case ~40-44s: 5x5s + 1+2+4+8s
+// backoff, plus up to 25% jitter).
 // Package vars so tests can shrink them.
 var (
 	fetchConfigsAttempts = 5
@@ -95,8 +97,8 @@ func Run(ctx context.Context) error {
 // fail immediately. Cancellation returns ctx.Err().
 func fetchConfigs(ctx context.Context, chain string) ([]Config, error) {
 	endpoint := fmt.Sprintf(baseMikoConfigUrl, chain)
-	if _, err := url.ParseRequestURI(endpoint); err != nil {
-		return nil, fmt.Errorf("invalid config url %q: %w", endpoint, err)
+	if u, err := url.Parse(endpoint); err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+		return nil, fmt.Errorf("invalid config url %q", endpoint)
 	}
 	backoff := fetchConfigsBackoff
 
@@ -123,7 +125,7 @@ func fetchConfigs(ctx context.Context, chain string) ([]Config, error) {
 		select {
 		case <-ctx.Done():
 			return nil, ctx.Err()
-		case <-time.After(backoff):
+		case <-time.After(withJitter(backoff)):
 		}
 		backoff *= 2
 	}
@@ -139,7 +141,11 @@ func fetchConfigsOnce(ctx context.Context, endpoint string) (configs []Config, r
 	if err != nil {
 		return nil, true, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		// Drain so the keep-alive connection can be reused by the next attempt.
+		_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 64<<10))
+		resp.Body.Close()
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, isRetryableStatus(resp.StatusCode), fmt.Errorf("%w: status %d", errorsentinel.ErrRequestStatusNotOk, resp.StatusCode)
@@ -151,11 +157,25 @@ func fetchConfigsOnce(ctx context.Context, endpoint string) (configs []Config, r
 	}
 
 	if err := json.Unmarshal(body, &configs); err != nil {
-		return nil, false, err
+		const maxSnippet = 200
+		snippet := body
+		if len(snippet) > maxSnippet {
+			snippet = snippet[:maxSnippet]
+		}
+		return nil, false, fmt.Errorf("decode configs: %w (body: %q)", err, snippet)
 	}
 	return configs, false, nil
 }
 
 func isRetryableStatus(code int) bool {
 	return code >= 500 || code == http.StatusRequestTimeout || code == http.StatusTooManyRequests
+}
+
+// withJitter adds up to 25% random jitter so replicas restarting together
+// don't retry in lockstep.
+func withJitter(d time.Duration) time.Duration {
+	if d < 4 {
+		return d
+	}
+	return d + rand.N(d/4)
 }

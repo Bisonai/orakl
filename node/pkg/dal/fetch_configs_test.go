@@ -97,6 +97,7 @@ func TestFetchConfigsNoRetryOnBadJSON(t *testing.T) {
 
 	_, err := fetchConfigs(context.Background(), "mainnet")
 	require.Error(t, err)
+	assert.Contains(t, err.Error(), "not json")
 	assert.Equal(t, int32(1), calls.Load())
 }
 
@@ -123,10 +124,12 @@ func TestFetchConfigsInvalidURLNoRetry(t *testing.T) {
 	withFetchServer(t, func(w http.ResponseWriter, r *http.Request) {
 		calls.Add(1)
 	})
-	baseMikoConfigUrl = "not-a-url/%s_feeds.json"
 
-	_, err := fetchConfigs(context.Background(), "mainnet")
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "invalid config url")
+	for _, u := range []string{"not-a-url/%s_feeds.json", "/%s_feeds.json", "localhost:8080/%s_feeds.json", "ftp://host/%s_feeds.json"} {
+		baseMikoConfigUrl = u
+		_, err := fetchConfigs(context.Background(), "mainnet")
+		require.Error(t, err, u)
+		assert.Contains(t, err.Error(), "invalid config url", u)
+	}
 	assert.Equal(t, int32(0), calls.Load())
 }
