@@ -1,7 +1,7 @@
 package peer
 
 import (
-	"bisonai.com/miko/node/pkg/db"
+	"bisonai.com/miko/node/pkg/boot/utils/peerstore"
 	libp2pUtils "bisonai.com/miko/node/pkg/libp2p/utils"
 	"github.com/go-playground/validator"
 	"github.com/gofiber/fiber/v2"
@@ -9,16 +9,21 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-type PeerModel struct {
-	ID  int64  `db:"id" json:"id"`
-	Url string `db:"url" json:"url"`
-}
+type PeerModel = peerstore.Peer
 
 type PeerInsertModel struct {
 	Url string `db:"url" json:"url" validate:"required"`
 }
 
-func sync(c *fiber.Ctx) error {
+// syncHandler gets the store by closure, not c.Locals: fasthttp calls Close()
+// on io.Closer user values at the end of every request.
+func syncHandler(store *peerstore.Store) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		return sync(c, store)
+	}
+}
+
+func sync(c *fiber.Ctx, store *peerstore.Store) error {
 	payload := new(PeerInsertModel)
 	if err := c.BodyParser(payload); err != nil {
 		log.Error().Err(err).Msg("Failed to parse request")
@@ -47,14 +52,14 @@ func sync(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).SendString("invalid peer")
 	}
 
-	peers, err := db.QueryRows[PeerModel](c.Context(), GetPeer, nil)
+	// peers known before this one registers; the caller does not get itself back unless already stored
+	peers, err := store.List(c.Context())
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to execute get query")
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to execute get query")
 	}
 
-	_, err = db.QueryRow[PeerModel](c.Context(), InsertPeer, map[string]any{
-		"url": payload.Url})
+	_, _, err = store.Insert(c.Context(), payload.Url)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to execute insert query")
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to execute insert query")

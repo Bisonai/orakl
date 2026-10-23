@@ -2,12 +2,12 @@ package tests
 
 import (
 	"context"
-	"os"
+	"path/filepath"
 	"testing"
 
 	"bisonai.com/miko/node/pkg/boot/peer"
 	"bisonai.com/miko/node/pkg/boot/utils"
-	"bisonai.com/miko/node/pkg/db"
+	"bisonai.com/miko/node/pkg/boot/utils/peerstore"
 	libp2pSetup "bisonai.com/miko/node/pkg/libp2p/setup"
 	"github.com/gofiber/fiber/v2"
 	"github.com/libp2p/go-libp2p/core/host"
@@ -17,14 +17,22 @@ type TestItems struct {
 	app     *fiber.App
 	tmpData *TmpData
 	host    host.Host
+	store   *peerstore.Store
 }
 
 type TmpData struct {
 	peer peer.PeerModel
 }
 
-func setup(ctx context.Context) (func() error, *TestItems, error) {
+func setup(ctx context.Context, t *testing.T) (func() error, *TestItems, error) {
 	var testItems = new(TestItems)
+
+	store, err := peerstore.Open(ctx, filepath.Join(t.TempDir(), "boot.db"))
+	if err != nil {
+		return nil, nil, err
+	}
+	testItems.store = store
+	t.Cleanup(func() { _ = store.Close() })
 
 	bootHost, err := libp2pSetup.NewHost(ctx)
 	if err != nil {
@@ -32,14 +40,14 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 	}
 	testItems.host = bootHost
 
-	app, err := utils.Setup(ctx, &bootHost)
+	app, err := utils.Setup(ctx, &bootHost, store)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	testItems.app = app
 
-	tmpData, err := insertSampleData(ctx)
+	tmpData, err := insertSampleData(ctx, store)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -47,15 +55,15 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 	testItems.tmpData = tmpData
 
 	v1 := app.Group("/api/v1")
-	peer.Routes(v1)
+	peer.Routes(v1, store)
 
 	return bootCleanup(testItems), testItems, nil
 }
 
-func insertSampleData(ctx context.Context) (*TmpData, error) {
+func insertSampleData(ctx context.Context, store *peerstore.Store) (*TmpData, error) {
 	var tmpData = new(TmpData)
 
-	tmpPeer, err := db.QueryRow[peer.PeerModel](ctx, peer.InsertPeer, map[string]any{"url": "/ip4/100.78.175.63/tcp/10002/p2p/12D3KooWERrdEepSi8HPRNsfjj3Nd7XcxV9SJcHdovpPLyYUtuch"})
+	tmpPeer, _, err := store.Insert(ctx, "/ip4/100.78.175.63/tcp/10002/p2p/12D3KooWERrdEepSi8HPRNsfjj3Nd7XcxV9SJcHdovpPLyYUtuch")
 	if err != nil {
 		return nil, err
 	}
@@ -70,14 +78,6 @@ func bootCleanup(testItems *TestItems) func() error {
 		if err != nil {
 			return err
 		}
-		testItems.host.Close()
-
-		return db.QueryWithoutResult(context.Background(), peer.DeletePeerById, map[string]any{"id": testItems.tmpData.peer.ID})
+		return testItems.host.Close()
 	}
-}
-
-func TestMain(m *testing.M) {
-	code := m.Run()
-	db.ClosePool()
-	os.Exit(code)
 }

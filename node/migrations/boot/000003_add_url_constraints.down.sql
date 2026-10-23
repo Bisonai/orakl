@@ -1,1 +1,0 @@
-ALTER TABLE peers DROP CONSTRAINT IF EXISTS unique_url;
