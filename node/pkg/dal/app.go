@@ -2,7 +2,10 @@ package dal
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"time"
 
@@ -20,7 +23,17 @@ import (
 
 type Config = types.Config
 
-const baseMikoConfigUrl = "https://config.orakl.network/%s_feeds.json"
+// baseMikoConfigUrl is the config bundle URL format (chain substituted).
+// In-package tests override it to point at a local httptest server;
+// production always uses the default.
+var baseMikoConfigUrl = "https://config.orakl.network/%s_feeds.json"
+
+// Startup config fetch retry policy. Package vars so tests can shrink them.
+var (
+	fetchConfigsAttempts = 5
+	fetchConfigsBackoff  = 1 * time.Second // doubled after each failed attempt
+	fetchConfigsTimeout  = 5 * time.Second // per attempt
+)
 
 func Run(ctx context.Context) error {
 	log.Debug().Msg("Starting DAL API server")
@@ -49,7 +62,7 @@ func Run(ctx context.Context) error {
 		return errorsentinel.ErrDalChainEnvNotFound
 	}
 
-	configs, err := fetchConfigs(chain)
+	configs, err := fetchConfigs(ctx, chain)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to fetch configs")
 		return err
@@ -74,8 +87,62 @@ func Run(ctx context.Context) error {
 	return nil
 }
 
-func fetchConfigs(chain string) ([]Config, error) {
-	return request.Request[[]Config](
-		request.WithEndpoint(fmt.Sprintf(baseMikoConfigUrl, chain)),
-		request.WithTimeout(5*time.Second))
+// fetchConfigs fetches the chain's config bundle, retrying transient
+// failures (network errors, timeouts, HTTP 5xx) with exponential backoff.
+// 4xx and other non-200 statuses and JSON decode errors fail immediately.
+func fetchConfigs(ctx context.Context, chain string) ([]Config, error) {
+	endpoint := fmt.Sprintf(baseMikoConfigUrl, chain)
+	backoff := fetchConfigsBackoff
+
+	for attempt := 1; ; attempt++ {
+		configs, retryable, err := fetchConfigsOnce(ctx, endpoint)
+		if err == nil {
+			return configs, nil
+		}
+
+		if !retryable || attempt >= fetchConfigsAttempts {
+			return nil, fmt.Errorf("fetch configs from %s failed (attempt %d/%d): %w", endpoint, attempt, fetchConfigsAttempts, err)
+		}
+
+		log.Warn().Err(err).
+			Int("attempt", attempt).
+			Int("attempts", fetchConfigsAttempts).
+			Dur("backoff", backoff).
+			Str("url", endpoint).
+			Msg("Failed to fetch configs, retrying")
+
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-time.After(backoff):
+		}
+		backoff *= 2
+	}
+}
+
+// fetchConfigsOnce performs a single fetch. retryable reports whether the
+// failure is transient.
+func fetchConfigsOnce(ctx context.Context, endpoint string) (configs []Config, retryable bool, err error) {
+	resp, err := request.RequestRaw(
+		request.WithContext(ctx),
+		request.WithEndpoint(endpoint),
+		request.WithTimeout(fetchConfigsTimeout))
+	if err != nil {
+		return nil, ctx.Err() == nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, resp.StatusCode >= 500, fmt.Errorf("%w: status %d", errorsentinel.ErrRequestStatusNotOk, resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, ctx.Err() == nil, err
+	}
+
+	if err := json.Unmarshal(body, &configs); err != nil {
+		return nil, false, err
+	}
+	return configs, false, nil
 }
