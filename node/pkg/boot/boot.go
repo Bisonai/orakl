@@ -108,6 +108,9 @@ func RefreshJob(ctx context.Context, h host.Host, store *peerstore.Store) error 
 	}
 
 	for _, p := range peers {
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
 		isAlive, liveCheckErr := libp2pUtils.IsHostAlive(ctx, h, p.Url)
 		if liveCheckErr != nil {
 			log.Error().Err(liveCheckErr).Msg("Failed to check peer")

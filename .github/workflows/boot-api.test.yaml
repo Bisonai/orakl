@@ -9,6 +9,7 @@ on:
       - "node/cmd/boot_api/**"
       - "node/go.mod"
       - "node/go.sum"
+      - "node/pkg/libp2p/**"
   workflow_dispatch:
 
 jobs:
