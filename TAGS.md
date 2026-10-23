@@ -447,3 +447,4 @@
 - **sentinel** v0.0.1.20261023.0044.bdf7999.baobab <br> *`PR`*: dal replace Postgres with SQLi... <br><br> 
 - **sentinel** v0.0.1.20261023.0048.98c79bb.cypress <br> *`PR`*: dal replace Postgres with SQLi... <br><br> 
 - **dal** v0.0.1.20261023.0151.37a2a5e.baobab <br> *`PR`*: DAL retry startup config fetch... <br><br> 
+- **dal** v0.0.1.20261023.0154.ae5e6c7.cypress <br> *`PR`*: DAL retry startup config fetch... <br><br> 
