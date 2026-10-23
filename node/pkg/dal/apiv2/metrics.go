@@ -56,16 +56,22 @@ func keyLabelFrom(ctx context.Context) string {
 }
 
 // keyLabel maps a key description to the `key` metric label. Descriptions
-// equal to a reserved label are prefixed so they never merge with it.
+// equal to a reserved label, or already starting with the escape prefix, are
+// prefixed, so distinct descriptions never share a label.
 func keyLabel(description string) string {
 	switch description {
 	case "":
 		return UnnamedKeyLabel
 	case UnknownKeyLabel, KeyStoreErrorLabel, UnnamedKeyLabel:
-		return "key_" + description
+		return keyLabelEscape + description
+	}
+	if strings.HasPrefix(description, keyLabelEscape) {
+		return keyLabelEscape + description
 	}
 	return description
 }
+
+const keyLabelEscape = "key_"
 
 // endpointLabel maps a ServeMux pattern ("GET /latest-data-feeds/{symbols}")
 // to its route template ("/latest-data-feeds/{symbols}") so the label stays

@@ -73,6 +73,8 @@ func TestKeyLabel(t *testing.T) {
 	assert.Equal(t, "key_unknown", keyLabel(UnknownKeyLabel))
 	assert.Equal(t, "key_error", keyLabel(KeyStoreErrorLabel))
 	assert.Equal(t, "key_unnamed", keyLabel(UnnamedKeyLabel))
+	assert.Equal(t, "key_key_unknown", keyLabel("key_unknown"))
+	assert.NotEqual(t, keyLabel(UnknownKeyLabel), keyLabel("key_unknown"))
 }
 
 func TestEndpointLabel(t *testing.T) {

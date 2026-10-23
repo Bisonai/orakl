@@ -56,8 +56,9 @@ func OpenFromEnv(ctx context.Context, mustExist bool) (*Store, error) {
 
 // Open opens (creating if missing) the SQLite file at path and ensures the schema.
 func Open(ctx context.Context, path string) (*Store, error) {
-	if strings.ContainsAny(path, "?#") {
-		return nil, fmt.Errorf("key store path %q must not contain '?' or '#'", path)
+	// SQLite decodes '%HH' in file: URIs, so '%' would open a different file.
+	if strings.ContainsAny(path, "?#%") {
+		return nil, fmt.Errorf("key store path %q must not contain '?', '#' or '%%'", path)
 	}
 	q := url.Values{}
 	q.Add("_pragma", "busy_timeout(5000)")

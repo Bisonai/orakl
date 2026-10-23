@@ -108,6 +108,14 @@ func TestImportCSVRollsBackOnError(t *testing.T) {
 	assert.Equal(t, 0, n)
 }
 
+func TestOpenRejectsURIChars(t *testing.T) {
+	dir := t.TempDir()
+	for _, name := range []string{"dal?x.db", "dal#x.db", "dal%20x.db"} {
+		_, err := Open(context.Background(), filepath.Join(dir, name))
+		assert.Error(t, err, name)
+	}
+}
+
 func TestOpenFromEnv(t *testing.T) {
 	ctx := context.Background()
 	t.Setenv(EnvPath, "")
