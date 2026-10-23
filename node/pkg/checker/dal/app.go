@@ -13,11 +13,9 @@ import (
 
 	"bisonai.com/miko/node/pkg/alert"
 	"bisonai.com/miko/node/pkg/checker"
-	"bisonai.com/miko/node/pkg/db"
 	"bisonai.com/miko/node/pkg/secrets"
 	"bisonai.com/miko/node/pkg/utils/request"
 	"bisonai.com/miko/node/pkg/wss"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog/log"
 )
 
@@ -125,17 +123,6 @@ func Start(ctx context.Context) error {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
-	dalDBConnectionUrl := secrets.GetSecret("DAL_DB_CONNECTION_URL")
-	if dalDBConnectionUrl == "" {
-		return errors.New("DAL_DB_CONNECTION_URL not found")
-	}
-
-	pool, err := db.GetTransientPool(ctx, dalDBConnectionUrl)
-	if err != nil {
-		return err
-	}
-	defer pool.Close()
-
 	networkDelayAlarmCount := 0
 	alarmCount := map[string]int{}
 	wsDelayAlarmCount := map[string]int{}
@@ -148,10 +135,6 @@ func Start(ctx context.Context) error {
 		log.Debug().Msg("checking DAL WebSocket")
 		checkDalWs(wsDelayAlarmCount)
 		log.Debug().Msg("checked DAL WebSocket")
-
-		if err := checkDalTraffic(ctx, pool); err != nil {
-			log.Error().Err(err).Msg("error in checkDalTraffic")
-		}
 	}
 	return nil
 }
@@ -271,36 +254,4 @@ func handleWsMessage(ctx context.Context, data map[string]interface{}) error {
 	}
 	updateTimes.Store(wsData.Symbol, time.Now())
 	return nil
-}
-
-func checkDalTraffic(ctx context.Context, pool *pgxpool.Pool) error {
-	select {
-	case <-ctx.Done():
-		return nil
-	default:
-		prev, err := db.QueryRowTransient[Count](ctx, pool, getTrafficCheckQuery(TrafficOldOffset), map[string]any{})
-		if err != nil {
-			log.Error().Err(err).Msg("failed to check DAL traffic")
-			return err
-		}
-		recent, err := db.QueryRowTransient[Count](ctx, pool, getTrafficCheckQuery(TrafficRecentOffset), map[string]any{})
-		if err != nil {
-			log.Error().Err(err).Msg("failed to check DAL traffic")
-			return err
-		}
-		if recent.Count > prev.Count {
-			alert.SlackAlert(fmt.Sprintf("DAL traffic alert: last 10seconds call count %d exceeded last 10 minutes call count %d", recent.Count, prev.Count))
-		}
-		return nil
-	}
-}
-
-func getTrafficCheckQuery(offset int) string {
-	keysToIgnore := strings.Split(IgnoreKeys, ",")
-	modified := []string{}
-	for _, desc := range keysToIgnore {
-		modified = append(modified, fmt.Sprintf("'%s'", desc))
-	}
-
-	return fmt.Sprintf(TrafficCheckQuery, offset, strings.Join(modified, ", "))
 }
