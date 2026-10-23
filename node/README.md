@@ -140,6 +140,9 @@ BOOT_API_PORT=<Your Boot API Port>
 # Boot API connection URL
 BOOT_API_URL=<Your Boot API URL>
 
+# Boot API SQLite peer file, required by the Boot API (not by nodes)
+BOOT_SQLITE_PATH=<Path, e.g. ./boot.db>
+
 # Pinger priviliged set, not required from built image
 WITHOUT_PING_PRIVILEGED=<Set true if running local>
 
@@ -156,9 +159,6 @@ More details about go migrate cli command can be found [here](https://github.com
 ```sh
 # node
 migrate -database "{$DATABASE_URL}" -path ./migrations/node up
-
-# boot
-migrate -database "{$DATABASE_URL}" -path ./migrations/boot up
 ```
 
 This process will generate required tables and constraints to run the service.
@@ -214,6 +214,36 @@ cp .env.local .env
    ```sh
    task local:node
    ```
+
+## Boot API
+
+Boot API does not use PostgreSQL. Peers (`peers(id, url UNIQUE)`) are stored in a SQLite file.
+
+| Env                | Description |
+| ------------------ | ----------- |
+| `BOOT_SQLITE_PATH` | Required. Path of the SQLite peer file, e.g. `/app/data/boot.db`. Put it on a persistent volume. Boot API refuses to start if unset. A missing file is created empty: nodes register themselves via `POST /api/v1/peer/sync` (at startup and on reconnect), and unreachable peers are removed every 10s. The directory must be writable (SQLite WAL files). |
+| `BOOT_API_PORT`    | Optional, defaults to `8089`. |
+
+`DATABASE_URL` is not used. The image runs `bootbin` directly (no migrations).
+
+Peers can be inspected or seeded with the `peers` subcommand (`bootbin` in the image, `go run ./cmd/boot_api` locally):
+
+```sh
+bootbin peers list               # id<TAB>url
+bootbin peers import peers.txt   # one url per line, known urls skipped; "-" reads stdin
+```
+
+### Migrating peers from PostgreSQL
+
+Optional: a new empty file refills as nodes re-register. Nodes only call `/peer/sync` at startup and after a disconnect, so a new file stays empty until then; to keep the current mesh discoverable, import the old table once:
+
+```sh
+psql -v ON_ERROR_STOP=1 -At "$OLD_DATABASE_URL" -c "SELECT url FROM peers ORDER BY id" \
+  | BOOT_SQLITE_PATH=/app/data/boot.db bootbin peers import -
+BOOT_SQLITE_PATH=/app/data/boot.db bootbin peers list
+```
+
+Stale urls are removed by the refresh loop once Boot API runs.
 
 ## DAL
 
