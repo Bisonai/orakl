@@ -5,6 +5,7 @@ import (
 
 	"bisonai.com/miko/node/pkg/common/keys"
 	"bisonai.com/miko/node/pkg/db"
+	"bisonai.com/miko/node/pkg/metrics"
 )
 
 func FilterNegative(values []int64) []int64 {
@@ -54,4 +55,14 @@ func getProofFromPgs(ctx context.Context, configId int32, round int32) (Proof, e
 // used for testing
 func getLatestGlobalAggregateFromPgs(ctx context.Context, configId int32) (GlobalAggregate, error) {
 	return db.QueryRow[GlobalAggregate](ctx, SelectLatestGlobalAggregateQuery, map[string]any{"config_id": configId})
+}
+
+// syncGlobalAggregateMetrics keeps global aggregate gauges in line with the
+// loaded configs (drops removed ones).
+func syncGlobalAggregateMetrics(configs []Config) {
+	names := make([]string, 0, len(configs))
+	for _, config := range configs {
+		names = append(names, config.Name)
+	}
+	metrics.SetGlobalAggregateConfigs(names)
 }

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"bisonai.com/miko/node/pkg/bus"
+	"bisonai.com/miko/node/pkg/metrics"
 	"github.com/montanaflynn/stats"
 	"github.com/rs/zerolog/log"
 )
@@ -266,6 +267,7 @@ func (c *LocalAggregator) streamLocalAggregate(ctx context.Context, aggregated f
 		Value:     c.applyDecimals(aggregated),
 		Timestamp: time.Now(),
 	}
+	metrics.SetLocalAggregate(c.Name, localAggregate.Value, localAggregate.Timestamp)
 
 	msg := bus.Message{
 		From: bus.FETCHER,

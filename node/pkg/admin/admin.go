@@ -10,6 +10,7 @@ import (
 	"bisonai.com/miko/node/pkg/admin/feed"
 	"bisonai.com/miko/node/pkg/admin/fetcher"
 	"bisonai.com/miko/node/pkg/admin/host"
+	"bisonai.com/miko/node/pkg/admin/metrics"
 	"bisonai.com/miko/node/pkg/admin/providerUrl"
 	"bisonai.com/miko/node/pkg/admin/proxy"
 
@@ -42,6 +43,7 @@ func Run(ctx context.Context, bus *bus.MessageBus) error {
 	providerUrl.Routes(v1)
 	config.Routes(v1)
 	host.Routes(v1)
+	metrics.Routes(v1)
 
 	port := os.Getenv("APP_PORT")
 	if port == "" {
