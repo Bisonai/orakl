@@ -12,7 +12,7 @@ tasks:
   node:
     dotenv: [".env"]
     cmds:
-      - go run ./cmd/node/main.go
+      - go run ./cmd/node
   por:
     dotenv: [".env"]
     cmds:
