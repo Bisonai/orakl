@@ -8,6 +8,7 @@ import (
 
 	"bisonai.com/miko/node/pkg/chain/helper"
 	errorSentinel "bisonai.com/miko/node/pkg/error"
+	"bisonai.com/miko/node/pkg/metrics"
 	"bisonai.com/miko/node/pkg/raft"
 	"bisonai.com/miko/node/pkg/utils/calculator"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
@@ -370,6 +371,7 @@ func (n *Aggregator) processCollectedProofs(ctx context.Context, proofMessage Pr
 	if !ok {
 		return nil
 	}
+	metrics.SetGlobalAggregate(n.Name, globalAggregate.Value, globalAggregate.Round, globalAggregate.Timestamp)
 	enqueueSubmissionData(n.submissionBuffer, data)
 
 	err := publishSubmissionData(ctx, data)

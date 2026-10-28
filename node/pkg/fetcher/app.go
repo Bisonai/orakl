@@ -11,6 +11,7 @@ import (
 	"bisonai.com/miko/node/pkg/bus"
 	"bisonai.com/miko/node/pkg/db"
 	errorSentinel "bisonai.com/miko/node/pkg/error"
+	"bisonai.com/miko/node/pkg/metrics"
 	"bisonai.com/miko/node/pkg/websocketfetcher"
 	"github.com/rs/zerolog/log"
 )
@@ -407,6 +408,12 @@ func (a *App) applyState(state *fetcherState) {
 	a.FeedDataBulkWriter = state.feedDataBulkWriter
 	a.Proxies = state.proxies
 	a.WebsocketFetcher = state.websocketFetcher
+
+	names := make([]string, 0, len(state.localAggregators))
+	for _, localAggregator := range state.localAggregators {
+		names = append(names, localAggregator.Name)
+	}
+	metrics.SetLocalAggregateConfigs(names)
 }
 
 func (a *App) buildState(ctx context.Context) (*fetcherState, error) {
