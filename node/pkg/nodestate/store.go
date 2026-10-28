@@ -1,10 +1,11 @@
 // Package nodestate persists nodebin state (signer keyring + latest round per
-// config) in a local SQLite file. Not used at runtime yet (issue #2695).
+// config) in a local SQLite file.
 package nodestate
 
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 
@@ -194,6 +195,120 @@ func insertRounds(ctx context.Context, tx *sql.Tx, rounds []Round) error {
 		}
 	}
 	return nil
+}
+
+// InsertPendingKey adds a key in state 'pending' and returns its id. pk must
+// already be encrypted.
+func (s *Store) InsertPendingKey(ctx context.Context, address, encryptedPk string) (int64, error) {
+	now := nowText()
+	res, err := s.db.ExecContext(ctx,
+		"INSERT INTO signer_key (address, pk, state, created_at, updated_at) VALUES (?, ?, 'pending', ?, ?)",
+		address, encryptedPk, now, now)
+	if err != nil {
+		return 0, fmt.Errorf("insert signer_key: %w", err)
+	}
+	return res.LastInsertId()
+}
+
+// BackfillKeyAddress sets the address of a key that has none.
+func (s *Store) BackfillKeyAddress(ctx context.Context, id int64, address string) error {
+	_, err := s.db.ExecContext(ctx,
+		"UPDATE signer_key SET address = ?, updated_at = ? WHERE id = ? AND address IS NULL",
+		address, nowText(), id)
+	return err
+}
+
+// ActivateKey makes key id the single active key, retiring any other active
+// key, in one transaction. Re-activating the active key is a no-op; an
+// unknown id is an error and changes nothing.
+func (s *Store) ActivateKey(ctx context.Context, id int64) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	now := nowText()
+	if _, err := tx.ExecContext(ctx,
+		"UPDATE signer_key SET state = 'retired', updated_at = ? WHERE state = 'active' AND id <> ?", now, id); err != nil {
+		return err
+	}
+	res, err := tx.ExecContext(ctx,
+		"UPDATE signer_key SET state = 'active', updated_at = ? WHERE id = ? AND state <> 'active'", now, id)
+	if err != nil {
+		return err
+	}
+	if n, err := res.RowsAffected(); err != nil {
+		return err
+	} else if n == 0 {
+		var exists bool
+		if err := tx.QueryRowContext(ctx, "SELECT EXISTS (SELECT 1 FROM signer_key WHERE id = ?)", id).Scan(&exists); err != nil {
+			return err
+		}
+		if !exists {
+			return fmt.Errorf("signer_key %d not found", id)
+		}
+	}
+	return tx.Commit()
+}
+
+// GCRetiredKeys deletes retired keys last updated before cutoff.
+func (s *Store) GCRetiredKeys(ctx context.Context, cutoff time.Time) error {
+	keys, err := s.SignerKeys(ctx)
+	if err != nil {
+		return err
+	}
+	for _, k := range keys {
+		if k.State != "retired" || !k.UpdatedAt.Before(cutoff) {
+			continue
+		}
+		if _, err := s.db.ExecContext(ctx, "DELETE FROM signer_key WHERE id = ? AND state = 'retired'", k.ID); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// LatestRound returns the stored round of a config; ok is false if none.
+func (s *Store) LatestRound(ctx context.Context, configName string) (round int32, ok bool, err error) {
+	err = s.db.QueryRowContext(ctx, "SELECT round FROM latest_round WHERE config_name = ?", configName).Scan(&round)
+	if errors.Is(err, sql.ErrNoRows) {
+		return 0, false, nil
+	}
+	if err != nil {
+		return 0, false, err
+	}
+	return round, true, nil
+}
+
+// SaveRounds upserts rounds in one transaction. A stored round never goes
+// down: the higher of stored and given is kept.
+func (s *Store) SaveRounds(ctx context.Context, rounds map[string]int32) error {
+	if len(rounds) == 0 {
+		return nil
+	}
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	stmt, err := tx.PrepareContext(ctx,
+		"INSERT INTO latest_round (config_name, round) VALUES (?, ?) ON CONFLICT (config_name) DO UPDATE SET round = max(round, excluded.round)")
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+	for name, round := range rounds {
+		if _, err := stmt.ExecContext(ctx, name, round); err != nil {
+			return fmt.Errorf("save latest_round %s: %w", name, err)
+		}
+	}
+	return tx.Commit()
+}
+
+func nowText() string {
+	return time.Now().UTC().Format(time.RFC3339Nano)
 }
 
 func nullable(s *string) any {
