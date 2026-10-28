@@ -157,6 +157,11 @@ tasks:
     cmds:
       - go test ./pkg/raft -v
 
+  test-nodestate:
+    dotenv: [".env"]
+    cmds:
+      - go test ./pkg/nodestate ./cmd/node -v
+
   test-checker-health:
     cmds:
       - go test ./pkg/checker/health -v
@@ -273,6 +278,7 @@ tasks:
       - task: test-wss
       - task: test-websocketfetcher
       - task: test-raft
+      - task: test-nodestate
   test-sentinel:
     cmds:
       - task: test-checker-health
