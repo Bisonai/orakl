@@ -21,7 +21,12 @@ import (
 // holds the signer keyring and latest rounds; it is required for the managed
 // signer.
 func New(bus *bus.MessageBus, h host.Host, ps *pubsub.PubSub, state *nodestate.Store) *App {
+	var rounds *roundPersister
+	if state != nil {
+		rounds = newRoundPersister(state)
+	}
 	return &App{
+		rounds:                rounds,
 		Aggregators:           make(map[int32]*Aggregator),
 		Bus:                   bus,
 		Configs:               nodeconfig.Default(),
@@ -41,8 +46,7 @@ func (a *App) Run(ctx context.Context) error {
 		return err
 	}
 
-	if a.State != nil {
-		a.rounds = newRoundPersister(a.State)
+	if a.rounds != nil {
 		go a.rounds.run(ctx)
 	}
 
@@ -68,7 +72,8 @@ func (a *App) Run(ctx context.Context) error {
 	return nil
 }
 
-// FlushRounds writes rounds not yet persisted (e.g. before shutdown).
+// FlushRounds writes rounds not yet persisted (e.g. before shutdown). Safe to
+// call concurrently with Run.
 func (a *App) FlushRounds(ctx context.Context) error {
 	return a.rounds.Flush(ctx)
 }

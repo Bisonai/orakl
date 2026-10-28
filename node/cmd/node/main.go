@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/signal"
 	"sync"
+	"syscall"
 	"time"
 
 	"bisonai.com/miko/node/pkg/admin"
@@ -104,10 +106,12 @@ func main() {
 	}()
 	log.Info().Msg("Fetcher started")
 
+	a := aggregator.New(mb, host, ps, state)
+	go flushRoundsOnSignal(a, state)
+
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		a := aggregator.New(mb, host, ps, state)
 		aggregatorErr := a.Run(ctx)
 		if aggregatorErr != nil {
 			log.Error().Err(aggregatorErr).Msg("Failed to start aggregator")
@@ -129,4 +133,21 @@ func main() {
 	log.Info().Msg("libp2p helper started")
 
 	wg.Wait()
+}
+
+// flushRoundsOnSignal persists pending rounds and exits on SIGTERM/SIGINT, so
+// the next start continues after the last used round.
+func flushRoundsOnSignal(a *aggregator.App, state *nodestate.Store) {
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGINT)
+	sig := <-sigCh
+	log.Info().Str("signal", sig.String()).Msg("shutting down, persisting rounds")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := a.FlushRounds(ctx); err != nil {
+		log.Error().Err(err).Msg("failed to persist rounds on shutdown")
+	}
+	_ = state.Close()
+	os.Exit(0)
 }

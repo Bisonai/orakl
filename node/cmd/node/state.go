@@ -11,6 +11,7 @@ import (
 
 	"bisonai.com/miko/node/pkg/nodestate"
 	"bisonai.com/miko/node/pkg/secrets"
+	"bisonai.com/miko/node/pkg/utils/sqlitedb"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -18,9 +19,12 @@ import (
 const stateUsage = `usage: nodebin state <command>
 
 Node state (signer keyring + latest round per config) is stored in the SQLite
-file at $NODE_SQLITE_PATH. nodebin does not use it at runtime yet.
+file at $NODE_SQLITE_PATH. nodebin refuses to start if the file is missing.
 
 commands:
+  init              create an empty store for a fresh node (refused if the
+                    file exists); the signer keyring is then seeded from
+                    SIGNER_PK on first start
   import [-force]   copy signer keys + MAX(round) per config from Postgres
                     ($DATABASE_URL) into SQLite (import creates the file).
                     Encrypted pks are copied as-is; ENCRYPT_PASSWORD is only
@@ -47,6 +51,11 @@ func runState(ctx context.Context, args []string, stdout io.Writer) error {
 			return fmt.Errorf("%s", stateUsage)
 		}
 		return runStateImport(ctx, *force, stdout)
+	case "init":
+		if len(args) != 1 {
+			return fmt.Errorf("%s", stateUsage)
+		}
+		return runStateInit(ctx, stdout)
 	case "list":
 		if len(args) != 1 {
 			return fmt.Errorf("%s", stateUsage)
@@ -110,6 +119,27 @@ func runStateImport(ctx context.Context, force bool, stdout io.Writer) error {
 	default:
 		fmt.Fprintf(stdout, "imported %d signer keys, %d rounds\n", keys, rounds)
 	}
+	return nil
+}
+
+func runStateInit(ctx context.Context, stdout io.Writer) error {
+	path, err := sqlitedb.PathFromEnv(nodestate.EnvPath, false)
+	if err != nil {
+		return err
+	}
+	if _, err := os.Stat(path); err == nil {
+		return fmt.Errorf("%s already exists", path)
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	store, err := nodestate.Open(ctx, path)
+	if err != nil {
+		return err
+	}
+	if err := store.Close(); err != nil {
+		return err
+	}
+	fmt.Fprintf(stdout, "created empty store %s\n", path)
 	return nil
 }
 

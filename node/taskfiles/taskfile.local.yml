@@ -198,23 +198,6 @@ tasks:
     dotenv: [".env"]
     cmds:
       - curl -X POST "http://localhost:$APP_PORT/api/v1/reporter/refresh"
-  add-proxy:
-    dotenv: [".env"]
-    cmds:
-      - |
-        curl -X POST "http://localhost:$APP_PORT/api/v1/proxy" \
-        -H "Content-Type: application/json" \
-        -d '{"protocol": "{{.PROTOCOL}}", "host": "{{.HOST}}", "port": {{.PORT}}, "location": "{{.LOCATION}}"}'| jq
-  remove-proxy:
-    dotenv: [".env"]
-    cmds:
-      - |
-        curl -X DELETE "http://localhost:$APP_PORT/api/v1/proxy/{{.ID}}" \
-        -H "Content-Type: application/json" | jq
-  get-proxy:
-    dotenv: [".env"]
-    cmds:
-      - curl -X GET "http://localhost:$APP_PORT/api/v1/proxy"| jq
   add-wallet:
     dotenv: [".env"]
     cmds:
@@ -240,23 +223,6 @@ tasks:
     dotenv: [".env"]
     cmds:
       - curl -X POST "http://localhost:$APP_PORT/api/v1/aggregator/renew-signer"
-  add-json-rpc:
-    dotenv: [".env"]
-    cmds:
-      - |
-        curl -X POST "http://localhost:$APP_PORT/api/v1/provider-url" \
-        -H "Content-Type: application/json" \
-        -d '{"chain_id": {{.CHAIN_ID}}, "url": "{{.URL}}", "priority": {{.PRIORITY}}}' | jq
-  remove-json-rpc:
-    dotenv: [".env"]
-    cmds:
-      - |
-        curl -X DELETE "http://localhost:$APP_PORT/api/v1/provider-url/{{.ID}}" \
-        -H "Content-Type: application/json" | jq
-  get-json-rpc:
-    dotenv: [".env"]
-    cmds:
-      - curl -X GET "http://localhost:$APP_PORT/api/v1/provider-url" | jq
   get-peer-count:
     dotenv: [".env"]
     cmds:
