@@ -7,17 +7,23 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"math"
+	"net/http"
+	"os"
 	"slices"
 
 	"bisonai.com/miko/node/pkg/alert"
 	"bisonai.com/miko/node/pkg/checker"
 	"bisonai.com/miko/node/pkg/db"
+	nodemetrics "bisonai.com/miko/node/pkg/metrics"
 	"bisonai.com/miko/node/pkg/secrets"
 
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/prometheus/common/expfmt"
+	"github.com/prometheus/common/model"
 	"github.com/rs/zerolog/log"
 )
 
@@ -29,53 +35,8 @@ const (
 	DelayThreshold           = 5 * time.Second
 	DefaultCheckInterval     = 5 * time.Minute
 
-	GetSingleLocalAggregateOffset = `SELECT
-	EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - timestamp)) AS delay_in_seconds
-FROM
-	local_aggregates
-WHERE
-	config_id = '%d'
-ORDER BY timestamp DESC
-LIMIT 1`
-
-	GetSingleGlobalAggregateOffset = `SELECT
-	EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - timestamp)) AS delay_in_seconds
-FROM
-	global_aggregates
-WHERE
-	config_id = '%d'
-ORDER BY timestamp DESC
-LIMIT 1`
-
-	GetSingleLatestAggregates = `WITH latest_local_aggregate AS (
-	SELECT
-		la.config_id,
-		la.value AS local_aggregate
-	FROM
-		local_aggregates la
-	WHERE
-		la.config_id = '%d'
-	ORDER BY
-		la.timestamp DESC
-	LIMIT 1
-),
-latest_global_aggregate AS (
-	SELECT
-	 ga.config_id,
-	 ga.value AS global_aggregate
-	FROM
-		global_aggregates ga
-	WHERE
-		ga.config_id = '%d'
-	ORDER BY ga.timestamp DESC
-	LIMIT 1
-)
-SELECT
- la.local_aggregate,
- ga.global_aggregate
-FROM
- latest_local_aggregate la
- JOIN latest_global_aggregate ga on la.config_id = ga.config_id`
+	nodeMetricsEndpoint = "/metrics"
+	nodeMetricsTimeout  = 10 * time.Second
 
 	PorAlarmThreshold     = 3
 	PorAlarmOffset        = 300 * time.Second
@@ -88,18 +49,13 @@ GROUP BY
 	name`
 )
 
-type Config struct {
-	ID   int32  `db:"id"`
-	Name string `db:"name"`
-}
-
-type OffsetResultEach struct {
-	Delay float64 `db:"delay_in_seconds"`
-}
-
-type LatestAggregateEach struct {
-	LocalAggregate  float64 `db:"local_aggregate"`
-	GlobalAggregate float64 `db:"global_aggregate"`
+// aggregateMetrics holds the latest aggregates of one config read from node
+// metrics; nil means the series is absent.
+type aggregateMetrics struct {
+	LocalValue      *float64
+	LocalTimestamp  *float64
+	GlobalValue     *float64
+	GlobalTimestamp *float64
 }
 
 type PorOffsetResult struct {
@@ -107,13 +63,13 @@ type PorOffsetResult struct {
 	Delay float64
 }
 
-var localAggregateAlarmCount map[int32]int
-var globalAggregateAlarmCount map[int32]int
+var localAggregateAlarmCount map[string]int
+var globalAggregateAlarmCount map[string]int
 var porOffchainAlarmCount map[string]int
 
 func Start(ctx context.Context) error {
-	localAggregateAlarmCount = make(map[int32]int)
-	globalAggregateAlarmCount = make(map[int32]int)
+	localAggregateAlarmCount = make(map[string]int)
+	globalAggregateAlarmCount = make(map[string]int)
 	porOffchainAlarmCount = make(map[string]int)
 
 	serviceDBUrl := secrets.GetSecret("SERVICE_DB_URL")
@@ -138,7 +94,7 @@ func Start(ctx context.Context) error {
 			log.Info().Msg("context cancelled, shutting down")
 			return ctx.Err()
 		case <-ticker.C:
-			go checkOffsets(ctx, serviceDB)
+			go checkOffsets(ctx)
 			go checkPorOffsets(ctx, serviceDB)
 		}
 	}
@@ -171,68 +127,82 @@ func checkPorOffsets(ctx context.Context, serviceDB *pgxpool.Pool) {
 	}
 }
 
-func checkOffsets(ctx context.Context, serviceDB *pgxpool.Pool) {
-	msg := ""
-
-	loadedConfigs, err := db.QueryRowsTransient[Config](ctx, serviceDB, "SELECT id, name FROM configs", nil)
-	if err != nil {
-		log.Error().Err(err).Msg("Error getting configs")
+func checkOffsets(ctx context.Context) {
+	nodeAdminUrl := os.Getenv("ORAKL_NODE_ADMIN_URL")
+	if nodeAdminUrl == "" {
+		log.Error().Msg("ORAKL_NODE_ADMIN_URL not found")
 		return
 	}
 
+	aggregates, err := fetchAggregateMetrics(ctx, nodeAdminUrl+nodeMetricsEndpoint)
+	if err != nil {
+		log.Error().Err(err).Msg("Error getting node aggregate metrics")
+		return
+	}
+
+	msg := offsetAlarmMessage(aggregates, time.Now())
+	if msg != "" {
+		alert.SlackAlert(msg)
+	}
+}
+
+func offsetAlarmMessage(aggregates map[string]*aggregateMetrics, now time.Time) string {
+	msg := ""
+
+	names := make([]string, 0, len(aggregates))
+	for name := range aggregates {
+		names = append(names, name)
+	}
+	slices.Sort(names)
+
+	nowSeconds := float64(now.UnixNano()) / 1e9
 	localAggregateDelayedOffsetCount := 0
 	globalAggregateDelayedOffsetCount := 0
-	for _, config := range loadedConfigs {
-		if slices.Contains(checker.SymbolsToBeDelisted, config.Name) {
+	for _, name := range names {
+		if slices.Contains(checker.SymbolsToBeDelisted, name) {
 			continue
 		}
+		aggregate := aggregates[name]
 
-		log.Debug().Int32("id", config.ID).Str("name", config.Name).Msg("checking config offset")
-		localAggregateOffsetResult, err := db.QueryRowTransient[OffsetResultEach](ctx, serviceDB, fmt.Sprintf(GetSingleLocalAggregateOffset, config.ID), nil)
-		if err != nil {
-			log.Error().Err(err).Msg("Error getting local aggregate offset")
-			return
-		}
-		if localAggregateOffsetResult.Delay > DelayThreshold.Seconds() {
-			localAggregateAlarmCount[config.ID]++
-			if localAggregateAlarmCount[config.ID] > AlarmOffsetPerPair {
-				msg += fmt.Sprintf("(local aggregate offset delayed) %s: %v seconds\n", config.Name, localAggregateOffsetResult.Delay)
-				localAggregateAlarmCount[config.ID] = 0
-			} else if localAggregateAlarmCount[config.ID] > AlarmOffsetInTotal {
-				localAggregateDelayedOffsetCount++
+		log.Debug().Str("name", name).Msg("checking config offset")
+		if aggregate.LocalTimestamp != nil {
+			delay := nowSeconds - *aggregate.LocalTimestamp
+			if delay > DelayThreshold.Seconds() {
+				localAggregateAlarmCount[name]++
+				if localAggregateAlarmCount[name] > AlarmOffsetPerPair {
+					msg += fmt.Sprintf("(local aggregate offset delayed) %s: %v seconds\n", name, delay)
+					localAggregateAlarmCount[name] = 0
+				} else if localAggregateAlarmCount[name] > AlarmOffsetInTotal {
+					localAggregateDelayedOffsetCount++
+				}
+			} else {
+				localAggregateAlarmCount[name] = 0
 			}
-		} else {
-			localAggregateAlarmCount[config.ID] = 0
 		}
 
-		globalAggregateOffsetResult, err := db.QueryRowTransient[OffsetResultEach](ctx, serviceDB, fmt.Sprintf(GetSingleGlobalAggregateOffset, config.ID), nil)
-		if err != nil {
-			log.Error().Err(err).Msg("Error getting global aggregate offset")
-			return
-		}
-		if globalAggregateOffsetResult.Delay > DelayThreshold.Seconds() {
-			globalAggregateAlarmCount[config.ID]++
-			if globalAggregateAlarmCount[config.ID] > AlarmOffsetPerPair {
-				msg += fmt.Sprintf("(global aggregate offset delayed) %s: %v seconds\n", config.Name, globalAggregateOffsetResult.Delay)
-				globalAggregateAlarmCount[config.ID] = 0
-			} else if globalAggregateAlarmCount[config.ID] > AlarmOffsetInTotal {
-				globalAggregateDelayedOffsetCount++
+		if aggregate.GlobalTimestamp != nil {
+			delay := nowSeconds - *aggregate.GlobalTimestamp
+			if delay > DelayThreshold.Seconds() {
+				globalAggregateAlarmCount[name]++
+				if globalAggregateAlarmCount[name] > AlarmOffsetPerPair {
+					msg += fmt.Sprintf("(global aggregate offset delayed) %s: %v seconds\n", name, delay)
+					globalAggregateAlarmCount[name] = 0
+				} else if globalAggregateAlarmCount[name] > AlarmOffsetInTotal {
+					globalAggregateDelayedOffsetCount++
+				}
+			} else {
+				globalAggregateAlarmCount[name] = 0
 			}
-		} else {
-			globalAggregateAlarmCount[config.ID] = 0
 		}
 
-		latestAggregateResult, err := db.QueryRowTransient[LatestAggregateEach](ctx, serviceDB, fmt.Sprintf(GetSingleLatestAggregates, config.ID, config.ID), nil)
-		if err != nil {
-			log.Error().Err(err).Msg("Error getting latest aggregate")
-			return
+		if aggregate.LocalValue == nil || aggregate.GlobalValue == nil {
+			continue
 		}
-
-		if math.Abs(latestAggregateResult.LocalAggregate-latestAggregateResult.GlobalAggregate)/latestAggregateResult.LocalAggregate > PriceDifferenceThreshold {
-			msg += fmt.Sprintf("(latest aggregate price difference) %s: %v (globalAggregate: %v, localAggregate: %v)\n", config.Name, latestAggregateResult.LocalAggregate-latestAggregateResult.GlobalAggregate, latestAggregateResult.GlobalAggregate, latestAggregateResult.LocalAggregate)
+		localAggregate := *aggregate.LocalValue
+		globalAggregate := *aggregate.GlobalValue
+		if math.Abs(localAggregate-globalAggregate)/localAggregate > PriceDifferenceThreshold {
+			msg += fmt.Sprintf("(latest aggregate price difference) %s: %v (globalAggregate: %v, localAggregate: %v)\n", name, localAggregate-globalAggregate, globalAggregate, localAggregate)
 		}
-
-		time.Sleep(100 * time.Millisecond) // sleep to reduce pgsql stress
 	}
 
 	if localAggregateDelayedOffsetCount > 0 {
@@ -243,7 +213,65 @@ func checkOffsets(ctx context.Context, serviceDB *pgxpool.Pool) {
 		msg += fmt.Sprintf("%d global aggregate offsets delayed\n", globalAggregateDelayedOffsetCount)
 	}
 
-	if msg != "" {
-		alert.SlackAlert(msg)
+	return msg
+}
+
+func fetchAggregateMetrics(ctx context.Context, url string) (map[string]*aggregateMetrics, error) {
+	ctx, cancel := context.WithTimeout(ctx, nodeMetricsTimeout)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
 	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status code %d from %s", resp.StatusCode, url)
+	}
+
+	return parseAggregateMetrics(resp.Body)
+}
+
+func parseAggregateMetrics(r io.Reader) (map[string]*aggregateMetrics, error) {
+	parser := expfmt.NewTextParser(model.UTF8Validation)
+	families, err := parser.TextToMetricFamilies(r)
+	if err != nil {
+		return nil, err
+	}
+
+	aggregates := make(map[string]*aggregateMetrics)
+	collect := func(metricName string, field func(*aggregateMetrics) **float64) {
+		family, ok := families[metricName]
+		if !ok {
+			return
+		}
+		for _, metric := range family.GetMetric() {
+			name := ""
+			for _, label := range metric.GetLabel() {
+				if label.GetName() == nodemetrics.NameLabel {
+					name = label.GetValue()
+				}
+			}
+			if name == "" || metric.GetGauge() == nil {
+				continue
+			}
+			if aggregates[name] == nil {
+				aggregates[name] = &aggregateMetrics{}
+			}
+			value := metric.GetGauge().GetValue()
+			*field(aggregates[name]) = &value
+		}
+	}
+
+	collect(nodemetrics.LocalAggregateValueName, func(a *aggregateMetrics) **float64 { return &a.LocalValue })
+	collect(nodemetrics.LocalAggregateTimestampName, func(a *aggregateMetrics) **float64 { return &a.LocalTimestamp })
+	collect(nodemetrics.GlobalAggregateValueName, func(a *aggregateMetrics) **float64 { return &a.GlobalValue })
+	collect(nodemetrics.GlobalAggregateTimestampName, func(a *aggregateMetrics) **float64 { return &a.GlobalTimestamp })
+
+	return aggregates, nil
 }
