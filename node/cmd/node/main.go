@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"sync"
 	"time"
@@ -20,6 +21,15 @@ import (
 
 func main() {
 	ctx := context.Background()
+
+	if len(os.Args) > 1 && os.Args[1] == "state" {
+		if err := runState(ctx, os.Args[2:], os.Stdout); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		return
+	}
+
 	loginit.InitZeroLog()
 
 	mb := bus.New(1000)
