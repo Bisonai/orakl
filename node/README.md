@@ -14,6 +14,7 @@
   - [Database Initialization](#database-initialization)
   - [Optional Setups](#optional-setups)
   - [Run Node](#run-node)
+- [Node state (SQLite)](#node-state-sqlite)
 - [DAL](#dal)
   - [API keys](#api-keys)
   - [Metrics](#metrics)
@@ -143,6 +144,9 @@ BOOT_API_URL=<Your Boot API URL>
 # Boot API SQLite peer file, required by the Boot API (not by nodes)
 BOOT_SQLITE_PATH=<Path, e.g. ./boot.db>
 
+# Node SQLite state file, only used by `nodebin state` (not at runtime yet)
+NODE_SQLITE_PATH=<Path, e.g. ./node.db>
+
 # Pinger priviliged set, not required from built image
 WITHOUT_PING_PRIVILEGED=<Set true if running local>
 
@@ -214,6 +218,28 @@ cp .env.local .env
    ```sh
    task local:node
    ```
+
+## Node state (SQLite)
+
+The node is moving off PostgreSQL (#2695). Its only real state, the signer keyring and the latest round per config, can be copied into a SQLite file ahead of the cutover. The node does **not** read this file yet; it still runs on PostgreSQL.
+
+| Env                | Description |
+| ------------------ | ----------- |
+| `NODE_SQLITE_PATH` | Path of the SQLite state file, e.g. `/app/data/node.db`. Put it on a persistent volume. `state import` creates it; `state list` fails if it does not exist. The directory must be writable (SQLite WAL files). |
+| `DATABASE_URL`     | PostgreSQL to import from (`state import` only). |
+| `ENCRYPT_PASSWORD` | Same value as the node. Only used to derive key addresses, to tell whether the legacy `signer` row is already in the keyring. |
+
+Use the `state` subcommand of the node binary (`nodebin` in the image, `go run ./cmd/node` locally):
+
+```sh
+nodebin state import          # signer_key rows + legacy signer row (if not in keyring) + MAX(round) per config name
+nodebin state import -force   # replace a store whose content differs from PostgreSQL
+nodebin state list            # address<TAB>state<TAB>tx_hash<TAB>updated_at, then config<TAB>round; never prints keys
+```
+
+- Encrypted private keys are copied as-is (no re-encryption). Rounds are keyed by config **name**.
+- A legacy `signer` row whose key is not in `signer_key` is added as `active` if the keyring has no active key, else as `pending`. If it cannot be decrypted (wrong `ENCRYPT_PASSWORD`), it is still added, without address, and a warning is printed.
+- Re-running against a store with the same content prints `unchanged` and writes nothing. If the content differs (e.g. rounds advanced since the last import), `import` refuses unless `-force`, which replaces the whole store in one transaction.
 
 ## Boot API
 
