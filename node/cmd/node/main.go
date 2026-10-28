@@ -23,7 +23,7 @@ func main() {
 	ctx := context.Background()
 
 	if len(os.Args) > 1 && os.Args[1] == "state" {
-		if err := runState(ctx, os.Args[2:], os.Stdout, os.Stderr); err != nil {
+		if err := runState(ctx, os.Args[2:], os.Stdout); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}

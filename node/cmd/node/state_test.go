@@ -16,8 +16,8 @@ import (
 func TestRunStateUsage(t *testing.T) {
 	ctx := context.Background()
 	for _, args := range [][]string{{}, {"bogus"}, {"list", "x"}, {"import", "x"}, {"import", "-nope"}} {
-		var out, errOut bytes.Buffer
-		err := runState(ctx, args, &out, &errOut)
+		var out bytes.Buffer
+		err := runState(ctx, args, &out)
 		assert.ErrorContains(t, err, "usage: nodebin state", args)
 	}
 }
@@ -25,8 +25,8 @@ func TestRunStateUsage(t *testing.T) {
 func TestRunStateListMissingFile(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "missing.db")
 	t.Setenv(nodestate.EnvPath, path)
-	var out, errOut bytes.Buffer
-	assert.Error(t, runState(context.Background(), []string{"list"}, &out, &errOut))
+	var out bytes.Buffer
+	assert.Error(t, runState(context.Background(), []string{"list"}, &out))
 }
 
 func TestRunStateListNeverPrintsPk(t *testing.T) {
@@ -47,11 +47,10 @@ func TestRunStateListNeverPrintsPk(t *testing.T) {
 	}))
 	require.NoError(t, s.Close())
 
-	var out, errOut bytes.Buffer
-	require.NoError(t, runState(ctx, []string{"list"}, &out, &errOut))
+	var out bytes.Buffer
+	require.NoError(t, runState(ctx, []string{"list"}, &out))
 	assert.Contains(t, out.String(), "0xabc\tactive")
 	assert.Contains(t, out.String(), "-\tpending")
 	assert.Contains(t, out.String(), "BTC-USDT\t9")
 	assert.NotContains(t, out.String(), "SECRET")
-	assert.NotContains(t, errOut.String(), "SECRET")
 }

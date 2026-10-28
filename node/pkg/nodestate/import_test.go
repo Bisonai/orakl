@@ -71,28 +71,30 @@ func TestLegacyKey(t *testing.T) {
 	})
 
 	t.Run("different key with active keyring -> pending", func(t *testing.T) {
-		k, warning := legacyKey([]utils.SignerKey{{Address: &addrA, PK: encA, State: "active"}}, encB, now)
+		k, err := legacyKey([]utils.SignerKey{{Address: &addrA, PK: encA, State: "active"}}, encB, now)
+		require.NoError(t, err)
 		require.NotNil(t, k)
-		assert.Empty(t, warning)
 		assert.Equal(t, "pending", k.State)
 		assert.Equal(t, addrB, *k.Address)
 	})
 
-	t.Run("undecryptable -> kept without address + warning", func(t *testing.T) {
-		k, warning := legacyKey([]utils.SignerKey{{Address: &addrA, PK: encA, State: "retired"}}, "not-a-ciphertext", now)
+	t.Run("different key with pending-only keyring -> pending", func(t *testing.T) {
+		k, err := legacyKey([]utils.SignerKey{{Address: &addrA, PK: encA, State: "pending"}}, encB, now)
+		require.NoError(t, err)
 		require.NotNil(t, k)
-		assert.Nil(t, k.Address)
-		assert.Equal(t, "active", k.State)
-		assert.NotEmpty(t, warning)
-		assert.NotContains(t, warning, "not-a-ciphertext")
+		assert.Equal(t, "pending", k.State)
 	})
 
-	t.Run("wrong password -> kept without address", func(t *testing.T) {
+	t.Run("undecryptable -> error without key material", func(t *testing.T) {
+		_, err := legacyKey([]utils.SignerKey{{Address: &addrA, PK: encA, State: "retired"}}, "not-a-ciphertext", now)
+		require.Error(t, err)
+		assert.NotContains(t, err.Error(), "not-a-ciphertext")
+	})
+
+	t.Run("wrong password -> error", func(t *testing.T) {
 		t.Setenv("ENCRYPT_PASSWORD", "wrong")
-		k, warning := legacyKey([]utils.SignerKey{{Address: &addrA, PK: encA, State: "active"}}, encB, now)
-		require.NotNil(t, k)
-		assert.Nil(t, k.Address)
-		assert.NotEmpty(t, warning)
+		_, err := legacyKey([]utils.SignerKey{{PK: encA, State: "retired"}}, encB, now)
+		assert.Error(t, err)
 	})
 }
 
@@ -112,19 +114,30 @@ func TestImportSnapshot(t *testing.T) {
 	require.NoError(t, err)
 	assert.True(t, res.Unchanged)
 
-	// different content: refused without force, store untouched
-	changed := sampleSnapshot()
-	changed.Rounds[0].Round = 43
-	_, err = importSnapshot(ctx, s, changed, false)
-	assert.ErrorIs(t, err, ErrStoreNotEmpty)
+	// only rounds advanced: updated without force
+	newer := sampleSnapshot()
+	newer.Rounds[0].Round = 43
+	res, err = importSnapshot(ctx, s, newer, false)
+	require.NoError(t, err)
+	assert.True(t, res.RoundsOnly)
 	got, err := s.Snapshot(ctx)
 	require.NoError(t, err)
-	assert.Equal(t, int32(42), got.Rounds[0].Round)
+	assert.True(t, sameContent(newer, got))
+
+	// different keyring: refused without force, store untouched
+	changed := sampleSnapshot()
+	changed.Keys[0].State = "pending"
+	_, err = importSnapshot(ctx, s, changed, false)
+	assert.ErrorIs(t, err, ErrStoreNotEmpty)
+	got, err = s.Snapshot(ctx)
+	require.NoError(t, err)
+	assert.True(t, sameContent(newer, got))
 
 	// force replaces
 	res, err = importSnapshot(ctx, s, changed, true)
 	require.NoError(t, err)
 	assert.False(t, res.Unchanged)
+	assert.False(t, res.RoundsOnly)
 	got, err = s.Snapshot(ctx)
 	require.NoError(t, err)
 	assert.True(t, sameContent(changed, got))

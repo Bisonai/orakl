@@ -55,7 +55,6 @@ func TestImportFromPostgres(t *testing.T) {
 	res, err := Import(ctx, tx, s, false)
 	require.NoError(t, err)
 	assert.False(t, res.Unchanged)
-	assert.Empty(t, res.Warnings)
 
 	got, err := s.Snapshot(ctx)
 	require.NoError(t, err)
@@ -86,12 +85,11 @@ func TestImportFromPostgres(t *testing.T) {
 	require.NoError(t, err)
 	assert.True(t, res.Unchanged)
 
-	// new round: refused without force, applied with force
+	// new round: updated without force
 	exec("INSERT INTO global_aggregates (config_id, value, round) VALUES ($1, 1, 11)", cfgA)
-	_, err = Import(ctx, tx, s, false)
-	assert.ErrorIs(t, err, ErrStoreNotEmpty)
-	_, err = Import(ctx, tx, s, true)
+	res, err = Import(ctx, tx, s, false)
 	require.NoError(t, err)
+	assert.True(t, res.RoundsOnly)
 	got, err = s.Snapshot(ctx)
 	require.NoError(t, err)
 	for _, r := range got.Rounds {
@@ -100,9 +98,12 @@ func TestImportFromPostgres(t *testing.T) {
 		}
 	}
 
-	// legacy row mirrored into keyring (same key, re-encrypted) is not duplicated
+	// keyring changed (legacy row now mirrors the active key, re-encrypted, so
+	// it is not duplicated): refused without force, applied with force
 	exec("DELETE FROM signer")
 	exec("INSERT INTO signer (pk, unique_dummy) VALUES ($1, TRUE)", reEncrypt(t, encActive))
+	_, err = Import(ctx, tx, s, false)
+	assert.ErrorIs(t, err, ErrStoreNotEmpty)
 	_, err = Import(ctx, tx, s, true)
 	require.NoError(t, err)
 	got, err = s.Snapshot(ctx)

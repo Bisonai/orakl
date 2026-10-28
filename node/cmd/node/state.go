@@ -21,14 +21,14 @@ commands:
                     ($DATABASE_URL) into SQLite (import creates the file).
                     Encrypted pks are copied as-is; ENCRYPT_PASSWORD is only
                     used to match the legacy signer row against the keyring.
-                    A store with the same content is left untouched; a store
-                    with different content is refused unless -force, which
-                    replaces it.
+                    A store with the same keyring is left untouched apart
+                    from updated rounds; a store with a different keyring is
+                    refused unless -force, which replaces it.
   list              print signer key addresses + states and latest rounds
                     (never prints private keys)
 `
 
-func runState(ctx context.Context, args []string, stdout, stderr io.Writer) error {
+func runState(ctx context.Context, args []string, stdout io.Writer) error {
 	if len(args) == 0 {
 		return fmt.Errorf("%s", stateUsage)
 	}
@@ -41,7 +41,7 @@ func runState(ctx context.Context, args []string, stdout, stderr io.Writer) erro
 		if err := fs.Parse(args[1:]); err != nil || fs.NArg() != 0 {
 			return fmt.Errorf("%s", stateUsage)
 		}
-		return runStateImport(ctx, *force, stdout, stderr)
+		return runStateImport(ctx, *force, stdout)
 	case "list":
 		if len(args) != 1 {
 			return fmt.Errorf("%s", stateUsage)
@@ -52,30 +52,32 @@ func runState(ctx context.Context, args []string, stdout, stderr io.Writer) erro
 	}
 }
 
-func runStateImport(ctx context.Context, force bool, stdout, stderr io.Writer) error {
-	pool, err := db.GetPool(ctx)
-	if err != nil {
-		return fmt.Errorf("connect postgres: %w", err)
-	}
-
+func runStateImport(ctx context.Context, force bool, stdout io.Writer) error {
 	store, err := nodestate.OpenFromEnv(ctx, false)
 	if err != nil {
 		return err
 	}
 	defer store.Close()
 
+	pool, err := db.GetPool(ctx)
+	if err != nil {
+		return fmt.Errorf("connect postgres: %w", err)
+	}
+	defer pool.Close()
+
 	result, err := nodestate.Import(ctx, pool, store, force)
 	if err != nil {
 		return err
 	}
-	for _, w := range result.Warnings {
-		fmt.Fprintln(stderr, "warning:", w)
+	keys, rounds := len(result.Snapshot.Keys), len(result.Snapshot.Rounds)
+	switch {
+	case result.Unchanged:
+		fmt.Fprintf(stdout, "unchanged: store already has %d signer keys, %d rounds\n", keys, rounds)
+	case result.RoundsOnly:
+		fmt.Fprintf(stdout, "signer keys unchanged (%d); updated %d rounds\n", keys, rounds)
+	default:
+		fmt.Fprintf(stdout, "imported %d signer keys, %d rounds\n", keys, rounds)
 	}
-	if result.Unchanged {
-		fmt.Fprintf(stdout, "unchanged: store already has %d signer keys, %d rounds\n", len(result.Snapshot.Keys), len(result.Snapshot.Rounds))
-		return nil
-	}
-	fmt.Fprintf(stdout, "imported %d signer keys, %d rounds\n", len(result.Snapshot.Keys), len(result.Snapshot.Rounds))
 	return nil
 }
 
