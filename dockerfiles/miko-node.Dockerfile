@@ -8,7 +8,7 @@ COPY node node
 
 WORKDIR /app/node
 
-RUN CGO_ENABLED=1 CGO_CFLAGS="-O -D__BLST_PORTABLE__" CGO_CFLAGS_ALLOW="-O -D__BLST_PORTABLE__" CC=x86_64-linux-gnu-gcc GOOS=linux GOARCH=amd64 go build -o nodebin -ldflags="-w -s" ./cmd/node/main.go
+RUN CGO_ENABLED=1 CGO_CFLAGS="-O -D__BLST_PORTABLE__" CGO_CFLAGS_ALLOW="-O -D__BLST_PORTABLE__" CC=x86_64-linux-gnu-gcc GOOS=linux GOARCH=amd64 go build -o nodebin -ldflags="-w -s" ./cmd/node
 
 # debian:bookworm-slim
 FROM debian:bookworm-slim
