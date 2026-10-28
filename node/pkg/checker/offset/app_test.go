@@ -174,6 +174,8 @@ func TestFetchAggregateMetrics(t *testing.T) {
 
 // reads what the node actually serves (pkg/metrics via promhttp)
 func TestFetchAggregateMetricsFromNodeRegistry(t *testing.T) {
+	nodemetrics.SetLocalAggregateConfigs([]string{"REGISTRY-USDT"})
+	nodemetrics.SetGlobalAggregateConfigs([]string{"REGISTRY-USDT"})
 	nodemetrics.SetLocalAggregate("REGISTRY-USDT", 200, time.Unix(1700000000, 0))
 	nodemetrics.SetGlobalAggregate("REGISTRY-USDT", 201, 3, time.Unix(1700000001, 0))
 	t.Cleanup(func() {
@@ -192,4 +194,15 @@ func TestFetchAggregateMetricsFromNodeRegistry(t *testing.T) {
 	assert.Equal(t, 1700000000.0, *got.LocalTimestamp)
 	assert.Equal(t, 201.0, *got.GlobalValue)
 	assert.Equal(t, 1700000001.0, *got.GlobalTimestamp)
+}
+
+func TestMetricsFetchFailureMessage(t *testing.T) {
+	metricsFetchFailCount = 0
+	err := fmt.Errorf("connection refused")
+
+	for i := 0; i < AlarmOffsetInTotal; i++ {
+		assert.Empty(t, metricsFetchFailureMessage(err))
+	}
+	assert.Contains(t, metricsFetchFailureMessage(err), "failed to read node metrics")
+	assert.Equal(t, 0, metricsFetchFailCount)
 }

@@ -13,6 +13,8 @@ import (
 )
 
 func TestMetricsRoute(t *testing.T) {
+	nodemetrics.SetLocalAggregateConfigs([]string{"ROUTE-TEST"})
+	nodemetrics.SetGlobalAggregateConfigs([]string{"ROUTE-TEST"})
 	nodemetrics.SetLocalAggregate("ROUTE-TEST", 100, time.Unix(1700000000, 0))
 	nodemetrics.SetGlobalAggregate("ROUTE-TEST", 101, 7, time.Unix(1700000001, 0))
 	t.Cleanup(func() {

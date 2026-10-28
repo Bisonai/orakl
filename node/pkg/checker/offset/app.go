@@ -18,6 +18,7 @@ import (
 	"bisonai.com/miko/node/pkg/db"
 	nodemetrics "bisonai.com/miko/node/pkg/metrics"
 	"bisonai.com/miko/node/pkg/secrets"
+	"bisonai.com/miko/node/pkg/utils/request"
 
 	"time"
 
@@ -66,6 +67,7 @@ type PorOffsetResult struct {
 var localAggregateAlarmCount map[string]int
 var globalAggregateAlarmCount map[string]int
 var porOffchainAlarmCount map[string]int
+var metricsFetchFailCount int
 
 func Start(ctx context.Context) error {
 	localAggregateAlarmCount = make(map[string]int)
@@ -137,13 +139,28 @@ func checkOffsets(ctx context.Context) {
 	aggregates, err := fetchAggregateMetrics(ctx, nodeAdminUrl+nodeMetricsEndpoint)
 	if err != nil {
 		log.Error().Err(err).Msg("Error getting node aggregate metrics")
+		if msg := metricsFetchFailureMessage(err); msg != "" {
+			alert.SlackAlert(msg)
+		}
 		return
 	}
+	metricsFetchFailCount = 0
 
 	msg := offsetAlarmMessage(aggregates, time.Now())
 	if msg != "" {
 		alert.SlackAlert(msg)
 	}
+}
+
+// metricsFetchFailureMessage counts consecutive failures to read node metrics
+// (e.g. node down) and returns an alarm once they exceed AlarmOffsetInTotal.
+func metricsFetchFailureMessage(err error) string {
+	metricsFetchFailCount++
+	if metricsFetchFailCount > AlarmOffsetInTotal {
+		metricsFetchFailCount = 0
+		return fmt.Sprintf("(aggregate offset) failed to read node metrics %d times in a row: %v\n", AlarmOffsetInTotal+1, err)
+	}
+	return ""
 }
 
 func offsetAlarmMessage(aggregates map[string]*aggregateMetrics, now time.Time) string {
@@ -217,14 +234,7 @@ func offsetAlarmMessage(aggregates map[string]*aggregateMetrics, now time.Time) 
 }
 
 func fetchAggregateMetrics(ctx context.Context, url string) (map[string]*aggregateMetrics, error) {
-	ctx, cancel := context.WithTimeout(ctx, nodeMetricsTimeout)
-	defer cancel()
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return nil, err
-	}
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := request.RequestRaw(request.WithEndpoint(url), request.WithTimeout(nodeMetricsTimeout), request.WithContext(ctx))
 	if err != nil {
 		return nil, err
 	}

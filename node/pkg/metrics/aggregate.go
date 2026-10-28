@@ -47,8 +47,8 @@ var (
 	globalAggregates = &configGauges{vecs: []*prometheus.GaugeVec{globalAggregateValue, globalAggregateRound, globalAggregateTimestamp}, timestamp: globalAggregateTimestamp}
 )
 
-// configGauges tracks which config names have series so that configs removed
-// on refresh can be dropped.
+// configGauges tracks the loaded config names so that series of configs
+// removed on refresh can be dropped.
 type configGauges struct {
 	mu        sync.Mutex
 	names     map[string]struct{}
@@ -56,11 +56,9 @@ type configGauges struct {
 	timestamp *prometheus.GaugeVec
 }
 
-func (g *configGauges) touch(name string) {
-	if g.names == nil {
-		g.names = make(map[string]struct{})
-	}
-	g.names[name] = struct{}{}
+func (g *configGauges) loaded(name string) bool {
+	_, ok := g.names[name]
+	return ok
 }
 
 // setConfigs drops series of names not in the loaded config set, and gives
@@ -90,7 +88,10 @@ func (g *configGauges) setConfigs(names []string, now time.Time) {
 			continue
 		}
 		g.timestamp.WithLabelValues(name).Set(unixSeconds(now))
-		g.touch(name)
+		if g.names == nil {
+			g.names = make(map[string]struct{})
+		}
+		g.names[name] = struct{}{}
 	}
 }
 
@@ -108,19 +109,26 @@ func SetGlobalAggregateConfigs(names []string) {
 	globalAggregates.setConfigs(names, time.Now())
 }
 
+// SetLocalAggregate records a local aggregate; ignored for names not loaded
+// (a late write from a stopped aggregator must not revive a removed config).
 func SetLocalAggregate(name string, value int64, timestamp time.Time) {
 	localAggregates.mu.Lock()
 	defer localAggregates.mu.Unlock()
+	if !localAggregates.loaded(name) {
+		return
+	}
 	localAggregateValue.WithLabelValues(name).Set(float64(value))
 	localAggregateTimestamp.WithLabelValues(name).Set(unixSeconds(timestamp))
-	localAggregates.touch(name)
 }
 
+// SetGlobalAggregate records a global aggregate; ignored for names not loaded.
 func SetGlobalAggregate(name string, value int64, round int32, timestamp time.Time) {
 	globalAggregates.mu.Lock()
 	defer globalAggregates.mu.Unlock()
+	if !globalAggregates.loaded(name) {
+		return
+	}
 	globalAggregateValue.WithLabelValues(name).Set(float64(value))
 	globalAggregateRound.WithLabelValues(name).Set(float64(round))
 	globalAggregateTimestamp.WithLabelValues(name).Set(unixSeconds(timestamp))
-	globalAggregates.touch(name)
 }

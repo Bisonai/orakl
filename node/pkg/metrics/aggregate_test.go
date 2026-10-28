@@ -10,6 +10,7 @@ import (
 
 func TestSetLocalAggregate(t *testing.T) {
 	ts := time.Unix(1700000000, 500_000_000)
+	SetLocalAggregateConfigs([]string{"LOCAL-SET"})
 	SetLocalAggregate("LOCAL-SET", 12345, ts)
 	t.Cleanup(func() { SetLocalAggregateConfigs(nil) })
 
@@ -19,6 +20,7 @@ func TestSetLocalAggregate(t *testing.T) {
 
 func TestSetGlobalAggregate(t *testing.T) {
 	ts := time.Unix(1700000001, 0)
+	SetGlobalAggregateConfigs([]string{"GLOBAL-SET"})
 	SetGlobalAggregate("GLOBAL-SET", 67890, 42, ts)
 	t.Cleanup(func() { SetGlobalAggregateConfigs(nil) })
 
@@ -30,6 +32,7 @@ func TestSetGlobalAggregate(t *testing.T) {
 func TestSetConfigsDropsRemovedAndSeedsNew(t *testing.T) {
 	t.Cleanup(func() { SetGlobalAggregateConfigs(nil) })
 
+	SetGlobalAggregateConfigs([]string{"KEEP", "REMOVED"})
 	SetGlobalAggregate("KEEP", 1, 1, time.Unix(100, 0))
 	SetGlobalAggregate("REMOVED", 2, 2, time.Unix(200, 0))
 
@@ -48,4 +51,17 @@ func TestSetConfigsDropsRemovedAndSeedsNew(t *testing.T) {
 	// new config gets only a timestamp of load time
 	assert.Equal(t, float64(300), testutil.ToFloat64(globalAggregateTimestamp.WithLabelValues("NEW")))
 	assert.False(t, globalAggregateValue.DeleteLabelValues("NEW"))
+}
+
+func TestSetAggregateIgnoresNotLoaded(t *testing.T) {
+	SetLocalAggregateConfigs(nil)
+	SetGlobalAggregateConfigs(nil)
+
+	SetLocalAggregate("NOT-LOADED", 1, time.Unix(100, 0))
+	SetGlobalAggregate("NOT-LOADED", 1, 1, time.Unix(100, 0))
+
+	assert.Equal(t, 0, testutil.CollectAndCount(localAggregateValue))
+	assert.Equal(t, 0, testutil.CollectAndCount(localAggregateTimestamp))
+	assert.Equal(t, 0, testutil.CollectAndCount(globalAggregateValue))
+	assert.Equal(t, 0, testutil.CollectAndCount(globalAggregateTimestamp))
 }
