@@ -103,38 +103,61 @@ func TestImportSnapshot(t *testing.T) {
 	s, _ := openTemp(t)
 	snap := sampleSnapshot()
 
-	res, err := importSnapshot(ctx, s, snap, false)
+	res, err := Apply(ctx, s, snap, false)
 	require.NoError(t, err)
 	assert.False(t, res.Unchanged)
 
 	// same content again: idempotent no-op, even if timestamps differ
 	again := sampleSnapshot()
 	again.Keys[2].CreatedAt = time.Now()
-	res, err = importSnapshot(ctx, s, again, false)
+	res, err = Apply(ctx, s, again, false)
 	require.NoError(t, err)
 	assert.True(t, res.Unchanged)
 
 	// only rounds advanced: updated without force
 	newer := sampleSnapshot()
 	newer.Rounds[0].Round = 43
-	res, err = importSnapshot(ctx, s, newer, false)
+	res, err = Apply(ctx, s, newer, false)
 	require.NoError(t, err)
 	assert.True(t, res.RoundsOnly)
 	got, err := s.Snapshot(ctx)
 	require.NoError(t, err)
 	assert.True(t, sameContent(newer, got))
 
+	// rounds regress or a config disappears: refused without force
+	older := sampleSnapshot()
+	_, err = Apply(ctx, s, older, false)
+	assert.ErrorIs(t, err, ErrStoreDiffers)
+	dropped := sampleSnapshot()
+	dropped.Rounds = []Round{{ConfigName: "BTC-USDT", Round: 43}}
+	_, err = Apply(ctx, s, dropped, false)
+	assert.ErrorIs(t, err, ErrStoreDiffers)
+
+	// rounds-only update keeps key rows (ids) untouched
+	before, err := s.SignerKeys(ctx)
+	require.NoError(t, err)
+	newest := sampleSnapshot()
+	newest.Rounds[0].Round = 44
+	newest.Rounds = append(newest.Rounds, Round{ConfigName: "NEW", Round: 1})
+	res, err = Apply(ctx, s, newest, false)
+	require.NoError(t, err)
+	assert.True(t, res.RoundsOnly)
+	after, err := s.SignerKeys(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, before, after)
+	newer = newest
+
 	// different keyring: refused without force, store untouched
 	changed := sampleSnapshot()
 	changed.Keys[0].State = "pending"
-	_, err = importSnapshot(ctx, s, changed, false)
-	assert.ErrorIs(t, err, ErrStoreNotEmpty)
+	_, err = Apply(ctx, s, changed, false)
+	assert.ErrorIs(t, err, ErrStoreDiffers)
 	got, err = s.Snapshot(ctx)
 	require.NoError(t, err)
 	assert.True(t, sameContent(newer, got))
 
 	// force replaces
-	res, err = importSnapshot(ctx, s, changed, true)
+	res, err = Apply(ctx, s, changed, true)
 	require.NoError(t, err)
 	assert.False(t, res.Unchanged)
 	assert.False(t, res.RoundsOnly)

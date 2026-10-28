@@ -23,6 +23,10 @@ func openTemp(t *testing.T) (*Store, string) {
 
 func strPtr(s string) *string { return &s }
 
+func sameContent(a, b Snapshot) bool {
+	return sameKeys(a.Keys, b.Keys) && sameRounds(a.Rounds, b.Rounds)
+}
+
 func sampleSnapshot() Snapshot {
 	t0 := time.Date(2026, 1, 2, 3, 4, 5, 123456000, time.UTC)
 	return Snapshot{

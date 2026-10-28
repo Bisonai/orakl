@@ -10,8 +10,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestImportFromPostgres runs against the migrated CI test database inside a
-// transaction that is rolled back, so it leaves no rows behind.
+// TestImportFromPostgres runs against the migrated CI test database. It
+// works on temp copies of the tables (pg_temp shadows public), inside a
+// transaction that is rolled back, so real rows are neither read nor touched.
 func TestImportFromPostgres(t *testing.T) {
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
@@ -36,8 +37,9 @@ func TestImportFromPostgres(t *testing.T) {
 		_, err := tx.Exec(ctx, sql, args...)
 		require.NoError(t, err)
 	}
-	exec("DELETE FROM signer_key")
-	exec("DELETE FROM signer")
+	for _, table := range []string{"signer_key", "signer", "configs", "global_aggregates"} {
+		exec("CREATE TEMP TABLE " + table + " (LIKE public." + table + " INCLUDING ALL) ON COMMIT DROP")
+	}
 	exec("INSERT INTO signer_key (address, pk, state, created_at) VALUES (NULL, $1, 'retired', now() - interval '1 day')", encRetired)
 	exec("INSERT INTO signer_key (address, pk, state, tx_hash) VALUES ($1, $2, 'active', '0xtx')", addrActive, encActive)
 	exec("INSERT INTO signer (pk, unique_dummy) VALUES ($1, TRUE)", encLegacy)
@@ -72,13 +74,7 @@ func TestImportFromPostgres(t *testing.T) {
 	assert.Equal(t, "pending", got.Keys[2].State)
 	assert.Equal(t, addrLegacy, *got.Keys[2].Address)
 
-	rounds := map[string]int32{}
-	for _, r := range got.Rounds {
-		rounds[r.ConfigName] = r.Round
-	}
-	assert.Equal(t, int32(10), rounds["NODESTATE-TEST-A"])
-	assert.Equal(t, int32(5), rounds["NODESTATE-TEST-B"])
-	assert.NotContains(t, rounds, "NODESTATE-TEST-C")
+	assert.Equal(t, []Round{{ConfigName: "NODESTATE-TEST-A", Round: 10}, {ConfigName: "NODESTATE-TEST-B", Round: 5}}, got.Rounds)
 
 	// re-run: idempotent
 	res, err = Import(ctx, tx, s, false)
@@ -103,7 +99,7 @@ func TestImportFromPostgres(t *testing.T) {
 	exec("DELETE FROM signer")
 	exec("INSERT INTO signer (pk, unique_dummy) VALUES ($1, TRUE)", reEncrypt(t, encActive))
 	_, err = Import(ctx, tx, s, false)
-	assert.ErrorIs(t, err, ErrStoreNotEmpty)
+	assert.ErrorIs(t, err, ErrStoreDiffers)
 	_, err = Import(ctx, tx, s, true)
 	require.NoError(t, err)
 	got, err = s.Snapshot(ctx)

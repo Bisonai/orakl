@@ -233,13 +233,14 @@ Use the `state` subcommand of the node binary (`nodebin` in the image, `go run .
 
 ```sh
 nodebin state import          # signer_key rows + legacy signer row (if not in keyring) + MAX(round) per config name
-nodebin state import -force   # replace a store whose keyring differs from PostgreSQL
+nodebin state import -force   # replace a store whose keyring (or newer rounds) differs from PostgreSQL
 nodebin state list            # address<TAB>state<TAB>tx_hash<TAB>updated_at, then config<TAB>round; never prints keys
 ```
 
 - Encrypted private keys are copied as-is (no re-encryption). Rounds are keyed by config **name**.
 - A legacy `signer` row whose key is not in `signer_key` is added as `active` if the keyring is empty, else as `pending`. If it cannot be decrypted (wrong `ENCRYPT_PASSWORD`), `import` fails.
-- Re-running against a store with the same keyring only updates rounds (prints `unchanged` if they did not advance either). If the keyring differs, `import` refuses unless `-force`, which replaces the whole store in one transaction.
+- PostgreSQL is read in one read-only `REPEATABLE READ` transaction; the SQLite file is created only after that read succeeds.
+- Re-running against a store with the same keyring only advances rounds (prints `unchanged` if none advanced). If the keyring differs, or a stored round is newer than in PostgreSQL (or its config is missing there), `import` refuses unless `-force`, which replaces the whole store in one transaction.
 
 ## Boot API
 

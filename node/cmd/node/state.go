@@ -5,10 +5,12 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"os"
 	"time"
 
 	"bisonai.com/miko/node/pkg/db"
 	"bisonai.com/miko/node/pkg/nodestate"
+	"github.com/jackc/pgx/v5"
 )
 
 const stateUsage = `usage: nodebin state <command>
@@ -21,9 +23,10 @@ commands:
                     ($DATABASE_URL) into SQLite (import creates the file).
                     Encrypted pks are copied as-is; ENCRYPT_PASSWORD is only
                     used to match the legacy signer row against the keyring.
-                    A store with the same keyring is left untouched apart
-                    from updated rounds; a store with a different keyring is
-                    refused unless -force, which replaces it.
+                    A store with the same keyring only gets its rounds
+                    advanced; a different keyring, or stored rounds newer
+                    than or missing from Postgres, is refused unless -force,
+                    which replaces the whole store.
   list              print signer key addresses + states and latest rounds
                     (never prints private keys)
 `
@@ -37,7 +40,7 @@ func runState(ctx context.Context, args []string, stdout io.Writer) error {
 	case "import":
 		fs := flag.NewFlagSet("import", flag.ContinueOnError)
 		fs.SetOutput(io.Discard)
-		force := fs.Bool("force", false, "overwrite a non-empty store")
+		force := fs.Bool("force", false, "replace a store with a different keyring or newer rounds")
 		if err := fs.Parse(args[1:]); err != nil || fs.NArg() != 0 {
 			return fmt.Errorf("%s", stateUsage)
 		}
@@ -53,11 +56,11 @@ func runState(ctx context.Context, args []string, stdout io.Writer) error {
 }
 
 func runStateImport(ctx context.Context, force bool, stdout io.Writer) error {
-	store, err := nodestate.OpenFromEnv(ctx, false)
-	if err != nil {
-		return err
+	// fail on a missing env before touching Postgres; create the file only
+	// after Postgres was read, so a failed read leaves no empty store behind
+	if os.Getenv(nodestate.EnvPath) == "" {
+		return fmt.Errorf("%s environment variable not set", nodestate.EnvPath)
 	}
-	defer store.Close()
 
 	pool, err := db.GetPool(ctx)
 	if err != nil {
@@ -65,7 +68,24 @@ func runStateImport(ctx context.Context, force bool, stdout io.Writer) error {
 	}
 	defer pool.Close()
 
-	result, err := nodestate.Import(ctx, pool, store, force)
+	// one consistent snapshot of keyring, legacy row and rounds
+	tx, err := pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.RepeatableRead, AccessMode: pgx.ReadOnly})
+	if err != nil {
+		return err
+	}
+	snap, err := nodestate.ReadPostgres(ctx, tx)
+	_ = tx.Rollback(ctx)
+	if err != nil {
+		return err
+	}
+
+	store, err := nodestate.OpenFromEnv(ctx, false)
+	if err != nil {
+		return err
+	}
+	defer store.Close()
+
+	result, err := nodestate.Apply(ctx, store, snap, force)
 	if err != nil {
 		return err
 	}

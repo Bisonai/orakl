@@ -22,11 +22,13 @@ const (
 		GROUP BY c.name ORDER BY c.name COLLATE "C"`
 )
 
-// ErrStoreNotEmpty is returned by Import when the store holds a different
-// keyring and force is not set.
-var ErrStoreNotEmpty = errors.New("sqlite state store holds a different signer keyring than Postgres (use -force to overwrite)")
+// ErrStoreDiffers is returned by Import/Apply when the store holds a
+// different keyring, or rounds newer than or missing from Postgres, and force
+// is not set.
+var ErrStoreDiffers = errors.New("sqlite state store holds a different signer keyring or newer rounds than Postgres (use -force to overwrite)")
 
-// Querier is satisfied by *pgxpool.Pool, *pgx.Conn and pgx.Tx.
+// Querier is satisfied by *pgxpool.Pool, *pgx.Conn and pgx.Tx. Pass a
+// REPEATABLE READ tx so all reads see one snapshot.
 type Querier interface {
 	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
 }
@@ -139,45 +141,45 @@ func deriveAddress(encryptedPk string) (string, bool) {
 	return strings.ToLower(addr), true
 }
 
-// Import copies Postgres state into store. An empty store is written. A
-// store with the same keyring is left as is, or gets its rounds updated if
-// they differ. A store with a different keyring is refused unless force.
+// Import reads Postgres and applies it to store (see Apply).
 func Import(ctx context.Context, q Querier, store *Store, force bool) (ImportResult, error) {
 	snap, err := ReadPostgres(ctx, q)
 	if err != nil {
 		return ImportResult{}, err
 	}
-	return importSnapshot(ctx, store, snap, force)
+	return Apply(ctx, store, snap, force)
 }
 
-func importSnapshot(ctx context.Context, store *Store, snap Snapshot, force bool) (ImportResult, error) {
+// Apply writes snap to store. An empty store is written. A store with the
+// same keyring is left as is, or gets only its rounds updated if every round
+// in snap is >= the stored one and no stored config is dropped. Anything else
+// is refused unless force, which replaces the whole store.
+func Apply(ctx context.Context, store *Store, snap Snapshot, force bool) (ImportResult, error) {
 	result := ImportResult{Snapshot: snap}
 
 	current, err := store.Snapshot(ctx)
 	if err != nil {
 		return ImportResult{}, err
 	}
-	if !current.IsEmpty() {
-		switch {
-		case sameKeys(current.Keys, snap.Keys) && sameRounds(current.Rounds, snap.Rounds):
+	if !current.IsEmpty() && !force {
+		if !sameKeys(current.Keys, snap.Keys) || !roundsAdvance(current.Rounds, snap.Rounds) {
+			return ImportResult{}, ErrStoreDiffers
+		}
+		if sameRounds(current.Rounds, snap.Rounds) {
 			result.Unchanged = true
 			return result, nil
-		case sameKeys(current.Keys, snap.Keys):
-			result.RoundsOnly = true
-		case !force:
-			return ImportResult{}, ErrStoreNotEmpty
 		}
+		if err := store.ReplaceRounds(ctx, snap.Rounds); err != nil {
+			return ImportResult{}, err
+		}
+		result.RoundsOnly = true
+		return result, nil
 	}
 
 	if err := store.Replace(ctx, snap); err != nil {
 		return ImportResult{}, err
 	}
 	return result, nil
-}
-
-// sameContent compares keys and rounds.
-func sameContent(a, b Snapshot) bool {
-	return sameKeys(a.Keys, b.Keys) && sameRounds(a.Rounds, b.Rounds)
 }
 
 // sameKeys compares order, address, pk, state and tx_hash. IDs and
@@ -201,6 +203,22 @@ func sameRounds(a, b []Round) bool {
 	}
 	for i := range a {
 		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
+// roundsAdvance reports whether next keeps every config in cur at the same or
+// a higher round (new configs allowed).
+func roundsAdvance(cur, next []Round) bool {
+	nextByName := make(map[string]int32, len(next))
+	for _, r := range next {
+		nextByName[r.ConfigName] = r.Round
+	}
+	for _, r := range cur {
+		n, ok := nextByName[r.ConfigName]
+		if !ok || n < r.Round {
 			return false
 		}
 	}

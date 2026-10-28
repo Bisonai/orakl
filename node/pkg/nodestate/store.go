@@ -155,9 +155,6 @@ func (s *Store) Replace(ctx context.Context, snap Snapshot) error {
 	if _, err := tx.ExecContext(ctx, "DELETE FROM signer_key"); err != nil {
 		return err
 	}
-	if _, err := tx.ExecContext(ctx, "DELETE FROM latest_round"); err != nil {
-		return err
-	}
 	for _, k := range snap.Keys {
 		_, err := tx.ExecContext(ctx,
 			"INSERT INTO signer_key (address, pk, state, tx_hash, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
@@ -167,12 +164,36 @@ func (s *Store) Replace(ctx context.Context, snap Snapshot) error {
 			return fmt.Errorf("insert signer_key: %w", err)
 		}
 	}
-	for _, r := range snap.Rounds {
+	if err := insertRounds(ctx, tx, snap.Rounds); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+// ReplaceRounds atomically swaps all latest rounds, leaving the keyring as is.
+func (s *Store) ReplaceRounds(ctx context.Context, rounds []Round) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	if err := insertRounds(ctx, tx, rounds); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+func insertRounds(ctx context.Context, tx *sql.Tx, rounds []Round) error {
+	if _, err := tx.ExecContext(ctx, "DELETE FROM latest_round"); err != nil {
+		return err
+	}
+	for _, r := range rounds {
 		if _, err := tx.ExecContext(ctx, "INSERT INTO latest_round (config_name, round) VALUES (?, ?)", r.ConfigName, r.Round); err != nil {
 			return fmt.Errorf("insert latest_round %s: %w", r.ConfigName, err)
 		}
 	}
-	return tx.Commit()
+	return nil
 }
 
 func nullable(s *string) any {
