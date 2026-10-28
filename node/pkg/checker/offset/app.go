@@ -96,8 +96,9 @@ func Start(ctx context.Context) error {
 			log.Info().Msg("context cancelled, shutting down")
 			return ctx.Err()
 		case <-ticker.C:
-			go checkOffsets(ctx)
 			go checkPorOffsets(ctx, serviceDB)
+			// synchronous: alarm counters are not safe for concurrent runs
+			checkOffsets(ctx)
 		}
 	}
 }
@@ -132,7 +133,11 @@ func checkPorOffsets(ctx context.Context, serviceDB *pgxpool.Pool) {
 func checkOffsets(ctx context.Context) {
 	nodeAdminUrl := os.Getenv("ORAKL_NODE_ADMIN_URL")
 	if nodeAdminUrl == "" {
-		log.Error().Msg("ORAKL_NODE_ADMIN_URL not found")
+		err := errors.New("ORAKL_NODE_ADMIN_URL not found")
+		log.Error().Err(err).Msg("Error getting node aggregate metrics")
+		if msg := metricsFetchFailureMessage(err); msg != "" {
+			alert.SlackAlert(msg)
+		}
 		return
 	}
 

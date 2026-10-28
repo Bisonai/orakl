@@ -38,18 +38,27 @@ var (
 	globalAggregates = &configGauges{vecs: []*prometheus.GaugeVec{globalAggregateValue, globalAggregateRound, globalAggregateTimestamp}, timestamp: globalAggregateTimestamp}
 )
 
-// configGauges tracks the loaded config names so that series of configs
-// removed on refresh can be dropped.
+// configGauges tracks the loaded config names (with the timestamp of their
+// latest aggregate, zero if none yet) so that series of configs removed on
+// refresh can be dropped and older aggregates don't overwrite newer ones.
 type configGauges struct {
 	mu        sync.Mutex
-	names     map[string]struct{}
+	names     map[string]time.Time
 	vecs      []*prometheus.GaugeVec
 	timestamp *prometheus.GaugeVec
 }
 
-func (g *configGauges) loaded(name string) bool {
-	_, ok := g.names[name]
-	return ok
+// accept reports whether an aggregate of name at timestamp should be recorded:
+// the name is loaded and the aggregate is not older than the recorded one (a
+// late round, e.g. finished by the proof collection timeout, must not move
+// the gauges backwards). Caller holds mu.
+func (g *configGauges) accept(name string, timestamp time.Time) bool {
+	latest, ok := g.names[name]
+	if !ok || timestamp.Before(latest) {
+		return false
+	}
+	g.names[name] = timestamp
+	return true
 }
 
 // setConfigs drops series of names not in the loaded config set, and gives
@@ -80,9 +89,9 @@ func (g *configGauges) setConfigs(names []string, now time.Time) {
 		}
 		g.timestamp.WithLabelValues(name).Set(unixSeconds(now))
 		if g.names == nil {
-			g.names = make(map[string]struct{})
+			g.names = make(map[string]time.Time)
 		}
-		g.names[name] = struct{}{}
+		g.names[name] = time.Time{}
 	}
 }
 
@@ -105,18 +114,19 @@ func SetGlobalAggregateConfigs(names []string) {
 func SetLocalAggregate(name string, value int64, timestamp time.Time) {
 	localAggregates.mu.Lock()
 	defer localAggregates.mu.Unlock()
-	if !localAggregates.loaded(name) {
+	if !localAggregates.accept(name, timestamp) {
 		return
 	}
 	localAggregateValue.WithLabelValues(name).Set(float64(value))
 	localAggregateTimestamp.WithLabelValues(name).Set(unixSeconds(timestamp))
 }
 
-// SetGlobalAggregate records a global aggregate; ignored for names not loaded.
+// SetGlobalAggregate records a global aggregate; ignored for names not loaded
+// or aggregates older than the recorded one.
 func SetGlobalAggregate(name string, value int64, round int32, timestamp time.Time) {
 	globalAggregates.mu.Lock()
 	defer globalAggregates.mu.Unlock()
-	if !globalAggregates.loaded(name) {
+	if !globalAggregates.accept(name, timestamp) {
 		return
 	}
 	globalAggregateValue.WithLabelValues(name).Set(float64(value))

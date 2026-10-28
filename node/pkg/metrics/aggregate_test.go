@@ -65,3 +65,15 @@ func TestSetAggregateIgnoresNotLoaded(t *testing.T) {
 	assert.Equal(t, 0, testutil.CollectAndCount(globalAggregateValue))
 	assert.Equal(t, 0, testutil.CollectAndCount(globalAggregateTimestamp))
 }
+
+func TestSetGlobalAggregateIgnoresOlder(t *testing.T) {
+	SetGlobalAggregateConfigs([]string{"ORDER"})
+	t.Cleanup(func() { SetGlobalAggregateConfigs(nil) })
+
+	SetGlobalAggregate("ORDER", 2, 11, time.Unix(200, 0))
+	SetGlobalAggregate("ORDER", 1, 10, time.Unix(100, 0))
+
+	assert.Equal(t, float64(2), testutil.ToFloat64(globalAggregateValue.WithLabelValues("ORDER")))
+	assert.Equal(t, float64(11), testutil.ToFloat64(globalAggregateRound.WithLabelValues("ORDER")))
+	assert.Equal(t, float64(200), testutil.ToFloat64(globalAggregateTimestamp.WithLabelValues("ORDER")))
+}
