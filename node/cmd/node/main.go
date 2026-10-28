@@ -40,7 +40,8 @@ func main() {
 	state, err := nodestate.OpenFromEnv(ctx, true)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to open node state")
-		return
+		fmt.Fprintln(os.Stderr, "failed to open node state:", err)
+		os.Exit(1)
 	}
 	defer state.Close()
 
