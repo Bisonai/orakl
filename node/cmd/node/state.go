@@ -2,15 +2,17 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"os"
 	"time"
 
-	"bisonai.com/miko/node/pkg/db"
 	"bisonai.com/miko/node/pkg/nodestate"
+	"bisonai.com/miko/node/pkg/secrets"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 const stateUsage = `usage: nodebin state <command>
@@ -62,11 +64,21 @@ func runStateImport(ctx context.Context, force bool, stdout io.Writer) error {
 		return fmt.Errorf("%s environment variable not set", nodestate.EnvPath)
 	}
 
-	pool, err := db.GetPool(ctx)
+	// own pool (not db.GetPool) so a bad DATABASE_URL errors out with a timeout
+	dsn := secrets.GetSecret("DATABASE_URL")
+	if dsn == "" {
+		return errors.New("DATABASE_URL not set")
+	}
+	pool, err := pgxpool.New(ctx, dsn)
 	if err != nil {
 		return fmt.Errorf("connect postgres: %w", err)
 	}
 	defer pool.Close()
+	pingCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	if err := pool.Ping(pingCtx); err != nil {
+		return fmt.Errorf("connect postgres: %w", err)
+	}
 
 	// one consistent snapshot of keyring, legacy row and rounds
 	tx, err := pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.RepeatableRead, AccessMode: pgx.ReadOnly})

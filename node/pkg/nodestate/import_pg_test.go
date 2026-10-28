@@ -10,9 +10,18 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func importPG(ctx context.Context, q Querier, store *Store, force bool) (ImportResult, error) {
+	snap, err := ReadPostgres(ctx, q)
+	if err != nil {
+		return ImportResult{}, err
+	}
+	return Apply(ctx, store, snap, force)
+}
+
 // TestImportFromPostgres runs against the migrated CI test database. It
 // works on temp copies of the tables (pg_temp shadows public), inside a
-// transaction that is rolled back, so real rows are neither read nor touched.
+// transaction that is rolled back, so real rows are neither read nor touched
+// (only the shared id sequences advance).
 func TestImportFromPostgres(t *testing.T) {
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
@@ -54,7 +63,7 @@ func TestImportFromPostgres(t *testing.T) {
 	exec("INSERT INTO global_aggregates (config_id, value, round) VALUES ($1, 1, 5)", cfgB)
 
 	s, _ := openTemp(t)
-	res, err := Import(ctx, tx, s, false)
+	res, err := importPG(ctx, tx, s, false)
 	require.NoError(t, err)
 	assert.False(t, res.Unchanged)
 
@@ -77,13 +86,13 @@ func TestImportFromPostgres(t *testing.T) {
 	assert.Equal(t, []Round{{ConfigName: "NODESTATE-TEST-A", Round: 10}, {ConfigName: "NODESTATE-TEST-B", Round: 5}}, got.Rounds)
 
 	// re-run: idempotent
-	res, err = Import(ctx, tx, s, false)
+	res, err = importPG(ctx, tx, s, false)
 	require.NoError(t, err)
 	assert.True(t, res.Unchanged)
 
 	// new round: updated without force
 	exec("INSERT INTO global_aggregates (config_id, value, round) VALUES ($1, 1, 11)", cfgA)
-	res, err = Import(ctx, tx, s, false)
+	res, err = importPG(ctx, tx, s, false)
 	require.NoError(t, err)
 	assert.True(t, res.RoundsOnly)
 	got, err = s.Snapshot(ctx)
@@ -98,9 +107,9 @@ func TestImportFromPostgres(t *testing.T) {
 	// it is not duplicated): refused without force, applied with force
 	exec("DELETE FROM signer")
 	exec("INSERT INTO signer (pk, unique_dummy) VALUES ($1, TRUE)", reEncrypt(t, encActive))
-	_, err = Import(ctx, tx, s, false)
+	_, err = importPG(ctx, tx, s, false)
 	assert.ErrorIs(t, err, ErrStoreDiffers)
-	_, err = Import(ctx, tx, s, true)
+	_, err = importPG(ctx, tx, s, true)
 	require.NoError(t, err)
 	got, err = s.Snapshot(ctx)
 	require.NoError(t, err)

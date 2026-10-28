@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS signer_key (
 	updated_at TEXT NOT NULL
 );
 CREATE UNIQUE INDEX IF NOT EXISTS signer_key_one_active ON signer_key (state)   WHERE state = 'active';
-CREATE UNIQUE INDEX IF NOT EXISTS signer_key_addr       ON signer_key (address) WHERE address IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS signer_key_addr       ON signer_key (address COLLATE NOCASE) WHERE address IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS latest_round (
 	config_name TEXT PRIMARY KEY,

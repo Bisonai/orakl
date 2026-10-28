@@ -42,9 +42,9 @@ func TestLegacyKey(t *testing.T) {
 	encB, addrB := newEncryptedKey(t)
 
 	t.Run("empty keyring -> active with address", func(t *testing.T) {
-		k, warning := legacyKey(nil, encA, now)
+		k, err := legacyKey(nil, encA, now)
+		require.NoError(t, err)
 		require.NotNil(t, k)
-		assert.Empty(t, warning)
 		assert.Equal(t, "active", k.State)
 		assert.Equal(t, encA, k.PK)
 		require.NotNil(t, k.Address)
@@ -52,7 +52,8 @@ func TestLegacyKey(t *testing.T) {
 	})
 
 	t.Run("same ciphertext in keyring -> skipped", func(t *testing.T) {
-		k, _ := legacyKey([]utils.SignerKey{{PK: encA, State: "active"}}, encA, now)
+		k, err := legacyKey([]utils.SignerKey{{PK: encA, State: "active"}}, encA, now)
+		require.NoError(t, err)
 		assert.Nil(t, k)
 	})
 
@@ -60,13 +61,15 @@ func TestLegacyKey(t *testing.T) {
 		reEnc := reEncrypt(t, encA)
 		require.NotEqual(t, encA, reEnc)
 		upper := strings.ToUpper(addrA[2:])
-		k, _ := legacyKey([]utils.SignerKey{{Address: strPtr("0x" + upper), PK: encA, State: "active"}}, reEnc, now)
+		k, err := legacyKey([]utils.SignerKey{{Address: strPtr("0x" + upper), PK: encA, State: "active"}}, reEnc, now)
+		require.NoError(t, err)
 		assert.Nil(t, k)
 	})
 
 	t.Run("re-encrypted same key, keyring address NULL -> skipped", func(t *testing.T) {
 		reEnc := reEncrypt(t, encA)
-		k, _ := legacyKey([]utils.SignerKey{{PK: encA, State: "active"}}, reEnc, now)
+		k, err := legacyKey([]utils.SignerKey{{PK: encA, State: "active"}}, reEnc, now)
+		require.NoError(t, err)
 		assert.Nil(t, k)
 	})
 

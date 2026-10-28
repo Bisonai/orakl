@@ -22,7 +22,7 @@ const (
 		GROUP BY c.name ORDER BY c.name COLLATE "C"`
 )
 
-// ErrStoreDiffers is returned by Import/Apply when the store holds a
+// ErrStoreDiffers is returned by Apply when the store holds a
 // different keyring, or rounds newer than or missing from Postgres, and force
 // is not set.
 var ErrStoreDiffers = errors.New("sqlite state store holds a different signer keyring or newer rounds than Postgres (use -force to overwrite)")
@@ -139,15 +139,6 @@ func deriveAddress(encryptedPk string) (string, bool) {
 		return "", false
 	}
 	return strings.ToLower(addr), true
-}
-
-// Import reads Postgres and applies it to store (see Apply).
-func Import(ctx context.Context, q Querier, store *Store, force bool) (ImportResult, error) {
-	snap, err := ReadPostgres(ctx, q)
-	if err != nil {
-		return ImportResult{}, err
-	}
-	return Apply(ctx, store, snap, force)
 }
 
 // Apply writes snap to store. An empty store is written. A store with the
