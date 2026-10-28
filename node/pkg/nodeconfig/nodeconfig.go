@@ -115,7 +115,7 @@ func URL() string {
 // Sync loads the bundle from URL() and replaces the store content. On error
 // the previous content is kept.
 func (s *Store) Sync(ctx context.Context) error {
-	entries, err := request.Request[[]Entry](request.WithEndpoint(URL()))
+	entries, err := request.Request[[]Entry](request.WithEndpoint(URL()), request.WithContext(ctx))
 	if err != nil {
 		return fmt.Errorf("load config bundle %s: %w", URL(), err)
 	}

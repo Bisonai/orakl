@@ -253,7 +253,7 @@ func TestLoadProxies(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Empty(t, proxies)
 
-	t.Setenv(EnvProxies, " http://172.0.200.20:4000 , kr=http://3.39.22.82:80")
+	t.Setenv(EnvProxies, " http://172.0.200.20:4000/ , kr=http://3.39.22.82:80,")
 	proxies, err = loadProxies()
 	assert.NoError(t, err)
 	if assert.Len(t, proxies, 2) {
@@ -265,7 +265,7 @@ func TestLoadProxies(t *testing.T) {
 		}
 	}
 
-	for _, bad := range []string{"172.0.200.20:4000", "http://host", "http://host:0", "http://host:4000/path", "http://user:pw@host:4000", "kr=", "http://a:1,"} {
+	for _, bad := range []string{"172.0.200.20:4000", "http://host", "http://host:0", "http://host:4000/path", "http://user:pw@host:4000", "kr="} {
 		t.Setenv(EnvProxies, bad)
 		_, err = loadProxies()
 		assert.Error(t, err, bad)

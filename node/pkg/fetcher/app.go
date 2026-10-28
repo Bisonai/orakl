@@ -356,7 +356,8 @@ func (a *App) buildState(ctx context.Context) (*fetcherState, error) {
 	}, nil
 }
 
-// loadProxies parses EnvProxies; unset or empty means no proxies.
+// loadProxies parses EnvProxies; unset or empty means no proxies. Empty
+// entries (e.g. a trailing comma) are skipped.
 func loadProxies() ([]Proxy, error) {
 	raw := strings.TrimSpace(os.Getenv(EnvProxies))
 	if raw == "" {
@@ -365,6 +366,9 @@ func loadProxies() ([]Proxy, error) {
 	var proxies []Proxy
 	for i, entry := range strings.Split(raw, ",") {
 		entry = strings.TrimSpace(entry)
+		if entry == "" {
+			continue
+		}
 		var location *string
 		if loc, rest, ok := strings.Cut(entry, "="); ok {
 			loc = strings.TrimSpace(loc)
@@ -372,7 +376,7 @@ func loadProxies() ([]Proxy, error) {
 			entry = strings.TrimSpace(rest)
 		}
 		u, err := url.Parse(entry)
-		if err != nil || u.Scheme == "" || u.Hostname() == "" || u.Path != "" || u.RawQuery != "" || u.User != nil {
+		if err != nil || u.Scheme == "" || u.Hostname() == "" || (u.Path != "" && u.Path != "/") || u.RawQuery != "" || u.User != nil {
 			return nil, fmt.Errorf("%s: invalid proxy %q, want [location=]protocol://host:port", EnvProxies, entry)
 		}
 		port, err := strconv.Atoi(u.Port())
