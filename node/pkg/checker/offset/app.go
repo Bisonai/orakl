@@ -16,7 +16,7 @@ import (
 	"bisonai.com/miko/node/pkg/alert"
 	"bisonai.com/miko/node/pkg/checker"
 	"bisonai.com/miko/node/pkg/db"
-	nodemetrics "bisonai.com/miko/node/pkg/metrics"
+	metricnames "bisonai.com/miko/node/pkg/metrics/names"
 	"bisonai.com/miko/node/pkg/secrets"
 	"bisonai.com/miko/node/pkg/utils/request"
 
@@ -172,6 +172,18 @@ func offsetAlarmMessage(aggregates map[string]*aggregateMetrics, now time.Time) 
 	}
 	slices.Sort(names)
 
+	// drop counts of configs no longer served by the node
+	for name := range localAggregateAlarmCount {
+		if _, ok := aggregates[name]; !ok {
+			delete(localAggregateAlarmCount, name)
+		}
+	}
+	for name := range globalAggregateAlarmCount {
+		if _, ok := aggregates[name]; !ok {
+			delete(globalAggregateAlarmCount, name)
+		}
+	}
+
 	nowSeconds := float64(now.UnixNano()) / 1e9
 	localAggregateDelayedOffsetCount := 0
 	globalAggregateDelayedOffsetCount := 0
@@ -263,7 +275,7 @@ func parseAggregateMetrics(r io.Reader) (map[string]*aggregateMetrics, error) {
 		for _, metric := range family.GetMetric() {
 			name := ""
 			for _, label := range metric.GetLabel() {
-				if label.GetName() == nodemetrics.NameLabel {
+				if label.GetName() == metricnames.NameLabel {
 					name = label.GetValue()
 				}
 			}
@@ -278,10 +290,10 @@ func parseAggregateMetrics(r io.Reader) (map[string]*aggregateMetrics, error) {
 		}
 	}
 
-	collect(nodemetrics.LocalAggregateValueName, func(a *aggregateMetrics) **float64 { return &a.LocalValue })
-	collect(nodemetrics.LocalAggregateTimestampName, func(a *aggregateMetrics) **float64 { return &a.LocalTimestamp })
-	collect(nodemetrics.GlobalAggregateValueName, func(a *aggregateMetrics) **float64 { return &a.GlobalValue })
-	collect(nodemetrics.GlobalAggregateTimestampName, func(a *aggregateMetrics) **float64 { return &a.GlobalTimestamp })
+	collect(metricnames.LocalAggregateValue, func(a *aggregateMetrics) **float64 { return &a.LocalValue })
+	collect(metricnames.LocalAggregateTimestamp, func(a *aggregateMetrics) **float64 { return &a.LocalTimestamp })
+	collect(metricnames.GlobalAggregateValue, func(a *aggregateMetrics) **float64 { return &a.GlobalValue })
+	collect(metricnames.GlobalAggregateTimestamp, func(a *aggregateMetrics) **float64 { return &a.GlobalTimestamp })
 
 	return aggregates, nil
 }

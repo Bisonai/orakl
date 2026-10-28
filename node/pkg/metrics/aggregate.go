@@ -7,41 +7,32 @@ import (
 	"sync"
 	"time"
 
+	metricnames "bisonai.com/miko/node/pkg/metrics/names"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
-const (
-	LocalAggregateValueName      = "orakl_node_local_aggregate_value"
-	LocalAggregateTimestampName  = "orakl_node_local_aggregate_timestamp_seconds"
-	GlobalAggregateValueName     = "orakl_node_global_aggregate_value"
-	GlobalAggregateRoundName     = "orakl_node_global_aggregate_round"
-	GlobalAggregateTimestampName = "orakl_node_global_aggregate_timestamp_seconds"
-
-	NameLabel = "name"
-)
-
 var (
 	localAggregateValue = promauto.NewGaugeVec(prometheus.GaugeOpts{
-		Name: LocalAggregateValueName,
+		Name: metricnames.LocalAggregateValue,
 		Help: "Latest local aggregate value per config",
-	}, []string{NameLabel})
+	}, []string{metricnames.NameLabel})
 	localAggregateTimestamp = promauto.NewGaugeVec(prometheus.GaugeOpts{
-		Name: LocalAggregateTimestampName,
+		Name: metricnames.LocalAggregateTimestamp,
 		Help: "Unix timestamp of the latest local aggregate per config (time the config was loaded if none yet)",
-	}, []string{NameLabel})
+	}, []string{metricnames.NameLabel})
 	globalAggregateValue = promauto.NewGaugeVec(prometheus.GaugeOpts{
-		Name: GlobalAggregateValueName,
+		Name: metricnames.GlobalAggregateValue,
 		Help: "Latest global aggregate value per config",
-	}, []string{NameLabel})
+	}, []string{metricnames.NameLabel})
 	globalAggregateRound = promauto.NewGaugeVec(prometheus.GaugeOpts{
-		Name: GlobalAggregateRoundName,
+		Name: metricnames.GlobalAggregateRound,
 		Help: "Round of the latest global aggregate per config",
-	}, []string{NameLabel})
+	}, []string{metricnames.NameLabel})
 	globalAggregateTimestamp = promauto.NewGaugeVec(prometheus.GaugeOpts{
-		Name: GlobalAggregateTimestampName,
+		Name: metricnames.GlobalAggregateTimestamp,
 		Help: "Unix timestamp of the latest global aggregate per config (time the config was loaded if none yet)",
-	}, []string{NameLabel})
+	}, []string{metricnames.NameLabel})
 
 	localAggregates  = &configGauges{vecs: []*prometheus.GaugeVec{localAggregateValue, localAggregateTimestamp}, timestamp: localAggregateTimestamp}
 	globalAggregates = &configGauges{vecs: []*prometheus.GaugeVec{globalAggregateValue, globalAggregateRound, globalAggregateTimestamp}, timestamp: globalAggregateTimestamp}

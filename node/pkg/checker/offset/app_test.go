@@ -206,3 +206,14 @@ func TestMetricsFetchFailureMessage(t *testing.T) {
 	assert.Contains(t, metricsFetchFailureMessage(err), "failed to read node metrics")
 	assert.Equal(t, 0, metricsFetchFailCount)
 }
+
+func TestOffsetAlarmDropsCountsOfRemovedConfigs(t *testing.T) {
+	resetAlarmCounts()
+	now := time.Unix(1700000000, 0)
+	offsetAlarmMessage(mustParse(t, metricsText(now, time.Minute, time.Minute, 100, 100)), now)
+	assert.Equal(t, 1, localAggregateAlarmCount["BTC-USDT"])
+
+	offsetAlarmMessage(map[string]*aggregateMetrics{}, now)
+	assert.NotContains(t, localAggregateAlarmCount, "BTC-USDT")
+	assert.NotContains(t, globalAggregateAlarmCount, "BTC-USDT")
+}

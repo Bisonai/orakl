@@ -84,12 +84,8 @@ func (a *App) setAggregators(ctx context.Context, h host.Host, ps *pubsub.PubSub
 		return err
 	}
 
-	err = a.initializeLoadedAggregators(ctx, configs, h, ps)
-	if err != nil {
-		return err
-	}
 	syncGlobalAggregateMetrics(configs)
-	return nil
+	return a.initializeLoadedAggregators(ctx, configs, h, ps)
 }
 
 func (a *App) clearAggregators() error {
