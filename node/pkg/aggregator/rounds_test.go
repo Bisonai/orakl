@@ -50,7 +50,7 @@ func TestRoundRestartContinuesAfterStored(t *testing.T) {
 
 	st := openRoundState(t, path)
 	agg := newRoundTestAggregator(t, ctx, "BTC-USDT", newRoundPersister(st))
-	agg.loadLatestRound(ctx)
+	require.NoError(t, agg.loadLatestRound(ctx))
 	require.Equal(t, int32(1), agg.RoundID, "fresh store starts at 1")
 
 	agg.RoundID = 41
@@ -61,7 +61,7 @@ func TestRoundRestartContinuesAfterStored(t *testing.T) {
 
 	st2 := openRoundState(t, path)
 	agg2 := newRoundTestAggregator(t, ctx, "BTC-USDT", newRoundPersister(st2))
-	agg2.loadLatestRound(ctx)
+	require.NoError(t, agg2.loadLatestRound(ctx))
 	assert.Equal(t, int32(43), agg2.RoundID)
 
 	require.NoError(t, agg2.LeaderJob(ctx))
@@ -137,13 +137,20 @@ func TestRoundPersisterLatestUsesMemory(t *testing.T) {
 }
 
 type failingRoundStore struct {
-	mu    sync.Mutex
-	fail  bool
-	saved map[string]int32
+	mu        sync.Mutex
+	fail      bool
+	readFails int // LatestRound fails this many times, then returns 77
+	saved     map[string]int32
 }
 
 func (f *failingRoundStore) LatestRound(context.Context, string) (int32, bool, error) {
-	return 0, false, nil
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.readFails > 0 {
+		f.readFails--
+		return 0, false, errors.New("database is locked")
+	}
+	return 77, true, nil
 }
 
 func (f *failingRoundStore) SaveRounds(_ context.Context, rounds map[string]int32) error {
@@ -171,4 +178,24 @@ func TestRoundPersisterFlushRetriesAfterError(t *testing.T) {
 	store.fail = false
 	require.NoError(t, p.Flush(ctx))
 	assert.Equal(t, map[string]int32{"A": 8}, store.saved)
+}
+
+// A failed read of the stored round is retried, never falls back to round 1.
+func TestLoadLatestRoundRetriesReadError(t *testing.T) {
+	orig := loadLatestRoundRetryDelay
+	loadLatestRoundRetryDelay = time.Millisecond
+	defer func() { loadLatestRoundRetryDelay = orig }()
+
+	store := &failingRoundStore{readFails: 3, saved: map[string]int32{}}
+	agg := &Aggregator{Config: Config{Name: "A"}, RoundID: 1, rounds: newRoundPersister(store)}
+	require.NoError(t, agg.loadLatestRound(context.Background()))
+	assert.Equal(t, int32(78), agg.RoundID)
+
+	// gives up only when ctx is done, leaving RoundID untouched
+	store.readFails = 1 << 30
+	agg2 := &Aggregator{Config: Config{Name: "B"}, RoundID: 1, rounds: newRoundPersister(store)}
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
+	defer cancel()
+	assert.Error(t, agg2.loadLatestRound(ctx))
+	assert.Equal(t, int32(1), agg2.RoundID)
 }

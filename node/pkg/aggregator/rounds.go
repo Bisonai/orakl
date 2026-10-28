@@ -15,8 +15,9 @@ import (
 // leader's first round is stored+2, which covers that one lost round.
 const roundFlushInterval = 100 * time.Millisecond
 
-// roundFlushRetryDelay is the wait before retrying a failed round write.
-const roundFlushRetryDelay = time.Second
+// roundFlushRetryDelay is the wait before retrying a failed round write; kept
+// well under one aggregate interval so a transient error loses no extra round.
+const roundFlushRetryDelay = 200 * time.Millisecond
 
 // roundStore persists the latest round per config name (nodestate.Store).
 type roundStore interface {
@@ -71,6 +72,9 @@ func (p *roundPersister) Advance(name string, round int32) {
 // Latest returns the highest known round for name: the in-memory value if
 // any, else the stored one (0 if none).
 func (p *roundPersister) Latest(ctx context.Context, name string) (int32, error) {
+	if p == nil {
+		return 0, nil
+	}
 	p.mu.Lock()
 	round, ok := p.known[name]
 	p.mu.Unlock()

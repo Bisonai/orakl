@@ -57,10 +57,16 @@ func TestSetAndQuery(t *testing.T) {
 	assert.Equal(t, 16, *krw.Decimals)
 
 	assert.Len(t, s.Feeds(btc.ID), 3)
-	http := s.HTTPFeeds(btc.ID)
+	withFeeds := s.ConfigsWithFeeds()
+	require.Len(t, withFeeds, 2)
+	assert.Equal(t, btc, withFeeds[0].Config)
+	assert.Len(t, withFeeds[0].Feeds, 3)
+	http := withFeeds[0].HTTPFeeds
 	require.Len(t, http, 1)
 	assert.Equal(t, "http-BTC-USDT", http[0].Name)
 	assert.Equal(t, btc.ID, http[0].ConfigID)
+	assert.Equal(t, krw, withFeeds[1].Config)
+	assert.Len(t, withFeeds[1].HTTPFeeds, 1)
 
 	wss := s.FeedsOfType("wss")
 	require.Len(t, wss, 1)

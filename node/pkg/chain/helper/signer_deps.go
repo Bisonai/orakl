@@ -2,6 +2,7 @@ package helper
 
 import (
 	"context"
+	"fmt"
 	"math/big"
 	"strings"
 	"time"
@@ -84,8 +85,11 @@ type sqliteSignerStore struct {
 	state *nodestate.Store
 }
 
-// LoadKeys skips rows whose PK cannot be decrypted (e.g. a changed
-// ENCRYPT_PASSWORD) with a warning, so one bad row never hides a usable key.
+// LoadKeys skips rows whose PK cannot be decrypted (or decrypts to a key not
+// matching the row's address) with a warning, so one bad row never hides a
+// usable key. If no row decrypts (e.g. wrong
+// ENCRYPT_PASSWORD) it errors instead of returning an empty keyring, which
+// would make NewSigner seed SIGNER_PK over the live keyring.
 func (s sqliteSignerStore) LoadKeys(ctx context.Context) ([]utils.SignerKey, error) {
 	rows, err := s.state.SignerKeys(ctx)
 	if err != nil {
@@ -101,8 +105,19 @@ func (s sqliteSignerStore) LoadKeys(ctx context.Context) ([]utils.SignerKey, err
 			log.Warn().Err(decErr).Int64("id", r.ID).Msg("failed to decrypt signer_key row; skipping")
 			continue
 		}
-		r.PK = strings.TrimPrefix(decrypted, "0x")
+		pkHex := strings.TrimPrefix(decrypted, "0x")
+		// AES-CTR has no auth tag: a wrong password "decrypts" to garbage, so
+		// check that the result is a key matching the stored address
+		addr, addrErr := utils.StringPkToAddressHex(pkHex)
+		if addrErr != nil || (r.Address != nil && *r.Address != "" && !strings.EqualFold(addr, *r.Address)) {
+			log.Warn().Int64("id", r.ID).Msg("signer_key row does not decrypt to its key; skipping")
+			continue
+		}
+		r.PK = pkHex
 		result = append(result, r)
+	}
+	if len(rows) > 0 && len(result) == 0 {
+		return nil, fmt.Errorf("none of %d signer keys could be decrypted (check ENCRYPT_PASSWORD)", len(rows))
 	}
 	return result, nil
 }

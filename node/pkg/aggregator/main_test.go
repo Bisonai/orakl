@@ -79,6 +79,8 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 		return nil, nil, err
 	}
 	testItems.signer = signHelper
+	// the app has no state store, so it must not build its own managed signer
+	app.Signer = signHelper
 
 	v1 := admin.Group("/api/v1")
 	aggregator.Routes(v1)

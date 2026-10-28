@@ -66,25 +66,36 @@ func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string, config Co
 }
 
 func (n *Aggregator) Run(ctx context.Context) {
-	n.loadLatestRound(ctx)
+	if err := n.loadLatestRound(ctx); err != nil {
+		return // ctx done
+	}
 	n.Raft.Run(ctx)
 }
 
+// loadLatestRoundRetryDelay is the wait between attempts to read the stored round.
+var loadLatestRoundRetryDelay = time.Second
+
 // loadLatestRound continues after the latest persisted (or, after a refresh,
 // in-memory) round, so a restarted node never reuses a round it already used.
-func (n *Aggregator) loadLatestRound(ctx context.Context) {
-	if n.rounds == nil {
-		return
+// A read error is retried until ctx is done: starting from round 1 instead
+// would reissue used round IDs.
+func (n *Aggregator) loadLatestRound(ctx context.Context) error {
+	for {
+		latestRoundId, err := n.rounds.Latest(ctx, n.Name)
+		if err == nil {
+			n.mu.Lock()
+			// never go back: a restart of a running aggregator keeps its in-memory round
+			n.RoundID = max(n.RoundID, latestRoundId+1)
+			n.mu.Unlock()
+			return nil
+		}
+		log.Error().Str("Player", "Aggregator").Str("name", n.Name).Err(err).Msg("failed to load latest round id, retrying")
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(loadLatestRoundRetryDelay):
+		}
 	}
-	latestRoundId, err := n.rounds.Latest(ctx, n.Name)
-	if err != nil {
-		log.Error().Str("Player", "Aggregator").Str("name", n.Name).Err(err).Int32("roundId", n.RoundID).Msg("failed to load latest round id")
-		return
-	}
-	n.mu.Lock()
-	// never go back: a restart of a running aggregator keeps its in-memory round
-	n.RoundID = max(n.RoundID, latestRoundId+1)
-	n.mu.Unlock()
 }
 
 func (n *Aggregator) LeaderJob(ctx context.Context) error {

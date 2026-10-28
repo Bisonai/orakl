@@ -326,20 +326,18 @@ func (a *App) buildState(ctx context.Context) (*fetcherState, error) {
 		return nil, err
 	}
 
-	configs := a.Configs.Configs()
+	configs := a.Configs.ConfigsWithFeeds()
 	fetchers := make(map[int32]*Fetcher, len(configs))
 	localAggregators := make(map[int32]*LocalAggregator, len(configs))
 
 	for _, config := range configs {
-		// for fetcher it'll get fetcherFeeds without websocket fetcherFeeds
-		fetcherFeeds := a.Configs.HTTPFeeds(config.ID)
-		if len(fetcherFeeds) > 0 {
-			fetchers[config.ID] = NewFetcher(config, fetcherFeeds, a.LatestFeedDataMap)
+		// fetcher gets only plain HTTP feeds (no websocket/DEX feeds)
+		if len(config.HTTPFeeds) > 0 {
+			fetchers[config.ID] = NewFetcher(config.Config, config.HTTPFeeds, a.LatestFeedDataMap)
 		}
 
 		// for localAggregator it'll get all feeds to be collected
-		localAggregatorFeeds := a.Configs.Feeds(config.ID)
-		localAggregators[config.ID] = NewLocalAggregator(config, localAggregatorFeeds, a.Bus, a.LatestFeedDataMap, a.LocalAggregateValueMap)
+		localAggregators[config.ID] = NewLocalAggregator(config.Config, config.Feeds, a.Bus, a.LatestFeedDataMap, a.LocalAggregateValueMap)
 	}
 
 	// fresh instance so Init doesn't touch the running one

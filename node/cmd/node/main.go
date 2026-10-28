@@ -108,7 +108,7 @@ func main() {
 	log.Info().Msg("Fetcher started")
 
 	a := aggregator.New(mb, host, ps, state)
-	go flushRoundsOnSignal(a, state)
+	go flushRoundsOnSignal(a)
 
 	wg.Add(1)
 	go func() {
@@ -138,7 +138,7 @@ func main() {
 
 // flushRoundsOnSignal persists pending rounds and exits on SIGTERM/SIGINT, so
 // the next start continues after the last used round.
-func flushRoundsOnSignal(a *aggregator.App, state *nodestate.Store) {
+func flushRoundsOnSignal(a *aggregator.App) {
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGINT)
 	sig := <-sigCh
@@ -149,6 +149,8 @@ func flushRoundsOnSignal(a *aggregator.App, state *nodestate.Store) {
 	if err := a.FlushRounds(ctx); err != nil {
 		log.Error().Err(err).Msg("failed to persist rounds on shutdown")
 	}
-	_ = state.Close()
+	// no state.Close: other goroutines may still write; SQLite (WAL) is
+	// consistent on exit, and a round advanced after the flush is covered by
+	// the stored+2 restart gap
 	os.Exit(0)
 }

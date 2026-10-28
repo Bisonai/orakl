@@ -64,10 +64,24 @@ type feedKey struct {
 	feed   string
 }
 
+// storedFeed caches the definition's "type", parsed once in Set.
+type storedFeed struct {
+	Feed
+	typ     string
+	hasType bool
+}
+
+// ConfigFeeds is a config with its feeds, from one consistent snapshot.
+type ConfigFeeds struct {
+	Config
+	Feeds     []Feed // all feeds
+	HTTPFeeds []Feed // feeds without definition "type" (plain HTTP requests)
+}
+
 type Store struct {
 	mu      sync.RWMutex
-	configs []Config // ordered by ID
-	feeds   []Feed   // ordered by ID
+	configs []Config     // ordered by ID
+	feeds   []storedFeed // ordered by ID
 
 	configIDs    map[string]int32
 	feedIDs      map[feedKey]int32
@@ -142,7 +156,7 @@ func (s *Store) Set(entries []Entry) error {
 	defer s.mu.Unlock()
 
 	configs := make([]Config, 0, len(entries))
-	var feeds []Feed
+	var feeds []storedFeed
 	for _, e := range entries {
 		id, ok := s.configIDs[e.Name]
 		if !ok {
@@ -171,7 +185,9 @@ func (s *Store) Set(entries []Entry) error {
 			}
 			definition := make(json.RawMessage, len(f.Definition))
 			copy(definition, f.Definition)
-			feeds = append(feeds, Feed{ID: feedID, Name: f.Name, Definition: definition, ConfigID: id})
+			feed := Feed{ID: feedID, Name: f.Name, Definition: definition, ConfigID: id}
+			typ, hasType := FeedType(feed)
+			feeds = append(feeds, storedFeed{Feed: feed, typ: typ, hasType: hasType})
 		}
 	}
 	sort.Slice(configs, func(i, j int) bool { return configs[i].ID < configs[j].ID })
@@ -190,35 +206,47 @@ func (s *Store) Configs() []Config {
 	return out
 }
 
-// Feeds returns the feeds of a config, ordered by ID.
-func (s *Store) Feeds(configID int32) []Feed {
-	return s.filterFeeds(func(f Feed) bool { return f.ConfigID == configID })
+// ConfigsWithFeeds returns all configs (ordered by ID) with their feeds, read
+// under one lock so a concurrent Set never mixes two bundles.
+func (s *Store) ConfigsWithFeeds() []ConfigFeeds {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	byConfig := make(map[int32]*ConfigFeeds, len(s.configs))
+	out := make([]ConfigFeeds, len(s.configs))
+	for i, c := range s.configs {
+		out[i].Config = c
+		byConfig[c.ID] = &out[i]
+	}
+	for _, f := range s.feeds {
+		cf, ok := byConfig[f.ConfigID]
+		if !ok {
+			continue
+		}
+		cf.Feeds = append(cf.Feeds, f.Feed)
+		if !f.hasType {
+			cf.HTTPFeeds = append(cf.HTTPFeeds, f.Feed)
+		}
+	}
+	return out
 }
 
-// HTTPFeeds returns the feeds of a config whose definition has no "type"
-// (plain HTTP request feeds).
-func (s *Store) HTTPFeeds(configID int32) []Feed {
-	return s.filterFeeds(func(f Feed) bool {
-		_, hasType := FeedType(f)
-		return f.ConfigID == configID && !hasType
-	})
+// Feeds returns the feeds of a config, ordered by ID.
+func (s *Store) Feeds(configID int32) []Feed {
+	return s.filterFeeds(func(f storedFeed) bool { return f.ConfigID == configID })
 }
 
 // FeedsOfType returns all feeds whose definition "type" equals typ.
 func (s *Store) FeedsOfType(typ string) []Feed {
-	return s.filterFeeds(func(f Feed) bool {
-		t, _ := FeedType(f)
-		return t == typ
-	})
+	return s.filterFeeds(func(f storedFeed) bool { return f.typ == typ })
 }
 
-func (s *Store) filterFeeds(keep func(Feed) bool) []Feed {
+func (s *Store) filterFeeds(keep func(storedFeed) bool) []Feed {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	var out []Feed
 	for _, f := range s.feeds {
 		if keep(f) {
-			out = append(out, f)
+			out = append(out, f.Feed)
 		}
 	}
 	return out

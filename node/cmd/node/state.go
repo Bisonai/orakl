@@ -25,14 +25,17 @@ commands:
   init              create an empty store for a fresh node (refused if the
                     file exists); the signer keyring is then seeded from
                     SIGNER_PK on first start
-  import [-force]   copy signer keys + MAX(round) per config from Postgres
+  import [-force] [-round-margin N]
+                    copy signer keys + MAX(round) per config from Postgres
                     ($DATABASE_URL) into SQLite (import creates the file).
                     Encrypted pks are copied as-is; ENCRYPT_PASSWORD is only
                     used to match the legacy signer row against the keyring.
                     A store with the same keyring only gets its rounds
                     advanced; a different keyring, or stored rounds newer
                     than or missing from Postgres, is refused unless -force,
-                    which replaces the whole store.
+                    which replaces the whole store. -round-margin adds N
+                    to every imported round, to skip rounds a still-running
+                    node uses after the import (Postgres rounds also lag).
   list              print signer key addresses + states and latest rounds
                     (never prints private keys)
 `
@@ -47,10 +50,11 @@ func runState(ctx context.Context, args []string, stdout io.Writer) error {
 		fs := flag.NewFlagSet("import", flag.ContinueOnError)
 		fs.SetOutput(io.Discard)
 		force := fs.Bool("force", false, "replace a store with a different keyring or newer rounds")
-		if err := fs.Parse(args[1:]); err != nil || fs.NArg() != 0 {
+		roundMargin := fs.Int("round-margin", 0, "add N to every imported round")
+		if err := fs.Parse(args[1:]); err != nil || fs.NArg() != 0 || *roundMargin < 0 || *roundMargin > maxRoundMargin {
 			return fmt.Errorf("%s", stateUsage)
 		}
-		return runStateImport(ctx, *force, stdout)
+		return runStateImport(ctx, *force, int32(*roundMargin), stdout)
 	case "init":
 		if len(args) != 1 {
 			return fmt.Errorf("%s", stateUsage)
@@ -66,7 +70,10 @@ func runState(ctx context.Context, args []string, stdout io.Writer) error {
 	}
 }
 
-func runStateImport(ctx context.Context, force bool, stdout io.Writer) error {
+// maxRoundMargin caps -round-margin (1M rounds = ~5 days at 400ms).
+const maxRoundMargin = 1_000_000
+
+func runStateImport(ctx context.Context, force bool, roundMargin int32, stdout io.Writer) error {
 	// fail on a missing env before touching Postgres; create the file only
 	// after Postgres was read, so a failed read leaves no empty store behind
 	if os.Getenv(nodestate.EnvPath) == "" {
@@ -99,6 +106,7 @@ func runStateImport(ctx context.Context, force bool, stdout io.Writer) error {
 	if err != nil {
 		return err
 	}
+	addRoundMargin(snap.Rounds, roundMargin)
 
 	store, err := nodestate.OpenFromEnv(ctx, false)
 	if err != nil {
@@ -141,6 +149,12 @@ func runStateInit(ctx context.Context, stdout io.Writer) error {
 	}
 	fmt.Fprintf(stdout, "created empty store %s\n", path)
 	return nil
+}
+
+func addRoundMargin(rounds []nodestate.Round, margin int32) {
+	for i := range rounds {
+		rounds[i].Round += margin
+	}
 }
 
 // runStateList prints key metadata and rounds; pk is never printed.

@@ -155,3 +155,23 @@ func TestNewSignerRequiresStore(t *testing.T) {
 	_, err := NewSigner(context.Background())
 	assert.Error(t, err)
 }
+
+// With a wrong ENCRYPT_PASSWORD no key decrypts: init must fail, not seed
+// SIGNER_PK over (and retire) the live keyring.
+func TestSQLiteEnsureKeyringUndecryptableFails(t *testing.T) {
+	t.Setenv("ENCRYPT_PASSWORD", "anything")
+	ctx := context.Background()
+	st := openSignerState(t, filepath.Join(t.TempDir(), "node.db"))
+	store := sqliteSignerStore{state: st}
+	liveHex, liveAddr, _ := genKey(t)
+	id, err := store.InsertPending(ctx, liveAddr.Hex(), liveHex)
+	require.NoError(t, err)
+	require.NoError(t, store.Promote(ctx, id))
+
+	t.Setenv("ENCRYPT_PASSWORD", "wrong")
+	seedHex, _, _ := genKey(t)
+	t.Setenv(SignerPk, seedHex)
+	_, err = ensureKeyring(ctx, store, SignerConfig{})
+	assert.Error(t, err)
+	assert.Equal(t, map[string]string{toLowerHex(liveAddr): "active"}, keyStates(t, st))
+}
