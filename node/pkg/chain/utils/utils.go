@@ -11,10 +11,7 @@ import (
 	"regexp"
 	"strings"
 
-	"bisonai.com/miko/node/pkg/db"
 	errorSentinel "bisonai.com/miko/node/pkg/error"
-	"bisonai.com/miko/node/pkg/utils/encryptor"
-	"github.com/jackc/pgx/v5"
 
 	"github.com/kaiachain/kaia"
 	"github.com/kaiachain/kaia/accounts/abi"
@@ -533,19 +530,6 @@ func MakeAbiFuncAttribute(args string) string {
 	return strings.Join(parts, ",\n")
 }
 
-func LoadProviderUrls(ctx context.Context, chainId int) ([]string, error) {
-	providerUrls, err := db.QueryRows[ProviderUrl](ctx, SELECT_PROVIDER_URLS_QUERY, map[string]interface{}{"chain_id": chainId})
-	if err != nil {
-		return nil, err
-	}
-	result := make([]string, len(providerUrls))
-	for i, providerUrl := range providerUrls {
-		result[i] = providerUrl.Url
-	}
-
-	return result, nil
-}
-
 // reference: https://github.com/ethereum/go-ethereum/issues/19766#issuecomment-963442824
 func ShouldRetryWithSwitchedJsonRPC(err error) bool {
 	jsonErr, ok := err.(JsonRpcError)
@@ -639,130 +623,6 @@ func RecoverSigner(hash []byte, signature []byte) (address common.Address, err e
 	address = crypto.PubkeyToAddress(*pubKey)
 
 	return address, nil
-}
-
-func LoadSignerPk(ctx context.Context) (string, error) {
-	signer, err := db.QueryRow[Wallet](ctx, LOAD_SIGNER, nil)
-	if err != nil {
-		return "", err
-	}
-
-	if signer.PK == "" {
-		return "", errorSentinel.ErrChainSignerPKNotFound
-	}
-
-	pk, err := encryptor.DecryptText(signer.PK)
-	if err != nil {
-		log.Warn().Err(err).Msg("failed to decrypt pk")
-		return "", err
-	}
-	wallet := strings.TrimPrefix(pk, "0x")
-	return wallet, nil
-}
-
-func StoreSignerPk(ctx context.Context, pk string) error {
-	encryptedPk, err := encryptor.EncryptText(pk)
-	if err != nil {
-		return err
-	}
-	return db.QueryWithoutResult(ctx, STORE_SIGNER, map[string]any{"pk": encryptedPk})
-}
-
-type idRow struct {
-	ID int64 `db:"id"`
-}
-
-// LoadSignerKeys returns every key in the signer_key keyring with its PK DECRYPTED to
-// 0x-trimmed hex (mirroring LoadSignerPk). Rows whose PK cannot be decrypted (e.g. a
-// changed ENCRYPT_PASSWORD) are skipped with a warning rather than failing the whole load,
-// so one bad row can never blind the node to a key that is still usable.
-func LoadSignerKeys(ctx context.Context) ([]SignerKey, error) {
-	rows, err := db.QueryRows[SignerKey](ctx, LOAD_SIGNER_KEYS, nil)
-	if err != nil {
-		return nil, err
-	}
-	result := make([]SignerKey, 0, len(rows))
-	for _, r := range rows {
-		if r.PK == "" {
-			continue
-		}
-		decrypted, decErr := encryptor.DecryptText(r.PK)
-		if decErr != nil {
-			log.Warn().Err(decErr).Int64("id", r.ID).Msg("failed to decrypt signer_key row; skipping")
-			continue
-		}
-		r.PK = strings.TrimPrefix(decrypted, "0x")
-		result = append(result, r)
-	}
-	return result, nil
-}
-
-// InsertPendingKey durably persists a new key as 'pending' BEFORE any on-chain call, so a
-// key that a rotation is about to register on-chain can never be lost to a crash.
-func InsertPendingKey(ctx context.Context, address, pkHex string) (int64, error) {
-	encryptedPk, err := encryptor.EncryptText(strings.TrimPrefix(pkHex, "0x"))
-	if err != nil {
-		return 0, err
-	}
-	row, err := db.QueryRow[idRow](ctx, INSERT_PENDING_KEY, map[string]any{
-		"address": strings.ToLower(address),
-		"pk":      encryptedPk,
-	})
-	if err != nil {
-		return 0, err
-	}
-	return row.ID, nil
-}
-
-func BackfillKeyAddress(ctx context.Context, id int64, address string) error {
-	return db.QueryWithoutResult(ctx, BACKFILL_ADDRESS, map[string]any{
-		"id":      id,
-		"address": strings.ToLower(address),
-	})
-}
-
-func SetKeyTxHash(ctx context.Context, id int64, txHash string) error {
-	return db.QueryWithoutResult(ctx, SET_KEY_TXHASH, map[string]any{"id": id, "tx_hash": txHash})
-}
-
-// PromotePendingToActive marks the given key as the single active key (retiring any other active
-// row first) and mirrors it into the legacy `signer` row so a rolled-back old binary still finds
-// the live key. All three writes run in ONE transaction, so the signer_key_one_active partial
-// unique index can never be transiently violated even under concurrent promotes (rolling deploy),
-// and the legacy mirror stays consistent with the keyring. It is idempotent: re-promoting the
-// already-active key is a no-op. The `state` column is bookkeeping only — the on-chain whitelist,
-// not this column, decides which key actually signs — so a crash mid-promote is self-healed by
-// reconcile (the key itself was already persisted via InsertPendingKey, so nothing is lost).
-func PromotePendingToActive(ctx context.Context, id int64, promotedPkHex string) error {
-	encryptedPk, err := encryptor.EncryptText(strings.TrimPrefix(promotedPkHex, "0x"))
-	if err != nil {
-		return err
-	}
-	pool, err := db.GetPool(ctx)
-	if err != nil {
-		return err
-	}
-	tx, err := pool.Begin(ctx)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback(ctx) // no-op after a successful Commit
-
-	if _, err := tx.Exec(ctx, RETIRE_ACTIVE, pgx.NamedArgs{"id": id}); err != nil {
-		return err
-	}
-	if _, err := tx.Exec(ctx, ACTIVATE_KEY, pgx.NamedArgs{"id": id}); err != nil {
-		return err
-	}
-	// Mirror into the legacy single-row `signer` table within the same transaction.
-	if _, err := tx.Exec(ctx, STORE_SIGNER, pgx.NamedArgs{"pk": encryptedPk}); err != nil {
-		return err
-	}
-	return tx.Commit(ctx)
-}
-
-func GCRetiredKeys(ctx context.Context) error {
-	return db.QueryWithoutResult(ctx, GC_RETIRED, nil)
 }
 
 func NewPk(ctx context.Context) (*ecdsa.PrivateKey, string, error) {

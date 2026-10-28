@@ -17,26 +17,16 @@ RUN apt-get update && apt-get install -y curl jq libcap2-bin && rm -rf /var/lib/
 
 RUN sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b /usr/bin
 
-RUN curl -L https://github.com/golang-migrate/migrate/releases/download/v4.17.0/migrate.linux-amd64.tar.gz | tar xvz && \
-    mv ./migrate /usr/bin
-
 WORKDIR /app
-
-RUN mkdir /app/migrations
 
 COPY --from=builder /app/node/taskfile.yml /app/taskfile.yml
 
 COPY --from=builder /app/node/taskfiles /app/taskfiles
 
-COPY --from=builder /app/node/migrations/node /app/migrations
-
 COPY --from=builder /app/node/nodebin /usr/bin
-
-COPY dockerfiles/start-go.sh .
-
-RUN chmod +x start-go.sh
 
 # Grant the binary the capability to use raw sockets (required for ping).
 RUN setcap cap_net_raw=+ep /usr/bin/nodebin
 
-CMD ["./start-go.sh", "nodebin"]
+# signer keyring + rounds live in the SQLite file at $NODE_SQLITE_PATH (mount a volume)
+CMD ["nodebin"]

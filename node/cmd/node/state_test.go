@@ -15,7 +15,7 @@ import (
 
 func TestRunStateUsage(t *testing.T) {
 	ctx := context.Background()
-	for _, args := range [][]string{{}, {"bogus"}, {"list", "x"}, {"import", "x"}, {"import", "-nope"}} {
+	for _, args := range [][]string{{}, {"bogus"}, {"list", "x"}, {"import", "x"}, {"import", "-nope"}, {"import", "-round-margin", "-1"}, {"import", "-round-margin", "1000001"}, {"init", "x"}} {
 		var out bytes.Buffer
 		err := runState(ctx, args, &out)
 		assert.ErrorContains(t, err, "usage: nodebin state", args)
@@ -53,4 +53,29 @@ func TestRunStateListNeverPrintsPk(t *testing.T) {
 	assert.Contains(t, out.String(), "-\tpending")
 	assert.Contains(t, out.String(), "BTC-USDT\t9")
 	assert.NotContains(t, out.String(), "SECRET")
+}
+
+func TestRunStateInit(t *testing.T) {
+	ctx := context.Background()
+	path := filepath.Join(t.TempDir(), "node.db")
+	t.Setenv(nodestate.EnvPath, path)
+
+	var out bytes.Buffer
+	require.NoError(t, runState(ctx, []string{"init"}, &out))
+	assert.Contains(t, out.String(), path)
+
+	s, err := nodestate.OpenFromEnv(ctx, true)
+	require.NoError(t, err)
+	snap, err := s.Snapshot(ctx)
+	require.NoError(t, err)
+	assert.True(t, snap.IsEmpty())
+	require.NoError(t, s.Close())
+
+	assert.ErrorContains(t, runState(ctx, []string{"init"}, &out), "already exists")
+}
+
+func TestAddRoundMargin(t *testing.T) {
+	rounds := []nodestate.Round{{ConfigName: "A", Round: 10}, {ConfigName: "B", Round: 0}}
+	addRoundMargin(rounds, 500)
+	assert.Equal(t, []nodestate.Round{{ConfigName: "A", Round: 510}, {ConfigName: "B", Round: 500}}, rounds)
 }

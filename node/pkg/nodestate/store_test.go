@@ -139,3 +139,97 @@ func TestOpenRejectsURIChars(t *testing.T) {
 		assert.Error(t, err, p)
 	}
 }
+
+func TestKeyringLifecycle(t *testing.T) {
+	ctx := context.Background()
+	s, path := openTemp(t)
+
+	a, err := s.InsertPendingKey(ctx, "0xaaa", "enc-a")
+	require.NoError(t, err)
+	require.NoError(t, s.ActivateKey(ctx, a))
+	require.NoError(t, s.ActivateKey(ctx, a), "re-activating the active key is a no-op")
+
+	b, err := s.InsertPendingKey(ctx, "0xbbb", "enc-b")
+	require.NoError(t, err)
+	_, err = s.InsertPendingKey(ctx, "0xBBB", "enc-dup")
+	assert.Error(t, err, "address is unique, case-insensitive")
+
+	require.NoError(t, s.ActivateKey(ctx, b))
+	assert.Error(t, s.ActivateKey(ctx, 999), "unknown id")
+
+	// reopen: b active, a retired, unknown-id activate changed nothing
+	require.NoError(t, s.Close())
+	s, err = Open(ctx, path)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = s.Close() })
+	keys, err := s.SignerKeys(ctx)
+	require.NoError(t, err)
+	require.Len(t, keys, 2)
+	assert.Equal(t, "retired", keys[0].State)
+	assert.Equal(t, "active", keys[1].State)
+	assert.Equal(t, "enc-b", keys[1].PK)
+}
+
+func TestBackfillKeyAddress(t *testing.T) {
+	ctx := context.Background()
+	s, _ := openTemp(t)
+	now := time.Now()
+	require.NoError(t, s.Replace(ctx, Snapshot{Keys: []utils.SignerKey{
+		{PK: "enc", State: "active", CreatedAt: now, UpdatedAt: now},
+	}}))
+	keys, err := s.SignerKeys(ctx)
+	require.NoError(t, err)
+
+	require.NoError(t, s.BackfillKeyAddress(ctx, keys[0].ID, "0xabc"))
+	require.NoError(t, s.BackfillKeyAddress(ctx, keys[0].ID, "0xdef"), "only a NULL address is set")
+	keys, err = s.SignerKeys(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, "0xabc", *keys[0].Address)
+}
+
+func TestGCRetiredKeys(t *testing.T) {
+	ctx := context.Background()
+	s, _ := openTemp(t)
+	old := time.Now().Add(-100 * 24 * time.Hour)
+	recent := time.Now().Add(-time.Hour)
+	require.NoError(t, s.Replace(ctx, Snapshot{Keys: []utils.SignerKey{
+		{Address: strPtr("0x1"), PK: "old-retired", State: "retired", CreatedAt: old, UpdatedAt: old},
+		{Address: strPtr("0x2"), PK: "recent-retired", State: "retired", CreatedAt: old, UpdatedAt: recent},
+		{Address: strPtr("0x3"), PK: "old-pending", State: "pending", CreatedAt: old, UpdatedAt: old},
+		{Address: strPtr("0x4"), PK: "active", State: "active", CreatedAt: old, UpdatedAt: old},
+	}}))
+
+	require.NoError(t, s.GCRetiredKeys(ctx, time.Now().Add(-90*24*time.Hour)))
+	keys, err := s.SignerKeys(ctx)
+	require.NoError(t, err)
+	var pks []string
+	for _, k := range keys {
+		pks = append(pks, k.PK)
+	}
+	assert.Equal(t, []string{"recent-retired", "old-pending", "active"}, pks)
+}
+
+func TestSaveRoundsNeverGoesDown(t *testing.T) {
+	ctx := context.Background()
+	s, path := openTemp(t)
+
+	_, ok, err := s.LatestRound(ctx, "BTC-USDT")
+	require.NoError(t, err)
+	assert.False(t, ok)
+
+	require.NoError(t, s.SaveRounds(ctx, map[string]int32{"BTC-USDT": 10, "ETH-USDT": 5}))
+	require.NoError(t, s.SaveRounds(ctx, map[string]int32{"BTC-USDT": 7, "ETH-USDT": 6}))
+
+	require.NoError(t, s.Close())
+	s, err = Open(ctx, path)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = s.Close() })
+
+	r, ok, err := s.LatestRound(ctx, "BTC-USDT")
+	require.NoError(t, err)
+	assert.True(t, ok)
+	assert.Equal(t, int32(10), r)
+	r, _, err = s.LatestRound(ctx, "ETH-USDT")
+	require.NoError(t, err)
+	assert.Equal(t, int32(6), r)
+}

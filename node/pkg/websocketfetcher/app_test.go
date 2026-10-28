@@ -46,7 +46,7 @@ func TestInitResetsFetchersOnReinit(t *testing.T) {
 		"binance":  factory,
 		"coinbase": factory,
 	}
-	opts := []AppOption{WithSetFromDB(false), WithFeeds(feeds), WithCexFactories(cexFactories)}
+	opts := []AppOption{WithSetFromConfig(false), WithFeeds(feeds), WithCexFactories(cexFactories)}
 
 	ctx := context.Background()
 	a := New()

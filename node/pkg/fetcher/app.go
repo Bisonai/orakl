@@ -4,20 +4,25 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"net/url"
 	"os"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
 	"bisonai.com/miko/node/pkg/bus"
-	"bisonai.com/miko/node/pkg/db"
 	errorSentinel "bisonai.com/miko/node/pkg/error"
 	"bisonai.com/miko/node/pkg/metrics"
+	"bisonai.com/miko/node/pkg/nodeconfig"
 	"bisonai.com/miko/node/pkg/websocketfetcher"
 	"github.com/rs/zerolog/log"
 )
 
+// New builds the fetcher app on the process-wide config store.
 func New(bus *bus.MessageBus) *App {
 	return &App{
+		Configs:          nodeconfig.Default(),
 		Fetchers:         make(map[int32]*Fetcher, 0),
 		WebsocketFetcher: websocketfetcher.New(),
 		LatestFeedDataMap: &LatestFeedDataMap{
@@ -25,7 +30,6 @@ func New(bus *bus.MessageBus) *App {
 			Mu:          sync.RWMutex{},
 		},
 		LocalAggregateValueMap: NewLocalAggregateValueMap(),
-		FeedDataDumpChannel:    make(chan *FeedData, DefaultFeedDataDumpChannelSize),
 		Bus:                    bus,
 	}
 }
@@ -122,7 +126,8 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 		msg.Response <- bus.MessageResponse{Success: true}
 	case bus.REFRESH_FETCHER_APP:
 		// build the new set before stopping the running one, so a failed build
-		// (e.g. transient DB error) leaves the previous set assigned and running
+		// (e.g. bad proxy env, websocket init error) leaves the previous set
+		// assigned and running
 		state, err := buildFetcherState(a, ctx)
 		if err != nil {
 			log.Error().Err(err).Str("Player", "Fetcher").Msg("failed to initialize fetchers")
@@ -155,16 +160,13 @@ func (a *App) startAll(ctx context.Context) error {
 		return err
 	}
 
-	a.startLocalAggregateBulkWriter(ctx)
-
 	err = a.startAllLocalAggregators(ctx)
 	if err != nil {
 		return err
 	}
 
 	a.WebsocketFetcher.Start(ctx)
-
-	return a.startFeedDataBulkWriter(ctx)
+	return nil
 }
 
 func (a *App) stopAll(ctx context.Context) error {
@@ -175,17 +177,7 @@ func (a *App) stopAll(ctx context.Context) error {
 		return err
 	}
 
-	err = a.stopAllLocalAggregators(ctx)
-	if err != nil {
-		return err
-	}
-
-	err = a.stopLocalAggregateBulkWriter()
-	if err != nil {
-		return err
-	}
-
-	return a.stopFeedDataBulkWriter(ctx)
+	return a.stopAllLocalAggregators(ctx)
 }
 
 func (a *App) startFetcher(ctx context.Context, fetcher *Fetcher) error {
@@ -210,29 +202,6 @@ func (a *App) startLocalAggregator(ctx context.Context, localAggregator *LocalAg
 
 	log.Debug().Str("Player", "Fetcher").Str("localAggregator", localAggregator.Name).Msg("localAggregator started")
 	return nil
-}
-
-func (a *App) startFeedDataBulkWriter(ctx context.Context) error {
-	if a.FeedDataBulkWriter.isRunning {
-		log.Debug().Str("Player", "Fetcher").Msg("feedDataBulkWriter already running")
-		return nil
-	}
-
-	a.FeedDataBulkWriter.Run(ctx)
-
-	log.Debug().Str("Player", "Fetcher").Msg("feedDataBulkWriter started")
-	return nil
-}
-
-func (a *App) startLocalAggregateBulkWriter(ctx context.Context) {
-	if a.LocalAggregateBulkWriter.isRunning {
-		log.Debug().Str("Player", "Fetcher").Msg("LocalAggregateBulkWriter already running")
-		return
-	}
-
-	a.LocalAggregateBulkWriter.Run(ctx)
-
-	log.Debug().Str("Player", "Fetcher").Msg("LocalAggregateBulkWriter started")
 }
 
 func (a *App) startAllFetchers(ctx context.Context) error {
@@ -289,34 +258,6 @@ func (a *App) stopLocalAggregator(ctx context.Context, localAggregator *LocalAgg
 	return nil
 }
 
-func (a *App) stopFeedDataBulkWriter(ctx context.Context) error {
-	log.Debug().Msg("stopping feed data bulk writer")
-	if !a.FeedDataBulkWriter.isRunning {
-		log.Debug().Str("Player", "Fetcher").Msg("feed data bulk writer already stopped")
-		return nil
-	}
-	if a.FeedDataBulkWriter.cancel == nil {
-		return errorSentinel.ErrFeedDataBulkWriterCancelNotFound
-	}
-	a.FeedDataBulkWriter.cancel()
-	a.FeedDataBulkWriter.isRunning = false
-	return nil
-}
-
-func (a *App) stopLocalAggregateBulkWriter() error {
-	log.Debug().Msg("stopping LocalAggregateBulkWriter")
-	if !a.LocalAggregateBulkWriter.isRunning {
-		log.Debug().Str("Player", "Fetcher").Msg("LocalAggregateBulkWriter already stopped")
-		return nil
-	}
-	if a.LocalAggregateBulkWriter.cancel == nil {
-		return errorSentinel.ErrLocalAggregateBulkWriterCancelNotFound
-	}
-	a.LocalAggregateBulkWriter.cancel()
-	a.LocalAggregateBulkWriter.isRunning = false
-	return nil
-}
-
 func (a *App) stopAllFetchers(ctx context.Context) error {
 	for _, fetcher := range a.Fetchers {
 		err := a.stopFetcher(ctx, fetcher)
@@ -339,48 +280,13 @@ func (a *App) stopAllLocalAggregators(ctx context.Context) error {
 	return nil
 }
 
-func (a *App) getConfigs(ctx context.Context) ([]Config, error) {
-	configs, err := db.QueryRows[Config](ctx, SelectConfigsQuery, nil)
-	if err != nil {
-		return nil, err
-	}
-	return configs, err
-}
-
-func (a *App) getFeedsWithoutWss(ctx context.Context, configId int32) ([]Feed, error) {
-	feeds, err := db.QueryRows[Feed](ctx, SelectHttpRequestFeedsByConfigIdQuery, map[string]any{"config_id": configId})
-	if err != nil {
-		return nil, err
-	}
-
-	return feeds, err
-}
-
-func (a *App) getFeeds(ctx context.Context, configId int32) ([]Feed, error) {
-	feeds, err := db.QueryRows[Feed](ctx, SelectFeedsByConfigIdQuery, map[string]any{"config_id": configId})
-	if err != nil {
-		return nil, err
-	}
-	return feeds, err
-}
-
-func (a *App) getProxies(ctx context.Context) ([]Proxy, error) {
-	proxies, err := db.QueryRows[Proxy](ctx, SelectAllProxiesQuery, nil)
-	if err != nil {
-		return nil, err
-	}
-	return proxies, err
-}
-
 // fetcherState is a fully built fetcher set, swapped into the App only once
 // every part of it was built.
 type fetcherState struct {
-	fetchers                 map[int32]*Fetcher
-	localAggregators         map[int32]*LocalAggregator
-	localAggregateBulkWriter *LocalAggregateBulkWriter
-	feedDataBulkWriter       *FeedDataBulkWriter
-	proxies                  []Proxy
-	websocketFetcher         *websocketfetcher.App
+	fetchers         map[int32]*Fetcher
+	localAggregators map[int32]*LocalAggregator
+	proxies          []Proxy
+	websocketFetcher *websocketfetcher.App
 }
 
 // buildFetcherState is a seam so tests can inject build failures.
@@ -404,8 +310,6 @@ func (a *App) applyState(state *fetcherState) {
 
 	a.Fetchers = state.fetchers
 	a.LocalAggregators = state.localAggregators
-	a.LocalAggregateBulkWriter = state.localAggregateBulkWriter
-	a.FeedDataBulkWriter = state.feedDataBulkWriter
 	a.Proxies = state.proxies
 	a.WebsocketFetcher = state.websocketFetcher
 
@@ -417,62 +321,78 @@ func (a *App) applyState(state *fetcherState) {
 }
 
 func (a *App) buildState(ctx context.Context) (*fetcherState, error) {
-	configs, err := a.getConfigs(ctx)
+	proxies, err := loadProxies()
 	if err != nil {
 		return nil, err
 	}
 
+	configs := a.Configs.ConfigsWithFeeds()
 	fetchers := make(map[int32]*Fetcher, len(configs))
 	localAggregators := make(map[int32]*LocalAggregator, len(configs))
-	localAggregateBulkWriter := NewLocalAggregateBulkWriter(DefaultLocalAggregateInterval)
-	localAggregateBulkWriter.localAggregatesChannel = make(chan *LocalAggregate, LocalAggregatesChannelSize)
 
 	for _, config := range configs {
-		// for fetcher it'll get fetcherFeeds without websocket fetcherFeeds
-		fetcherFeeds, getFeedsErr := a.getFeedsWithoutWss(ctx, config.ID)
-		if getFeedsErr != nil {
-			return nil, getFeedsErr
-		}
-
-		if len(fetcherFeeds) > 0 {
-			fetchers[config.ID] = NewFetcher(config, fetcherFeeds, a.LatestFeedDataMap, a.FeedDataDumpChannel)
+		// fetcher gets only plain HTTP feeds (no websocket/DEX feeds)
+		if len(config.HTTPFeeds) > 0 {
+			fetchers[config.ID] = NewFetcher(config.Config, config.HTTPFeeds, a.LatestFeedDataMap)
 		}
 
 		// for localAggregator it'll get all feeds to be collected
-		localAggregatorFeeds, getFeedsErr := a.getFeeds(ctx, config.ID)
-		if getFeedsErr != nil {
-			return nil, getFeedsErr
-		}
-		localAggregators[config.ID] = NewLocalAggregator(config, localAggregatorFeeds, localAggregateBulkWriter.localAggregatesChannel, a.Bus, a.LatestFeedDataMap, a.LocalAggregateValueMap)
-	}
-	feedDataDumpIntervalRaw := os.Getenv("FEED_DATA_STREAM_INTERVAL")
-	dumpInterval, err := time.ParseDuration(feedDataDumpIntervalRaw)
-	if err != nil {
-		dumpInterval = DefaultFeedDataDumpInterval
-	}
-	feedDataBulkWriter := NewFeedDataBulkWriter(dumpInterval, a.FeedDataDumpChannel)
-
-	proxies, getProxyErr := a.getProxies(ctx)
-	if getProxyErr != nil {
-		return nil, getProxyErr
+		localAggregators[config.ID] = NewLocalAggregator(config.Config, config.Feeds, a.Bus, a.LatestFeedDataMap, a.LocalAggregateValueMap)
 	}
 
 	// fresh instance so Init doesn't touch the running one
 	websocketFetcher := websocketfetcher.New()
-	err = websocketFetcher.Init(ctx, websocketfetcher.WithLatestFeedDataMap(a.LatestFeedDataMap), websocketfetcher.WithFeedDataDumpChannel(a.FeedDataDumpChannel))
+	err = websocketFetcher.Init(ctx, websocketfetcher.WithLatestFeedDataMap(a.LatestFeedDataMap), websocketfetcher.WithConfigStore(a.Configs))
 	if err != nil {
 		websocketFetcher.Close()
 		return nil, err
 	}
 
 	return &fetcherState{
-		fetchers:                 fetchers,
-		localAggregators:         localAggregators,
-		localAggregateBulkWriter: localAggregateBulkWriter,
-		feedDataBulkWriter:       feedDataBulkWriter,
-		proxies:                  proxies,
-		websocketFetcher:         websocketFetcher,
+		fetchers:         fetchers,
+		localAggregators: localAggregators,
+		proxies:          proxies,
+		websocketFetcher: websocketFetcher,
 	}, nil
+}
+
+// loadProxies parses EnvProxies; unset or empty means no proxies. Empty
+// entries (e.g. a trailing comma) are skipped.
+func loadProxies() ([]Proxy, error) {
+	raw := strings.TrimSpace(os.Getenv(EnvProxies))
+	if raw == "" {
+		return nil, nil
+	}
+	var proxies []Proxy
+	for i, entry := range strings.Split(raw, ",") {
+		entry = strings.TrimSpace(entry)
+		if entry == "" {
+			continue
+		}
+		var location *string
+		if loc, rest, ok := strings.Cut(entry, "="); ok {
+			loc = strings.TrimSpace(loc)
+			if loc == "" {
+				return nil, fmt.Errorf("%s: empty location in proxy %q", EnvProxies, entry)
+			}
+			location = &loc
+			entry = strings.TrimSpace(rest)
+		}
+		u, err := url.Parse(entry)
+		if err != nil || u.Scheme == "" || u.Hostname() == "" || (u.Path != "" && u.Path != "/") || u.RawQuery != "" || u.User != nil {
+			return nil, fmt.Errorf("%s: invalid proxy %q, want [location=]protocol://host:port", EnvProxies, entry)
+		}
+		port, err := strconv.Atoi(u.Port())
+		if err != nil || port <= 0 || port > 65535 {
+			return nil, fmt.Errorf("%s: invalid port in proxy %q", EnvProxies, entry)
+		}
+		host := u.Hostname()
+		if strings.Contains(host, ":") {
+			host = "[" + host + "]" // IPv6, so Proxy.GetProxyUrl stays parseable
+		}
+		proxies = append(proxies, Proxy{ID: int64(i + 1), Protocol: u.Scheme, Host: host, Port: port, Location: location})
+	}
+	return proxies, nil
 }
 
 func (a *App) String() string {

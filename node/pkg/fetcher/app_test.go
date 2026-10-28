@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"bisonai.com/miko/node/pkg/bus"
-	"bisonai.com/miko/node/pkg/db"
 	errorSentinel "bisonai.com/miko/node/pkg/error"
 	"bisonai.com/miko/node/pkg/websocketfetcher"
 	"github.com/stretchr/testify/assert"
@@ -71,7 +70,6 @@ func TestAppRun(t *testing.T) {
 	for _, localAggregator := range app.LocalAggregators {
 		assert.True(t, localAggregator.isRunning)
 	}
-	assert.True(t, app.FeedDataBulkWriter.isRunning)
 
 	time.Sleep(WAIT_SECONDS)
 
@@ -85,7 +83,6 @@ func TestAppRun(t *testing.T) {
 	for _, localAggregator := range app.LocalAggregators {
 		assert.False(t, localAggregator.isRunning)
 	}
-	assert.False(t, app.FeedDataBulkWriter.isRunning)
 
 	for _, fetcher := range app.Fetchers {
 		for _, feed := range fetcher.Feeds {
@@ -99,23 +96,6 @@ func TestAppRun(t *testing.T) {
 		data := <-testItems.aggChan
 		assert.NotNil(t, data)
 	}
-
-	err = app.FeedDataBulkWriter.Job(ctx)
-	if err != nil {
-		t.Fatalf("error running FeedDataBulkWriter job: %v", err)
-	}
-
-	feedResult, err := db.QueryRows[FeedData](ctx, "SELECT * FROM feed_data", nil)
-	if err != nil {
-		t.Fatalf("error querying feed data: %v", err)
-	}
-	assert.Greater(t, len(feedResult), 0)
-
-	localAggregateResult, err := db.QueryRows[LocalAggregate](ctx, "SELECT * FROM local_aggregates", nil)
-	if err != nil {
-		t.Fatalf("error querying local aggregates: %v", err)
-	}
-	assert.Greater(t, len(localAggregateResult), 0)
 }
 
 func TestHandleMessageRejectsOverlappingLifecycleCommand(t *testing.T) {
@@ -147,8 +127,6 @@ func TestHandleMessageRejectsOverlappingLifecycleCommand(t *testing.T) {
 // lifecycleMu is released
 func TestHandleMessageRepliesAfterUnlock(t *testing.T) {
 	app := New(nil)
-	app.LocalAggregateBulkWriter = NewLocalAggregateBulkWriter(DefaultLocalAggregateInterval)
-	app.FeedDataBulkWriter = NewFeedDataBulkWriter(DefaultFeedDataDumpInterval, app.FeedDataDumpChannel)
 
 	msg := bus.Message{
 		From:     bus.ADMIN,
@@ -168,17 +146,13 @@ func TestHandleMessageRepliesAfterUnlock(t *testing.T) {
 	app.lifecycleMu.Unlock()
 }
 
-// single-config set with long intervals, buildable without DB
+// single-config set with long intervals
 func newTestFetcherState(app *App) *fetcherState {
 	config := Config{ID: 1, Name: "TEST-USDT", FetchInterval: 3600000}
-	localAggregateBulkWriter := NewLocalAggregateBulkWriter(time.Hour)
-	localAggregateBulkWriter.localAggregatesChannel = make(chan *LocalAggregate, 1)
 	return &fetcherState{
-		fetchers:                 map[int32]*Fetcher{1: NewFetcher(config, nil, app.LatestFeedDataMap, app.FeedDataDumpChannel)},
-		localAggregators:         map[int32]*LocalAggregator{1: NewLocalAggregator(config, nil, localAggregateBulkWriter.localAggregatesChannel, nil, app.LatestFeedDataMap, app.LocalAggregateValueMap)},
-		localAggregateBulkWriter: localAggregateBulkWriter,
-		feedDataBulkWriter:       NewFeedDataBulkWriter(time.Hour, app.FeedDataDumpChannel),
-		websocketFetcher:         websocketfetcher.New(),
+		fetchers:         map[int32]*Fetcher{1: NewFetcher(config, nil, app.LatestFeedDataMap)},
+		localAggregators: map[int32]*LocalAggregator{1: NewLocalAggregator(config, nil, nil, app.LatestFeedDataMap, app.LocalAggregateValueMap)},
+		websocketFetcher: websocketfetcher.New(),
 	}
 }
 
@@ -196,7 +170,6 @@ func TestRefreshKeepsPreviousSetOnInitializeFailure(t *testing.T) {
 	defer app.stopAll(ctx)
 
 	fetchers, localAggregators := app.Fetchers, app.LocalAggregators
-	feedDataBulkWriter, localAggregateBulkWriter := app.FeedDataBulkWriter, app.LocalAggregateBulkWriter
 	websocketFetcher := app.WebsocketFetcher
 
 	injected := errors.New("injected build failure")
@@ -224,14 +197,10 @@ func TestRefreshKeepsPreviousSetOnInitializeFailure(t *testing.T) {
 	assert.Same(t, fetchers[1], app.Fetchers[1])
 	assert.Len(t, app.LocalAggregators, len(localAggregators))
 	assert.Same(t, localAggregators[1], app.LocalAggregators[1])
-	assert.Same(t, feedDataBulkWriter, app.FeedDataBulkWriter)
-	assert.Same(t, localAggregateBulkWriter, app.LocalAggregateBulkWriter)
 	assert.Same(t, websocketFetcher, app.WebsocketFetcher)
 
 	assert.True(t, app.Fetchers[1].isRunning)
 	assert.True(t, app.LocalAggregators[1].isRunning)
-	assert.True(t, app.FeedDataBulkWriter.isRunning)
-	assert.True(t, app.LocalAggregateBulkWriter.isRunning)
 }
 
 // a successful refresh stops the previous set and swaps in the new one
@@ -269,17 +238,43 @@ func TestRefreshSwapsInNewSet(t *testing.T) {
 
 	assert.Same(t, next.fetchers[1], app.Fetchers[1])
 	assert.Same(t, next.localAggregators[1], app.LocalAggregators[1])
-	assert.Same(t, next.feedDataBulkWriter, app.FeedDataBulkWriter)
-	assert.Same(t, next.localAggregateBulkWriter, app.LocalAggregateBulkWriter)
 	assert.Same(t, next.websocketFetcher, app.WebsocketFetcher)
 
 	assert.False(t, old.fetchers[1].isRunning)
 	assert.False(t, old.localAggregators[1].isRunning)
-	assert.False(t, old.feedDataBulkWriter.isRunning)
-	assert.False(t, old.localAggregateBulkWriter.isRunning)
 
 	assert.True(t, app.Fetchers[1].isRunning)
 	assert.True(t, app.LocalAggregators[1].isRunning)
-	assert.True(t, app.FeedDataBulkWriter.isRunning)
-	assert.True(t, app.LocalAggregateBulkWriter.isRunning)
+}
+
+func TestLoadProxies(t *testing.T) {
+	t.Setenv(EnvProxies, "")
+	proxies, err := loadProxies()
+	assert.NoError(t, err)
+	assert.Empty(t, proxies)
+
+	t.Setenv(EnvProxies, " http://172.0.200.20:4000/ , kr=http://3.39.22.82:80,")
+	proxies, err = loadProxies()
+	assert.NoError(t, err)
+	if assert.Len(t, proxies, 2) {
+		assert.Equal(t, "http://172.0.200.20:4000", proxies[0].GetProxyUrl())
+		assert.Nil(t, proxies[0].Location)
+		assert.Equal(t, "http://3.39.22.82:80", proxies[1].GetProxyUrl())
+		if assert.NotNil(t, proxies[1].Location) {
+			assert.Equal(t, "kr", *proxies[1].Location)
+		}
+	}
+
+	t.Setenv(EnvProxies, "http://[2001:db8::1]:4000")
+	proxies, err = loadProxies()
+	assert.NoError(t, err)
+	if assert.Len(t, proxies, 1) {
+		assert.Equal(t, "http://[2001:db8::1]:4000", proxies[0].GetProxyUrl())
+	}
+
+	for _, bad := range []string{"172.0.200.20:4000", "http://host", "http://host:0", "http://host:4000/path", "http://user:pw@host:4000", "kr=", "=http://host:4000"} {
+		t.Setenv(EnvProxies, bad)
+		_, err = loadProxies()
+		assert.Error(t, err, bad)
+	}
 }

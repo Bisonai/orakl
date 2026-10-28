@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"bisonai.com/miko/node/pkg/admin/tests"
+	"bisonai.com/miko/node/pkg/nodeconfig"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -296,7 +297,6 @@ func TestStartAppByAdmin(t *testing.T) {
 	if err != nil {
 		t.Fatal("error getting configs")
 	}
-	testItems.app.setGlobalAggregateBulkWriter()
 	err = testItems.app.setAggregators(ctx, testItems.app.Host, testItems.app.Pubsub, configs)
 	if err != nil {
 		t.Fatal("error initializing app")
@@ -310,7 +310,6 @@ func TestStartAppByAdmin(t *testing.T) {
 	}
 
 	assert.Equal(t, true, testItems.app.Aggregators[testItems.tmpData.config.ID].isRunning)
-	assert.NotEqual(t, nil, testItems.app.GlobalAggregateBulkWriter.ctx)
 }
 
 func TestStopAppByAdmin(t *testing.T) {
@@ -331,7 +330,6 @@ func TestStopAppByAdmin(t *testing.T) {
 	if err != nil {
 		t.Fatal("error getting configs")
 	}
-	testItems.app.setGlobalAggregateBulkWriter()
 	err = testItems.app.setAggregators(ctx, testItems.app.Host, testItems.app.Pubsub, configs)
 	if err != nil {
 		t.Fatal("error initializing app")
@@ -344,7 +342,6 @@ func TestStopAppByAdmin(t *testing.T) {
 		t.Fatalf("error starting app: %v", err)
 	}
 	assert.Equal(t, true, testItems.app.Aggregators[testItems.tmpData.config.ID].isRunning)
-	assert.NotEqual(t, nil, testItems.app.GlobalAggregateBulkWriter.ctx)
 
 	_, err = tests.RawPostRequest(testItems.admin, "/api/v1/aggregator/stop", nil)
 	if err != nil {
@@ -352,7 +349,6 @@ func TestStopAppByAdmin(t *testing.T) {
 	}
 
 	assert.Equal(t, false, testItems.app.Aggregators[testItems.tmpData.config.ID].isRunning)
-	assert.Equal(t, nil, testItems.app.GlobalAggregateBulkWriter.ctx)
 }
 
 func TestRefreshAppByAdmin(t *testing.T) {
@@ -373,7 +369,6 @@ func TestRefreshAppByAdmin(t *testing.T) {
 	if err != nil {
 		t.Fatal("error getting configs")
 	}
-	testItems.app.setGlobalAggregateBulkWriter()
 	err = testItems.app.setAggregators(ctx, testItems.app.Host, testItems.app.Pubsub, configs)
 	if err != nil {
 		t.Fatal("error initializing app")
@@ -390,16 +385,13 @@ func TestRefreshAppByAdmin(t *testing.T) {
 
 	time.Sleep(time.Second)
 
-	type ConfigModel struct {
-		ID int32 `db:"id" json:"id"`
-	}
-
-	result, err := tests.PostRequest[ConfigModel](testItems.admin, "/api/v1/config", map[string]any{"name": "test_pair_2", "fetch_interval": 2000, "aggregate_interval": 5000, "submit_interval": 15000})
+	err = testItems.app.Configs.Set([]nodeconfig.Entry{sampleConfigEntry("test_pair"), sampleConfigEntry("test_pair_2")})
 	if err != nil {
-		t.Fatalf("error creating new aggregator: %v", err)
+		t.Fatalf("error adding config: %v", err)
 	}
-
-	testItems.app.LatestLocalAggregates.Store(result.ID, &LocalAggregate{})
+	for _, config := range testItems.app.Configs.Configs() {
+		testItems.app.LatestLocalAggregates.Store(config.ID, &LocalAggregate{})
+	}
 
 	_, err = tests.RawPostRequest(testItems.admin, "/api/v1/aggregator/refresh", nil)
 	if err != nil {

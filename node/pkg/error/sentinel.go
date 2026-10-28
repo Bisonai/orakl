@@ -78,7 +78,6 @@ func (e *CustomError) Error() string {
 }
 
 var (
-	ErrAdminDbPoolNotFound     = &CustomError{Service: Admin, Code: InternalError, Message: "db pool not found"}
 	ErrAdminRedisConnNotFound  = &CustomError{Service: Admin, Code: InternalError, Message: "redisconn not found"}
 	ErrAdminMessageBusNotFound = &CustomError{Service: Admin, Code: InternalError, Message: "messagebus not found"}
 
@@ -109,6 +108,7 @@ var (
 	ErrChainEmptySignedRawTx                 = &CustomError{Service: Others, Code: InvalidInputError, Message: "empty signed raw tx"}
 	ErrChainPubKeyToECDSAFail                = &CustomError{Service: Others, Code: InternalError, Message: "failed to convert public key to ECDSA"}
 	ErrChainSignerPKNotFound                 = &CustomError{Service: Others, Code: InvalidInputError, Message: "signer public key not found"}
+	ErrChainSignerStoreNotSet                = &CustomError{Service: Others, Code: InternalError, Message: "signer state store not set"}
 	ErrChainSignerNoWhitelistedKey           = &CustomError{Service: Others, Code: InternalError, Message: "no held signer key is currently whitelisted on-chain; refusing to sign"}
 	ErrChainEmptyClientParam                 = &CustomError{Service: Others, Code: InvalidInputError, Message: "empty client param"}
 	ErrChainEmptyAddressParam                = &CustomError{Service: Others, Code: InvalidInputError, Message: "empty address param"}

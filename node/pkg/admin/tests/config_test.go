@@ -2,22 +2,18 @@ package tests
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
-	"strconv"
 	"strings"
 	"testing"
 
-	"bisonai.com/miko/node/pkg/admin/config"
-	"bisonai.com/miko/node/pkg/admin/feed"
+	"bisonai.com/miko/node/pkg/nodeconfig"
 	"github.com/stretchr/testify/assert"
 )
 
-// hermetic fixture: a JSON array matching []config.ConfigInsertModel, with more
-// than one config and their feeds. It must not contain the tmp config/feed that
-// setup() inserts, so the sync handler prunes them.
+// hermetic fixture: a JSON array matching []nodeconfig.Entry, with more than
+// one config and their feeds.
 const configSyncFixture = `[
 	{
 		"name": "test-aggregate-0",
@@ -44,9 +40,9 @@ const configSyncFixture = `[
 // configFixtureTransport serves configSyncFixture for requests to the config
 // host and fails any other outbound request, so TestConfigSync makes no real
 // network egress. Installing it on http.DefaultTransport keeps the test hermetic
-// without any production hook: getConfigUrl() and the request package are
+// without any production hook: nodeconfig.URL() and the request package are
 // unchanged, and the request package's client (no explicit Transport) falls
-// through to http.DefaultTransport. If getConfigUrl() ever stops resolving to
+// through to http.DefaultTransport. If nodeconfig.URL() ever stops resolving to
 // config.orakl.network, the request errors here instead of quietly hitting the
 // live CDN.
 type configFixtureTransport struct{}
@@ -87,119 +83,18 @@ func TestConfigSync(t *testing.T) {
 		t.Fatalf("error syncing config: %v", err)
 	}
 
-	readResult, err := GetRequest[[]config.ConfigModel](testItems.app, "/api/v1/config", nil)
+	readResult, err := GetRequest[[]nodeconfig.Config](testItems.app, "/api/v1/config", nil)
 	if err != nil {
 		t.Fatalf("error getting config: %v", err)
 	}
-	assert.Greater(t, len(readResult), 1)
-
-	// should remove previously inserted config and feed which doesn't exist in miko-config
-	readTmpConfigResult, err := GetRequest[config.ConfigModel](testItems.app, "/api/v1/config/"+strconv.Itoa(int(testItems.tmpData.config.ID)), nil)
-	if err != nil {
-		t.Fatalf("error getting config: %v", err)
+	if assert.Len(t, readResult, 2) {
+		assert.Equal(t, "test-aggregate-0", readResult[0].Name)
+		assert.Equal(t, int32(3000), readResult[0].AggregateInterval)
+		assert.Equal(t, "test-aggregate-1", readResult[1].Name)
+		assert.NotEqual(t, readResult[0].ID, readResult[1].ID)
 	}
-	assert.Equal(t, config.ConfigModel{}, readTmpConfigResult)
-
-	readTmpFeedResult, err := GetRequest[feed.FeedModel](testItems.app, "/api/v1/feed/"+strconv.Itoa(int(*testItems.tmpData.feed.ID)), nil)
-	if err != nil {
-		t.Fatalf("error getting feeds: %v", err)
+	feeds := nodeconfig.Default().Feeds(readResult[0].ID)
+	if assert.Len(t, feeds, 1) {
+		assert.Equal(t, "test-feed-0", feeds[0].Name)
 	}
-	expectedFeed := feed.FeedModel{
-		Definition: json.RawMessage("null"),
-	}
-	assert.Equal(t, expectedFeed, readTmpFeedResult)
-}
-
-func TestConfigInsert(t *testing.T) {
-	ctx := context.Background()
-	cleanup, testItems, err := setup(ctx)
-	if err != nil {
-		t.Fatalf("error setting up test: %v", err)
-	}
-	defer func() {
-		err = cleanup()
-		if err != nil {
-			t.Logf("Cleanup failed: %v", err)
-		}
-	}()
-
-	insertResult, err := PostRequest[config.ConfigModel](testItems.app, "/api/v1/config", config.ConfigModel{
-		Name:              "test",
-		FetchInterval:     nil,
-		AggregateInterval: nil,
-		SubmitInterval:    nil,
-	})
-	if err != nil {
-		t.Fatalf("error inserting config: %v", err)
-	}
-	assert.NotEqual(t, 0, insertResult.ID)
-
-}
-
-func TestConfigRead(t *testing.T) {
-	ctx := context.Background()
-	cleanup, testItems, err := setup(ctx)
-	if err != nil {
-		t.Fatalf("error setting up test: %v", err)
-	}
-	defer func() {
-		err = cleanup()
-		if err != nil {
-			t.Logf("Cleanup failed: %v", err)
-		}
-	}()
-
-	readResult, err := GetRequest[[]config.ConfigModel](testItems.app, "/api/v1/config", nil)
-	if err != nil {
-		t.Fatalf("error getting config: %v", err)
-	}
-	assert.Greater(t, len(readResult), 0)
-}
-
-func TestConfigReadById(t *testing.T) {
-	ctx := context.Background()
-	cleanup, testItems, err := setup(ctx)
-	if err != nil {
-		t.Fatalf("error setting up test: %v", err)
-	}
-	defer func() {
-		err = cleanup()
-		if err != nil {
-			t.Logf("Cleanup failed: %v", err)
-		}
-	}()
-
-	readResult, err := GetRequest[config.ConfigModel](testItems.app, "/api/v1/config/"+strconv.Itoa(int(testItems.tmpData.config.ID)), nil)
-	if err != nil {
-		t.Fatalf("error getting config: %v", err)
-	}
-	assert.Equal(t, testItems.tmpData.config.ID, readResult.ID)
-}
-
-func TestConfigDeleteById(t *testing.T) {
-	ctx := context.Background()
-	cleanup, testItems, err := setup(ctx)
-	if err != nil {
-		t.Fatalf("error setting up test: %v", err)
-	}
-	defer func() {
-		err = cleanup()
-		if err != nil {
-			t.Logf("Cleanup failed: %v", err)
-		}
-	}()
-
-	deleted, err := DeleteRequest[config.ConfigModel](testItems.app, "/api/v1/config/"+strconv.Itoa(int(testItems.tmpData.config.ID)), nil)
-	if err != nil {
-		t.Fatalf("error deleting config: %v", err)
-	}
-	assert.Equal(t, testItems.tmpData.config.ID, deleted.ID)
-
-	readResult, err := GetRequest[[]config.ConfigModel](testItems.app, "/api/v1/config", nil)
-	if err != nil {
-		t.Fatalf("error getting config: %v", err)
-	}
-
-	assert.Equal(t, 0, len(readResult))
-
 }

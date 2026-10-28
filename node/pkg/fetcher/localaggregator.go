@@ -18,7 +18,6 @@ import (
 func NewLocalAggregator(
 	config Config,
 	feeds []Feed,
-	localAggregatesChannel chan *LocalAggregate,
 	bus *bus.MessageBus,
 	latestFeedDataMap *LatestFeedDataMap,
 	localAggregateValueMap *LocalAggregateValueMap) *LocalAggregator {
@@ -28,7 +27,6 @@ func NewLocalAggregator(
 		aggregatorCtx:          nil,
 		cancel:                 nil,
 		bus:                    bus,
-		localAggregatesChannel: localAggregatesChannel,
 		latestFeedDataMap:      latestFeedDataMap,
 		localAggregateValueMap: localAggregateValueMap,
 	}
@@ -277,7 +275,6 @@ func (c *LocalAggregator) streamLocalAggregate(ctx context.Context, aggregated f
 			Args:    map[string]any{"value": localAggregate},
 		},
 	}
-	defer func() { c.localAggregatesChannel <- localAggregate }()
 	return c.bus.Publish(msg)
 }
 

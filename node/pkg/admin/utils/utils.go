@@ -28,13 +28,7 @@ func Setup(ctx context.Context, setupInfo SetupInfo) (*fiber.App, error) {
 		setupInfo.Version = "test"
 	}
 
-	_, err := db.GetPool(ctx)
-	if err != nil {
-		log.Error().Err(err).Msg("error getting db pool")
-		return nil, errorSentinel.ErrAdminDbPoolNotFound
-	}
-
-	_, err = db.GetRedisClient(ctx)
+	_, err := db.GetRedisClient(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("error getting redis conn")
 		return nil, errorSentinel.ErrAdminRedisConnNotFound

@@ -8,24 +8,23 @@ import (
 
 	"bisonai.com/miko/node/pkg/bus"
 	"bisonai.com/miko/node/pkg/common/types"
+	"bisonai.com/miko/node/pkg/nodeconfig"
 	"bisonai.com/miko/node/pkg/utils/reducer"
 	"bisonai.com/miko/node/pkg/websocketfetcher"
 )
 
 const (
-	SelectAllProxiesQuery                 = `SELECT * FROM proxies`
-	SelectConfigsQuery                    = `SELECT id, name, fetch_interval, decimals, feed_data_freshness, multiply_by, multiply_by_reciprocal FROM configs`
-	SelectHttpRequestFeedsByConfigIdQuery = `SELECT * FROM feeds WHERE config_id = @config_id AND NOT (definition::jsonb ? 'type')`
-	SelectFeedsByConfigIdQuery            = `SELECT * FROM feeds WHERE config_id = @config_id`
-	InsertLocalAggregateQuery             = `INSERT INTO local_aggregates (config_id, value) VALUES (@config_id, @value)`
-	DECIMALS                              = 8
-	DefaultFeedDataDumpInterval           = time.Second * 10
-	ForeignExchangePricePairs             = "GBP-USD,EUR-USD,KRW-USD,JPY-USD,CHF-USD"
-	DefaultMedianRatio                    = 0.05
-	LocalAggregatesChannelSize            = 2_000
-	DefaultLocalAggregateInterval         = 200 * time.Millisecond
-	DefaultFeedDataDumpChannelSize        = 20000
-	MaxOutlierRemovalRatio                = 0.25
+	DECIMALS                      = 8
+	ForeignExchangePricePairs     = "GBP-USD,EUR-USD,KRW-USD,JPY-USD,CHF-USD"
+	DefaultMedianRatio            = 0.05
+	DefaultLocalAggregateInterval = 200 * time.Millisecond
+	MaxOutlierRemovalRatio        = 0.25
+
+	// EnvProxies lists the HTTP fetcher proxies, comma separated, each
+	// [location=]protocol://host:port, e.g.
+	// "http://10.0.0.1:4000,kr=http://10.0.0.2:80". A feed with a "location"
+	// uses only proxies of that location; other feeds use any proxy.
+	EnvProxies = "FETCHER_PROXIES"
 )
 
 type Feed = types.Feed
@@ -34,15 +33,7 @@ type LocalAggregate = types.LocalAggregate
 type Proxy = types.Proxy
 type LatestFeedDataMap = types.LatestFeedDataMap
 
-type Config struct {
-	ID                    int32   `db:"id"`
-	Name                  string  `db:"name"`
-	FetchInterval         int32   `db:"fetch_interval"`
-	Decimals              *int    `db:"decimals"`
-	FeedDataFreshness     *int    `db:"feed_data_freshness"`
-	MultiplyBy            *string `db:"multiply_by"`
-	MultiplyByReciprocal  bool    `db:"multiply_by_reciprocal"`
-}
+type Config = nodeconfig.Config
 
 // LocalAggregateValueMap is a process-wide cache of the most recent raw
 // aggregate value (pre-decimals) for each config, keyed by config name.
@@ -86,12 +77,11 @@ type Fetcher struct {
 	Config
 	Feeds []Feed
 
-	fetcherCtx          context.Context
-	cancel              context.CancelFunc
-	isRunning           bool
-	latestFeedDataMap   *LatestFeedDataMap
-	FeedDataDumpChannel chan *FeedData
-	circuitBreakers     *circuitBreakerMap
+	fetcherCtx        context.Context
+	cancel            context.CancelFunc
+	isRunning         bool
+	latestFeedDataMap *LatestFeedDataMap
+	circuitBreakers   *circuitBreakerMap
 }
 
 type LocalAggregator struct {
@@ -103,44 +93,22 @@ type LocalAggregator struct {
 	isRunning     bool
 	bus           *bus.MessageBus
 
-	localAggregatesChannel chan *LocalAggregate
 	latestFeedDataMap      *LatestFeedDataMap
 	localAggregateValueMap *LocalAggregateValueMap
 }
 
-type FeedDataBulkWriter struct {
-	Interval time.Duration
-
-	FeedDataDumpChannel chan *FeedData
-	writerCtx           context.Context
-	cancel              context.CancelFunc
-	isRunning           bool
-}
-
-type LocalAggregateBulkWriter struct {
-	Interval time.Duration
-
-	bulkWriterCtx          context.Context
-	cancel                 context.CancelFunc
-	isRunning              bool
-	localAggregatesChannel chan *LocalAggregate
-	done                   chan struct{} // closed when the Run loop exits
-}
-
 type App struct {
-	Bus                      *bus.MessageBus
-	Fetchers                 map[int32]*Fetcher
-	LocalAggregators         map[int32]*LocalAggregator
-	FeedDataBulkWriter       *FeedDataBulkWriter
-	LocalAggregateBulkWriter *LocalAggregateBulkWriter
-	WebsocketFetcher         *websocketfetcher.App
-	LatestFeedDataMap        *LatestFeedDataMap
-	LocalAggregateValueMap   *LocalAggregateValueMap
-	Proxies                  []Proxy
-	FeedDataDumpChannel      chan *FeedData
+	Bus                    *bus.MessageBus
+	Configs                *nodeconfig.Store
+	Fetchers               map[int32]*Fetcher
+	LocalAggregators       map[int32]*LocalAggregator
+	WebsocketFetcher       *websocketfetcher.App
+	LatestFeedDataMap      *LatestFeedDataMap
+	LocalAggregateValueMap *LocalAggregateValueMap
+	Proxies                []Proxy
 
 	// lifecycleMu rejects overlapping start/stop/refresh commands, which race
-	// on Fetchers/LocalAggregators/bulk writers and can orphan running workers.
+	// on Fetchers/LocalAggregators and can orphan running workers.
 	lifecycleMu sync.Mutex
 }
 

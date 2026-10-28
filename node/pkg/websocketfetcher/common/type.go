@@ -2,7 +2,6 @@ package common
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"sync"
 	"time"
@@ -14,11 +13,9 @@ import (
 )
 
 const (
-	DECIMALS                  = 8
-	GetAllWebsocketFeedsQuery = `SELECT *
-	FROM public.feeds
-	WHERE definition @> '{"type": "wss"}';`
-	GetAllProxiesQuery  = `SELECT * FROM proxies`
+	DECIMALS = 8
+	// WssFeedType is the definition "type" of CEX websocket feeds.
+	WssFeedType         = "wss"
 	VolumeCacheLifespan = 10 * time.Minute
 	VolumeFetchInterval = 10000
 	VolumeFetchTimeout  = 6 * time.Second
@@ -48,9 +45,10 @@ func GetDexPollInterval() time.Duration {
 type Feed = types.Feed
 type FeedData = types.FeedData
 
-func GetDexFeedsQuery(name string) string {
-	name = capitalizeFirstLetter(name)
-	return fmt.Sprintf(`SELECT * FROM public.feeds WHERE definition::jsonb @> '{"type": "%sPool"}'::jsonb;`, name)
+// DexFeedType is the definition "type" of a DEX factory's feeds, e.g.
+// "uniswapv4" -> "Uniswapv4Pool".
+func DexFeedType(name string) string {
+	return capitalizeFirstLetter(name) + "Pool"
 }
 
 type FeedDefinition struct {
@@ -71,7 +69,7 @@ type DexFeedDefinition struct {
 	// PoolKey).  Populated only for type=="Uniswapv4Pool" feeds — V3-style
 	// providers continue to use Address instead.
 	//
-	// The "Uniswapv4Pool" spelling (lowercase 'v') is what GetDexFeedsQuery
+	// The "Uniswapv4Pool" spelling (lowercase 'v') is what DexFeedType
 	// builds when capitalizing the "uniswapv4" factory key, matching the
 	// existing convention for PancakeswapPool / CapybaraPool.
 	PoolID string `json:"poolId"`
