@@ -444,16 +444,11 @@ func (s *Signer) ensureActive(ctx context.Context, chosen *signerCandidate) erro
 		return nil
 	}
 
-	// Persist the chosen key as the single active row (inserting it first if it has no row).
-	id := chosen.id
-	if id == nil {
-		newID, err := s.store.InsertPending(ctx, chosen.addr.Hex(), chosen.pkHex)
-		if err != nil {
-			return err
-		}
-		id = &newID
+	// Persist the chosen key as the single active row (every candidate has a keyring row).
+	if chosen.id == nil {
+		return errorSentinel.ErrChainSignerNoWhitelistedKey
 	}
-	if err := s.store.Promote(ctx, *id); err != nil {
+	if err := s.store.Promote(ctx, *chosen.id); err != nil {
 		log.Warn().Str("Player", "Signer").Err(err).Msg("failed to promote chosen key in DB")
 	}
 

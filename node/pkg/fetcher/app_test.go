@@ -265,7 +265,14 @@ func TestLoadProxies(t *testing.T) {
 		}
 	}
 
-	for _, bad := range []string{"172.0.200.20:4000", "http://host", "http://host:0", "http://host:4000/path", "http://user:pw@host:4000", "kr="} {
+	t.Setenv(EnvProxies, "http://[2001:db8::1]:4000")
+	proxies, err = loadProxies()
+	assert.NoError(t, err)
+	if assert.Len(t, proxies, 1) {
+		assert.Equal(t, "http://[2001:db8::1]:4000", proxies[0].GetProxyUrl())
+	}
+
+	for _, bad := range []string{"172.0.200.20:4000", "http://host", "http://host:0", "http://host:4000/path", "http://user:pw@host:4000", "kr=", "=http://host:4000"} {
 		t.Setenv(EnvProxies, bad)
 		_, err = loadProxies()
 		assert.Error(t, err, bad)

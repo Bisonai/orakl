@@ -372,6 +372,9 @@ func loadProxies() ([]Proxy, error) {
 		var location *string
 		if loc, rest, ok := strings.Cut(entry, "="); ok {
 			loc = strings.TrimSpace(loc)
+			if loc == "" {
+				return nil, fmt.Errorf("%s: empty location in proxy %q", EnvProxies, entry)
+			}
 			location = &loc
 			entry = strings.TrimSpace(rest)
 		}
@@ -383,7 +386,11 @@ func loadProxies() ([]Proxy, error) {
 		if err != nil || port <= 0 || port > 65535 {
 			return nil, fmt.Errorf("%s: invalid port in proxy %q", EnvProxies, entry)
 		}
-		proxies = append(proxies, Proxy{ID: int64(i + 1), Protocol: u.Scheme, Host: u.Hostname(), Port: port, Location: location})
+		host := u.Hostname()
+		if strings.Contains(host, ":") {
+			host = "[" + host + "]" // IPv6, so Proxy.GetProxyUrl stays parseable
+		}
+		proxies = append(proxies, Proxy{ID: int64(i + 1), Protocol: u.Scheme, Host: host, Port: port, Location: location})
 	}
 	return proxies, nil
 }

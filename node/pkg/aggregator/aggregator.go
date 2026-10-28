@@ -18,6 +18,13 @@ import (
 
 const maxLeaderMsgReceiveTimeout = 150 * time.Millisecond
 
+// joinTopicAttempts/joinTopicRetryDelay bound retries of joining a topic that
+// a just-stopped aggregator (refresh) is still closing asynchronously.
+const (
+	joinTopicAttempts   = 40
+	joinTopicRetryDelay = 50 * time.Millisecond
+)
+
 // NewAggregator builds an aggregator. rounds persists RoundID advances; nil
 // disables persistence (tests).
 func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string, config Config, signHelper *helper.Signer, latestLocalAggregates *LatestLocalAggregates, rounds *roundPersister) (*Aggregator, error) {
@@ -26,6 +33,10 @@ func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string, config Co
 	}
 
 	topic, err := ps.Join(topicString)
+	for attempt := 1; err != nil && attempt < joinTopicAttempts; attempt++ {
+		time.Sleep(joinTopicRetryDelay)
+		topic, err = ps.Join(topicString)
+	}
 	if err != nil {
 		log.Error().Str("Player", "Aggregator").Err(err).Msg("Failed to join topic")
 		return nil, err
