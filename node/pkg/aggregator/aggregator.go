@@ -18,7 +18,9 @@ import (
 
 const maxLeaderMsgReceiveTimeout = 150 * time.Millisecond
 
-func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string, config Config, signHelper *helper.Signer, latestLocalAggregates *LatestLocalAggregates, submissionBuffer chan<- SubmissionData) (*Aggregator, error) {
+// NewAggregator builds an aggregator. rounds persists RoundID advances; nil
+// disables persistence (tests).
+func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string, config Config, signHelper *helper.Signer, latestLocalAggregates *LatestLocalAggregates, rounds *roundPersister) (*Aggregator, error) {
 	if h == nil || ps == nil || topicString == "" {
 		return nil, errorSentinel.ErrAggregatorInvalidInitValue
 	}
@@ -55,7 +57,7 @@ func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string, config Co
 		RoundID:               1,
 		Signer:                signHelper,
 		LatestLocalAggregates: latestLocalAggregates,
-		submissionBuffer:      submissionBuffer,
+		rounds:                rounds,
 	}
 	aggregator.Raft.LeaderJob = aggregator.LeaderJob
 	aggregator.Raft.HandleCustomMessage = aggregator.HandleCustomMessage
@@ -64,20 +66,32 @@ func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string, config Co
 }
 
 func (n *Aggregator) Run(ctx context.Context) {
-	latestRoundId, err := getLatestRoundId(ctx, n.ID)
-	if err != nil {
-		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to get latest round id, setting roundId to 1")
-	} else if latestRoundId > 0 {
-		n.RoundID = latestRoundId + 1
-	}
-
+	n.loadLatestRound(ctx)
 	n.Raft.Run(ctx)
+}
+
+// loadLatestRound continues after the latest persisted (or, after a refresh,
+// in-memory) round, so a restarted node never reuses a round it already used.
+func (n *Aggregator) loadLatestRound(ctx context.Context) {
+	if n.rounds == nil {
+		return
+	}
+	latestRoundId, err := n.rounds.Latest(ctx, n.Name)
+	if err != nil {
+		log.Error().Str("Player", "Aggregator").Str("name", n.Name).Err(err).Int32("roundId", n.RoundID).Msg("failed to load latest round id")
+		return
+	}
+	n.mu.Lock()
+	// never go back: a restart of a running aggregator keeps its in-memory round
+	n.RoundID = max(n.RoundID, latestRoundId+1)
+	n.mu.Unlock()
 }
 
 func (n *Aggregator) LeaderJob(ctx context.Context) error {
 	n.mu.Lock()
 	defer n.mu.Unlock()
 	n.RoundID += 1
+	n.rounds.Advance(n.Name, n.RoundID)
 
 	return n.PublishTriggerMessage(ctx, n.RoundID, time.Now())
 }
@@ -120,6 +134,7 @@ func (n *Aggregator) HandleTriggerMessage(ctx context.Context, msg raft.Message)
 	if msg.SentFrom != n.Raft.GetHostId() {
 		n.mu.Lock()
 		n.RoundID = max(triggerMessage.RoundID, n.RoundID)
+		n.rounds.Advance(n.Name, n.RoundID)
 		n.mu.Unlock()
 	}
 
@@ -365,14 +380,11 @@ func (n *Aggregator) processCollectedProofs(ctx context.Context, proofMessage Pr
 	concatProof := bytes.Join(n.roundProofs.proofs[proofMessage.RoundID], nil)
 	proof := Proof{ConfigID: n.ID, Round: proofMessage.RoundID, Proof: concatProof}
 
-	// Hand off to the DB bulk writer in-process first so persistence does
-	// not depend on redis; the redis publish below is for DAL only.
 	data, ok := newSubmissionData(n.Name, globalAggregate, proof)
 	if !ok {
 		return nil
 	}
 	metrics.SetGlobalAggregate(n.Name, globalAggregate.Value, globalAggregate.Round, globalAggregate.Timestamp)
-	enqueueSubmissionData(n.submissionBuffer, data)
 
 	err := publishSubmissionData(ctx, data)
 	if err != nil {

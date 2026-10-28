@@ -58,33 +58,6 @@ func TestLeaderJob(t *testing.T) {
 	assert.Greater(t, node.RoundID, int32(0), "RoundID should be greater than 0")
 }
 
-func TestGetLatestRoundId(t *testing.T) {
-	ctx := context.Background()
-	cleanup, testItems, err := setup(ctx)
-	if err != nil {
-		t.Fatalf("error setting up test: %v", err)
-	}
-	defer func() {
-		if cleanupErr := cleanup(); cleanupErr != nil {
-			t.Logf("Cleanup failed: %v", cleanupErr)
-		}
-	}()
-
-	node, err := NewAggregator(testItems.app.Host, testItems.app.Pubsub, testItems.topicString, testItems.tmpData.config, testItems.signer, testItems.latestLocalAggMap, nil)
-	if err != nil {
-		t.Fatal("error creating new node")
-	}
-
-	node.Name = "test_pair"
-
-	roundId, err := getLatestRoundId(ctx, node.ID)
-	if err != nil {
-		t.Fatal("error getting latest round id")
-	}
-
-	assert.Equal(t, roundId, testItems.tmpData.globalAggregate.Round)
-}
-
 func TestPublishSubmissionData(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cleanup, testItems, err := setup(ctx)

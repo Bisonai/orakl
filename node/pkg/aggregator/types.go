@@ -8,6 +8,7 @@ import (
 	"bisonai.com/miko/node/pkg/bus"
 	"bisonai.com/miko/node/pkg/chain/helper"
 	"bisonai.com/miko/node/pkg/common/types"
+	"bisonai.com/miko/node/pkg/nodeconfig"
 	"bisonai.com/miko/node/pkg/nodestate"
 	"bisonai.com/miko/node/pkg/raft"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
@@ -21,12 +22,6 @@ const (
 	PriceData raft.MessageType = "priceData"
 	PriceFix  raft.MessageType = "priceFix"
 	ProofMsg  raft.MessageType = "proof"
-
-	SelectConfigQuery                = `SELECT id, name, aggregate_interval FROM configs`
-	SelectLatestLocalAggregateQuery  = `SELECT * FROM local_aggregates WHERE config_id = @config_id ORDER BY timestamp DESC LIMIT 1`
-	InsertGlobalAggregateQuery       = `INSERT INTO global_aggregates (config_id, value, round, timestamp) VALUES (@config_id, @value, @round, @timestamp) RETURNING *`
-	SelectLatestGlobalAggregateQuery = `SELECT * FROM global_aggregates WHERE config_id = @config_id ORDER BY round DESC LIMIT 1`
-	InsertProofQuery                 = `INSERT INTO proofs (config_id, round, proof) VALUES (@config_id, @round, @proof) RETURNING *`
 )
 
 type LocalAggregate = types.LocalAggregate
@@ -40,25 +35,21 @@ type SubmissionData struct {
 }
 
 type App struct {
-	Bus                       *bus.MessageBus
-	Aggregators               map[int32]*Aggregator
-	GlobalAggregateBulkWriter *GlobalAggregateBulkWriter
-	Host                      host.Host
-	Pubsub                    *pubsub.PubSub
-	Signer                    *helper.Signer
-	LatestLocalAggregates     *LatestLocalAggregates
-	State                     *nodestate.Store
+	Bus                   *bus.MessageBus
+	Configs               *nodeconfig.Store
+	Aggregators           map[int32]*Aggregator
+	Host                  host.Host
+	Pubsub                *pubsub.PubSub
+	Signer                *helper.Signer
+	LatestLocalAggregates *LatestLocalAggregates
+	State                 *nodestate.Store
 
-	// submissionBuffer is the long-lived in-process handoff from aggregators
-	// to the GlobalAggregateBulkWriter; it outlives writer refreshes.
-	submissionBuffer chan SubmissionData
+	// rounds persists RoundID advances of all aggregators to State (nil
+	// without State).
+	rounds *roundPersister
 }
 
-type Config struct {
-	ID                int32  `db:"id"`
-	Name              string `db:"name"`
-	AggregateInterval int32  `db:"aggregate_interval"`
-}
+type Config = nodeconfig.Config
 
 type RoundTriggers struct {
 	locked map[int32]bool
@@ -201,9 +192,8 @@ type Aggregator struct {
 	RoundID int32
 	Signer  *helper.Signer
 
-	// submissionBuffer receives SubmissionData for the DB bulk writer
-	// (non-blocking send; see enqueueSubmissionData).
-	submissionBuffer chan<- SubmissionData
+	// rounds persists every RoundID advance (nil: not persisted)
+	rounds *roundPersister
 
 	nodeCtx    context.Context
 	nodeCancel context.CancelFunc
