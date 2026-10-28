@@ -195,7 +195,7 @@ func TestNewSubmissionDataSkipsEmpty(t *testing.T) {
 }
 
 func TestBulkWriterUsesAppBuffer(t *testing.T) {
-	app := New(nil, nil, nil)
+	app := New(nil, nil, nil, nil)
 	assert.NotNil(t, app.submissionBuffer)
 
 	app.setGlobalAggregateBulkWriter()

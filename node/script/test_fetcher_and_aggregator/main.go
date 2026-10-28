@@ -13,6 +13,7 @@ import (
 	"bisonai.com/miko/node/pkg/bus"
 	"bisonai.com/miko/node/pkg/fetcher"
 	libp2pSetup "bisonai.com/miko/node/pkg/libp2p/setup"
+	"bisonai.com/miko/node/pkg/nodestate"
 	"github.com/rs/zerolog/log"
 )
 
@@ -91,7 +92,14 @@ func main() {
 			return
 		}
 
-		a := aggregator.New(mb, host, ps)
+		state, err := nodestate.OpenFromEnv(ctx, false)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to open node state")
+			return
+		}
+		defer state.Close()
+
+		a := aggregator.New(mb, host, ps, state)
 		err = a.Run(ctx)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to start aggregator")

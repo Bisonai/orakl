@@ -14,6 +14,7 @@ import (
 	"bisonai.com/miko/node/pkg/fetcher"
 	"bisonai.com/miko/node/pkg/libp2p/helper"
 	libp2pSetup "bisonai.com/miko/node/pkg/libp2p/setup"
+	"bisonai.com/miko/node/pkg/nodestate"
 	"bisonai.com/miko/node/pkg/utils/loginit"
 	"bisonai.com/miko/node/pkg/utils/retrier"
 	"github.com/rs/zerolog/log"
@@ -31,6 +32,15 @@ func main() {
 	}
 
 	loginit.InitZeroLog()
+
+	// signer keyring + latest rounds; a missing file (wrong path, unmounted
+	// volume) is fatal so the node never starts on an empty keyring/rounds
+	state, err := nodestate.OpenFromEnv(ctx, true)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to open node state")
+		return
+	}
+	defer state.Close()
 
 	mb := bus.New(1000)
 	var wg sync.WaitGroup
@@ -97,7 +107,7 @@ func main() {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		a := aggregator.New(mb, host, ps)
+		a := aggregator.New(mb, host, ps, state)
 		aggregatorErr := a.Run(ctx)
 		if aggregatorErr != nil {
 			log.Error().Err(aggregatorErr).Msg("Failed to start aggregator")

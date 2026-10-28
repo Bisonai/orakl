@@ -8,6 +8,7 @@ import (
 
 	"bisonai.com/miko/node/pkg/chain/utils"
 	errorSentinel "bisonai.com/miko/node/pkg/error"
+	"bisonai.com/miko/node/pkg/nodestate"
 	"bisonai.com/miko/node/pkg/secrets"
 	"github.com/kaiachain/kaia/common"
 	"github.com/kaiachain/kaia/crypto"
@@ -18,6 +19,7 @@ type SignerConfig struct {
 	pk             string
 	renewInterval  time.Duration
 	renewThreshold time.Duration
+	state          *nodestate.Store
 }
 
 type SignerOption func(*SignerConfig)
@@ -25,6 +27,14 @@ type SignerOption func(*SignerConfig)
 func WithSignerPk(pk string) SignerOption {
 	return func(config *SignerConfig) {
 		config.pk = pk
+	}
+}
+
+// WithSignerStore sets the SQLite state store holding the keyring (required
+// unless WithSignerPk).
+func WithSignerStore(state *nodestate.Store) SignerOption {
+	return func(config *SignerConfig) {
+		config.state = state
 	}
 }
 
@@ -49,34 +59,25 @@ const (
 	wlNot                         // expirationTime <= now (deactivated or never set)
 )
 
-// signerCandidate is a private key the node holds and could sign with. id is nil for a key
-// that lives only in the legacy `signer` row and has not yet been copied into signer_key.
+// signerCandidate is a private key the node holds and could sign with.
 type signerCandidate struct {
 	id     *int64
 	addr   common.Address
 	pkHex  string // decrypted, 0x-trimmed
-	state  string // signer_key.state, or "legacy"
+	state  string // signer_key.state
 	exp    time.Time
 	status wlStatus
 }
 
-// getSignerPk returns a bootstrap private key (0x-trimmed) from, in order: an operator-supplied
-// key, the legacy `signer` row, or the Vault SIGNER_PK secret. It is used ONLY to seed an empty
-// keyring; it does not decide which key signs (the on-chain whitelist does — see reconcile).
-func getSignerPk(ctx context.Context, config SignerConfig) (string, error) {
+// getSignerPk returns a bootstrap private key (0x-trimmed) from an operator-supplied key or the
+// Vault SIGNER_PK secret. It is used ONLY to seed an empty keyring; it does not decide which key
+// signs (the on-chain whitelist does — see reconcile).
+func getSignerPk(config SignerConfig) (string, error) {
 	if config.pk != "" {
 		return strings.TrimPrefix(config.pk, "0x"), nil
 	}
 
-	pk, err := utils.LoadSignerPk(ctx)
-	if err != nil {
-		log.Warn().Str("Player", "Signer").Err(err).Msg("failed to load signer from pgs")
-	}
-	if pk != "" {
-		return strings.TrimPrefix(pk, "0x"), nil
-	}
-
-	pk = secrets.GetSecret(SignerPk)
+	pk := secrets.GetSecret(SignerPk)
 	if pk == "" {
 		log.Error().Str("Player", "Signer").Msg("signer pk not set")
 		return "", errorSentinel.ErrChainSignerPKNotFound
@@ -102,6 +103,12 @@ func NewSigner(ctx context.Context, opts ...SignerOption) (*Signer, error) {
 		return newStaticSigner(config)
 	}
 
+	if config.state == nil {
+		log.Error().Str("Player", "Signer").Msg("signer state store not set, signer initialization failed")
+		return nil, errorSentinel.ErrChainSignerStoreNotSet
+	}
+	store := sqliteSignerStore{state: config.state}
+
 	submissionProxyContractAddr := os.Getenv("SUBMISSION_PROXY_CONTRACT")
 	if submissionProxyContractAddr == "" {
 		log.Error().Str("Player", "Signer").Msg("SUBMISSION_PROXY_CONTRACT not found, signer initialization failed")
@@ -109,8 +116,8 @@ func NewSigner(ctx context.Context, opts ...SignerOption) (*Signer, error) {
 	}
 
 	// Seed the keyring from a bootstrap key if it is empty (fresh node). Existing nodes already
-	// have the legacy key migrated into signer_key by migration 000041.
-	initialPkHex, err := ensureKeyring(ctx, config)
+	// have their keyring imported from Postgres (`nodebin state import`).
+	initialPkHex, err := ensureKeyring(ctx, store, config)
 	if err != nil {
 		return nil, err
 	}
@@ -143,7 +150,7 @@ func NewSigner(ctx context.Context, opts ...SignerOption) (*Signer, error) {
 	s := &Signer{
 		PK:               initialPK,
 		chain:            chain,
-		store:            realSignerStore{},
+		store:            store,
 		activeAddr:       crypto.PubkeyToAddress(initialPK.PublicKey),
 		usable:           false, // remains false until reconcile confirms a whitelisted key
 		bootstrapPk:      config.pk,
@@ -174,10 +181,12 @@ func NewSigner(ctx context.Context, opts ...SignerOption) (*Signer, error) {
 
 // ensureKeyring guarantees at least one key exists in signer_key and returns a key (0x-trimmed)
 // suitable for building the initial read/write chainHelper. reconcile then picks the real active key.
-func ensureKeyring(ctx context.Context, config SignerConfig) (string, error) {
-	keys, err := utils.LoadSignerKeys(ctx)
+// A keyring read error is fatal: seeding over an unreadable keyring could shadow the live key.
+func ensureKeyring(ctx context.Context, store signerStore, config SignerConfig) (string, error) {
+	keys, err := store.LoadKeys(ctx)
 	if err != nil {
-		log.Warn().Str("Player", "Signer").Err(err).Msg("failed to load signer keys during init")
+		log.Error().Str("Player", "Signer").Err(err).Msg("failed to load signer keys during init")
+		return "", err
 	}
 	if len(keys) > 0 {
 		for _, k := range keys {
@@ -189,7 +198,7 @@ func ensureKeyring(ctx context.Context, config SignerConfig) (string, error) {
 	}
 
 	// Empty keyring: seed from a bootstrap key.
-	pk, err := getSignerPk(ctx, config)
+	pk, err := getSignerPk(config)
 	if err != nil {
 		return "", err
 	}
@@ -197,12 +206,12 @@ func ensureKeyring(ctx context.Context, config SignerConfig) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	id, err := utils.InsertPendingKey(ctx, addrHex, pk)
+	id, err := store.InsertPending(ctx, addrHex, pk)
 	if err != nil {
 		log.Error().Str("Player", "Signer").Err(err).Msg("failed to seed signer keyring")
 		return "", err
 	}
-	if err := utils.PromotePendingToActive(ctx, id, pk); err != nil {
+	if err := store.Promote(ctx, id); err != nil {
 		log.Warn().Str("Player", "Signer").Err(err).Msg("failed to activate seeded signer key")
 	}
 	return pk, nil
@@ -363,15 +372,14 @@ func (s *Signer) reconcileLocked(ctx context.Context, allowRotate bool) error {
 	return nil
 }
 
-// loadCandidates returns all held keys: the signer_key keyring plus the legacy `signer` row (so
-// the new binary can discover and adopt a key an old binary rotated in). Backfills NULL addresses.
+// loadCandidates returns all held keys in the signer_key keyring. Backfills NULL addresses.
 func (s *Signer) loadCandidates(ctx context.Context) ([]*signerCandidate, error) {
 	keys, err := s.store.LoadKeys(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	cands := make([]*signerCandidate, 0, len(keys)+1)
+	cands := make([]*signerCandidate, 0, len(keys))
 	seen := map[common.Address]bool{}
 	for i := range keys {
 		k := keys[i]
@@ -395,15 +403,6 @@ func (s *Signer) loadCandidates(ctx context.Context) ([]*signerCandidate, error)
 		seen[addr] = true
 		id := k.ID
 		cands = append(cands, &signerCandidate{id: &id, addr: addr, pkHex: k.PK, state: k.State})
-	}
-
-	if legacyPk, lErr := s.store.LoadLegacyPk(ctx); lErr == nil && legacyPk != "" {
-		if ah, e := utils.StringPkToAddressHex(legacyPk); e == nil {
-			addr := common.HexToAddress(ah)
-			if !seen[addr] {
-				cands = append(cands, &signerCandidate{addr: addr, pkHex: strings.TrimPrefix(legacyPk, "0x"), state: "legacy"})
-			}
-		}
 	}
 
 	return cands, nil
@@ -445,7 +444,7 @@ func (s *Signer) ensureActive(ctx context.Context, chosen *signerCandidate) erro
 		return nil
 	}
 
-	// Persist the chosen key as the single active row (copying a legacy-only key into the keyring first).
+	// Persist the chosen key as the single active row (inserting it first if it has no row).
 	id := chosen.id
 	if id == nil {
 		newID, err := s.store.InsertPending(ctx, chosen.addr.Hex(), chosen.pkHex)
@@ -454,7 +453,7 @@ func (s *Signer) ensureActive(ctx context.Context, chosen *signerCandidate) erro
 		}
 		id = &newID
 	}
-	if err := s.store.Promote(ctx, *id, chosen.pkHex); err != nil {
+	if err := s.store.Promote(ctx, *id); err != nil {
 		log.Warn().Str("Player", "Signer").Err(err).Msg("failed to promote chosen key in DB")
 	}
 
@@ -571,7 +570,7 @@ func (s *Signer) rotateLocked(ctx context.Context, from *signerCandidate, reuse 
 			s.mu.Unlock()
 			return err
 		}
-		if err := s.store.Promote(ctx, id, newHex); err != nil {
+		if err := s.store.Promote(ctx, id); err != nil {
 			log.Warn().Str("Player", "Signer").Err(err).Msg("failed to promote rotated key in DB; will reconcile")
 		}
 		_ = s.store.GCRetired(ctx)

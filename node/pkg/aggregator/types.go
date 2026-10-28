@@ -8,6 +8,7 @@ import (
 	"bisonai.com/miko/node/pkg/bus"
 	"bisonai.com/miko/node/pkg/chain/helper"
 	"bisonai.com/miko/node/pkg/common/types"
+	"bisonai.com/miko/node/pkg/nodestate"
 	"bisonai.com/miko/node/pkg/raft"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/host"
@@ -46,6 +47,7 @@ type App struct {
 	Pubsub                    *pubsub.PubSub
 	Signer                    *helper.Signer
 	LatestLocalAggregates     *LatestLocalAggregates
+	State                     *nodestate.Store
 
 	// submissionBuffer is the long-lived in-process handoff from aggregators
 	// to the GlobalAggregateBulkWriter; it outlives writer refreshes.

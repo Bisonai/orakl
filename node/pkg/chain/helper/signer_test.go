@@ -96,7 +96,7 @@ func TestPickReusablePending(t *testing.T) {
 	wasOracle := &signerCandidate{id: &id, addr: common.HexToAddress("0x00000000000000000000000000000000000000cc"), state: "pending", status: wlNot, exp: time.Now().Add(-time.Hour)}
 	// Not reusable: it is the active address we are rotating from.
 	isActive := &signerCandidate{id: &id, addr: exclude, state: "pending", status: wlNot, exp: time.Unix(0, 0)}
-	// Not reusable: no id (legacy-only) cannot be promoted by id.
+	// Not reusable: no id cannot be promoted by id.
 	noID := &signerCandidate{addr: common.HexToAddress("0x00000000000000000000000000000000000000dd"), state: "pending", status: wlNot, exp: time.Unix(0, 0)}
 
 	if got := pickReusablePending([]*signerCandidate{wasOracle, reusable}, exclude); got != reusable {

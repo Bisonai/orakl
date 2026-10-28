@@ -9,6 +9,7 @@ import (
 	"bisonai.com/miko/node/pkg/bus"
 	"bisonai.com/miko/node/pkg/chain/helper"
 	"bisonai.com/miko/node/pkg/db"
+	"bisonai.com/miko/node/pkg/nodestate"
 
 	errorSentinel "bisonai.com/miko/node/pkg/error"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
@@ -16,12 +17,15 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func New(bus *bus.MessageBus, h host.Host, ps *pubsub.PubSub) *App {
+// New builds the aggregator app. state holds the signer keyring and latest
+// rounds; it is required for the managed signer.
+func New(bus *bus.MessageBus, h host.Host, ps *pubsub.PubSub, state *nodestate.Store) *App {
 	return &App{
 		Aggregators:           make(map[int32]*Aggregator),
 		Bus:                   bus,
 		Host:                  h,
 		Pubsub:                ps,
+		State:                 state,
 		LatestLocalAggregates: NewLatestLocalAggregates(),
 		submissionBuffer:      make(chan SubmissionData, DefaultBufferSize),
 	}
@@ -113,7 +117,7 @@ func (a *App) ensureSigner(ctx context.Context) error {
 		return nil
 	}
 
-	signerOptions := []helper.SignerOption{}
+	signerOptions := []helper.SignerOption{helper.WithSignerStore(a.State)}
 	if raw := os.Getenv("SIGNER_RENEW_INTERVAL"); raw != "" {
 		if duration, err := time.ParseDuration(raw); err == nil {
 			signerOptions = append(signerOptions, helper.WithRenewInterval(duration))

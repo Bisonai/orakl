@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"bisonai.com/miko/node/pkg/chain/helper"
+	"bisonai.com/miko/node/pkg/nodestate"
 	"github.com/rs/zerolog/log"
 )
 
@@ -25,7 +26,14 @@ func testContractFeeDelegatedCall(ctx context.Context, contractAddress string, c
 func main() {
 	ctx := context.Background()
 
-	s, err := helper.NewSigner(ctx)
+	state, err := nodestate.OpenFromEnv(ctx, false)
+	if err != nil {
+		log.Error().Err(err).Msg("OpenFromEnv")
+		return
+	}
+	defer state.Close()
+
+	s, err := helper.NewSigner(ctx, helper.WithSignerStore(state))
 	if err != nil {
 		log.Error().Err(err).Msg("NewSigner")
 

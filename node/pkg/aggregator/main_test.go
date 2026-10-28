@@ -68,7 +68,7 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 		return nil, nil, err
 	}
 
-	app := New(mb, h, ps)
+	app := New(mb, h, ps, nil)
 	testItems.app = app
 
 	testItems.topicString = "test-topic"
