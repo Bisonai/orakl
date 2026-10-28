@@ -9,15 +9,9 @@ import (
 	"os"
 	"testing"
 
-	"bisonai.com/miko/node/pkg/admin/config"
-	"bisonai.com/miko/node/pkg/admin/feed"
-	"bisonai.com/miko/node/pkg/admin/fetcher"
-	"bisonai.com/miko/node/pkg/admin/proxy"
-	"bisonai.com/miko/node/pkg/admin/tests"
-	"bisonai.com/miko/node/pkg/admin/utils"
 	"bisonai.com/miko/node/pkg/bus"
 	"bisonai.com/miko/node/pkg/db"
-	"github.com/gofiber/fiber/v2"
+	"bisonai.com/miko/node/pkg/nodeconfig"
 	"github.com/rs/zerolog"
 )
 
@@ -68,11 +62,10 @@ const (
 )
 
 type TestItems struct {
-	admin           *fiber.App
 	messageBus      *bus.MessageBus
 	app             *App
-	insertedConfigs []config.ConfigModel
-	insertedFeeds   []feed.FeedModel
+	insertedConfigs []nodeconfig.Config
+	insertedFeeds   []nodeconfig.Feed
 	mockDataSource  []*httptest.Server
 	aggChan         <-chan bus.Message
 }
@@ -81,20 +74,8 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 	var testItems = new(TestItems)
 	mb := bus.New(100)
 
-	admin, err := utils.Setup(ctx, utils.SetupInfo{
-		Version: "",
-		Bus:     mb,
-	})
-	if err != nil {
-		return nil, nil, err
-	}
-	v1 := admin.Group("/api/v1")
-	config.Routes(v1)
-	proxy.Routes(v1)
-	fetcher.Routes(v1)
-	feed.Routes(v1)
-
 	app := New(mb)
+	app.Configs = nodeconfig.New()
 
 	mockDataSource1 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(mockReply0))
@@ -105,7 +86,6 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 	}))
 
 	testItems.mockDataSource = []*httptest.Server{mockDataSource1, mockDataSource2}
-	testItems.admin = admin
 	testItems.messageBus = mb
 	testItems.app = app
 	testItems.aggChan = mb.Subscribe(bus.AGGREGATOR)
@@ -120,12 +100,7 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 	return cleanup(ctx, testItems), testItems, nil
 }
 
-func insertSampleData(ctx context.Context, testItems *TestItems) ([]config.ConfigModel, []feed.FeedModel, error) {
-	cleanupErr := db.QueryWithoutResult(ctx, "DELETE FROM configs", nil)
-	if cleanupErr != nil {
-		return nil, nil, cleanupErr
-	}
-
+func insertSampleData(ctx context.Context, testItems *TestItems) ([]nodeconfig.Config, []nodeconfig.Feed, error) {
 	var sampleData = []string{`{
     "name": "DAI-USDT",
     "feeds": [
@@ -213,9 +188,7 @@ func insertSampleData(ctx context.Context, testItems *TestItems) ([]config.Confi
   "submitInterval": 15000
   }`}
 
-	var insertData = make([]config.ConfigInsertModel, len(sampleData))
-	var insertResults = make([]config.ConfigModel, len(sampleData))
-
+	var insertData = make([]nodeconfig.Entry, len(sampleData))
 	for i := range insertData {
 		err := json.Unmarshal([]byte(sampleData[i]), &insertData[i])
 		if err != nil {
@@ -223,46 +196,21 @@ func insertSampleData(ctx context.Context, testItems *TestItems) ([]config.Confi
 		}
 	}
 
-	for i := range insertResults {
-		tmp, err := tests.PostRequest[config.ConfigModel](testItems.admin, "/api/v1/config", insertData[i])
-		if err != nil {
-			return nil, nil, err
-		}
-		insertResults[i] = tmp
-	}
-
-	insertedFeeds, err := tests.GetRequest[[]feed.FeedModel](testItems.admin, "/api/v1/feed", nil)
-	if err != nil {
+	store := testItems.app.Configs
+	if err := store.Set(insertData); err != nil {
 		return nil, nil, err
 	}
-
-	return insertResults, insertedFeeds, nil
+	configs := store.Configs()
+	var feeds []nodeconfig.Feed
+	for _, config := range configs {
+		feeds = append(feeds, store.Feeds(config.ID)...)
+	}
+	return configs, feeds, nil
 }
 
 func cleanup(ctx context.Context, testItems *TestItems) func() error {
 	return func() error {
-		if err := testItems.admin.Shutdown(); err != nil {
-			return err
-		}
-		err := db.QueryWithoutResult(ctx, "DELETE FROM configs", nil)
-		if err != nil {
-			return err
-		}
-
-		err = db.QueryWithoutResult(ctx, "DELETE FROM local_aggregates", nil)
-		if err != nil {
-			return err
-		}
-		err = db.QueryWithoutResult(ctx, "DELETE FROM feeds", nil)
-		if err != nil {
-			return err
-		}
-		err = db.QueryWithoutResult(ctx, "DELETE FROM feed_data", nil)
-		if err != nil {
-			return err
-		}
-
-		err = testItems.app.stopAllFetchers(ctx)
+		err := testItems.app.stopAllFetchers(ctx)
 		if err != nil {
 			return err
 		}
@@ -280,7 +228,6 @@ func TestMain(m *testing.M) {
 	// setup
 	code := m.Run()
 
-	db.ClosePool()
 	db.CloseRedis()
 
 	// teardown

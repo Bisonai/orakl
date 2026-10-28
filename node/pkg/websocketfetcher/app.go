@@ -9,7 +9,7 @@ import (
 
 	"bisonai.com/miko/node/pkg/chain/websocketchainreader"
 	"bisonai.com/miko/node/pkg/common/types"
-	"bisonai.com/miko/node/pkg/db"
+	"bisonai.com/miko/node/pkg/nodeconfig"
 	"bisonai.com/miko/node/pkg/secrets"
 	"bisonai.com/miko/node/pkg/websocketfetcher/common"
 	"bisonai.com/miko/node/pkg/websocketfetcher/providers/binance"
@@ -50,21 +50,29 @@ const (
 )
 
 type AppConfig struct {
-	SetFromDB           bool
-	Feeds               []common.Feed
-	CexFactories        map[string]func(context.Context, ...common.FetcherOption) (common.FetcherInterface, error)
-	DexFactories        map[string]func(...common.DexFetcherOption) common.FetcherInterface
-	BufferSize          int
-	StoreInterval       time.Duration
-	LatestFeedDataMap   *types.LatestFeedDataMap
-	FeedDataDumpChannel chan *types.FeedData
+	// SetFromConfig loads CEX (wss) feeds from ConfigStore; DEX feeds always
+	// come from ConfigStore.
+	SetFromConfig     bool
+	ConfigStore       *nodeconfig.Store
+	Feeds             []common.Feed
+	CexFactories      map[string]func(context.Context, ...common.FetcherOption) (common.FetcherInterface, error)
+	DexFactories      map[string]func(...common.DexFetcherOption) common.FetcherInterface
+	BufferSize        int
+	StoreInterval     time.Duration
+	LatestFeedDataMap *types.LatestFeedDataMap
 }
 
 type AppOption func(*AppConfig)
 
-func WithSetFromDB(useDB bool) AppOption {
+func WithSetFromConfig(fromConfig bool) AppOption {
 	return func(c *AppConfig) {
-		c.SetFromDB = useDB
+		c.SetFromConfig = fromConfig
+	}
+}
+
+func WithConfigStore(store *nodeconfig.Store) AppOption {
+	return func(c *AppConfig) {
+		c.ConfigStore = store
 	}
 }
 
@@ -98,20 +106,13 @@ func WithLatestFeedDataMap(latestFeedDataMap *types.LatestFeedDataMap) AppOption
 	}
 }
 
-func WithFeedDataDumpChannel(feedDataDumpChannel chan *types.FeedData) AppOption {
-	return func(c *AppConfig) {
-		c.FeedDataDumpChannel = feedDataDumpChannel
-	}
-}
-
 type App struct {
-	fetchers            []common.FetcherInterface
-	buffer              chan *common.FeedData
-	storeInterval       time.Duration
-	chainReader         *websocketchainreader.ChainReader
-	latestFeedDataMap   *types.LatestFeedDataMap
-	feedDataDumpChannel chan *common.FeedData
-	cancel              context.CancelFunc
+	fetchers          []common.FetcherInterface
+	buffer            chan *common.FeedData
+	storeInterval     time.Duration
+	chainReader       *websocketchainreader.ChainReader
+	latestFeedDataMap *types.LatestFeedDataMap
+	cancel            context.CancelFunc
 }
 
 func New() *App {
@@ -161,7 +162,8 @@ func (a *App) Init(ctx context.Context, opts ...AppOption) error {
 	}
 
 	appConfig := &AppConfig{
-		SetFromDB:     true,
+		SetFromConfig: true,
+		ConfigStore:   nodeconfig.Default(),
 		CexFactories:  cexFactories,
 		DexFactories:  dexFactories,
 		BufferSize:    DefaultBufferSize,
@@ -170,7 +172,6 @@ func (a *App) Init(ctx context.Context, opts ...AppOption) error {
 			FeedDataMap: make(map[int32]*types.FeedData),
 			Mu:          sync.RWMutex{},
 		},
-		FeedDataDumpChannel: make(chan *types.FeedData, 10000),
 	}
 
 	for _, opt := range opts {
@@ -178,7 +179,6 @@ func (a *App) Init(ctx context.Context, opts ...AppOption) error {
 	}
 
 	a.latestFeedDataMap = appConfig.LatestFeedDataMap
-	a.feedDataDumpChannel = appConfig.FeedDataDumpChannel
 
 	if err := a.initializeCex(ctx, *appConfig); err != nil {
 		return err
@@ -201,13 +201,8 @@ func (a *App) reset() {
 
 func (a *App) initializeCex(ctx context.Context, appConfig AppConfig) error {
 	var feeds []common.Feed
-	if appConfig.SetFromDB {
-		var err error
-		feeds, err = db.QueryRows[common.Feed](ctx, common.GetAllWebsocketFeedsQuery, nil)
-		if err != nil {
-			log.Error().Err(err).Msg("error in fetching feeds")
-			return err
-		}
+	if appConfig.SetFromConfig {
+		feeds = appConfig.ConfigStore.FeedsOfType(common.WssFeedType)
 	}
 
 	if len(appConfig.Feeds) > 0 {
@@ -279,11 +274,7 @@ func (a *App) initializeDex(ctx context.Context, appConfig AppConfig) error {
 	a.chainReader = chainReader
 
 	for name, factory := range appConfig.DexFactories {
-		feeds, err := db.QueryRows[common.Feed](ctx, common.GetDexFeedsQuery(name), nil)
-		if err != nil {
-			log.Error().Err(err).Msg("error in fetching feeds")
-			return err
-		}
+		feeds := appConfig.ConfigStore.FeedsOfType(common.DexFeedType(name))
 		fetcher := factory(
 			common.WithFeeds(feeds),
 			common.WithDexFeedDataBuffer(a.buffer),
@@ -350,7 +341,6 @@ func (a *App) storeFeedData(ctx context.Context) {
 			select {
 			case feedData := <-a.buffer:
 				batch = append(batch, feedData)
-				a.feedDataDumpChannel <- feedData
 			default:
 				break loop
 			}

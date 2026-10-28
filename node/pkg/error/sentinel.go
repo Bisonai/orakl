@@ -78,7 +78,6 @@ func (e *CustomError) Error() string {
 }
 
 var (
-	ErrAdminDbPoolNotFound     = &CustomError{Service: Admin, Code: InternalError, Message: "db pool not found"}
 	ErrAdminRedisConnNotFound  = &CustomError{Service: Admin, Code: InternalError, Message: "redisconn not found"}
 	ErrAdminMessageBusNotFound = &CustomError{Service: Admin, Code: InternalError, Message: "messagebus not found"}
 

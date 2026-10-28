@@ -4,12 +4,10 @@ package fetcher
 import (
 	"context"
 	"encoding/json"
-	"strconv"
 	"testing"
 
 	"net/http"
 
-	"bisonai.com/miko/node/pkg/admin/tests"
 	"github.com/elazarl/goproxy"
 	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"
@@ -82,9 +80,6 @@ func TestFetcherFetcherJob(t *testing.T) {
 			assert.NotNil(t, res)
 		}
 	}
-
-	assert.Greater(t, len(app.FeedDataDumpChannel), 0)
-
 }
 
 func TestFetcherFetch(t *testing.T) {
@@ -140,16 +135,8 @@ func TestFetcherFetchProxy(t *testing.T) {
 			log.Fatal().Err(proxyServeErr).Msg("unexpected server shutdown")
 		}
 	}()
-	proxy, err := tests.PostRequest[Proxy](testItems.admin, "/api/v1/proxy", map[string]any{"protocol": "http", "host": "localhost", "port": 8088})
-	if err != nil {
-		t.Fatalf("error creating proxy: %v", err)
-	}
+	t.Setenv(EnvProxies, "http://localhost:8088")
 	defer func() {
-		_, err = tests.DeleteRequest[Proxy](testItems.admin, "/api/v1/proxy/"+strconv.FormatInt(proxy.ID, 10), nil)
-		if err != nil {
-			t.Fatalf("error cleaning up proxy: %v", err)
-		}
-
 		if err = srv.Shutdown(ctx); err != nil {
 			log.Fatal().Err(err).Msg("unexpected server shutdown")
 		}
@@ -263,9 +250,7 @@ func TestFetcherFilterProxyByLocation(t *testing.T) {
 		FeedDataMap: make(map[int32]*FeedData),
 	}
 
-	ch := make(chan *FeedData, 1000)
-
-	fetcher := NewFetcher(Config{}, []Feed{}, testMap, ch)
+	fetcher := NewFetcher(Config{}, []Feed{}, testMap)
 
 	res := fetcher.filterProxyByLocation(proxies, uk)
 	assert.Greater(t, len(res), 0)

@@ -7,12 +7,9 @@ import (
 
 	"bisonai.com/miko/node/pkg/admin/aggregator"
 	"bisonai.com/miko/node/pkg/admin/config"
-	"bisonai.com/miko/node/pkg/admin/feed"
 	"bisonai.com/miko/node/pkg/admin/fetcher"
 	"bisonai.com/miko/node/pkg/admin/host"
 	"bisonai.com/miko/node/pkg/admin/metrics"
-	"bisonai.com/miko/node/pkg/admin/providerUrl"
-	"bisonai.com/miko/node/pkg/admin/proxy"
 
 	"bisonai.com/miko/node/pkg/admin/utils"
 	"bisonai.com/miko/node/pkg/bus"
@@ -36,11 +33,8 @@ func Run(ctx context.Context, bus *bus.MessageBus) error {
 		return c.SendString("Miko Node Admin API")
 	})
 
-	feed.Routes(v1)
-	proxy.Routes(v1)
 	fetcher.Routes(v1)
 	aggregator.Routes(v1)
-	providerUrl.Routes(v1)
 	config.Routes(v1)
 	host.Routes(v1)
 	metrics.Routes(v1)
