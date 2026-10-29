@@ -9,5 +9,11 @@ const (
 	GlobalAggregateRound     = "orakl_node_global_aggregate_round"
 	GlobalAggregateTimestamp = "orakl_node_global_aggregate_timestamp_seconds"
 
-	NameLabel = "name"
+	FeedValue     = "orakl_node_feed_value"
+	FeedTimestamp = "orakl_node_feed_timestamp_seconds"
+	FeedVolume    = "orakl_node_feed_volume"
+
+	NameLabel   = "name"
+	ConfigLabel = "config"
+	FeedLabel   = "feed"
 )
