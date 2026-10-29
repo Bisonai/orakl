@@ -36,20 +36,22 @@ func TestFeedCollectorEmitsLoadedFeeds(t *testing.T) {
 		1: {Config: "BTC-USDT", Feed: "Binance-BTC-USDT"},
 		2: {Config: "JPYC-USDT", Feed: "UniswapV4-Ethereum-USDC-JPYC"},
 		4: {Config: "BTC-USDT", Feed: "Coinbase-BTC-USDT"}, // loaded, no data yet
-	})
+	}, time.Unix(1690000000, 0))
 
 	expected := `
-# HELP orakl_node_feed_timestamp_seconds Unix timestamp of the latest value per feed
+# HELP orakl_node_feed_timestamp_seconds Unix timestamp of the latest value per feed (time the feed was loaded if none)
 # TYPE orakl_node_feed_timestamp_seconds gauge
 orakl_node_feed_timestamp_seconds{config="BTC-USDT",feed="Binance-BTC-USDT"} 1.7000000005e+09
+orakl_node_feed_timestamp_seconds{config="BTC-USDT",feed="Coinbase-BTC-USDT"} 1.69e+09
 orakl_node_feed_timestamp_seconds{config="JPYC-USDT",feed="UniswapV4-Ethereum-USDC-JPYC"} 1.700000001e+09
 # HELP orakl_node_feed_value Latest raw value per feed
 # TYPE orakl_node_feed_value gauge
 orakl_node_feed_value{config="BTC-USDT",feed="Binance-BTC-USDT"} 1.5
 orakl_node_feed_value{config="JPYC-USDT",feed="UniswapV4-Ethereum-USDC-JPYC"} 0.0065
-# HELP orakl_node_feed_volume Latest volume per feed (only feeds reporting volume)
+# HELP orakl_node_feed_volume Latest volume per feed (0 if the source reports none)
 # TYPE orakl_node_feed_volume gauge
 orakl_node_feed_volume{config="BTC-USDT",feed="Binance-BTC-USDT"} 1000
+orakl_node_feed_volume{config="JPYC-USDT",feed="UniswapV4-Ethereum-USDC-JPYC"} 0
 `
 	require.NoError(t, testutil.CollectAndCompare(c, strings.NewReader(expected)))
 }
@@ -63,23 +65,70 @@ func TestFeedCollectorDropsRemovedFeeds(t *testing.T) {
 	c.setFeeds(data, map[int32]FeedLabels{
 		1: {Config: "A", Feed: "KEEP"},
 		2: {Config: "A", Feed: "REMOVED"},
-	})
-	assert.Equal(t, 4, testutil.CollectAndCount(c))
+	}, time.Unix(50, 0))
+	assert.Equal(t, 6, testutil.CollectAndCount(c))
 
 	// refresh without feed 2: its data is still in the map but not emitted
-	c.setFeeds(data, map[int32]FeedLabels{1: {Config: "A", Feed: "KEEP"}})
+	c.setFeeds(data, map[int32]FeedLabels{1: {Config: "A", Feed: "KEEP"}}, time.Unix(60, 0))
 	assert.Equal(t, 1, testutil.CollectAndCount(c, metricnames.FeedValue))
 	assert.Equal(t, 1, testutil.CollectAndCount(c, metricnames.FeedTimestamp))
+	assert.Equal(t, 1, testutil.CollectAndCount(c, metricnames.FeedVolume))
 
-	c.setFeeds(data, nil)
+	c.setFeeds(data, nil, time.Unix(70, 0))
 	assert.Equal(t, 0, testutil.CollectAndCount(c))
 }
 
-func TestFeedCollectorSkipsMissingTimestamp(t *testing.T) {
+// a feed without data (never fetched, or evicted by CleanupJob) keeps its
+// original load time across refreshes, so its delay keeps growing
+func TestFeedCollectorNoDataKeepsLoadTime(t *testing.T) {
 	c := &feedCollector{}
-	c.setFeeds(newFeedDataMap(&types.FeedData{FeedID: 1, Value: 3}), map[int32]FeedLabels{1: {Config: "A", Feed: "F"}})
+	data := newFeedDataMap(&types.FeedData{FeedID: 1, Value: 3, Timestamp: ptrTime(time.Unix(500, 0))})
+	names := map[int32]FeedLabels{1: {Config: "A", Feed: "F"}}
+	c.setFeeds(data, names, time.Unix(100, 0))
+	c.setFeeds(data, names, time.Unix(200, 0))
+
+	data.Mu.Lock()
+	delete(data.FeedDataMap, 1)
+	data.Mu.Unlock()
+
+	expected := `
+# HELP orakl_node_feed_timestamp_seconds Unix timestamp of the latest value per feed (time the feed was loaded if none)
+# TYPE orakl_node_feed_timestamp_seconds gauge
+orakl_node_feed_timestamp_seconds{config="A",feed="F"} 100
+`
+	require.NoError(t, testutil.CollectAndCompare(c, strings.NewReader(expected)))
+	assert.Equal(t, 0, testutil.CollectAndCount(c, metricnames.FeedValue))
+}
+
+func TestFeedCollectorMissingTimestampUsesLoadTime(t *testing.T) {
+	c := &feedCollector{}
+	c.setFeeds(newFeedDataMap(&types.FeedData{FeedID: 1, Value: 3}), map[int32]FeedLabels{1: {Config: "A", Feed: "F"}}, time.Unix(100, 0))
 	assert.Equal(t, 1, testutil.CollectAndCount(c, metricnames.FeedValue))
-	assert.Equal(t, 0, testutil.CollectAndCount(c, metricnames.FeedTimestamp))
+	assert.Equal(t, float64(100), testutil.ToFloat64(timestampOnly{c}))
+}
+
+// names come from the remote bundle; an invalid one must not panic the scrape
+func TestFeedCollectorSkipsInvalidLabels(t *testing.T) {
+	c := &feedCollector{}
+	c.setFeeds(newFeedDataMap(&types.FeedData{FeedID: 1, Value: 3}), map[int32]FeedLabels{
+		1: {Config: "A", Feed: "bad\xff"},
+		2: {Config: "A", Feed: "OK"},
+	}, time.Unix(100, 0))
+	assert.NotPanics(t, func() { assert.Equal(t, 1, testutil.CollectAndCount(c)) })
+}
+
+// timestampOnly exposes only the timestamp series, for testutil.ToFloat64
+type timestampOnly struct{ c *feedCollector }
+
+func (t timestampOnly) Describe(ch chan<- *prometheus.Desc) { ch <- feedTimestampDesc }
+func (t timestampOnly) Collect(ch chan<- prometheus.Metric) {
+	all := make(chan prometheus.Metric)
+	go func() { t.c.Collect(all); close(all) }()
+	for m := range all {
+		if m.Desc() == feedTimestampDesc {
+			ch <- m
+		}
+	}
 }
 
 // scrapes race with map writes and set swaps; run with -race
@@ -93,7 +142,7 @@ func TestFeedCollectorConcurrentScrape(t *testing.T) {
 	for i := int32(1); i <= 100; i++ {
 		names[i] = FeedLabels{Config: "C", Feed: fmt.Sprintf("F%d", i)}
 	}
-	c.setFeeds(data, names)
+	c.setFeeds(data, names, time.Now())
 
 	var wg sync.WaitGroup
 	stop := make(chan struct{})
@@ -118,7 +167,7 @@ func TestFeedCollectorConcurrentScrape(t *testing.T) {
 				return
 			default:
 			}
-			c.setFeeds(data, names)
+			c.setFeeds(data, names, time.Now())
 		}
 	}()
 
