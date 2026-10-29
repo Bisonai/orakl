@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"bisonai.com/miko/node/pkg/admin"
+	adminMetrics "bisonai.com/miko/node/pkg/admin/metrics"
 	"bisonai.com/miko/node/pkg/aggregator"
 	"bisonai.com/miko/node/pkg/bus"
 	"bisonai.com/miko/node/pkg/checker/ping"
@@ -34,6 +35,14 @@ func main() {
 	}
 
 	loginit.InitZeroLog()
+
+	// optional metrics-only listener (GET /metrics), separate from the admin API
+	if port := os.Getenv("METRICS_PORT"); port != "" {
+		if _, err := adminMetrics.StartServer(port); err != nil {
+			log.Error().Err(err).Msg("Failed to start metrics server")
+			os.Exit(1)
+		}
+	}
 
 	// signer keyring + latest rounds; a missing file (wrong path, unmounted
 	// volume) is fatal so the node never starts on an empty keyring/rounds

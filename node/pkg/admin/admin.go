@@ -39,11 +39,6 @@ func Run(ctx context.Context, bus *bus.MessageBus) error {
 	host.Routes(v1)
 	metrics.Routes(v1)
 
-	if err = metrics.StartServer(); err != nil {
-		log.Error().Err(err).Msg("Failed to start metrics server")
-		return err
-	}
-
 	port := os.Getenv("APP_PORT")
 	if port == "" {
 		port = "8088"

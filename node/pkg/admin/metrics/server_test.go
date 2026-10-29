@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"sort"
-	"strings"
 	"testing"
 	"time"
 
@@ -62,34 +61,22 @@ func TestMetricsMuxOtherPaths404(t *testing.T) {
 	}
 }
 
-func TestStartServerUnset(t *testing.T) {
-	t.Setenv("METRICS_PORT", "")
-	assert.NoError(t, StartServer())
-}
-
-func freePort(t *testing.T) string {
-	t.Helper()
-	ln, err := net.Listen("tcp", ":0")
+func TestServe(t *testing.T) {
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
-	port := ln.Addr().(*net.TCPAddr).Port
-	require.NoError(t, ln.Close())
-	return fmt.Sprint(port)
-}
+	srv := Serve(ln)
+	t.Cleanup(func() { srv.Close() })
+	base := "http://" + ln.Addr().String()
 
-func TestStartServer(t *testing.T) {
-	port := freePort(t)
-	t.Setenv("METRICS_PORT", port)
-	require.NoError(t, StartServer())
-
-	resp, err := http.Get("http://127.0.0.1:" + port + "/metrics")
+	resp, err := http.Get(base + "/metrics")
 	require.NoError(t, err)
 	body, err := io.ReadAll(resp.Body)
 	resp.Body.Close()
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
-	assert.True(t, strings.Contains(string(body), "go_goroutines"))
+	assert.Contains(t, string(body), "go_goroutines")
 
-	resp, err = http.Get("http://127.0.0.1:" + port + "/api/v1/metrics")
+	resp, err = http.Get(base + "/api/v1/metrics")
 	require.NoError(t, err)
 	resp.Body.Close()
 	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
@@ -100,6 +87,13 @@ func TestStartServerBindFailure(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(func() { ln.Close() })
 
-	t.Setenv("METRICS_PORT", fmt.Sprint(ln.Addr().(*net.TCPAddr).Port))
-	assert.Error(t, StartServer())
+	_, err = StartServer(fmt.Sprint(ln.Addr().(*net.TCPAddr).Port))
+	assert.Error(t, err)
+}
+
+func TestStartServerInvalidPort(t *testing.T) {
+	for _, port := range []string{"0", "abc", "0.0.0.0:9100", "70000"} {
+		_, err := StartServer(port)
+		assert.Error(t, err, port)
+	}
 }

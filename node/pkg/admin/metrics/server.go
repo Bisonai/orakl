@@ -1,48 +1,57 @@
 package metrics
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
-	"os"
+	"strconv"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog/log"
 )
 
-// NewMux serves only GET /metrics (default registry, same as the admin
-// /api/v1/metrics route); any other path is 404.
+// handler serves the default registry; shared by the admin /api/v1/metrics
+// route and the metrics-only listener so both expose the same families.
+var handler = promhttp.Handler()
+
+// NewMux serves only GET /metrics; any other path is 404.
 func NewMux() *http.ServeMux {
 	mux := http.NewServeMux()
-	mux.Handle("GET /metrics", promhttp.Handler())
+	mux.Handle("GET /metrics", handler)
 	return mux
 }
 
-// StartServer starts the metrics-only listener on METRICS_PORT, if set.
-// The port is bound synchronously so a bind failure is returned to the
-// caller (fail fast, like the admin listener); serving runs in the
-// background for the process lifetime.
-func StartServer() error {
-	port := os.Getenv("METRICS_PORT")
-	if port == "" {
-		return nil
+// StartServer binds the metrics-only listener on all interfaces and serves
+// it in the background. The port is bound synchronously so a bind failure is
+// returned to the caller (fail fast, like the admin listener).
+func StartServer(port string) (*http.Server, error) {
+	if p, err := strconv.Atoi(port); err != nil || p < 1 || p > 65535 {
+		return nil, fmt.Errorf("invalid metrics port %q", port)
 	}
 
-	ln, err := net.Listen("tcp", fmt.Sprintf(":%s", port))
+	ln, err := net.Listen("tcp", ":"+port)
 	if err != nil {
-		return fmt.Errorf("failed to bind metrics port %s: %w", port, err)
+		return nil, fmt.Errorf("failed to bind metrics port %s: %w", port, err)
 	}
+	log.Info().Str("port", port).Msg("Metrics server started")
+	return Serve(ln), nil
+}
 
+// Serve serves the metrics mux on ln in the background.
+func Serve(ln net.Listener) *http.Server {
 	srv := &http.Server{
 		Handler:           NewMux(),
 		ReadHeaderTimeout: 10 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       60 * time.Second,
 	}
 	go func() {
-		if err := srv.Serve(ln); err != nil && err != http.ErrServerClosed {
-			log.Fatal().Err(err).Msg("metrics server stopped")
+		// metrics are a side channel; never take the node down from here
+		if err := srv.Serve(ln); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Error().Err(err).Msg("metrics server stopped")
 		}
 	}()
-	log.Info().Str("port", port).Msg("Metrics server started")
-	return nil
+	return srv
 }
