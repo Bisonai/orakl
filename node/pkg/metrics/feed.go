@@ -10,6 +10,7 @@ package metrics
 // has only a timestamp, the time it was loaded, so its delay keeps growing.
 
 import (
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -50,7 +51,8 @@ type feedSet struct {
 }
 
 type feedCollector struct {
-	set atomic.Pointer[feedSet]
+	setMu sync.Mutex // serializes setFeeds; scrapes only Load
+	set   atomic.Pointer[feedSet]
 }
 
 type feedSample struct {
@@ -62,8 +64,9 @@ type feedSample struct {
 }
 
 // setFeeds swaps in the loaded set; feeds already loaded keep their load time.
-// Called from the fetcher lifecycle only (serialized).
 func (c *feedCollector) setFeeds(data *types.LatestFeedDataMap, names map[int32]FeedLabels, now time.Time) {
+	c.setMu.Lock()
+	defer c.setMu.Unlock()
 	if data == nil || len(names) == 0 {
 		c.set.Store(nil)
 		return
