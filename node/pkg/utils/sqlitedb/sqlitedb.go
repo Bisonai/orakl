@@ -43,6 +43,9 @@ func Open(ctx context.Context, path, schema string) (*sql.DB, error) {
 	if err != nil {
 		return nil, fmt.Errorf("open sqlite %s: %w", path, err)
 	}
+	// One connection: concurrent open/close under load segfaults modernc
+	// (sqlite3_close_v2 vs in-flight Rows), and SQLite serializes writes anyway.
+	db.SetMaxOpenConns(1)
 	if _, err = db.ExecContext(ctx, schema); err != nil {
 		_ = db.Close()
 		return nil, fmt.Errorf("init sqlite schema %s: %w", path, err)
