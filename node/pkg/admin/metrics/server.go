@@ -8,13 +8,21 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog/log"
 )
 
 // handler serves the default registry; shared by the admin /api/v1/metrics
 // route and the metrics-only listener so both expose the same families.
-var handler = promhttp.Handler()
+// Concurrent gathers are capped since the metrics port is unauthenticated.
+var handler = promhttp.InstrumentMetricHandler(
+	prometheus.DefaultRegisterer,
+	promhttp.HandlerFor(prometheus.DefaultGatherer, promhttp.HandlerOpts{
+		MaxRequestsInFlight: 10,
+		Timeout:             10 * time.Second,
+	}),
+)
 
 // NewMux serves only GET /metrics; any other path is 404.
 func NewMux() *http.ServeMux {

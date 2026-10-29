@@ -38,6 +38,14 @@ func main() {
 
 	// optional metrics-only listener (GET /metrics), separate from the admin API
 	if port := os.Getenv("METRICS_PORT"); port != "" {
+		appPort := os.Getenv("APP_PORT")
+		if appPort == "" {
+			appPort = "8088"
+		}
+		if port == appPort {
+			log.Error().Str("port", port).Msg("METRICS_PORT must differ from APP_PORT")
+			os.Exit(1)
+		}
 		if _, err := adminMetrics.StartServer(port); err != nil {
 			log.Error().Err(err).Msg("Failed to start metrics server")
 			os.Exit(1)

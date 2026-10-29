@@ -93,7 +93,7 @@ Ensure you have the following installed and set up:
 # Application port for the admin API, defaults to 8088
 APP_PORT=<Your App Port>
 
-# Optional metrics-only port (node); serves just GET /metrics (same as /api/v1/metrics), no auth. Unset = disabled
+# Optional metrics-only port (node); serves just GET /metrics (same as /api/v1/metrics), no auth, must differ from APP_PORT. Unset = disabled
 METRICS_PORT=<Your Metrics Port>
 
 # PostgreSQL connection URL

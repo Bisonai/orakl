@@ -93,7 +93,9 @@ func TestStartServerBindFailure(t *testing.T) {
 
 func TestStartServerInvalidPort(t *testing.T) {
 	for _, port := range []string{"0", "abc", "0.0.0.0:9100", "70000"} {
-		_, err := StartServer(port)
-		assert.Error(t, err, port)
+		srv, err := StartServer(port)
+		if !assert.Error(t, err, port) {
+			srv.Close()
+		}
 	}
 }
