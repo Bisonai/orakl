@@ -1804,7 +1804,7 @@
     }
   },
   "RON-USDT": {
-    "tag": "standard",
+    "tag": "basic",
     "mainnet": {
       "proxy": "0x23136137ad8f2aee1ba5c141922359a305627931",
       "feed": "0xcc904664f1dc0fe8b617115626b2dc011dc28697"
