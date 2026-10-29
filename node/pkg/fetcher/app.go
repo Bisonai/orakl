@@ -314,10 +314,15 @@ func (a *App) applyState(state *fetcherState) {
 	a.WebsocketFetcher = state.websocketFetcher
 
 	names := make([]string, 0, len(state.localAggregators))
+	feedNames := make(map[int32]metrics.FeedLabels)
 	for _, localAggregator := range state.localAggregators {
 		names = append(names, localAggregator.Name)
+		for _, feed := range localAggregator.Feeds {
+			feedNames[feed.ID] = metrics.FeedLabels{Config: localAggregator.Name, Feed: feed.Name}
+		}
 	}
 	metrics.SetLocalAggregateConfigs(names)
+	metrics.SetFeeds(a.LatestFeedDataMap, feedNames)
 }
 
 func (a *App) buildState(ctx context.Context) (*fetcherState, error) {

@@ -4,12 +4,17 @@ package fetcher
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
 	"bisonai.com/miko/node/pkg/bus"
 	errorSentinel "bisonai.com/miko/node/pkg/error"
+	"bisonai.com/miko/node/pkg/metrics"
+	metricnames "bisonai.com/miko/node/pkg/metrics/names"
 	"bisonai.com/miko/node/pkg/websocketfetcher"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -277,4 +282,31 @@ func TestLoadProxies(t *testing.T) {
 		_, err = loadProxies()
 		assert.Error(t, err, bad)
 	}
+}
+
+// applyState exports the applied set's feeds; a refresh without a feed drops it
+func TestApplyStateSetsFeedMetrics(t *testing.T) {
+	app := New(nil)
+	defer metrics.SetFeeds(nil, nil)
+
+	now := time.Now()
+	config := Config{ID: 1, Name: "METRICS-USDT", FetchInterval: 3600000}
+	feeds := []Feed{{ID: 1, Name: "Binance-METRICS-USDT", ConfigID: 1}}
+	_ = app.LatestFeedDataMap.SetLatestFeedData([]*FeedData{{FeedID: 1, Value: 2.5, Timestamp: &now}})
+
+	state := newTestFetcherState(app)
+	state.localAggregators[1] = NewLocalAggregator(config, feeds, nil, app.LatestFeedDataMap, app.LocalAggregateValueMap)
+	app.applyState(state)
+
+	expected := `
+# HELP orakl_node_feed_value Latest raw value per feed
+# TYPE orakl_node_feed_value gauge
+orakl_node_feed_value{config="METRICS-USDT",feed="Binance-METRICS-USDT"} 2.5
+`
+	assert.NoError(t, testutil.GatherAndCompare(prometheus.DefaultGatherer, strings.NewReader(expected), metricnames.FeedValue))
+
+	app.applyState(newTestFetcherState(app))
+	count, err := testutil.GatherAndCount(prometheus.DefaultGatherer, metricnames.FeedValue)
+	assert.NoError(t, err)
+	assert.Equal(t, 0, count)
 }
