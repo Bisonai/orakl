@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strconv"
 	"sync"
 	"syscall"
 	"time"
@@ -42,7 +43,9 @@ func main() {
 		if appPort == "" {
 			appPort = "8088"
 		}
-		if port == appPort {
+		mp, _ := strconv.Atoi(port)
+		ap, _ := strconv.Atoi(appPort)
+		if mp != 0 && mp == ap {
 			log.Error().Str("port", port).Msg("METRICS_PORT must differ from APP_PORT")
 			os.Exit(1)
 		}

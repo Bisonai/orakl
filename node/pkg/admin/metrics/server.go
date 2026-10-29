@@ -13,21 +13,19 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// handler serves the default registry; shared by the admin /api/v1/metrics
-// route and the metrics-only listener so both expose the same families.
-// Concurrent gathers are capped since the metrics port is unauthenticated.
-var handler = promhttp.InstrumentMetricHandler(
-	prometheus.DefaultRegisterer,
-	promhttp.HandlerFor(prometheus.DefaultGatherer, promhttp.HandlerOpts{
-		MaxRequestsInFlight: 10,
-		Timeout:             10 * time.Second,
-	}),
-)
-
-// NewMux serves only GET /metrics; any other path is 404.
+// NewMux serves only GET /metrics from the default registry (same families
+// as the admin /api/v1/metrics route); any other path is 404. Its own handler
+// caps concurrent gathers, since the port is unauthenticated, without
+// affecting the admin route.
 func NewMux() *http.ServeMux {
 	mux := http.NewServeMux()
-	mux.Handle("GET /metrics", handler)
+	mux.Handle("GET /metrics", promhttp.InstrumentMetricHandler(
+		prometheus.DefaultRegisterer,
+		promhttp.HandlerFor(prometheus.DefaultGatherer, promhttp.HandlerOpts{
+			MaxRequestsInFlight: 10,
+			Timeout:             10 * time.Second,
+		}),
+	))
 	return mux
 }
 
@@ -35,9 +33,11 @@ func NewMux() *http.ServeMux {
 // it in the background. The port is bound synchronously so a bind failure is
 // returned to the caller (fail fast, like the admin listener).
 func StartServer(port string) (*http.Server, error) {
-	if p, err := strconv.Atoi(port); err != nil || p < 1 || p > 65535 {
-		return nil, fmt.Errorf("invalid metrics port %q", port)
+	p, err := parsePort(port)
+	if err != nil {
+		return nil, err
 	}
+	port = strconv.Itoa(p)
 
 	ln, err := net.Listen("tcp", ":"+port)
 	if err != nil {
@@ -45,6 +45,15 @@ func StartServer(port string) (*http.Server, error) {
 	}
 	log.Info().Str("port", port).Msg("Metrics server started")
 	return Serve(ln), nil
+}
+
+// parsePort validates a TCP port number.
+func parsePort(port string) (int, error) {
+	p, err := strconv.Atoi(port)
+	if err != nil || p < 1 || p > 65535 {
+		return 0, fmt.Errorf("invalid metrics port %q", port)
+	}
+	return p, nil
 }
 
 // Serve serves the metrics mux on ln in the background.
