@@ -27,11 +27,11 @@ var (
 	feedVolumeDesc = prometheus.NewDesc(metricnames.FeedVolume,
 		"Latest volume per feed (0 if the source reports none)", []string{metricnames.ConfigLabel, metricnames.FeedLabel}, nil)
 
-	feeds = &feedCollector{}
+	feedMetrics = &feedCollector{}
 )
 
 func init() {
-	prometheus.MustRegister(feeds)
+	prometheus.MustRegister(feedMetrics)
 }
 
 // FeedLabels names a feed in metrics.
@@ -137,5 +137,5 @@ func emitFeedMetric(ch chan<- prometheus.Metric, desc *prometheus.Desc, value fl
 // map their latest data is read from; feeds not in names are no longer
 // emitted.
 func SetFeeds(data *types.LatestFeedDataMap, names map[int32]FeedLabels) {
-	feeds.setFeeds(data, names, time.Now())
+	feedMetrics.setFeeds(data, names, time.Now())
 }
