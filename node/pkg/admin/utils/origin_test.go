@@ -63,6 +63,23 @@ func TestRejectCrossOriginStateChanging(t *testing.T) {
 	}
 }
 
+// A browser request that omits Origin but carries Sec-Fetch-Site is rejected too.
+func TestRejectCrossOriginSecFetchSite(t *testing.T) {
+	app := newOriginTestApp("")
+	for _, site := range []string{"cross-site", "same-site", "same-origin", "none"} {
+		req := httptest.NewRequest(http.MethodPost, protectedRoutes[0], nil)
+		req.Header.Set("Sec-Fetch-Site", site)
+		resp, err := app.Test(req, -1)
+		if err != nil {
+			t.Fatalf("Sec-Fetch-Site %q: %v", site, err)
+		}
+		_ = resp.Body.Close()
+		if resp.StatusCode != http.StatusForbidden {
+			t.Errorf("Sec-Fetch-Site %q: got %d, want 403", site, resp.StatusCode)
+		}
+	}
+}
+
 // Non-browser clients (no Origin) are unaffected.
 func TestRejectCrossOriginNoOrigin(t *testing.T) {
 	app := newOriginTestApp("")

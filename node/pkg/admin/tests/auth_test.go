@@ -57,7 +57,7 @@ func TestSetupAdminToken(t *testing.T) {
 		t.Fatalf("preflight: %v", err)
 	}
 	defer resp.Body.Close()
-	assert.NotEqual(t, http.StatusUnauthorized, resp.StatusCode)
+	assert.Equal(t, http.StatusMethodNotAllowed, resp.StatusCode)
 	assert.Empty(t, resp.Header.Get("Access-Control-Allow-Origin"))
 	assert.Empty(t, resp.Header.Get("Access-Control-Allow-Methods"))
 
