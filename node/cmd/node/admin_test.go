@@ -158,15 +158,17 @@ func TestAdminAuthRequired(t *testing.T) {
 			t.Setenv(utils.AdminAuthRequiredEnv, "true")
 			err := runAdmin(context.Background(), []string{"reload"}, &bytes.Buffer{})
 			require.ErrorIs(t, err, utils.ErrAdminTokenRequired)
+			assert.NotContains(t, err.Error(), "reload stopped")
 			assert.Equal(t, 1, adminExitCode(err))
 			assert.Empty(t, f.paths(), "must not send unauthenticated requests")
 		})
 	}
 	t.Run("invalid value", func(t *testing.T) {
 		f := startFakeAdmin(t, testAdminToken)
-		t.Setenv(utils.AdminAuthRequiredEnv, "yes")
+		t.Setenv(utils.AdminAuthRequiredEnv, "yes-"+testAdminToken)
 		err := runAdmin(context.Background(), []string{"host-sync"}, &bytes.Buffer{})
 		require.ErrorContains(t, err, utils.AdminAuthRequiredEnv)
+		assert.NotContains(t, err.Error(), testAdminToken, "value must not be echoed")
 		assert.Empty(t, f.paths())
 	})
 	t.Run("token set", func(t *testing.T) {

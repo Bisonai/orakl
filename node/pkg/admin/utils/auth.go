@@ -38,7 +38,8 @@ func resolveAdminToken(token, required string) (string, error) {
 	if v := strings.TrimSpace(required); v != "" {
 		var err error
 		if req, err = strconv.ParseBool(v); err != nil {
-			return "", fmt.Errorf("invalid %s %q: want true or false (strconv.ParseBool)", AdminAuthRequiredEnv, required)
+			// value not echoed: a misplaced secret must not end up in logs
+			return "", fmt.Errorf("invalid %s: want true or false (strconv.ParseBool)", AdminAuthRequiredEnv)
 		}
 	}
 	if req && token == "" {

@@ -171,6 +171,9 @@ func (c *adminClient) run(ctx context.Context, args []string) error {
 		if len(args) != 1 {
 			return errAdminUsage
 		}
+		if c.tokenErr != nil {
+			return fmt.Errorf("reload: %w", c.tokenErr)
+		}
 		for i, step := range adminReloadSteps {
 			if err := c.call(ctx, step, adminRoutes[step]); err != nil {
 				return fmt.Errorf("reload stopped, not run: %s: %w", strings.Join(adminReloadSteps[i+1:], ", "), err)
