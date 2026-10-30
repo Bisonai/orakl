@@ -68,7 +68,6 @@ jobs:
     uses: ./.github/workflows/update.image-tag.yaml
     with:
       network: "baobab"
-      build: false
       project-name: ${{ inputs.application }}
       version: ${{ needs.prepare.outputs.version }}
       image-tag: ${{ inputs.image-tag }}

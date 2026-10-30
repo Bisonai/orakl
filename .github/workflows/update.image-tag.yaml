@@ -6,9 +6,6 @@ on:
       network:
         required: true
         type: string
-      build:
-        default: true
-        type: boolean
       project-name:
         required: true
         type: string
@@ -69,19 +66,10 @@ jobs:
           cd ./gitops_tmp/${{ inputs.project-name }}/
           echo "Updating image tag in values.${{ inputs.network }}.yaml files"
 
-          if [[ "${{ inputs.network }}" == "cypress" && "${{ inputs.build }}" == "true" ]]; then
+          sed -i 's/tag: .*$/tag: "${{ inputs.image-tag }}"/g' values.${{ inputs.network }}.yaml
+          sed -i 's/appVersion: .*$/appVersion: "${{ inputs.image-tag }}"/g' values.${{ inputs.network }}.yaml
 
-            baobab_tag=$(grep -oP 'tag: "\K[^"]+' values.baobab.yaml)
-            sed -i "s/tag: \".*\"/tag: \"$baobab_tag\"/" values.${{ inputs.network }}.yaml
-
-          else
-
-            sed -i 's/tag: .*$/tag: "${{ inputs.image-tag }}"/g' values.${{ inputs.network }}.yaml
-            sed -i 's/appVersion: .*$/appVersion: "${{ inputs.image-tag }}"/g' values.${{ inputs.network }}.yaml
-
-            sed -i 's/^appVersion:.*$/appVersion: v'${{ inputs.version }}'.'${{ inputs.tag_date }}'.'${{ inputs.tag_git_hash }}'/' Chart.yaml
-
-          fi
+          sed -i 's/^appVersion:.*$/appVersion: v'${{ inputs.version }}'.'${{ inputs.tag_date }}'.'${{ inputs.tag_git_hash }}'/' Chart.yaml
         shell: bash
 
       - name: Check for Changes

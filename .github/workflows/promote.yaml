@@ -3,7 +3,7 @@ name: Promote
 # Bumps ONLY the image tag in the mainnet values (same image as kairos, no rebuild).
 # If the release also needs mainnet chart/values changes (env, command, volumes,
 # secrets, strategy, ...), merge those to orakl-helm-charts first, then promote.
-# Runs gated by the `mainnet` environment (required reviewers).
+# Runs in the `mainnet` environment: protected branches (master) only, no approval step.
 
 on:
   workflow_dispatch:
@@ -17,7 +17,7 @@ jobs:
   prepare:
     name: Prepare
     runs-on: ubuntu-24.04
-    # Approval gate: every later job needs this one, so nothing touches mainnet before approval.
+    # Environment gate: every later job needs this one, so only master runs can touch mainnet.
     environment: mainnet
 
     outputs:
@@ -67,7 +67,6 @@ jobs:
     uses: ./.github/workflows/update.image-tag.yaml
     with:
       network: "cypress"
-      build: false
       project-name: ${{ needs.prepare.outputs.app_name }}
       version: ${{ needs.prepare.outputs.version }}
       image-tag: ${{ needs.prepare.outputs.img_tag }}
