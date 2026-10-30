@@ -260,6 +260,8 @@ curl -X POST -H "Authorization: Bearer $ADMIN_TOKEN" "http://localhost:$APP_PORT
 
 The `task local:*` commands that POST (`sync`, `refresh-fetcher`, `refresh-aggregator`, `renew-signer`, `sync-libp2p`) send the header from `.env`.
 
+Browser requests are blocked regardless of `ADMIN_TOKEN` (#2725): there is no CORS middleware (no `Access-Control-Allow-*` headers, so preflights fail and pages cannot read responses), and any non-`GET`/`HEAD`/`OPTIONS` request carrying an `Origin` header or a `Sec-Fetch-Site` other than `none` gets `403`. Browsers send these on such requests, incl. `no-cors` simple POSTs that skip preflight; curl, Go clients and `nodebin admin` don't, so call the admin API from those, not from a web page or through a proxy that adds `Origin`. Read-only `GET`s are not covered. Still set `ADMIN_TOKEN` wherever `APP_PORT` is reachable by others.
+
 ## Node state (SQLite)
 
 The node does not use PostgreSQL (#2695). Its only state, the signer keyring (incl. rotation) and the latest round per config, lives in a SQLite file. Configs and feeds are held in memory, loaded from orakl-config at boot and on `POST /api/v1/config/sync` (applied by `/fetcher/refresh` and `/aggregator/refresh`). Config IDs (`GET /api/v1/config`, used by `/aggregator/activate/:id`) are process-local.
