@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"flag"
 	"fmt"
 	"io"
 	"net/http"
@@ -14,13 +15,14 @@ import (
 	"bisonai.com/miko/node/pkg/secrets"
 )
 
-const adminUsage = `usage: nodebin admin <command>
+const adminUsage = `usage: nodebin admin [-timeout 2m] <command>
 
 Calls the admin API of the node running in this pod/host
 (http://127.0.0.1:$APP_PORT, APP_PORT defaults to 8088). Sends
 "Authorization: Bearer <ADMIN_TOKEN>" when ADMIN_TOKEN is set (Vault or env),
 no header otherwise. Prints HTTP status + response body; exits non-zero on a
-non-2xx response or connection error.
+non-2xx response or connection error. -timeout applies per call; a timed-out
+call may still complete on the node.
 
 commands:
   config-sync                     POST /api/v1/config/sync
@@ -36,11 +38,12 @@ commands:
   host-sync                       POST /api/v1/host/sync
   reload                          config-sync, fetcher-refresh,
                                   aggregator-refresh; stops at first failure
+  help                            print this usage
 `
 
 const (
 	adminTokenEnv     = "ADMIN_TOKEN"
-	adminCallTimeout  = 2 * time.Minute
+	adminCallTimeout  = 2 * time.Minute // default -timeout
 	adminMaxBodyBytes = 1 << 20
 )
 
@@ -79,6 +82,7 @@ func adminPort() string {
 type adminClient struct {
 	baseURL string
 	token   string
+	timeout time.Duration
 	http    *http.Client
 	stdout  io.Writer
 }
@@ -87,6 +91,7 @@ func newAdminClient(stdout io.Writer) *adminClient {
 	return &adminClient{
 		baseURL: "http://127.0.0.1:" + adminPort(),
 		token:   strings.TrimSpace(secrets.GetSecret(adminTokenEnv)),
+		timeout: adminCallTimeout,
 		http: &http.Client{
 			// a redirect is unexpected; don't follow it (and forward the token)
 			CheckRedirect: func(*http.Request, []*http.Request) error {
@@ -114,10 +119,30 @@ func adminExitCode(err error) int {
 }
 
 func (c *adminClient) run(ctx context.Context, args []string) error {
+	fs := flag.NewFlagSet("admin", flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
+	timeout := fs.Duration("timeout", c.timeout, "per-call timeout")
+	if err := fs.Parse(args); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			fmt.Fprint(c.stdout, adminUsage)
+			return nil
+		}
+		return errAdminUsage
+	}
+	if *timeout <= 0 {
+		return fmt.Errorf("invalid -timeout %s: %w", *timeout, errAdminUsage)
+	}
+	c.timeout = *timeout
+	args = fs.Args()
 	if len(args) == 0 {
 		return errAdminUsage
 	}
 	cmd := args[0]
+
+	if cmd == "help" || cmd == "--help" {
+		fmt.Fprint(c.stdout, adminUsage)
+		return nil
+	}
 
 	if cmd == "reload" {
 		if len(args) != 1 {
@@ -154,7 +179,7 @@ func (c *adminClient) run(ctx context.Context, args []string) error {
 
 // call POSTs to path and prints the status and body; the token is never printed.
 func (c *adminClient) call(ctx context.Context, name, path string) error {
-	ctx, cancel := context.WithTimeout(ctx, adminCallTimeout)
+	ctx, cancel := context.WithTimeout(ctx, c.timeout)
 	defer cancel()
 
 	url := c.baseURL + path
@@ -168,17 +193,29 @@ func (c *adminClient) call(ctx context.Context, name, path string) error {
 
 	resp, err := c.http.Do(req)
 	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			return fmt.Errorf("%s: POST %s: timed out after %s (may still complete on the node): %w", name, url, c.timeout, err)
+		}
 		return fmt.Errorf("%s: POST %s: %w", name, url, err)
 	}
 	defer resp.Body.Close()
-	body, err := io.ReadAll(io.LimitReader(resp.Body, adminMaxBodyBytes))
-	if err != nil {
-		return fmt.Errorf("%s: read response: %w", name, err)
-	}
 
+	// status first: it tells whether the node accepted the command even if
+	// reading the body fails
 	fmt.Fprintf(c.stdout, "%s: POST %s: %s\n", name, path, resp.Status)
+	body, err := io.ReadAll(io.LimitReader(resp.Body, adminMaxBodyBytes+1))
+	truncated := len(body) > adminMaxBodyBytes
+	if truncated {
+		body = body[:adminMaxBodyBytes]
+	}
 	if len(body) > 0 {
 		fmt.Fprintln(c.stdout, strings.TrimRight(string(body), "\n"))
+	}
+	if truncated {
+		fmt.Fprintf(c.stdout, "(response truncated at %d bytes)\n", adminMaxBodyBytes)
+	}
+	if err != nil {
+		return fmt.Errorf("%s: %s, read response: %w", name, resp.Status, err)
 	}
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
 		return fmt.Errorf("%s: %s", name, resp.Status)

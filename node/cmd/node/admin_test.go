@@ -115,6 +115,7 @@ func TestAdminUsage(t *testing.T) {
 		{"aggregator-activate", "abc"}, {"aggregator-activate", "0"}, {"aggregator-activate", "-1"},
 		{"aggregator-deactivate", "../config/sync"}, {"aggregator-deactivate", "2147483648"},
 		{"aggregator-deactivate", "1.5"},
+		{"-timeout", "0", "config-sync"}, {"-timeout", "x", "config-sync"}, {"-nope", "config-sync"},
 	} {
 		var out bytes.Buffer
 		err := runAdmin(context.Background(), args, &out)
@@ -208,4 +209,49 @@ func TestAdminDefaultPort(t *testing.T) {
 	assert.Equal(t, "8088", adminPort())
 	t.Setenv("APP_PORT", "9000")
 	assert.Equal(t, "9000", adminPort())
+}
+
+func TestAdminHelp(t *testing.T) {
+	f := startFakeAdmin(t, testAdminToken)
+	for _, args := range [][]string{{"help"}, {"--help"}, {"-h"}} {
+		var out bytes.Buffer
+		require.NoError(t, runAdmin(context.Background(), args, &out), args)
+		assert.Contains(t, out.String(), "usage: nodebin admin", args)
+	}
+	assert.Empty(t, f.paths())
+}
+
+func TestAdminTimeout(t *testing.T) {
+	release := make(chan struct{})
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		<-release
+	}))
+	t.Cleanup(srv.Close)
+	t.Cleanup(func() { close(release) })
+	u, err := url.Parse(srv.URL)
+	require.NoError(t, err)
+	t.Setenv("APP_PORT", u.Port())
+	t.Setenv(adminTokenEnv, testAdminToken)
+
+	var out bytes.Buffer
+	err = runAdmin(context.Background(), []string{"-timeout", "50ms", "fetcher-refresh"}, &out)
+	require.Error(t, err)
+	assert.Equal(t, 1, adminExitCode(err))
+	assert.Contains(t, err.Error(), "timed out after 50ms")
+	assert.NotContains(t, out.String()+err.Error(), testAdminToken)
+}
+
+func TestAdminBodyTruncated(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write(bytes.Repeat([]byte("a"), adminMaxBodyBytes+10))
+	}))
+	t.Cleanup(srv.Close)
+	u, err := url.Parse(srv.URL)
+	require.NoError(t, err)
+	t.Setenv("APP_PORT", u.Port())
+
+	var out bytes.Buffer
+	require.NoError(t, runAdmin(context.Background(), []string{"host-sync"}, &out))
+	assert.Contains(t, out.String(), "(response truncated at")
+	assert.Less(t, out.Len(), adminMaxBodyBytes+200)
 }

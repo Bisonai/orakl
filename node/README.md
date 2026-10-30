@@ -254,7 +254,7 @@ nodebin state list            # address<TAB>state<TAB>tx_hash<TAB>updated_at, th
 
 ## Admin CLI
 
-`nodebin admin <command>` calls the admin API of the node running in the same pod (`http://127.0.0.1:$APP_PORT`, `APP_PORT` defaults to `8088`). If `ADMIN_TOKEN` is set (Vault secret when Vault is configured, else env), it sends `Authorization: Bearer <ADMIN_TOKEN>`; otherwise no header. The token never leaves the pod and is never printed. Each call prints the HTTP status and response body, has a 2 min timeout, and exits non-zero on a non-2xx response or connection error. Invalid usage prints the usage and exits `2`.
+`nodebin admin <command>` calls the admin API of the node running in the same pod (`http://127.0.0.1:$APP_PORT`, `APP_PORT` defaults to `8088`). If `ADMIN_TOKEN` is set (Vault secret when Vault is configured, else env), it sends `Authorization: Bearer <ADMIN_TOKEN>`; otherwise no header. The token never leaves the pod and is never printed. Each call prints the HTTP status and response body, has a per-call timeout (`-timeout`, default `2m`, e.g. `nodebin admin -timeout 5m reload`), and exits non-zero on a non-2xx response or connection error. `nodebin admin help` prints the usage; invalid usage prints it and exits `2`.
 
 ```sh
 kubectl exec <node-pod> -- nodebin admin reload
