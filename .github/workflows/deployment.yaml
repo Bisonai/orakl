@@ -1,14 +1,11 @@
-name: Dispatch Deploy
+name: Kairos Deploy Existing Image
+
+# Points kairos at an already-built image (rollback / redeploy). No build, no commit to master.
+# New images: push tag <service>/vX.Y.Z (tag+deploy.yaml). Mainnet: Promote workflow.
+
 on:
   workflow_dispatch:
     inputs:
-      network:
-        description: "Network"
-        required: true
-        type: choice
-        options:
-          - "Baobab"
-          - "Cypress"
       application:
         description: "Service"
         required: true
@@ -25,441 +22,82 @@ on:
           - "sentinel"
           - "dal"
           - "reporter"
-      image:
-        description: "Image Version"
+      image-tag:
+        description: "Existing ECR image tag (e.g. v0.0.26.20261030.0534.abc1234)"
         required: true
-        type: choice
-        default: "new"
-        options:
-          - new
-          - sentinel:v0.0.1.20241122.0446.86dbb99:Sentinel Remove ws delay check...
-          - sentinel:v0.0.1.20241127.0150.cf6be1b:Sentinel DAL rest network dela...
-          - node:v0.0.1.20241128.0230.5c56212:Chore Add log
-          - reporter:v0.0.1.20241208.0239.da98ae7:ChainHelper reduce complexity ...
-          - reporter:v0.0.1.20241209.0109.372d616:Reporter Refresh nonce on cont...
-          - reporter:v0.0.1.20241209.0531.563bd73:Reporter log on reporter error
-          - reporter:v0.0.1.20241209.0816.d4bbdc0:Reporter Fix refresh nonce not...
-          - dal:v0.0.1.20241210.0815.4e13ee6:DAL Hotfix addr comparison
-          - dal:v0.0.1.20241210.0828.235e2b5:more logs
-          - dal:v0.0.1.20241210.0835.a3be57c:more logs
-          - node:v0.0.1.20241212.0915.28f78c5:Migrate to coinex v2
-          - node:v0.0.1.20241223.0235.08b79cd:Node Reduce logs
-          - node:v0.0.1.20241223.0247.5b3e7c5:Node Fix orangex formatting
-          - node:v0.0.1.20241226.0128.1b919e8:Remove upbit ticker dd propert...
-          - sentinel:v0.0.1.20250116.0401.c12b978:Health Reduce alert spamming
-          - sentinel:v0.0.1.20250116.0439.a0748c9:Health add missing skips
-          - node:v0.0.1.20250117.0059.5b40c6a:skip empty message
-          - dal:v0.0.1.20250120.0302.f257049:DAL Unstrict endpoint for repo...
-          - reporter:v0.0.1.20250120.0307.5a7d4e6:Reporter use unstrict endpoint
-          - node:v0.0.1.20250203.0104.ebc695b:Remove contract addresses
-          - node:v0.0.1.20250226.0733.5c534bf:Remove contract addresses
-          - sentinel:v0.0.1.20250312.0555.b9a81a3:Subgraph cleaner
-          - sentinel:v0.0.1.20250312.0604.bf100ef:hotfix schema replacement
-          - sentinel:v0.0.1.20250312.0616.a401699:Reduce delays
-          - node:v0.0.1.20250314.0436.c547895:Multiply decimals twice if val...
-          - dal:v0.0.1.20250314.0440.4ad5ffb:Multiply decimals twice if val...
-          - reporter:v0.0.1.20250324.0509.a85e3d7:Update reporter dal endpoint r...
-          - dal:v0.0.1.20250324.0531.b423f9d:Remove ws json rpc dependency ...
-          - node:v0.0.1.20250325.0259.f0e39ab:Use secrets for json rpc url
-          - sentinel:v0.0.1.20250325.0331.515e890:Update orakl dal endpoint for ...
-          - dal:v0.0.1.20250325.0356.462b087:Update orakl dal endpoint for ...
-          - dal:v0.0.1.20250325.0410.11d99ae:Chore Dal log update
-          - dal:v0.0.1.20250325.0418.cdfa76d:Chore Dal healthcheck handler
-          - sentinel:v0.0.1.20250326.0201.6c2ac44:Update boot api health endpoin...
-          - sentinel:v0.0.1.20250326.0244.7daefc3:Chore fix boot api endpoint fo...
-          - api:v0.0.1.20250404.0407.dc09012:chore rollback new image deplo...
-          - boot-api:v0.0.1.20250404.0409.5c6d108:chore rollback new image deplo...
-          - dal:v0.0.1.20250404.0412.a581867:chore rollback new image deplo...
-          - delegator:v0.0.1.20250404.0417.905d557:chore rollback new image deplo...
-          - node:v0.0.1.20250404.0420.1175644:chore rollback new image deplo...
-          - por:v0.0.1.20250404.0425.ad6e1c2:chore rollback new image deplo...
-          - sentinel:v0.0.1.20250404.0429.5013bf3:chore rollback new image deplo...
-          - reporter:v0.0.1.20250404.0429.5013bf3:chore rollback new image deplo...
-          - dal:v0.0.1.20250514.0238.8305171:update table column
-          - dal:v0.0.1.20250514.0404.825cc1c:Revert feat update table colum...
-          - dal:v0.0.1.20250514.0412.6209a41:fix remove unexpected large va...
-          - node:v0.0.1.20250514.0632.0bd4aff:fix minor errors reduce log sp...
-          - dal:v0.0.1.20250514.0650.d721e8a:Log whitelist and signer toget...
-          - node:v0.0.1.20250514.0916.042f3d5:feat splitted subs
-          - api:v0.0.1.20250519.0818.5acb329:Update missing go versions
-          - boot-api:v0.0.1.20250519.0851.c161fb2:Update missing go versions
-          - node:v0.0.1.20250519.0855.8e74afe:Update missing go versions
-          - delegator:v0.0.1.20250519.0855.8e74afe:Update missing go versions
-          - dal:v0.0.1.20250519.0901.2c53495:Update missing go versions
-          - reporter:v0.0.1.20250519.0904.56967e4:Update missing go versions
-          - por:v0.0.1.20250519.0908.8ae617c:Update missing go versions
-          - sentinel:v0.0.1.20250519.0909.8ae617c:Update missing go versions
-          - node:v0.0.1.20250527.0604.0a024c4:Deploy walk usdt contracts
-          - node:v0.0.1.20250529.0307.e101a4e:Deploy contracts for a new pai...
-          - node:v0.0.1.20250722.0545.5aa1f86:Use gateio v3 endpoint
-          - por:v0.0.1.20250722.0617.61420a4:Use gateio v3 endpoint
-          - por:v0.0.1.20250722.0714.2de1bf0:Include gp into baobab por
-          - por:v0.0.1.20250722.0732.9c98f96:Chore update reduce logic to h...
-          - por:v0.0.1.20250722.0749.5d9a8ef:Fix initial submission failure
-          - por:v0.0.1.20250722.0757.7c5058f:fix por nil ptr err
-          - por:v0.0.1.20250722.0803.41e4dbf:Fix rollback set default val
-          - sentinel:v0.0.1.20250818.0901.862b9c6:price checker integrated to se...
-          - sentinel:v0.0.1.20250818.0909.7801731:hotfix use secretGetSecret ins...
-          - sentinel:v0.0.1.20250819.0130.c87c7c4:Update price drift threshold
-          - sentinel:v0.0.1.20250819.0217.5a41be7:price checker make threshold c...
-          - sentinel:v0.0.1.20250819.0511.172e422:Price checker update
-          - sentinel:v0.0.1.20250819.0627.ad5a79a:price chcker update message
-          - por:v0.0.1.20250915.0613.7dd25f6:Redeploy contracts with fixed ...
-          - por:v0.0.1.20250915.0645.ca7aed1:Noncemanager to prevent nonce ...
-          - por:v0.0.1.20250915.0654.5d8262c:Hotfix por retry condition
-          - por:v0.0.1.20250918.0222.3ce66e6:Deploy skyusdt contracts
-          - por:v0.0.1.20250918.0903.4379484:Store fetched data for monitor...
-          - por:v0.0.1.20250918.0909.6a8e057:Store fetched data for monitor...
-          - sentinel:v0.0.1.20250919.0235.23b76b3:Offchain offset alert
-          - por:v0.0.1.20250919.0235.23b76b3:Offchain offset alert
-          - por:v0.0.1.20250919.0253.34154ba:Add more logs in sentinel
-          - sentinel:v0.0.1.20250919.0256.a03a77d:Add more logs in sentinel
-          - sentinel:v0.0.1.20250919.0308.667bf26:Add more logs in sentinel
-          - por:v0.0.1.20250923.0122.e064717:Cleanup stale data
-          - node:v0.0.1.20250923.0140.40298c0:Cleanup stale data
-          - node:v0.0.1.20250925.1000.8785452:Hotfix concurrent map access f...
-          - node:v0.0.1.20251001.0140.8ab8001:Fix build failure
-          - node:v0.0.1.20251001.0832.608cf5d:Chore reduce ttl for feed data...
-          - node:v0.0.1.20251013.0242.32e4cb4:Update feed data processing re...
-          - node:v0.0.1.20251013.0649.8977047:Less frequent traded pair refr...
-          - por:v0.0.1.20251210.0451.16d37d1:Delegated transaction from m7
-          - dal:v0.0.1.20251223.0633.f7ac3bb:deploy baobab contracts
-          - node:v0.0.1.20251223.0633.f7ac3bb:deploy baobab contracts
-          - node:v0.0.1.20251223.0654.ced9837:Hotfix pointer
-          - node:v0.0.1.20251223.0934.ee56928:Deploy mainnet contracts
-          - node:v0.0.1.20251224.0822.35b441a:Support new chain and protocol
-          - node:v0.0.1.20260317.0732.e00f03e:wip Memory leak on dal
-          - node:v0.0.1.20260319.0205.477dac8.cypress:feat enable Cypress network to...
-          - node:v0.0.1.20260319.0214.aa9ca92.cypress:fix
-          - node:v0.0.1.20260319.0507.a760171.cypress:fix
-          - dal:v0.0.1.20260319.0739.fc0b80a.cypress:fix
-          - node:v0.0.1.20260323.0143.0ff6dc5.baobab:fix
-          - node:v0.0.1.20260323.0149.a93916c.baobab:fix
-          - node:v0.0.1.20260323.0219.d63f36c.cypress:fix
-          - node:v0.0.1.20260323.0256.ad6351e.baobab:fix
-          - node:v0.0.1.20260323.0415.bb170b1.cypress:fix
-          - dal:v0.0.1.20260326.0239.828abd7.baobab:fix
-          - node:v0.0.1.20260406.0338.c8043c5.baobab:fix
-          - node:v0.0.1.20260406.0343.5cde0fe.cypress:fix
-          - por:v0.0.1.20260406.0447.656042f.baobab:fix
-          - por:v0.0.1.20260406.0447.656042f.cypress:fix
-          - sentinel:v0.0.1.20260406.0628.6096230.cypress:fix
-          - node:v0.0.1.20260427.0207.11161ed.baobab:fix
-          - node:v0.0.1.20260427.0221.62b08eb.cypress:fix
-          - node:v0.0.1.20260427.0230.9b83136.baobab:fix
-          - node:v0.0.1.20260427.0237.6cc6e1c.cypress:fix
-          - node:v0.0.1.20260427.0557.3156c1c.baobab:fix
-          - node:v0.0.1.20260427.0601.c2a57af.cypress:fix
-          - node:v0.0.1.20260428.0223.a688913.baobab:fix
-          - node:v0.0.1.20260428.0224.a688913.cypress:fix
-          - node:v0.0.1.20260428.0315.869edfc.baobab:fix
-          - node:v0.0.1.20260428.0315.869edfc.cypress:fix
-          - node:v0.0.1.20260428.0506.fc3f681.baobab:fix
-          - node:v0.0.1.20260428.0530.bf8694d.baobab:fix
-          - node:v0.0.1.20260428.1355.8513780.baobab:fix
-          - node:v0.0.1.20260428.1408.7d9929e.baobab:fix
-          - node:v0.0.1.20260428.1446.e95e1e1.baobab:fix
-          - node:v0.0.1.20260429.0527.d6a7bef.baobab:fix
-          - dal:v0.0.1.20260429.0527.d6a7bef.baobab:fix
-          - reporter:v0.0.1.20260429.1139.1c231ff.baobab:fix
-          - reporter:v0.0.1.20260429.1210.c548251.baobab:fix
-          - dal:v0.0.1.20260429.1210.c548251.baobab:fix
-          - node:v0.0.1.20260504.0035.15a5191.baobab:feat Uniswap V4 fetcher  Arbit...
-          - dal:v0.0.1.20260506.0204.0efde73.cypress:feat Uniswap V4 fetcher  Arbit...
-          - node:v0.0.1.20260506.0215.7214e08.cypress:feat Uniswap V4 fetcher  Arbit...
-          - node:v0.0.1.20260515.0531.1496e82.cypress:Sort proof rows before BulkUps...
-          - node:v0.0.1.20260518.0155.35e73af.cypress:Serialize bulkInsert ticks to ...
-          - node:v0.0.1.20260518.0206.229c4f8.baobab:Serialize bulkInsert ticks to ...
-          - node:v0.0.1.20260518.0206.229c4f8.cypress:Serialize bulkInsert ticks to ...
-          - node:v0.0.1.20260526.0533.58da808.baobab:Fixaggregator Drain inflight b...
-          - delegator:v0.0.1.20260730.0035.7f1fb1e.baobab:fixdelegator surface swallowed...
-          - delegator:v0.0.1.20260730.0138.bb9dd3c.baobab:featdelegator validate fee pay...
-          - delegator:v0.0.1.20260730.0146.5e0c12a.cypress:featdelegator validate fee pay...
-          - delegator:v0.0.1.20260730.0219.6f9474e.baobab:fixdelegator stop the fee paye...
-          - delegator:v0.0.1.20260730.0224.59227df.cypress:fixdelegator stop the fee paye...
-          - reporter:v0.0.1.20260923.0608.39342e0.baobab:reporter dockerfile Debian bul...
-          - por:v0.0.1.20261005.0804.1290471.baobab:featporevent consume merged ma...
-          - por:v0.0.1.20261005.0813.b5e6347.cypress:featporevent consume merged ma...
-          - por:v0.0.1.20261006.0527.fa959d3.baobab:por  event checker fetch chain...
-          - por:v0.0.1.20261006.0541.011611e.cypress:por  event checker fetch chain...
-          - dal:v0.0.1.20261007.0600.d7b4900.baobab:Fix chainkeyed serviceinfra ga...
-          - api:v0.0.1.20261007.0604.bb54faa.baobab:Remove vscode editor config
-          - sentinel:v0.0.1.20261007.0608.c48f614.baobab:Remove vscode editor config
-          - reporter:v0.0.1.20261007.0613.1577c67.baobab:Remove vscode editor config
-          - api:v0.0.1.20261007.0645.522b3d0.cypress:chore remove unused supervisor...
-          - sentinel:v0.0.1.20261007.0651.1538114.cypress:chore remove unused supervisor...
-          - reporter:v0.0.1.20261007.0657.40d9d43.cypress:chore remove unused supervisor...
-          - dal:v0.0.1.20261007.0710.ff8cf1d.cypress:chore remove unused supervisor...
-          - sentinel:v0.0.1.20261008.0618.83cbee6.cypress:chore extend license year to 2...
-          - sentinel:v0.0.1.20261008.0618.83cbee6.baobab:chore extend license year to 2...
-          - sentinel:v0.0.1.20261021.0144.5d6bf4b.baobab:chore DAL hostnames  dalmainne...
-          - sentinel:v0.0.1.20261021.0148.d03f421.cypress:chore DAL hostnames  dalmainne...
-          - dal:v0.0.1.20261023.0014.2a83355.baobab:dal replace Postgres with SQLi...
-          - dal:v0.0.1.20261023.0020.2bf5ffa.cypress:dal replace Postgres with SQLi...
-          - sentinel:v0.0.1.20261023.0044.bdf7999.baobab:dal replace Postgres with SQLi...
-          - sentinel:v0.0.1.20261023.0048.98c79bb.cypress:dal replace Postgres with SQLi...
-          - dal:v0.0.1.20261023.0151.37a2a5e.baobab:DAL retry startup config fetch...
-          - dal:v0.0.1.20261023.0154.ae5e6c7.cypress:DAL retry startup config fetch...
-          - boot-api:v0.0.1.20261023.0258.6f4e240.baobab:bootapi replace Postgres with ...
-          - boot-api:v0.0.1.20261023.0301.507e9a9.cypress:bootapi replace Postgres with ...
-          - sentinel:v0.0.1.20261028.0624.c054730.baobab:node build cmdnode package in ...
-          - sentinel:v0.0.1.20261028.0655.04e4f0d.cypress:node build cmdnode package in ...
+        type: string
+
 jobs:
-  prepare-taskflow:
+  prepare:
     name: Prepare
     runs-on: ubuntu-24.04
-    if: ${{ github.event.inputs.image != 'new' }}
+
     outputs:
-      service: ${{ steps.tag.outputs.service }}
-      version: ${{ steps.package.outputs.version }}
-      tag_date: ${{ steps.taskflow-tag.outputs.tag_date }}
-      tag_git_hash: ${{ steps.taskflow-tag.outputs.tag_git_hash}}
-      img_tag: ${{ steps.taskflow-tag.outputs.img_tag }}
+      version: ${{ steps.split.outputs.version }}
+      tag_date: ${{ steps.split.outputs.tag_date }}
+      tag_git_hash: ${{ steps.split.outputs.tag_git_hash }}
+
     steps:
-      - uses: actions/checkout@v7
-      - name: extract tags
-        id: taskflow-tag
-        run: "IMAGE_TAG=\"${{ github.event.inputs.image }}\"\nVERSION=$(echo \"${IMAGE_TAG}\" | cut -d':' -f2 | cut -d'.' -f1-3)\necho $VERSION\nTAG_DATE=$(echo \"${IMAGE_TAG}\" | cut -d':' -f2 | cut -d'.' -f4-5)\necho $TAG_DATE\nTAG_GIT_HASH=$(echo \"${IMAGE_TAG}\" | cut -d':' -f2 | cut -d'.' -f6)\nTAG_NETWORK=$(echo \"${IMAGE_TAG}\" | cut -d':' -f2 | cut -d'.' -f7)\nif [ -n \"$TAG_NETWORK\" ]; then\n  TAG=\"${VERSION}.${TAG_DATE}.${TAG_GIT_HASH}.${TAG_NETWORK}\"\nelse\n  TAG=\"${VERSION}.${TAG_DATE}.${TAG_GIT_HASH}\"\nfi\necho $TAG\necho $TAG_GIT_HASH\necho \"version=${VERSION}\" >> $GITHUB_OUTPUT\necho \"tag_date=${TAG_DATE}\" >> $GITHUB_OUTPUT\necho \"tag_git_hash=${TAG_GIT_HASH}\" >> $GITHUB_OUTPUT\necho \"img_tag=${TAG}\" >> $GITHUB_OUTPUT\n"
+      - name: validate and split image tag
+        id: split
         env:
-          GH_TOKEN: ${{ secrets.WORKFLOW_PAT }}
-  taskflow-image-update:
-    name: Update Image Tag
-    needs: [prepare-taskflow]
+          APP: ${{ inputs.application }}
+          IMG_TAG: ${{ inputs.image-tag }}
+        run: |
+          if [[ ! $IMG_TAG =~ ^v([0-9]+\.[0-9]+\.[0-9]+)\.([0-9]{8}\.[0-9]{4})\.([0-9a-f]{7,})(\.[a-z]+)?$ ]]; then
+            echo "Image tag does not match v<X.Y.Z>.<date>.<time>.<hash>[.<suffix>]: $IMG_TAG"
+            exit 1
+          fi
+          echo "version=${BASH_REMATCH[1]}" >> $GITHUB_OUTPUT
+          echo "tag_date=${BASH_REMATCH[2]}" >> $GITHUB_OUTPUT
+          echo "tag_git_hash=${BASH_REMATCH[3]}" >> $GITHUB_OUTPUT
+
+          service="$APP"
+          if [[ "$service" == "vrf" || "$service" == "request-response" ]]; then
+            service="core"
+          fi
+          image="public.ecr.aws/bisonai/orakl-${service}:${IMG_TAG}"
+          if ! docker manifest inspect "$image" > /dev/null; then
+            echo "Image not found: $image"
+            exit 1
+          fi
+
+  image-update:
+    name: Update image tag
+    needs: prepare
     uses: ./.github/workflows/update.image-tag.yaml
     with:
       network: "baobab"
       build: false
-      project-name: ${{ github.event.inputs.application }}
-      version: ${{ needs.prepare-taskflow.outputs.version }}
-      image-tag: ${{ needs.prepare-taskflow.outputs.img_tag}}
-      tag_date: ${{ needs.prepare-taskflow.outputs.tag_date }}
-      tag_git_hash: ${{ needs.prepare-taskflow.outputs.tag_git_hash }}
-    secrets:
-      GH_ORAKL_BOT_APP_ID: ${{ secrets.GH_ORAKL_BOT_APP_ID }}
-      GH_ORAKL_BOT_PRIVATE_KEY: ${{ secrets.GH_ORAKL_BOT_PRIVATE_KEY }}
-    if: ${{ github.event.inputs.image != 'new' }}
-  post-slack-taskflow-image-upload:
-    name: Slack message for image upload
-    needs: [prepare-taskflow, taskflow-image-update]
-    uses: ./.github/workflows/post.slack.yaml
-    with:
-      status: "Success"
-      slack-message: "${{ github.event.inputs.network }} ${{ github.event.inputs.application }}* : *${{ needs.prepare-taskflow.outputs.img_tag}}* is updated"
-      channel: "miko-notification"
-    secrets:
-      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-    if: ${{ github.event.inputs.network == 'Baobab' && success() }}
-  prepare:
-    name: Prepare
-    runs-on: ubuntu-24.04
-    if: ${{ github.event.inputs.image == 'new' }}
-    outputs:
-      tag_date: ${{ steps.tag.outputs.date }}
-      tag_git_hash: ${{ steps.tag.outputs.git_hash }}
-      service: ${{ steps.tag.outputs.service }}
-      ecr_url: ${{ steps.tag.outputs.ecr_url }}
-      version: ${{ steps.package.outputs.version }}
-      network: ${{ steps.tag.outputs.network }}
-    steps:
-      - uses: actions/checkout@v7
-      - name: get time tag
-        id: tag
-        run: "# Get the date and git hash\necho \"date=$(date +'%Y%m%d.%H%M')\" >> $GITHUB_OUTPUT\necho \"git_hash=$(git rev-parse --short HEAD)\" >> $GITHUB_OUTPUT\nservice=\"${{ github.event.inputs.application }}\"\n# Set the service name\nif [[ \"$service\" == \"vrf\" || \"$service\" == \"request-response\" ]]; then\n  service=\"core\"\nfi            \n# Set the ecr url\necho \"service=$service\" >> $GITHUB_OUTPUT\necho \"ecr_url=public.ecr.aws/bisonai/orakl-${service}\" >> $GITHUB_OUTPUT\n# Set lowercase network\necho \"network=$(echo '${{ github.event.inputs.network }}' | tr '[:upper:]' '[:lower:]')\" >> $GITHUB_OUTPUT\n# end of the script\n"
-        env:
-          GH_TOKEN: ${{ secrets.WORKFLOW_PAT }}
-      - name: get package version
-        id: package
-        run: "# Get the version from the package.json file\nif [[ \"${{ steps.tag.outputs.service }}\" == \"cli\" || \"${{ steps.tag.outputs.service }}\" == \"core\" ]]; then  \necho \"version=$(node -p -e \"require('./\"${{ steps.tag.outputs.service }}\"/package.json').version\")\" >> $GITHUB_OUTPUT\nelse \n  if [[ \"${{ steps.tag.outputs.service }}\" == \"boot-api\" || \"${{ steps.tag.outputs.service }}\" == \"node\" || \"${{ steps.tag.outputs.service }}\" == \"por\" || \"${{ steps.tag.outputs.service }}\" == \"dal\" || \"${{ steps.tag.outputs.service }}\" == \"reporter\" || \"${{ steps.tag.outputs.service }}\" == \"sentinel\" || \"${{ steps.tag.outputs.service }}\" == \"delegator\" || \"${{ steps.tag.outputs.service }}\" == \"api\" ]]; then    \n    version=$(cat ./node/.version)  \n  else\n    version=$(cat ./${{ steps.tag.outputs.service }}/.version)\n  fi\n  echo \"version=$version\" >> $GITHUB_OUTPUT\nfi\n"
-        env:
-          GH_TOKEN: ${{ secrets.WORKFLOW_PAT }}
-  build:
-    name: Build
-    runs-on: ubuntu-24.04
-    needs: prepare
-    if: ${{ github.event.inputs.image == 'new' }}
-    permissions:
-      id-token: write
-      contents: read
-    outputs:
-      img_tag: ${{ steps.img-tag.outputs.img_tag }}
-    steps:
-      - uses: actions/checkout@v7
-      - name: Setup Go
-        uses: actions/setup-go@v7
-        with:
-          go-version-file: node/go.mod
-          check-latest: true
-          cache-dependency-path: |
-            ./${{ needs.prepare.outputs.service }}/go.sum
-            ./${{ needs.prepare.outputs.service }}/go.mod
-        if: ${{ needs.prepare.outputs.service != 'core' || needs.prepare.outputs.service != 'fetcher' || needs.prepare.outputs.service != 'cli' }}
-      - name: docker build ${{ github.event.inputs.application }}
-        run: SERVICE_NAME=miko-${{ needs.prepare.outputs.service }} docker compose -f docker-compose.build.yaml build
-      - name: configure aws credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-region: us-east-1
-          role-to-assume: ${{ secrets.ROLE_ARN }}
-      - name: login to amazon ecr
-        id: login-ecr-public
-        uses: aws-actions/amazon-ecr-login@v2
-        with:
-          registry-type: public
-      - name: publish image to ecr
-        run: |
-          docker tag miko-${{ needs.prepare.outputs.service }} ${{ needs.prepare.outputs.ecr_url }}:latest
-          docker push ${{ needs.prepare.outputs.ecr_url }}:latest
-          docker tag ${{ needs.prepare.outputs.ecr_url }}:latest ${{ needs.prepare.outputs.ecr_url }}:v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}.${{ needs.prepare.outputs.network }}
-          docker push ${{ needs.prepare.outputs.ecr_url }}:v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}.${{ needs.prepare.outputs.network }}
-      - name: image tag output
-        id: img-tag
-        run: echo "img_tag=v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}.${{ needs.prepare.outputs.network }}" >> $GITHUB_OUTPUT
-  post-slack-image-upload:
-    name: Slack message for image upload
-    needs: [prepare, build]
-    uses: ./.github/workflows/post.slack.yaml
-    with:
-      status: "Success"
-      slack-message: "${{ github.event.inputs.network }} ${{ github.event.inputs.application }}* : *${{ needs.prepare.outputs.service }}* ${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }} is uploaded"
-      channel: "miko-notification"
-    secrets:
-      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-    if: ${{ github.event.inputs.image == 'new' && success() }}
-  image-update:
-    name: Update image tag
-    needs: [prepare, build]
-    uses: ./.github/workflows/update.image-tag.yaml
-    with:
-      network: ${{ needs.prepare.outputs.network }}
-      build: false
-      project-name: ${{ github.event.inputs.application }}
+      project-name: ${{ inputs.application }}
       version: ${{ needs.prepare.outputs.version }}
-      image-tag: ${{ needs.build.outputs.img_tag }}
+      image-tag: ${{ inputs.image-tag }}
       tag_date: ${{ needs.prepare.outputs.tag_date }}
       tag_git_hash: ${{ needs.prepare.outputs.tag_git_hash }}
     secrets:
       GH_ORAKL_BOT_APP_ID: ${{ secrets.GH_ORAKL_BOT_APP_ID }}
       GH_ORAKL_BOT_PRIVATE_KEY: ${{ secrets.GH_ORAKL_BOT_PRIVATE_KEY }}
-    if: ${{ github.event.inputs.image == 'new' }}
-  post-slack-baobab-tag-update-success:
+
+  post-slack-success:
     name: Post slack message for tag update success
-    needs: [prepare, build, image-update]
+    needs: image-update
     uses: ./.github/workflows/post.slack.yaml
+    if: ${{ success() }}
     with:
       status: "Success"
-      slack-message: "${{ github.event.inputs.network }} *${{ github.event.inputs.application }}* : *${{ needs.prepare.outputs.service }}* new image tag ${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }} is updated"
+      slack-message: "Kairos *${{ inputs.application }}* set to ${{ inputs.image-tag }}"
       channel: "miko-notification"
     secrets:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-    if: ${{ github.event.inputs.image == 'new' && success() }}
-  cypress-image-update:
-    name: cypress image update
-    uses: ./.github/workflows/update.image-tag.yaml
-    with:
-      network: "cypress"
-      project-name: ${{ github.event.inputs.application }}
-    secrets:
-      GH_ORAKL_BOT_APP_ID: ${{ secrets.GH_ORAKL_BOT_APP_ID }}
-      GH_ORAKL_BOT_PRIVATE_KEY: ${{ secrets.GH_ORAKL_BOT_PRIVATE_KEY }}
-    if: ${{ github.event.inputs.network == 'Cypress' && github.event.inputs.image != 'new' }}
-  post-slack-cypress-tag-update-success:
-    name: Post slack message for tag update success
-    needs: [cypress-image-update]
+
+  post-slack-failure:
+    name: Post slack message for tag update failure
+    needs: [prepare, image-update]
     uses: ./.github/workflows/post.slack.yaml
-    with:
-      status: "Success"
-      slack-message: "${{ github.event.inputs.network }} *${{ github.event.inputs.application }}* is updated"
-      channel: "miko-notification"
-    secrets:
-      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-    if: ${{ github.event.inputs.network == 'Cypress' && github.event.inputs.image != 'new' && success() }}
-  post-slack-tag-update-failure:
-    name: Post to a slack message for tag update failure
-    needs: [prepare, build, image-update]
-    uses: ./.github/workflows/post.slack.yaml
+    if: ${{ failure() }}
     with:
       status: "Failed"
-      slack-message: "${{ github.event.inputs.network }} *${{ github.event.inputs.application }}* git action failed"
+      slack-message: "Kairos *${{ inputs.application }}* deploy of ${{ inputs.image-tag }} failed"
       channel: "miko-notification"
     secrets:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-    if: ${{ github.event.inputs.image == 'new' && failure() }}
-  update-workflow-and-readme:
-    name: Update Workflow and README
-    needs: [prepare, build, image-update]
-    runs-on: ubuntu-24.04
-    permissions:
-      id-token: write
-      contents: write
-      pages: write
-    outputs:
-      new_tag: ${{ steps.tag_info.outputs.NEW_TAG }}
-      pr_title: ${{ steps.pr_info.outputs.PR_TITLE }}
-      truncated_title: ${{ steps.truncate_pr_title.outputs.truncated_title }}
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          token: ${{ secrets.WORKFLOW_PAT }}
-      - name: get latest merged pull request
-        id: pr_info
-        run: |
-          pr=$(gh pr list --state merged --json title -L 1)
-          PR_TITLE=$(echo $pr | jq -r '.[0].title')
-          PR_TITLE=$(echo "${PR_TITLE}" | sed 's/\\/\\\\/g; s/"/\\"/g; s/`/\\`/g; s/\$/\\$/g')
-          PR_TITLE=$(echo "${PR_TITLE}" | sed 's/[^a-zA-Z0-9 ]//g')
-          echo "PR_TITLE=${PR_TITLE}" >> $GITHUB_OUTPUT
-        env:
-          GH_TOKEN: ${{ secrets.WORKFLOW_PAT }}
-      - name: Install yq
-        run: |
-          sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq
-          sudo chmod +x /usr/bin/yq
-      - name: truncate PR title
-        id: truncate_pr_title
-        run: "TR_PR_TITLE=\"${{steps.pr_info.outputs.PR_TITLE}}\"\nMAX_LENGTH=30\nif [ ${#TR_PR_TITLE} -gt $MAX_LENGTH ]; then\n  TRUNCATED_TITLE=\"${TR_PR_TITLE:0:$MAX_LENGTH}...\"\nelse\n  TRUNCATED_TITLE=\"$TR_PR_TITLE\"\nfi\necho \"truncated_title=$TRUNCATED_TITLE\" >> $GITHUB_OUTPUT  \n"
-        env:
-          GH_TOKEN: ${{ secrets.WORKFLOW_PAT }}
-      - name: Update Workflow Dispatch Options
-        id: tag_info
-        run: |
-          # Update the deployment.yaml file with the new tag
-          git pull
-
-          # Get the new tag
-          NEW_TAG=${{ github.event.inputs.application }}:${{ needs.build.outputs.img_tag }}
-          TAG_WITH_DESCRIPTION="${NEW_TAG}:${{ steps.truncate_pr_title.outputs.truncated_title }}"
-
-          CURRENT_OPTIONS=$(yq e '.on.workflow_dispatch.inputs.image.options[]' .github/workflows/deployment.yaml | sed 's/^- //')
-          OPTIONS_ARRAY=()
-
-          while IFS= read -r line; do
-            OPTIONS_ARRAY+=("\"$line\"")
-          done <<< "$CURRENT_OPTIONS"
-
-          OPTIONS_ARRAY+=("\"$TAG_WITH_DESCRIPTION\"")
-
-          yq eval 'del(.on.workflow_dispatch.inputs.image.options)' -i .github/workflows/deployment.yaml
-
-          for option in "${OPTIONS_ARRAY[@]}"; do
-            yq eval ".on.workflow_dispatch.inputs.image.options += [$option]" -i .github/workflows/deployment.yaml
-          done
-
-          git add .github/workflows/deployment.yaml
-        env:
-          GH_TOKEN: ${{ secrets.WORKFLOW_PAT }}
-      - name: Commit & Push changes
-        uses: actions-js/push@master
-        with:
-          github_token: ${{ secrets.WORKFLOW_PAT }}
-          branch: ${{ github.ref }}
-          repository: ${{ github.repository }}
-  post-slack-pr-update:
-    name: Post to a slack message for tag update failure
-    needs: [prepare, build, image-update, update-workflow-and-readme]
-    uses: ./.github/workflows/post.image.slack.yaml
-    with:
-      slack-message: "\\n \\n> *Service:* ${{ github.event.inputs.application }} \\n> *Version:* ${{ needs.build.outputs.img_tag }} \\n> *PR:* ${{ needs.update-workflow-and-readme.outputs.pr_title}}"
-      channel: "orakl-images"
-    secrets:
-      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-    if: ${{ success() }}
