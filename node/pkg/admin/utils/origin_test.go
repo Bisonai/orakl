@@ -65,17 +65,22 @@ func TestRejectCrossOriginStateChanging(t *testing.T) {
 
 // A browser request that omits Origin but carries Sec-Fetch-Site is rejected too.
 func TestRejectCrossOriginSecFetchSite(t *testing.T) {
-	app := newOriginTestApp("")
-	for _, site := range []string{"cross-site", "same-site", "same-origin"} {
-		req := httptest.NewRequest(http.MethodPost, protectedRoutes[0], nil)
-		req.Header.Set("Sec-Fetch-Site", site)
-		resp, err := app.Test(req, -1)
-		if err != nil {
-			t.Fatalf("Sec-Fetch-Site %q: %v", site, err)
-		}
-		_ = resp.Body.Close()
-		if resp.StatusCode != http.StatusForbidden {
-			t.Errorf("Sec-Fetch-Site %q: got %d, want 403", site, resp.StatusCode)
+	for _, token := range []string{"", testToken} {
+		app := newOriginTestApp(token)
+		for _, method := range []string{http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete} {
+			for _, site := range []string{"cross-site", "same-site", "same-origin"} {
+				req := httptest.NewRequest(method, protectedRoutes[0], nil)
+				req.Header.Set("Sec-Fetch-Site", site)
+				req.Header.Set(fiber.HeaderAuthorization, "Bearer "+testToken)
+				resp, err := app.Test(req, -1)
+				if err != nil {
+					t.Fatalf("Sec-Fetch-Site %q: %v", site, err)
+				}
+				_ = resp.Body.Close()
+				if resp.StatusCode != http.StatusForbidden {
+					t.Errorf("token %q: %s Sec-Fetch-Site %q: got %d, want 403", token, method, site, resp.StatusCode)
+				}
+			}
 		}
 	}
 }

@@ -99,7 +99,8 @@ func statusWithOrigin(t *testing.T, app *fiber.App, method, path, origin, auth s
 	if auth != "" {
 		req.Header.Set("Authorization", auth)
 	}
-	resp, err := app.Test(req, -1)
+	// Finite timeout: a request that wrongly reaches a bus handler would block forever.
+	resp, err := app.Test(req, 5000)
 	if err != nil {
 		t.Fatalf("%s %s: %v", method, path, err)
 	}
