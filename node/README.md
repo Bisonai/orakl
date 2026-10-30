@@ -97,7 +97,7 @@ APP_PORT=<Your App Port>
 # Optional metrics-only port (node); serves just GET /metrics (same as /api/v1/metrics), no auth, must differ from APP_PORT. Unset = disabled
 METRICS_PORT=<Your Metrics Port>
 
-# Optional admin API bearer token (env or Vault); when set, non-GET admin requests need `Authorization: Bearer <token>`. Unset = no auth. See [Admin API auth](#admin-api-auth)
+# Optional admin API bearer token (env or Vault); when set, state-changing admin requests (not GET/HEAD/OPTIONS) need `Authorization: Bearer <token>`. Unset = no auth. See [Admin API auth](#admin-api-auth)
 ADMIN_TOKEN=<Your Admin Token>
 
 # PostgreSQL connection URL
