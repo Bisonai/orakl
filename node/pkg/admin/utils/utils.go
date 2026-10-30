@@ -52,7 +52,6 @@ func Setup(ctx context.Context, setupInfo SetupInfo) (*fiber.App, error) {
 	// After cors so preflight requests are answered without a token.
 	adminToken, err := AdminToken()
 	if err != nil {
-		log.Error().Err(err).Msg("admin API: refusing to start")
 		return nil, err
 	}
 	if adminToken != "" {

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"bisonai.com/miko/node/pkg/secrets"
@@ -16,7 +17,8 @@ import (
 const AdminTokenEnv = "ADMIN_TOKEN"
 
 // AdminAuthRequiredEnv names the env var that makes ADMIN_TOKEN mandatory.
-// Accepted values: "true"/"1" (required), "false"/"0" or unset (optional).
+// Parsed with strconv.ParseBool: 1, t, T, TRUE, true, True (required);
+// 0, f, F, FALSE, false, False or unset (optional); anything else is an error.
 const AdminAuthRequiredEnv = "ADMIN_AUTH_REQUIRED"
 
 // ErrAdminTokenRequired is returned when ADMIN_AUTH_REQUIRED is set but the
@@ -32,13 +34,12 @@ func AdminToken() (string, error) {
 
 func resolveAdminToken(token, required string) (string, error) {
 	token = strings.TrimSpace(token)
-	var req bool
-	switch strings.TrimSpace(required) {
-	case "", "false", "0":
-	case "true", "1":
-		req = true
-	default:
-		return "", fmt.Errorf("invalid %s %q: want true, 1, false or 0", AdminAuthRequiredEnv, required)
+	req := false
+	if v := strings.TrimSpace(required); v != "" {
+		var err error
+		if req, err = strconv.ParseBool(v); err != nil {
+			return "", fmt.Errorf("invalid %s %q: want true or false (strconv.ParseBool)", AdminAuthRequiredEnv, required)
+		}
 	}
 	if req && token == "" {
 		return "", ErrAdminTokenRequired

@@ -12,6 +12,7 @@ import (
 
 	"bisonai.com/miko/node/pkg/admin"
 	adminMetrics "bisonai.com/miko/node/pkg/admin/metrics"
+	adminUtils "bisonai.com/miko/node/pkg/admin/utils"
 	"bisonai.com/miko/node/pkg/aggregator"
 	"bisonai.com/miko/node/pkg/bus"
 	"bisonai.com/miko/node/pkg/checker/ping"
@@ -44,6 +45,13 @@ func main() {
 	}
 
 	loginit.InitZeroLog()
+
+	// fail before joining the network if ADMIN_AUTH_REQUIRED can't be met;
+	// admin.Run checks again for the other binaries
+	if _, err := adminUtils.AdminToken(); err != nil {
+		log.Error().Err(err).Msg("Failed to resolve admin token")
+		os.Exit(1)
+	}
 
 	// optional metrics-only listener (GET /metrics), separate from the admin API
 	if port := os.Getenv("METRICS_PORT"); port != "" {

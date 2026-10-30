@@ -163,9 +163,12 @@ func TestResolveAdminToken(t *testing.T) {
 		{"", "true", "", true},
 		{"", "1", "", true},
 		{" \n", "true", "", true},
+		{testToken, "TRUE", testToken, false},
+		{"", "True", "", true},
+		{"", "FALSE", "", false},
 		// strict: anything else is a misconfiguration, even with a token
-		{testToken, "TRUE", "", true},
 		{testToken, "yes", "", true},
+		{testToken, "enabled", "", true},
 		{"", "on", "", true},
 	}
 	for _, tc := range cases {
