@@ -5,7 +5,7 @@ import (
 )
 
 // RejectCrossOrigin answers 403 to state-changing requests (every method except
-// GET, HEAD and OPTIONS) that carry an Origin or Sec-Fetch-Site header. Browsers
+// GET, HEAD and OPTIONS) that carry an Origin header or a Sec-Fetch-Site other than "none". Browsers
 // send these on such requests, including `no-cors` simple POSTs that skip
 // preflight, while curl, Go clients and `nodebin admin` do not. No browser UI
 // uses the admin API, so this blocks writes from web pages whether or not
@@ -16,7 +16,8 @@ func RejectCrossOrigin() fiber.Handler {
 		case fiber.MethodGet, fiber.MethodHead, fiber.MethodOptions:
 			return c.Next()
 		}
-		if c.Get(fiber.HeaderOrigin) != "" || c.Get("Sec-Fetch-Site") != "" {
+		// Sec-Fetch-Site "none" is a user-initiated navigation, not a cross-site request.
+		if site := c.Get("Sec-Fetch-Site"); c.Get(fiber.HeaderOrigin) != "" || (site != "" && site != "none") {
 			return fiber.NewError(fiber.StatusForbidden, "browser requests are not allowed")
 		}
 		return c.Next()
