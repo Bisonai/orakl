@@ -11,7 +11,6 @@ import (
 	"bisonai.com/miko/node/pkg/bus"
 	"bisonai.com/miko/node/pkg/db"
 	errorSentinel "bisonai.com/miko/node/pkg/error"
-	"bisonai.com/miko/node/pkg/secrets"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/recover"
@@ -50,7 +49,12 @@ func Setup(ctx context.Context, setupInfo SetupInfo) (*fiber.App, error) {
 	// No CORS middleware: no browser UI uses the admin API (#2725).
 	app.Use(RejectCrossOrigin())
 
-	if adminToken := strings.TrimSpace(secrets.GetSecret(AdminTokenEnv)); adminToken != "" {
+	// After RejectCrossOrigin so browser writes are refused before auth (#2725).
+	adminToken, err := AdminToken()
+	if err != nil {
+		return nil, err
+	}
+	if adminToken != "" {
 		log.Info().Msg("admin API: bearer token required for state-changing requests")
 		app.Use(AdminAuth(adminToken))
 	} else {

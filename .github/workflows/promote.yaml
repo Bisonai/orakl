@@ -1,0 +1,117 @@
+name: Promote
+
+# Bumps ONLY the image tag in the mainnet values (same image as kairos, no rebuild).
+# If the release also needs mainnet chart/values changes (env, command, volumes,
+# secrets, strategy, ...), merge those to orakl-helm-charts first, then promote.
+# Runs gated by the `mainnet` environment (required reviewers).
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to promote to mainnet (e.g. node/v0.0.25). Image tag only: merge any required mainnet chart/values changes first."
+        required: true
+        type: string
+
+jobs:
+  prepare:
+    name: Prepare
+    runs-on: ubuntu-24.04
+    # Approval gate: every later job needs this one, so nothing touches mainnet before approval.
+    environment: mainnet
+
+    outputs:
+      app_name: ${{ steps.release.outputs.app_name }}
+      version: ${{ steps.release.outputs.version }}
+      img_tag: ${{ steps.release.outputs.img_tag }}
+      tag_date: ${{ steps.release.outputs.tag_date }}
+      tag_git_hash: ${{ steps.release.outputs.tag_git_hash }}
+
+    steps:
+      - name: read image tag from release
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          if [[ ! $TAG =~ ^([a-zA-Z0-9]+-?[a-zA-Z0-9]+)/v([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+            echo "Tag does not match <service>/vX.Y.Z: $TAG"
+            exit 1
+          fi
+          app_name="${BASH_REMATCH[1]}"
+          version="${BASH_REMATCH[2]}"
+
+          body=$(gh release view "$TAG" -R "$GITHUB_REPOSITORY" --json body --jq .body)
+          # image line written by tag+deploy.yaml: **Image:** `<ecr_url>:v<version>.<date>.<time>.<hash>`
+          img_tag=$(echo "$body" | grep -oP '^\*\*Image:\*\* `[^`:]+:\Kv[^`]+' || true)
+          if [ -z "$img_tag" ]; then
+            echo "No image line in release $TAG"
+            exit 1
+          fi
+
+          IFS='.' read -r v1 v2 v3 date time hash <<< "${img_tag#v}"
+          if [ "${v1}.${v2}.${v3}" != "$version" ] || [ -z "$hash" ]; then
+            echo "Image tag $img_tag does not match $TAG"
+            exit 1
+          fi
+
+          echo "app_name=${app_name}" >> $GITHUB_OUTPUT
+          echo "version=${version}" >> $GITHUB_OUTPUT
+          echo "img_tag=${img_tag}" >> $GITHUB_OUTPUT
+          echo "tag_date=${date}.${time}" >> $GITHUB_OUTPUT
+          echo "tag_git_hash=${hash}" >> $GITHUB_OUTPUT
+
+  image-update:
+    name: Update image tag
+    needs: prepare
+    uses: ./.github/workflows/update.image-tag.yaml
+    with:
+      network: "cypress"
+      build: false
+      project-name: ${{ needs.prepare.outputs.app_name }}
+      version: ${{ needs.prepare.outputs.version }}
+      image-tag: ${{ needs.prepare.outputs.img_tag }}
+      tag_date: ${{ needs.prepare.outputs.tag_date }}
+      tag_git_hash: ${{ needs.prepare.outputs.tag_git_hash }}
+    secrets:
+      GH_ORAKL_BOT_APP_ID: ${{ secrets.GH_ORAKL_BOT_APP_ID }}
+      GH_ORAKL_BOT_PRIVATE_KEY: ${{ secrets.GH_ORAKL_BOT_PRIVATE_KEY }}
+
+  release:
+    name: Mark release as promoted
+    runs-on: ubuntu-24.04
+    needs: [prepare, image-update]
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: flip pre-release to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        run: gh release edit "$TAG" -R "$GITHUB_REPOSITORY" --prerelease=false --latest=false
+
+  post-slack-success:
+    name: Post slack message for promote success
+    needs: [prepare, image-update]
+    uses: ./.github/workflows/post.slack.yaml
+    if: ${{ success() }}
+    with:
+      status: "Success"
+      slack-message: "Mainnet *${{ needs.prepare.outputs.app_name }}* promoted to ${{ needs.prepare.outputs.img_tag }}"
+      channel: "miko-notification"
+    secrets:
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+
+  post-slack-failure:
+    name: Post slack message for promote failure
+    needs: [prepare, image-update]
+    uses: ./.github/workflows/post.slack.yaml
+    if: ${{ failure() }}
+    with:
+      status: "Failed"
+      slack-message: "Mainnet promote of ${{ inputs.tag }} failed"
+      channel: "miko-notification"
+    secrets:
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}

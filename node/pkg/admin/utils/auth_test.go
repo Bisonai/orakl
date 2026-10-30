@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -143,5 +144,64 @@ func TestAdminAuthUnsetToken(t *testing.T) {
 		if got := do(t, app, http.MethodGet, p, ""); got != http.StatusOK {
 			t.Errorf("GET %s: got %d, want 200", p, got)
 		}
+	}
+}
+
+func TestResolveAdminToken(t *testing.T) {
+	cases := []struct {
+		token, required string
+		want            string
+		wantErr         bool
+	}{
+		{"", "", "", false},
+		{"", "false", "", false},
+		{"", "0", "", false},
+		{testToken, "", testToken, false},
+		{" " + testToken + "\n", "true", testToken, false},
+		{testToken, "1", testToken, false},
+		{testToken, " true\n", testToken, false},
+		{"", "true", "", true},
+		{"", "1", "", true},
+		{" \n", "true", "", true},
+		{testToken, "TRUE", testToken, false},
+		{"", "True", "", true},
+		{"", "FALSE", "", false},
+		// strict: anything else is a misconfiguration, even with a token
+		{testToken, "yes", "", true},
+		{testToken, "enabled", "", true},
+		{"", "on", "", true},
+	}
+	for _, tc := range cases {
+		got, err := resolveAdminToken(tc.token, tc.required)
+		if (err != nil) != tc.wantErr {
+			t.Errorf("resolveAdminToken(%q, %q): err %v, wantErr %v", tc.token, tc.required, err, tc.wantErr)
+			continue
+		}
+		if got != tc.want {
+			t.Errorf("resolveAdminToken(%q, %q) = %q, want %q", tc.token, tc.required, got, tc.want)
+		}
+	}
+	if _, err := resolveAdminToken("", "true"); !errors.Is(err, ErrAdminTokenRequired) {
+		t.Errorf("required + empty token: got %v, want ErrAdminTokenRequired", err)
+	}
+}
+
+// AdminToken reads both env vars (secrets falls back to env when Vault is not initialized).
+func TestAdminTokenFromEnv(t *testing.T) {
+	t.Setenv(AdminTokenEnv, "")
+	t.Setenv(AdminAuthRequiredEnv, "true")
+	if _, err := AdminToken(); !errors.Is(err, ErrAdminTokenRequired) {
+		t.Errorf("got %v, want ErrAdminTokenRequired", err)
+	}
+
+	t.Setenv(AdminTokenEnv, testToken)
+	if got, err := AdminToken(); err != nil || got != testToken {
+		t.Errorf("got %q, %v; want %q, nil", got, err, testToken)
+	}
+
+	t.Setenv(AdminTokenEnv, "")
+	t.Setenv(AdminAuthRequiredEnv, "")
+	if got, err := AdminToken(); err != nil || got != "" {
+		t.Errorf("unset: got %q, %v; want \"\", nil", got, err)
 	}
 }

@@ -3,6 +3,7 @@ package tests
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -106,4 +107,17 @@ func statusWithOrigin(t *testing.T, app *fiber.App, method, path, origin, auth s
 	}
 	defer resp.Body.Close()
 	return resp.StatusCode
+}
+
+// With ADMIN_AUTH_REQUIRED, Setup refuses to build an open admin app.
+func TestSetupAdminAuthRequired(t *testing.T) {
+	t.Setenv(utils.AdminTokenEnv, "")
+	t.Setenv(utils.AdminAuthRequiredEnv, "true")
+
+	cleanup, _, err := setup(context.Background())
+	if err == nil {
+		cleanup()
+		t.Fatal("setup succeeded without token")
+	}
+	assert.True(t, errors.Is(err, utils.ErrAdminTokenRequired), err)
 }
