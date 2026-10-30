@@ -4,11 +4,9 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"strconv"
 	"sync"
 	"testing"
 
@@ -165,16 +163,12 @@ func TestAdminNon2xx(t *testing.T) {
 }
 
 func TestAdminConnectionError(t *testing.T) {
-	// a port nothing listens on
-	l, err := net.Listen("tcp", "127.0.0.1:0")
-	require.NoError(t, err)
-	port := l.Addr().(*net.TCPAddr).Port
-	require.NoError(t, l.Close())
-	t.Setenv("APP_PORT", strconv.Itoa(port))
+	// privileged port 1 (tcpmux): nothing listens there on test hosts
+	t.Setenv("APP_PORT", "1")
 	t.Setenv(adminTokenEnv, testAdminToken)
 
 	var out bytes.Buffer
-	err = runAdmin(context.Background(), []string{"config-sync"}, &out)
+	err := runAdmin(context.Background(), []string{"config-sync"}, &out)
 	require.Error(t, err)
 	assert.Equal(t, 1, adminExitCode(err))
 	assert.False(t, errors.Is(err, errAdminUsage))
@@ -219,6 +213,17 @@ func TestAdminHelp(t *testing.T) {
 		assert.Contains(t, out.String(), "usage: nodebin admin", args)
 	}
 	assert.Empty(t, f.paths())
+}
+
+func TestAdminTimeoutFlagPosition(t *testing.T) {
+	f := startFakeAdmin(t, "")
+	for _, args := range [][]string{
+		{"-timeout", "5s", "reload"}, {"reload", "-timeout", "5s"},
+		{"aggregator-activate", "-timeout=5s", "3"}, {"aggregator-activate", "3", "-timeout", "5s"},
+	} {
+		require.NoError(t, runAdmin(context.Background(), args, &bytes.Buffer{}), args)
+	}
+	assert.Len(t, f.paths(), 2*3+2)
 }
 
 func TestAdminTimeout(t *testing.T) {

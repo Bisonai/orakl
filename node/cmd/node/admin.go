@@ -15,7 +15,7 @@ import (
 	"bisonai.com/miko/node/pkg/secrets"
 )
 
-const adminUsage = `usage: nodebin admin [-timeout 2m] <command>
+const adminUsage = `usage: nodebin admin [-timeout 2m] <command> [args]
 
 Calls the admin API of the node running in this pod/host
 (http://127.0.0.1:$APP_PORT, APP_PORT defaults to 8088). Sends
@@ -122,24 +122,34 @@ func (c *adminClient) run(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("admin", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 	timeout := fs.Duration("timeout", c.timeout, "per-call timeout")
-	if err := fs.Parse(args); err != nil {
-		if errors.Is(err, flag.ErrHelp) {
-			fmt.Fprint(c.stdout, adminUsage)
-			return nil
+	// flags are accepted before and after the command
+	var positional []string
+	for {
+		if err := fs.Parse(args); err != nil {
+			if errors.Is(err, flag.ErrHelp) {
+				fmt.Fprint(c.stdout, adminUsage)
+				return nil
+			}
+			return errAdminUsage
 		}
-		return errAdminUsage
+		args = fs.Args()
+		if len(args) == 0 {
+			break
+		}
+		positional = append(positional, args[0])
+		args = args[1:]
 	}
 	if *timeout <= 0 {
 		return fmt.Errorf("invalid -timeout %s: %w", *timeout, errAdminUsage)
 	}
 	c.timeout = *timeout
-	args = fs.Args()
+	args = positional
 	if len(args) == 0 {
 		return errAdminUsage
 	}
 	cmd := args[0]
 
-	if cmd == "help" || cmd == "--help" {
+	if cmd == "help" {
 		fmt.Fprint(c.stdout, adminUsage)
 		return nil
 	}
