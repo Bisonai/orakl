@@ -14,6 +14,7 @@
   - [Database Initialization](#database-initialization)
   - [Optional Setups](#optional-setups)
   - [Run Node](#run-node)
+- [Admin API auth](#admin-api-auth)
 - [Node state (SQLite)](#node-state-sqlite)
 - [DAL](#dal)
   - [API keys](#api-keys)
@@ -95,6 +96,9 @@ APP_PORT=<Your App Port>
 
 # Optional metrics-only port (node); serves just GET /metrics (same as /api/v1/metrics), no auth, must differ from APP_PORT. Unset = disabled
 METRICS_PORT=<Your Metrics Port>
+
+# Optional admin API bearer token (env or Vault); when set, state-changing admin requests (not GET/HEAD/OPTIONS) need `Authorization: Bearer <token>`. Unset = no auth. See [Admin API auth](#admin-api-auth)
+ADMIN_TOKEN=<Your Admin Token>
 
 # PostgreSQL connection URL
 DATABASE_URL=<Your Database URL>
@@ -221,6 +225,31 @@ cp .env.local .env
    ```sh
    task local:node
    ```
+
+## Admin API auth
+
+Set `ADMIN_TOKEN` (env, or the Vault secret when Vault is configured) to require `Authorization: Bearer <ADMIN_TOKEN>` on every state-changing admin request (any method other than `GET`/`HEAD`/`OPTIONS`, incl. unknown paths); missing or wrong token → `401`. Unset = no auth (opt-in per deployment; startup logs a warning). Surrounding whitespace is ignored. The token is compared in constant time and never logged. There is no rate limit on failed attempts, so use a high-entropy token, e.g. `openssl rand -hex 32`. Read-only `GET`s stay open so k8s probes, Prometheus scraping and sentinel (peercount, metrics) need no token; they expose no secrets. The separate `METRICS_PORT` listener is never authenticated.
+
+| Route (`/api/v1`)                                             | Auth when `ADMIN_TOKEN` set |
+| ------------------------------------------------------------- | --------------------------- |
+| `POST /fetcher/{start,stop,refresh}`                          | token                       |
+| `POST /aggregator/{start,stop,refresh}`                       | token                       |
+| `POST /aggregator/activate/:id`, `/aggregator/deactivate/:id` | token                       |
+| `POST /aggregator/renew-signer`                               | token                       |
+| `POST /config/sync`                                           | token                       |
+| `POST /host/sync`                                             | token                       |
+| any other non-`GET`/`HEAD` request                            | token                       |
+| `GET /` (liveness/readiness)                                  | open                        |
+| `GET /metrics`                                                | open                        |
+| `GET /host/peercount`                                         | open                        |
+| `GET /aggregator/signer` (public address + status)            | open                        |
+| `GET /config` (config list)                                   | open                        |
+
+```sh
+curl -X POST -H "Authorization: Bearer $ADMIN_TOKEN" "http://localhost:$APP_PORT/api/v1/config/sync"
+```
+
+The `task local:*` commands that POST (`sync`, `refresh-fetcher`, `refresh-aggregator`, `renew-signer`, `sync-libp2p`) send the header from `.env`.
 
 ## Node state (SQLite)
 

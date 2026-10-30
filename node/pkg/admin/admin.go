@@ -28,16 +28,7 @@ func Run(ctx context.Context, bus *bus.MessageBus) error {
 		return err
 	}
 
-	v1 := app.Group("/api/v1")
-	v1.Get("/", func(c *fiber.Ctx) error {
-		return c.SendString("Miko Node Admin API")
-	})
-
-	fetcher.Routes(v1)
-	aggregator.Routes(v1)
-	config.Routes(v1)
-	host.Routes(v1)
-	metrics.Routes(v1)
+	registerRoutes(app)
 
 	port := os.Getenv("APP_PORT")
 	if port == "" {
@@ -51,6 +42,19 @@ func Run(ctx context.Context, bus *bus.MessageBus) error {
 	}
 
 	return nil
+}
+
+func registerRoutes(app *fiber.App) {
+	v1 := app.Group("/api/v1")
+	v1.Get("/", func(c *fiber.Ctx) error {
+		return c.SendString("Miko Node Admin API")
+	})
+
+	fetcher.Routes(v1)
+	aggregator.Routes(v1)
+	config.Routes(v1)
+	host.Routes(v1)
+	metrics.Routes(v1)
 }
 
 func SyncMikoConfig(ctx context.Context) error {

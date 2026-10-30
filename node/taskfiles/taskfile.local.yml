@@ -185,15 +185,18 @@ tasks:
   sync:
     dotenv: [".env"]
     cmds:
-      - curl -X POST "http://localhost:$APP_PORT/api/v1/config/sync"
+      - |
+        curl --fail-with-body -X POST -H "Authorization: Bearer $ADMIN_TOKEN" "http://localhost:$APP_PORT/api/v1/config/sync"
   refresh-fetcher:
     dotenv: [".env"]
     cmds:
-      - curl -X POST "http://localhost:$APP_PORT/api/v1/fetcher/refresh"
+      - |
+        curl --fail-with-body -X POST -H "Authorization: Bearer $ADMIN_TOKEN" "http://localhost:$APP_PORT/api/v1/fetcher/refresh"
   refresh-aggregator:
     dotenv: [".env"]
     cmds:
-      - curl -X POST "http://localhost:$APP_PORT/api/v1/aggregator/refresh"
+      - |
+        curl --fail-with-body -X POST -H "Authorization: Bearer $ADMIN_TOKEN" "http://localhost:$APP_PORT/api/v1/aggregator/refresh"
   refresh-reporter:
     dotenv: [".env"]
     cmds:
@@ -222,7 +225,8 @@ tasks:
   renew-signer:
     dotenv: [".env"]
     cmds:
-      - curl -X POST "http://localhost:$APP_PORT/api/v1/aggregator/renew-signer"
+      - |
+        curl --fail-with-body -X POST -H "Authorization: Bearer $ADMIN_TOKEN" "http://localhost:$APP_PORT/api/v1/aggregator/renew-signer"
   get-peer-count:
     dotenv: [".env"]
     cmds:
@@ -230,7 +234,8 @@ tasks:
   sync-libp2p:
     dotenv: [".env"]
     cmds:
-      - curl -X POST "http://localhost:$APP_PORT/api/v1/host/sync"
+      - |
+        curl --fail-with-body -X POST -H "Authorization: Bearer $ADMIN_TOKEN" "http://localhost:$APP_PORT/api/v1/host/sync"
   test:
     cmds:
       - task: test-db

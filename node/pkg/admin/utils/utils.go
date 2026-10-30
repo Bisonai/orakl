@@ -11,6 +11,7 @@ import (
 	"bisonai.com/miko/node/pkg/bus"
 	"bisonai.com/miko/node/pkg/db"
 	errorSentinel "bisonai.com/miko/node/pkg/error"
+	"bisonai.com/miko/node/pkg/secrets"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -48,6 +49,14 @@ func Setup(ctx context.Context, setupInfo SetupInfo) (*fiber.App, error) {
 	))
 
 	app.Use(cors.New())
+
+	// After cors so preflight requests are answered without a token.
+	if adminToken := strings.TrimSpace(secrets.GetSecret(AdminTokenEnv)); adminToken != "" {
+		log.Info().Msg("admin API: bearer token required for state-changing requests")
+		app.Use(AdminAuth(adminToken))
+	} else {
+		log.Warn().Msg("admin API: " + AdminTokenEnv + " not set, state-changing requests are unauthenticated")
+	}
 
 	app.Use(func(c *fiber.Ctx) error {
 		c.Locals("bus", setupInfo.Bus)
