@@ -45,4 +45,15 @@ func TestSetupAdminToken(t *testing.T) {
 
 	waitForMessageWithResponse(t, channel, bus.ADMIN, bus.LIBP2P, bus.GET_PEER_COUNT, map[string]any{"Count": 1})
 	assert.Equal(t, http.StatusOK, status(http.MethodGet, "/api/v1/host/peercount", ""))
+
+	// CORS preflight is answered by cors (registered before auth) without a token.
+	preflight := httptest.NewRequest(http.MethodOptions, "/api/v1/host/sync", nil)
+	preflight.Header.Set("Origin", "http://example.com")
+	preflight.Header.Set("Access-Control-Request-Method", http.MethodPost)
+	resp, err := testItems.app.Test(preflight, -1)
+	if err != nil {
+		t.Fatalf("preflight: %v", err)
+	}
+	defer resp.Body.Close()
+	assert.Equal(t, http.StatusNoContent, resp.StatusCode)
 }

@@ -10,7 +10,7 @@ import (
 
 const testToken = "s3cret-token"
 
-// Mirrors the routes registered by admin.Run (/api/v1 group).
+// Sample admin routes for middleware behaviour; pkg/admin tests enumerate the real ones.
 var protectedRoutes = []string{
 	"/api/v1/fetcher/start",
 	"/api/v1/fetcher/stop",
