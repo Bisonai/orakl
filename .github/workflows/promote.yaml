@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Release tag to promote to cypress (e.g. node/v0.0.25)"
+        description: "Release tag to promote to mainnet (e.g. node/v0.0.25)"
         required: true
         type: string
 
@@ -92,7 +92,7 @@ jobs:
     if: ${{ success() }}
     with:
       status: "Success"
-      slack-message: "Cypress *${{ needs.prepare.outputs.app_name }}* promoted to ${{ needs.prepare.outputs.img_tag }}"
+      slack-message: "Mainnet *${{ needs.prepare.outputs.app_name }}* promoted to ${{ needs.prepare.outputs.img_tag }}"
       channel: "miko-notification"
     secrets:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
@@ -104,7 +104,7 @@ jobs:
     if: ${{ failure() }}
     with:
       status: "Failed"
-      slack-message: "Cypress promote of ${{ inputs.tag }} failed"
+      slack-message: "Mainnet promote of ${{ inputs.tag }} failed"
       channel: "miko-notification"
     secrets:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}

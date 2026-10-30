@@ -163,7 +163,7 @@ jobs:
           {
             echo "**Image:** \`${IMAGE}\`"
             echo
-            echo "Deployed to baobab. Promote to cypress with the \`Promote\` workflow."
+            echo "Deployed to kairos. Promote to mainnet with the \`Promote\` workflow."
             echo
             echo "$notes"
           } > notes.md
