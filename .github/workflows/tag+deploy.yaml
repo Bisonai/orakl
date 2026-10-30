@@ -131,6 +131,45 @@ jobs:
       GH_ORAKL_BOT_PRIVATE_KEY: ${{ secrets.GH_ORAKL_BOT_PRIVATE_KEY }}
     if: ${{ success() }}
 
+  release:
+    name: Create pre-release
+    runs-on: ubuntu-24.04
+    needs: [prepare, build, image-update]
+
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: create github pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          APP_NAME: ${{ needs.prepare.outputs.app_name }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+          IMAGE: ${{ needs.prepare.outputs.ecr_url }}:${{ needs.build.outputs.img_tag }}
+        run: |
+          # previous release tag of the same service, for notes range
+          prev=$(git tag -l "${APP_NAME}/v*" --sort=-v:refname | grep -vxF "$TAG" | head -n1)
+          args=(-f tag_name="$TAG")
+          if [ -n "$prev" ]; then
+            args+=(-f previous_tag_name="$prev")
+          fi
+          notes=$(gh api "repos/${GITHUB_REPOSITORY}/releases/generate-notes" "${args[@]}" --jq .body)
+
+          {
+            echo "**Image:** \`${IMAGE}\`"
+            echo
+            echo "Deployed to baobab. Promote to cypress with the \`Promote\` workflow."
+            echo
+            echo "$notes"
+          } > notes.md
+
+          gh release create "$TAG" --title "${APP_NAME} v${VERSION}" --notes-file notes.md --prerelease
+
   post-slack-tag-update-success:
     name: Post slack message for tag update success
     needs: [prepare, build, image-update]
