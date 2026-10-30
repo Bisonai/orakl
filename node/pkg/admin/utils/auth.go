@@ -12,9 +12,11 @@ import (
 const AdminTokenEnv = "ADMIN_TOKEN"
 
 // AdminAuth requires `Authorization: Bearer <token>` for state-changing requests
-// (every method except GET and HEAD). Read-only requests stay open so probes,
-// metrics scraping and sentinel keep working. An empty token disables the check.
+// (every method except GET, HEAD and OPTIONS). Read-only requests stay open so
+// probes, metrics scraping and sentinel keep working. Surrounding whitespace in
+// token is ignored. An empty token disables the check.
 func AdminAuth(token string) fiber.Handler {
+	token = strings.TrimSpace(token)
 	if token == "" {
 		return func(c *fiber.Ctx) error {
 			return c.Next()
@@ -24,7 +26,7 @@ func AdminAuth(token string) fiber.Handler {
 
 	return func(c *fiber.Ctx) error {
 		switch c.Method() {
-		case fiber.MethodGet, fiber.MethodHead:
+		case fiber.MethodGet, fiber.MethodHead, fiber.MethodOptions:
 			return c.Next()
 		}
 

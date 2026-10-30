@@ -105,6 +105,29 @@ func TestAdminAuthOpenRoutes(t *testing.T) {
 			t.Errorf("HEAD %s: got %d, want 200", p, got)
 		}
 	}
+	// OPTIONS is safe; unregistered here so fiber answers 405, but never 401.
+	if got := do(t, app, http.MethodOptions, protectedRoutes[0], ""); got == http.StatusUnauthorized {
+		t.Errorf("OPTIONS %s: got 401", protectedRoutes[0])
+	}
+}
+
+// A token with surrounding whitespace (e.g. secret file with trailing newline) still matches.
+func TestAdminAuthTokenWhitespace(t *testing.T) {
+	app := newTestApp(" " + testToken + "\n")
+	if got := do(t, app, http.MethodPost, protectedRoutes[0], "Bearer "+testToken); got != http.StatusOK {
+		t.Errorf("got %d, want 200", got)
+	}
+	if got := do(t, app, http.MethodPost, protectedRoutes[0], ""); got != http.StatusUnauthorized {
+		t.Errorf("no header: got %d, want 401", got)
+	}
+}
+
+// Whitespace-only token disables auth like an unset one.
+func TestAdminAuthBlankToken(t *testing.T) {
+	app := newTestApp("  \n")
+	if got := do(t, app, http.MethodPost, protectedRoutes[0], "Bearer  "); got != http.StatusOK {
+		t.Errorf("got %d, want 200", got)
+	}
 }
 
 func TestAdminAuthUnsetToken(t *testing.T) {

@@ -228,7 +228,7 @@ cp .env.local .env
 
 ## Admin API auth
 
-Set `ADMIN_TOKEN` (env, or the Vault secret when Vault is configured) to require `Authorization: Bearer <ADMIN_TOKEN>` on every state-changing admin request (any method other than `GET`/`HEAD`); missing or wrong token → `401`. Unset = no auth (opt-in per deployment). The token is compared in constant time and never logged. Read-only `GET`s stay open so k8s probes, Prometheus scraping and sentinel (peercount, metrics) need no token; they expose no secrets. The separate `METRICS_PORT` listener is never authenticated.
+Set `ADMIN_TOKEN` (env, or the Vault secret when Vault is configured) to require `Authorization: Bearer <ADMIN_TOKEN>` on every state-changing admin request (any method other than `GET`/`HEAD`/`OPTIONS`, incl. unknown paths); missing or wrong token → `401`. Unset = no auth (opt-in per deployment; startup logs a warning). Surrounding whitespace is ignored. The token is compared in constant time and never logged. There is no rate limit on failed attempts, so use a high-entropy token, e.g. `openssl rand -hex 32`. Read-only `GET`s stay open so k8s probes, Prometheus scraping and sentinel (peercount, metrics) need no token; they expose no secrets. The separate `METRICS_PORT` listener is never authenticated.
 
 | Route (`/api/v1`)                                             | Auth when `ADMIN_TOKEN` set |
 | ------------------------------------------------------------- | --------------------------- |
