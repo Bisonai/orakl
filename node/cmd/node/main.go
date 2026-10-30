@@ -35,16 +35,20 @@ func main() {
 		return
 	}
 
+	if len(os.Args) > 1 && os.Args[1] == "admin" {
+		if err := runAdmin(ctx, os.Args[2:], os.Stdout); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(adminExitCode(err))
+		}
+		return
+	}
+
 	loginit.InitZeroLog()
 
 	// optional metrics-only listener (GET /metrics), separate from the admin API
 	if port := os.Getenv("METRICS_PORT"); port != "" {
-		appPort := os.Getenv("APP_PORT")
-		if appPort == "" {
-			appPort = "8088"
-		}
 		mp, _ := strconv.Atoi(port)
-		ap, _ := strconv.Atoi(appPort)
+		ap, _ := strconv.Atoi(adminPort())
 		if mp != 0 && mp == ap {
 			log.Error().Str("port", port).Msg("METRICS_PORT must differ from APP_PORT")
 			os.Exit(1)

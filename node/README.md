@@ -15,6 +15,7 @@
   - [Optional Setups](#optional-setups)
   - [Run Node](#run-node)
 - [Node state (SQLite)](#node-state-sqlite)
+- [Admin CLI](#admin-cli)
 - [DAL](#dal)
   - [API keys](#api-keys)
   - [Metrics](#metrics)
@@ -250,6 +251,27 @@ nodebin state list            # address<TAB>state<TAB>tx_hash<TAB>updated_at, th
 - A legacy `signer` row whose key is not in `signer_key` is added as `active` if the keyring is empty, else as `pending`. If it cannot be decrypted (wrong `ENCRYPT_PASSWORD`), `import` fails.
 - PostgreSQL is read in one read-only `REPEATABLE READ` transaction; the SQLite file is created only after that read succeeds.
 - Re-running against a store with the same keyring only advances rounds (prints `unchanged` if none advanced). If the keyring differs, or a stored round is newer than in PostgreSQL (or its config is missing there), `import` refuses unless `-force`, which replaces the whole store in one transaction.
+
+## Admin CLI
+
+`nodebin admin <command>` calls the admin API of the node running in the same pod (`http://127.0.0.1:$APP_PORT`, `APP_PORT` defaults to `8088`). If `ADMIN_TOKEN` is set (Vault secret when Vault is configured, else env), it sends `Authorization: Bearer <ADMIN_TOKEN>`; otherwise no header. The token never leaves the pod and is never printed. Each call prints the HTTP status and response body, has a 2 min timeout, and exits non-zero on a non-2xx response or connection error. Invalid usage prints the usage and exits `2`.
+
+```sh
+kubectl exec <node-pod> -- nodebin admin reload
+```
+
+| Command                           | Request (`/api/v1`)                        |
+| --------------------------------- | ------------------------------------------ |
+| `config-sync`                     | `POST /config/sync`                        |
+| `fetcher-start`, `-stop`, `-refresh` | `POST /fetcher/{start,stop,refresh}`    |
+| `aggregator-start`, `-stop`, `-refresh` | `POST /aggregator/{start,stop,refresh}` |
+| `aggregator-activate <id>`        | `POST /aggregator/activate/<id>`           |
+| `aggregator-deactivate <id>`      | `POST /aggregator/deactivate/<id>`         |
+| `renew-signer`                    | `POST /aggregator/renew-signer`            |
+| `host-sync`                       | `POST /host/sync`                          |
+| `reload`                          | `config-sync`, then `fetcher-refresh`, then `aggregator-refresh`; stops at the first failure |
+
+`<id>` is a config ID from `GET /api/v1/config` (process-local, positive integer). A timed-out call may still complete on the node.
 
 ## Boot API
 
