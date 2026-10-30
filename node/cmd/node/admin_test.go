@@ -10,6 +10,7 @@ import (
 	"sync"
 	"testing"
 
+	"bisonai.com/miko/node/pkg/admin/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -148,6 +149,39 @@ func TestAdminAuthHeader(t *testing.T) {
 			assert.False(t, reqs[0].hasAuth, "no Authorization header without token")
 		})
 	}
+}
+
+func TestAdminAuthRequired(t *testing.T) {
+	for name, token := range map[string]string{"token empty": "", "token blank": " \n"} {
+		t.Run(name, func(t *testing.T) {
+			f := startFakeAdmin(t, token)
+			t.Setenv(utils.AdminAuthRequiredEnv, "true")
+			err := runAdmin(context.Background(), []string{"reload"}, &bytes.Buffer{})
+			require.ErrorIs(t, err, utils.ErrAdminTokenRequired)
+			assert.Equal(t, 1, adminExitCode(err))
+			assert.Empty(t, f.paths(), "must not send unauthenticated requests")
+		})
+	}
+	t.Run("invalid value", func(t *testing.T) {
+		f := startFakeAdmin(t, testAdminToken)
+		t.Setenv(utils.AdminAuthRequiredEnv, "yes")
+		err := runAdmin(context.Background(), []string{"host-sync"}, &bytes.Buffer{})
+		require.ErrorContains(t, err, utils.AdminAuthRequiredEnv)
+		assert.Empty(t, f.paths())
+	})
+	t.Run("token set", func(t *testing.T) {
+		f := startFakeAdmin(t, testAdminToken)
+		t.Setenv(utils.AdminAuthRequiredEnv, "1")
+		require.NoError(t, runAdmin(context.Background(), []string{"host-sync"}, &bytes.Buffer{}))
+		reqs := f.requests()
+		require.Len(t, reqs, 1)
+		assert.Equal(t, "Bearer "+testAdminToken, reqs[0].auth)
+	})
+	t.Run("help works without token", func(t *testing.T) {
+		startFakeAdmin(t, "")
+		t.Setenv(utils.AdminAuthRequiredEnv, "true")
+		require.NoError(t, runAdmin(context.Background(), []string{"help"}, &bytes.Buffer{}))
+	})
 }
 
 func TestAdminNon2xx(t *testing.T) {
