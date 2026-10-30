@@ -231,6 +231,14 @@ cp .env.local .env
 
 Set `ADMIN_TOKEN` (env, or the Vault secret when Vault is configured) to require `Authorization: Bearer <ADMIN_TOKEN>` on every state-changing admin request (any method other than `GET`/`HEAD`/`OPTIONS`, incl. unknown paths); missing or wrong token → `401`. Unset = no auth (opt-in per deployment; startup logs a warning). Surrounding whitespace is ignored. The token is compared in constant time and never logged. There is no rate limit on failed attempts, so use a high-entropy token, e.g. `openssl rand -hex 32`. Read-only `GET`s stay open so k8s probes, Prometheus scraping and sentinel (peercount, metrics) need no token; they expose no secrets. The separate `METRICS_PORT` listener is never authenticated.
 
+Set `ADMIN_AUTH_REQUIRED=true` to make the token mandatory: if the resolved `ADMIN_TOKEN` is empty (unset, blank, or the Vault read failed and env is empty), the admin server refuses to start and `nodebin` exits non-zero at startup (before joining the network) instead of running unauthenticated. Read from env only.
+
+| `ADMIN_AUTH_REQUIRED` ([`strconv.ParseBool`](https://pkg.go.dev/strconv#ParseBool)) | `ADMIN_TOKEN` set | `ADMIN_TOKEN` empty                |
+| ---------------------------------------------- | ----------------- | ---------------------------------- |
+| unset, `false`, `0` (also `f`, `F`, `FALSE`, `False`) | auth on           | no auth, startup warning (default) |
+| `true`, `1` (also `t`, `T`, `TRUE`, `True`)    | auth on           | admin server fails to start        |
+| anything else (e.g. `yes`, `on`)               | fails to start    | fails to start                     |
+
 | Route (`/api/v1`)                                             | Auth when `ADMIN_TOKEN` set |
 | ------------------------------------------------------------- | --------------------------- |
 | `POST /fetcher/{start,stop,refresh}`                          | token                       |
@@ -283,7 +291,7 @@ nodebin state list            # address<TAB>state<TAB>tx_hash<TAB>updated_at, th
 
 ## Admin CLI
 
-`nodebin admin <command>` calls the admin API of the node running in the same pod (`http://127.0.0.1:$APP_PORT`, `APP_PORT` defaults to `8088`). If `ADMIN_TOKEN` is set (Vault secret when Vault is configured, else env), it sends `Authorization: Bearer <ADMIN_TOKEN>`; otherwise no header. The token never leaves the pod and is never printed. Each call prints the HTTP status and response body, has a per-call timeout (`-timeout`, default `2m`, e.g. `nodebin admin -timeout 5m reload`), and exits non-zero on a non-2xx response or connection error. `nodebin admin help` prints the usage; invalid usage prints it and exits `2`.
+`nodebin admin <command>` calls the admin API of the node running in the same pod (`http://127.0.0.1:$APP_PORT`, `APP_PORT` defaults to `8088`). If `ADMIN_TOKEN` is set (Vault secret when Vault is configured, else env), it sends `Authorization: Bearer <ADMIN_TOKEN>`; otherwise no header. With `ADMIN_AUTH_REQUIRED=true` and no token, commands fail (exit `1`) without sending a request. The token never leaves the pod and is never printed. Each call prints the HTTP status and response body, has a per-call timeout (`-timeout`, default `2m`, e.g. `nodebin admin -timeout 5m reload`), and exits non-zero on a non-2xx response or connection error. `nodebin admin help` prints the usage; invalid usage prints it and exits `2`.
 
 ```sh
 kubectl exec <node-pod> -- nodebin admin reload

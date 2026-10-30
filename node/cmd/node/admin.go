@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"bisonai.com/miko/node/pkg/secrets"
+	"bisonai.com/miko/node/pkg/admin/utils"
 )
 
 const adminUsage = `usage: nodebin admin [-timeout 2m] <command> [args]
@@ -20,7 +20,8 @@ const adminUsage = `usage: nodebin admin [-timeout 2m] <command> [args]
 Calls the admin API of the node running in this pod/host
 (http://127.0.0.1:$APP_PORT, APP_PORT defaults to 8088). Sends
 "Authorization: Bearer <ADMIN_TOKEN>" when ADMIN_TOKEN is set (Vault or env),
-no header otherwise. Prints HTTP status + response body; exits non-zero on a
+no header otherwise; with ADMIN_AUTH_REQUIRED=true an empty token is an error
+and nothing is sent. Prints HTTP status + response body; exits non-zero on a
 non-2xx response or connection error. -timeout applies per call; a timed-out
 call may still complete on the node.
 
@@ -42,7 +43,7 @@ commands:
 `
 
 const (
-	adminTokenEnv     = "ADMIN_TOKEN"
+	adminTokenEnv     = utils.AdminTokenEnv
 	adminCallTimeout  = 2 * time.Minute // default -timeout
 	adminMaxBodyBytes = 1 << 20
 )
@@ -82,16 +83,20 @@ func adminPort() string {
 type adminClient struct {
 	baseURL string
 	token   string
-	timeout time.Duration
-	http    *http.Client
-	stdout  io.Writer
+	// tokenErr fails every call (ADMIN_AUTH_REQUIRED set but token empty)
+	tokenErr error
+	timeout  time.Duration
+	http     *http.Client
+	stdout   io.Writer
 }
 
 func newAdminClient(stdout io.Writer) *adminClient {
+	token, tokenErr := utils.AdminToken()
 	return &adminClient{
-		baseURL: "http://127.0.0.1:" + adminPort(),
-		token:   strings.TrimSpace(secrets.GetSecret(adminTokenEnv)),
-		timeout: adminCallTimeout,
+		baseURL:  "http://127.0.0.1:" + adminPort(),
+		token:    token,
+		tokenErr: tokenErr,
+		timeout:  adminCallTimeout,
 		http: &http.Client{
 			// a redirect is unexpected; don't follow it (and forward the token)
 			CheckRedirect: func(*http.Request, []*http.Request) error {
@@ -166,6 +171,9 @@ func (c *adminClient) run(ctx context.Context, args []string) error {
 		if len(args) != 1 {
 			return errAdminUsage
 		}
+		if c.tokenErr != nil {
+			return fmt.Errorf("reload: %w", c.tokenErr)
+		}
 		for i, step := range adminReloadSteps {
 			if err := c.call(ctx, step, adminRoutes[step]); err != nil {
 				return fmt.Errorf("reload stopped, not run: %s: %w", strings.Join(adminReloadSteps[i+1:], ", "), err)
@@ -197,6 +205,9 @@ func (c *adminClient) run(ctx context.Context, args []string) error {
 
 // call POSTs to path and prints the status and body; the token is never printed.
 func (c *adminClient) call(ctx context.Context, name, path string) error {
+	if c.tokenErr != nil {
+		return fmt.Errorf("%s: %w", name, c.tokenErr)
+	}
 	ctx, cancel := context.WithTimeout(ctx, c.timeout)
 	defer cancel()
 
