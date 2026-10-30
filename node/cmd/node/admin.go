@@ -126,18 +126,23 @@ func (c *adminClient) run(ctx context.Context, args []string) error {
 	var positional []string
 	for {
 		if err := fs.Parse(args); err != nil {
-			if errors.Is(err, flag.ErrHelp) {
+			if errors.Is(err, flag.ErrHelp) && len(positional) == 0 && len(fs.Args()) == 0 {
 				fmt.Fprint(c.stdout, adminUsage)
 				return nil
 			}
-			return errAdminUsage
+			return fmt.Errorf("%v: %w", err, errAdminUsage)
 		}
-		args = fs.Args()
-		if len(args) == 0 {
+		rest := fs.Args()
+		// "--" ends flag parsing; everything after it is positional
+		if n := len(args) - len(rest); n > 0 && args[n-1] == "--" {
+			positional = append(positional, rest...)
 			break
 		}
-		positional = append(positional, args[0])
-		args = args[1:]
+		if len(rest) == 0 {
+			break
+		}
+		positional = append(positional, rest[0])
+		args = rest[1:]
 	}
 	if *timeout <= 0 {
 		return fmt.Errorf("invalid -timeout %s: %w", *timeout, errAdminUsage)
@@ -150,6 +155,9 @@ func (c *adminClient) run(ctx context.Context, args []string) error {
 	cmd := args[0]
 
 	if cmd == "help" {
+		if len(args) != 1 {
+			return errAdminUsage
+		}
 		fmt.Fprint(c.stdout, adminUsage)
 		return nil
 	}
@@ -158,9 +166,9 @@ func (c *adminClient) run(ctx context.Context, args []string) error {
 		if len(args) != 1 {
 			return errAdminUsage
 		}
-		for _, step := range adminReloadSteps {
+		for i, step := range adminReloadSteps {
 			if err := c.call(ctx, step, adminRoutes[step]); err != nil {
-				return fmt.Errorf("reload stopped: %w", err)
+				return fmt.Errorf("reload stopped, not run: %s: %w", strings.Join(adminReloadSteps[i+1:], ", "), err)
 			}
 		}
 		return nil
@@ -224,10 +232,16 @@ func (c *adminClient) call(ctx context.Context, name, path string) error {
 	if truncated {
 		fmt.Fprintf(c.stdout, "(response truncated at %d bytes)\n", adminMaxBodyBytes)
 	}
+	ok := resp.StatusCode >= 200 && resp.StatusCode <= 299
 	if err != nil {
+		if ok {
+			// the node accepted the command; only the body is incomplete
+			fmt.Fprintf(c.stdout, "(read response: %v)\n", err)
+			return nil
+		}
 		return fmt.Errorf("%s: %s, read response: %w", name, resp.Status, err)
 	}
-	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+	if !ok {
 		return fmt.Errorf("%s: %s", name, resp.Status)
 	}
 	return nil

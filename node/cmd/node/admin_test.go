@@ -113,6 +113,7 @@ func TestAdminUsage(t *testing.T) {
 		{"aggregator-activate", "abc"}, {"aggregator-activate", "0"}, {"aggregator-activate", "-1"},
 		{"aggregator-deactivate", "../config/sync"}, {"aggregator-deactivate", "2147483648"},
 		{"aggregator-deactivate", "1.5"},
+		{"help", "x"}, {"config-sync", "-h"}, {"help", "-h"}, {"--", "aggregator-activate", "-timeout"},
 		{"-timeout", "0", "config-sync"}, {"-timeout", "x", "config-sync"}, {"-nope", "config-sync"},
 	} {
 		var out bytes.Buffer
@@ -193,6 +194,7 @@ func TestAdminReload(t *testing.T) {
 		require.Error(t, err)
 		assert.Equal(t, 1, adminExitCode(err))
 		assert.Contains(t, err.Error(), "fetcher-refresh")
+		assert.Contains(t, err.Error(), "not run: aggregator-refresh")
 		assert.Equal(t, []string{"/api/v1/config/sync", "/api/v1/fetcher/refresh"}, f.paths())
 		assert.NotContains(t, out.String()+err.Error(), testAdminToken)
 	})
@@ -223,7 +225,8 @@ func TestAdminTimeoutFlagPosition(t *testing.T) {
 	} {
 		require.NoError(t, runAdmin(context.Background(), args, &bytes.Buffer{}), args)
 	}
-	assert.Len(t, f.paths(), 2*3+2)
+	require.NoError(t, runAdmin(context.Background(), []string{"--", "host-sync"}, &bytes.Buffer{}))
+	assert.Len(t, f.paths(), 2*3+2+1)
 }
 
 func TestAdminTimeout(t *testing.T) {
