@@ -163,7 +163,7 @@ jobs:
           {
             echo "**Image:** \`${IMAGE}\`"
             echo
-            echo "Deployed to kairos. Promote to mainnet with the \`Promote\` workflow."
+            echo "Deployed to kairos. Promote to mainnet with the \`Promote\` workflow (image tag only; merge any required mainnet chart/values changes first)."
             echo
             echo "$notes"
           } > notes.md

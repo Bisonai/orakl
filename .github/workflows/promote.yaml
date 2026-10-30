@@ -1,10 +1,15 @@
 name: Promote
 
+# Bumps ONLY the image tag in the mainnet values (same image as kairos, no rebuild).
+# If the release also needs mainnet chart/values changes (env, command, volumes,
+# secrets, strategy, ...), merge those to orakl-helm-charts first, then promote.
+# Runs gated by the `mainnet` environment (required reviewers).
+
 on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Release tag to promote to mainnet (e.g. node/v0.0.25)"
+        description: "Release tag to promote to mainnet (e.g. node/v0.0.25). Image tag only: merge any required mainnet chart/values changes first."
         required: true
         type: string
 
@@ -12,6 +17,8 @@ jobs:
   prepare:
     name: Prepare
     runs-on: ubuntu-24.04
+    # Approval gate: every later job needs this one, so nothing touches mainnet before approval.
+    environment: mainnet
 
     outputs:
       app_name: ${{ steps.release.outputs.app_name }}
