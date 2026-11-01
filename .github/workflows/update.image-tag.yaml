@@ -90,5 +90,16 @@ jobs:
         run: |
           cd ./gitops_tmp/
           git commit -m 'v${{ inputs.version }}.${{ inputs.tag_date }}.${{ inputs.tag_git_hash }} is updated'
-          git push origin main
+
+          # concurrent tag builds push to the same branch; rebase and retry on rejection
+          for attempt in 1 2 3 4 5; do
+            if git push origin main; then
+              exit 0
+            fi
+            echo "push rejected (attempt ${attempt}), rebasing onto origin/main"
+            sleep $((attempt * 2 + RANDOM % 3))
+            git pull --rebase origin main
+          done
+          echo "push failed after 5 attempts"
+          exit 1
         shell: bash
