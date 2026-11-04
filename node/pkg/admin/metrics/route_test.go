@@ -51,6 +51,8 @@ func TestMetricsRouteP2PPublished(t *testing.T) {
 
 	resp, err := app.Test(httptest.NewRequest("GET", "/api/v1/metrics", nil))
 	require.NoError(t, err)
+	assert.Equal(t, fiber.StatusOK, resp.StatusCode)
+
 	body, err := io.ReadAll(resp.Body)
 	require.NoError(t, err)
 	text := string(body)
