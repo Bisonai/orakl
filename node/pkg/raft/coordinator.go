@@ -101,7 +101,7 @@ func (c *HeartbeatCoordinator) Reset(feeds map[string]*Raft) {
 		r.hbCoordinator.Store(c)
 	}
 	for id, r := range prev {
-		if _, ok := next[id]; !ok {
+		if next[id] != r {
 			r.hbCoordinator.Store(nil)
 		}
 	}

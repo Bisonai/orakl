@@ -354,6 +354,20 @@ func TestFanoutBeforeRunIsSafe(t *testing.T) {
 	assert.Equal(t, 3, node.GetCurrentTerm())
 }
 
+// TestResetClearsReplacedRaft proves a Raft replaced under the same name stops
+// pointing at the coordinator, so it can't suppress its per-feed heartbeat.
+func TestResetClearsReplacedRaft(t *testing.T) {
+	c := &HeartbeatCoordinator{}
+	old, replacement := newFollower(0), newFollower(0)
+
+	c.Reset(map[string]*Raft{"feed": old})
+	assert.Same(t, c, old.hbCoordinator.Load())
+
+	c.Reset(map[string]*Raft{"feed": replacement})
+	assert.Nil(t, old.hbCoordinator.Load())
+	assert.Same(t, c, replacement.hbCoordinator.Load())
+}
+
 // TestBatchHeartbeatWithinGossipSubLimit bounds a combined heartbeat covering 233
 // feeds against the GossipSub message size limit, in both wire formats.
 func TestBatchHeartbeatWithinGossipSubLimit(t *testing.T) {
