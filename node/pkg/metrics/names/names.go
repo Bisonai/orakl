@@ -13,8 +13,8 @@ const (
 	FeedTimestamp = "orakl_node_feed_timestamp_seconds"
 	FeedVolume    = "orakl_node_feed_volume"
 
-	P2PPublishedMessages = "p2p_published_messages_total"
-	P2PPublishedBytes    = "p2p_published_bytes_total"
+	P2PPublishedMessages = "orakl_node_p2p_published_messages_total"
+	P2PPublishedBytes    = "orakl_node_p2p_published_bytes_total"
 
 	NameLabel   = "name"
 	ConfigLabel = "config"

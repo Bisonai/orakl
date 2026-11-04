@@ -57,8 +57,8 @@ func TestMetricsRouteP2PPublished(t *testing.T) {
 	require.NoError(t, err)
 	text := string(body)
 	for _, msgType := range msgTypes {
-		assert.Contains(t, text, `p2p_published_messages_total{type="`+msgType+`"} `)
-		assert.Contains(t, text, `p2p_published_bytes_total{type="`+msgType+`"} `)
+		assert.Contains(t, text, `orakl_node_p2p_published_messages_total{type="`+msgType+`"} `)
+		assert.Contains(t, text, `orakl_node_p2p_published_bytes_total{type="`+msgType+`"} `)
 	}
 }
 
