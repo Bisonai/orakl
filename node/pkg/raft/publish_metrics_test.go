@@ -48,31 +48,32 @@ func newPublishTestNode(ctx context.Context, t *testing.T) *Raft {
 }
 
 func TestPublishMessageCountsByType(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
+	for _, encoding := range []string{"json", "msgpack"} {
+		t.Run(encoding, func(t *testing.T) {
+			t.Setenv("P2P_ENCODING", encoding)
 
-	node := newPublishTestNode(ctx, t)
-	sub, err := node.Topic.Subscribe()
-	require.NoError(t, err)
-	defer sub.Cancel()
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
 
-	// aggregator types by value: aggregator imports raft
-	msgTypes := []MessageType{
-		Heartbeat, RequestVote, ReplyVote,
-		MessageType("trigger"), MessageType("priceData"), MessageType("priceFix"), MessageType("proof"),
-	}
-	for _, msgType := range msgTypes {
-		messages := counterValue(t, metricnames.P2PPublishedMessages, msgType)
-		size := counterValue(t, metricnames.P2PPublishedBytes, msgType)
+			node := newPublishTestNode(ctx, t)
+			sub, err := node.Topic.Subscribe()
+			require.NoError(t, err)
+			defer sub.Cancel()
 
-		err := node.PublishMessage(ctx, Message{Type: msgType, SentFrom: node.GetHostId(), Data: []byte(`{}`)})
-		require.NoError(t, err)
+			for msgType := range typeToInt {
+				messages := counterValue(t, metricnames.P2PPublishedMessages, msgType)
+				size := counterValue(t, metricnames.P2PPublishedBytes, msgType)
 
-		published, err := sub.Next(ctx)
-		require.NoError(t, err)
+				err := node.PublishMessage(ctx, Message{Type: msgType, SentFrom: node.GetHostId(), Data: []byte(`{}`)})
+				require.NoError(t, err)
 
-		assert.Equal(t, messages+1, counterValue(t, metricnames.P2PPublishedMessages, msgType), msgType)
-		assert.Equal(t, size+float64(len(published.Data)), counterValue(t, metricnames.P2PPublishedBytes, msgType), msgType)
+				published, err := sub.Next(ctx)
+				require.NoError(t, err)
+
+				assert.Equal(t, messages+1, counterValue(t, metricnames.P2PPublishedMessages, msgType), msgType)
+				assert.Equal(t, size+float64(len(published.Data)), counterValue(t, metricnames.P2PPublishedBytes, msgType), msgType)
+			}
+		})
 	}
 }
 
@@ -81,13 +82,17 @@ func TestPublishMessageFailureNotCounted(t *testing.T) {
 	defer cancel()
 
 	node := newPublishTestNode(ctx, t)
-	require.NoError(t, node.Topic.Close())
+	msg := Message{Type: Heartbeat, SentFrom: node.GetHostId(), Data: []byte(`{}`)}
 
+	// a success first, so the series exist and a wrong name can't pass as 0 == 0
+	require.NoError(t, node.PublishMessage(ctx, msg))
 	messages := counterValue(t, metricnames.P2PPublishedMessages, Heartbeat)
 	size := counterValue(t, metricnames.P2PPublishedBytes, Heartbeat)
+	require.Positive(t, messages)
+	require.Positive(t, size)
 
-	err := node.PublishMessage(ctx, Message{Type: Heartbeat, SentFrom: node.GetHostId(), Data: []byte(`{}`)})
-	require.Error(t, err)
+	require.NoError(t, node.Topic.Close())
+	require.Error(t, node.PublishMessage(ctx, msg))
 
 	assert.Equal(t, messages, counterValue(t, metricnames.P2PPublishedMessages, Heartbeat))
 	assert.Equal(t, size, counterValue(t, metricnames.P2PPublishedBytes, Heartbeat))

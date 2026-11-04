@@ -2,7 +2,8 @@ package metrics
 
 // Counters of p2p messages published by this node, by message type. Bytes are
 // encoded payload only: no signature, framing or packet overhead, no per-peer
-// fan-out, and no messages relayed for other nodes.
+// fan-out, and no messages relayed for other nodes. A message counts once
+// pubsub accepts it for publishing; it may still be dropped or have no peers.
 
 import (
 	metricnames "bisonai.com/miko/node/pkg/metrics/names"
@@ -13,15 +14,15 @@ import (
 var (
 	p2pPublishedMessages = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: metricnames.P2PPublishedMessages,
-		Help: "P2P messages successfully published by this node, by message type",
+		Help: "P2P messages accepted for publishing by this node, by message type",
 	}, []string{metricnames.TypeLabel})
 	p2pPublishedBytes = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: metricnames.P2PPublishedBytes,
-		Help: "Encoded payload bytes of P2P messages successfully published by this node, by message type",
+		Help: "Encoded payload bytes of P2P messages accepted for publishing by this node, by message type",
 	}, []string{metricnames.TypeLabel})
 )
 
-// RecordP2PPublished counts one successfully published message of msgType with
+// RecordP2PPublished counts one message of msgType accepted for publishing with
 // an encoded payload of size bytes.
 func RecordP2PPublished(msgType string, size int) {
 	p2pPublishedMessages.WithLabelValues(msgType).Inc()

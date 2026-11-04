@@ -8,6 +8,11 @@ import (
 )
 
 func TestRecordP2PPublished(t *testing.T) {
+	t.Cleanup(func() {
+		p2pPublishedMessages.Reset()
+		p2pPublishedBytes.Reset()
+	})
+
 	RecordP2PPublished("TEST-A", 10)
 	RecordP2PPublished("TEST-A", 5)
 	RecordP2PPublished("TEST-B", 7)
