@@ -40,6 +40,28 @@ func TestMetricsRoute(t *testing.T) {
 	assert.Contains(t, text, `orakl_node_global_aggregate_timestamp_seconds{name="ROUTE-TEST"} 1.700000001e+09`)
 }
 
+func TestMetricsRouteP2PPublished(t *testing.T) {
+	msgTypes := []string{"heartbeat", "requestVote", "replyVote", "trigger", "priceData", "priceFix", "proof"}
+	for _, msgType := range msgTypes {
+		nodemetrics.RecordP2PPublished(msgType, 10)
+	}
+
+	app := fiber.New()
+	Routes(app.Group("/api/v1"))
+
+	resp, err := app.Test(httptest.NewRequest("GET", "/api/v1/metrics", nil))
+	require.NoError(t, err)
+	assert.Equal(t, fiber.StatusOK, resp.StatusCode)
+
+	body, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+	text := string(body)
+	for _, msgType := range msgTypes {
+		assert.Contains(t, text, `orakl_node_p2p_published_messages_total{type="`+msgType+`"} `)
+		assert.Contains(t, text, `orakl_node_p2p_published_bytes_total{type="`+msgType+`"} `)
+	}
+}
+
 func TestMetricsRouteFeeds(t *testing.T) {
 	ts := time.Unix(1700000002, 0)
 	data := &types.LatestFeedDataMap{FeedDataMap: map[int32]*types.FeedData{
