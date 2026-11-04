@@ -14,6 +14,7 @@ import (
 	metricnames "bisonai.com/miko/node/pkg/metrics/names"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	pubsubpb "github.com/libp2p/go-libp2p-pubsub/pb"
+	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -99,11 +100,15 @@ func batchFrom(t *testing.T, sender string, terms map[string]int) *pubsub.Messag
 	require.NoError(t, err)
 	data, err := encodeMessage(Message{Type: BatchHeartbeat, SentFrom: sender, Data: inner, Timestamp: time.Now()})
 	require.NoError(t, err)
-	return &pubsub.Message{Message: &pubsubpb.Message{Data: data}}
+	id, err := peer.Decode(sender)
+	require.NoError(t, err)
+	return &pubsub.Message{Message: &pubsubpb.Message{Data: data, From: []byte(id)}}
 }
 
 func newLeader(term int) *Raft {
-	return &Raft{Role: Leader, Term: term, HeartbeatTimeout: HEARTBEAT_TIMEOUT}
+	r := &Raft{Role: Leader, Term: term, HeartbeatTimeout: HEARTBEAT_TIMEOUT}
+	r.leaderLoops.Store(1)
+	return r
 }
 
 // TestStalledPublishDoesNotBlockReceive proves a blocked Publish neither stops the
@@ -273,6 +278,80 @@ func TestBatchedHeartbeatMatchesPerFeed(t *testing.T) {
 			assert.Equal(t, perFeed.ElectionTimer != nil, batched.ElectionTimer != nil)
 		})
 	}
+}
+
+// TestBatchHeartbeatForgedSenderDropped proves a message whose self-declared sender
+// differs from the signed From has no effect on any feed.
+func TestBatchHeartbeatForgedSenderDropped(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	node := newPublishTestNode(ctx, t)
+
+	feed := newFollower(5)
+	c := &HeartbeatCoordinator{host: node.Host, feeds: map[string]*Raft{"feed": feed}}
+
+	forged := batchFrom(t, testPeerID(t), map[string]int{"feed": 1000})
+	other, err := peer.Decode(testPeerID(t))
+	require.NoError(t, err)
+	forged.From = []byte(other)
+
+	c.handleRaw(forged)
+
+	assert.Equal(t, 5, feed.GetCurrentTerm())
+	assert.Equal(t, "", feed.GetLeader())
+}
+
+// TestLeaderSnapshotRequiresLiveLoop proves a group stopped by ctx cancel, which
+// keeps Role == Leader, is no longer advertised in combined heartbeats.
+func TestLeaderSnapshotRequiresLiveLoop(t *testing.T) {
+	testCtx, testCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer testCancel()
+	node := newPublishTestNode(testCtx, t)
+	node.LeaderJob = func(context.Context) error { return nil }
+
+	_, isLeader := node.leaderTermSnapshot()
+	assert.False(t, isLeader, "follower")
+
+	ctx, cancel := context.WithCancel(testCtx)
+	defer cancel()
+	node.Mutex.Lock()
+	node.becomeLeader(ctx)
+	node.Mutex.Unlock()
+
+	term, isLeader := node.leaderTermSnapshot()
+	assert.True(t, isLeader, "running leader")
+	assert.Equal(t, 1, term)
+
+	cancel()
+	require.Eventually(t, func() bool {
+		_, isLeader := node.leaderTermSnapshot()
+		return !isLeader
+	}, 5*time.Second, 5*time.Millisecond, "stopped leader not advertised")
+	node.Mutex.Lock()
+	role := node.Role
+	node.Mutex.Unlock()
+	assert.Equal(t, Leader, role, "stop leaves the role as is, matching master")
+}
+
+// TestFanoutBeforeRunIsSafe drives fan-out concurrently with Raft.Run starting;
+// under -race this fails if the election timer is created in Run.
+func TestFanoutBeforeRunIsSafe(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	node := newPublishTestNode(ctx, t)
+	c := &HeartbeatCoordinator{host: node.Host, feeds: map[string]*Raft{"feed": node}}
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		c.fanout("leader-peer", map[string]int{"feed": 3})
+	}()
+	runCtx, stop := context.WithCancel(ctx)
+	defer stop()
+	go node.Run(runCtx)
+	<-done
+
+	assert.Equal(t, 3, node.GetCurrentTerm())
 }
 
 // TestBatchHeartbeatWithinGossipSubLimit bounds a combined heartbeat covering 233

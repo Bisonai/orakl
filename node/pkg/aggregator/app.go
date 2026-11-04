@@ -51,6 +51,16 @@ func (a *App) Run(ctx context.Context) error {
 		go a.rounds.run(ctx)
 	}
 
+	// Best-effort: the heartbeat coordinator is a default-off optimization
+	// (P2P_HEARTBEAT_BATCH), so a transient control-topic join failure must not
+	// abort aggregator startup. On failure the coordinator stays nil and
+	// registerHeartbeatFeeds is a no-op; the per-feed heartbeat path is unaffected.
+	// Set up before subscribing so a.HeartbeatCoordinator is assigned before any bus
+	// handler goroutine can read it.
+	if err := a.setupHeartbeatCoordinator(ctx); err != nil {
+		log.Error().Err(err).Str("Player", "Aggregator").Msg("failed to setup heartbeat coordinator, continuing without batched heartbeats")
+	}
+
 	a.subscribe(ctx)
 
 	configs, err := a.getConfigs(ctx)
@@ -63,14 +73,6 @@ func (a *App) Run(ctx context.Context) error {
 	if err != nil {
 		log.Error().Err(err).Str("Player", "Aggregator").Msg("failed to set aggregators")
 		return err
-	}
-
-	// Best-effort: the heartbeat coordinator is a default-off optimization
-	// (P2P_HEARTBEAT_BATCH), so a transient control-topic join failure must not
-	// abort aggregator startup. On failure the coordinator stays nil and
-	// registerHeartbeatFeeds is a no-op; the per-feed heartbeat path is unaffected.
-	if err = a.setupHeartbeatCoordinator(ctx); err != nil {
-		log.Error().Err(err).Str("Player", "Aggregator").Msg("failed to setup heartbeat coordinator, continuing without batched heartbeats")
 	}
 
 	err = a.startAllAggregators(ctx)

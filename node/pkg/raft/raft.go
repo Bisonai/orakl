@@ -45,6 +45,9 @@ func NewRaftNode(
 		CooldownPeriod:   DefaultCooldownPeriod,
 		LastElectionTime: time.Time{},
 	}
+	// Created here, not in Run: the coordinator can fan a heartbeat out to a
+	// registered group before Run starts, and Run reads this field without the lock.
+	r.startElectionTimer()
 	return r
 }
 
@@ -180,12 +183,14 @@ func (r *Raft) applyHeartbeat(leaderID string, term int) error {
 }
 
 // leaderTermSnapshot returns this group's current term and whether this node is
-// its leader, under a single short lock. The node-level HeartbeatCoordinator uses
-// it to snapshot all locally-led feeds each tick, then publishes lock-free.
+// its active leader, under a single short lock. The node-level HeartbeatCoordinator
+// uses it to snapshot all locally-led feeds each tick, then publishes lock-free. A
+// group stopped by ctx cancel keeps Role == Leader with no leader loop running; it
+// must not be advertised, or followers would never replace it.
 func (r *Raft) leaderTermSnapshot() (int, bool) {
 	r.Mutex.Lock()
 	defer r.Mutex.Unlock()
-	if r.Role != Leader {
+	if r.Role != Leader || r.leaderLoops.Load() == 0 {
 		return 0, false
 	}
 	return r.Term, true
@@ -364,8 +369,10 @@ func (r *Raft) setLeaderState() {
 
 func (r *Raft) becomeLeader(ctx context.Context) {
 	r.setLeaderState()
+	r.leaderLoops.Add(1)
 
 	go func() {
+		defer r.leaderLoops.Add(-1)
 		defer func() {
 			if r := recover(); r != nil {
 				log.Error().Msgf("recovered from panic in leader job: %v", r)

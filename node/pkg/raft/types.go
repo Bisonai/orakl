@@ -54,9 +54,9 @@ type HeartbeatMessage struct {
 //
 // The key is the feed's stable name (config.Name), NOT config.ID: ids are
 // process-local, assigned the first time a node sees a name, so an id can mean
-// different feeds on different nodes. Per-feed data topics key on the name for the
-// same reason; the batch must too or a follower would apply a leader's heartbeat
-// to the wrong feed.
+// different feeds on different nodes. Per-feed data topics are built from the name
+// for the same reason; the batch must use it too or a follower would apply a
+// leader's heartbeat to the wrong feed.
 type BatchHeartbeatMessage struct {
 	Terms map[string]int `json:"terms"`
 }
@@ -100,4 +100,7 @@ type Raft struct {
 	// coordinator, so a failed/absent coordinator falls back to per-feed
 	// heartbeats instead of going silent (#2558).
 	hbCoordinator atomic.Pointer[HeartbeatCoordinator]
+
+	// leaderLoops counts live becomeLeader goroutines. See leaderTermSnapshot.
+	leaderLoops atomic.Int32
 }

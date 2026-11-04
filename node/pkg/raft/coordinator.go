@@ -307,6 +307,13 @@ func (c *HeartbeatCoordinator) handleRaw(rawMsg *pubsub.Message) {
 		return
 	}
 
+	// SentFrom is self-declared; From is covered by StrictSign. One forged message
+	// here would reach every feed, so require them to match.
+	if rawMsg.GetFrom().String() != msg.SentFrom {
+		log.Warn().Str("from", rawMsg.GetFrom().String()).Str("sentFrom", msg.SentFrom).Msg("dropping batch heartbeat with mismatched sender")
+		return
+	}
+
 	var batch BatchHeartbeatMessage
 	if err := decodeInner(msg.Data, &batch); err != nil {
 		log.Error().Err(err).Msg("failed to unmarshal batch heartbeat message")
