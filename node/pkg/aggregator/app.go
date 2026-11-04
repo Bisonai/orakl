@@ -10,6 +10,7 @@ import (
 	"bisonai.com/miko/node/pkg/chain/helper"
 	"bisonai.com/miko/node/pkg/nodeconfig"
 	"bisonai.com/miko/node/pkg/nodestate"
+	"bisonai.com/miko/node/pkg/raft"
 
 	errorSentinel "bisonai.com/miko/node/pkg/error"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
@@ -50,6 +51,17 @@ func (a *App) Run(ctx context.Context) error {
 		go a.rounds.run(ctx)
 	}
 
+	// Best-effort: the heartbeat coordinator is a default-off optimization
+	// (P2P_HEARTBEAT_BATCH), so a transient control-topic join failure must not
+	// abort aggregator startup. On failure the coordinator stays nil and
+	// registerHeartbeatFeeds is a no-op: per-feed heartbeats still work, but this node
+	// can't receive combined heartbeats from peers that have the flag on.
+	// Set up before subscribing so a.HeartbeatCoordinator is assigned before any bus
+	// handler goroutine can read it.
+	if err := a.setupHeartbeatCoordinator(ctx); err != nil {
+		log.Error().Err(err).Str("Player", "Aggregator").Msg("failed to setup heartbeat coordinator, continuing without batched heartbeats")
+	}
+
 	a.subscribe(ctx)
 
 	configs, err := a.getConfigs(ctx)
@@ -68,6 +80,7 @@ func (a *App) Run(ctx context.Context) error {
 		log.Error().Err(err).Str("Player", "Aggregator").Msg("failed to start aggregators")
 		return err
 	}
+	a.registerHeartbeatFeeds()
 
 	return nil
 }
@@ -87,6 +100,55 @@ func (a *App) setAggregators(ctx context.Context, h host.Host, ps *pubsub.PubSub
 
 	syncGlobalAggregateMetrics(configs)
 	return a.initializeLoadedAggregators(ctx, configs, h, ps)
+}
+
+// setupHeartbeatCoordinator joins the shared Raft control topic exactly once and
+// starts the node-level heartbeat coordinator. It is a no-op on later calls
+// (e.g. config refresh) since the control topic is joined for the app lifetime
+// and GossipSub rejects a second Join of the same topic (#2558).
+func (a *App) setupHeartbeatCoordinator(ctx context.Context) error {
+	if a.HeartbeatCoordinator != nil {
+		return nil
+	}
+
+	controlTopic, err := a.Pubsub.Join(raft.ControlTopicName())
+	if err != nil {
+		return err
+	}
+
+	// Small buffer: a queued heartbeat only proves liveness briefly, and a long queue
+	// replayed after a stall would keep delaying failover for a dead leader.
+	a.HeartbeatCoordinator = raft.NewHeartbeatCoordinator(a.Host, controlTopic, 32)
+	go a.HeartbeatCoordinator.Run(ctx)
+	return nil
+}
+
+// registerHeartbeatFeeds hands the coordinator the current feed name -> Raft
+// mapping for the RUNNING aggregators, so combined heartbeats are emitted for and
+// fanned out to only the live feeds. Keyed by name (not the node-local config.id)
+// so the key means the same feed on every node. Called on startup and after every
+// aggregator state change (refresh, activate/deactivate, start/stop).
+func (a *App) registerHeartbeatFeeds() {
+	if a.HeartbeatCoordinator == nil {
+		return
+	}
+	feeds := make(map[string]*raft.Raft, len(a.Aggregators))
+	for _, aggregator := range a.Aggregators {
+		if aggregator.isRunning {
+			feeds[aggregator.Name] = aggregator.Raft
+		}
+	}
+	a.HeartbeatCoordinator.Reset(feeds)
+}
+
+// clearHeartbeatFeeds unregisters all feeds from the coordinator so it stops
+// broadcasting/fanning-out on behalf of Raft groups that are about to be torn
+// down, before the new set is registered.
+func (a *App) clearHeartbeatFeeds() {
+	if a.HeartbeatCoordinator == nil {
+		return
+	}
+	a.HeartbeatCoordinator.Reset(nil)
 }
 
 func (a *App) clearAggregators() error {
@@ -229,6 +291,10 @@ func (a *App) stopAggregatorById(id int32) error {
 }
 
 func (a *App) stopAllAggregators() error {
+	// Stop emitting/fanning-out combined heartbeats for these feeds before their
+	// Raft groups are cancelled, so none are advertised or updated during teardown
+	// (#2558).
+	a.clearHeartbeatFeeds()
 	for _, aggregator := range a.Aggregators {
 		err := a.stopAggregator(aggregator)
 		if err != nil {
@@ -297,6 +363,7 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 			bus.HandleMessageError(err, msg, "failed to start aggregator")
 			return
 		}
+		a.registerHeartbeatFeeds()
 		log.Debug().Str("Player", "Aggregator").Msg("sending success response for activate aggregator")
 		msg.Response <- bus.MessageResponse{Success: true}
 	case bus.DEACTIVATE_AGGREGATOR:
@@ -313,6 +380,7 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 			bus.HandleMessageError(err, msg, "failed to stop aggregator")
 			return
 		}
+		a.registerHeartbeatFeeds()
 		msg.Response <- bus.MessageResponse{Success: true}
 	case bus.REFRESH_AGGREGATOR_APP:
 		log.Debug().Str("Player", "Aggregator").Msg("refresh aggregator msg received")
@@ -338,6 +406,7 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 			bus.HandleMessageError(err, msg, "failed to start all aggregators")
 			return
 		}
+		a.registerHeartbeatFeeds()
 
 		msg.Response <- bus.MessageResponse{Success: true}
 	case bus.STOP_AGGREGATOR_APP:
@@ -347,6 +416,7 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 			bus.HandleMessageError(err, msg, "failed to stop all aggregators")
 			return
 		}
+		a.registerHeartbeatFeeds()
 		msg.Response <- bus.MessageResponse{Success: true}
 	case bus.START_AGGREGATOR_APP:
 		log.Debug().Str("Player", "Aggregator").Msg("start aggregator msg received")
@@ -355,6 +425,7 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 			bus.HandleMessageError(err, msg, "failed to start all aggregators")
 			return
 		}
+		a.registerHeartbeatFeeds()
 		msg.Response <- bus.MessageResponse{Success: true}
 	case bus.RENEW_SIGNER:
 		log.Debug().Str("Player", "Aggregator").Msg("refresh signer msg received")

@@ -43,6 +43,7 @@ type App struct {
 	Signer                *helper.Signer
 	LatestLocalAggregates *LatestLocalAggregates
 	State                 *nodestate.Store
+	HeartbeatCoordinator  *raft.HeartbeatCoordinator
 
 	// rounds persists RoundID advances of all aggregators to State (nil
 	// without State).
