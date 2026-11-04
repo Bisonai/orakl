@@ -54,7 +54,8 @@ func (a *App) Run(ctx context.Context) error {
 	// Best-effort: the heartbeat coordinator is a default-off optimization
 	// (P2P_HEARTBEAT_BATCH), so a transient control-topic join failure must not
 	// abort aggregator startup. On failure the coordinator stays nil and
-	// registerHeartbeatFeeds is a no-op; the per-feed heartbeat path is unaffected.
+	// registerHeartbeatFeeds is a no-op: per-feed heartbeats still work, but this node
+	// can't receive combined heartbeats from peers that have the flag on.
 	// Set up before subscribing so a.HeartbeatCoordinator is assigned before any bus
 	// handler goroutine can read it.
 	if err := a.setupHeartbeatCoordinator(ctx); err != nil {
@@ -74,7 +75,6 @@ func (a *App) Run(ctx context.Context) error {
 		log.Error().Err(err).Str("Player", "Aggregator").Msg("failed to set aggregators")
 		return err
 	}
-
 	err = a.startAllAggregators(ctx)
 	if err != nil {
 		log.Error().Err(err).Str("Player", "Aggregator").Msg("failed to start aggregators")
@@ -116,7 +116,9 @@ func (a *App) setupHeartbeatCoordinator(ctx context.Context) error {
 		return err
 	}
 
-	a.HeartbeatCoordinator = raft.NewHeartbeatCoordinator(a.Host, controlTopic, 1000)
+	// Small buffer: a queued heartbeat only proves liveness briefly, and a long queue
+	// replayed after a stall would keep delaying failover for a dead leader.
+	a.HeartbeatCoordinator = raft.NewHeartbeatCoordinator(a.Host, controlTopic, 32)
 	go a.HeartbeatCoordinator.Run(ctx)
 	return nil
 }
@@ -290,10 +292,8 @@ func (a *App) stopAggregatorById(id int32) error {
 
 func (a *App) stopAllAggregators() error {
 	// Stop emitting/fanning-out combined heartbeats for these feeds before their
-	// Raft groups are cancelled: a cancelled Raft's becomeLeader returns without
-	// demoting to Follower, so leaderTermSnapshot would still report leadership and
-	// the coordinator would broadcast stale heartbeats for dead feeds until the
-	// post-teardown re-register (#2558).
+	// Raft groups are cancelled, so none are advertised or updated during teardown
+	// (#2558).
 	a.clearHeartbeatFeeds()
 	for _, aggregator := range a.Aggregators {
 		err := a.stopAggregator(aggregator)
