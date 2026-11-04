@@ -2,11 +2,20 @@
 package raft
 
 import (
+	"context"
+	"errors"
+	"fmt"
 	"os"
 	"sync"
+	"sync/atomic"
 	"testing"
+	"time"
 
+	metricnames "bisonai.com/miko/node/pkg/metrics/names"
+	pubsub "github.com/libp2p/go-libp2p-pubsub"
+	pubsubpb "github.com/libp2p/go-libp2p-pubsub/pb"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // newFollower builds a bare follower Raft with no host/pubsub — enough to exercise
@@ -81,4 +90,206 @@ func TestControlTopicName(t *testing.T) {
 
 	t.Setenv("P2P_HEARTBEAT_CONTROL_TOPIC", "custom-control")
 	assert.Equal(t, "custom-control", ControlTopicName())
+}
+
+// batchFrom encodes a combined heartbeat from sender as a received pubsub message.
+func batchFrom(t *testing.T, sender string, terms map[string]int) *pubsub.Message {
+	t.Helper()
+	inner, err := encodeInner(BatchHeartbeatMessage{Terms: terms})
+	require.NoError(t, err)
+	data, err := encodeMessage(Message{Type: BatchHeartbeat, SentFrom: sender, Data: inner, Timestamp: time.Now()})
+	require.NoError(t, err)
+	return &pubsub.Message{Message: &pubsubpb.Message{Data: data}}
+}
+
+func newLeader(term int) *Raft {
+	return &Raft{Role: Leader, Term: term, HeartbeatTimeout: HEARTBEAT_TIMEOUT}
+}
+
+// TestStalledPublishDoesNotBlockReceive proves a blocked Publish neither stops the
+// receive loop draining the buffer nor queues ticks (#2570).
+func TestStalledPublishDoesNotBlockReceive(t *testing.T) {
+	t.Setenv("P2P_HEARTBEAT_BATCH", "true")
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	node := newPublishTestNode(ctx, t)
+	const bufferSize = 8
+	c := NewHeartbeatCoordinator(node.Host, node.Topic, bufferSize)
+
+	release := make(chan struct{})
+	var publishes atomic.Int32
+	c.publish = func(ctx context.Context, _ []byte) error {
+		publishes.Add(1)
+		select {
+		case <-release:
+		case <-ctx.Done():
+		}
+		return nil
+	}
+
+	followed := newFollower(0)
+	followed.MissedHeartbeats = 2
+	c.Reset(map[string]*Raft{"led": newLeader(1), "followed": followed})
+
+	go c.Run(ctx)
+	require.Eventually(t, func() bool { return publishes.Load() == 1 }, 5*time.Second, 5*time.Millisecond, "publish entered")
+
+	// more messages than the buffer holds: this only completes if Run keeps draining
+	const total = bufferSize * 4
+	sender := testPeerID(t)
+	for term := 1; term <= total; term++ {
+		select {
+		case c.buffer <- batchFrom(t, sender, map[string]int{"followed": term}):
+		case <-time.After(5 * time.Second):
+			t.Fatal("receive buffer not drained while publish is stalled")
+		}
+	}
+	require.Eventually(t, func() bool { return followed.GetCurrentTerm() == total }, 5*time.Second, 5*time.Millisecond, "fan-out continues")
+	followed.Mutex.Lock()
+	missed := followed.MissedHeartbeats
+	followed.Mutex.Unlock()
+	assert.Equal(t, 0, missed)
+
+	time.Sleep(6 * HEARTBEAT_TIMEOUT)
+	assert.EqualValues(t, 1, publishes.Load(), "no further publish while one is stalled")
+
+	close(release)
+	require.Eventually(t, func() bool { return publishes.Load() >= 2 }, 5*time.Second, 5*time.Millisecond, "broadcast resumes")
+	time.Sleep(HEARTBEAT_TIMEOUT / 2)
+	assert.Less(t, publishes.Load(), int32(5), "stalled ticks are skipped, not replayed")
+}
+
+func TestBroadcastFlagOffDoesNotPublish(t *testing.T) {
+	t.Setenv("P2P_HEARTBEAT_BATCH", "")
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	node := newPublishTestNode(ctx, t)
+	c := NewHeartbeatCoordinator(node.Host, node.Topic, 8)
+	var publishes atomic.Int32
+	c.publish = func(context.Context, []byte) error {
+		publishes.Add(1)
+		return nil
+	}
+	c.Reset(map[string]*Raft{"led": newLeader(1)})
+
+	go c.Run(ctx)
+	time.Sleep(3 * HEARTBEAT_TIMEOUT)
+	assert.Zero(t, publishes.Load())
+}
+
+// TestBroadcastCountsPublished proves combined heartbeats appear in the p2p
+// publish counters under their own type, with the exact payload size.
+func TestBroadcastCountsPublished(t *testing.T) {
+	for _, encoding := range []string{"json", "msgpack"} {
+		t.Run(encoding, func(t *testing.T) {
+			t.Setenv("P2P_ENCODING", encoding)
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+
+			node := newPublishTestNode(ctx, t)
+			sub, err := node.Topic.Subscribe()
+			require.NoError(t, err)
+			defer sub.Cancel()
+
+			c := NewHeartbeatCoordinator(node.Host, node.Topic, 8)
+			c.Reset(map[string]*Raft{"led": newLeader(7), "followed": newFollower(7)})
+
+			messages := counterValue(t, metricnames.P2PPublishedMessages, BatchHeartbeat)
+			size := counterValue(t, metricnames.P2PPublishedBytes, BatchHeartbeat)
+
+			c.broadcast(ctx)
+
+			published, err := sub.Next(ctx)
+			require.NoError(t, err)
+			msg, err := decodeMessage(published.Data)
+			require.NoError(t, err)
+			var batch BatchHeartbeatMessage
+			require.NoError(t, decodeInner(msg.Data, &batch))
+			assert.Equal(t, map[string]int{"led": 7}, batch.Terms, "only led feeds")
+
+			assert.Equal(t, messages+1, counterValue(t, metricnames.P2PPublishedMessages, BatchHeartbeat))
+			assert.Equal(t, size+float64(len(published.Data)), counterValue(t, metricnames.P2PPublishedBytes, BatchHeartbeat))
+		})
+	}
+}
+
+func TestBroadcastPublishFailureNotCounted(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	node := newPublishTestNode(ctx, t)
+	c := NewHeartbeatCoordinator(node.Host, node.Topic, 8)
+	c.Reset(map[string]*Raft{"led": newLeader(1)})
+
+	// a success first, so the series exist and a wrong name can't pass as 0 == 0
+	c.broadcast(ctx)
+	messages := counterValue(t, metricnames.P2PPublishedMessages, BatchHeartbeat)
+	size := counterValue(t, metricnames.P2PPublishedBytes, BatchHeartbeat)
+	require.Positive(t, messages)
+
+	c.publish = func(context.Context, []byte) error { return errors.New("publish failed") }
+	c.broadcast(ctx)
+
+	assert.Equal(t, messages, counterValue(t, metricnames.P2PPublishedMessages, BatchHeartbeat))
+	assert.Equal(t, size, counterValue(t, metricnames.P2PPublishedBytes, BatchHeartbeat))
+}
+
+// TestBatchedHeartbeatMatchesPerFeed drives the same heartbeat through the per-feed
+// handler and the combined fan-out and requires identical resulting state, stale
+// terms included.
+func TestBatchedHeartbeatMatchesPerFeed(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	node := newPublishTestNode(ctx, t)
+	leaderID := testPeerID(t)
+
+	for _, term := range []int{4, 5, 6} {
+		t.Run(fmt.Sprintf("term=%d", term), func(t *testing.T) {
+			newState := func() *Raft {
+				r := newFollower(5)
+				r.Host = node.Host
+				r.LeaderID = "previous"
+				r.MissedHeartbeats = 2
+				return r
+			}
+
+			perFeed := newState()
+			inner, err := encodeInner(HeartbeatMessage{LeaderID: leaderID, Term: term})
+			require.NoError(t, err)
+			require.NoError(t, perFeed.handleHeartbeat(Message{Type: Heartbeat, SentFrom: leaderID, Data: inner}))
+
+			batched := newState()
+			c := &HeartbeatCoordinator{host: node.Host, feeds: map[string]*Raft{"feed": batched}}
+			c.handleRaw(batchFrom(t, leaderID, map[string]int{"feed": term}))
+
+			assert.Equal(t, 0, batched.MissedHeartbeats, "missed heartbeats reset")
+			assert.NotNil(t, batched.ElectionTimer, "election timer restarted")
+			assert.Equal(t, perFeed.MissedHeartbeats, batched.MissedHeartbeats)
+			assert.Equal(t, perFeed.Term, batched.Term)
+			assert.Equal(t, perFeed.Role, batched.Role)
+			assert.Equal(t, perFeed.LeaderID, batched.LeaderID)
+			assert.Equal(t, perFeed.ElectionTimer != nil, batched.ElectionTimer != nil)
+		})
+	}
+}
+
+// TestBatchHeartbeatWithinGossipSubLimit bounds a combined heartbeat covering 233
+// feeds against the GossipSub message size limit, in both wire formats.
+func TestBatchHeartbeatWithinGossipSubLimit(t *testing.T) {
+	terms := make(map[string]int, 233)
+	for i := 0; i < 233; i++ {
+		terms[fmt.Sprintf("T%03d-USDT", i)] = 12345
+	}
+	sender := testPeerID(t)
+
+	for _, encoding := range []string{"json", "msgpack"} {
+		t.Run(encoding, func(t *testing.T) {
+			t.Setenv("P2P_ENCODING", encoding)
+			raw := batchFrom(t, sender, terms)
+			t.Logf("%d feeds, %s: %d bytes", len(terms), encoding, len(raw.Data))
+			assert.Less(t, len(raw.Data), pubsub.DefaultMaxMessageSize)
+		})
+	}
 }

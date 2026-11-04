@@ -10,6 +10,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 
+	"bisonai.com/miko/node/pkg/metrics"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/host"
 )
@@ -42,6 +43,9 @@ func ControlTopicName() string {
 type HeartbeatCoordinator struct {
 	host  host.Host
 	topic *pubsub.Topic
+	// publish sends an encoded combined heartbeat. It wraps topic.Publish; tests
+	// replace it to stall or fail the send path.
+	publish func(context.Context, []byte) error
 
 	mu    sync.RWMutex
 	feeds map[string]*Raft
@@ -64,8 +68,11 @@ func (c *HeartbeatCoordinator) IsRunning() bool {
 // topic. Register the local Raft groups with Reset before/after starting Run.
 func NewHeartbeatCoordinator(h host.Host, topic *pubsub.Topic, messageBuffer int) *HeartbeatCoordinator {
 	return &HeartbeatCoordinator{
-		host:   h,
-		topic:  topic,
+		host:  h,
+		topic: topic,
+		publish: func(ctx context.Context, data []byte) error {
+			return topic.Publish(ctx, data)
+		},
 		feeds:  make(map[string]*Raft),
 		buffer: make(chan *pubsub.Message, messageBuffer),
 	}
@@ -104,25 +111,39 @@ func (c *HeartbeatCoordinator) hostID() string {
 	return c.host.ID().String()
 }
 
-// Run drives the control plane: it subscribes for incoming combined heartbeats
-// and, while P2P_HEARTBEAT_BATCH is enabled, emits one combined heartbeat every
-// HEARTBEAT_TIMEOUT tick. It blocks until ctx is cancelled.
+// Run drives the control plane: it subscribes for incoming combined heartbeats,
+// fans them out, and starts the broadcast loop. Broadcast runs on its own
+// goroutine so a slow Publish can't delay fan-out or fill the receive buffer. It
+// blocks until ctx is cancelled.
 func (c *HeartbeatCoordinator) Run(ctx context.Context) {
 	c.running.Store(true)
 	defer c.running.Store(false)
 
 	go c.subscribe(ctx)
+	go c.broadcastLoop(ctx)
 
+	for {
+		select {
+		case rawMsg := <-c.buffer:
+			// Handle synchronously so heartbeats for the same feed apply in receive
+			// order; a goroutine per message would let them reorder (#2558).
+			c.handleRawSafe(rawMsg)
+		case <-ctx.Done():
+			return
+		}
+	}
+}
+
+// broadcastLoop emits one combined heartbeat every HEARTBEAT_TIMEOUT tick while
+// P2P_HEARTBEAT_BATCH is enabled. Publishing inline makes a slow publish skip
+// ticks instead of queueing them: time.Ticker drops ticks for a slow receiver, and
+// each publish takes a fresh snapshot.
+func (c *HeartbeatCoordinator) broadcastLoop(ctx context.Context) {
 	ticker := time.NewTicker(HEARTBEAT_TIMEOUT)
 	defer ticker.Stop()
 
 	for {
 		select {
-		case rawMsg := <-c.buffer:
-			// Handle synchronously (in receive order): a goroutine per message let
-			// two heartbeats for the same feed apply out of order, so a stale one
-			// could reset MissedHeartbeats after a newer one (#2558).
-			c.handleRawSafe(rawMsg)
 		case <-ticker.C:
 			if HeartbeatBatchEnabled() {
 				c.tickBroadcast(ctx)
@@ -207,8 +228,8 @@ func sleepCtx(ctx context.Context, d time.Duration) bool {
 }
 
 // tickBroadcast wraps broadcast with panic recovery so a publish-time panic
-// (e.g. publishing during shutdown) can't unwind Run and silently kill the whole
-// coordinator, taking the always-on fan-out down with it.
+// (e.g. publishing during shutdown) can't unwind the goroutine and crash the node
+// or silently stop combined heartbeats while leaders still suppress per-feed ones.
 func (c *HeartbeatCoordinator) tickBroadcast(ctx context.Context) {
 	defer func() {
 		if rec := recover(); rec != nil {
@@ -251,9 +272,11 @@ func (c *HeartbeatCoordinator) broadcast(ctx context.Context) {
 		log.Error().Err(err).Msg("failed to marshal batch heartbeat")
 		return
 	}
-	if err := c.topic.Publish(ctx, data); err != nil {
+	if err := c.publish(ctx, data); err != nil {
 		log.Error().Err(err).Msg("failed to publish batch heartbeat")
+		return
 	}
+	metrics.RecordP2PPublished(string(message.Type), len(data))
 }
 
 // handleRawSafe runs handleRaw with panic recovery so a single malformed control

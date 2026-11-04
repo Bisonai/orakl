@@ -52,12 +52,11 @@ type HeartbeatMessage struct {
 // feed. It rides the shared control topic instead of the ~150 per-feed topics,
 // collapsing ~1,500 heartbeat msgs/s into ~10-20/s (issue #2558).
 //
-// The key is the feed's stable name (config.Name), NOT the local config.id: ids
-// are node-local serial primary keys assigned by each node's own insert history
-// (configs are upserted on conflict(name) and never carry a shared id), so an id
-// means different feeds on different nodes. Per-feed data topics key on the name
-// for the same reason; the batch must too or a follower would apply a leader's
-// heartbeat to the wrong feed.
+// The key is the feed's stable name (config.Name), NOT config.ID: ids are
+// process-local, assigned the first time a node sees a name, so an id can mean
+// different feeds on different nodes. Per-feed data topics key on the name for the
+// same reason; the batch must too or a follower would apply a leader's heartbeat
+// to the wrong feed.
 type BatchHeartbeatMessage struct {
 	Terms map[string]int `json:"terms"`
 }
