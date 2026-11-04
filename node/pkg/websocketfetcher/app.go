@@ -9,7 +9,7 @@ import (
 
 	"bisonai.com/miko/node/pkg/chain/websocketchainreader"
 	"bisonai.com/miko/node/pkg/common/types"
-	"bisonai.com/miko/node/pkg/db"
+	"bisonai.com/miko/node/pkg/nodeconfig"
 	"bisonai.com/miko/node/pkg/secrets"
 	"bisonai.com/miko/node/pkg/websocketfetcher/common"
 	"bisonai.com/miko/node/pkg/websocketfetcher/providers/binance"
@@ -22,7 +22,6 @@ import (
 	"bisonai.com/miko/node/pkg/websocketfetcher/providers/bybit"
 	"bisonai.com/miko/node/pkg/websocketfetcher/providers/capybara"
 	"bisonai.com/miko/node/pkg/websocketfetcher/providers/coinbase"
-	"bisonai.com/miko/node/pkg/websocketfetcher/providers/coinex"
 	"bisonai.com/miko/node/pkg/websocketfetcher/providers/coinone"
 	"bisonai.com/miko/node/pkg/websocketfetcher/providers/crypto"
 	"bisonai.com/miko/node/pkg/websocketfetcher/providers/gateio"
@@ -51,21 +50,29 @@ const (
 )
 
 type AppConfig struct {
-	SetFromDB           bool
-	Feeds               []common.Feed
-	CexFactories        map[string]func(context.Context, ...common.FetcherOption) (common.FetcherInterface, error)
-	DexFactories        map[string]func(...common.DexFetcherOption) common.FetcherInterface
-	BufferSize          int
-	StoreInterval       time.Duration
-	LatestFeedDataMap   *types.LatestFeedDataMap
-	FeedDataDumpChannel chan *types.FeedData
+	// SetFromConfig loads CEX (wss) feeds from ConfigStore; DEX feeds always
+	// come from ConfigStore.
+	SetFromConfig     bool
+	ConfigStore       *nodeconfig.Store
+	Feeds             []common.Feed
+	CexFactories      map[string]func(context.Context, ...common.FetcherOption) (common.FetcherInterface, error)
+	DexFactories      map[string]func(...common.DexFetcherOption) common.FetcherInterface
+	BufferSize        int
+	StoreInterval     time.Duration
+	LatestFeedDataMap *types.LatestFeedDataMap
 }
 
 type AppOption func(*AppConfig)
 
-func WithSetFromDB(useDB bool) AppOption {
+func WithSetFromConfig(fromConfig bool) AppOption {
 	return func(c *AppConfig) {
-		c.SetFromDB = useDB
+		c.SetFromConfig = fromConfig
+	}
+}
+
+func WithConfigStore(store *nodeconfig.Store) AppOption {
+	return func(c *AppConfig) {
+		c.ConfigStore = store
 	}
 }
 
@@ -99,27 +106,25 @@ func WithLatestFeedDataMap(latestFeedDataMap *types.LatestFeedDataMap) AppOption
 	}
 }
 
-func WithFeedDataDumpChannel(feedDataDumpChannel chan *types.FeedData) AppOption {
-	return func(c *AppConfig) {
-		c.FeedDataDumpChannel = feedDataDumpChannel
-	}
-}
-
 type App struct {
-	fetchers            []common.FetcherInterface
-	buffer              chan *common.FeedData
-	storeInterval       time.Duration
-	chainReader         *websocketchainreader.ChainReader
-	latestFeedDataMap   *types.LatestFeedDataMap
-	feedDataDumpChannel chan *common.FeedData
-	cancel              context.CancelFunc
+	fetchers          []common.FetcherInterface
+	buffer            chan *common.FeedData
+	storeInterval     time.Duration
+	chainReader       *websocketchainreader.ChainReader
+	latestFeedDataMap *types.LatestFeedDataMap
+	cancel            context.CancelFunc
 }
 
 func New() *App {
-	return &App{}
+	// default interval so Start on an un-Init'd App doesn't panic in NewTicker
+	return &App{storeInterval: DefaultStoreInterval}
 }
 
 func (a *App) Init(ctx context.Context, opts ...AppOption) error {
+	// fetcher refresh Inits a fresh App; if an App is ever re-Init'd, drop the
+	// previous fetchers and chain reader so Start doesn't run stale fetchers
+	// writing into an undrained old buffer.
+	a.reset()
 
 	cexFactories := map[string]func(context.Context, ...common.FetcherOption) (common.FetcherInterface, error){
 		"binance":  binance.New,
@@ -133,7 +138,6 @@ func (a *App) Init(ctx context.Context, opts ...AppOption) error {
 		"btse":     btse.New,
 		"bithumb":  bithumb.New,
 		"gateio":   gateio.New,
-		"coinex":   coinex.New,
 		"huobi":    huobi.New,
 		"mexc":     mexc.New,
 		"bitstamp": bitstamp.New,
@@ -158,7 +162,8 @@ func (a *App) Init(ctx context.Context, opts ...AppOption) error {
 	}
 
 	appConfig := &AppConfig{
-		SetFromDB:     true,
+		SetFromConfig: true,
+		ConfigStore:   nodeconfig.Default(),
 		CexFactories:  cexFactories,
 		DexFactories:  dexFactories,
 		BufferSize:    DefaultBufferSize,
@@ -167,7 +172,6 @@ func (a *App) Init(ctx context.Context, opts ...AppOption) error {
 			FeedDataMap: make(map[int32]*types.FeedData),
 			Mu:          sync.RWMutex{},
 		},
-		FeedDataDumpChannel: make(chan *types.FeedData, 10000),
 	}
 
 	for _, opt := range opts {
@@ -175,7 +179,6 @@ func (a *App) Init(ctx context.Context, opts ...AppOption) error {
 	}
 
 	a.latestFeedDataMap = appConfig.LatestFeedDataMap
-	a.feedDataDumpChannel = appConfig.FeedDataDumpChannel
 
 	if err := a.initializeCex(ctx, *appConfig); err != nil {
 		return err
@@ -188,15 +191,18 @@ func (a *App) Init(ctx context.Context, opts ...AppOption) error {
 	return nil
 }
 
+func (a *App) reset() {
+	a.fetchers = nil
+	if a.chainReader != nil {
+		a.chainReader.Close()
+		a.chainReader = nil
+	}
+}
+
 func (a *App) initializeCex(ctx context.Context, appConfig AppConfig) error {
 	var feeds []common.Feed
-	if appConfig.SetFromDB {
-		var err error
-		feeds, err = db.QueryRows[common.Feed](ctx, common.GetAllWebsocketFeedsQuery, nil)
-		if err != nil {
-			log.Error().Err(err).Msg("error in fetching feeds")
-			return err
-		}
+	if appConfig.SetFromConfig {
+		feeds = appConfig.ConfigStore.FeedsOfType(common.WssFeedType)
 	}
 
 	if len(appConfig.Feeds) > 0 {
@@ -208,6 +214,14 @@ func (a *App) initializeCex(ctx context.Context, appConfig AppConfig) error {
 	a.storeInterval = appConfig.StoreInterval
 
 	wsProxy := os.Getenv("WS_PROXY")
+
+	// Feeds for providers without a factory (e.g. removed exchanges still
+	// listed in config) are skipped, not fatal.
+	for name := range feedMap {
+		if _, ok := appConfig.CexFactories[name]; !ok {
+			log.Warn().Str("provider", name).Msg("no websocket fetcher for provider, skipping its feeds")
+		}
+	}
 
 	for name, factory := range appConfig.CexFactories {
 		if _, ok := feedMap[name]; !ok {
@@ -260,11 +274,7 @@ func (a *App) initializeDex(ctx context.Context, appConfig AppConfig) error {
 	a.chainReader = chainReader
 
 	for name, factory := range appConfig.DexFactories {
-		feeds, err := db.QueryRows[common.Feed](ctx, common.GetDexFeedsQuery(name), nil)
-		if err != nil {
-			log.Error().Err(err).Msg("error in fetching feeds")
-			return err
-		}
+		feeds := appConfig.ConfigStore.FeedsOfType(common.DexFeedType(name))
 		fetcher := factory(
 			common.WithFeeds(feeds),
 			common.WithDexFeedDataBuffer(a.buffer),
@@ -277,7 +287,13 @@ func (a *App) initializeDex(ctx context.Context, appConfig AppConfig) error {
 	return nil
 }
 
+// Start is non-blocking: cancel is set before it returns so a following Stop
+// always cancels this run.
 func (a *App) Start(ctx context.Context) {
+	if a.cancel != nil {
+		log.Debug().Str("Player", "WebsocketFetcher").Msg("websocket fetcher already running")
+		return
+	}
 	ctxWithCancel, cancel := context.WithCancel(ctx)
 	a.cancel = cancel
 
@@ -286,21 +302,31 @@ func (a *App) Start(ctx context.Context) {
 	}
 
 	ticker := time.NewTicker(a.storeInterval)
-	for {
-		select {
-		case <-ctxWithCancel.Done():
-			ticker.Stop()
-			return
-		case <-ticker.C:
-			go a.storeFeedData(ctxWithCancel)
+	go func() {
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctxWithCancel.Done():
+				return
+			case <-ticker.C:
+				go a.storeFeedData(ctxWithCancel)
+			}
 		}
-	}
+	}()
 }
 
 func (a *App) Stop() {
 	if a.cancel != nil {
 		a.cancel()
+		a.cancel = nil
 	}
+}
+
+// Close stops the App and releases its chain reader; for discarding an App
+// replaced by (or left half-built by) a fetcher refresh.
+func (a *App) Close() {
+	a.Stop()
+	a.reset()
 }
 
 func (a *App) storeFeedData(ctx context.Context) {
@@ -315,7 +341,6 @@ func (a *App) storeFeedData(ctx context.Context) {
 			select {
 			case feedData := <-a.buffer:
 				batch = append(batch, feedData)
-				a.feedDataDumpChannel <- feedData
 			default:
 				break loop
 			}

@@ -13,11 +13,9 @@ import (
 
 	"bisonai.com/miko/node/pkg/alert"
 	"bisonai.com/miko/node/pkg/checker"
-	"bisonai.com/miko/node/pkg/db"
 	"bisonai.com/miko/node/pkg/secrets"
 	"bisonai.com/miko/node/pkg/utils/request"
 	"bisonai.com/miko/node/pkg/wss"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog/log"
 )
 
@@ -77,12 +75,27 @@ func Start(ctx context.Context) error {
 	}
 
 	var endpoint, wsEndpoint string
-	if chain == "baobab" {
+	// In-cluster gate: testnet uses the in-cluster DAL. Gate on the normalized
+	// value so it keeps selecting in-cluster after a CHAIN flip baobab->kairos.
+	if chain == "kairos" {
 		endpoint = "http://orakl-dal.orakl.svc.cluster.local"
 		wsEndpoint = "ws://orakl-dal.orakl.svc.cluster.local/ws"
 	} else {
+		// External host is REAL external DNS (not a served config name), so the
+		// raw chain is used here unchanged: CHAIN=mainnet yields
+		// dal.mainnet.orakl.network (live; the mainnet DAL runs in KakaoCloud).
+		// The DAL_CHECK_* overrides below remain a seam for infra to set a
+		// different host.
 		endpoint = fmt.Sprintf("https://dal.%s.orakl.network", chain)
 		wsEndpoint = fmt.Sprintf("ws://dal.%s.orakl.network/ws", chain)
+	}
+	// Phase-4 infra seam: if set, these overrides win verbatim over the
+	// chain-based construction above (and over the in-cluster default).
+	if v := os.Getenv("DAL_CHECK_REST_URL"); v != "" {
+		endpoint = v
+	}
+	if v := os.Getenv("DAL_CHECK_WS_URL"); v != "" {
+		wsEndpoint = v
 	}
 
 	configs, err := fetchConfigs()
@@ -110,17 +123,6 @@ func Start(ctx context.Context) error {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
-	dalDBConnectionUrl := secrets.GetSecret("DAL_DB_CONNECTION_URL")
-	if dalDBConnectionUrl == "" {
-		return errors.New("DAL_DB_CONNECTION_URL not found")
-	}
-
-	pool, err := db.GetTransientPool(ctx, dalDBConnectionUrl)
-	if err != nil {
-		return err
-	}
-	defer pool.Close()
-
 	networkDelayAlarmCount := 0
 	alarmCount := map[string]int{}
 	wsDelayAlarmCount := map[string]int{}
@@ -133,10 +135,6 @@ func Start(ctx context.Context) error {
 		log.Debug().Msg("checking DAL WebSocket")
 		checkDalWs(wsDelayAlarmCount)
 		log.Debug().Msg("checked DAL WebSocket")
-
-		if err := checkDalTraffic(ctx, pool); err != nil {
-			log.Error().Err(err).Msg("error in checkDalTraffic")
-		}
 	}
 	return nil
 }
@@ -233,10 +231,10 @@ func isDataEmpty(data *OutgoingSubmissionData) bool {
 func fetchConfigs() ([]Config, error) {
 	chain := os.Getenv("CHAIN")
 	if chain == "" {
-		log.Info().Str("Player", "Reporter").Msg("CHAIN env not set, defaulting to baobab")
-		chain = "baobab"
+		log.Info().Str("Player", "Reporter").Msg("CHAIN env not set, defaulting to kairos")
+		chain = "kairos"
 	}
-	endpoint := fmt.Sprintf("https://config.orakl.network/%s_configs.json", chain)
+	endpoint := fmt.Sprintf("https://config.orakl.network/%s_feeds.json", chain)
 	configs, err := request.Request[[]Config](request.WithEndpoint(endpoint))
 	if err != nil {
 		return nil, err
@@ -256,36 +254,4 @@ func handleWsMessage(ctx context.Context, data map[string]interface{}) error {
 	}
 	updateTimes.Store(wsData.Symbol, time.Now())
 	return nil
-}
-
-func checkDalTraffic(ctx context.Context, pool *pgxpool.Pool) error {
-	select {
-	case <-ctx.Done():
-		return nil
-	default:
-		prev, err := db.QueryRowTransient[Count](ctx, pool, getTrafficCheckQuery(TrafficOldOffset), map[string]any{})
-		if err != nil {
-			log.Error().Err(err).Msg("failed to check DAL traffic")
-			return err
-		}
-		recent, err := db.QueryRowTransient[Count](ctx, pool, getTrafficCheckQuery(TrafficRecentOffset), map[string]any{})
-		if err != nil {
-			log.Error().Err(err).Msg("failed to check DAL traffic")
-			return err
-		}
-		if recent.Count > prev.Count {
-			alert.SlackAlert(fmt.Sprintf("DAL traffic alert: last 10seconds call count %d exceeded last 10 minutes call count %d", recent.Count, prev.Count))
-		}
-		return nil
-	}
-}
-
-func getTrafficCheckQuery(offset int) string {
-	keysToIgnore := strings.Split(IgnoreKeys, ",")
-	modified := []string{}
-	for _, desc := range keysToIgnore {
-		modified = append(modified, fmt.Sprintf("'%s'", desc))
-	}
-
-	return fmt.Sprintf(TrafficCheckQuery, offset, strings.Join(modified, ", "))
 }

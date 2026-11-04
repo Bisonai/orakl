@@ -75,7 +75,6 @@ func (f *fakeChain) setDeactivated(addr common.Address) {
 type fakeStore struct {
 	mu         sync.Mutex
 	keys       []utils.SignerKey
-	legacy     string
 	nextID     int64
 	promoteErr error
 }
@@ -98,7 +97,6 @@ func (s *fakeStore) LoadKeys(_ context.Context) ([]utils.SignerKey, error) {
 	copy(out, s.keys)
 	return out, nil
 }
-func (s *fakeStore) LoadLegacyPk(_ context.Context) (string, error) { return s.legacy, nil }
 func (s *fakeStore) InsertPending(_ context.Context, address, pkHex string) (int64, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -118,7 +116,7 @@ func (s *fakeStore) BackfillAddress(_ context.Context, id int64, address string)
 	}
 	return nil
 }
-func (s *fakeStore) Promote(_ context.Context, id int64, pkHex string) error {
+func (s *fakeStore) Promote(_ context.Context, id int64) error {
 	if s.promoteErr != nil {
 		return s.promoteErr
 	}
@@ -134,7 +132,6 @@ func (s *fakeStore) Promote(_ context.Context, id int64, pkHex string) error {
 			s.keys[i].State = "active"
 		}
 	}
-	s.legacy = strings.TrimPrefix(pkHex, "0x")
 	return nil
 }
 func (s *fakeStore) GCRetired(_ context.Context) error { return nil }
@@ -190,7 +187,6 @@ func TestScenario_IncidentSelfHeal(t *testing.T) {
 	store := newFakeStore()
 	store.addKey(newHex, newAddr, "active")
 	store.addKey(oldHex, oldAddr, "retired")
-	store.legacy = newHex
 
 	chain := newFakeChain()
 	chain.setWhitelisted(newAddr)
@@ -326,7 +322,6 @@ func TestScenario_RotateHappyPath(t *testing.T) {
 	aHex, aAddr, aPK := genKey(t)
 	store := newFakeStore()
 	store.addKey(aHex, aAddr, "active")
-	store.legacy = aHex
 	chain := newFakeChain()
 	chain.setExp(aAddr, 3*24*time.Hour) // whitelisted but within the 7d renew threshold
 
@@ -457,7 +452,6 @@ func TestScenario_ConcurrentSignAndReconcile(t *testing.T) {
 	aHex, aAddr, aPK := genKey(t)
 	store := newFakeStore()
 	store.addKey(aHex, aAddr, "active")
-	store.legacy = aHex
 	chain := newFakeChain()
 	chain.setWhitelisted(aAddr) // far-future; no rotation
 

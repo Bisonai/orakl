@@ -5,10 +5,6 @@ tasks:
     dotenv: [".env"]
     cmds:
       - go run ./cmd/boot_api/main.go
-  boot-api-build:
-    cmds:
-      - mkdir -p ~/bin
-      - go build -v -o ~/bin/boot-api ./cmd/boot_api
   admin:
     dotenv: [".env"]
     cmds:
@@ -16,7 +12,7 @@ tasks:
   node:
     dotenv: [".env"]
     cmds:
-      - go run ./cmd/node/main.go
+      - go run ./cmd/node
   por:
     dotenv: [".env"]
     cmds:
@@ -29,10 +25,6 @@ tasks:
     dotenv: [".env"]
     cmds:
       - go run ./cmd/dal/main.go
-  dal-build:
-    cmds:
-      - mkdir -p ~/bin
-      - go build -v -o ~/bin/dal ./cmd/dal
   reporter:
     dotenv: [".env"]
     cmds:
@@ -139,7 +131,7 @@ tasks:
   test-boot:
     dotenv: [".env"]
     cmds:
-      - go test ./pkg/boot/tests -v
+      - go test ./pkg/boot/... ./cmd/boot_api/... -v
   test-chain:
     dotenv: [".env"]
     cmds:
@@ -154,16 +146,21 @@ tasks:
   test-websocketfetcher:
     dotenv: [".env"]
     cmds:
-      - go test ./pkg/websocketfetcher/tests -v
+      - go test ./pkg/websocketfetcher/... -v
   test-dal:
     dotenv: [".env"]
     cmds:
-      - go test ./pkg/dal/tests -v
+      - go test ./pkg/dal/tests ./pkg/dal/apiv2/... ./pkg/dal/utils/... -v
 
   test-raft:
     dotenv: [".env"]
     cmds:
       - go test ./pkg/raft -v
+
+  test-nodestate:
+    dotenv: [".env"]
+    cmds:
+      - go test ./pkg/nodestate ./cmd/node -v
 
   test-checker-health:
     cmds:
@@ -188,36 +185,22 @@ tasks:
   sync:
     dotenv: [".env"]
     cmds:
-      - curl -X POST "http://localhost:$APP_PORT/api/v1/config/sync"
+      - |
+        curl --fail-with-body -X POST -H "Authorization: Bearer $ADMIN_TOKEN" "http://localhost:$APP_PORT/api/v1/config/sync"
   refresh-fetcher:
     dotenv: [".env"]
     cmds:
-      - curl -X POST "http://localhost:$APP_PORT/api/v1/fetcher/refresh"
+      - |
+        curl --fail-with-body -X POST -H "Authorization: Bearer $ADMIN_TOKEN" "http://localhost:$APP_PORT/api/v1/fetcher/refresh"
   refresh-aggregator:
     dotenv: [".env"]
     cmds:
-      - curl -X POST "http://localhost:$APP_PORT/api/v1/aggregator/refresh"
+      - |
+        curl --fail-with-body -X POST -H "Authorization: Bearer $ADMIN_TOKEN" "http://localhost:$APP_PORT/api/v1/aggregator/refresh"
   refresh-reporter:
     dotenv: [".env"]
     cmds:
       - curl -X POST "http://localhost:$APP_PORT/api/v1/reporter/refresh"
-  add-proxy:
-    dotenv: [".env"]
-    cmds:
-      - |
-        curl -X POST "http://localhost:$APP_PORT/api/v1/proxy" \
-        -H "Content-Type: application/json" \
-        -d '{"protocol": "{{.PROTOCOL}}", "host": "{{.HOST}}", "port": {{.PORT}}, "location": "{{.LOCATION}}"}'| jq
-  remove-proxy:
-    dotenv: [".env"]
-    cmds:
-      - |
-        curl -X DELETE "http://localhost:$APP_PORT/api/v1/proxy/{{.ID}}" \
-        -H "Content-Type: application/json" | jq
-  get-proxy:
-    dotenv: [".env"]
-    cmds:
-      - curl -X GET "http://localhost:$APP_PORT/api/v1/proxy"| jq
   add-wallet:
     dotenv: [".env"]
     cmds:
@@ -242,24 +225,8 @@ tasks:
   renew-signer:
     dotenv: [".env"]
     cmds:
-      - curl -X POST "http://localhost:$APP_PORT/api/v1/aggregator/renew-signer"
-  add-json-rpc:
-    dotenv: [".env"]
-    cmds:
       - |
-        curl -X POST "http://localhost:$APP_PORT/api/v1/provider-url" \
-        -H "Content-Type: application/json" \
-        -d '{"chain_id": {{.CHAIN_ID}}, "url": "{{.URL}}", "priority": {{.PRIORITY}}}' | jq
-  remove-json-rpc:
-    dotenv: [".env"]
-    cmds:
-      - |
-        curl -X DELETE "http://localhost:$APP_PORT/api/v1/provider-url/{{.ID}}" \
-        -H "Content-Type: application/json" | jq
-  get-json-rpc:
-    dotenv: [".env"]
-    cmds:
-      - curl -X GET "http://localhost:$APP_PORT/api/v1/provider-url" | jq
+        curl --fail-with-body -X POST -H "Authorization: Bearer $ADMIN_TOKEN" "http://localhost:$APP_PORT/api/v1/aggregator/renew-signer"
   get-peer-count:
     dotenv: [".env"]
     cmds:
@@ -267,7 +234,8 @@ tasks:
   sync-libp2p:
     dotenv: [".env"]
     cmds:
-      - curl -X POST "http://localhost:$APP_PORT/api/v1/host/sync"
+      - |
+        curl --fail-with-body -X POST -H "Authorization: Bearer $ADMIN_TOKEN" "http://localhost:$APP_PORT/api/v1/host/sync"
   test:
     cmds:
       - task: test-db
@@ -281,6 +249,7 @@ tasks:
       - task: test-wss
       - task: test-websocketfetcher
       - task: test-raft
+      - task: test-nodestate
   test-sentinel:
     cmds:
       - task: test-checker-health

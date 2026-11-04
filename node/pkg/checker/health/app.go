@@ -4,6 +4,7 @@ import (
 	"context"
 	_ "embed"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"os"
 	"strings"
@@ -30,10 +31,25 @@ var cypressJSON []byte
 var HealthCheckUrls []HealthCheckUrl
 var HealthCheckInterval time.Duration
 
+// selectHealthCheckJSON picks the embedded healthcheck bundle for the given
+// chain. kairos keeps the baobab bundle, mainnet keeps the cypress bundle
+// (the embedded healthcheck JSON filenames stay literal). The embedded
+// file names stay literal on purpose.
+func selectHealthCheckJSON(chain string) ([]byte, bool) {
+	switch chain {
+	case "kairos":
+		return baobabJSON, true
+	case "mainnet":
+		return cypressJSON, true
+	default:
+		return nil, false
+	}
+}
+
 func setUp() error {
 	chain := os.Getenv("CHAIN")
 	if chain == "" {
-		chain = "baobab"
+		chain = "kairos"
 	}
 	HealthCheckInterval = 10 * time.Second
 
@@ -45,20 +61,13 @@ func setUp() error {
 		HealthCheckInterval = parsedInterval
 	}
 
-	if chain == "baobab" {
-		err = json.Unmarshal(baobabJSON, &HealthCheckUrls)
-		if err != nil {
-			log.Error().Err(err).Msg("Failed to unmarshal baobab_healthcheck.json")
-			return err
-		}
-	} else if chain == "cypress" {
-		err = json.Unmarshal(cypressJSON, &HealthCheckUrls)
-		if err != nil {
-			log.Error().Err(err).Msg("Failed to unmarshal cypress_healthcheck.json")
-			return err
-		}
-	} else {
-		log.Error().Msg("Invalid chain")
+	raw, ok := selectHealthCheckJSON(chain)
+	if !ok {
+		log.Error().Str("chain", chain).Msg("Invalid chain")
+		return errors.New("invalid chain: " + chain)
+	}
+	if err = json.Unmarshal(raw, &HealthCheckUrls); err != nil {
+		log.Error().Err(err).Msg("Failed to unmarshal healthcheck.json")
 		return err
 	}
 	log.Info().Msg("Loaded healthcheck.json")

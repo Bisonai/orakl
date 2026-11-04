@@ -5,6 +5,7 @@ import (
 	"context"
 	"math/big"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
@@ -15,6 +16,7 @@ import (
 	"bisonai.com/miko/node/pkg/chain/utils"
 	"bisonai.com/miko/node/pkg/db"
 	errorSentinel "bisonai.com/miko/node/pkg/error"
+	"bisonai.com/miko/node/pkg/nodestate"
 	"github.com/kaiachain/kaia/blockchain/types"
 	"github.com/kaiachain/kaia/common"
 	"github.com/kaiachain/kaia/crypto"
@@ -25,6 +27,17 @@ var (
 	InsertProviderUrlQuery = "INSERT INTO provider_urls (chain_id, url, priority) VALUES (@chain_id, @url, @priority)"
 	maxTxSubmissionRetries = 3
 )
+
+// openState opens an empty SQLite state store; NewSigner seeds it from SIGNER_PK.
+func openState(t *testing.T) *nodestate.Store {
+	t.Helper()
+	st, err := nodestate.Open(context.Background(), filepath.Join(t.TempDir(), "node.db"))
+	if err != nil {
+		t.Fatalf("open state store: %v", err)
+	}
+	t.Cleanup(func() { _ = st.Close() })
+	return st
+}
 
 func TestNewKaiaHelper(t *testing.T) {
 	ctx := context.Background()
@@ -52,7 +65,7 @@ func TestNewKaiaHelper(t *testing.T) {
 func TestNewSigner(t *testing.T) {
 	ctx := context.Background()
 
-	_, err := helper.NewSigner(ctx)
+	_, err := helper.NewSigner(ctx, helper.WithSignerStore(openState(t)))
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -632,60 +645,6 @@ func TestNewPk(t *testing.T) {
 	assert.NotEqual(t, nil, addr)
 }
 
-func TestSignerTableSingleEntry(t *testing.T) {
-	ctx := context.Background()
-
-	//cleanup
-	err := db.QueryWithoutResult(ctx, "DELETE FROM signer;", nil)
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-
-	mockPk1 := "0xf558f6ef079e7fe096eac4497c1e07af6a867f86411c42aad3757f7768316ceb"
-	mockPk2 := "0x81abf286f673fc51d2b0d6811f760665893838bdc41fa3caca0dd8d83e0ff105"
-
-	result, err := db.QueryRow[utils.Wallet](ctx, "SELECT id, pk FROM signer LIMIT 1;", nil)
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-	assert.Equal(t, int64(0), result.ID)
-	assert.Equal(t, "", result.PK)
-
-	err = utils.StoreSignerPk(ctx, mockPk1)
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-
-	loadedPk, err := utils.LoadSignerPk(ctx)
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-	assert.Equal(t, strings.TrimPrefix(mockPk1, "0x"), strings.TrimPrefix(loadedPk, "0x"))
-
-	err = utils.StoreSignerPk(ctx, mockPk2)
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-
-	rowsResult, err := db.QueryRows[utils.Wallet](ctx, "SELECT id, pk FROM signer;", nil)
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-	assert.Equal(t, 1, len(rowsResult))
-
-	loadedPk, err = utils.LoadSignerPk(ctx)
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-	assert.Equal(t, strings.TrimPrefix(mockPk2, "0x"), strings.TrimPrefix(loadedPk, "0x"))
-
-	//cleanup
-	err = db.QueryWithoutResult(ctx, "DELETE FROM signer;", nil)
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-}
-
 // TestSignerRenew exercises the managed (reconcile-driven) signer. Rotation is now internal and
 // crash-safe (issue #2516): the node reconciles against the on-chain whitelist and adopts the
 // currently-whitelisted key. This integration test only runs against a real SubmissionProxy on
@@ -697,7 +656,7 @@ func TestSignerRenew(t *testing.T) {
 		t.Skip("Skipping test because SUBMISSION_PROXY_CONTRACT is not set")
 	}
 
-	s, err := helper.NewSigner(ctx)
+	s, err := helper.NewSigner(ctx, helper.WithSignerStore(openState(t)))
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}

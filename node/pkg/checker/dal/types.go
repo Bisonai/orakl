@@ -13,13 +13,6 @@ const (
 	WsDelayThreshold        = 9 * time.Second
 	WsPushThreshold         = 5 * time.Second
 	NetworkDelayThreshold   = 6 * time.Second
-	IgnoreKeys              = "test,sentinel,orakl_reporter"
-
-	TrafficCheckQuery = `select count(1) from rest_calls where
-timestamp > current_timestamp - INTERVAL '%d seconds' AND
-api_key NOT IN (SELECT key from keys WHERE description IN (%s))`
-	TrafficOldOffset    = 600
-	TrafficRecentOffset = 10
 
 	RestTimeout = 10 * time.Second
 )
@@ -57,8 +50,4 @@ type OutgoingSubmissionData struct {
 type UpdateTimes struct {
 	lastUpdates map[string]time.Time
 	mu          sync.RWMutex
-}
-
-type Count struct {
-	Count int `db:"count"`
 }

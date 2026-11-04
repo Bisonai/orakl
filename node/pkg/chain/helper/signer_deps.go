@@ -2,12 +2,17 @@ package helper
 
 import (
 	"context"
+	"fmt"
 	"math/big"
+	"strings"
 	"time"
 
 	"bisonai.com/miko/node/pkg/chain/utils"
 	errorSentinel "bisonai.com/miko/node/pkg/error"
+	"bisonai.com/miko/node/pkg/nodestate"
+	"bisonai.com/miko/node/pkg/utils/encryptor"
 	"github.com/kaiachain/kaia/common"
+	"github.com/rs/zerolog/log"
 )
 
 // oracleChain and signerStore are the two external dependencies of the reconcile/rotate logic.
@@ -23,11 +28,11 @@ type oracleChain interface {
 }
 
 type signerStore interface {
+	// LoadKeys returns the keyring with PKs decrypted to 0x-trimmed hex.
 	LoadKeys(ctx context.Context) ([]utils.SignerKey, error)
-	LoadLegacyPk(ctx context.Context) (string, error)
 	InsertPending(ctx context.Context, address, pkHex string) (int64, error)
 	BackfillAddress(ctx context.Context, id int64, address string) error
-	Promote(ctx context.Context, id int64, pkHex string) error
+	Promote(ctx context.Context, id int64) error
 	GCRetired(ctx context.Context) error
 }
 
@@ -71,24 +76,68 @@ func (c *realOracleChain) UpdateOracle(ctx context.Context, signWithPkHex string
 	return ch.SubmitDelegatedFallbackDirect(ctx, c.contractAddr, UpdateSignerFuncSignature, newAddr)
 }
 
-// realSignerStore wraps the package-level DB helpers.
-type realSignerStore struct{}
+// retiredKeyRetention is how long retired keys are kept before GC.
+const retiredKeyRetention = 90 * 24 * time.Hour
 
-func (realSignerStore) LoadKeys(ctx context.Context) ([]utils.SignerKey, error) {
-	return utils.LoadSignerKeys(ctx)
+// sqliteSignerStore keeps the keyring in the node's SQLite state store. PKs
+// are encrypted at rest (ENCRYPT_PASSWORD), as in the Postgres keyring.
+type sqliteSignerStore struct {
+	state *nodestate.Store
 }
-func (realSignerStore) LoadLegacyPk(ctx context.Context) (string, error) {
-	return utils.LoadSignerPk(ctx)
+
+// LoadKeys skips rows whose PK cannot be decrypted (or decrypts to a key not
+// matching the row's address) with a warning, so one bad row never hides a
+// usable key. If no row decrypts (e.g. wrong
+// ENCRYPT_PASSWORD) it errors instead of returning an empty keyring, which
+// would make NewSigner seed SIGNER_PK over the live keyring.
+func (s sqliteSignerStore) LoadKeys(ctx context.Context) ([]utils.SignerKey, error) {
+	rows, err := s.state.SignerKeys(ctx)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]utils.SignerKey, 0, len(rows))
+	for _, r := range rows {
+		if r.PK == "" {
+			continue
+		}
+		decrypted, decErr := encryptor.DecryptText(r.PK)
+		if decErr != nil {
+			log.Warn().Err(decErr).Int64("id", r.ID).Msg("failed to decrypt signer_key row; skipping")
+			continue
+		}
+		pkHex := strings.TrimPrefix(decrypted, "0x")
+		// AES-CTR has no auth tag: a wrong password "decrypts" to garbage, so
+		// check that the result is a key matching the stored address
+		addr, addrErr := utils.StringPkToAddressHex(pkHex)
+		if addrErr != nil || (r.Address != nil && *r.Address != "" && !strings.EqualFold(addr, *r.Address)) {
+			log.Warn().Int64("id", r.ID).Msg("signer_key row does not decrypt to its key; skipping")
+			continue
+		}
+		r.PK = pkHex
+		result = append(result, r)
+	}
+	if len(rows) > 0 && len(result) == 0 {
+		return nil, fmt.Errorf("none of %d signer keys could be decrypted (check ENCRYPT_PASSWORD)", len(rows))
+	}
+	return result, nil
 }
-func (realSignerStore) InsertPending(ctx context.Context, address, pkHex string) (int64, error) {
-	return utils.InsertPendingKey(ctx, address, pkHex)
+
+func (s sqliteSignerStore) InsertPending(ctx context.Context, address, pkHex string) (int64, error) {
+	encryptedPk, err := encryptor.EncryptText(strings.TrimPrefix(pkHex, "0x"))
+	if err != nil {
+		return 0, err
+	}
+	return s.state.InsertPendingKey(ctx, strings.ToLower(address), encryptedPk)
 }
-func (realSignerStore) BackfillAddress(ctx context.Context, id int64, address string) error {
-	return utils.BackfillKeyAddress(ctx, id, address)
+
+func (s sqliteSignerStore) BackfillAddress(ctx context.Context, id int64, address string) error {
+	return s.state.BackfillKeyAddress(ctx, id, strings.ToLower(address))
 }
-func (realSignerStore) Promote(ctx context.Context, id int64, pkHex string) error {
-	return utils.PromotePendingToActive(ctx, id, pkHex)
+
+func (s sqliteSignerStore) Promote(ctx context.Context, id int64) error {
+	return s.state.ActivateKey(ctx, id)
 }
-func (realSignerStore) GCRetired(ctx context.Context) error {
-	return utils.GCRetiredKeys(ctx)
+
+func (s sqliteSignerStore) GCRetired(ctx context.Context) error {
+	return s.state.GCRetiredKeys(ctx, time.Now().Add(-retiredKeyRetention))
 }

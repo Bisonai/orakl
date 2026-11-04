@@ -78,7 +78,6 @@ func (e *CustomError) Error() string {
 }
 
 var (
-	ErrAdminDbPoolNotFound     = &CustomError{Service: Admin, Code: InternalError, Message: "db pool not found"}
 	ErrAdminRedisConnNotFound  = &CustomError{Service: Admin, Code: InternalError, Message: "redisconn not found"}
 	ErrAdminMessageBusNotFound = &CustomError{Service: Admin, Code: InternalError, Message: "messagebus not found"}
 
@@ -90,8 +89,6 @@ var (
 	ErrAggregatorNotFound                 = &CustomError{Service: Aggregator, Code: InternalError, Message: "Aggregator not found"}
 	ErrAggregatorCancelNotFound           = &CustomError{Service: Aggregator, Code: InternalError, Message: "Aggregator cancel function not found"}
 	ErrAggregatorEmptyProof               = &CustomError{Service: Aggregator, Code: InternalError, Message: "Empty proof"}
-
-	ErrBootAPIDbPoolNotFound = &CustomError{Service: BootAPI, Code: InternalError, Message: "db pool not found"}
 
 	ErrBusChannelNotFound  = &CustomError{Service: Others, Code: InternalError, Message: "Channel not found"}
 	ErrBusMsgPublishFail   = &CustomError{Service: Others, Code: InternalError, Message: "Failed to send message to channel"}
@@ -111,6 +108,7 @@ var (
 	ErrChainEmptySignedRawTx                 = &CustomError{Service: Others, Code: InvalidInputError, Message: "empty signed raw tx"}
 	ErrChainPubKeyToECDSAFail                = &CustomError{Service: Others, Code: InternalError, Message: "failed to convert public key to ECDSA"}
 	ErrChainSignerPKNotFound                 = &CustomError{Service: Others, Code: InvalidInputError, Message: "signer public key not found"}
+	ErrChainSignerStoreNotSet                = &CustomError{Service: Others, Code: InternalError, Message: "signer state store not set"}
 	ErrChainSignerNoWhitelistedKey           = &CustomError{Service: Others, Code: InternalError, Message: "no held signer key is currently whitelisted on-chain; refusing to sign"}
 	ErrChainEmptyClientParam                 = &CustomError{Service: Others, Code: InvalidInputError, Message: "empty client param"}
 	ErrChainEmptyAddressParam                = &CustomError{Service: Others, Code: InvalidInputError, Message: "empty address param"}
@@ -151,6 +149,7 @@ var (
 	ErrLocalAggregatorZeroVolume              = &CustomError{Service: Fetcher, Code: InvalidInputError, Message: "Zero volume"}
 	ErrFeedDataBulkWriterCancelNotFound       = &CustomError{Service: Fetcher, Code: InternalError, Message: "FeedDataBulkWriter cancel function not found"}
 	ErrLocalAggregateBulkWriterCancelNotFound = &CustomError{Service: Fetcher, Code: InternalError, Message: "LocalAggregateBulkWriter cancel function not found"}
+	ErrFetcherLifecycleInProgress             = &CustomError{Service: Fetcher, Code: InternalError, Message: "fetcher start/stop/refresh already in progress"}
 	ErrFetcherNoMatchingChainID               = &CustomError{Service: Fetcher, Code: InvalidInputError, Message: "No matching chain ID"}
 	ErrFetcherFailedToGetDexResultSlice       = &CustomError{Service: Fetcher, Code: InternalError, Message: "Failed to get dex result slice"}
 	ErrFetcherFailedBigIntConvert             = &CustomError{Service: Fetcher, Code: InternalError, Message: "Failed to convert to fetched data to big.Int"}
@@ -211,6 +210,7 @@ var (
 	ErrDalCollectorNotFound    = &CustomError{Service: Dal, Code: InternalError, Message: "Collector not found"}
 	ErrDalHubNotFound          = &CustomError{Service: Dal, Code: InternalError, Message: "Hub not found"}
 	ErrDalKeyCacheNotFound     = &CustomError{Service: Dal, Code: InternalError, Message: "Key cache not found"}
+	ErrDalKeyStoreNotFound     = &CustomError{Service: Dal, Code: InternalError, Message: "Key store not found"}
 	ErrDalFeedHashNotFound     = &CustomError{Service: Dal, Code: InternalError, Message: "Feed hash not found"}
 	ErrDalSymbolsNotFound      = &CustomError{Service: Dal, Code: InternalError, Message: "Symbols not found"}
 	ErrDalChainEnvNotFound     = &CustomError{Service: Dal, Code: InternalError, Message: "Chain env not found"}

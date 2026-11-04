@@ -40,9 +40,9 @@ contract UtilsScript is Script {
 
     function chainName() public view returns (string memory chain) {
         if (block.chainid == 1001) {
-            return "baobab";
+            return "kairos";
         } else if (block.chainid == 8217) {
-            return "cypress";
+            return "mainnet";
         }
         return "localhost";
     }

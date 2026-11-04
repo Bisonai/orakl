@@ -8,7 +8,8 @@ import (
 
 	"bisonai.com/miko/node/pkg/bus"
 	"bisonai.com/miko/node/pkg/chain/helper"
-	"bisonai.com/miko/node/pkg/db"
+	"bisonai.com/miko/node/pkg/nodeconfig"
+	"bisonai.com/miko/node/pkg/nodestate"
 	"bisonai.com/miko/node/pkg/raft"
 
 	errorSentinel "bisonai.com/miko/node/pkg/error"
@@ -17,12 +18,22 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func New(bus *bus.MessageBus, h host.Host, ps *pubsub.PubSub) *App {
+// New builds the aggregator app on the process-wide config store. state
+// holds the signer keyring and latest rounds; it is required for the managed
+// signer.
+func New(bus *bus.MessageBus, h host.Host, ps *pubsub.PubSub, state *nodestate.Store) *App {
+	var rounds *roundPersister
+	if state != nil {
+		rounds = newRoundPersister(state)
+	}
 	return &App{
+		rounds:                rounds,
 		Aggregators:           make(map[int32]*Aggregator),
 		Bus:                   bus,
+		Configs:               nodeconfig.Default(),
 		Host:                  h,
 		Pubsub:                ps,
+		State:                 state,
 		LatestLocalAggregates: NewLatestLocalAggregates(),
 	}
 }
@@ -36,6 +47,10 @@ func (a *App) Run(ctx context.Context) error {
 		return err
 	}
 
+	if a.rounds != nil {
+		go a.rounds.run(ctx)
+	}
+
 	a.subscribe(ctx)
 
 	configs, err := a.getConfigs(ctx)
@@ -43,9 +58,6 @@ func (a *App) Run(ctx context.Context) error {
 		log.Error().Err(err).Str("Player", "Aggregator").Msg("failed to get configs")
 		return err
 	}
-
-	a.setGlobalAggregateBulkWriter(configs)
-	a.startGlobalAggregateBulkWriter(ctx)
 
 	err = a.setAggregators(ctx, a.Host, a.Pubsub, configs)
 	if err != nil {
@@ -71,25 +83,10 @@ func (a *App) Run(ctx context.Context) error {
 	return nil
 }
 
-func (a *App) setGlobalAggregateBulkWriter(configs []Config) {
-	if a.GlobalAggregateBulkWriter != nil {
-		a.stopGlobalAggregateBulkWriter()
-	}
-
-	configNames := make([]string, len(configs))
-	for i, config := range configs {
-		configNames[i] = config.Name
-	}
-
-	a.GlobalAggregateBulkWriter = NewGlobalAggregateBulkWriter(WithConfigNames(configNames))
-}
-
-func (a *App) startGlobalAggregateBulkWriter(ctx context.Context) {
-	a.GlobalAggregateBulkWriter.Start(ctx)
-}
-
-func (a *App) stopGlobalAggregateBulkWriter() {
-	a.GlobalAggregateBulkWriter.Stop()
+// FlushRounds writes rounds not yet persisted (e.g. before shutdown). Safe to
+// call concurrently with Run.
+func (a *App) FlushRounds(ctx context.Context) error {
+	return a.rounds.Flush(ctx)
 }
 
 func (a *App) setAggregators(ctx context.Context, h host.Host, ps *pubsub.PubSub, configs []Config) error {
@@ -99,6 +96,7 @@ func (a *App) setAggregators(ctx context.Context, h host.Host, ps *pubsub.PubSub
 		return err
 	}
 
+	syncGlobalAggregateMetrics(configs)
 	return a.initializeLoadedAggregators(ctx, configs, h, ps)
 }
 
@@ -174,7 +172,7 @@ func (a *App) ensureSigner(ctx context.Context) error {
 		return nil
 	}
 
-	signerOptions := []helper.SignerOption{}
+	signerOptions := []helper.SignerOption{helper.WithSignerStore(a.State)}
 	if raw := os.Getenv("SIGNER_RENEW_INTERVAL"); raw != "" {
 		if duration, err := time.ParseDuration(raw); err == nil {
 			signerOptions = append(signerOptions, helper.WithRenewInterval(duration))
@@ -208,7 +206,7 @@ func (a *App) initializeLoadedAggregators(ctx context.Context, loadedConfigs []C
 		}
 
 		topicString := config.Name + "-global-aggregator-topic-" + strconv.Itoa(int(config.AggregateInterval))
-		tmpNode, err := NewAggregator(h, ps, topicString, config, a.Signer, a.LatestLocalAggregates)
+		tmpNode, err := NewAggregator(h, ps, topicString, config, a.Signer, a.LatestLocalAggregates, a.rounds)
 		if err != nil {
 			return err
 		}
@@ -219,7 +217,7 @@ func (a *App) initializeLoadedAggregators(ctx context.Context, loadedConfigs []C
 }
 
 func (a *App) getConfigs(ctx context.Context) ([]Config, error) {
-	return db.QueryRows[Config](ctx, SelectConfigQuery, nil)
+	return a.Configs.Configs(), nil
 }
 
 func (a *App) startAggregator(ctx context.Context, aggregator *Aggregator) error {
@@ -384,7 +382,6 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 		msg.Response <- bus.MessageResponse{Success: true}
 	case bus.REFRESH_AGGREGATOR_APP:
 		log.Debug().Str("Player", "Aggregator").Msg("refresh aggregator msg received")
-		a.stopGlobalAggregateBulkWriter()
 		err := a.stopAllAggregators()
 		if err != nil {
 			bus.HandleMessageError(err, msg, "failed to stop all aggregators")
@@ -397,7 +394,6 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 			return
 		}
 
-		a.setGlobalAggregateBulkWriter(configs)
 		err = a.setAggregators(ctx, a.Host, a.Pubsub, configs)
 		if err != nil {
 			bus.HandleMessageError(err, msg, "failed to set aggregators")
@@ -409,12 +405,10 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 			return
 		}
 		a.registerHeartbeatFeeds()
-		a.startGlobalAggregateBulkWriter(ctx)
 
 		msg.Response <- bus.MessageResponse{Success: true}
 	case bus.STOP_AGGREGATOR_APP:
 		log.Debug().Str("Player", "Aggregator").Msg("stop aggregator msg received")
-		a.stopGlobalAggregateBulkWriter()
 		err := a.stopAllAggregators()
 		if err != nil {
 			bus.HandleMessageError(err, msg, "failed to stop all aggregators")
@@ -430,7 +424,6 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 			return
 		}
 		a.registerHeartbeatFeeds()
-		a.startGlobalAggregateBulkWriter(ctx)
 		msg.Response <- bus.MessageResponse{Success: true}
 	case bus.RENEW_SIGNER:
 		log.Debug().Str("Player", "Aggregator").Msg("refresh signer msg received")

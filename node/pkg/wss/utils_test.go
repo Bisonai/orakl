@@ -130,3 +130,90 @@ func TestInactivityTimer(t *testing.T) {
 	err = conn.Close()
 	assert.NoError(t, err)
 }
+
+func assertRunReturnsAfterCancel(t *testing.T, ws *WebsocketHelper, cancelAfter time.Duration) {
+	t.Helper()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	done := make(chan struct{})
+	go func() {
+		ws.Run(ctx, func(ctx context.Context, data map[string]any) error { return nil })
+		close(done)
+	}()
+
+	time.Sleep(cancelAfter)
+	cancel()
+
+	select {
+	case <-done:
+	case <-time.After(3 * time.Second):
+		t.Fatal("Run did not return after context cancel")
+	}
+	assert.False(t, ws.IsRunning)
+}
+
+func TestRunReturnsOnCancelWhileDialFailing(t *testing.T) {
+	// port 1 refuses connections, so dial keeps failing
+	ws, err := NewWebsocketHelper(context.Background(), WithEndpoint("ws://127.0.0.1:1"))
+	assert.NoError(t, err)
+
+	assertRunReturnsAfterCancel(t, ws, 1500*time.Millisecond)
+}
+
+func TestRunReturnsOnCancelWhileConnected(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(echoHandler))
+	defer server.Close()
+	wsURL := "ws" + server.URL[len("http"):] + "/ws"
+
+	ws, err := NewWebsocketHelper(context.Background(), WithEndpoint(wsURL))
+	assert.NoError(t, err)
+
+	// dial + 1s pre-subscribe wait, then reading
+	assertRunReturnsAfterCancel(t, ws, 1500*time.Millisecond)
+}
+
+func TestRunReturnsOnCancelMidSubscribe(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(echoHandler))
+	defer server.Close()
+	wsURL := "ws" + server.URL[len("http"):] + "/ws"
+
+	ws, err := NewWebsocketHelper(
+		context.Background(),
+		WithEndpoint(wsURL),
+		WithSubscriptions([]any{map[string]any{"a": 1}, map[string]any{"b": 2}, map[string]any{"c": 3}}),
+	)
+	assert.NoError(t, err)
+
+	// cancel during the per-subscription sleeps
+	assertRunReturnsAfterCancel(t, ws, 1500*time.Millisecond)
+}
+
+func TestRunReturnsOnCancelAfterServerGone(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(echoHandler))
+	wsURL := "ws" + server.URL[len("http"):] + "/ws"
+
+	ws, err := NewWebsocketHelper(context.Background(), WithEndpoint(wsURL))
+	assert.NoError(t, err)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	done := make(chan struct{})
+	go func() {
+		ws.Run(ctx, func(ctx context.Context, data map[string]any) error { return nil })
+		close(done)
+	}()
+
+	// let it connect, then kill server to force read error + failing redials
+	time.Sleep(1500 * time.Millisecond)
+	server.CloseClientConnections()
+	server.Close()
+	time.Sleep(500 * time.Millisecond)
+	cancel()
+
+	select {
+	case <-done:
+	case <-time.After(3 * time.Second):
+		t.Fatal("Run did not return after context cancel")
+	}
+}

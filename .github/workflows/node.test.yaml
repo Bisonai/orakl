@@ -8,9 +8,7 @@ on:
       - "node/**"
       - "!node/**.md"
       - "!node/pkg/dal/**"
-      - "!node/migrations/dal/**"
       - "!node/pkg/boot/**"
-      - "!node/migrations/boot/**"
       - "!node/pkg/checker/**"
       - "!node/pkg/delegator/**"
       - "!node/migrations/delegator/**"
@@ -107,4 +105,4 @@ jobs:
           CHAIN: "test"
           SIGNER_PK: ${{ secrets.TEST_DELEGATOR_REPORTER_PK}}
           API_KEY: ${{ secrets.DAL_API_KEY}}
-          DAL_WS_URL: "ws://dal.baobab.orakl.network/ws"
+          DAL_WS_URL: "ws://dal.kairos.orakl.network/ws"

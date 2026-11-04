@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"bisonai.com/miko/node/pkg/bus"
+	"bisonai.com/miko/node/pkg/metrics"
 	"github.com/montanaflynn/stats"
 	"github.com/rs/zerolog/log"
 )
@@ -17,7 +18,6 @@ import (
 func NewLocalAggregator(
 	config Config,
 	feeds []Feed,
-	localAggregatesChannel chan *LocalAggregate,
 	bus *bus.MessageBus,
 	latestFeedDataMap *LatestFeedDataMap,
 	localAggregateValueMap *LocalAggregateValueMap) *LocalAggregator {
@@ -27,7 +27,6 @@ func NewLocalAggregator(
 		aggregatorCtx:          nil,
 		cancel:                 nil,
 		bus:                    bus,
-		localAggregatesChannel: localAggregatesChannel,
 		latestFeedDataMap:      latestFeedDataMap,
 		localAggregateValueMap: localAggregateValueMap,
 	}
@@ -266,6 +265,7 @@ func (c *LocalAggregator) streamLocalAggregate(ctx context.Context, aggregated f
 		Value:     c.applyDecimals(aggregated),
 		Timestamp: time.Now(),
 	}
+	metrics.SetLocalAggregate(c.Name, localAggregate.Value, localAggregate.Timestamp)
 
 	msg := bus.Message{
 		From: bus.FETCHER,
@@ -275,7 +275,6 @@ func (c *LocalAggregator) streamLocalAggregate(ctx context.Context, aggregated f
 			Args:    map[string]any{"value": localAggregate},
 		},
 	}
-	defer func() { c.localAggregatesChannel <- localAggregate }()
 	return c.bus.Publish(msg)
 }
 

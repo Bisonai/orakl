@@ -312,7 +312,7 @@ func loadPegPorEventInterval() (PegPorConfig, error) {
 
 func loadPorEventIntervals() ([]PegPorConfig, error) {
 	chain := os.Getenv("CHAIN")
-	url := loadAggregatorInfoUrl(chain)
+	url := loadPorInfoUrl(chain)
 	result, err := request.Request[[]PegPorConfig](request.WithEndpoint(url))
 	if err != nil {
 		return nil, err

@@ -6,7 +6,10 @@ on:
       - "master"
     paths:
       - "node/pkg/boot/**"
-      - "node/migrations/boot/**"
+      - "node/cmd/boot_api/**"
+      - "node/go.mod"
+      - "node/go.sum"
+      - "node/pkg/libp2p/**"
   workflow_dispatch:
 
 jobs:
@@ -16,19 +19,6 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
 
-    services:
-      postgres:
-        image: postgres
-        env:
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: miko-test
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
     steps:
       - uses: actions/checkout@v7
       - name: Setup Go
@@ -38,16 +28,6 @@ jobs:
           check-latest: true
           cache-dependency-path: |
             ./node/go.sum
-
-      - name: Install golang-migrate
-        run: |
-          curl -L https://github.com/golang-migrate/migrate/releases/download/v4.17.0/migrate.linux-amd64.tar.gz | tar xvz
-          sudo mv ./migrate /usr/bin
-
-      - name: Migrate up
-        run: |
-          cd ./node
-          migrate -database "postgresql://postgres:postgres@localhost:5432/miko-test?search_path=public&sslmode=disable" -verbose -path ./migrations/boot up
 
       - name: Install dependencies
         run: |
@@ -63,5 +43,3 @@ jobs:
         run: |
           cd ./node
           task local:test-boot
-        env:
-          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/miko-test?search_path=public"

@@ -14,6 +14,13 @@
   - [Database Initialization](#database-initialization)
   - [Optional Setups](#optional-setups)
   - [Run Node](#run-node)
+- [Admin API auth](#admin-api-auth)
+- [Node state (SQLite)](#node-state-sqlite)
+- [Admin CLI](#admin-cli)
+- [DAL](#dal)
+  - [API keys](#api-keys)
+  - [Metrics](#metrics)
+  - [Migrating keys from PostgreSQL](#migrating-keys-from-postgresql)
 - [Other Task Commands](#other-task-commands)
   - [Unit Test](#unit-test)
   - [Commands](#commands)
@@ -88,6 +95,12 @@ Ensure you have the following installed and set up:
 # Application port for the admin API, defaults to 8088
 APP_PORT=<Your App Port>
 
+# Optional metrics-only port (node); serves just GET /metrics (same as /api/v1/metrics), no auth, must differ from APP_PORT. Unset = disabled
+METRICS_PORT=<Your Metrics Port>
+
+# Optional admin API bearer token (env or Vault); when set, state-changing admin requests (not GET/HEAD/OPTIONS) need `Authorization: Bearer <token>`. Unset = no auth. See [Admin API auth](#admin-api-auth)
+ADMIN_TOKEN=<Your Admin Token>
+
 # PostgreSQL connection URL
 DATABASE_URL=<Your Database URL>
 
@@ -115,7 +128,7 @@ SIGNER_PK=<Your Signer PK>
 # Encrypt Password, this is referenced to store encrypted wallet pk into table. defaults to 'anything'
 ENCRYPT_PASSWORD=<Your Encrypt Password>
 
-# Chain name, 'baobab', 'cypress', or 'test'
+# Chain name, 'kairos', 'mainnet', or 'test'
 CHAIN=<Your Chain Name>
 
 # tx submission wallet for `kaia_helper`
@@ -136,6 +149,12 @@ BOOT_API_PORT=<Your Boot API Port>
 # Boot API connection URL
 BOOT_API_URL=<Your Boot API URL>
 
+# Boot API SQLite peer file, required by the Boot API (not by nodes)
+BOOT_SQLITE_PATH=<Path, e.g. ./boot.db>
+
+# Node SQLite state file, only used by `nodebin state` (not at runtime yet)
+NODE_SQLITE_PATH=<Path, e.g. ./node.db>
+
 # Pinger priviliged set, not required from built image
 WITHOUT_PING_PRIVILEGED=<Set true if running local>
 
@@ -152,9 +171,6 @@ More details about go migrate cli command can be found [here](https://github.com
 ```sh
 # node
 migrate -database "{$DATABASE_URL}" -path ./migrations/node up
-
-# boot
-migrate -database "{$DATABASE_URL}" -path ./migrations/boot up
 ```
 
 This process will generate required tables and constraints to run the service.
@@ -165,7 +181,7 @@ Following are optional setups which helps the application run more smoothly.
 
 1. Proxies
 
-Proxies are referenced from fetcher to prevent being blocked from 3rd party data providers. If provided, fetcher will utilize proxy requests
+Proxies are referenced from fetcher to prevent being blocked from 3rd party data providers. If provided, fetcher will utilize proxy requests. Node: set `FETCHER_PROXIES` (see [Node state](#node-state-sqlite)).
 
 2. Wallets
 
@@ -190,14 +206,14 @@ task local:admin
 
 Follow these steps to set up and run the application:
 
-1. **Set up the database**: Ensure PostgreSQL and Redis are running. PostgreSQL should have tables based on migration files.
+1. **Set up the database**: Ensure Redis is running and create the node state file (`NODE_SQLITE_PATH=./node.db go run ./cmd/node state init`). The node itself does not use PostgreSQL.
 2. **Copy .env.local to .env**: Copy the local environment settings to the main environment file
 
 ```sh
 cp .env.local .env
 ```
 
-3. **Update environment variables**: Replace `DATABASE_URL`, `KAIA_REPORTER_PK`, `SIGNER_PK`, and other values with valid ones in the .env file.
+3. **Update environment variables**: Replace `NODE_SQLITE_PATH`, `KAIA_REPORTER_PK`, `SIGNER_PK`, and other values with valid ones in the .env file.
 4. **Run Boot API**:
    skip this step if connecting to pre-existing boot api
 
@@ -210,6 +226,193 @@ cp .env.local .env
    ```sh
    task local:node
    ```
+
+## Admin API auth
+
+Set `ADMIN_TOKEN` (env, or the Vault secret when Vault is configured) to require `Authorization: Bearer <ADMIN_TOKEN>` on every state-changing admin request (any method other than `GET`/`HEAD`/`OPTIONS`, incl. unknown paths); missing or wrong token → `401`. Unset = no auth (opt-in per deployment; startup logs a warning). Surrounding whitespace is ignored. The token is compared in constant time and never logged. There is no rate limit on failed attempts, so use a high-entropy token, e.g. `openssl rand -hex 32`. Read-only `GET`s stay open so k8s probes, Prometheus scraping and sentinel (peercount, metrics) need no token; they expose no secrets. The separate `METRICS_PORT` listener is never authenticated.
+
+Set `ADMIN_AUTH_REQUIRED=true` to make the token mandatory: if the resolved `ADMIN_TOKEN` is empty (unset, blank, or the Vault read failed and env is empty), the admin server refuses to start and `nodebin` exits non-zero at startup (before joining the network) instead of running unauthenticated. Read from env only.
+
+| `ADMIN_AUTH_REQUIRED` ([`strconv.ParseBool`](https://pkg.go.dev/strconv#ParseBool)) | `ADMIN_TOKEN` set | `ADMIN_TOKEN` empty                |
+| ---------------------------------------------- | ----------------- | ---------------------------------- |
+| unset, `false`, `0` (also `f`, `F`, `FALSE`, `False`) | auth on           | no auth, startup warning (default) |
+| `true`, `1` (also `t`, `T`, `TRUE`, `True`)    | auth on           | admin server fails to start        |
+| anything else (e.g. `yes`, `on`)               | fails to start    | fails to start                     |
+
+| Route (`/api/v1`)                                             | Auth when `ADMIN_TOKEN` set |
+| ------------------------------------------------------------- | --------------------------- |
+| `POST /fetcher/{start,stop,refresh}`                          | token                       |
+| `POST /aggregator/{start,stop,refresh}`                       | token                       |
+| `POST /aggregator/activate/:id`, `/aggregator/deactivate/:id` | token                       |
+| `POST /aggregator/renew-signer`                               | token                       |
+| `POST /config/sync`                                           | token                       |
+| `POST /host/sync`                                             | token                       |
+| any other non-`GET`/`HEAD` request                            | token                       |
+| `GET /` (liveness/readiness)                                  | open                        |
+| `GET /metrics`                                                | open                        |
+| `GET /host/peercount`                                         | open                        |
+| `GET /aggregator/signer` (public address + status)            | open                        |
+| `GET /config` (config list)                                   | open                        |
+
+```sh
+curl -X POST -H "Authorization: Bearer $ADMIN_TOKEN" "http://localhost:$APP_PORT/api/v1/config/sync"
+```
+
+The `task local:*` commands that POST (`sync`, `refresh-fetcher`, `refresh-aggregator`, `renew-signer`, `sync-libp2p`) send the header from `.env`.
+
+Browser requests are blocked regardless of `ADMIN_TOKEN` (#2725): there is no CORS middleware (no `Access-Control-Allow-*` headers, so preflights fail and pages cannot read responses), and any non-`GET`/`HEAD`/`OPTIONS` request carrying an `Origin` header or a `Sec-Fetch-Site` other than `none` gets `403`. Browsers send these on such requests, incl. `no-cors` simple POSTs that skip preflight; curl, Go clients and `nodebin admin` don't, so call the admin API from those, not from a web page or through a proxy that adds `Origin`. Read-only `GET`s are not covered. Still set `ADMIN_TOKEN` wherever `APP_PORT` is reachable by others.
+
+## Node state (SQLite)
+
+The node does not use PostgreSQL (#2695). Its only state, the signer keyring (incl. rotation) and the latest round per config, lives in a SQLite file. Configs and feeds are held in memory, loaded from orakl-config at boot and on `POST /api/v1/config/sync` (applied by `/fetcher/refresh` and `/aggregator/refresh`). Config IDs (`GET /api/v1/config`, used by `/aggregator/activate/:id`) are process-local.
+
+| Env                | Description |
+| ------------------ | ----------- |
+| `NODE_SQLITE_PATH` | Required. Path of the SQLite state file, e.g. `/app/data/node.db`. Put it on a persistent volume. `nodebin` refuses to start if it is unset or the file is missing (create it with `state init` or `state import`). The directory must be writable (SQLite WAL files). |
+| `FETCHER_PROXIES`  | Optional. HTTP fetcher proxies, comma separated `[location=]protocol://host:port`, e.g. `http://172.0.200.20:4000,kr=http://3.39.22.82:80`. A feed with a `location` uses only proxies of that location, others use any proxy. Replaces the `proxies` table. |
+| `DATABASE_URL`     | PostgreSQL to import from (`state import` only). |
+| `ENCRYPT_PASSWORD` | Same value as the node. Keyring private keys are encrypted with it. `state import` uses it only to derive key addresses, to tell whether the legacy `signer` row is already in the keyring. |
+
+Rounds are persisted on every round advance (leader and follower) by an async writer, and flushed on SIGTERM/SIGINT; a restarted node continues after the stored round.
+
+Use the `state` subcommand of the node binary (`nodebin` in the image, `go run ./cmd/node` locally):
+
+```sh
+nodebin state init            # empty store for a fresh node (keyring seeded from SIGNER_PK on first start)
+nodebin state import          # signer_key rows + legacy signer row (if not in keyring) + MAX(round) per config name
+nodebin state import -force   # replace a store whose keyring (or newer rounds) differs from PostgreSQL
+nodebin state import -force -round-margin 1000   # cutover: also skip rounds the still-running node uses after the import
+nodebin state list            # address<TAB>state<TAB>tx_hash<TAB>updated_at, then config<TAB>round; never prints keys
+```
+
+- Encrypted private keys are copied as-is (no re-encryption). Rounds are keyed by config **name**.
+- PostgreSQL rounds (`MAX(global_aggregates.round)`) lag the running node, which keeps advancing until it stops. At cutover use `-round-margin` (rounds per config advance every aggregate interval, 400ms → 1000 ≈ 7 min); a gap in round IDs is harmless, a reused one is not.
+- A legacy `signer` row whose key is not in `signer_key` is added as `active` if the keyring is empty, else as `pending`. If it cannot be decrypted (wrong `ENCRYPT_PASSWORD`), `import` fails.
+- PostgreSQL is read in one read-only `REPEATABLE READ` transaction; the SQLite file is created only after that read succeeds.
+- Re-running against a store with the same keyring only advances rounds (prints `unchanged` if none advanced). If the keyring differs, or a stored round is newer than in PostgreSQL (or its config is missing there), `import` refuses unless `-force`, which replaces the whole store in one transaction.
+
+## Admin CLI
+
+`nodebin admin <command>` calls the admin API of the node running in the same pod (`http://127.0.0.1:$APP_PORT`, `APP_PORT` defaults to `8088`). If `ADMIN_TOKEN` is set (Vault secret when Vault is configured, else env), it sends `Authorization: Bearer <ADMIN_TOKEN>`; otherwise no header. With `ADMIN_AUTH_REQUIRED=true` and no token, commands fail (exit `1`) without sending a request. The token never leaves the pod and is never printed. Each call prints the HTTP status and response body, has a per-call timeout (`-timeout`, default `2m`, e.g. `nodebin admin -timeout 5m reload`), and exits non-zero on a non-2xx response or connection error. `nodebin admin help` prints the usage; invalid usage prints it and exits `2`.
+
+```sh
+kubectl exec <node-pod> -- nodebin admin reload
+```
+
+| Command                           | Request (`/api/v1`)                        |
+| --------------------------------- | ------------------------------------------ |
+| `config-sync`                     | `POST /config/sync`                        |
+| `fetcher-start`, `-stop`, `-refresh` | `POST /fetcher/{start,stop,refresh}`    |
+| `aggregator-start`, `-stop`, `-refresh` | `POST /aggregator/{start,stop,refresh}` |
+| `aggregator-activate <id>`        | `POST /aggregator/activate/<id>`           |
+| `aggregator-deactivate <id>`      | `POST /aggregator/deactivate/<id>`         |
+| `renew-signer`                    | `POST /aggregator/renew-signer`            |
+| `host-sync`                       | `POST /host/sync`                          |
+| `reload`                          | `config-sync`, then `fetcher-refresh`, then `aggregator-refresh`; stops at the first failure |
+
+`<id>` is a config ID from `GET /api/v1/config` (process-local, positive integer). A timed-out call may still complete on the node.
+
+## Boot API
+
+Boot API does not use PostgreSQL. Peers (`peers(id, url UNIQUE)`) are stored in a SQLite file.
+
+| Env                | Description |
+| ------------------ | ----------- |
+| `BOOT_SQLITE_PATH` | Required. Path of the SQLite peer file, e.g. `/app/data/boot.db`. Put it on a persistent volume. Boot API refuses to start if unset. A missing file is created empty: nodes register themselves via `POST /api/v1/peer/sync` (at startup and on reconnect), and unreachable peers are removed every 10s. The directory must be writable (SQLite WAL files). |
+| `BOOT_API_PORT`    | Optional, defaults to `8089`. |
+
+`DATABASE_URL` is not used. The image runs `bootbin` directly (no migrations).
+
+Peers can be inspected or seeded with the `peers` subcommand (`bootbin` in the image, `go run ./cmd/boot_api` locally):
+
+```sh
+bootbin peers list               # id<TAB>url
+bootbin peers import peers.txt   # one multiaddr per line, known urls skipped, invalid line aborts; "-" reads stdin
+```
+
+### Migrating peers from PostgreSQL
+
+Optional: a new empty file refills as nodes re-register. Nodes only call `/peer/sync` at startup and after a disconnect, so a new file stays empty until then; to keep the current mesh discoverable, import the old table once:
+
+```sh
+(
+  set -euo pipefail
+  psql -v ON_ERROR_STOP=1 -At "$OLD_DATABASE_URL" -c "SELECT url FROM peers ORDER BY id" \
+    | BOOT_SQLITE_PATH=/app/data/boot.db bootbin peers import -
+  BOOT_SQLITE_PATH=/app/data/boot.db bootbin peers list
+)
+```
+
+The subshell stops at the first failure, so a failed export is not reported as `imported 0 new peers`.
+
+Stale urls are removed by the refresh loop once Boot API runs.
+
+## DAL
+
+DAL does not use PostgreSQL. API keys are stored in a SQLite file and usage is exposed as Prometheus metrics.
+
+| Env               | Description                                                                                      |
+| ----------------- | ------------------------------------------------------------------------------------------------ |
+| `DAL_SQLITE_PATH` | Required. Path of the SQLite key file, e.g. `/app/data/dal.db`. Put it on a persistent volume. DAL refuses to start if the file does not exist; `keys add`/`keys import` create it. The directory must be writable (SQLite WAL files). |
+| `CHAIN`           | Required. `kairos`, `mainnet` or `test`.                                                          |
+| `REDIS_HOST`, `REDIS_PORT` | Redis used by the collector.                                                            |
+
+### API keys
+
+Keys are managed with the `keys` subcommand of the DAL binary (`dalbin` in the image, `go run ./cmd/dal` locally), against the file at `DAL_SQLITE_PATH`:
+
+```sh
+dalbin keys list                       # key<TAB>description
+dalbin keys add <key> <description>    # add, or update description
+dalbin keys remove <key>
+dalbin keys import keys.csv            # "key,description" rows, no header; "-" reads stdin
+```
+
+`keys add` takes the key as an argument, so it lands in shell history. To avoid that, read the key silently and pipe it:
+
+```sh
+read -rs -p 'API key: ' k; echo
+printf '%s,%s\n' "$k" "<description>" | dalbin keys import -
+unset k
+```
+
+The description is used as the `key` label of the metrics, so give every key a short, unique one. A new key works immediately. A removed key, or a changed description, can take up to 1 hour (key cache TTL) to apply to new requests and new WebSocket connections. Established WebSocket connections are only checked at connect time and are not dropped when their key is removed; restart DAL to apply at once and drop them.
+
+`keys import` only adds or updates keys; it never deletes keys missing from the CSV.
+
+The file can also be edited with `sqlite3` (`keys(key TEXT UNIQUE, description TEXT)`).
+
+### Metrics
+
+Served at `GET /metrics` on the API port (8090). `key` is the key description, `unknown` for a missing or invalid key, `unnamed` for a key with an empty description. `endpoint` is the route template (e.g. `/latest-data-feeds/{symbols}`), `other` for unmatched paths. Descriptions equal to a reserved label (`unknown`, `error`, `unnamed`) or starting with `key_` are exported as `key_<description>`, so distinct descriptions never share a label. A key-store failure returns 503 (`key="error"`). `dal_websocket_subscriptions_total` counts new subscriptions to known symbols (repeats not counted).
+
+`/metrics` needs no API key and exposes key descriptions with their traffic; do not expose it publicly.
+
+- `dal_rest_requests_total{key, endpoint, status}`
+- `dal_websocket_connections_total{key}`
+- `dal_websocket_active_connections{key}`
+- `dal_websocket_subscriptions_total{key}` (valid symbols only)
+
+### Migrating keys from PostgreSQL
+
+One-time export of the old `keys` table and import into a **new, empty** SQLite file. Usage history is not migrated.
+
+```sh
+(
+  set -euo pipefail
+  umask 077
+  export_dir="$(mktemp -d)"
+  trap 'rm -rf -- "$export_dir"' EXIT
+  psql -v ON_ERROR_STOP=1 "$OLD_DATABASE_URL" -c "\copy (SELECT key, COALESCE(description, '') FROM keys ORDER BY id) TO '$export_dir/keys.csv' WITH CSV"
+  test -s "$export_dir/keys.csv"
+  DAL_SQLITE_PATH=/app/data/dal.db dalbin keys import "$export_dir/keys.csv"
+  DAL_SQLITE_PATH=/app/data/dal.db dalbin keys list
+)
+```
+
+The CSV holds live API keys, hence the private directory under `umask 077`, removed on exit. The subshell stops at the first failure (failed export, empty CSV, failed import), so it never finishes "successfully" with an empty key store.
+
+Because `import` never deletes, re-running it against an existing file keeps keys that were revoked in PostgreSQL since the last run. To repeat the migration, delete the SQLite file first, or remove the revoked keys with `dalbin keys remove` and check `dalbin keys list` against PostgreSQL before cutover.
 
 ## Other Task Commands
 
@@ -261,7 +464,7 @@ task local:check-api
 # sync config
 task local:sync
 
-# refresh fetcher, trigger it after adding proxy or json rpc. Execute only if service is running.
+# refresh fetcher, trigger it after config sync. Execute only if service is running.
 task local:refresh-fetcher
 
 # refresh reporter, trigger it after adding wallet or json rpc. Execute only if service is running.
@@ -269,15 +472,6 @@ task local:refresh-reporter
 
 # refresh aggregator, reloads aggregators and signers.
 task local:refresh-aggregator
-
-# `LOCATION` is an optional parameter
-task local:add-proxy HOST="127.0.0.2" PORT=8080 PROTOCOL="http" LOCATION="kr"
-
-# get all registered proxies
-task local:get-proxy
-
-# remove proxy by id
-task local:remove-proxy ID=10
 
 # add a wallet which triggers submission
 task local:add-wallet PK=0x123
@@ -290,15 +484,6 @@ task local:remove-wallet ID=10
 
 # renew current signer
 task local:renew-signer
-
-# add fallback JSON-RPC, lower priority value will be referenced first
-task local:add-json-rpc CHAIN_ID=1001 URL="http://test.com" PRIORITY=10
-
-# get all registered fallback JSON-RPC
-task local:get-json-rpc
-
-# remove fallback json-rpc
-task local:remove-json-rpc ID=10
 ```
 
 ## Troubleshooting
@@ -368,8 +553,8 @@ It checks the service state regularly and sends a Slack message if required.
 ```sh
 # Log level for running the application, options such as `debug`, `info`, `error` are possible
 LOG_LEVEL=error
-# Infra chain info, defaults to baobab (Kaia testnet, now branded Kairos)
-CHAIN=baobab
+# Infra chain info, defaults to kairos (Kaia testnet)
+CHAIN=kairos
 # Health checker interval, defaults to 10s
 HEALTH_CHECK_INTERVAL=10s
 # Balance checker interval, this is balance update interval and defaults to 10s

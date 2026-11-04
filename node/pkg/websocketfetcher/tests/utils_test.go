@@ -12,7 +12,6 @@ import (
 	"bisonai.com/miko/node/pkg/websocketfetcher/providers/bitstamp"
 	"bisonai.com/miko/node/pkg/websocketfetcher/providers/btse"
 	"bisonai.com/miko/node/pkg/websocketfetcher/providers/coinbase"
-	"bisonai.com/miko/node/pkg/websocketfetcher/providers/coinex"
 	"bisonai.com/miko/node/pkg/websocketfetcher/providers/coinone"
 	"bisonai.com/miko/node/pkg/websocketfetcher/providers/crypto"
 	"bisonai.com/miko/node/pkg/websocketfetcher/providers/gateio"
@@ -488,56 +487,6 @@ func TestMessageToStruct(t *testing.T) {
 		assert.Equal(t, "spot.tickers", txData.Channel)
 		assert.Equal(t, "ADA_USDT", txData.Result.CurrencyPair)
 		assert.Equal(t, "0.4479", txData.Result.Last)
-	})
-
-	t.Run("TestMessageToStructCoinex", func(t *testing.T) {
-		jsonStr := `{
-    "method": "state.update",
-    "data": {
-        "state_list": [
-            {
-                "market": "LATUSDT",
-                "last": "0.008157",
-                "open": "0.008286",
-                "close": "0.008157",
-                "high": "0.008390",
-                "low": "0.008106",
-                "volume": "807714.49139758",
-                "volume_sell": "286170.69645599",
-                "volume_buy": "266161.23236408",
-                "value": "6689.21644207",
-                "period": 86400
-            },
-            {
-                "market": "ELONUSDT",
-                "last": "0.000000152823",
-                "open": "0.000000158650",
-                "close": "0.000000152823",
-                "high": "0.000000159474",
-                "low": "0.000000147026",
-                "volume": "88014042237.15",
-                "volume_sell": "11455578769.13",
-                "volume_buy": "17047669612.10",
-                "value": "13345.65122447",
-                "period": 86400
-            }
-        ]
-    },
-    "id": null
-}`
-		var txResult map[string]any
-		err := json.Unmarshal([]byte(jsonStr), &txResult)
-		if err != nil {
-			t.Errorf("unexpected error: %v", err)
-		}
-
-		txData, err := common.MessageToStruct[coinex.Response](txResult)
-		if err != nil {
-			t.Errorf("unexpected error: %v", err)
-		}
-
-		assert.Equal(t, "state.update", txData.Method)
-		assert.Equal(t, "0.008157", txData.Data.StateList[0].Last)
 	})
 
 	t.Run("TestMessageToStructBitstamp", func(t *testing.T) {

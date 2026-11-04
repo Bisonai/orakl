@@ -5,7 +5,6 @@ import (
 	"strings"
 	"time"
 
-	"bisonai.com/miko/node/pkg/db"
 	errorSentinel "bisonai.com/miko/node/pkg/error"
 	"bisonai.com/miko/node/pkg/utils/calculator"
 	"bisonai.com/miko/node/pkg/utils/reducer"
@@ -28,18 +27,6 @@ func FetchSingle(ctx context.Context, definition *Definition, reqOpts ...request
 	}
 
 	return reducer.Reduce(rawResult, definition.Reducers)
-}
-
-func copyFeedData(ctx context.Context, feedData []*FeedData) error {
-	if len(feedData) == 0 {
-		return nil
-	}
-	insertRows := make([][]any, len(feedData))
-	for i, data := range feedData {
-		insertRows[i] = []any{data.FeedID, data.Value, data.Timestamp, data.Volume}
-	}
-	_, err := db.BulkCopy(ctx, "feed_data", []string{"feed_id", "value", "timestamp", "volume"}, insertRows)
-	return err
 }
 
 func calculateVWAP(feedData []*FeedData) (float64, error) {

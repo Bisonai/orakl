@@ -58,7 +58,7 @@ export const options = {
 // about authoring k6 scripts.
 //
 export default function () {
-  const url = "ws://dal.baobab.orakl.network/ws";
+  const url = "ws://dal.kairos.orakl.network/ws";
   const params = { headers: { "X-API-Key": "" } };
 
   const res = ws.connect(url, params, function (socket) {

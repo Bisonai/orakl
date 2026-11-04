@@ -8,8 +8,7 @@ import (
 	"runtime/debug"
 	"strings"
 
-	"bisonai.com/miko/node/pkg/db"
-	errorSentinel "bisonai.com/miko/node/pkg/error"
+	"bisonai.com/miko/node/pkg/boot/utils/peerstore"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/recover"
@@ -17,11 +16,13 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func Setup(ctx context.Context, h *host.Host) (*fiber.App, error) {
-	_, err := db.GetPool(ctx)
-	if err != nil {
-		log.Error().Err(err).Msg("error getting db pool")
-		return nil, errorSentinel.ErrBootAPIDbPoolNotFound
+func Setup(ctx context.Context, h *host.Host, store *peerstore.Store) (*fiber.App, error) {
+	if store == nil {
+		return nil, errors.New("peer store not set")
+	}
+	if err := store.Ping(ctx); err != nil {
+		log.Error().Err(err).Msg("error pinging peer store")
+		return nil, fmt.Errorf("peer store: %w", err)
 	}
 
 	app := fiber.New(fiber.Config{

@@ -22,15 +22,14 @@ const (
 	FetcherRetryMaxDelay   = 2 * time.Second
 )
 
-func NewFetcher(config Config, feeds []Feed, latestFeedDataMap *LatestFeedDataMap, feedDataDumpChannel chan *FeedData) *Fetcher {
+func NewFetcher(config Config, feeds []Feed, latestFeedDataMap *LatestFeedDataMap) *Fetcher {
 	return &Fetcher{
-		Config:              config,
-		Feeds:               feeds,
-		fetcherCtx:          nil,
-		cancel:              nil,
-		latestFeedDataMap:   latestFeedDataMap,
-		FeedDataDumpChannel: feedDataDumpChannel,
-		circuitBreakers:     newCircuitBreakerMap(),
+		Config:            config,
+		Feeds:             feeds,
+		fetcherCtx:        nil,
+		cancel:            nil,
+		latestFeedDataMap: latestFeedDataMap,
+		circuitBreakers:   newCircuitBreakerMap(),
 	}
 }
 
@@ -74,10 +73,6 @@ func (f *Fetcher) fetcherJob(ctx context.Context, proxies []Proxy) error {
 	if err != nil {
 		log.Error().Str("Player", "Fetcher").Err(err).Msg("error in SetLatestFeedData")
 		return err
-	}
-
-	for _, feedData := range result {
-		f.FeedDataDumpChannel <- feedData
 	}
 	return nil
 }

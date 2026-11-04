@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -17,7 +18,7 @@ import (
 	"bisonai.com/miko/node/pkg/dal/collector"
 	"bisonai.com/miko/node/pkg/dal/hub"
 	"bisonai.com/miko/node/pkg/dal/utils/keycache"
-	"bisonai.com/miko/node/pkg/dal/utils/stats"
+	"bisonai.com/miko/node/pkg/dal/utils/keystore"
 	"bisonai.com/miko/node/pkg/db"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -33,7 +34,8 @@ type TestItems struct {
 	MockAdmin  *httptest.Server
 	MockDal    *httptest.Server
 	ApiKey     string
-	StatsApp   *stats.StatsApp
+	KeyStore   *keystore.Store
+	KeyDir     string
 }
 
 func testPublishData(ctx context.Context, name string, submissionData aggregator.SubmissionData) error {
@@ -101,11 +103,22 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 	var testItems = new(TestItems)
 
 	testItems.ApiKey = "testApiKey"
-	err := db.QueryWithoutResult(ctx, "INSERT INTO keys (key) VALUES (@newkey);", map[string]any{"newkey": "testApiKey"})
+	keyDir, err := os.MkdirTemp("", "dal-keys-")
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to insert key in db")
 		return nil, nil, err
 	}
+	keyStore, err := keystore.Open(ctx, filepath.Join(keyDir, "dal.db"))
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to open key store")
+		return nil, nil, err
+	}
+	err = keyStore.Upsert(ctx, testItems.ApiKey, "test")
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to insert key in key store")
+		return nil, nil, err
+	}
+	testItems.KeyStore = keyStore
+	testItems.KeyDir = keyDir
 
 	mockAdminServer := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		rw.Write([]byte(`[{
@@ -134,10 +147,7 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 	hub := hub.HubSetup(ctx, []types.Config{testItems.TmpConfig})
 	go hub.Start(ctx, collector)
 
-	statsApp := stats.NewStatsApp(ctx, stats.WithBulkLogsCopyInterval(1*time.Second))
-	go statsApp.Run(ctx)
-
-	server := apiv2.NewServer(collector, keyCache, hub, statsApp)
+	server := apiv2.NewServer(collector, keyCache, keyStore, hub)
 
 	mockDal := httptest.NewServer(server)
 
@@ -146,7 +156,6 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 	testItems.Controller = hub
 	testItems.MockAdmin = mockAdminServer
 	testItems.MockDal = mockDal
-	testItems.StatsApp = statsApp
 
 	return cleanup(ctx, testItems), testItems, nil
 }
@@ -154,14 +163,13 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 func cleanup(ctx context.Context, testItems *TestItems) func() error {
 	return func() error {
 		testItems.MockDal.Close()
-		testItems.StatsApp.Stop()
 
 		testItems.Collector.Stop()
 		testItems.Controller = nil
 
 		testItems.MockAdmin.Close()
-		_ = db.QueryWithoutResult(ctx, "DELETE FROM keys", nil)
-		return nil
+		_ = testItems.KeyStore.Close()
+		return os.RemoveAll(testItems.KeyDir)
 	}
 }
 
@@ -170,7 +178,6 @@ func TestMain(m *testing.M) {
 	// setup
 	code := m.Run()
 
-	db.ClosePool()
 	db.CloseRedis()
 
 	// teardown

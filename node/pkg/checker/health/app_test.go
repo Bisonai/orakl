@@ -2,11 +2,27 @@
 package health
 
 import (
+	"bytes"
 	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
+
+func TestSelectHealthCheckJSON(t *testing.T) {
+	// mainnet picks the cypress bundle; kairos picks the baobab bundle
+	// (the embedded JSON filenames stay literal).
+	raw, ok := selectHealthCheckJSON("mainnet")
+	assert.True(t, ok, "mainnet should select a bundle")
+	assert.True(t, bytes.Equal(raw, cypressJSON), "mainnet should pick cypress_healthcheck.json")
+
+	raw, ok = selectHealthCheckJSON("kairos")
+	assert.True(t, ok, "kairos should select a bundle")
+	assert.True(t, bytes.Equal(raw, baobabJSON), "kairos should pick baobab_healthcheck.json")
+
+	_, ok = selectHealthCheckJSON("invalid")
+	assert.False(t, ok, "unknown chain should not select a bundle")
+}
 
 func TestCheckUrl(t *testing.T) {
 	ctx := context.Background()

@@ -2,6 +2,7 @@ package request
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -15,6 +16,7 @@ import (
 const DefaultTimeout = 2 * time.Second
 
 type RequestConfig struct {
+	Context  context.Context
 	Timeout  time.Duration
 	Endpoint string
 	Body     interface{}
@@ -28,6 +30,12 @@ type RequestOption func(*RequestConfig)
 func WithTimeout(timeout time.Duration) RequestOption {
 	return func(config *RequestConfig) {
 		config.Timeout = timeout
+	}
+}
+
+func WithContext(ctx context.Context) RequestOption {
+	return func(config *RequestConfig) {
+		config.Context = ctx
 	}
 }
 
@@ -136,7 +144,13 @@ func requestRaw(config RequestConfig) (*http.Response, error) {
 		return nil, errorSentinel.ErrRequestInvalidMethod
 	}
 
-	req, err := http.NewRequest(
+	ctx := config.Context
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	req, err := http.NewRequestWithContext(
+		ctx,
 		config.Method,
 		url.String(),
 		body,

@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
+	"fmt"
 	"math"
 	"math/big"
 	"strings"
@@ -82,7 +82,10 @@ func (f *V4Fetcher) Run(ctx context.Context) {
 
 func (f *V4Fetcher) run(ctx context.Context, feed common.Feed) {
 	// 1. Initial read through StateView.getSlot0(poolId).
-	price, err := f.getInitialPrice(ctx, feed)
+	price, err := common.FetchInitialPrice(ctx, common.DefaultInitialPriceBackoff, "UniswapV4", feed.ID, feed.Name, f.getInitialPriceFor(feed))
+	if err != nil && ctx.Err() != nil {
+		return // ctx cancelled (stop/refresh), not a fetch failure
+	}
 	if err != nil {
 		log.Error().Str("Player", "UniswapV4").Err(err).
 			Int32("feedID", feed.ID).Str("name", feed.Name).
@@ -138,7 +141,7 @@ func (f *V4Fetcher) getInitialPrice(ctx context.Context, feed common.Feed) (*flo
 	definition := new(common.DexFeedDefinition)
 	if err := json.Unmarshal(feed.Definition, &definition); err != nil {
 		log.Error().Str("Player", "UniswapV4").Err(err).Msg("error in uniswapv4.getInitialPrice, failed to unmarshal definition")
-		return nil, err
+		return nil, fmt.Errorf("%w: %w", errorSentinel.ErrFetcherInvalidDexFetcherDefinition, err)
 	}
 	return f.getPriceThroughSlot0(ctx, definition)
 }
@@ -299,19 +302,20 @@ func SwapEventTopic0() kaiacommon.Hash {
 
 // ParsePoolID accepts a hex-encoded 32-byte pool identifier (with or
 // without the "0x" prefix, case-insensitive) and returns it as a
-// fixed-size [32]byte suitable for ABI bytes32 packing.
+// fixed-size [32]byte suitable for ABI bytes32 packing.  Errors wrap
+// ErrFetcherInvalidDexFetcherDefinition so callers treat them as permanent.
 func ParsePoolID(s string) ([32]byte, error) {
 	var out [32]byte
 	if s == "" {
-		return out, errors.New("uniswapv4: empty poolId")
+		return out, fmt.Errorf("%w: uniswapv4: empty poolId", errorSentinel.ErrFetcherInvalidDexFetcherDefinition)
 	}
 	clean := strings.TrimPrefix(strings.ToLower(s), "0x")
 	if len(clean) != 64 {
-		return out, errors.New("uniswapv4: poolId must be 32 bytes (64 hex chars)")
+		return out, fmt.Errorf("%w: uniswapv4: poolId must be 32 bytes (64 hex chars)", errorSentinel.ErrFetcherInvalidDexFetcherDefinition)
 	}
 	raw, err := hex.DecodeString(clean)
 	if err != nil {
-		return out, err
+		return out, fmt.Errorf("%w: uniswapv4: %w", errorSentinel.ErrFetcherInvalidDexFetcherDefinition, err)
 	}
 	copy(out[:], raw)
 	return out, nil

@@ -67,18 +67,32 @@ func (f *GeminiFetcher) handleMessage(ctx context.Context, message map[string]an
 }
 
 func (f *GeminiFetcher) Run(ctx context.Context) {
-	go f.CacheVolumes()
+	go f.CacheVolumes(ctx)
 	f.Ws.Run(ctx, f.handleMessage)
 }
 
-func (f *GeminiFetcher) CacheVolumes() {
-	volumeTimer := time.NewTimer(common.VolumeFetchInterval * time.Millisecond)
+// volumeFetcher is overridable in tests.
+var volumeFetcher = fetchVolumes
 
-	fetchVolumes(f.FeedMap, &f.VolumeCacheMap)
+func (f *GeminiFetcher) CacheVolumes(ctx context.Context) {
+	volumeTimer := time.NewTimer(common.VolumeFetchInterval * time.Millisecond)
+	defer volumeTimer.Stop()
+
+	if ctx.Err() != nil {
+		return
+	}
+	volumeFetcher(ctx, f.FeedMap, &f.VolumeCacheMap)
 
 	for {
-		<-volumeTimer.C
-		fetchVolumes(f.FeedMap, &f.VolumeCacheMap)
-		volumeTimer.Reset(common.VolumeFetchInterval * time.Millisecond)
+		select {
+		case <-ctx.Done():
+			return
+		case <-volumeTimer.C:
+			if ctx.Err() != nil {
+				return
+			}
+			volumeFetcher(ctx, f.FeedMap, &f.VolumeCacheMap)
+			volumeTimer.Reset(common.VolumeFetchInterval * time.Millisecond)
+		}
 	}
 }

@@ -23,14 +23,14 @@ func TestNewAggregator(t *testing.T) {
 		}
 	}()
 
-	_, err = NewAggregator(testItems.app.Host, testItems.app.Pubsub, testItems.topicString, testItems.tmpData.config, testItems.signer, testItems.latestLocalAggMap)
+	_, err = NewAggregator(testItems.app.Host, testItems.app.Pubsub, testItems.topicString, testItems.tmpData.config, testItems.signer, testItems.latestLocalAggMap, nil)
 	if err != nil {
 		t.Fatal("error creating new node")
 	}
 }
 
 func TestNewAggregator_Error(t *testing.T) {
-	_, err := NewAggregator(nil, nil, "", Config{}, nil, nil)
+	_, err := NewAggregator(nil, nil, "", Config{}, nil, nil, nil)
 	assert.NotNil(t, err, "Expected error when creating new aggregator with nil parameters")
 }
 
@@ -46,7 +46,7 @@ func TestLeaderJob(t *testing.T) {
 		}
 	}()
 
-	node, err := NewAggregator(testItems.app.Host, testItems.app.Pubsub, testItems.topicString, testItems.tmpData.config, testItems.signer, testItems.latestLocalAggMap)
+	node, err := NewAggregator(testItems.app.Host, testItems.app.Pubsub, testItems.topicString, testItems.tmpData.config, testItems.signer, testItems.latestLocalAggMap, nil)
 	if err != nil {
 		t.Fatal("error creating new node")
 	}
@@ -58,34 +58,7 @@ func TestLeaderJob(t *testing.T) {
 	assert.Greater(t, node.RoundID, int32(0), "RoundID should be greater than 0")
 }
 
-func TestGetLatestRoundId(t *testing.T) {
-	ctx := context.Background()
-	cleanup, testItems, err := setup(ctx)
-	if err != nil {
-		t.Fatalf("error setting up test: %v", err)
-	}
-	defer func() {
-		if cleanupErr := cleanup(); cleanupErr != nil {
-			t.Logf("Cleanup failed: %v", cleanupErr)
-		}
-	}()
-
-	node, err := NewAggregator(testItems.app.Host, testItems.app.Pubsub, testItems.topicString, testItems.tmpData.config, testItems.signer, testItems.latestLocalAggMap)
-	if err != nil {
-		t.Fatal("error creating new node")
-	}
-
-	node.Name = "test_pair"
-
-	roundId, err := getLatestRoundId(ctx, node.ID)
-	if err != nil {
-		t.Fatal("error getting latest round id")
-	}
-
-	assert.Equal(t, roundId, testItems.tmpData.globalAggregate.Round)
-}
-
-func TestPublishGlobalAggregateAndProof(t *testing.T) {
+func TestPublishSubmissionData(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cleanup, testItems, err := setup(ctx)
 	if err != nil {
@@ -98,7 +71,7 @@ func TestPublishGlobalAggregateAndProof(t *testing.T) {
 		}
 	}()
 
-	node, err := NewAggregator(testItems.app.Host, testItems.app.Pubsub, testItems.topicString, testItems.tmpData.config, testItems.signer, testItems.latestLocalAggMap)
+	node, err := NewAggregator(testItems.app.Host, testItems.app.Pubsub, testItems.topicString, testItems.tmpData.config, testItems.signer, testItems.latestLocalAggMap, nil)
 	if err != nil {
 		t.Fatal("error creating new node")
 	}
@@ -126,7 +99,9 @@ func TestPublishGlobalAggregateAndProof(t *testing.T) {
 		t.Fatal("error subscribing to stream")
 	}
 
-	err = PublishGlobalAggregateAndProof(ctx, "test_pair", testItems.tmpData.globalAggregate, proof)
+	submissionData, ok := newSubmissionData("test_pair", testItems.tmpData.globalAggregate, proof)
+	assert.True(t, ok)
+	err = publishSubmissionData(ctx, submissionData)
 	if err != nil {
 		t.Fatal("error publishing global aggregate and proof")
 	}

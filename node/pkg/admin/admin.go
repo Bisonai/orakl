@@ -7,11 +7,9 @@ import (
 
 	"bisonai.com/miko/node/pkg/admin/aggregator"
 	"bisonai.com/miko/node/pkg/admin/config"
-	"bisonai.com/miko/node/pkg/admin/feed"
 	"bisonai.com/miko/node/pkg/admin/fetcher"
 	"bisonai.com/miko/node/pkg/admin/host"
-	"bisonai.com/miko/node/pkg/admin/providerUrl"
-	"bisonai.com/miko/node/pkg/admin/proxy"
+	"bisonai.com/miko/node/pkg/admin/metrics"
 
 	"bisonai.com/miko/node/pkg/admin/utils"
 	"bisonai.com/miko/node/pkg/bus"
@@ -30,18 +28,7 @@ func Run(ctx context.Context, bus *bus.MessageBus) error {
 		return err
 	}
 
-	v1 := app.Group("/api/v1")
-	v1.Get("/", func(c *fiber.Ctx) error {
-		return c.SendString("Miko Node Admin API")
-	})
-
-	feed.Routes(v1)
-	proxy.Routes(v1)
-	fetcher.Routes(v1)
-	aggregator.Routes(v1)
-	providerUrl.Routes(v1)
-	config.Routes(v1)
-	host.Routes(v1)
+	registerRoutes(app)
 
 	port := os.Getenv("APP_PORT")
 	if port == "" {
@@ -55,6 +42,19 @@ func Run(ctx context.Context, bus *bus.MessageBus) error {
 	}
 
 	return nil
+}
+
+func registerRoutes(app *fiber.App) {
+	v1 := app.Group("/api/v1")
+	v1.Get("/", func(c *fiber.Ctx) error {
+		return c.SendString("Miko Node Admin API")
+	})
+
+	fetcher.Routes(v1)
+	aggregator.Routes(v1)
+	config.Routes(v1)
+	host.Routes(v1)
+	metrics.Routes(v1)
 }
 
 func SyncMikoConfig(ctx context.Context) error {

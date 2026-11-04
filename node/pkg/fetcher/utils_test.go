@@ -5,12 +5,10 @@ import (
 	"context"
 	"encoding/json"
 	"testing"
-	"time"
 
 	"net/http"
 	"net/http/httptest"
 
-	"bisonai.com/miko/node/pkg/db"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -103,41 +101,4 @@ func TestFetchSingle(t *testing.T) {
 		t.Fatalf("error fetching single: %v", err)
 	}
 	assert.Greater(t, result, float64(0))
-}
-
-func TestCopyFeedData(t *testing.T) {
-	ctx := context.Background()
-	clean, testItems, err := setup(ctx)
-	if err != nil {
-		t.Fatalf("error setting up test: %v", err)
-	}
-	defer func() {
-		if cleanupErr := clean(); cleanupErr != nil {
-			t.Logf("Cleanup failed: %v", cleanupErr)
-		}
-	}()
-
-	feeds := testItems.insertedFeeds
-	feedData := []*FeedData{}
-
-	for i, feed := range feeds {
-		now := time.Now().Round(time.Second)
-		feedData = append(feedData, &FeedData{
-			FeedID:    int32(*feed.ID),
-			Value:     float64(i) + 5,
-			Timestamp: &now,
-		})
-	}
-
-	err = copyFeedData(ctx, feedData)
-	if err != nil {
-		t.Fatalf("error copying feed data: %v", err)
-	}
-
-	defer db.QueryWithoutResult(ctx, "DELETE FROM feed_data", nil)
-	result, err := db.QueryRows[FeedData](ctx, "SELECT * FROM feed_data", nil)
-	if err != nil {
-		t.Fatalf("error getting feed data: %v", err)
-	}
-	assert.Contains(t, result, *feedData[0])
 }

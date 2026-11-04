@@ -3,10 +3,18 @@ package fetcher
 
 import (
 	"context"
+	"errors"
+	"strings"
 	"testing"
 	"time"
 
-	"bisonai.com/miko/node/pkg/db"
+	"bisonai.com/miko/node/pkg/bus"
+	errorSentinel "bisonai.com/miko/node/pkg/error"
+	"bisonai.com/miko/node/pkg/metrics"
+	metricnames "bisonai.com/miko/node/pkg/metrics/names"
+	"bisonai.com/miko/node/pkg/websocketfetcher"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -67,7 +75,6 @@ func TestAppRun(t *testing.T) {
 	for _, localAggregator := range app.LocalAggregators {
 		assert.True(t, localAggregator.isRunning)
 	}
-	assert.True(t, app.FeedDataBulkWriter.isRunning)
 
 	time.Sleep(WAIT_SECONDS)
 
@@ -81,7 +88,6 @@ func TestAppRun(t *testing.T) {
 	for _, localAggregator := range app.LocalAggregators {
 		assert.False(t, localAggregator.isRunning)
 	}
-	assert.False(t, app.FeedDataBulkWriter.isRunning)
 
 	for _, fetcher := range app.Fetchers {
 		for _, feed := range fetcher.Feeds {
@@ -95,21 +101,212 @@ func TestAppRun(t *testing.T) {
 		data := <-testItems.aggChan
 		assert.NotNil(t, data)
 	}
+}
 
-	err = app.FeedDataBulkWriter.Job(ctx)
-	if err != nil {
-		t.Fatalf("error running FeedDataBulkWriter job: %v", err)
+func TestHandleMessageRejectsOverlappingLifecycleCommand(t *testing.T) {
+	app := &App{}
+	// simulate a start/stop/refresh already in flight
+	app.lifecycleMu.Lock()
+	defer app.lifecycleMu.Unlock()
+
+	for _, command := range []string{bus.STOP_FETCHER_APP, bus.START_FETCHER_APP, bus.REFRESH_FETCHER_APP} {
+		msg := bus.Message{
+			From:     bus.ADMIN,
+			To:       bus.FETCHER,
+			Content:  bus.MessageContent{Command: command},
+			Response: make(chan bus.MessageResponse, 1),
+		}
+		app.handleMessage(context.Background(), msg)
+
+		select {
+		case resp := <-msg.Response:
+			assert.False(t, resp.Success, command)
+			assert.Equal(t, errorSentinel.ErrFetcherLifecycleInProgress.Error(), resp.Args["error"], command)
+		default:
+			t.Fatalf("%s: no response while lifecycle in progress", command)
+		}
+	}
+}
+
+// reply is delivered on the caller's (unbuffered) channel only after
+// lifecycleMu is released
+func TestHandleMessageRepliesAfterUnlock(t *testing.T) {
+	app := New(nil)
+
+	msg := bus.Message{
+		From:     bus.ADMIN,
+		To:       bus.FETCHER,
+		Content:  bus.MessageContent{Command: bus.STOP_FETCHER_APP},
+		Response: make(chan bus.MessageResponse),
+	}
+	go app.handleMessage(context.Background(), msg)
+
+	select {
+	case resp := <-msg.Response:
+		assert.True(t, resp.Success)
+	case <-time.After(time.Second):
+		t.Fatal("no response")
+	}
+	assert.True(t, app.lifecycleMu.TryLock(), "lifecycleMu still held after reply")
+	app.lifecycleMu.Unlock()
+}
+
+// single-config set with long intervals
+func newTestFetcherState(app *App) *fetcherState {
+	config := Config{ID: 1, Name: "TEST-USDT", FetchInterval: 3600000}
+	return &fetcherState{
+		fetchers:         map[int32]*Fetcher{1: NewFetcher(config, nil, app.LatestFeedDataMap)},
+		localAggregators: map[int32]*LocalAggregator{1: NewLocalAggregator(config, nil, nil, app.LatestFeedDataMap, app.LocalAggregateValueMap)},
+		websocketFetcher: websocketfetcher.New(),
+	}
+}
+
+// a refresh whose rebuild fails mid-way must leave the previous set assigned
+// and running, not stopped with partial maps
+func TestRefreshKeepsPreviousSetOnInitializeFailure(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	app := New(nil)
+	app.applyState(newTestFetcherState(app))
+	if err := app.startAll(ctx); err != nil {
+		t.Fatalf("error starting fetchers: %v", err)
+	}
+	defer app.stopAll(ctx)
+
+	fetchers, localAggregators := app.Fetchers, app.LocalAggregators
+	websocketFetcher := app.WebsocketFetcher
+
+	injected := errors.New("injected build failure")
+	orig := buildFetcherState
+	buildFetcherState = func(*App, context.Context) (*fetcherState, error) { return nil, injected }
+	defer func() { buildFetcherState = orig }()
+
+	msg := bus.Message{
+		From:     bus.ADMIN,
+		To:       bus.FETCHER,
+		Content:  bus.MessageContent{Command: bus.REFRESH_FETCHER_APP},
+		Response: make(chan bus.MessageResponse, 1),
+	}
+	app.handleMessage(ctx, msg)
+
+	select {
+	case resp := <-msg.Response:
+		assert.False(t, resp.Success)
+		assert.Equal(t, injected.Error(), resp.Args["error"])
+	default:
+		t.Fatal("no response")
 	}
 
-	feedResult, err := db.QueryRows[FeedData](ctx, "SELECT * FROM feed_data", nil)
-	if err != nil {
-		t.Fatalf("error querying feed data: %v", err)
-	}
-	assert.Greater(t, len(feedResult), 0)
+	assert.Len(t, app.Fetchers, len(fetchers))
+	assert.Same(t, fetchers[1], app.Fetchers[1])
+	assert.Len(t, app.LocalAggregators, len(localAggregators))
+	assert.Same(t, localAggregators[1], app.LocalAggregators[1])
+	assert.Same(t, websocketFetcher, app.WebsocketFetcher)
 
-	localAggregateResult, err := db.QueryRows[LocalAggregate](ctx, "SELECT * FROM local_aggregates", nil)
-	if err != nil {
-		t.Fatalf("error querying local aggregates: %v", err)
+	assert.True(t, app.Fetchers[1].isRunning)
+	assert.True(t, app.LocalAggregators[1].isRunning)
+}
+
+// a successful refresh stops the previous set and swaps in the new one
+func TestRefreshSwapsInNewSet(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	app := New(nil)
+	old := newTestFetcherState(app)
+	app.applyState(old)
+	if err := app.startAll(ctx); err != nil {
+		t.Fatalf("error starting fetchers: %v", err)
 	}
-	assert.Greater(t, len(localAggregateResult), 0)
+
+	next := newTestFetcherState(app)
+	orig := buildFetcherState
+	buildFetcherState = func(*App, context.Context) (*fetcherState, error) { return next, nil }
+	defer func() { buildFetcherState = orig }()
+
+	msg := bus.Message{
+		From:     bus.ADMIN,
+		To:       bus.FETCHER,
+		Content:  bus.MessageContent{Command: bus.REFRESH_FETCHER_APP},
+		Response: make(chan bus.MessageResponse, 1),
+	}
+	app.handleMessage(ctx, msg)
+	defer app.stopAll(ctx)
+
+	select {
+	case resp := <-msg.Response:
+		assert.True(t, resp.Success)
+	default:
+		t.Fatal("no response")
+	}
+
+	assert.Same(t, next.fetchers[1], app.Fetchers[1])
+	assert.Same(t, next.localAggregators[1], app.LocalAggregators[1])
+	assert.Same(t, next.websocketFetcher, app.WebsocketFetcher)
+
+	assert.False(t, old.fetchers[1].isRunning)
+	assert.False(t, old.localAggregators[1].isRunning)
+
+	assert.True(t, app.Fetchers[1].isRunning)
+	assert.True(t, app.LocalAggregators[1].isRunning)
+}
+
+func TestLoadProxies(t *testing.T) {
+	t.Setenv(EnvProxies, "")
+	proxies, err := loadProxies()
+	assert.NoError(t, err)
+	assert.Empty(t, proxies)
+
+	t.Setenv(EnvProxies, " http://172.0.200.20:4000/ , kr=http://3.39.22.82:80,")
+	proxies, err = loadProxies()
+	assert.NoError(t, err)
+	if assert.Len(t, proxies, 2) {
+		assert.Equal(t, "http://172.0.200.20:4000", proxies[0].GetProxyUrl())
+		assert.Nil(t, proxies[0].Location)
+		assert.Equal(t, "http://3.39.22.82:80", proxies[1].GetProxyUrl())
+		if assert.NotNil(t, proxies[1].Location) {
+			assert.Equal(t, "kr", *proxies[1].Location)
+		}
+	}
+
+	t.Setenv(EnvProxies, "http://[2001:db8::1]:4000")
+	proxies, err = loadProxies()
+	assert.NoError(t, err)
+	if assert.Len(t, proxies, 1) {
+		assert.Equal(t, "http://[2001:db8::1]:4000", proxies[0].GetProxyUrl())
+	}
+
+	for _, bad := range []string{"172.0.200.20:4000", "http://host", "http://host:0", "http://host:4000/path", "http://user:pw@host:4000", "kr=", "=http://host:4000"} {
+		t.Setenv(EnvProxies, bad)
+		_, err = loadProxies()
+		assert.Error(t, err, bad)
+	}
+}
+
+// applyState exports the applied set's feeds; a refresh without a feed drops it
+func TestApplyStateSetsFeedMetrics(t *testing.T) {
+	app := New(nil)
+	defer metrics.SetFeeds(nil, nil)
+
+	now := time.Now()
+	config := Config{ID: 1, Name: "METRICS-USDT", FetchInterval: 3600000}
+	feeds := []Feed{{ID: 1, Name: "Binance-METRICS-USDT", ConfigID: 1}}
+	_ = app.LatestFeedDataMap.SetLatestFeedData([]*FeedData{{FeedID: 1, Value: 2.5, Timestamp: &now}})
+
+	state := newTestFetcherState(app)
+	state.localAggregators[1] = NewLocalAggregator(config, feeds, nil, app.LatestFeedDataMap, app.LocalAggregateValueMap)
+	app.applyState(state)
+
+	expected := `
+# HELP orakl_node_feed_value Latest raw value per feed
+# TYPE orakl_node_feed_value gauge
+orakl_node_feed_value{config="METRICS-USDT",feed="Binance-METRICS-USDT"} 2.5
+`
+	assert.NoError(t, testutil.GatherAndCompare(prometheus.DefaultGatherer, strings.NewReader(expected), metricnames.FeedValue))
+
+	app.applyState(newTestFetcherState(app))
+	count, err := testutil.GatherAndCount(prometheus.DefaultGatherer, metricnames.FeedValue)
+	assert.NoError(t, err)
+	assert.Equal(t, 0, count)
 }

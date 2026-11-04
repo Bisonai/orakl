@@ -17,23 +17,13 @@ RUN apt-get update && apt-get install -y curl jq && rm -rf /var/lib/apt/lists/*
 
 RUN sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b /usr/bin
 
-RUN curl -L https://github.com/golang-migrate/migrate/releases/download/v4.17.0/migrate.linux-amd64.tar.gz | tar xvz && \
-    mv ./migrate /usr/bin
-
 WORKDIR /app
-
-RUN mkdir /app/migrations
 
 COPY --from=builder /app/node/taskfile.yml /app/taskfile.yml
 
 COPY --from=builder /app/node/taskfiles /app/taskfiles
 
-COPY --from=builder /app/node/migrations/dal /app/migrations
-
 COPY --from=builder /app/node/dalbin /usr/bin
 
-COPY dockerfiles/start-go.sh .
-
-RUN chmod +x start-go.sh
-
-CMD ["./start-go.sh", "dalbin"]
+# API keys live in the SQLite file at $DAL_SQLITE_PATH (mount a volume)
+CMD ["dalbin"]

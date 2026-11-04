@@ -31,10 +31,14 @@ func newLocalAggregatorForMultiplyOp(t *testing.T, multiplyBy *string, freshness
 	t.Helper()
 	ch := make(chan *LocalAggregate, 1)
 	mb := bus.New(10)
-	// streamLocalAggregate publishes to the AGGREGATOR channel and
-	// returns ErrBusChannelNotFound otherwise; subscribe a no-op consumer
-	// to keep the publish path happy in tests.
-	mb.Subscribe(bus.AGGREGATOR)
+	// streamLocalAggregate publishes to the AGGREGATOR channel; forward the
+	// published aggregates to ch.
+	msgs := mb.Subscribe(bus.AGGREGATOR)
+	go func() {
+		for msg := range msgs {
+			ch <- msg.Content.Args["value"].(*LocalAggregate)
+		}
+	}()
 	return &LocalAggregator{
 		Config: Config{
 			ID:                   42,
@@ -46,7 +50,6 @@ func newLocalAggregatorForMultiplyOp(t *testing.T, multiplyBy *string, freshness
 			MultiplyByReciprocal: reciprocal,
 		},
 		bus:                    mb,
-		localAggregatesChannel: ch,
 		localAggregateValueMap: NewLocalAggregateValueMap(),
 	}, ch
 }

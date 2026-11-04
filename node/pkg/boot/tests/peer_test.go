@@ -8,7 +8,6 @@ import (
 	adminTests "bisonai.com/miko/node/pkg/admin/tests"
 	"bisonai.com/miko/node/pkg/boot"
 	"bisonai.com/miko/node/pkg/boot/peer"
-	"bisonai.com/miko/node/pkg/db"
 	libp2pSetup "bisonai.com/miko/node/pkg/libp2p/setup"
 	libp2pUtils "bisonai.com/miko/node/pkg/libp2p/utils"
 
@@ -17,7 +16,7 @@ import (
 
 func TestSync(t *testing.T) {
 	ctx := context.Background()
-	cleanup, testItems, err := setup(ctx)
+	cleanup, testItems, err := setup(ctx, t)
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
@@ -64,16 +63,18 @@ func TestSync(t *testing.T) {
 
 	assert.Equal(t, len(syncResult), 2, "expected to have two pre-existing peers")
 
-	//cleanup
-	err = db.QueryWithoutResult(ctx, "DELETE FROM peers;", nil)
+	// re-sync of a known peer is a no-op insert, still returns all peers
+	syncResult, err = adminTests.PostRequest[[]peer.PeerModel](testItems.app, "/api/v1/peer/sync", mockPeer1)
 	if err != nil {
-		t.Fatalf("error cleaning up test: %v", err)
+		t.Fatalf("error re-syncing peer: %v", err)
 	}
+
+	assert.Equal(t, len(syncResult), 3, "expected to have three pre-existing peers")
 }
 
 func TestRefresh(t *testing.T) {
 	ctx := context.Background()
-	cleanup, _, err := setup(ctx)
+	cleanup, testItems, err := setup(ctx, t)
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
@@ -89,14 +90,12 @@ func TestRefresh(t *testing.T) {
 		t.Fatalf("error extracting payload from host: %v", err)
 	}
 
-	res, err := db.QueryRow[peer.PeerModel](ctx, peer.InsertPeer, map[string]any{
-		"url": url,
-	})
+	res, _, err := testItems.store.Insert(ctx, url)
 	if err != nil {
 		t.Fatalf("error inserting peer: %v", err)
 	}
 
-	readResultBefore, err := db.QueryRows[peer.PeerModel](ctx, peer.GetPeer, nil)
+	readResultBefore, err := testItems.store.List(ctx)
 	if err != nil {
 		t.Fatalf("error getting peers before: %v", err)
 	}
@@ -109,12 +108,12 @@ func TestRefresh(t *testing.T) {
 	}
 	defer bootHost.Close()
 
-	err = boot.RefreshJob(ctx, bootHost)
+	err = boot.RefreshJob(ctx, bootHost, testItems.store)
 	if err != nil {
 		t.Fatalf("error refreshing peers: %v", err)
 	}
 
-	readResultAfter, err := db.QueryRows[peer.PeerModel](ctx, peer.GetPeer, nil)
+	readResultAfter, err := testItems.store.List(ctx)
 	if err != nil {
 		t.Fatalf("error getting peers after: %v", err)
 	}
@@ -123,12 +122,12 @@ func TestRefresh(t *testing.T) {
 
 	h.Close()
 
-	err = boot.RefreshJob(ctx, bootHost)
+	err = boot.RefreshJob(ctx, bootHost, testItems.store)
 	if err != nil {
 		t.Fatalf("error refreshing peers: %v", err)
 	}
 
-	readResultFinal, err := db.QueryRows[peer.PeerModel](ctx, peer.GetPeer, nil)
+	readResultFinal, err := testItems.store.List(ctx)
 	if err != nil {
 		t.Fatalf("error getting peers final: %v", err)
 	}

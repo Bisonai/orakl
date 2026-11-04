@@ -2,17 +2,24 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
+	"os/signal"
+	"strconv"
 	"sync"
+	"syscall"
 	"time"
 
 	"bisonai.com/miko/node/pkg/admin"
+	adminMetrics "bisonai.com/miko/node/pkg/admin/metrics"
+	adminUtils "bisonai.com/miko/node/pkg/admin/utils"
 	"bisonai.com/miko/node/pkg/aggregator"
 	"bisonai.com/miko/node/pkg/bus"
 	"bisonai.com/miko/node/pkg/checker/ping"
 	"bisonai.com/miko/node/pkg/fetcher"
 	"bisonai.com/miko/node/pkg/libp2p/helper"
 	libp2pSetup "bisonai.com/miko/node/pkg/libp2p/setup"
+	"bisonai.com/miko/node/pkg/nodestate"
 	"bisonai.com/miko/node/pkg/utils/loginit"
 	"bisonai.com/miko/node/pkg/utils/retrier"
 	"github.com/rs/zerolog/log"
@@ -20,7 +27,55 @@ import (
 
 func main() {
 	ctx := context.Background()
+
+	if len(os.Args) > 1 && os.Args[1] == "state" {
+		if err := runState(ctx, os.Args[2:], os.Stdout); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		return
+	}
+
+	if len(os.Args) > 1 && os.Args[1] == "admin" {
+		if err := runAdmin(ctx, os.Args[2:], os.Stdout); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(adminExitCode(err))
+		}
+		return
+	}
+
 	loginit.InitZeroLog()
+
+	// fail before joining the network if ADMIN_AUTH_REQUIRED can't be met;
+	// admin.Run checks again for the other binaries
+	if _, err := adminUtils.AdminToken(); err != nil {
+		log.Error().Err(err).Msg("Failed to resolve admin token")
+		os.Exit(1)
+	}
+
+	// optional metrics-only listener (GET /metrics), separate from the admin API
+	if port := os.Getenv("METRICS_PORT"); port != "" {
+		mp, _ := strconv.Atoi(port)
+		ap, _ := strconv.Atoi(adminPort())
+		if mp != 0 && mp == ap {
+			log.Error().Str("port", port).Msg("METRICS_PORT must differ from APP_PORT")
+			os.Exit(1)
+		}
+		if _, err := adminMetrics.StartServer(port); err != nil {
+			log.Error().Err(err).Msg("Failed to start metrics server")
+			os.Exit(1)
+		}
+	}
+
+	// signer keyring + latest rounds; a missing file (wrong path, unmounted
+	// volume) is fatal so the node never starts on an empty keyring/rounds
+	state, err := nodestate.OpenFromEnv(ctx, true)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to open node state")
+		fmt.Fprintln(os.Stderr, "failed to open node state:", err)
+		os.Exit(1)
+	}
+	defer state.Close()
 
 	mb := bus.New(1000)
 	var wg sync.WaitGroup
@@ -84,10 +139,12 @@ func main() {
 	}()
 	log.Info().Msg("Fetcher started")
 
+	a := aggregator.New(mb, host, ps, state)
+	go flushRoundsOnSignal(a)
+
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		a := aggregator.New(mb, host, ps)
 		aggregatorErr := a.Run(ctx)
 		if aggregatorErr != nil {
 			log.Error().Err(aggregatorErr).Msg("Failed to start aggregator")
@@ -109,4 +166,23 @@ func main() {
 	log.Info().Msg("libp2p helper started")
 
 	wg.Wait()
+}
+
+// flushRoundsOnSignal persists pending rounds and exits on SIGTERM/SIGINT, so
+// the next start continues after the last used round.
+func flushRoundsOnSignal(a *aggregator.App) {
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGINT)
+	sig := <-sigCh
+	log.Info().Str("signal", sig.String()).Msg("shutting down, persisting rounds")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := a.FlushRounds(ctx); err != nil {
+		log.Error().Err(err).Msg("failed to persist rounds on shutdown")
+	}
+	// no state.Close: other goroutines may still write; SQLite (WAL) is
+	// consistent on exit, and a round advanced after the flush is covered by
+	// the stored+2 restart gap
+	os.Exit(0)
 }

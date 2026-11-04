@@ -3,7 +3,7 @@ import argparse
 import os
 from datetime import datetime
 
-file_path = "./addresses/datafeeds-addresses.json"
+file_path = "./addresses/feeds.json"
 
 def prepareForSubmissionProxy(data, network):
     entries = []
@@ -45,7 +45,7 @@ def main():
         data = json.load(f)
 
     parser = argparse.ArgumentParser(description="parse args")
-    parser.add_argument('--network', type=str, default="baobab")
+    parser.add_argument('--network', type=str, default="kairos")
     parser.add_argument('--contract', type=str, default="SubmissionProxy")
 
     args = parser.parse_args()

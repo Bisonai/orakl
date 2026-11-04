@@ -6,9 +6,6 @@ on:
       network:
         required: true
         type: string
-      build:
-        default: true
-        type: boolean
       project-name:
         required: true
         type: string
@@ -44,7 +41,7 @@ jobs:
         id: generate-token
         uses: actions/create-github-app-token@v3
         with:
-          app-id: ${{ secrets.GH_ORAKL_BOT_APP_ID }}
+          client-id: Iv1.c13a65499d8e95e6
           private-key: ${{ secrets.GH_ORAKL_BOT_PRIVATE_KEY }}
           owner: bisonai
           repositories: orakl-helm-charts
@@ -60,28 +57,19 @@ jobs:
       - name: Verify and Checkout Branch
         run: |
           cd ./gitops_tmp/
-          git fetch origin idc-fly
-          git checkout idc-fly
-          git reset --hard origin/idc-fly
+          git fetch origin main
+          git checkout main
+          git reset --hard origin/main
 
       - name: Update image tag in values.${{ inputs.network }}.yaml files
         run: |
           cd ./gitops_tmp/${{ inputs.project-name }}/
           echo "Updating image tag in values.${{ inputs.network }}.yaml files"
 
-          if [[ "${{ inputs.network }}" == "cypress" && "${{ inputs.build }}" == "true" ]]; then
+          sed -i 's/tag: .*$/tag: "${{ inputs.image-tag }}"/g' values.${{ inputs.network }}.yaml
+          sed -i 's/appVersion: .*$/appVersion: "${{ inputs.image-tag }}"/g' values.${{ inputs.network }}.yaml
 
-            baobab_tag=$(grep -oP 'tag: "\K[^"]+' values.baobab.yaml)
-            sed -i "s/tag: \".*\"/tag: \"$baobab_tag\"/" values.${{ inputs.network }}.yaml
-
-          else
-
-            sed -i 's/tag: .*$/tag: "${{ inputs.image-tag }}"/g' values.${{ inputs.network }}.yaml
-            sed -i 's/appVersion: .*$/appVersion: "${{ inputs.image-tag }}"/g' values.${{ inputs.network }}.yaml
-
-            sed -i 's/^appVersion:.*$/appVersion: v'${{ inputs.version }}'.'${{ inputs.tag_date }}'.'${{ inputs.tag_git_hash }}'/' Chart.yaml
-
-          fi
+          sed -i 's/^appVersion:.*$/appVersion: v'${{ inputs.version }}'.'${{ inputs.tag_date }}'.'${{ inputs.tag_git_hash }}'/' Chart.yaml
         shell: bash
 
       - name: Check for Changes
@@ -102,5 +90,16 @@ jobs:
         run: |
           cd ./gitops_tmp/
           git commit -m 'v${{ inputs.version }}.${{ inputs.tag_date }}.${{ inputs.tag_git_hash }} is updated'
-          git push origin idc-fly
+
+          # concurrent tag builds push to the same branch; rebase and retry on rejection
+          for attempt in 1 2 3 4 5; do
+            if git push origin main; then
+              exit 0
+            fi
+            echo "push rejected (attempt ${attempt}), rebasing onto origin/main"
+            sleep $((attempt * 2 + RANDOM % 3))
+            git pull --rebase origin main
+          done
+          echo "push failed after 5 attempts"
+          exit 1
         shell: bash

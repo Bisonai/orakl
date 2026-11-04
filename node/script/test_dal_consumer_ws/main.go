@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"strconv"
 	"sync"
 	"time"
@@ -23,7 +24,10 @@ type Subscription struct {
 
 func main() {
 	ctx := context.Background()
-	chain := "baobab"
+	chain := os.Getenv("CHAIN")
+	if chain == "" {
+		chain = "kairos"
+	}
 	key := ""
 	configs, err := fetchConfigs()
 	if err != nil {
@@ -58,7 +62,11 @@ func main() {
 
 func fetchConfigs() ([]Config, error) {
 
-	endpoint := "https://config.orakl.network/baobab_configs.json"
+	chainEnv := os.Getenv("CHAIN")
+	if chainEnv == "" {
+		chainEnv = "kairos"
+	}
+	endpoint := fmt.Sprintf("https://config.orakl.network/%s_feeds.json", chainEnv)
 	configs, err := request.Request[[]Config](request.WithEndpoint(endpoint))
 	if err != nil {
 		return nil, err

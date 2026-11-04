@@ -11,7 +11,7 @@ import (
 )
 
 // its purpose is to check whether api + fetcher works properly
-// it doesn't automatically import adapters so please manually add before running the script
+// configs/feeds are synced from orakl-config ($CHAIN) before the fetcher starts
 
 func main() {
 	ctx := context.Background()
@@ -27,6 +27,11 @@ func main() {
 			return
 		}
 	}()
+
+	if err := admin.SyncMikoConfig(ctx); err != nil {
+		log.Error().Err(err).Msg("Failed to sync orakl config")
+		return
+	}
 
 	wg.Add(1)
 	go func() {

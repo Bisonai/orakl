@@ -89,7 +89,3 @@ Contains off-chain code for off-chain aggregation and related services.
 - Audit: Holds contract audit details.
 - Dockerfiles: Includes Dockerfiles for deployment.
 - Sentinel: Internal alarm service for stable service maintenance.
-
-## Image tags
-
-[image tag release](./TAGS.md)

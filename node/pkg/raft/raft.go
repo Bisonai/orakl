@@ -10,6 +10,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	errorSentinel "bisonai.com/miko/node/pkg/error"
+	"bisonai.com/miko/node/pkg/metrics"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/host"
 )
@@ -272,7 +273,11 @@ func (r *Raft) PublishMessage(ctx context.Context, msg Message) error {
 	if err != nil {
 		return err
 	}
-	return r.Topic.Publish(ctx, data)
+	if err = r.Topic.Publish(ctx, data); err != nil {
+		return err
+	}
+	metrics.RecordP2PPublished(string(msg.Type), len(data))
+	return nil
 }
 
 func (r *Raft) sendHeartbeat(ctx context.Context) error {

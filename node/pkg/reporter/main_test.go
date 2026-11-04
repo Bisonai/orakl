@@ -4,9 +4,11 @@ package reporter
 import (
 	"context"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
+	"net/http"
 	"net/http/httptest"
 
 	"bisonai.com/miko/node/pkg/aggregator"
@@ -16,15 +18,64 @@ import (
 	"bisonai.com/miko/node/pkg/dal/collector"
 	"bisonai.com/miko/node/pkg/dal/hub"
 	"bisonai.com/miko/node/pkg/dal/utils/keycache"
-	"bisonai.com/miko/node/pkg/dal/utils/stats"
-	"bisonai.com/miko/node/pkg/db"
+	"bisonai.com/miko/node/pkg/dal/utils/keystore"
 	"bisonai.com/miko/node/pkg/wss"
 	"github.com/rs/zerolog"
 )
 
+// testConfigsFixture mirrors the shape of a real <chain>_configs.json entry
+// (name, intervals, feeds) but is served locally so the reporter test suite is
+// self-contained. The reporter only reads name/submitInterval; the extra fields
+// document the real shape and are ignored on unmarshal.
+const testConfigsFixture = `[
+	{
+		"id": 1,
+		"name": "test-aggregate",
+		"fetchInterval": 2000,
+		"aggregateInterval": 3000,
+		"submitInterval": 15000,
+		"feeds": [
+			{"name": "test-feed-0", "definition": {"url": "https://example.com/0"}}
+		]
+	},
+	{
+		"id": 2,
+		"name": "test-aggregate-2",
+		"fetchInterval": 2000,
+		"aggregateInterval": 3000,
+		"submitInterval": 15000,
+		"feeds": [
+			{"name": "test-feed-1", "definition": {"url": "https://example.com/1"}}
+		]
+	}
+]`
+
+// dalKeyDir holds the mock DAL's SQLite key file; removed after the tests.
+var dalKeyDir string
+
 func TestMain(m *testing.M) {
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+
+	// Serve the config bundle locally so the reporter tests never hit the live
+	// config.orakl.network CDN (whose test_configs.json was removed in
+	// orakl-config #208 -> 404). The handler is path-agnostic, so it keeps
+	// working across the _configs.json -> _feeds.json rename (#2587).
+	configServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(testConfigsFixture))
+	}))
+	configBaseURL = configServer.URL
+
+	var err error
+	dalKeyDir, err = os.MkdirTemp("", "dal-keys-")
+	if err != nil {
+		panic(err)
+	}
+
 	code := m.Run()
+
+	configServer.Close()
+	_ = os.RemoveAll(dalKeyDir)
 	os.Exit(code)
 }
 
@@ -64,12 +115,11 @@ func generateSampleSubmissionData(configId int32, value int64, timestamp time.Ti
 
 func mockDalWsServer(ctx context.Context) (*wss.WebsocketHelper, *types.Config, []string, error) {
 	apiKey := "testApiKey"
-	err := db.QueryWithoutResult(
-		ctx,
-		"INSERT INTO keys (key) VALUES (@newkey);",
-		map[string]any{"newkey": apiKey},
-	)
+	keyStore, err := keystore.Open(ctx, filepath.Join(dalKeyDir, "dal.db"))
 	if err != nil {
+		return nil, nil, nil, err
+	}
+	if err = keyStore.Upsert(ctx, apiKey, "test"); err != nil {
 		return nil, nil, nil, err
 	}
 
@@ -79,7 +129,7 @@ func mockDalWsServer(ctx context.Context) (*wss.WebsocketHelper, *types.Config, 
 	}
 
 	keyCache := keycache.NewAPIKeyCache(1 * time.Hour)
-	keyCache.CleanupLoop(10 * time.Minute)
+	keyCache.CleanupLoop(ctx, 10 * time.Minute)
 
 	collector, err := collector.NewCollector(ctx, []types.Config{tmpConfig})
 	if err != nil {
@@ -90,10 +140,7 @@ func mockDalWsServer(ctx context.Context) (*wss.WebsocketHelper, *types.Config, 
 	h := hub.HubSetup(ctx, []types.Config{tmpConfig})
 	go h.Start(ctx, collector)
 
-	statsApp := stats.NewStatsApp(ctx, stats.WithBulkLogsCopyInterval(1*time.Second))
-	go statsApp.Run(ctx)
-
-	server := apiv2.NewServer(collector, keyCache, h, statsApp)
+	server := apiv2.NewServer(collector, keyCache, keyStore, h)
 
 	mockDal := httptest.NewServer(server)
 

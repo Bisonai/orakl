@@ -3,6 +3,7 @@ package uniswap
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"math"
 	"math/big"
 	"time"
@@ -54,7 +55,10 @@ func (f *UniswapFetcher) Run(ctx context.Context) {
 
 func (f *UniswapFetcher) run(ctx context.Context, feed common.Feed) {
 	// 1. get initial data once through contract call
-	price, err := f.getInitialPrice(ctx, feed)
+	price, err := common.FetchInitialPrice(ctx, common.DefaultInitialPriceBackoff, "Uniswap", feed.ID, feed.Name, f.getInitialPriceFor(feed))
+	if err != nil && ctx.Err() != nil {
+		return // ctx cancelled (stop/refresh), not a fetch failure
+	}
 	if err != nil {
 		log.Error().Str("Player", "Uniswap").Err(err).Msg("error in uniswap.run, failed to get initial price")
 		return
@@ -109,7 +113,7 @@ func (f *UniswapFetcher) getInitialPrice(ctx context.Context, feed common.Feed) 
 	err := json.Unmarshal(feed.Definition, &definition)
 	if err != nil {
 		log.Error().Str("Player", "Uniswap").Err(err).Msg("error in uniswap.getInitialPrice, failed to unmarshal definition")
-		return nil, err
+		return nil, fmt.Errorf("%w: %w", errorSentinel.ErrFetcherInvalidDexFetcherDefinition, err)
 	}
 	return f.getPriceThroughSlotCall(ctx, definition)
 }

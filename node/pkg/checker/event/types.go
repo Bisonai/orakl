@@ -2,6 +2,7 @@ package event
 
 import (
 	"fmt"
+
 )
 
 const (
@@ -78,13 +79,13 @@ func loadUnfullfilledVRFEventQuery(schemaName string, eventName string) string {
 }
 
 func loadMikoConfigUrl(chain string) string {
-	return fmt.Sprintf("https://config.orakl.network/%s_configs.json", chain)
+	return fmt.Sprintf("https://config.orakl.network/%s_feeds.json", chain)
 }
 
 func loadPegPorConfigUrl(chain string) string {
 	return fmt.Sprintf("https://config.orakl.network/aggregator/%s/peg.por.json", chain)
 }
 
-func loadAggregatorInfoUrl(chain string) string {
-	return fmt.Sprintf("https://config.orakl.network/%s_aggregators.json", chain)
+func loadPorInfoUrl(chain string) string {
+	return fmt.Sprintf("https://config.orakl.network/%s_mag7.json", chain)
 }

@@ -13,7 +13,6 @@ import (
 	errorSentinel "bisonai.com/miko/node/pkg/error"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/rs/zerolog/log"
 )
@@ -28,13 +27,7 @@ func Setup(ctx context.Context, setupInfo SetupInfo) (*fiber.App, error) {
 		setupInfo.Version = "test"
 	}
 
-	_, err := db.GetPool(ctx)
-	if err != nil {
-		log.Error().Err(err).Msg("error getting db pool")
-		return nil, errorSentinel.ErrAdminDbPoolNotFound
-	}
-
-	_, err = db.GetRedisClient(ctx)
+	_, err := db.GetRedisClient(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("error getting redis conn")
 		return nil, errorSentinel.ErrAdminRedisConnNotFound
@@ -53,7 +46,20 @@ func Setup(ctx context.Context, setupInfo SetupInfo) (*fiber.App, error) {
 		},
 	))
 
-	app.Use(cors.New())
+	// No CORS middleware: no browser UI uses the admin API (#2725).
+	app.Use(RejectCrossOrigin())
+
+	// After RejectCrossOrigin so browser writes are refused before auth (#2725).
+	adminToken, err := AdminToken()
+	if err != nil {
+		return nil, err
+	}
+	if adminToken != "" {
+		log.Info().Msg("admin API: bearer token required for state-changing requests")
+		app.Use(AdminAuth(adminToken))
+	} else {
+		log.Warn().Msg("admin API: " + AdminTokenEnv + " not set, state-changing requests are unauthenticated")
+	}
 
 	app.Use(func(c *fiber.Ctx) error {
 		c.Locals("bus", setupInfo.Bus)

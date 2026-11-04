@@ -5,6 +5,7 @@ import (
 
 	"bisonai.com/miko/node/pkg/common/keys"
 	"bisonai.com/miko/node/pkg/db"
+	"bisonai.com/miko/node/pkg/metrics"
 )
 
 func FilterNegative(values []int64) []int64 {
@@ -18,32 +19,31 @@ func FilterNegative(values []int64) []int64 {
 	return result
 }
 
-func PublishGlobalAggregateAndProof(ctx context.Context, name string, globalAggregate GlobalAggregate, proof Proof) error {
+// newSubmissionData builds the payload for the redis submissionDataStream; ok
+// is false for empty aggregates, which are not published.
+func newSubmissionData(name string, globalAggregate GlobalAggregate, proof Proof) (SubmissionData, bool) {
 	if globalAggregate.Value == 0 || globalAggregate.Timestamp.IsZero() {
-		return nil
+		return SubmissionData{}, false
 	}
-	data := SubmissionData{
+	return SubmissionData{
 		Symbol:          name,
 		GlobalAggregate: globalAggregate,
 		Proof:           proof,
+	}, true
+}
+
+// publishSubmissionData publishes to redis submissionDataStream:<symbol> for
+// external consumers (DAL).
+func publishSubmissionData(ctx context.Context, data SubmissionData) error {
+	return db.Publish(ctx, keys.SubmissionDataStreamKey(data.Symbol), data)
+}
+
+// syncGlobalAggregateMetrics keeps global aggregate gauges in line with the
+// loaded configs (drops removed ones).
+func syncGlobalAggregateMetrics(configs []Config) {
+	names := make([]string, 0, len(configs))
+	for _, config := range configs {
+		names = append(names, config.Name)
 	}
-	return db.Publish(ctx, keys.SubmissionDataStreamKey(name), data)
-}
-
-func getLatestRoundId(ctx context.Context, configId int32) (int32, error) {
-	result, err := db.QueryRow[GlobalAggregate](ctx, SelectLatestGlobalAggregateQuery, map[string]any{"config_id": configId})
-	if err != nil {
-		return 0, err
-	}
-	return result.Round, nil
-}
-
-// used for testing
-func getProofFromPgs(ctx context.Context, configId int32, round int32) (Proof, error) {
-	return db.QueryRow[Proof](ctx, "SELECT config_id, round, proof FROM proofs WHERE config_id = @config_id AND round = @round", map[string]any{"config_id": configId, "round": round})
-}
-
-// used for testing
-func getLatestGlobalAggregateFromPgs(ctx context.Context, configId int32) (GlobalAggregate, error) {
-	return db.QueryRow[GlobalAggregate](ctx, SelectLatestGlobalAggregateQuery, map[string]any{"config_id": configId})
+	metrics.SetGlobalAggregateConfigs(names)
 }
