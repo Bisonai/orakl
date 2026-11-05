@@ -329,17 +329,6 @@
       "feed": "0xe008fdf6d2f5f87bc2fc9887ea8a9e51546a50bc"
     }
   },
-  "BLAST-KRW": {
-    "tag": "basic",
-    "mainnet": {
-      "proxy": "0x8f84017596b4d0b167d18bbb35c09832cf395d49",
-      "feed": "0x9f1d0d3790f752fab830619fc751220fb590080a"
-    },
-    "kairos": {
-      "proxy": "0x64b8f77f85062c3b6bceb33a2456316b3b623fcc",
-      "feed": "0x72270af970a41fbac5bf59c9336e6d60c495491c"
-    }
-  },
   "BLUR-KRW": {
     "tag": "basic",
     "mainnet": {
@@ -968,7 +957,7 @@
     }
   },
   "GRND-USDT": {
-    "tag": "basic",
+    "tag": "single",
     "mainnet": {
       "proxy": "0xe5e267aab2feb900e7f22c712dba87f3acb13239",
       "feed": "0xf3578a8a88fa2cbfd7a3187328cd4f2c6ed9f61a"
@@ -2508,7 +2497,7 @@
     }
   },
   "ZKJ-USDT": {
-    "tag": "standard",
+    "tag": "basic",
     "mainnet": {
       "proxy": "0x40c893995773bfc860ed98b0c452d50cfb193e7a",
       "feed": "0x081e3738f02b52891ed6d5e3429b53054d6f9ad4"
