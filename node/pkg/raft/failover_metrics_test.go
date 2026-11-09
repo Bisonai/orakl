@@ -73,21 +73,16 @@ func TestLeaderSilence(t *testing.T) {
 		return Message{Type: "trigger", SentFrom: sentFrom}
 	}
 
-	t.Run("observed for leader messages of any type, once the clock runs", func(t *testing.T) {
+	t.Run("observed for leader messages of any type", func(t *testing.T) {
 		node := newSilenceTestNode(ctx, t)
 		leader := testPeerID(t)
 
-		start, _ := silenceSamples(t)
+		start, sumBefore := silenceSamples(t)
 		require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, leader, 1)))
 		require.Equal(t, leader, node.GetLeader())
 		count, _ := silenceSamples(t)
 		assert.Equal(t, start, count, "message that makes the leader")
 
-		require.NoError(t, node.handleMessage(ctx, customFrom(leader)))
-		count, _ = silenceSamples(t)
-		assert.Equal(t, start, count, "first message after a leader change")
-
-		_, sumBefore := silenceSamples(t)
 		time.Sleep(gap)
 		require.NoError(t, node.handleMessage(ctx, customFrom(leader)))
 		count, sum := silenceSamples(t)
@@ -144,24 +139,23 @@ func TestLeaderSilence(t *testing.T) {
 		assert.Equal(t, start, count, "leader")
 	})
 
-	t.Run("first messages after a leader change are skipped", func(t *testing.T) {
+	t.Run("first message after a leader change is skipped", func(t *testing.T) {
 		node := newSilenceTestNode(ctx, t)
 		first, second := testPeerID(t), testPeerID(t)
 		require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, first, 1)))
-		require.NoError(t, node.handleMessage(ctx, customFrom(first)))
 
-		start, _ := silenceSamples(t)
-		time.Sleep(gap)
+		start, sumBefore := silenceSamples(t)
+		time.Sleep(10 * gap)
 		require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, second, 2)))
 		require.Equal(t, second, node.GetLeader())
-		require.NoError(t, node.handleMessage(ctx, customFrom(second)))
 		count, _ := silenceSamples(t)
 		assert.Equal(t, start, count)
 
-		time.Sleep(gap)
+		// measured from the new leader's first message, not across the change
 		require.NoError(t, node.handleMessage(ctx, customFrom(second)))
-		count, _ = silenceSamples(t)
+		count, sum := silenceSamples(t)
 		assert.Equal(t, start+1, count)
+		assert.Less(t, sum-sumBefore, (10 * gap).Seconds())
 
 		// the old leader isn't current anymore
 		require.NoError(t, node.handleMessage(ctx, customFrom(first)))
@@ -207,6 +201,26 @@ func TestLeaderSilence(t *testing.T) {
 		wg.Wait()
 		assert.Equal(t, leader, node.GetLeader())
 	})
+}
+
+func TestRecordLeaderSilenceClockNeverMovesBack(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	node := newSilenceTestNode(ctx, t)
+	leader := testPeerID(t)
+	require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, leader, 1)))
+
+	// as if a newer message's handler had already run
+	clock := node.leaderClock.Load()
+	ahead := int64(time.Since(leaderClockEpoch) + time.Hour)
+	clock.lastSeen.Store(ahead)
+
+	start, _ := silenceSamples(t)
+	node.recordLeaderSilence(leader)
+	count, _ := silenceSamples(t)
+	assert.Equal(t, start, count)
+	assert.Equal(t, ahead, clock.lastSeen.Load())
 }
 
 func TestRecordLeaderSilenceDoesNotAllocate(t *testing.T) {

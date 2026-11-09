@@ -87,5 +87,5 @@ type Raft struct {
 // that peer is the leader, so a gap is never measured across a leader change.
 type leaderClock struct {
 	id       string
-	lastSeen atomic.Int64 // ns since leaderClockEpoch, 0 before the first message
+	lastSeen atomic.Int64 // ns since leaderClockEpoch
 }

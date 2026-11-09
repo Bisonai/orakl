@@ -64,6 +64,23 @@ func TestPeerMetricsCountPeersNotConnections(t *testing.T) {
 	check(3, 2, "reconnect")
 }
 
+func TestPeerMetricsConnectionOpenedBeforeRegistering(t *testing.T) {
+	notifiee := newPeerMetricsNotifiee()
+	early := fakeConn{remote: "peer-early"}
+
+	connects := counter(t, metricnames.P2PPeerConnects)
+	disconnects := counter(t, metricnames.P2PPeerDisconnects)
+
+	notifiee.Disconnected(nil, early)
+	assert.Equal(t, disconnects+1, counter(t, metricnames.P2PPeerDisconnects))
+
+	// the peer stays visible to both counters
+	notifiee.Connected(nil, early)
+	assert.Equal(t, connects+1, counter(t, metricnames.P2PPeerConnects))
+	notifiee.Disconnected(nil, early)
+	assert.Equal(t, disconnects+2, counter(t, metricnames.P2PPeerDisconnects))
+}
+
 func TestRegisterPeerMetricsOnHost(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

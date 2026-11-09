@@ -338,28 +338,39 @@ func (r *Raft) ResignLeader() {
 }
 
 // followLeader sets another peer as the current leader, and restarts the silence
-// clock only if it changed. The caller holds Mutex.
+// clock from now only if it changed. The caller holds Mutex.
 func (r *Raft) followLeader(leaderID string) {
 	if r.LeaderID == leaderID {
 		return
 	}
 	r.LeaderID = leaderID
-	r.leaderClock.Store(&leaderClock{id: leaderID})
+	clock := &leaderClock{id: leaderID}
+	clock.lastSeen.Store(int64(time.Since(leaderClockEpoch)))
+	r.leaderClock.Store(clock)
 }
 
 // recordLeaderSilence observes the gap since the previous message from the
-// current leader. The first message on a new clock only starts it. Own messages
-// never match: the clock is nil while this node leads, and otherwise holds
-// another peer. Runs for every received message, so lock-free and no allocation.
+// current leader. The message that makes a leader runs before its clock exists,
+// so it records nothing and no gap spans two leaders. Own messages never match:
+// the clock is nil while this node leads, and otherwise holds another peer. Runs
+// for every received message, so lock-free and no allocation.
 func (r *Raft) recordLeaderSilence(sentFrom string) {
 	clock := r.leaderClock.Load()
 	if clock == nil || clock.id != sentFrom {
 		return
 	}
 	now := int64(time.Since(leaderClockEpoch))
-	// handlers run concurrently, so an older message can land last
-	if prev := clock.lastSeen.Swap(now); prev != 0 && now > prev {
-		metrics.RecordRaftLeaderSilence(time.Duration(now - prev))
+	// handlers run concurrently: an older message landing last must not move
+	// the clock back, or the next gap comes out too long
+	for {
+		prev := clock.lastSeen.Load()
+		if now <= prev {
+			return
+		}
+		if clock.lastSeen.CompareAndSwap(prev, now) {
+			metrics.RecordRaftLeaderSilence(time.Duration(now - prev))
+			return
+		}
 	}
 }
 
@@ -391,6 +402,8 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 				log.Error().Msgf("recovered from panic in leader job: %v", r)
 			}
 		}()
+		defer heartbeatTicker.Stop()
+		defer leaderJobTicker.Stop()
 
 		err := r.sendHeartbeat(ctx)
 		if err != nil {
@@ -402,10 +415,16 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 		}
 
 		for {
+			// select below picks at random, so a tick queued during the last
+			// iteration could otherwise run after a resign
 			select {
 			case <-resign:
-				heartbeatTicker.Stop()
-				leaderJobTicker.Stop()
+				return
+			default:
+			}
+
+			select {
+			case <-resign:
 				return
 
 			case <-heartbeatTicker.C:
@@ -429,8 +448,6 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 
 			case <-ctx.Done():
 				log.Debug().Msg("context cancelled")
-				heartbeatTicker.Stop()
-				leaderJobTicker.Stop()
 				return
 			}
 		}

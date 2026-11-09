@@ -33,11 +33,13 @@ func newPeerMetricsNotifiee() *network.NotifyBundle {
 		DisconnectedF: func(_ network.Network, c network.Conn) {
 			mu.Lock()
 			defer mu.Unlock()
-			conns[c.RemotePeer()]--
-			if conns[c.RemotePeer()] == 0 {
+			// <= 1: a connection opened before registering was never counted
+			if conns[c.RemotePeer()] <= 1 {
 				delete(conns, c.RemotePeer())
 				metrics.RecordP2PPeerDisconnect()
+				return
 			}
+			conns[c.RemotePeer()]--
 		},
 	}
 }

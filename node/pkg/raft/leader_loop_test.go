@@ -95,6 +95,33 @@ func TestLeaderLoopStopsOnResignMidIteration(t *testing.T) {
 	assert.Equal(t, Follower, node.GetRole())
 }
 
+func TestLeaderLoopStartsNoJobAfterResign(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	node, jobs := newLeaderLoopNode(ctx, t)
+
+	// a queued tick loses to the resign only by chance without the priority
+	// check, so one round wouldn't catch it
+	for round := 0; round < 10; round++ {
+		start := jobs.Load()
+		node.Mutex.Lock()
+		node.becomeLeader(ctx)
+		node.Mutex.Unlock()
+		require.Eventually(t, func() bool { return jobs.Load() >= start+2 }, 5*time.Second, testLeaderInterval, "loop not running")
+
+		// parks the loop in its heartbeat branch while the job ticker queues
+		node.Mutex.Lock()
+		time.Sleep(testLoopSettle)
+		before := jobs.Load()
+		node.ResignLeader()
+		node.Mutex.Unlock()
+
+		time.Sleep(testLoopSettle)
+		assert.Equal(t, before, jobs.Load(), "round %d", round)
+	}
+}
+
 func TestLeaderLoopKeepsItsOwnTickersAfterReelection(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
