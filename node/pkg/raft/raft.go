@@ -333,6 +333,10 @@ func (r *Raft) ResignLeader() {
 }
 
 func (r *Raft) setLeaderState() {
+	// a loop from an earlier term that never resigned must not outlive this one
+	if r.Resign != nil {
+		close(r.Resign)
+	}
 	r.Resign = make(chan interface{})
 	r.ElectionTimer.Stop()
 	r.Term++
@@ -344,6 +348,10 @@ func (r *Raft) setLeaderState() {
 
 func (r *Raft) becomeLeader(ctx context.Context) {
 	r.setLeaderState()
+
+	// captured before the goroutine starts: ResignLeader nils r.Resign and a
+	// later term replaces all three, so the loop only uses its own
+	resign, heartbeatTicker, leaderJobTicker := r.Resign, r.HeartbeatTicker, r.LeaderJobTicker
 
 	go func() {
 		defer func() {
@@ -363,20 +371,18 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 
 		for {
 			select {
-			case <-r.Resign:
-				r.Mutex.Lock()
-				r.HeartbeatTicker.Stop()
-				r.LeaderJobTicker.Stop()
-				r.Mutex.Unlock()
+			case <-resign:
+				heartbeatTicker.Stop()
+				leaderJobTicker.Stop()
 				return
 
-			case <-r.HeartbeatTicker.C:
+			case <-heartbeatTicker.C:
 				err := r.sendHeartbeat(ctx)
 				if err != nil {
 					log.Error().Err(err).Msg("failed to send heartbeat")
 				}
 
-			case <-r.LeaderJobTicker.C:
+			case <-leaderJobTicker.C:
 				go func() {
 					defer func() {
 						if r := recover(); r != nil {
@@ -391,10 +397,8 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 
 			case <-ctx.Done():
 				log.Debug().Msg("context cancelled")
-				r.Mutex.Lock()
-				r.HeartbeatTicker.Stop()
-				r.LeaderJobTicker.Stop()
-				r.Mutex.Unlock()
+				heartbeatTicker.Stop()
+				leaderJobTicker.Stop()
 				return
 			}
 		}

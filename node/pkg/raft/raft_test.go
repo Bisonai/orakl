@@ -222,7 +222,9 @@ func TestRaft_LeaderResignAndReelection(t *testing.T) {
 		for _, node := range testItems.RaftNodes {
 			if node.GetRole() == Leader {
 				lastTerm = node.GetCurrentTerm()
+				node.Mutex.Lock()
 				node.ResignLeader()
+				node.Mutex.Unlock()
 				break
 			}
 		}
