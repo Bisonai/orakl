@@ -90,6 +90,8 @@ func main() {
 		log.Error().Err(err).Msg("Failed to make pubsub")
 	}
 
+	libp2pSetup.RegisterPeerMetrics(host)
+
 	err = retrier.Retry(func() error {
 		return libp2pSetup.ConnectThroughBootApi(ctx, host)
 	}, 5, 10*time.Second, 30*time.Second)
