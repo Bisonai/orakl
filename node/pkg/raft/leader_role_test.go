@@ -166,29 +166,48 @@ func TestLeaderLoopStopsAfterTimerFiresOnNewLeader(t *testing.T) {
 
 	assert.Equal(t, Follower, node.GetRole())
 	assertLoopStopped(t, jobs)
+	assert.True(t, node.ElectionTimer.Stop(), "timer not restarted on resign")
 }
 
-func TestSameTermHeartbeatStepsCandidateDown(t *testing.T) {
+func TestHeartbeatStepsCandidateDown(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	node, jobs := newCandidate(ctx, t)
-	term := node.GetCurrentTerm()
-	leader := testPeerID(t)
-	node.ElectionTimer.Stop() // to see the heartbeat restart it
+	for name, ahead := range map[string]int{"same term": 0, "higher term": 1} {
+		t.Run(name, func(t *testing.T) {
+			node, jobs := newCandidate(ctx, t)
+			term := node.GetCurrentTerm() + ahead
+			leader := testPeerID(t)
+			node.ElectionTimer.Stop() // to see the heartbeat restart it
 
-	require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, leader, term)))
+			require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, leader, term)))
 
-	assert.Equal(t, Follower, node.GetRole())
-	assert.Equal(t, leader, node.GetLeader())
-	assert.Equal(t, term, node.GetCurrentTerm())
-	assert.True(t, node.ElectionTimer.Stop(), "timer not restarted")
+			assert.Equal(t, Follower, node.GetRole())
+			assert.Equal(t, leader, node.GetLeader())
+			assert.Equal(t, term, node.GetCurrentTerm())
+			assert.True(t, node.ElectionTimer.Stop(), "timer not restarted")
 
-	require.NoError(t, node.handleMessage(ctx, grantedVoteFor(t, node)))
+			require.NoError(t, node.handleMessage(ctx, grantedVoteFor(t, node)))
 
-	assert.Equal(t, Follower, node.GetRole(), "late vote")
-	assert.Equal(t, leader, node.GetLeader())
-	assert.Equal(t, term, node.GetCurrentTerm())
-	time.Sleep(testLoopSettle)
-	assert.Zero(t, jobs.Load(), "late vote")
+			assert.Equal(t, Follower, node.GetRole(), "late vote")
+			assert.Equal(t, leader, node.GetLeader())
+			assert.Equal(t, term, node.GetCurrentTerm())
+			time.Sleep(testLoopSettle)
+			assert.Zero(t, jobs.Load(), "late vote")
+		})
+	}
+}
+
+// A stale heartbeat keeps its current effect (open question in #2747).
+func TestStaleHeartbeatLeavesCandidate(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	node, _ := newCandidate(ctx, t)
+	node.Term = 5
+
+	require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, testPeerID(t), 4)))
+
+	assert.Equal(t, Candidate, node.GetRole())
+	assert.Equal(t, 5, node.GetCurrentTerm())
 }

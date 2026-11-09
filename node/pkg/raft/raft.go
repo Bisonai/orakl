@@ -146,6 +146,11 @@ func (r *Raft) handleHeartbeat(msg Message) error {
 	currentRole := r.Role
 	currentTerm := r.Term
 
+	// ends a candidacy, or a late granted vote would still make this node leader
+	if r.Role == Candidate && heartbeatMessage.Term >= currentTerm {
+		r.Role = Follower
+	}
+
 	if r.Role == Follower {
 		r.startElectionTimer()
 	}
@@ -168,11 +173,6 @@ func (r *Raft) handleHeartbeat(msg Message) error {
 				return nil
 			}
 		} else {
-			// or a late granted vote would still make this node leader
-			if currentRole == Candidate {
-				r.Role = Follower
-				r.startElectionTimer()
-			}
 			r.followLeader(heartbeatMessage.LeaderID)
 		}
 	}
