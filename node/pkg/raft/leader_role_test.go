@@ -165,8 +165,8 @@ func TestLeaderLoopStopsAfterTimerFiresOnNewLeader(t *testing.T) {
 	require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, testPeerID(t), term+2)))
 
 	assert.Equal(t, Follower, node.GetRole())
-	assertLoopStopped(t, jobs)
 	assert.True(t, node.ElectionTimer.Stop(), "timer not restarted on resign")
+	assertLoopStopped(t, jobs)
 }
 
 func TestHeartbeatStepsCandidateDown(t *testing.T) {

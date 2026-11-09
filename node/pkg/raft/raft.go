@@ -160,7 +160,6 @@ func (r *Raft) handleHeartbeat(msg Message) error {
 			r.ResignLeader()
 		}
 		r.Term = heartbeatMessage.Term
-		r.Role = Follower
 		r.followLeader(heartbeatMessage.LeaderID)
 
 		return nil
