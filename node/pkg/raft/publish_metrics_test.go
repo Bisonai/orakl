@@ -82,7 +82,7 @@ func TestPublishMessageCountsByType(t *testing.T) {
 				_, err := sub.Next(ctx)
 				require.NoError(t, err)
 
-				messages :=counterValue(t, metricnames.P2PPublishedMessages, msgType)
+				messages := counterValue(t, metricnames.P2PPublishedMessages, msgType)
 				size := counterValue(t, metricnames.P2PPublishedBytes, msgType)
 
 				require.NoError(t, node.PublishMessage(ctx, Message{Type: msgType, SentFrom: node.GetHostId(), Data: []byte(`{}`)}))
