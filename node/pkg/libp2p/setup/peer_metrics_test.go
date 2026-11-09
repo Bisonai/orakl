@@ -96,9 +96,16 @@ func TestRegisterPeerMetricsOnHost(t *testing.T) {
 
 	connects := counter(t, metricnames.P2PPeerConnects)
 	disconnects := counter(t, metricnames.P2PPeerDisconnects)
+	// polls here, not in require.Eventually: counter can't fail a test off its goroutine
 	eventually := func(name string, want float64) {
 		t.Helper()
-		require.Eventually(t, func() bool { return counter(t, name) == want }, 5*time.Second, 10*time.Millisecond, name)
+		deadline := time.Now().Add(5 * time.Second)
+		for counter(t, name) != want {
+			if time.Now().After(deadline) {
+				t.Fatalf("%s: got %v, want %v", name, counter(t, name), want)
+			}
+			time.Sleep(10 * time.Millisecond)
+		}
 	}
 
 	info := peer.AddrInfo{ID: other.ID(), Addrs: other.Addrs()}

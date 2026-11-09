@@ -9,8 +9,9 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 )
 
-// RegisterPeerMetrics counts peer connects and disconnects on h. Call it once
-// per host, before dialing, so the first connections count too.
+// RegisterPeerMetrics counts peer connects and disconnects on h, for every peer
+// including the boot API. Call it once per host, right after creating it, as the
+// host accepts connections from then on.
 func RegisterPeerMetrics(h host.Host) {
 	h.Network().Notify(newPeerMetricsNotifiee())
 }
