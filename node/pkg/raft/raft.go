@@ -17,6 +17,9 @@ import (
 
 const HEARTBEAT_TIMEOUT = 100 * time.Millisecond
 
+// leaderClockEpoch gives leaderClock monotonic timestamps that fit in an atomic.
+var leaderClockEpoch = time.Now()
+
 func NewRaftNode(
 	h host.Host,
 	ps *pubsub.PubSub,
@@ -107,6 +110,7 @@ func (r *Raft) subscribe(ctx context.Context) {
 // handler for incoming messages
 
 func (r *Raft) handleMessage(ctx context.Context, msg Message) error {
+	r.recordLeaderSilence(msg.SentFrom)
 	switch msg.Type {
 	case Heartbeat:
 		return r.handleHeartbeat(msg)
@@ -152,19 +156,19 @@ func (r *Raft) handleHeartbeat(msg Message) error {
 		}
 		r.Term = heartbeatMessage.Term
 		r.Role = Follower
-		r.LeaderID = heartbeatMessage.LeaderID
+		r.followLeader(heartbeatMessage.LeaderID)
 
 		return nil
 	} else if heartbeatMessage.Term == currentTerm {
 		if currentRole == Leader {
 			if r.GetHostId() < heartbeatMessage.LeaderID {
 				r.ResignLeader()
-				r.LeaderID = heartbeatMessage.LeaderID
+				r.followLeader(heartbeatMessage.LeaderID)
 			} else {
 				return nil
 			}
 		} else {
-			r.LeaderID = heartbeatMessage.LeaderID
+			r.followLeader(heartbeatMessage.LeaderID)
 		}
 	}
 
@@ -328,7 +332,34 @@ func (r *Raft) ResignLeader() {
 		r.Resign = nil
 		r.Role = Follower
 		r.LeaderID = ""
+		r.leaderClock.Store(nil)
 		r.startElectionTimer()
+	}
+}
+
+// followLeader sets another peer as the current leader, and restarts the silence
+// clock only if it changed. The caller holds Mutex.
+func (r *Raft) followLeader(leaderID string) {
+	if r.LeaderID == leaderID {
+		return
+	}
+	r.LeaderID = leaderID
+	r.leaderClock.Store(&leaderClock{id: leaderID})
+}
+
+// recordLeaderSilence observes the gap since the previous message from the
+// current leader. The first message on a new clock only starts it. Own messages
+// never match: the clock is nil while this node leads, and otherwise holds
+// another peer. Runs for every received message, so lock-free and no allocation.
+func (r *Raft) recordLeaderSilence(sentFrom string) {
+	clock := r.leaderClock.Load()
+	if clock == nil || clock.id != sentFrom {
+		return
+	}
+	now := int64(time.Since(leaderClockEpoch))
+	// handlers run concurrently, so an older message can land last
+	if prev := clock.lastSeen.Swap(now); prev != 0 && now > prev {
+		metrics.RecordRaftLeaderSilence(time.Duration(now - prev))
 	}
 }
 
@@ -342,6 +373,7 @@ func (r *Raft) setLeaderState() {
 	r.Term++
 	r.Role = Leader
 	r.LeaderID = r.GetHostId()
+	r.leaderClock.Store(nil)
 	r.HeartbeatTicker = time.NewTicker(r.HeartbeatTimeout)
 	r.LeaderJobTicker = time.NewTicker(r.LeaderJobTimeout)
 }
@@ -445,6 +477,7 @@ func (r *Raft) startElection(ctx context.Context) {
 	}
 
 	log.Debug().Msg("start election")
+	metrics.RecordRaftElectionStarted(metrics.RaftElectionReasonTimeout)
 	r.Term++
 	r.VotesReceived = 0
 	r.Role = Candidate

@@ -15,9 +15,15 @@ const (
 
 	P2PPublishedMessages = "orakl_node_p2p_published_messages_total"
 	P2PPublishedBytes    = "orakl_node_p2p_published_bytes_total"
+	P2PPeerConnects      = "orakl_node_p2p_peer_connects_total"
+	P2PPeerDisconnects   = "orakl_node_p2p_peer_disconnects_total"
+
+	RaftLeaderSilence    = "orakl_node_raft_leader_silence_seconds"
+	RaftElectionsStarted = "orakl_node_raft_elections_started_total"
 
 	NameLabel   = "name"
 	ConfigLabel = "config"
 	FeedLabel   = "feed"
 	TypeLabel   = "type"
+	ReasonLabel = "reason"
 )
