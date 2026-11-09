@@ -10,6 +10,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/p2p/protocol/identify"
+	"github.com/rs/zerolog/log"
 )
 
 // RegisterPeerMetrics counts peer connects and disconnects on h, by peer type.
@@ -50,7 +51,9 @@ func identifyWait(h host.Host) func(network.Conn) <-chan struct{} {
 	if ids, ok := h.(interface{ IDService() identify.IDService }); ok {
 		return ids.IDService().IdentifyWait
 	}
-	// not a host from NewHost: nothing to wait for, the peer stays unknown
+	// not a host from NewHost: nothing to wait for, so peers usually show up only
+	// at disconnect
+	log.Warn().Msg("host has no identify service, peer connects count late")
 	done := make(chan struct{})
 	close(done)
 	return func(network.Conn) <-chan struct{} { return done }

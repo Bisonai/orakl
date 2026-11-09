@@ -363,8 +363,9 @@ func (r *Raft) followLeader(leaderID string) {
 // matches its clock. old is nil when there was no leader to replace. Two live
 // leaders at one term flip LeaderID on each heartbeat, which isn't a failover, so
 // it's skipped. Same term alone isn't enough, as terms aren't unique across nodes:
-// a real failover also shows silence past one election timer. The caller holds
-// Mutex.
+// a real failover also shows silence past the missed heartbeats and minimum election
+// timers that detecting it takes (see getRandomElectionTimeout, startElection). The
+// caller holds Mutex.
 func (r *Raft) recordLeaderChangeSilence(old *leaderClock) {
 	if old == nil {
 		return
@@ -372,7 +373,7 @@ func (r *Raft) recordLeaderChangeSilence(old *leaderClock) {
 	// load first: lastSeen can't then be ahead of now
 	lastSeen := old.lastSeen.Load()
 	gap := time.Since(leaderClockEpoch) - time.Duration(lastSeen)
-	if old.term == r.Term && gap < r.HeartbeatTimeout*5 {
+	if old.term == r.Term && gap < (MaxMissedHeartbeats+1)*5*r.HeartbeatTimeout {
 		return
 	}
 	metrics.RecordRaftLeaderChangeSilence(gap)
