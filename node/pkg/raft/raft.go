@@ -110,17 +110,18 @@ func (r *Raft) subscribe(ctx context.Context) {
 // handler for incoming messages
 
 func (r *Raft) handleMessage(ctx context.Context, msg Message) error {
+	// heartbeats record in handleHeartbeat, once validated
+	if msg.Type != Heartbeat {
+		r.recordLeaderSilence(msg.SentFrom)
+	}
 	switch msg.Type {
 	case Heartbeat:
 		return r.handleHeartbeat(msg)
 	case RequestVote:
-		r.recordLeaderSilence(msg.SentFrom)
 		return r.handleRequestVote(ctx, msg)
 	case ReplyVote:
-		r.recordLeaderSilence(msg.SentFrom)
 		return r.handleReplyVote(ctx, msg)
 	default:
-		r.recordLeaderSilence(msg.SentFrom)
 		return r.HandleCustomMessage(ctx, msg)
 	}
 }
@@ -349,16 +350,18 @@ func (r *Raft) followLeader(leaderID string) {
 		return
 	}
 	r.LeaderID = leaderID
-	clock := &leaderClock{id: leaderID}
+	clock := &leaderClock{id: leaderID, term: r.Term}
 	clock.lastSeen.Store(int64(time.Since(leaderClockEpoch)))
-	recordLeaderChangeSilence(r.leaderClock.Swap(clock))
+	recordLeaderChangeSilence(r.leaderClock.Swap(clock), r.Term)
 }
 
 // recordLeaderChangeSilence observes how long the outgoing leader had been silent
-// when it was replaced, which recordLeaderSilence can't see: no further message
-// matches its clock. old is nil when there was no leader to replace.
-func recordLeaderChangeSilence(old *leaderClock) {
-	if old == nil {
+// when it was replaced at term, which recordLeaderSilence can't see: no further
+// message matches its clock. old is nil when there was no leader to replace. The
+// same term means two live leaders flipping LeaderID on each heartbeat, not a
+// failover: a new leader's term is always above the one it replaces.
+func recordLeaderChangeSilence(old *leaderClock, term int) {
+	if old == nil || old.term == term {
 		return
 	}
 	// load first: lastSeen can't then be ahead of now
@@ -401,7 +404,7 @@ func (r *Raft) setLeaderState() {
 	r.Term++
 	r.Role = Leader
 	r.LeaderID = r.GetHostId()
-	recordLeaderChangeSilence(r.leaderClock.Swap(nil))
+	recordLeaderChangeSilence(r.leaderClock.Swap(nil), r.Term)
 	r.HeartbeatTicker = time.NewTicker(r.HeartbeatTimeout)
 	r.LeaderJobTicker = time.NewTicker(r.LeaderJobTimeout)
 }

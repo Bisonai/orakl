@@ -288,6 +288,39 @@ func TestLeaderChangeSilence(t *testing.T) {
 		assert.Equal(t, start, count, "same peer again, even at a new term")
 	})
 
+	t.Run("no sample for same-term leaders flipping", func(t *testing.T) {
+		node := newSilenceTestNode(ctx, t)
+		first, second := testPeerID(t), testPeerID(t)
+		require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, first, 1)))
+
+		start, _ := changeSamples(t)
+		require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, second, 1)))
+		require.Equal(t, second, node.GetLeader())
+		require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, first, 1)))
+		require.Equal(t, first, node.GetLeader())
+		count, _ := changeSamples(t)
+		assert.Equal(t, start, count)
+
+		require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, second, 2)))
+		count, _ = changeSamples(t)
+		assert.Equal(t, start+1, count, "a higher term is a real change")
+	})
+
+	t.Run("a voter following the new leader at its own term records", func(t *testing.T) {
+		node := newSilenceTestNode(ctx, t)
+		require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, testPeerID(t), 1)))
+
+		// voting moved the term up before the new leader's first heartbeat
+		node.Mutex.Lock()
+		node.Term = 2
+		node.Mutex.Unlock()
+
+		start, _ := changeSamples(t)
+		require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, testPeerID(t), 2)))
+		count, _ := changeSamples(t)
+		assert.Equal(t, start+1, count)
+	})
+
 	t.Run("no sample when this node stops leading", func(t *testing.T) {
 		node := newSilenceTestNode(ctx, t)
 		node.Mutex.Lock()
