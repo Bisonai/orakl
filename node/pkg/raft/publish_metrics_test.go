@@ -6,14 +6,18 @@ import (
 	"time"
 
 	libp2psetup "bisonai.com/miko/node/pkg/libp2p/setup"
+	"bisonai.com/miko/node/pkg/metrics"
 	metricnames "bisonai.com/miko/node/pkg/metrics/names"
 	"github.com/prometheus/client_golang/prometheus"
+	dto "github.com/prometheus/client_model/go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-// counterValue reads a counter from the registry /metrics is served from.
-func counterValue(t *testing.T, name string, msgType MessageType) float64 {
+// metricSeries reads a series from the registry /metrics is served from, and
+// fails the test if it doesn't exist. An empty labelName takes the first series,
+// for metrics without labels.
+func metricSeries(t *testing.T, name, labelName, labelValue string) *dto.Metric {
 	t.Helper()
 	families, err := prometheus.DefaultGatherer.Gather()
 	require.NoError(t, err)
@@ -22,14 +26,23 @@ func counterValue(t *testing.T, name string, msgType MessageType) float64 {
 			continue
 		}
 		for _, metric := range family.GetMetric() {
+			if labelName == "" {
+				return metric
+			}
 			for _, label := range metric.GetLabel() {
-				if label.GetName() == metricnames.TypeLabel && label.GetValue() == string(msgType) {
-					return metric.GetCounter().GetValue()
+				if label.GetName() == labelName && label.GetValue() == labelValue {
+					return metric
 				}
 			}
 		}
 	}
-	return 0
+	t.Fatalf("%s{%s=%q} not registered", name, labelName, labelValue)
+	return nil
+}
+
+func counterValue(t *testing.T, name string, msgType MessageType) float64 {
+	t.Helper()
+	return metricSeries(t, name, metricnames.TypeLabel, string(msgType)).GetCounter().GetValue()
 }
 
 func newPublishTestNode(ctx context.Context, t *testing.T) *Raft {
@@ -61,6 +74,9 @@ func TestPublishMessageCountsByType(t *testing.T) {
 			defer sub.Cancel()
 
 			for msgType := range typeToInt {
+				// a type's series only exists after its first publish
+				metrics.RecordP2PPublished(string(msgType), 0)
+
 				messages := counterValue(t, metricnames.P2PPublishedMessages, msgType)
 				size := counterValue(t, metricnames.P2PPublishedBytes, msgType)
 
