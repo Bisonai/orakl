@@ -152,6 +152,11 @@ func (r *Raft) handleHeartbeat(msg Message) error {
 	currentRole := r.Role
 	currentTerm := r.Term
 
+	// ends a candidacy, or a late granted vote would still make this node leader
+	if r.Role == Candidate && heartbeatMessage.Term >= currentTerm {
+		r.Role = Follower
+	}
+
 	if r.Role == Follower {
 		r.startElectionTimer()
 	}
@@ -161,7 +166,6 @@ func (r *Raft) handleHeartbeat(msg Message) error {
 			r.ResignLeader()
 		}
 		r.Term = heartbeatMessage.Term
-		r.Role = Follower
 		r.followLeader(heartbeatMessage.LeaderID)
 
 		return nil
@@ -262,8 +266,16 @@ func (r *Raft) PublishMessage(ctx context.Context, msg Message) error {
 	return nil
 }
 
-func (r *Raft) sendHeartbeat(ctx context.Context) error {
+// sendHeartbeat publishes for the leader loop that owns resign, unless that loop
+// has lost its term. The check is under Mutex, where resign gets closed: a loop
+// parked here during a resign would otherwise publish the term just adopted from
+// the new leader.
+func (r *Raft) sendHeartbeat(ctx context.Context, resign <-chan interface{}) error {
 	r.Mutex.Lock()
+	if resigned(resign) {
+		r.Mutex.Unlock()
+		return nil
+	}
 	heartbeatMessage := HeartbeatMessage{
 		LeaderID: r.GetHostId(),
 		Term:     r.Term,
@@ -331,6 +343,15 @@ func (r *Raft) sendRequestVote(ctx context.Context) error {
 }
 
 // utility functions
+
+func resigned(resign <-chan interface{}) bool {
+	select {
+	case <-resign:
+		return true
+	default:
+		return false
+	}
+}
 
 func (r *Raft) ResignLeader() {
 	if r.Resign != nil {
@@ -435,9 +456,12 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 		defer heartbeatTicker.Stop()
 		defer leaderJobTicker.Stop()
 
-		err := r.sendHeartbeat(ctx)
+		err := r.sendHeartbeat(ctx, resign)
 		if err != nil {
 			log.Error().Err(err).Msg("failed to send heartbeat")
+		}
+		if resigned(resign) {
+			return
 		}
 		err = r.LeaderJob(ctx)
 		if err != nil {
@@ -447,10 +471,8 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 		for {
 			// select below picks at random, so a tick queued during the last
 			// iteration could otherwise run after a resign
-			select {
-			case <-resign:
+			if resigned(resign) {
 				return
-			default:
 			}
 
 			select {
@@ -458,7 +480,7 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 				return
 
 			case <-heartbeatTicker.C:
-				err := r.sendHeartbeat(ctx)
+				err := r.sendHeartbeat(ctx, resign)
 				if err != nil {
 					log.Error().Err(err).Msg("failed to send heartbeat")
 				}
@@ -470,6 +492,10 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 							log.Error().Msgf("recovered from panic in LeaderJob: %v", r)
 						}
 					}()
+					// a resign can land after this tick was picked
+					if resigned(resign) {
+						return
+					}
 					err := r.LeaderJob(ctx)
 					if err != nil {
 						log.Error().Err(err).Msg("failed to execute leader job")
@@ -509,6 +535,13 @@ func (r *Raft) startElectionTimer() {
 func (r *Raft) startElection(ctx context.Context) {
 	r.Mutex.Lock()
 	defer r.Mutex.Unlock()
+
+	// the timer can fire just as a winning vote is handled, so this runs on the
+	// new leader. Stays disarmed: ResignLeader, the only way out of the role,
+	// restarts it.
+	if r.Role == Leader {
+		return
+	}
 
 	if r.MissedHeartbeats < MaxMissedHeartbeats {
 		r.MissedHeartbeats++
