@@ -6,7 +6,6 @@ import (
 	"time"
 
 	libp2psetup "bisonai.com/miko/node/pkg/libp2p/setup"
-	"bisonai.com/miko/node/pkg/metrics"
 	metricnames "bisonai.com/miko/node/pkg/metrics/names"
 	"github.com/prometheus/client_golang/prometheus"
 	dto "github.com/prometheus/client_model/go"
@@ -14,29 +13,33 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// metricSeries reads a series from the registry /metrics is served from, and
-// fails the test if it doesn't exist. An empty labelName takes the first series,
-// for metrics without labels.
-func metricSeries(t *testing.T, name, labelName, labelValue string) *dto.Metric {
+// metricFamily reads a family from the registry /metrics is served from, and
+// fails the test if it has no series.
+func metricFamily(t *testing.T, name string) *dto.MetricFamily {
 	t.Helper()
 	families, err := prometheus.DefaultGatherer.Gather()
 	require.NoError(t, err)
 	for _, family := range families {
-		if family.GetName() != name {
-			continue
+		if family.GetName() == name {
+			return family
 		}
-		for _, metric := range family.GetMetric() {
-			if labelName == "" {
+	}
+	t.Fatalf("%s has no series", name)
+	return nil
+}
+
+// metricSeries returns the series with the given label, and fails the test if it
+// doesn't exist.
+func metricSeries(t *testing.T, name, labelName, labelValue string) *dto.Metric {
+	t.Helper()
+	for _, metric := range metricFamily(t, name).GetMetric() {
+		for _, label := range metric.GetLabel() {
+			if label.GetName() == labelName && label.GetValue() == labelValue {
 				return metric
-			}
-			for _, label := range metric.GetLabel() {
-				if label.GetName() == labelName && label.GetValue() == labelValue {
-					return metric
-				}
 			}
 		}
 	}
-	t.Fatalf("%s{%s=%q} not registered", name, labelName, labelValue)
+	t.Fatalf("%s{%s=%q} has no series", name, labelName, labelValue)
 	return nil
 }
 
@@ -75,13 +78,14 @@ func TestPublishMessageCountsByType(t *testing.T) {
 
 			for msgType := range typeToInt {
 				// a type's series only exists after its first publish
-				metrics.RecordP2PPublished(string(msgType), 0)
+				require.NoError(t, node.PublishMessage(ctx, Message{Type: msgType, SentFrom: node.GetHostId(), Data: []byte(`{}`)}))
+				_, err := sub.Next(ctx)
+				require.NoError(t, err)
 
-				messages := counterValue(t, metricnames.P2PPublishedMessages, msgType)
+				messages :=counterValue(t, metricnames.P2PPublishedMessages, msgType)
 				size := counterValue(t, metricnames.P2PPublishedBytes, msgType)
 
-				err := node.PublishMessage(ctx, Message{Type: msgType, SentFrom: node.GetHostId(), Data: []byte(`{}`)})
-				require.NoError(t, err)
+				require.NoError(t, node.PublishMessage(ctx, Message{Type: msgType, SentFrom: node.GetHostId(), Data: []byte(`{}`)}))
 
 				published, err := sub.Next(ctx)
 				require.NoError(t, err)
@@ -100,7 +104,7 @@ func TestPublishMessageFailureNotCounted(t *testing.T) {
 	node := newPublishTestNode(ctx, t)
 	msg := Message{Type: Heartbeat, SentFrom: node.GetHostId(), Data: []byte(`{}`)}
 
-	// a success first, so the series exist and a wrong name can't pass as 0 == 0
+	// a success first, so the series exist
 	require.NoError(t, node.PublishMessage(ctx, msg))
 	messages := counterValue(t, metricnames.P2PPublishedMessages, Heartbeat)
 	size := counterValue(t, metricnames.P2PPublishedBytes, Heartbeat)

@@ -16,7 +16,9 @@ import (
 // is served from.
 func silenceSamples(t *testing.T) (count uint64, sum float64) {
 	t.Helper()
-	histogram := metricSeries(t, metricnames.RaftLeaderSilence, "", "").GetHistogram()
+	series := metricFamily(t, metricnames.RaftLeaderSilence).GetMetric()
+	require.Len(t, series, 1)
+	histogram := series[0].GetHistogram()
 	return histogram.GetSampleCount(), histogram.GetSampleSum()
 }
 
