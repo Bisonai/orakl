@@ -87,5 +87,6 @@ type Raft struct {
 // that peer is the leader, so a gap is never measured across a leader change.
 type leaderClock struct {
 	id       string
+	term     int          // term this peer last became the leader at, under Raft.Mutex
 	lastSeen atomic.Int64 // ns since leaderClockEpoch
 }

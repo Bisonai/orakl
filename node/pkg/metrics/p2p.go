@@ -11,6 +11,17 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
+const (
+	// P2PPeerTypeOracle is a peer that advertises gossipsub, as every node does.
+	P2PPeerTypeOracle = "oracle"
+	// P2PPeerTypeBoot is an identified peer without gossipsub: the boot API host
+	// is the only such host the repo runs.
+	P2PPeerTypeBoot = "boot"
+	// P2PPeerTypeUnknown is a peer that closed without identify ever completing,
+	// counted as a connect and a disconnect at that moment.
+	P2PPeerTypeUnknown = "unknown"
+)
+
 var (
 	p2pPublishedMessages = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: metricnames.P2PPublishedMessages,
@@ -21,24 +32,32 @@ var (
 		Help: "Encoded payload bytes of P2P messages accepted for publishing by this node, by message type",
 	}, []string{metricnames.TypeLabel})
 
-	p2pPeerConnects = promauto.NewCounter(prometheus.CounterOpts{
+	p2pPeerConnects = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: metricnames.P2PPeerConnects,
-		Help: "P2P peers that went from no connection to connected",
-	})
-	p2pPeerDisconnects = promauto.NewCounter(prometheus.CounterOpts{
+		Help: "P2P peers that went from no connection to connected, by peer type",
+	}, []string{metricnames.PeerTypeLabel})
+	p2pPeerDisconnects = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: metricnames.P2PPeerDisconnects,
-		Help: "P2P peers whose last connection closed",
-	})
+		Help: "P2P peers whose last connection closed, by peer type",
+	}, []string{metricnames.PeerTypeLabel})
 )
 
+func init() {
+	// exported at 0, so the first event shows up in rate() and increase()
+	for _, peerType := range []string{P2PPeerTypeOracle, P2PPeerTypeBoot, P2PPeerTypeUnknown} {
+		p2pPeerConnects.WithLabelValues(peerType)
+		p2pPeerDisconnects.WithLabelValues(peerType)
+	}
+}
+
 // RecordP2PPeerConnect counts one peer going from no connection to connected.
-func RecordP2PPeerConnect() {
-	p2pPeerConnects.Inc()
+func RecordP2PPeerConnect(peerType string) {
+	p2pPeerConnects.WithLabelValues(peerType).Inc()
 }
 
 // RecordP2PPeerDisconnect counts one peer losing its last connection.
-func RecordP2PPeerDisconnect() {
-	p2pPeerDisconnects.Inc()
+func RecordP2PPeerDisconnect(peerType string) {
+	p2pPeerDisconnects.WithLabelValues(peerType).Inc()
 }
 
 // RecordP2PPublished counts one message of msgType accepted for publishing with
