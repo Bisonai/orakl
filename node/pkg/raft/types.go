@@ -62,14 +62,12 @@ type Raft struct {
 	Term          int
 	Mutex         sync.Mutex
 
-	HeartbeatTicker  *time.Ticker
 	ElectionTimer    *time.Timer
 	Resign           chan interface{}
 	MessageBuffer    chan *pubsub.Message
 	HeartbeatTimeout time.Duration
 
 	LeaderJobTimeout    time.Duration
-	LeaderJobTicker     *time.Ticker
 	HandleCustomMessage func(context.Context, Message) error
 	LeaderJob           func(context.Context) error
 

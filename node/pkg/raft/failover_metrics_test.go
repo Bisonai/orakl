@@ -9,7 +9,6 @@ import (
 	errorSentinel "bisonai.com/miko/node/pkg/error"
 	"bisonai.com/miko/node/pkg/metrics"
 	metricnames "bisonai.com/miko/node/pkg/metrics/names"
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -29,36 +28,15 @@ func changeSamples(t *testing.T) (count uint64, sum float64) {
 
 func histogramSamples(t *testing.T, name string) (count uint64, sum float64) {
 	t.Helper()
-	families, err := prometheus.DefaultGatherer.Gather()
-	require.NoError(t, err)
-	for _, family := range families {
-		if family.GetName() == name {
-			histogram := family.GetMetric()[0].GetHistogram()
-			return histogram.GetSampleCount(), histogram.GetSampleSum()
-		}
-	}
-	t.Fatalf("%s not registered", name)
-	return 0, 0
+	series := metricFamily(t, name).GetMetric()
+	require.Len(t, series, 1)
+	histogram := series[0].GetHistogram()
+	return histogram.GetSampleCount(), histogram.GetSampleSum()
 }
 
 func electionsStarted(t *testing.T, reason string) float64 {
 	t.Helper()
-	families, err := prometheus.DefaultGatherer.Gather()
-	require.NoError(t, err)
-	for _, family := range families {
-		if family.GetName() != metricnames.RaftElectionsStarted {
-			continue
-		}
-		for _, metric := range family.GetMetric() {
-			for _, label := range metric.GetLabel() {
-				if label.GetName() == metricnames.ReasonLabel && label.GetValue() == reason {
-					return metric.GetCounter().GetValue()
-				}
-			}
-		}
-	}
-	t.Fatalf("%s{%s=%q} not registered", metricnames.RaftElectionsStarted, metricnames.ReasonLabel, reason)
-	return 0
+	return metricSeries(t, metricnames.RaftElectionsStarted, metricnames.ReasonLabel, reason).GetCounter().GetValue()
 }
 
 func heartbeatFrom(t *testing.T, leaderID string, term int) Message {

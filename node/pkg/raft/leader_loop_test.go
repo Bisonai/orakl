@@ -122,7 +122,7 @@ func TestLeaderLoopStartsNoJobAfterResign(t *testing.T) {
 	}
 }
 
-func TestLeaderLoopKeepsItsOwnTickersAfterReelection(t *testing.T) {
+func TestLeaderLoopExitDoesNotStopReelectedLoop(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -133,7 +133,7 @@ func TestLeaderLoopKeepsItsOwnTickersAfterReelection(t *testing.T) {
 	node.Mutex.Unlock()
 
 	// parks the first loop's goroutine on the mutex, so it can only see the
-	// resign after the next term has replaced the tickers
+	// resign after the next term has started its loop
 	node.Mutex.Lock()
 	time.Sleep(testLoopSettle)
 	node.ResignLeader()
@@ -143,7 +143,7 @@ func TestLeaderLoopKeepsItsOwnTickersAfterReelection(t *testing.T) {
 	time.Sleep(testLoopSettle)
 	before := jobs.Load()
 	require.Eventually(t, func() bool { return jobs.Load() > before }, 5*time.Second, testLeaderInterval,
-		"old loop stopped the new term's ticker")
+		"new term's loop stopped running jobs after the old loop exited")
 
 	node.Mutex.Lock()
 	node.ResignLeader()
