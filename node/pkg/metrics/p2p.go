@@ -17,7 +17,7 @@ const (
 	// P2PPeerTypeBoot is an identified peer without gossipsub: the boot API host
 	// is the only such host the repo runs.
 	P2PPeerTypeBoot = "boot"
-	// P2PPeerTypeUnknown is a peer gone before identify completed.
+	// P2PPeerTypeUnknown is a peer gone without identify ever completing.
 	P2PPeerTypeUnknown = "unknown"
 )
 

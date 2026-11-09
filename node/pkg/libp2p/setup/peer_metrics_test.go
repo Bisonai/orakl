@@ -7,6 +7,7 @@ import (
 
 	"bisonai.com/miko/node/pkg/metrics"
 	metricnames "bisonai.com/miko/node/pkg/metrics/names"
+	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/prometheus/client_golang/prometheus"
@@ -35,19 +36,6 @@ func counter(t *testing.T, name, peerType string) float64 {
 	return 0
 }
 
-// eventually polls here, not in require.Eventually: counter can't fail a test off
-// its goroutine.
-func eventually(t *testing.T, name, peerType string, want float64) {
-	t.Helper()
-	deadline := time.Now().Add(5 * time.Second)
-	for counter(t, name, peerType) != want {
-		if time.Now().After(deadline) {
-			t.Fatalf("%s{%s}: got %v, want %v", name, peerType, counter(t, name, peerType), want)
-		}
-		time.Sleep(10 * time.Millisecond)
-	}
-}
-
 type fakeConn struct {
 	network.Conn
 	remote peer.ID
@@ -55,84 +43,112 @@ type fakeConn struct {
 
 func (c fakeConn) RemotePeer() peer.ID { return c.remote }
 
-func alreadyIdentified(network.Conn) <-chan struct{} {
-	done := make(chan struct{})
-	close(done)
-	return done
+// newManualPeerMetrics never finishes identify by itself: tests call identifyDone,
+// so each count can be checked right away, including that nothing changed. The
+// goroutines waiting on the nil channel live until the test binary exits.
+func newManualPeerMetrics(classify func(peer.ID) string) *peerMetrics {
+	return newPeerMetrics(classify, func(network.Conn) <-chan struct{} { return nil })
 }
 
 func classifyAs(peerType string) func(peer.ID) string {
 	return func(peer.ID) string { return peerType }
 }
 
-func TestPeerMetricsCountPeersNotConnections(t *testing.T) {
-	const peerType = metrics.P2PPeerTypeOracle
-	notifiee := newPeerMetricsNotifiee(classifyAs(peerType), alreadyIdentified)
-	a, b := fakeConn{remote: "peer-a"}, fakeConn{remote: "peer-b"}
-
+// peerCounts checks changes in the counters of one peer type since it was created.
+func peerCounts(t *testing.T, peerType string) func(wantConnects, wantDisconnects float64, msg string) {
+	t.Helper()
 	connects := counter(t, metricnames.P2PPeerConnects, peerType)
 	disconnects := counter(t, metricnames.P2PPeerDisconnects, peerType)
-	check := func(wantConnects, wantDisconnects float64) {
+	return func(wantConnects, wantDisconnects float64, msg string) {
 		t.Helper()
-		eventually(t, metricnames.P2PPeerConnects, peerType, connects+wantConnects)
-		eventually(t, metricnames.P2PPeerDisconnects, peerType, disconnects+wantDisconnects)
+		assert.Equal(t, connects+wantConnects, counter(t, metricnames.P2PPeerConnects, peerType), msg)
+		assert.Equal(t, disconnects+wantDisconnects, counter(t, metricnames.P2PPeerDisconnects, peerType), msg)
 	}
+}
 
-	notifiee.Connected(nil, a)
-	check(1, 0) // first connection
-	notifiee.Connected(nil, a)
-	check(1, 0) // second connection to the same peer
-	notifiee.Connected(nil, b)
-	check(2, 0) // another peer
+func TestPeerMetricsCountPeersNotConnections(t *testing.T) {
+	m := newManualPeerMetrics(classifyAs(metrics.P2PPeerTypeOracle))
+	a, b := fakeConn{remote: "peer-a"}, fakeConn{remote: "peer-b"}
+	check := peerCounts(t, metrics.P2PPeerTypeOracle)
 
-	notifiee.Disconnected(nil, a)
-	check(2, 0) // spare connection closed
-	notifiee.Disconnected(nil, a)
-	check(2, 1) // last connection closed
-	notifiee.Disconnected(nil, b)
-	check(2, 2) // other peer closed
+	m.connected(a)
+	check(0, 0, "before identify")
+	m.identifyDone(a.remote)
+	check(1, 0, "first connection")
+	m.connected(a)
+	m.identifyDone(a.remote)
+	check(1, 0, "second connection to the same peer")
+	m.connected(b)
+	m.identifyDone(b.remote)
+	check(2, 0, "another peer")
 
-	notifiee.Connected(nil, a)
-	check(3, 2) // reconnect
+	m.disconnected(a)
+	check(2, 0, "spare connection closed")
+	m.disconnected(a)
+	check(2, 1, "last connection closed")
+	m.disconnected(b)
+	check(2, 2, "other peer closed")
+
+	m.identifyDone(a.remote)
+	check(2, 2, "identify ending after the peer left")
+
+	m.connected(a)
+	m.identifyDone(a.remote)
+	check(3, 2, "reconnect")
+	m.disconnected(a)
 }
 
 func TestPeerMetricsConnectionOpenedBeforeRegistering(t *testing.T) {
-	const peerType = metrics.P2PPeerTypeOracle
-	notifiee := newPeerMetricsNotifiee(classifyAs(peerType), alreadyIdentified)
+	m := newManualPeerMetrics(classifyAs(metrics.P2PPeerTypeOracle))
 	early := fakeConn{remote: "peer-early"}
+	check := peerCounts(t, metrics.P2PPeerTypeOracle)
 
-	connects := counter(t, metricnames.P2PPeerConnects, peerType)
-	disconnects := counter(t, metricnames.P2PPeerDisconnects, peerType)
-
-	notifiee.Disconnected(nil, early)
-	assert.Equal(t, disconnects+1, counter(t, metricnames.P2PPeerDisconnects, peerType))
+	m.disconnected(early)
+	check(0, 1, "no connect was seen")
 
 	// the peer stays visible to both counters
-	notifiee.Connected(nil, early)
-	eventually(t, metricnames.P2PPeerConnects, peerType, connects+1)
-	notifiee.Disconnected(nil, early)
-	assert.Equal(t, disconnects+2, counter(t, metricnames.P2PPeerDisconnects, peerType))
+	m.connected(early)
+	m.identifyDone(early.remote)
+	check(1, 1, "connect")
+	m.disconnected(early)
+	check(1, 2, "disconnect")
 }
 
-func TestPeerMetricsConnectWaitsForIdentify(t *testing.T) {
-	// the type is only knowable after identify, so it must be read after it
-	const peerType = metrics.P2PPeerTypeBoot
-	identified := make(chan struct{})
+func TestPeerMetricsFailedIdentifyDoesNotFixTheType(t *testing.T) {
 	current := metrics.P2PPeerTypeUnknown
-	classify := func(peer.ID) string { return current }
-	notifiee := newPeerMetricsNotifiee(classify, func(network.Conn) <-chan struct{} { return identified })
+	m := newManualPeerMetrics(func(peer.ID) string { return current })
+	p := fakeConn{remote: "peer-spare"}
+	oracle := peerCounts(t, metrics.P2PPeerTypeOracle)
+	unknown := peerCounts(t, metrics.P2PPeerTypeUnknown)
 
-	connects := counter(t, metricnames.P2PPeerConnects, peerType)
-	unknown := counter(t, metricnames.P2PPeerConnects, metrics.P2PPeerTypeUnknown)
+	m.connected(p)
+	m.connected(p)
+	m.identifyDone(p.remote) // the first connection's identify fails
+	m.disconnected(p)
+	oracle(0, 0, "first identify failed")
+	unknown(0, 0, "not unknown while another connection can identify")
 
-	notifiee.Connected(nil, fakeConn{remote: "peer-slow"})
-	time.Sleep(20 * time.Millisecond)
-	assert.Equal(t, connects, counter(t, metricnames.P2PPeerConnects, peerType))
+	current = metrics.P2PPeerTypeOracle
+	m.identifyDone(p.remote)
+	oracle(1, 0, "second identify")
 
-	current = peerType // the channel close below orders this before the read
-	close(identified)
-	eventually(t, metricnames.P2PPeerConnects, peerType, connects+1)
-	assert.Equal(t, unknown, counter(t, metricnames.P2PPeerConnects, metrics.P2PPeerTypeUnknown))
+	m.disconnected(p)
+	oracle(1, 1, "pairs up")
+	unknown(0, 0, "never counted as unknown")
+}
+
+func TestPeerMetricsPeerGoneBeforeIdentify(t *testing.T) {
+	m := newManualPeerMetrics(classifyAs(metrics.P2PPeerTypeUnknown))
+	p := fakeConn{remote: "peer-gone"}
+	check := peerCounts(t, metrics.P2PPeerTypeUnknown)
+
+	m.connected(p)
+	check(0, 0, "pending")
+	m.disconnected(p)
+	check(1, 1, "connect and disconnect pair up")
+
+	m.identifyDone(p.remote)
+	check(1, 1, "identify ending afterwards")
 }
 
 func TestRegisterPeerMetricsOnHost(t *testing.T) {
@@ -153,7 +169,30 @@ func TestRegisterPeerMetricsOnHost(t *testing.T) {
 	_, err = MakePubsub(ctx, oracle)
 	require.NoError(t, err)
 
+	// identify's snapshot of oracle's protocols updates asynchronously: wait until
+	// a peer sees gossipsub, or the dial below could race it
+	probe, err := NewHost(ctx)
+	require.NoError(t, err)
+	defer probe.Close()
+	require.NoError(t, probe.Connect(ctx, peer.AddrInfo{ID: oracle.ID(), Addrs: oracle.Addrs()}))
+	require.Eventually(t, func() bool {
+		proto, err := probe.Peerstore().FirstSupportedProtocol(oracle.ID(), pubsub.GossipSubDefaultProtocols...)
+		return err == nil && proto != ""
+	}, 5*time.Second, 10*time.Millisecond)
+
 	RegisterPeerMetrics(h)
+
+	// polls here, not in require.Eventually: counter can't fail a test off its goroutine
+	eventually := func(t *testing.T, name, peerType string, want float64) {
+		t.Helper()
+		deadline := time.Now().Add(5 * time.Second)
+		for counter(t, name, peerType) != want {
+			if time.Now().After(deadline) {
+				t.Fatalf("%s{%s}: got %v, want %v", name, peerType, counter(t, name, peerType), want)
+			}
+			time.Sleep(10 * time.Millisecond)
+		}
+	}
 
 	for _, tc := range []struct {
 		name     string
