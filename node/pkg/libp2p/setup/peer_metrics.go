@@ -1,6 +1,7 @@
 package setup
 
 import (
+	"slices"
 	"sync"
 
 	"bisonai.com/miko/node/pkg/metrics"
@@ -31,12 +32,14 @@ func RegisterPeerMetrics(h host.Host) {
 // on a connection, and for about a minute past the last one closing, until the
 // peerstore forgets the peer.
 func peerType(h host.Host, p peer.ID) string {
-	store := h.Peerstore()
-	if proto, err := store.FirstSupportedProtocol(p, pubsub.GossipSubDefaultProtocols...); err == nil && proto != "" {
-		return metrics.P2PPeerTypeOracle
-	}
-	if protocols, err := store.GetProtocols(p); err != nil || len(protocols) == 0 {
+	protocols, err := h.Peerstore().GetProtocols(p)
+	if err != nil || len(protocols) == 0 {
 		return metrics.P2PPeerTypeUnknown
+	}
+	for _, protocol := range pubsub.GossipSubDefaultProtocols {
+		if slices.Contains(protocols, protocol) {
+			return metrics.P2PPeerTypeOracle
+		}
 	}
 	return metrics.P2PPeerTypeBoot
 }
@@ -93,7 +96,11 @@ func (m *peerMetrics) connected(c network.Conn) {
 		m.peers[p] = state
 	}
 	state.conns++
+	counted := state.counted
 	m.mu.Unlock()
+	if counted {
+		return
+	}
 
 	// the type isn't known yet: Connected fires before identify. Waits on each
 	// connection, as the first can close or fail while another one succeeds.
@@ -105,7 +112,8 @@ func (m *peerMetrics) connected(c network.Conn) {
 
 // identifyDone records the connect at the first identify that gives the peer's
 // type. Until then the connect stays pending, and a peer with no type by its last
-// disconnect records it there, so per-type connects and disconnects pair up.
+// disconnect records it there, so an unfinished identify can't leave the type of a
+// connect and its disconnect apart.
 func (m *peerMetrics) identifyDone(p peer.ID) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -113,12 +121,12 @@ func (m *peerMetrics) identifyDone(p peer.ID) {
 	if !ok || state.counted {
 		return
 	}
-	peerType := m.classify(p)
-	if peerType == metrics.P2PPeerTypeUnknown {
+	kind := m.classify(p)
+	if kind == metrics.P2PPeerTypeUnknown {
 		return
 	}
 	state.counted = true
-	metrics.RecordP2PPeerConnect(peerType)
+	metrics.RecordP2PPeerConnect(kind)
 }
 
 func (m *peerMetrics) disconnected(c network.Conn) {
@@ -133,10 +141,10 @@ func (m *peerMetrics) disconnected(c network.Conn) {
 	}
 	delete(m.peers, p)
 
-	peerType := m.classify(p)
+	kind := m.classify(p)
 	// !ok: a connection opened before registering, its connect was never seen
 	if ok && !state.counted {
-		metrics.RecordP2PPeerConnect(peerType)
+		metrics.RecordP2PPeerConnect(kind)
 	}
-	metrics.RecordP2PPeerDisconnect(peerType)
+	metrics.RecordP2PPeerDisconnect(kind)
 }
