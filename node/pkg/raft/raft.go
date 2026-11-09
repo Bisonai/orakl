@@ -385,16 +385,16 @@ func (r *Raft) setLeaderState() {
 	r.Role = Leader
 	r.LeaderID = r.GetHostId()
 	r.leaderClock.Store(nil)
-	r.HeartbeatTicker = time.NewTicker(r.HeartbeatTimeout)
-	r.LeaderJobTicker = time.NewTicker(r.LeaderJobTimeout)
 }
 
 func (r *Raft) becomeLeader(ctx context.Context) {
 	r.setLeaderState()
 
 	// captured before the goroutine starts: ResignLeader nils r.Resign and a
-	// later term replaces all three, so the loop only uses its own
-	resign, heartbeatTicker, leaderJobTicker := r.Resign, r.HeartbeatTicker, r.LeaderJobTicker
+	// later term replaces it, so the loop only uses its own
+	resign := r.Resign
+	heartbeatTicker := time.NewTicker(r.HeartbeatTimeout)
+	leaderJobTicker := time.NewTicker(r.LeaderJobTimeout)
 
 	go func() {
 		defer func() {
