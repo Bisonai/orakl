@@ -7,6 +7,21 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestRecordP2PPeerByType(t *testing.T) {
+	oracleConnects := testutil.ToFloat64(p2pPeerConnects.WithLabelValues(P2PPeerTypeOracle))
+	bootConnects := testutil.ToFloat64(p2pPeerConnects.WithLabelValues(P2PPeerTypeBoot))
+	oracleDisconnects := testutil.ToFloat64(p2pPeerDisconnects.WithLabelValues(P2PPeerTypeOracle))
+	bootDisconnects := testutil.ToFloat64(p2pPeerDisconnects.WithLabelValues(P2PPeerTypeBoot))
+
+	RecordP2PPeerConnect(P2PPeerTypeOracle)
+	RecordP2PPeerDisconnect(P2PPeerTypeBoot)
+
+	assert.Equal(t, oracleConnects+1, testutil.ToFloat64(p2pPeerConnects.WithLabelValues(P2PPeerTypeOracle)))
+	assert.Equal(t, bootConnects, testutil.ToFloat64(p2pPeerConnects.WithLabelValues(P2PPeerTypeBoot)))
+	assert.Equal(t, oracleDisconnects, testutil.ToFloat64(p2pPeerDisconnects.WithLabelValues(P2PPeerTypeOracle)))
+	assert.Equal(t, bootDisconnects+1, testutil.ToFloat64(p2pPeerDisconnects.WithLabelValues(P2PPeerTypeBoot)))
+}
+
 func TestRecordP2PPublished(t *testing.T) {
 	t.Cleanup(func() {
 		p2pPublishedMessages.Reset()
