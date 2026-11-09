@@ -347,26 +347,35 @@ func (r *Raft) ResignLeader() {
 // clock from now only if it changed. The caller holds Mutex.
 func (r *Raft) followLeader(leaderID string) {
 	if r.LeaderID == leaderID {
+		if clock := r.leaderClock.Load(); clock != nil {
+			clock.term = r.Term // re-elected
+		}
 		return
 	}
 	r.LeaderID = leaderID
 	clock := &leaderClock{id: leaderID, term: r.Term}
 	clock.lastSeen.Store(int64(time.Since(leaderClockEpoch)))
-	recordLeaderChangeSilence(r.leaderClock.Swap(clock), r.Term)
+	r.recordLeaderChangeSilence(r.leaderClock.Swap(clock))
 }
 
 // recordLeaderChangeSilence observes how long the outgoing leader had been silent
-// when it was replaced at term, which recordLeaderSilence can't see: no further
-// message matches its clock. old is nil when there was no leader to replace. The
-// same term means two live leaders flipping LeaderID on each heartbeat, not a
-// failover: a new leader's term is always above the one it replaces.
-func recordLeaderChangeSilence(old *leaderClock, term int) {
-	if old == nil || old.term == term {
+// when it was replaced, which recordLeaderSilence can't see: no further message
+// matches its clock. old is nil when there was no leader to replace. Two live
+// leaders at one term flip LeaderID on each heartbeat, which isn't a failover, so
+// it's skipped. Same term alone isn't enough, as terms aren't unique across nodes:
+// a real failover also shows silence past one election timer. The caller holds
+// Mutex.
+func (r *Raft) recordLeaderChangeSilence(old *leaderClock) {
+	if old == nil {
 		return
 	}
 	// load first: lastSeen can't then be ahead of now
 	lastSeen := old.lastSeen.Load()
-	metrics.RecordRaftLeaderChangeSilence(time.Since(leaderClockEpoch) - time.Duration(lastSeen))
+	gap := time.Since(leaderClockEpoch) - time.Duration(lastSeen)
+	if old.term == r.Term && gap < r.HeartbeatTimeout*5 {
+		return
+	}
+	metrics.RecordRaftLeaderChangeSilence(gap)
 }
 
 // recordLeaderSilence observes the gap since the previous message from the
@@ -404,7 +413,7 @@ func (r *Raft) setLeaderState() {
 	r.Term++
 	r.Role = Leader
 	r.LeaderID = r.GetHostId()
-	recordLeaderChangeSilence(r.leaderClock.Swap(nil), r.Term)
+	r.recordLeaderChangeSilence(r.leaderClock.Swap(nil))
 	r.HeartbeatTicker = time.NewTicker(r.HeartbeatTimeout)
 	r.LeaderJobTicker = time.NewTicker(r.LeaderJobTimeout)
 }

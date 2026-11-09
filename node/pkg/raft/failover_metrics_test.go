@@ -306,6 +306,33 @@ func TestLeaderChangeSilence(t *testing.T) {
 		assert.Equal(t, start+1, count, "a higher term is a real change")
 	})
 
+	t.Run("no sample for a flip after the leader was re-elected", func(t *testing.T) {
+		node := newSilenceTestNode(ctx, t)
+		first, second := testPeerID(t), testPeerID(t)
+		require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, first, 1)))
+		require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, first, 3)))
+
+		start, _ := changeSamples(t)
+		require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, second, 3)))
+		require.Equal(t, second, node.GetLeader())
+		count, _ := changeSamples(t)
+		assert.Equal(t, start, count)
+	})
+
+	t.Run("a silent leader replaced at the same term records", func(t *testing.T) {
+		node := newSilenceTestNode(ctx, t)
+		first, second := testPeerID(t), testPeerID(t)
+		require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, first, 3)))
+		backdate(node)
+
+		start, sumBefore := changeSamples(t)
+		require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, second, 3)))
+		require.Equal(t, second, node.GetLeader())
+		count, sum := changeSamples(t)
+		assert.Equal(t, start+1, count)
+		assert.InDelta(t, silence.Seconds(), sum-sumBefore, 1)
+	})
+
 	t.Run("a voter following the new leader at its own term records", func(t *testing.T) {
 		node := newSilenceTestNode(ctx, t)
 		require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, testPeerID(t), 1)))
