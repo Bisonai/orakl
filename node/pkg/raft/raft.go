@@ -168,6 +168,11 @@ func (r *Raft) handleHeartbeat(msg Message) error {
 				return nil
 			}
 		} else {
+			// or a late granted vote would still make this node leader
+			if currentRole == Candidate {
+				r.Role = Follower
+				r.startElectionTimer()
+			}
 			r.followLeader(heartbeatMessage.LeaderID)
 		}
 	}
@@ -501,6 +506,13 @@ func (r *Raft) startElectionTimer() {
 func (r *Raft) startElection(ctx context.Context) {
 	r.Mutex.Lock()
 	defer r.Mutex.Unlock()
+
+	// the timer can fire just as a winning vote is handled, so this runs on the
+	// new leader. Stays disarmed: ResignLeader, the only way out of the role,
+	// restarts it.
+	if r.Role == Leader {
+		return
+	}
 
 	if r.MissedHeartbeats < MaxMissedHeartbeats {
 		r.MissedHeartbeats++
