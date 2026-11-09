@@ -83,6 +83,8 @@ func main() {
 	host, err := libp2pSetup.NewHost(ctx, libp2pSetup.WithHolePunch())
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to make host")
+	} else {
+		libp2pSetup.RegisterPeerMetrics(host)
 	}
 
 	ps, err := libp2pSetup.MakePubsub(ctx, host)

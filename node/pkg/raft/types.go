@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
@@ -76,4 +77,15 @@ type Raft struct {
 
 	CooldownPeriod   time.Duration
 	LastElectionTime time.Time
+
+	// atomic mirror of LeaderID for the message path, which must not take Mutex
+	// for metrics; nil when this node is the leader or there is none
+	leaderClock atomic.Pointer[leaderClock]
+}
+
+// leaderClock tracks when a leader's last message arrived. It lives as long as
+// that peer is the leader, so a gap is never measured across a leader change.
+type leaderClock struct {
+	id       string
+	lastSeen atomic.Int64 // ns since leaderClockEpoch
 }

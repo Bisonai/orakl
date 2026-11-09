@@ -17,6 +17,9 @@ import (
 
 const HEARTBEAT_TIMEOUT = 100 * time.Millisecond
 
+// leaderClockEpoch gives leaderClock monotonic timestamps that fit in an atomic.
+var leaderClockEpoch = time.Now()
+
 func NewRaftNode(
 	h host.Host,
 	ps *pubsub.PubSub,
@@ -107,6 +110,7 @@ func (r *Raft) subscribe(ctx context.Context) {
 // handler for incoming messages
 
 func (r *Raft) handleMessage(ctx context.Context, msg Message) error {
+	r.recordLeaderSilence(msg.SentFrom)
 	switch msg.Type {
 	case Heartbeat:
 		return r.handleHeartbeat(msg)
@@ -152,19 +156,19 @@ func (r *Raft) handleHeartbeat(msg Message) error {
 		}
 		r.Term = heartbeatMessage.Term
 		r.Role = Follower
-		r.LeaderID = heartbeatMessage.LeaderID
+		r.followLeader(heartbeatMessage.LeaderID)
 
 		return nil
 	} else if heartbeatMessage.Term == currentTerm {
 		if currentRole == Leader {
 			if r.GetHostId() < heartbeatMessage.LeaderID {
 				r.ResignLeader()
-				r.LeaderID = heartbeatMessage.LeaderID
+				r.followLeader(heartbeatMessage.LeaderID)
 			} else {
 				return nil
 			}
 		} else {
-			r.LeaderID = heartbeatMessage.LeaderID
+			r.followLeader(heartbeatMessage.LeaderID)
 		}
 	}
 
@@ -328,16 +332,59 @@ func (r *Raft) ResignLeader() {
 		r.Resign = nil
 		r.Role = Follower
 		r.LeaderID = ""
+		r.leaderClock.Store(nil)
 		r.startElectionTimer()
 	}
 }
 
+// followLeader sets another peer as the current leader, and restarts the silence
+// clock from now only if it changed. The caller holds Mutex.
+func (r *Raft) followLeader(leaderID string) {
+	if r.LeaderID == leaderID {
+		return
+	}
+	r.LeaderID = leaderID
+	clock := &leaderClock{id: leaderID}
+	clock.lastSeen.Store(int64(time.Since(leaderClockEpoch)))
+	r.leaderClock.Store(clock)
+}
+
+// recordLeaderSilence observes the gap since the previous message from the
+// current leader. The message that makes a leader runs before its clock exists,
+// so it records nothing and no gap spans two leaders. Own messages never match:
+// the clock is nil while this node leads, and otherwise holds another peer. Runs
+// for every received message, so lock-free and no allocation.
+func (r *Raft) recordLeaderSilence(sentFrom string) {
+	clock := r.leaderClock.Load()
+	if clock == nil || clock.id != sentFrom {
+		return
+	}
+	now := int64(time.Since(leaderClockEpoch))
+	// handlers run concurrently: an older message landing last must not move
+	// the clock back, or the next gap comes out too long
+	for {
+		prev := clock.lastSeen.Load()
+		if now <= prev {
+			return
+		}
+		if clock.lastSeen.CompareAndSwap(prev, now) {
+			metrics.RecordRaftLeaderSilence(time.Duration(now - prev))
+			return
+		}
+	}
+}
+
 func (r *Raft) setLeaderState() {
+	// a loop from an earlier term that never resigned must not outlive this one
+	if r.Resign != nil {
+		close(r.Resign)
+	}
 	r.Resign = make(chan interface{})
 	r.ElectionTimer.Stop()
 	r.Term++
 	r.Role = Leader
 	r.LeaderID = r.GetHostId()
+	r.leaderClock.Store(nil)
 	r.HeartbeatTicker = time.NewTicker(r.HeartbeatTimeout)
 	r.LeaderJobTicker = time.NewTicker(r.LeaderJobTimeout)
 }
@@ -345,12 +392,18 @@ func (r *Raft) setLeaderState() {
 func (r *Raft) becomeLeader(ctx context.Context) {
 	r.setLeaderState()
 
+	// captured before the goroutine starts: ResignLeader nils r.Resign and a
+	// later term replaces all three, so the loop only uses its own
+	resign, heartbeatTicker, leaderJobTicker := r.Resign, r.HeartbeatTicker, r.LeaderJobTicker
+
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
 				log.Error().Msgf("recovered from panic in leader job: %v", r)
 			}
 		}()
+		defer heartbeatTicker.Stop()
+		defer leaderJobTicker.Stop()
 
 		err := r.sendHeartbeat(ctx)
 		if err != nil {
@@ -362,21 +415,25 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 		}
 
 		for {
+			// select below picks at random, so a tick queued during the last
+			// iteration could otherwise run after a resign
 			select {
-			case <-r.Resign:
-				r.Mutex.Lock()
-				r.HeartbeatTicker.Stop()
-				r.LeaderJobTicker.Stop()
-				r.Mutex.Unlock()
+			case <-resign:
+				return
+			default:
+			}
+
+			select {
+			case <-resign:
 				return
 
-			case <-r.HeartbeatTicker.C:
+			case <-heartbeatTicker.C:
 				err := r.sendHeartbeat(ctx)
 				if err != nil {
 					log.Error().Err(err).Msg("failed to send heartbeat")
 				}
 
-			case <-r.LeaderJobTicker.C:
+			case <-leaderJobTicker.C:
 				go func() {
 					defer func() {
 						if r := recover(); r != nil {
@@ -391,10 +448,6 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 
 			case <-ctx.Done():
 				log.Debug().Msg("context cancelled")
-				r.Mutex.Lock()
-				r.HeartbeatTicker.Stop()
-				r.LeaderJobTicker.Stop()
-				r.Mutex.Unlock()
 				return
 			}
 		}
@@ -441,6 +494,7 @@ func (r *Raft) startElection(ctx context.Context) {
 	}
 
 	log.Debug().Msg("start election")
+	metrics.RecordRaftElectionStarted(metrics.RaftElectionReasonTimeout)
 	r.Term++
 	r.VotesReceived = 0
 	r.Role = Candidate

@@ -20,7 +20,26 @@ var (
 		Name: metricnames.P2PPublishedBytes,
 		Help: "Encoded payload bytes of P2P messages accepted for publishing by this node, by message type",
 	}, []string{metricnames.TypeLabel})
+
+	p2pPeerConnects = promauto.NewCounter(prometheus.CounterOpts{
+		Name: metricnames.P2PPeerConnects,
+		Help: "P2P peers that went from no connection to connected",
+	})
+	p2pPeerDisconnects = promauto.NewCounter(prometheus.CounterOpts{
+		Name: metricnames.P2PPeerDisconnects,
+		Help: "P2P peers whose last connection closed",
+	})
 )
+
+// RecordP2PPeerConnect counts one peer going from no connection to connected.
+func RecordP2PPeerConnect() {
+	p2pPeerConnects.Inc()
+}
+
+// RecordP2PPeerDisconnect counts one peer losing its last connection.
+func RecordP2PPeerDisconnect() {
+	p2pPeerDisconnects.Inc()
+}
 
 // RecordP2PPublished counts one message of msgType accepted for publishing with
 // an encoded payload of size bytes.
