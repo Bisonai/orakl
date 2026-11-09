@@ -20,6 +20,28 @@ func TestRecordRaftElectionStarted(t *testing.T) {
 	assert.Equal(t, before+1, testutil.ToFloat64(timeout))
 }
 
+func TestRecordRaftLeaderChangeSilence(t *testing.T) {
+	read := func() (uint64, float64) {
+		families, err := prometheus.DefaultGatherer.Gather()
+		require.NoError(t, err)
+		for _, family := range families {
+			if family.GetName() == metricnames.RaftLeaderChangeSilence {
+				histogram := family.GetMetric()[0].GetHistogram()
+				return histogram.GetSampleCount(), histogram.GetSampleSum()
+			}
+		}
+		t.Fatalf("%s not registered", metricnames.RaftLeaderChangeSilence)
+		return 0, 0
+	}
+	count, sum := read()
+
+	RecordRaftLeaderChangeSilence(20 * time.Second)
+
+	newCount, newSum := read()
+	assert.Equal(t, count+1, newCount)
+	assert.InDelta(t, sum+20, newSum, 1e-9)
+}
+
 func TestRecordRaftLeaderSilence(t *testing.T) {
 	// bucket upper bound -> cumulative count, from the registry /metrics serves
 	read := func() (uint64, map[float64]uint64) {

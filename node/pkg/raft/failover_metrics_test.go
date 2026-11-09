@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	errorSentinel "bisonai.com/miko/node/pkg/error"
 	"bisonai.com/miko/node/pkg/metrics"
 	metricnames "bisonai.com/miko/node/pkg/metrics/names"
 	"github.com/stretchr/testify/assert"
@@ -16,7 +17,18 @@ import (
 // is served from.
 func silenceSamples(t *testing.T) (count uint64, sum float64) {
 	t.Helper()
-	series := metricFamily(t, metricnames.RaftLeaderSilence).GetMetric()
+	return histogramSamples(t, metricnames.RaftLeaderSilence)
+}
+
+// changeSamples is the same for the silence of a replaced leader.
+func changeSamples(t *testing.T) (count uint64, sum float64) {
+	t.Helper()
+	return histogramSamples(t, metricnames.RaftLeaderChangeSilence)
+}
+
+func histogramSamples(t *testing.T, name string) (count uint64, sum float64) {
+	t.Helper()
+	series := metricFamily(t, name).GetMetric()
 	require.Len(t, series, 1)
 	histogram := series[0].GetHistogram()
 	return histogram.GetSampleCount(), histogram.GetSampleSum()
@@ -179,6 +191,175 @@ func TestLeaderSilence(t *testing.T) {
 		wg.Wait()
 		assert.Equal(t, leader, node.GetLeader())
 	})
+}
+
+func TestLeaderChangeSilence(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	const silence = 5 * time.Second
+	// as if the leader's last message had arrived silence ago
+	backdate := func(node *Raft) {
+		node.leaderClock.Load().lastSeen.Store(int64(time.Since(leaderClockEpoch) - silence))
+	}
+
+	t.Run("a different leader records the old one's silence", func(t *testing.T) {
+		node := newSilenceTestNode(ctx, t)
+		first, second := testPeerID(t), testPeerID(t)
+		require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, first, 1)))
+		backdate(node)
+
+		start, sumBefore := changeSamples(t)
+		silenceStart, _ := silenceSamples(t)
+		require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, second, 2)))
+		require.Equal(t, second, node.GetLeader())
+
+		count, sum := changeSamples(t)
+		assert.Equal(t, start+1, count)
+		assert.InDelta(t, silence.Seconds(), sum-sumBefore, 1)
+		silenceCount, _ := silenceSamples(t)
+		assert.Equal(t, silenceStart, silenceCount, "the other series stays out of it")
+	})
+
+	t.Run("this node winning records the old leader's silence", func(t *testing.T) {
+		node := newSilenceTestNode(ctx, t)
+		require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, testPeerID(t), 1)))
+		backdate(node)
+
+		start, sumBefore := changeSamples(t)
+		node.Mutex.Lock()
+		node.setLeaderState()
+		node.Mutex.Unlock()
+
+		count, sum := changeSamples(t)
+		assert.Equal(t, start+1, count)
+		assert.InDelta(t, silence.Seconds(), sum-sumBefore, 1)
+	})
+
+	t.Run("measured from the old leader's last message", func(t *testing.T) {
+		node := newSilenceTestNode(ctx, t)
+		first := testPeerID(t)
+		require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, first, 1)))
+		backdate(node)
+		require.NoError(t, node.handleMessage(ctx, Message{Type: "trigger", SentFrom: first}))
+
+		start, sumBefore := changeSamples(t)
+		require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, testPeerID(t), 2)))
+
+		count, sum := changeSamples(t)
+		assert.Equal(t, start+1, count)
+		assert.Less(t, sum-sumBefore, silence.Seconds())
+	})
+
+	t.Run("no sample without a leader change", func(t *testing.T) {
+		node := newSilenceTestNode(ctx, t)
+		leader := testPeerID(t)
+
+		start, _ := changeSamples(t)
+		require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, leader, 1)))
+		count, _ := changeSamples(t)
+		assert.Equal(t, start, count, "first leader replaces nobody")
+
+		require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, leader, 1)))
+		require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, leader, 2)))
+		count, _ = changeSamples(t)
+		assert.Equal(t, start, count, "same peer again, even at a new term")
+	})
+
+	t.Run("no sample for same-term leaders flipping", func(t *testing.T) {
+		node := newSilenceTestNode(ctx, t)
+		first, second := testPeerID(t), testPeerID(t)
+		require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, first, 1)))
+
+		start, _ := changeSamples(t)
+		require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, second, 1)))
+		require.Equal(t, second, node.GetLeader())
+		require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, first, 1)))
+		require.Equal(t, first, node.GetLeader())
+		count, _ := changeSamples(t)
+		assert.Equal(t, start, count)
+
+		require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, second, 2)))
+		count, _ = changeSamples(t)
+		assert.Equal(t, start+1, count, "a higher term is a real change")
+	})
+
+	t.Run("no sample for a flip after the leader was re-elected", func(t *testing.T) {
+		node := newSilenceTestNode(ctx, t)
+		first, second := testPeerID(t), testPeerID(t)
+		require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, first, 1)))
+		require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, first, 3)))
+
+		start, _ := changeSamples(t)
+		require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, second, 3)))
+		require.Equal(t, second, node.GetLeader())
+		count, _ := changeSamples(t)
+		assert.Equal(t, start, count)
+	})
+
+	t.Run("a silent leader replaced at the same term records", func(t *testing.T) {
+		node := newSilenceTestNode(ctx, t)
+		first, second := testPeerID(t), testPeerID(t)
+		require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, first, 3)))
+		backdate(node)
+
+		start, sumBefore := changeSamples(t)
+		require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, second, 3)))
+		require.Equal(t, second, node.GetLeader())
+		count, sum := changeSamples(t)
+		assert.Equal(t, start+1, count)
+		assert.InDelta(t, silence.Seconds(), sum-sumBefore, 1)
+	})
+
+	t.Run("a voter following the new leader at its own term records", func(t *testing.T) {
+		node := newSilenceTestNode(ctx, t)
+		require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, testPeerID(t), 1)))
+
+		// voting moved the term up before the new leader's first heartbeat
+		node.Mutex.Lock()
+		node.Term = 2
+		node.Mutex.Unlock()
+
+		start, _ := changeSamples(t)
+		require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, testPeerID(t), 2)))
+		count, _ := changeSamples(t)
+		assert.Equal(t, start+1, count)
+	})
+
+	t.Run("no sample when this node stops leading", func(t *testing.T) {
+		node := newSilenceTestNode(ctx, t)
+		node.Mutex.Lock()
+		node.setLeaderState()
+		term := node.Term
+		node.Mutex.Unlock()
+
+		start, _ := changeSamples(t)
+		require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, testPeerID(t), term+1)))
+		require.Equal(t, Follower, node.GetRole())
+		count, _ := changeSamples(t)
+		assert.Equal(t, start, count)
+	})
+}
+
+func TestLeaderSilenceIgnoresInvalidHeartbeats(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	node := newSilenceTestNode(ctx, t)
+	leader := testPeerID(t)
+	require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, leader, 1)))
+	lastSeen := node.leaderClock.Load().lastSeen.Load()
+	start, _ := silenceSamples(t)
+
+	mismatched := heartbeatFrom(t, testPeerID(t), 1)
+	mismatched.SentFrom = leader
+	require.ErrorIs(t, node.handleMessage(ctx, mismatched), errorSentinel.ErrRaftLeaderIdMismatch)
+
+	require.Error(t, node.handleMessage(ctx, Message{Type: Heartbeat, SentFrom: leader, Data: []byte("{")}))
+
+	count, _ := silenceSamples(t)
+	assert.Equal(t, start, count)
+	assert.Equal(t, lastSeen, node.leaderClock.Load().lastSeen.Load())
 }
 
 func TestRecordLeaderSilenceClockNeverMovesBack(t *testing.T) {

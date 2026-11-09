@@ -110,7 +110,10 @@ func (r *Raft) subscribe(ctx context.Context) {
 // handler for incoming messages
 
 func (r *Raft) handleMessage(ctx context.Context, msg Message) error {
-	r.recordLeaderSilence(msg.SentFrom)
+	// heartbeats record in handleHeartbeat, once validated
+	if msg.Type != Heartbeat {
+		r.recordLeaderSilence(msg.SentFrom)
+	}
 	switch msg.Type {
 	case Heartbeat:
 		return r.handleHeartbeat(msg)
@@ -137,6 +140,9 @@ func (r *Raft) handleHeartbeat(msg Message) error {
 	if heartbeatMessage.LeaderID != msg.SentFrom {
 		return errorSentinel.ErrRaftLeaderIdMismatch
 	}
+
+	// after validating: an invalid heartbeat must not split a real gap in two
+	r.recordLeaderSilence(msg.SentFrom)
 
 	r.Mutex.Lock()
 	defer r.Mutex.Unlock()
@@ -362,12 +368,36 @@ func (r *Raft) ResignLeader() {
 // clock from now only if it changed. The caller holds Mutex.
 func (r *Raft) followLeader(leaderID string) {
 	if r.LeaderID == leaderID {
+		if clock := r.leaderClock.Load(); clock != nil {
+			clock.term = r.Term // re-elected
+		}
 		return
 	}
 	r.LeaderID = leaderID
-	clock := &leaderClock{id: leaderID}
+	clock := &leaderClock{id: leaderID, term: r.Term}
 	clock.lastSeen.Store(int64(time.Since(leaderClockEpoch)))
-	r.leaderClock.Store(clock)
+	r.recordLeaderChangeSilence(r.leaderClock.Swap(clock))
+}
+
+// recordLeaderChangeSilence observes how long the outgoing leader had been silent
+// when it was replaced, which recordLeaderSilence can't see: no further message
+// matches its clock. old is nil when there was no leader to replace. Two live
+// leaders at one term flip LeaderID on each heartbeat, which isn't a failover, so
+// it's skipped. Same term alone isn't enough, as terms aren't unique across nodes:
+// a real failover also shows silence past the missed heartbeats and minimum election
+// timers that detecting it takes (see getRandomElectionTimeout, startElection). The
+// caller holds Mutex.
+func (r *Raft) recordLeaderChangeSilence(old *leaderClock) {
+	if old == nil {
+		return
+	}
+	// load first: lastSeen can't then be ahead of now
+	lastSeen := old.lastSeen.Load()
+	gap := time.Since(leaderClockEpoch) - time.Duration(lastSeen)
+	if old.term == r.Term && gap < (MaxMissedHeartbeats+1)*5*r.HeartbeatTimeout {
+		return
+	}
+	metrics.RecordRaftLeaderChangeSilence(gap)
 }
 
 // recordLeaderSilence observes the gap since the previous message from the
@@ -405,7 +435,7 @@ func (r *Raft) setLeaderState() {
 	r.Term++
 	r.Role = Leader
 	r.LeaderID = r.GetHostId()
-	r.leaderClock.Store(nil)
+	r.recordLeaderChangeSilence(r.leaderClock.Swap(nil))
 }
 
 func (r *Raft) becomeLeader(ctx context.Context) {

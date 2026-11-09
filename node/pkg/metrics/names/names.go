@@ -18,12 +18,14 @@ const (
 	P2PPeerConnects      = "orakl_node_p2p_peer_connects_total"
 	P2PPeerDisconnects   = "orakl_node_p2p_peer_disconnects_total"
 
-	RaftLeaderSilence    = "orakl_node_raft_leader_silence_seconds"
-	RaftElectionsStarted = "orakl_node_raft_elections_started_total"
+	RaftLeaderSilence       = "orakl_node_raft_leader_silence_seconds"
+	RaftLeaderChangeSilence = "orakl_node_raft_leader_change_silence_seconds"
+	RaftElectionsStarted    = "orakl_node_raft_elections_started_total"
 
-	NameLabel   = "name"
-	ConfigLabel = "config"
-	FeedLabel   = "feed"
-	TypeLabel   = "type"
-	ReasonLabel = "reason"
+	NameLabel     = "name"
+	ConfigLabel   = "config"
+	FeedLabel     = "feed"
+	TypeLabel     = "type"
+	ReasonLabel   = "reason"
+	PeerTypeLabel = "peer_type"
 )
