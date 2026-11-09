@@ -110,15 +110,17 @@ func (r *Raft) subscribe(ctx context.Context) {
 // handler for incoming messages
 
 func (r *Raft) handleMessage(ctx context.Context, msg Message) error {
-	r.recordLeaderSilence(msg.SentFrom)
 	switch msg.Type {
 	case Heartbeat:
 		return r.handleHeartbeat(msg)
 	case RequestVote:
+		r.recordLeaderSilence(msg.SentFrom)
 		return r.handleRequestVote(ctx, msg)
 	case ReplyVote:
+		r.recordLeaderSilence(msg.SentFrom)
 		return r.handleReplyVote(ctx, msg)
 	default:
+		r.recordLeaderSilence(msg.SentFrom)
 		return r.HandleCustomMessage(ctx, msg)
 	}
 }
@@ -137,6 +139,9 @@ func (r *Raft) handleHeartbeat(msg Message) error {
 	if heartbeatMessage.LeaderID != msg.SentFrom {
 		return errorSentinel.ErrRaftLeaderIdMismatch
 	}
+
+	// after validating: an invalid heartbeat must not split a real gap in two
+	r.recordLeaderSilence(msg.SentFrom)
 
 	r.Mutex.Lock()
 	defer r.Mutex.Unlock()
@@ -346,7 +351,19 @@ func (r *Raft) followLeader(leaderID string) {
 	r.LeaderID = leaderID
 	clock := &leaderClock{id: leaderID}
 	clock.lastSeen.Store(int64(time.Since(leaderClockEpoch)))
-	r.leaderClock.Store(clock)
+	recordLeaderChangeSilence(r.leaderClock.Swap(clock))
+}
+
+// recordLeaderChangeSilence observes how long the outgoing leader had been silent
+// when it was replaced, which recordLeaderSilence can't see: no further message
+// matches its clock. old is nil when there was no leader to replace.
+func recordLeaderChangeSilence(old *leaderClock) {
+	if old == nil {
+		return
+	}
+	// load first: lastSeen can't then be ahead of now
+	lastSeen := old.lastSeen.Load()
+	metrics.RecordRaftLeaderChangeSilence(time.Since(leaderClockEpoch) - time.Duration(lastSeen))
 }
 
 // recordLeaderSilence observes the gap since the previous message from the
@@ -384,7 +401,7 @@ func (r *Raft) setLeaderState() {
 	r.Term++
 	r.Role = Leader
 	r.LeaderID = r.GetHostId()
-	r.leaderClock.Store(nil)
+	recordLeaderChangeSilence(r.leaderClock.Swap(nil))
 	r.HeartbeatTicker = time.NewTicker(r.HeartbeatTimeout)
 	r.LeaderJobTicker = time.NewTicker(r.LeaderJobTimeout)
 }

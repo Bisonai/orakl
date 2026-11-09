@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	errorSentinel "bisonai.com/miko/node/pkg/error"
 	"bisonai.com/miko/node/pkg/metrics"
 	metricnames "bisonai.com/miko/node/pkg/metrics/names"
 	"github.com/prometheus/client_golang/prometheus"
@@ -17,15 +18,26 @@ import (
 // is served from.
 func silenceSamples(t *testing.T) (count uint64, sum float64) {
 	t.Helper()
+	return histogramSamples(t, metricnames.RaftLeaderSilence)
+}
+
+// changeSamples is the same for the silence of a replaced leader.
+func changeSamples(t *testing.T) (count uint64, sum float64) {
+	t.Helper()
+	return histogramSamples(t, metricnames.RaftLeaderChangeSilence)
+}
+
+func histogramSamples(t *testing.T, name string) (count uint64, sum float64) {
+	t.Helper()
 	families, err := prometheus.DefaultGatherer.Gather()
 	require.NoError(t, err)
 	for _, family := range families {
-		if family.GetName() == metricnames.RaftLeaderSilence {
+		if family.GetName() == name {
 			histogram := family.GetMetric()[0].GetHistogram()
 			return histogram.GetSampleCount(), histogram.GetSampleSum()
 		}
 	}
-	t.Fatalf("%s not registered", metricnames.RaftLeaderSilence)
+	t.Fatalf("%s not registered", name)
 	return 0, 0
 }
 
@@ -201,6 +213,115 @@ func TestLeaderSilence(t *testing.T) {
 		wg.Wait()
 		assert.Equal(t, leader, node.GetLeader())
 	})
+}
+
+func TestLeaderChangeSilence(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	const silence = 5 * time.Second
+	// as if the leader's last message had arrived silence ago
+	backdate := func(node *Raft) {
+		node.leaderClock.Load().lastSeen.Store(int64(time.Since(leaderClockEpoch) - silence))
+	}
+
+	t.Run("a different leader records the old one's silence", func(t *testing.T) {
+		node := newSilenceTestNode(ctx, t)
+		first, second := testPeerID(t), testPeerID(t)
+		require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, first, 1)))
+		backdate(node)
+
+		start, sumBefore := changeSamples(t)
+		silenceStart, _ := silenceSamples(t)
+		require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, second, 2)))
+		require.Equal(t, second, node.GetLeader())
+
+		count, sum := changeSamples(t)
+		assert.Equal(t, start+1, count)
+		assert.InDelta(t, silence.Seconds(), sum-sumBefore, 1)
+		silenceCount, _ := silenceSamples(t)
+		assert.Equal(t, silenceStart, silenceCount, "the other series stays out of it")
+	})
+
+	t.Run("this node winning records the old leader's silence", func(t *testing.T) {
+		node := newSilenceTestNode(ctx, t)
+		require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, testPeerID(t), 1)))
+		backdate(node)
+
+		start, sumBefore := changeSamples(t)
+		node.Mutex.Lock()
+		node.setLeaderState()
+		node.Mutex.Unlock()
+
+		count, sum := changeSamples(t)
+		assert.Equal(t, start+1, count)
+		assert.InDelta(t, silence.Seconds(), sum-sumBefore, 1)
+	})
+
+	t.Run("measured from the old leader's last message", func(t *testing.T) {
+		node := newSilenceTestNode(ctx, t)
+		first := testPeerID(t)
+		require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, first, 1)))
+		backdate(node)
+		require.NoError(t, node.handleMessage(ctx, Message{Type: "trigger", SentFrom: first}))
+
+		start, sumBefore := changeSamples(t)
+		require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, testPeerID(t), 2)))
+
+		count, sum := changeSamples(t)
+		assert.Equal(t, start+1, count)
+		assert.Less(t, sum-sumBefore, silence.Seconds())
+	})
+
+	t.Run("no sample without a leader change", func(t *testing.T) {
+		node := newSilenceTestNode(ctx, t)
+		leader := testPeerID(t)
+
+		start, _ := changeSamples(t)
+		require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, leader, 1)))
+		count, _ := changeSamples(t)
+		assert.Equal(t, start, count, "first leader replaces nobody")
+
+		require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, leader, 1)))
+		require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, leader, 2)))
+		count, _ = changeSamples(t)
+		assert.Equal(t, start, count, "same peer again, even at a new term")
+	})
+
+	t.Run("no sample when this node stops leading", func(t *testing.T) {
+		node := newSilenceTestNode(ctx, t)
+		node.Mutex.Lock()
+		node.setLeaderState()
+		term := node.Term
+		node.Mutex.Unlock()
+
+		start, _ := changeSamples(t)
+		require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, testPeerID(t), term+1)))
+		require.Equal(t, Follower, node.GetRole())
+		count, _ := changeSamples(t)
+		assert.Equal(t, start, count)
+	})
+}
+
+func TestLeaderSilenceIgnoresInvalidHeartbeats(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	node := newSilenceTestNode(ctx, t)
+	leader := testPeerID(t)
+	require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, leader, 1)))
+	lastSeen := node.leaderClock.Load().lastSeen.Load()
+	start, _ := silenceSamples(t)
+
+	mismatched := heartbeatFrom(t, testPeerID(t), 1)
+	mismatched.SentFrom = leader
+	require.ErrorIs(t, node.handleMessage(ctx, mismatched), errorSentinel.ErrRaftLeaderIdMismatch)
+
+	require.Error(t, node.handleMessage(ctx, Message{Type: Heartbeat, SentFrom: leader, Data: []byte("{")}))
+
+	count, _ := silenceSamples(t)
+	assert.Equal(t, start, count)
+	assert.Equal(t, lastSeen, node.leaderClock.Load().lastSeen.Load())
 }
 
 func TestRecordLeaderSilenceClockNeverMovesBack(t *testing.T) {

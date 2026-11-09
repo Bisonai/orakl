@@ -21,6 +21,12 @@ var (
 		// fine around the election threshold (~1.5-3 s at the 100 ms heartbeat)
 		Buckets: []float64{0.05, 0.1, 0.15, 0.2, 0.3, 0.5, 0.75, 1, 1.5, 2, 2.5, 3, 4, 5, 7.5, 10},
 	})
+	raftLeaderChangeSilence = promauto.NewHistogram(prometheus.HistogramOpts{
+		Name: metricnames.RaftLeaderChangeSilence,
+		Help: "Time since the last message from a feed's leader, observed when another peer or this node replaces it",
+		// wider than the leader silence buckets: this tail includes the election
+		Buckets: []float64{0.05, 0.1, 0.15, 0.2, 0.3, 0.5, 0.75, 1, 1.5, 2, 2.5, 3, 4, 5, 7.5, 10, 15, 30, 60},
+	})
 	raftElectionsStarted = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: metricnames.RaftElectionsStarted,
 		Help: "Raft elections started by this node, by reason",
@@ -35,6 +41,12 @@ func init() {
 // RecordRaftLeaderSilence observes one gap between messages from a feed's leader.
 func RecordRaftLeaderSilence(gap time.Duration) {
 	raftLeaderSilence.Observe(gap.Seconds())
+}
+
+// RecordRaftLeaderChangeSilence observes the silence of a feed's leader at the
+// moment it was replaced.
+func RecordRaftLeaderChangeSilence(gap time.Duration) {
+	raftLeaderChangeSilence.Observe(gap.Seconds())
 }
 
 // RecordRaftElectionStarted counts one election started for reason.
