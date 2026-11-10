@@ -11,6 +11,7 @@ import (
 	"bisonai.com/miko/node/pkg/bus"
 	"bisonai.com/miko/node/pkg/db"
 	errorSentinel "bisonai.com/miko/node/pkg/error"
+	"bisonai.com/miko/node/pkg/utils/crossorigin"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/recover"
@@ -47,9 +48,9 @@ func Setup(ctx context.Context, setupInfo SetupInfo) (*fiber.App, error) {
 	))
 
 	// No CORS middleware: no browser UI uses the admin API (#2725).
-	app.Use(RejectCrossOrigin())
+	app.Use(crossorigin.Reject())
 
-	// After RejectCrossOrigin so browser writes are refused before auth (#2725).
+	// After crossorigin.Reject so browser writes are refused before auth (#2725).
 	adminToken, err := AdminToken()
 	if err != nil {
 		return nil, err

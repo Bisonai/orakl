@@ -9,8 +9,8 @@ import (
 	"strings"
 
 	"bisonai.com/miko/node/pkg/boot/utils/peerstore"
+	"bisonai.com/miko/node/pkg/utils/crossorigin"
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/rs/zerolog/log"
@@ -38,7 +38,8 @@ func Setup(ctx context.Context, h *host.Host, store *peerstore.Store) (*fiber.Ap
 		},
 	))
 
-	app.Use(cors.New())
+	// No CORS: no browser consumer; refuse browser writes, incl. no-cors simple POSTs (#2732).
+	app.Use(crossorigin.Reject())
 	app.Use(func(c *fiber.Ctx) error {
 
 		c.Locals("host", h)

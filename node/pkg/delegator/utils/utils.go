@@ -14,10 +14,10 @@ import (
 	"time"
 
 	"bisonai.com/miko/node/pkg/delegator/secrets"
+	"bisonai.com/miko/node/pkg/utils/crossorigin"
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
 	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/cors"
 	// aliased: the package name "recover" shadows the builtin, which
 	// reloadFeePayer needs
 	fiberrecover "github.com/gofiber/fiber/v2/middleware/recover"
@@ -83,7 +83,8 @@ func Setup(options ...string) (AppConfig, error) {
 			StackTraceHandler: CustomStackTraceHandler,
 		},
 	))
-	app.Use(cors.New())
+	// No CORS: no browser consumer; refuse browser writes, incl. no-cors simple POSTs (#2732).
+	app.Use(crossorigin.Reject())
 	// shared across requests, otherwise the cache is rebuilt empty on every
 	// request and every sign hits the db for contract validation
 	validContracts := new(sync.Map)

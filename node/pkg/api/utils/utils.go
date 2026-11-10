@@ -14,10 +14,10 @@ import (
 	"strings"
 
 	"bisonai.com/miko/node/pkg/api/secrets"
+	"bisonai.com/miko/node/pkg/utils/crossorigin"
 	"golang.org/x/crypto/scrypt"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -138,7 +138,8 @@ func Setup(options ...string) (AppConfig, error) {
 			StackTraceHandler: CustomStackTraceHandler,
 		},
 	))
-	app.Use(cors.New())
+	// No CORS: no browser consumer; refuse browser writes, incl. no-cors simple POSTs (#2732).
+	app.Use(crossorigin.Reject())
 
 	app.Use(func(c *fiber.Ctx) error {
 		c.Locals("pgxConn", pgxPool)

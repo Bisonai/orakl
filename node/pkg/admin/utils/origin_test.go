@@ -5,12 +5,13 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"bisonai.com/miko/node/pkg/utils/crossorigin"
 	"github.com/gofiber/fiber/v2"
 )
 
 func newOriginTestApp(token string) *fiber.App {
 	app := fiber.New()
-	app.Use(RejectCrossOrigin())
+	app.Use(crossorigin.Reject())
 	app.Use(AdminAuth(token))
 	ok := func(c *fiber.Ctx) error { return c.SendString("ok") }
 	for _, p := range protectedRoutes {
