@@ -10,30 +10,7 @@ const (
 		) RETURNING *;
 	`
 
-	UpdateTransaction = `
-		UPDATE transactions SET
-			timestamp = @timestamp, "from" = @from, "to" = @to, input = @input, gas = @gas, value = @value, "chainId" = @chainId, "gasPrice" = @gasPrice,
-			nonce = @nonce, v = @v, r = @r, s = @s, "rawTx" = @rawTx, "signedRawTx" = @signedRawTx, succeed = @succeed, function_id = @functionId,
-			contract_id = @contractId, reporter_id = @reporterId
-		WHERE
-			transaction_id = @id
-		RETURNING *;
-	`
-	GetContractByAddress   = `SELECT * FROM contracts WHERE address = @address;`
-	GetReporterByFromAndTo = `
-		SELECT *
-		FROM reporters
-		WHERE id IN (
-			SELECT "B"
-			FROM "_ContractToReporter"
-			WHERE "A" IN (
-				SELECT contract_id
-				FROM contracts
-				WHERE address = @to
-			)
-		)
-		AND address = @from;
-	`
+	GetContractByAddress          = `SELECT * FROM contracts WHERE address = @address;`
 	GetFunctionByToAndEncodedName = `
 		SELECT *
 		FROM functions

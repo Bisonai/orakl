@@ -5,9 +5,13 @@ import (
 	"bytes"
 	"context"
 	"encoding/hex"
-	"net/url"
+	"encoding/json"
+	"io"
+	"math/big"
+	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"testing"
 
 	"bisonai.com/miko/node/pkg/delegator/sign"
@@ -53,12 +57,8 @@ func TestInitialize(t *testing.T) {
 	defer t.Cleanup(cleanup)
 	defer appConfig.App.Shutdown()
 
-	// must be a real secp256k1 key: the delegator now rejects unusable ones
-	// instead of storing them and failing every later signing request
 	const overrideKey = "4c0883a69102937d6231471b5dbb6204fe5129617082792ae468d01a3f362318"
-
-	params := url.Values{}
-	params.Add("feePayerPrivateKey", "0x"+overrideKey)
+	utils.UpdateFeePayer(overrideKey)
 
 	appConfig.App.Get("/readpk", func(c *fiber.Ctx) error {
 		fp, error := utils.GetFeePayer(c)
@@ -68,29 +68,101 @@ func TestInitialize(t *testing.T) {
 		return c.JSON(utils.FeePayer{PrivateKey: fp})
 	})
 
-	err = utils.RawReq(appConfig.App, "GET", "/api/v1/sign/initialize?feePayerPrivateKey=0x"+overrideKey, nil)
-	assert.Nil(t, err)
-
-	readResult, err := utils.GetRequest[utils.FeePayer](appConfig.App, "/readpk", nil)
-	assert.Nil(t, err)
-	assert.Equal(t, overrideKey, readResult.PrivateKey)
-
-	// an unusable key must be refused, leaving the working one in place.
-	// RawReq only surfaces transport errors, so the 500 shows up as the stored
-	// key being unchanged rather than as a returned error.
-	err = utils.RawReq(appConfig.App, "GET", "/api/v1/sign/initialize?feePayerPrivateKey=0x12345", nil)
-	assert.Nil(t, err)
+	// a key in the request is refused and the current key stays in place
+	status, _ := statusReq(t, "GET", "/api/v1/sign/initialize?feePayerPrivateKey=0x6014d3aa8be8980fd90146d10176e7ef632bdba96279e8bbe55421e79a979a2e", nil)
+	assert.Equal(t, fiber.StatusBadRequest, status)
 
 	readResultAfterReject, err := utils.GetRequest[utils.FeePayer](appConfig.App, "/readpk", nil)
 	assert.Nil(t, err)
 	assert.Equal(t, overrideKey, readResultAfterReject.PrivateKey)
 
-	err = utils.RawReq(appConfig.App, "GET", "/api/v1/sign/initialize", nil)
-	assert.Nil(t, err)
+	// without a key it reloads from the configured source (DELEGATOR_FEEPAYER_PK)
+	status, _ = statusReq(t, "GET", "/api/v1/sign/initialize", nil)
+	assert.Equal(t, fiber.StatusOK, status)
 
 	readResultRefreshed, err := utils.GetRequest[utils.FeePayer](appConfig.App, "/readpk", nil)
 	assert.Nil(t, err)
 	assert.NotEqual(t, overrideKey, readResultRefreshed.PrivateKey)
+}
+
+func TestSignRemovedEndpoints(t *testing.T) {
+	err := setup()
+	assert.Nil(t, err)
+	defer t.Cleanup(cleanup)
+	defer appConfig.App.Shutdown()
+
+	for _, path := range []string{"/api/v1/sign", "/api/v1/sign/volatile"} {
+		status, _ := statusReq(t, "POST", path, mockTxPayload)
+		assert.NotEqual(t, fiber.StatusOK, status, path)
+	}
+}
+
+// signedCall builds a fee-delegated call from the test reporter, signed offline.
+func signedCall(t *testing.T, to string, function string) sign.SignInsertPayload {
+	t.Helper()
+	reporterPk, err := crypto.HexToECDSA(strings.TrimPrefix(os.Getenv("TEST_DELEGATOR_REPORTER_PK"), "0x"))
+	assert.NoError(t, err)
+
+	tx, err := types.NewTransactionWithMap(types.TxTypeFeeDelegatedSmartContractExecution, map[types.TxValueKeyType]interface{}{
+		types.TxValueKeyNonce:    uint64(0),
+		types.TxValueKeyGasPrice: big.NewInt(25000000000),
+		types.TxValueKeyGasLimit: uint64(90000),
+		types.TxValueKeyTo:       common.HexToAddress(to),
+		types.TxValueKeyAmount:   big.NewInt(0),
+		types.TxValueKeyFrom:     common.HexToAddress(testReporterPublicKey),
+		types.TxValueKeyData:     crypto.Keccak256([]byte(function))[:4],
+		types.TxValueKeyFeePayer: common.HexToAddress("0x0"),
+	})
+	assert.NoError(t, err)
+	assert.NoError(t, tx.Sign(types.LatestSignerForChainID(loadedChainId), reporterPk))
+
+	payload, err := MakeMockTxPayload(tx)
+	assert.NoError(t, err)
+	return payload
+}
+
+func TestSignV2Validation(t *testing.T) {
+	err := setup()
+	assert.Nil(t, err)
+	defer t.Cleanup(cleanup)
+	defer appConfig.App.Shutdown()
+
+	const otherContract = "0x000000000000000000000000000000000000dead"
+
+	// RawTx targets an unregistered contract; the request's `to` naming a
+	// registered one must not matter, since RawTx is what gets signed
+	mismatched := signedCall(t, otherContract, "increment()")
+	mismatched.To = strings.ToLower(testContractAddr)
+	status, body := statusReq(t, "POST", "/api/v1/sign/v2", mismatched)
+	assert.Equal(t, fiber.StatusForbidden, status, string(body))
+
+	// registered contract, unregistered function
+	status, body = statusReq(t, "POST", "/api/v1/sign/v2", signedCall(t, testContractAddr, "decrement()"))
+	assert.Equal(t, fiber.StatusForbidden, status, string(body))
+
+	// registered contract and function: signed and stored
+	ok := signedCall(t, testContractAddr, "increment()")
+	result, err := utils.PostRequest[sign.SignModel](appConfig.App, "/api/v1/sign/v2", ok)
+	assert.Nil(t, err)
+	assert.NotNil(t, result.SignedRawTx)
+	utils.QueryRowsWithoutFiberCtx[sign.SignModel](appConfig.Postgres, `DELETE FROM transactions WHERE "rawTx" = @rawTx RETURNING *;`, map[string]any{"rawTx": ok.RawTx})
+}
+
+func statusReq(t *testing.T, method, path string, body interface{}) (int, []byte) {
+	t.Helper()
+	var reader io.Reader
+	if body != nil {
+		b, err := json.Marshal(body)
+		assert.NoError(t, err)
+		reader = bytes.NewReader(b)
+	}
+	req, err := http.NewRequest(method, path, reader)
+	assert.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	res, err := appConfig.App.Test(req, -1)
+	assert.NoError(t, err)
+	respBody, _ := io.ReadAll(res.Body)
+	return res.StatusCode, respBody
 }
 
 func TestGetFeePayerAddress(t *testing.T) {
@@ -107,8 +179,7 @@ func TestGetFeePayerAddress(t *testing.T) {
 		return c.JSON(utils.FeePayer{PrivateKey: fp})
 	})
 
-	err = utils.RawReq(appConfig.App, "GET", "/api/v1/sign/initialize?feePayerPrivateKey=0x6014d3aa8be8980fd90146d10176e7ef632bdba96279e8bbe55421e79a979a2e", nil)
-	assert.Nil(t, err)
+	utils.UpdateFeePayer("6014d3aa8be8980fd90146d10176e7ef632bdba96279e8bbe55421e79a979a2e")
 
 	readResult, err := utils.GetRequest[string](appConfig.App, "/api/v1/sign/feePayer", nil)
 	assert.Nil(t, err)

@@ -4,7 +4,6 @@ import { ORAKL_NETWORK_DELEGATOR_URL } from './settings.js'
 import { buildUrl, idOption, isOraklDelegatorHealthy } from './utils.js'
 
 export function delegatorSub() {
-  // delegator sign
   // delegator signList
 
   // delegator organizationList
@@ -24,17 +23,6 @@ export function delegatorSub() {
   // delegator functionList
   // delegator functionInsert --address {contractAddress} --organizationId {organizationId}
   // delegator functionRemove --id {reporterId}
-
-  const sign = command({
-    name: 'sign',
-    args: {
-      txData: option({
-        type: cmdstring,
-        long: 'txData',
-      }),
-    },
-    handler: signHandler(),
-  })
 
   const signList = command({
     name: 'sign',
@@ -182,7 +170,6 @@ export function delegatorSub() {
   return subcommands({
     name: 'delegator',
     cmds: {
-      sign,
       signList,
       organizationList,
       organizationInsert,
@@ -200,22 +187,6 @@ export function delegatorSub() {
       functionRemove,
     },
   })
-}
-
-export function signHandler() {
-  async function wrapper({ txData }: { txData }) {
-    if (!(await isOraklDelegatorHealthy())) return
-    try {
-      const endpoint = buildUrl(ORAKL_NETWORK_DELEGATOR_URL, `sign`)
-      const result = (await axios.post(endpoint, { ...txData })).data
-      console.log(result)
-      return result
-    } catch (e) {
-      console.error('Delegator sign was not Signed. Reason:')
-      console.error(e?.response?.data?.message)
-    }
-  }
-  return wrapper
 }
 
 export function signListHandler() {

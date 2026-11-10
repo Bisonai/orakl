@@ -5,8 +5,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"math/big"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -18,7 +16,6 @@ import (
 	"github.com/kaiachain/kaia/blockchain/types"
 	"github.com/kaiachain/kaia/common"
 	"github.com/kaiachain/kaia/crypto"
-	"github.com/kaiachain/kaia/params"
 	"github.com/kaiachain/kaia/rlp"
 	"github.com/rs/zerolog/log"
 )
@@ -82,42 +79,26 @@ type FunctionModel struct {
 	ContractId  *utils.CustomInt64 `json:"contractId" db:"contractId"`
 }
 
-type ReporterModel struct {
-	ReporterId     *utils.CustomInt64 `db:"id" json:"id"`
-	Address        string             `db:"address" json:"address"`
-	OrganizationId *utils.CustomInt64 `db:"organization_id" json:"organizationId"`
-}
-
 type ContractModel struct {
 	Address    string             `json:"address" db:"address"`
 	ContractId *utils.CustomInt64 `json:"id" db:"contract_id"`
 }
 
+// initialize reloads the fee payer key from the configured source (env, Vault
+// or GSM). A key passed in the request is refused: keys must not travel in
+// URLs (access logs, proxies) and the key source is the only place to set one.
 func initialize(c *fiber.Ctx) error {
-	// cloned: c.Query aliases fasthttp's request buffer, which is reused by the
-	// next request. storing it directly let a later request rewrite the key.
-	pk := strings.Clone(c.Query("feePayerPrivateKey", ""))
-	if pk == "" {
-		pgx, err := utils.GetPgx(c)
-		if err != nil {
-			return err
-		}
-		err = utils.InitFeePayerPK(c.Context(), pgx)
-		if err != nil {
-			return err
-		}
-		return c.SendString("Initialized")
+	if c.Query("feePayerPrivateKey") != "" {
+		return fiber.NewError(fiber.StatusBadRequest, "feePayerPrivateKey is not accepted; the key is loaded from the configured source")
 	}
 
-	pk = strings.TrimPrefix(pk, "0x")
-
-	// reject before storing: an unusable key here breaks every subsequent sign
-	if err := utils.ValidateFeePayerPK(pk); err != nil {
+	pgx, err := utils.GetPgx(c)
+	if err != nil {
 		return err
 	}
-
-	utils.UpdateFeePayer(pk)
-
+	if err := utils.InitFeePayerPK(c.Context(), pgx); err != nil {
+		return err
+	}
 	return c.SendString("Initialized")
 }
 
@@ -146,67 +127,6 @@ func getFeePayerAddress(c *fiber.Ctx) error {
 	return c.JSON(result)
 }
 
-func insert(c *fiber.Ctx) error {
-	payload := new(SignInsertPayload)
-	if err := c.BodyParser(payload); err != nil {
-		return err
-	}
-
-	validate := validator.New()
-	if err := validate.Struct(payload); err != nil {
-		return err
-	}
-
-	payload.Timestamp = &utils.CustomDateTime{Time: time.Now()}
-	payload.From = strings.ToLower(payload.From)
-	payload.To = strings.ToLower(payload.To)
-
-	tx, err := insertTransaction(c, payload)
-	if err != nil {
-		return err
-	}
-
-	err = validateTransaction(c, tx)
-	if err != nil {
-		return err
-	}
-	err = signTxByFeePayer(c, tx)
-	if err != nil {
-		return err
-	}
-
-	result, err := updateTransaction(c, tx)
-	if err != nil {
-		return err
-	}
-	return c.JSON(result)
-}
-
-func onlySign(c *fiber.Ctx) error {
-	payload := new(SignInsertPayload)
-	if err := c.BodyParser(payload); err != nil {
-		return err
-	}
-
-	validate := validator.New()
-	if err := validate.Struct(payload); err != nil {
-		return err
-	}
-	transaction, err := HashToTx(payload.RawTx)
-	if err != nil {
-		return err
-	}
-
-	signedTransaction, err := signTxByFeePayerV2(c, transaction)
-	if err != nil {
-		return err
-	}
-
-	signedRawTx := TxToHash(signedTransaction)
-
-	return c.JSON(SignModel{SignedRawTx: &signedRawTx})
-}
-
 func insertV2(c *fiber.Ctx) error {
 	payload := new(SignInsertPayload)
 	if err := c.BodyParser(payload); err != nil {
@@ -223,9 +143,19 @@ func insertV2(c *fiber.Ctx) error {
 		return err
 	}
 
-	err = validateContractAddress(c, strings.ToLower(payload.To))
+	// validate what gets signed: the decoded tx, not the request's to/input
+	// fields, which are only stored and need not match RawTx
+	to, selector, err := txTarget(transaction)
 	if err != nil {
-		return err
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+	}
+	if err = validateContractAddress(c, to); err != nil {
+		logRejected(transaction, to, selector, err)
+		return fiber.NewError(fiber.StatusForbidden, err.Error())
+	}
+	if err = validateFunction(c, to, selector); err != nil {
+		logRejected(transaction, to, selector, err)
+		return fiber.NewError(fiber.StatusForbidden, err.Error())
 	}
 
 	signedTransaction, err := signTxByFeePayerV2(c, transaction)
@@ -280,31 +210,42 @@ func getById(c *fiber.Ctx) error {
 	return c.JSON(transaction)
 }
 
-func validateTransaction(c *fiber.Ctx, tx *SignModel) error {
-	encodedName := tx.Input[:10]
-	contract, err := utils.QueryRow[ContractModel](c, GetContractByAddress, map[string]any{"address": tx.To})
-	if err != nil {
-		return err
+// txTarget returns the lowercase contract address and 4-byte function selector
+// of a contract call. Contract creation and calls without a selector are refused.
+func txTarget(tx *types.Transaction) (string, string, error) {
+	to := tx.To()
+	if to == nil {
+		return "", "", errors.New("contract creation is not allowed")
 	}
-	functions, err := utils.QueryRows[FunctionModel](c, GetFunctionByToAndEncodedName, map[string]any{"to": tx.To, "encodedName": encodedName})
-	if err != nil {
-		return err
+	data := tx.Data()
+	if len(data) < 4 {
+		return "", "", errors.New("transaction has no function selector")
 	}
-	reporters, err := utils.QueryRows[ReporterModel](c, GetReporterByFromAndTo, map[string]any{"from": tx.From, "to": tx.To})
-	if err != nil {
-		return err
-	}
+	return strings.ToLower(to.Hex()), "0x" + hex.EncodeToString(data[:4]), nil
+}
 
-	if len(functions) == 1 && len(reporters) == 1 && contract.ContractId != nil {
-		tx.ReporterId = reporters[0].ReporterId
-		tx.ContractId = contract.ContractId
-		tx.FunctionId = functions[0].FunctionId
+func logRejected(tx *types.Transaction, to, selector string, reason error) {
+	from, _ := tx.From()
+	log.Warn().Str("from", strings.ToLower(from.Hex())).Str("to", to).Str("selector", selector).Err(reason).Msg("sign request rejected")
+}
+
+// validateFunction requires the selector to be registered for the contract.
+// Approvals are cached for the process lifetime, like validateContractAddress.
+func validateFunction(c *fiber.Ctx, address, selector string) error {
+	validFunctions := c.Locals("validFunctions").(*sync.Map)
+	key := address + selector
+	if _, ok := validFunctions.Load(key); ok {
 		return nil
-	} else if len(functions) == 0 || len(reporters) == 0 || contract.ContractId == nil {
-		return fmt.Errorf("not approved transaction")
-	} else {
-		return fmt.Errorf("unexpected result length")
 	}
+	functions, err := utils.QueryRows[FunctionModel](c, GetFunctionByToAndEncodedName, map[string]any{"to": address, "encodedName": selector})
+	if err != nil {
+		return err
+	}
+	if len(functions) == 0 {
+		return fmt.Errorf("not approved function %s for contract %s", selector, address)
+	}
+	validFunctions.Store(key, struct{}{})
+	return nil
 }
 
 func validateContractAddress(c *fiber.Ctx, address string) error {
@@ -321,54 +262,6 @@ func validateContractAddress(c *fiber.Ctx, address string) error {
 			return fmt.Errorf("not approved contract address")
 		}
 	}
-}
-
-func signTxByFeePayer(c *fiber.Ctx, tx *SignModel) error {
-
-	pk, err := utils.GetFeePayer(c)
-	if err != nil {
-		log.Error().Err(err).Msg("failed to get fee payer")
-		return err
-	}
-
-	feePayerKey, err := crypto.HexToECDSA(pk)
-	if err != nil {
-		log.Error().Err(err).Msg("failed to convert fee payer private key to ECDSA")
-		return err
-	}
-
-	feePayerPublicKey, err := utils.GetPublicKey(pk)
-	if err != nil {
-		log.Error().Err(err).Msg("failed to get fee payer public key")
-		return err
-	}
-
-	transaction, err := CreateUnsignedTx(tx, feePayerPublicKey)
-	if err != nil {
-		log.Error().Err(err).Msg("failed to create unsigned transaction")
-		return err
-	}
-
-	chainId, ok := new(big.Int).SetString(tx.ChainId[2:], 16)
-	if !ok {
-		log.Error().Err(err).Msg("failed to convert chainId to big.Int")
-		return fmt.Errorf("failed to convert chainId to big.Int")
-	}
-
-	signedWithTxFeepayer, err := types.SignTxAsFeePayer(transaction, types.LatestSigner(&params.ChainConfig{ChainID: chainId}), feePayerKey)
-	if err != nil {
-		log.Error().Err(err).Msg("failed to sign transaction with fee payer")
-		return err
-	}
-
-	succeed := true
-	rawTxBytes, _ := rlp.EncodeToBytes(signedWithTxFeepayer)
-	rawTxHash := "0x" + hex.EncodeToString(rawTxBytes)
-
-	tx.Succeed = &succeed
-	tx.SignedRawTx = &rawTxHash
-
-	return nil
 }
 
 func signTxByFeePayerV2(c *fiber.Ctx, tx *types.Transaction) (*types.Transaction, error) {
@@ -395,62 +288,6 @@ func signTxByFeePayerV2(c *fiber.Ctx, tx *types.Transaction) (*types.Transaction
 	}
 
 	return types.SignTxAsFeePayer(updatedTx, types.NewEIP155Signer(tx.ChainId()), feePayerKey)
-}
-
-func CreateUnsignedTx(tx *SignModel, feePayerPublicKey string) (*types.Transaction, error) {
-	nonce, err := strconv.ParseUint(tx.Nonce[2:], 16, 64)
-	if err != nil {
-		return nil, err
-	}
-	to := common.HexToAddress(tx.To)
-	value, success := new(big.Int).SetString(tx.Value, 0)
-	if !success {
-		return nil, fmt.Errorf("failed to convert value to big.Int")
-	}
-	gas, err := strconv.ParseUint(tx.Gas[2:], 16, 64)
-	if err != nil {
-		return nil, err
-	}
-	gasPrice, success := new(big.Int).SetString(tx.GasPrice, 0)
-	if !success {
-		return nil, fmt.Errorf("failed to convert gas price to big.Int")
-	}
-	data, err := hex.DecodeString(tx.Input[2:])
-	if err != nil {
-		return nil, err
-	}
-	from := common.HexToAddress(tx.From)
-	feePayer := common.HexToAddress(feePayerPublicKey)
-
-	_map := map[types.TxValueKeyType]interface{}{
-		types.TxValueKeyNonce:    nonce,
-		types.TxValueKeyTo:       to,
-		types.TxValueKeyAmount:   value,
-		types.TxValueKeyGasLimit: gas,
-		types.TxValueKeyGasPrice: gasPrice,
-		types.TxValueKeyFrom:     from,
-		types.TxValueKeyData:     data,
-		types.TxValueKeyFeePayer: feePayer,
-	}
-
-	transaction, err := types.NewTransactionWithMap(types.TxTypeFeeDelegatedSmartContractExecution, _map)
-	if err != nil {
-		return nil, err
-	}
-
-	r, _ := new(big.Int).SetString(tx.R, 0)
-	s, _ := new(big.Int).SetString(tx.S, 0)
-	v, _ := new(big.Int).SetString(tx.V, 0)
-
-	transaction.SetSignature(types.TxSignatures([]*types.TxSignature{
-		{
-			R: r,
-			S: s,
-			V: v,
-		},
-	}))
-
-	return transaction, nil
 }
 
 func updateFeePayer(tx *types.Transaction, feePayer common.Address) (*types.Transaction, error) {
@@ -529,32 +366,4 @@ func insertTransaction(c *fiber.Ctx, payload *SignInsertPayload) (*SignModel, er
 		return nil, err
 	}
 	return &transaction, nil
-}
-
-func updateTransaction(c *fiber.Ctx, tx *SignModel) (*SignModel, error) {
-	result, err := utils.QueryRow[SignModel](c, UpdateTransaction, map[string]any{
-		"timestamp":   tx.Timestamp.String(),
-		"from":        tx.From,
-		"to":          tx.To,
-		"input":       tx.Input,
-		"gas":         tx.Gas,
-		"value":       tx.Value,
-		"chainId":     tx.ChainId,
-		"gasPrice":    tx.GasPrice,
-		"nonce":       tx.Nonce,
-		"v":           tx.V,
-		"r":           tx.R,
-		"s":           tx.S,
-		"rawTx":       tx.RawTx,
-		"signedRawTx": tx.SignedRawTx,
-		"succeed":     tx.Succeed,
-		"functionId":  tx.FunctionId,
-		"contractId":  tx.ContractId,
-		"reporterId":  tx.ReporterId,
-		"id":          tx.Id,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return &result, nil
 }
