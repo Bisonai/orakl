@@ -87,10 +87,12 @@ func Setup(options ...string) (AppConfig, error) {
 	// shared across requests, otherwise the cache is rebuilt empty on every
 	// request and every sign hits the db for contract validation
 	validContracts := new(sync.Map)
+	validFunctions := new(sync.Map)
 	app.Use(func(c *fiber.Ctx) error {
 		c.Locals("feePayer", CurrentFeePayer())
 		c.Locals("pgxConn", pgxPool)
 		c.Locals("validContracts", validContracts)
+		c.Locals("validFunctions", validFunctions)
 		return c.Next()
 	})
 
