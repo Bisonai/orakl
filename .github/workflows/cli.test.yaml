@@ -6,6 +6,7 @@ on:
       - "master"
     paths:
       - "cli/**"
+      - ".github/workflows/cli.test.yaml"
   workflow_dispatch:
 
 jobs:
@@ -52,20 +53,16 @@ jobs:
           go-version-file: node/go.mod
           check-latest: true
           cache-dependency-path: |
-            ./api/go.sum
+            ./node/go.sum
 
       - name: Install golang-migrate
         run: |
           curl -L https://github.com/golang-migrate/migrate/releases/download/v4.17.0/migrate.linux-amd64.tar.gz | tar xvz
           sudo mv ./migrate /usr/bin
 
-      - name: Install delegator dependencies
-        working-directory: ./delegator
-        run: go mod tidy
-
-      - name: Install api dependencies
-        working-directory: ./api
-        run: go mod tidy
+      - name: Install Go dependencies
+        working-directory: ./node
+        run: go mod download
 
       - name: Create delegator database
         run: PGPASSWORD=$POSTGRES_PASSWORD psql -h localhost -U postgres -c "CREATE DATABASE delegator"
@@ -73,24 +70,24 @@ jobs:
           POSTGRES_PASSWORD: postgres
 
       - name: Delegator db migrate
-        working-directory: ./delegator
-        run: migrate -database "postgresql://postgres:postgres@localhost:5432/delegator?search_path=public&sslmode=disable" -verbose -path ./migrations up
+        working-directory: ./node
+        run: migrate -database "postgresql://postgres:postgres@localhost:5432/delegator?search_path=public&sslmode=disable" -verbose -path ./migrations/delegator up
 
       - name: Api db migrate
-        working-directory: ./api
-        run: migrate -database "postgresql://postgres:postgres@localhost:5432/miko-test?search_path=public&sslmode=disable" -verbose -path ./migrations up
+        working-directory: ./node
+        run: migrate -database "postgresql://postgres:postgres@localhost:5432/miko-test?search_path=public&sslmode=disable" -verbose -path ./migrations/api up
 
       - name: Run delegator
-        working-directory: ./delegator
-        run: go run main.go &
+        working-directory: ./node
+        run: go run ./cmd/delegator &
         env:
           DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/delegator?search_path=public"
           PROVIDER_URL: "https://public-en-kairos.node.kaia.io"
           APP_PORT: "3002"
 
       - name: Run api
-        working-directory: ./api
-        run: go run main.go &
+        working-directory: ./node
+        run: go run ./cmd/api &
         env:
           DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/miko-test?search_path=public"
           ENCRYPT_PASSWORD: "abc123"
