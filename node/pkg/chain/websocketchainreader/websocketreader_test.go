@@ -257,21 +257,25 @@ func TestBackfillCappedAndChunked(t *testing.T) {
 	assert.Equal(t, head, qs[len(qs)-1].ToBlock.Uint64())
 }
 
-func TestBackfillErrorKeepsStreaming(t *testing.T) {
+func TestBackfillErrorRetriesThenStreams(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	fc := newFakeClient(5)
-	fc.filterErr = errors.New("range not supported")
+	fc.filterErr = errors.New("rate limited")
 	out := make(chan types.Log)
 	subscribe(t, ctx, fc, out, WithStartBlockNumber(big.NewInt(1)))
 
-	call := nextCall(t, fc.calls)
+	var call subscribeCall
+	for i := 0; i < maxBackfillAttempts; i++ {
+		call = nextCall(t, fc.calls)
+		assert.Equal(t, uint64(1), call.query.FromBlock.Uint64())
+	}
 	call.logs <- testLog(6, 0)
 	assert.Equal(t, testLog(6, 0), recvLog(t, out))
 }
 
-func TestRemovedLogSkippedAndReminedDelivered(t *testing.T) {
+func TestBackfillLaggingBackendDoesNotDropStreamedLogs(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -279,16 +283,47 @@ func TestRemovedLogSkippedAndReminedDelivered(t *testing.T) {
 	out := make(chan types.Log)
 	subscribe(t, ctx, fc, out)
 
-	call := nextCall(t, fc.calls)
-	call.logs <- testLog(101, 0)
-	assert.Equal(t, testLog(101, 0), recvLog(t, out))
+	first := nextCall(t, fc.calls)
+	// Head moves to 110 but the getLogs backend hasn't indexed block 110 yet.
+	fc.mine(110)
+	first.sub.errCh <- errors.New("connection dropped")
+	second := nextCall(t, fc.calls)
+	second.logs <- testLog(110, 0)
+	assert.Equal(t, testLog(110, 0), recvLog(t, out))
+}
 
-	removed := testLog(101, 0)
-	removed.Removed = true
-	call.logs <- removed
-	call.logs <- testLog(101, 0) // re-mined at the same position
-	assert.Equal(t, testLog(101, 0), recvLog(t, out))
-	assertNoLog(t, out)
+func withHash(l types.Log, h byte, removed bool) types.Log {
+	l.BlockHash = kaiaCommon.Hash{h}
+	l.Removed = removed
+	return l
+}
+
+func TestReorgedLogDeliveredInEitherOrder(t *testing.T) {
+	for _, removedFirst := range []bool{true, false} {
+		ctx, cancel := context.WithCancel(context.Background())
+		fc := newFakeClient(100)
+		out := make(chan types.Log)
+		subscribe(t, ctx, fc, out)
+
+		call := nextCall(t, fc.calls)
+		orig := withHash(testLog(101, 0), 1, false)
+		removed := withHash(testLog(101, 0), 1, true)
+		remined := withHash(testLog(101, 0), 2, false)
+
+		call.logs <- orig
+		assert.Equal(t, orig, recvLog(t, out))
+		if removedFirst {
+			call.logs <- removed
+			call.logs <- remined
+			assert.Equal(t, remined, recvLog(t, out))
+		} else {
+			call.logs <- remined
+			assert.Equal(t, remined, recvLog(t, out))
+			call.logs <- removed
+		}
+		assertNoLog(t, out) // removed log never forwarded
+		cancel()
+	}
 }
 
 func TestProcessLogsExitsOnContextCancel(t *testing.T) {
