@@ -2,6 +2,7 @@ package helper
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"testing"
 	"time"
@@ -33,6 +34,17 @@ func (r *callRecorder) snapshot() []time.Time {
 	return append([]time.Time(nil), r.times...)
 }
 
+type reconnectFunc = func(context.Context, host.Host) ([]peer.ID, error)
+
+// knows returns a reconnect fake that records the call and reports ids as
+// known to the boot API without dialing.
+func (r *callRecorder) knows(ids ...peer.ID) reconnectFunc {
+	return func(context.Context, host.Host) ([]peer.ID, error) {
+		r.add()
+		return ids, nil
+	}
+}
+
 func newHost(t *testing.T) host.Host {
 	t.Helper()
 	h, err := setup.NewHost(context.Background())
@@ -42,7 +54,7 @@ func newHost(t *testing.T) host.Host {
 }
 
 // connectedPair returns a running App on h1, connected to h2.
-func connectedPair(t *testing.T, ctx context.Context, reconnect func(context.Context, host.Host) error, backoff []time.Duration) (*App, host.Host, host.Host) {
+func connectedPair(t *testing.T, ctx context.Context, reconnect reconnectFunc, backoff []time.Duration) (*App, host.Host, host.Host) {
 	t.Helper()
 	h1, h2 := newHost(t), newHost(t)
 
@@ -66,9 +78,9 @@ func TestReconnectImmediateAndStopsOnSuccess(t *testing.T) {
 
 	rec := &callRecorder{}
 	var h2 host.Host
-	_, h1, h2 := connectedPair(t, ctx, func(ctx context.Context, h host.Host) error {
+	_, h1, h2 := connectedPair(t, ctx, func(ctx context.Context, h host.Host) ([]peer.ID, error) {
 		rec.add()
-		return dial(ctx, h, h2)
+		return []peer.ID{h2.ID()}, dial(ctx, h, h2)
 	}, []time.Duration{10 * time.Millisecond})
 
 	start := time.Now()
@@ -90,11 +102,11 @@ func TestReconnectBacksOffUntilConnected(t *testing.T) {
 	backoff := []time.Duration{20 * time.Millisecond, 40 * time.Millisecond, 80 * time.Millisecond}
 	rec := &callRecorder{}
 	var h2 host.Host
-	_, h1, h2 := connectedPair(t, ctx, func(ctx context.Context, h host.Host) error {
+	_, h1, h2 := connectedPair(t, ctx, func(ctx context.Context, h host.Host) ([]peer.ID, error) {
 		if rec.add() < 4 {
-			return nil // sync "succeeds" but peer still down
+			return []peer.ID{h2.ID()}, nil // sync "succeeds" but peer still down
 		}
-		return dial(ctx, h, h2)
+		return []peer.ID{h2.ID()}, dial(ctx, h, h2)
 	}, backoff)
 
 	require.NoError(t, h1.Network().ClosePeer(h2.ID()))
@@ -117,7 +129,7 @@ func TestReconnectGivesUpAfterMaxAttempts(t *testing.T) {
 	rec := &callRecorder{}
 	h1, h2 := newHost(t), newHost(t)
 	app := New(bus.New(10), h1)
-	app.reconnect = func(context.Context, host.Host) error { rec.add(); return nil }
+	app.reconnect = rec.knows(h2.ID())
 	app.backoff = []time.Duration{time.Millisecond}
 	app.maxAttempts = 3
 	app.minSyncInterval = 0
@@ -137,13 +149,13 @@ func TestDisconnectEventDoesNotBlockEventLoop(t *testing.T) {
 	release := make(chan struct{})
 	rec := &callRecorder{}
 	app := New(bus.New(10), newHost(t))
-	app.reconnect = func(ctx context.Context, _ host.Host) error {
+	app.reconnect = func(ctx context.Context, _ host.Host) ([]peer.ID, error) {
 		rec.add()
 		select {
 		case <-release:
 		case <-ctx.Done():
 		}
-		return nil
+		return nil, nil
 	}
 	app.minSyncInterval = 0
 	go app.reconnectWorker(ctx)
@@ -176,7 +188,7 @@ func TestReconnectIgnoresNonDisconnectAndReturnedPeer(t *testing.T) {
 	rec := &callRecorder{}
 	h1, h2 := newHost(t), newHost(t)
 	app := New(bus.New(10), h1)
-	app.reconnect = func(context.Context, host.Host) error { rec.add(); return nil }
+	app.reconnect = rec.knows(h2.ID())
 	app.minSyncInterval = 0
 	go app.reconnectWorker(ctx)
 	require.NoError(t, dial(ctx, h1, h2))
@@ -194,13 +206,14 @@ func TestReconnectStopsOnCtxCancel(t *testing.T) {
 
 	rec := &callRecorder{}
 	app := New(bus.New(10), newHost(t))
-	app.reconnect = func(context.Context, host.Host) error { rec.add(); return nil }
+	other := newHost(t).ID()
+	app.reconnect = rec.knows(other)
 	app.backoff = []time.Duration{time.Hour}
 	app.minSyncInterval = 0
 	stopped := make(chan struct{})
 	go func() { app.reconnectWorker(ctx); close(stopped) }()
 
-	app.handleDisconnectEvent(evtNotConnected(newHost(t).ID()))
+	app.handleDisconnectEvent(evtNotConnected(other))
 	require.Eventually(t, func() bool { return len(rec.snapshot()) == 1 }, time.Second, time.Millisecond)
 
 	cancel()
@@ -217,12 +230,12 @@ func TestMinSyncIntervalAcrossEvents(t *testing.T) {
 
 	rec := &callRecorder{}
 	app := New(bus.New(10), newHost(t))
-	app.reconnect = func(context.Context, host.Host) error { rec.add(); return nil }
+	other := newHost(t).ID()
+	app.reconnect = rec.knows(other)
 	app.maxAttempts = 1
 	app.minSyncInterval = 150 * time.Millisecond
 	go app.reconnectWorker(ctx)
 
-	other := newHost(t).ID()
 	app.handleDisconnectEvent(evtNotConnected(other))
 	require.Eventually(t, func() bool { return len(rec.snapshot()) == 1 }, time.Second, time.Millisecond)
 	time.Sleep(20 * time.Millisecond) // let worker give up and go idle
@@ -239,4 +252,89 @@ func evtNotConnected(p peer.ID) event.EvtPeerConnectednessChanged {
 
 func evtConnected(p peer.ID) event.EvtPeerConnectednessChanged {
 	return event.EvtPeerConnectednessChanged{Peer: p, Connectedness: network.Connected}
+}
+
+func TestReconnectDropsPeerUnknownToBootApi(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	rec := &callRecorder{}
+	app := New(bus.New(10), newHost(t))
+	app.reconnect = rec.knows() // e.g. old ID of a restarted node, boot host
+	app.backoff = []time.Duration{time.Millisecond}
+	app.minSyncInterval = 0
+	go app.reconnectWorker(ctx)
+
+	app.handleDisconnectEvent(evtNotConnected(newHost(t).ID()))
+	require.Eventually(t, func() bool { return len(rec.snapshot()) == 1 }, time.Second, time.Millisecond)
+	time.Sleep(50 * time.Millisecond)
+	require.Len(t, rec.snapshot(), 1, "peer not listed by boot API must not be retried")
+}
+
+func TestReconnectSyncErrorKeepsPeer(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	rec := &callRecorder{}
+	app := New(bus.New(10), newHost(t))
+	app.reconnect = func(context.Context, host.Host) ([]peer.ID, error) {
+		rec.add()
+		return nil, errors.New("boot api down")
+	}
+	app.backoff = []time.Duration{time.Millisecond}
+	app.maxAttempts = 3
+	app.minSyncInterval = 0
+	go app.reconnectWorker(ctx)
+
+	app.handleDisconnectEvent(evtNotConnected(newHost(t).ID()))
+	require.Eventually(t, func() bool { return len(rec.snapshot()) == 3 }, time.Second, time.Millisecond)
+}
+
+func TestNewDisconnectSkipsBackoff(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	rec := &callRecorder{}
+	a, b := newHost(t).ID(), newHost(t).ID()
+	app := New(bus.New(10), newHost(t))
+	app.reconnect = rec.knows(a, b)
+	app.backoff = []time.Duration{time.Hour}
+	app.minSyncInterval = 0
+	go app.reconnectWorker(ctx)
+
+	app.handleDisconnectEvent(evtNotConnected(a))
+	require.Eventually(t, func() bool { return len(rec.snapshot()) == 1 }, time.Second, time.Millisecond)
+
+	// worker now in 1h backoff for a; b must still be tried right away
+	app.handleDisconnectEvent(evtNotConnected(b))
+	require.Eventually(t, func() bool { return len(rec.snapshot()) == 2 }, time.Second, time.Millisecond)
+}
+
+func TestGiveUpKeepsPeerQueuedDuringLastAttempt(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	a, b := newHost(t).ID(), newHost(t).ID()
+	app := New(bus.New(10), newHost(t))
+	rec := &callRecorder{}
+	app.reconnect = func(context.Context, host.Host) ([]peer.ID, error) {
+		if rec.add() == 1 {
+			app.handleDisconnectEvent(evtNotConnected(b)) // b drops during last attempt for a
+		}
+		return []peer.ID{a, b}, nil
+	}
+	app.backoff = []time.Duration{time.Millisecond}
+	app.maxAttempts = 1
+	app.minSyncInterval = 0
+	go app.reconnectWorker(ctx)
+
+	app.handleDisconnectEvent(evtNotConnected(a))
+	require.Eventually(t, func() bool { return len(rec.snapshot()) == 2 }, time.Second, time.Millisecond)
+}
+
+func TestEmptyBackoffFallsBackToDefault(t *testing.T) {
+	app := &App{}
+	require.Equal(t, defaultReconnectBackoff[0], app.backoffAfter(1))
+	app.backoff = []time.Duration{time.Millisecond, time.Second}
+	require.Equal(t, time.Second, app.backoffAfter(10))
 }

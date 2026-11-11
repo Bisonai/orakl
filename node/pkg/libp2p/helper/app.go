@@ -3,6 +3,7 @@ package helper
 import (
 	"context"
 	"fmt"
+	"slices"
 	"sync"
 	"time"
 
@@ -39,13 +40,14 @@ type App struct {
 	Bus  *bus.MessageBus
 
 	// reconnect state; timing is injectable for tests
-	reconnect       func(context.Context, host.Host) error
+	reconnect       func(context.Context, host.Host) ([]peer.ID, error)
 	backoff         []time.Duration
 	maxAttempts     int
 	minSyncInterval time.Duration
 
 	mu      sync.Mutex
 	pending map[peer.ID]struct{}
+	queued  bool // a peer was queued since the worker last looked
 	wake    chan struct{}
 }
 
@@ -53,7 +55,7 @@ func New(bus *bus.MessageBus, h host.Host) *App {
 	return &App{
 		Bus:             bus,
 		Host:            h,
-		reconnect:       setup.ConnectThroughBootApi,
+		reconnect:       setup.SyncThroughBootApi,
 		backoff:         defaultReconnectBackoff,
 		maxAttempts:     defaultMaxReconnectAttempts,
 		minSyncInterval: defaultMinSyncInterval,
@@ -128,12 +130,15 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 func (a *App) subscribeLibp2pEvent(ctx context.Context, sub event.Subscription) {
 	go a.reconnectWorker(ctx)
 	go func() {
+		defer sub.Close()
 		for {
 			select {
 			case <-ctx.Done():
-				sub.Close()
 				return
-			case e := <-sub.Out():
+			case e, ok := <-sub.Out():
+				if !ok {
+					return
+				}
 				a.handleDisconnectEvent(e)
 			}
 		}
@@ -151,6 +156,7 @@ func (a *App) handleDisconnectEvent(e interface{}) {
 
 	a.mu.Lock()
 	a.pending[evt.Peer] = struct{}{}
+	a.queued = true
 	a.mu.Unlock()
 
 	select {
@@ -173,11 +179,14 @@ func (a *App) reconnectWorker(ctx context.Context) {
 }
 
 // reconnectUntilConnected syncs through the boot API right away, then with
-// backoff, until every pending peer is connected again, maxAttempts is hit or
-// ctx is done. It returns the time of the last sync.
+// backoff, until every pending peer is connected again or unknown to the boot
+// API, maxAttempts is hit or ctx is done. A new disconnect event restarts the
+// backoff. It returns the time of the last sync.
 func (a *App) reconnectUntilConnected(ctx context.Context, lastSync time.Time) time.Time {
-	for attempt := 0; ; attempt++ {
-		if a.prunePending() == 0 {
+	attempt := 0
+	a.takeQueued()
+	for {
+		if a.prunePending(nil) == 0 {
 			return lastSync
 		}
 		if wait := a.minSyncInterval - time.Since(lastSync); wait > 0 {
@@ -186,45 +195,84 @@ func (a *App) reconnectUntilConnected(ctx context.Context, lastSync time.Time) t
 			}
 		}
 
-		err := a.reconnect(ctx, a.Host)
+		known, err := a.reconnect(ctx, a.Host)
 		lastSync = time.Now()
+		attempt++
 		if err != nil {
-			log.Error().Err(err).Str("Player", "Libp2pHelper").Int("attempt", attempt+1).Msg("Error occurred on boot API sync")
+			log.Error().Err(err).Str("Player", "Libp2pHelper").Int("attempt", attempt).Msg("Error occurred on boot API sync")
+			known = nil
+		} else if known == nil {
+			known = []peer.ID{} // successful sync, empty boot list
 		}
 
-		if a.prunePending() == 0 {
-			log.Info().Str("Player", "Libp2pHelper").Int("attempt", attempt+1).Msg("peers reconnected")
+		if a.prunePending(known) == 0 {
+			log.Info().Str("Player", "Libp2pHelper").Int("attempt", attempt).Msg("peers reconnected")
 			return lastSync
 		}
-		if attempt+1 >= a.maxAttempts {
-			log.Warn().Str("Player", "Libp2pHelper").Int("attempts", attempt+1).Msg("giving up reconnect until next disconnect event")
-			a.clearPending()
-			return lastSync
+		if attempt >= a.maxAttempts {
+			if a.giveUp() {
+				log.Warn().Str("Player", "Libp2pHelper").Int("attempts", attempt).Msg("giving up reconnect until next disconnect event")
+				return lastSync
+			}
+			attempt = 0 // peer queued meanwhile: start over
+			continue
 		}
 
-		if !sleepCtx(ctx, a.backoff[min(attempt, len(a.backoff)-1)]) {
+		t := time.NewTimer(a.backoffAfter(attempt))
+		select {
+		case <-ctx.Done():
+			t.Stop()
 			return lastSync
+		case <-t.C:
+		case <-a.wake:
+			t.Stop()
+			attempt = 0 // new disconnect: retry now, not after backoff
+			a.takeQueued()
 		}
 	}
 }
 
-// prunePending drops pending peers that are connected again and returns how
-// many are still disconnected.
-func (a *App) prunePending() int {
+// prunePending drops pending peers that are connected again, and, when known
+// is non-nil (successful sync), peers the boot API no longer lists, e.g. the
+// old ID of a restarted node or a non-oracle peer. It returns how many remain.
+func (a *App) prunePending(known []peer.ID) int {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	for p := range a.pending {
-		if a.Host.Network().Connectedness(p) == network.Connected {
+		if a.Host.Network().Connectedness(p) == network.Connected ||
+			(known != nil && !slices.Contains(known, p)) {
 			delete(a.pending, p)
 		}
 	}
 	return len(a.pending)
 }
 
-func (a *App) clearPending() {
+// backoffAfter returns the wait after the given (1-based) failed attempt.
+func (a *App) backoffAfter(attempt int) time.Duration {
+	b := a.backoff
+	if len(b) == 0 {
+		b = defaultReconnectBackoff
+	}
+	return b[min(max(attempt-1, 0), len(b)-1)]
+}
+
+func (a *App) takeQueued() {
 	a.mu.Lock()
 	defer a.mu.Unlock()
+	a.queued = false
+}
+
+// giveUp clears pending unless a peer was queued since the last takeQueued,
+// in which case it returns false so the caller retries.
+func (a *App) giveUp() bool {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if a.queued {
+		a.queued = false
+		return false
+	}
 	clear(a.pending)
+	return true
 }
 
 func sleepCtx(ctx context.Context, d time.Duration) bool {
