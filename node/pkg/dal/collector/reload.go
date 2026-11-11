@@ -56,20 +56,10 @@ func (c *Collector) UpdateConfigs(ctx context.Context, configs []Config) (map[st
 	sort.Slice(added, func(i, j int) bool { return added[i].Name < added[j].Name })
 	sort.Strings(removed)
 
-	// Subscribe first: on error nothing changed and the reload is retried.
-	if len(added) > 0 || len(removed) > 0 {
-		topics := make([]string, 0, len(wanted))
-		for name := range wanted {
-			topics = append(topics, keys.SubmissionDataStreamKey(name))
-		}
-		sort.Strings(topics)
-		if err := c.resubscribe(topics); err != nil {
-			return nil, nil, err
-		}
-	}
-
+	// Add maps before subscribing so the first update of an added symbol is
+	// not dropped as unknown; roll back if subscribing fails (the reload is
+	// then retried and sees the same additions).
 	c.mu.Lock()
-	defer c.mu.Unlock()
 	for name, config := range wanted {
 		if _, ok := c.FeedHashes[name]; ok {
 			c.Configs[name] = config
@@ -83,7 +73,28 @@ func (c *Collector) UpdateConfigs(ctx context.Context, configs []Config) (map[st
 		c.Configs[config.Name] = config
 		addedStreams[config.Name] = stream
 	}
+	c.mu.Unlock()
+
+	if len(added) > 0 || len(removed) > 0 {
+		topics := make([]string, 0, len(wanted))
+		for name := range wanted {
+			topics = append(topics, keys.SubmissionDataStreamKey(name))
+		}
+		sort.Strings(topics)
+		if err := c.resubscribe(topics); err != nil {
+			c.RemoveSymbols(configNames(added))
+			return nil, nil, err
+		}
+	}
 	return addedStreams, removed, nil
+}
+
+func configNames(configs []Config) []string {
+	out := make([]string, len(configs))
+	for i, c := range configs {
+		out[i] = c.Name
+	}
+	return out
 }
 
 // RemoveSymbols drops the symbols' state and closes their outgoing streams

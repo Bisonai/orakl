@@ -36,12 +36,13 @@ const (
 	// legitimate rotation while preventing a sustained mismatch (e.g. a signer freeze, where every
 	// feed's proof is rejected ~2.5x/s) from spawning hundreds of on-chain calls per second.
 	OnDemandRefreshCooldown = 1 * time.Second
-	// ResubscribeGrace keeps the previous redis subscriptions open this long after a config
-	// reload started new ones, so unchanged symbols see no gap (duplicates are dropped by the
-	// timestamp compare-and-swap).
-	ResubscribeGrace   = 5 * time.Second
-	OutgoingStreamSize = 1000
+	OutgoingStreamSize      = 1000
 )
+
+// ResubscribeGrace keeps the previous redis subscriptions open this long after a config reload
+// started new ones (which connect asynchronously), so unchanged symbols see no gap (duplicates
+// are dropped by the timestamp compare-and-swap). A var so tests can shorten it.
+var ResubscribeGrace = 30 * time.Second
 
 type Config = types.Config
 

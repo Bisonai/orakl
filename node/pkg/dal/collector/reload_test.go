@@ -108,7 +108,7 @@ func TestUpdateConfigsSubscribeErrorChangesNothing(t *testing.T) {
 	f.err = assert.AnError
 	_, _, err := c.UpdateConfigs(context.Background(), cfgs("A-B", "E-F"))
 	assert.ErrorIs(t, err, assert.AnError)
-	assert.NotContains(t, c.Streams(), "E-F")
+	assert.NotContains(t, c.Streams(), "E-F", "added symbol rolled back")
 
 	// retried later: still detected as an addition
 	f.err = nil
@@ -126,6 +126,9 @@ func TestUpdateConfigsEmptyRefused(t *testing.T) {
 }
 
 func TestResubscribeCancelsPreviousAfterGrace(t *testing.T) {
+	orig := ResubscribeGrace
+	ResubscribeGrace = 200 * time.Millisecond
+	t.Cleanup(func() { ResubscribeGrace = orig })
 	c, f := newTestCollector(t, "A-B")
 	_, _, err := c.UpdateConfigs(context.Background(), cfgs("A-B", "C-D"))
 	require.NoError(t, err)
