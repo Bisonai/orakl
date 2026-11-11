@@ -51,6 +51,11 @@ func allNodesHaveSameTerm(nodes []*Raft) bool {
 			return false
 		}
 	}
+	// a candidate needs its peers' votes, so nodes can share a term
+	// mid-election (split vote, grant in flight) before one leads
+	if _, led := singleLeader(nodes); !led {
+		return false
+	}
 	fmt.Println("all nodes have same term: ", nodes[0].GetCurrentTerm())
 	return true
 }
@@ -60,6 +65,11 @@ func allNodesHaveSameTermMin(nodes []*Raft, min int) bool {
 		if nodes[0].GetCurrentTerm() <= min || nodes[0].GetCurrentTerm() != nodes[i].GetCurrentTerm() {
 			return false
 		}
+	}
+	// a candidate needs its peers' votes, so nodes can share a term
+	// mid-election (split vote, grant in flight) before one leads
+	if _, led := singleLeader(nodes); !led {
+		return false
 	}
 	fmt.Println("all nodes have same term: ", nodes[0].GetCurrentTerm())
 	return true
