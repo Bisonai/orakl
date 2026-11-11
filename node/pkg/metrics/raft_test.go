@@ -12,12 +12,14 @@ import (
 )
 
 func TestRecordRaftElectionStarted(t *testing.T) {
-	timeout := raftElectionsStarted.WithLabelValues(RaftElectionReasonTimeout)
-	before := testutil.ToFloat64(timeout)
+	for _, reason := range []string{RaftElectionReasonTimeout, RaftElectionReasonDisconnect, RaftElectionReasonShutdown} {
+		counter := raftElectionsStarted.WithLabelValues(reason)
+		before := testutil.ToFloat64(counter)
 
-	RecordRaftElectionStarted(RaftElectionReasonTimeout)
+		RecordRaftElectionStarted(reason)
 
-	assert.Equal(t, before+1, testutil.ToFloat64(timeout))
+		assert.Equal(t, before+1, testutil.ToFloat64(counter), reason)
+	}
 }
 
 func TestRecordRaftLeaderChangeSilence(t *testing.T) {
