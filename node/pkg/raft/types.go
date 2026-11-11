@@ -27,6 +27,11 @@ const (
 
 	MaxMissedHeartbeats   = 2
 	DefaultCooldownPeriod = 3 * time.Second
+
+	// above the longest leader silence seen on mainnet (<7.5 s over 24 h,
+	// 99.99% <2.5 s), so a stall doesn't count a live peer out
+	DefaultPeerSilenceTimeout = 10 * time.Second
+	DefaultLeaderJobWatchdog  = 10 * time.Second
 )
 
 type Message struct {
@@ -76,6 +81,18 @@ type Raft struct {
 	CooldownPeriod   time.Duration
 	LastElectionTime time.Time
 
+	// a subscribed peer silent this long isn't counted as a voter, so a peer
+	// that hangs while connected can't block every election
+	PeerSilenceTimeout time.Duration
+	// a leader whose LeaderJob hasn't succeeded this long resigns
+	LeaderJobWatchdog time.Duration
+
+	// no campaign before this, after resigning a stuck term; under Mutex
+	campaignAfter time.Time
+
+	// peer ID -> *atomic.Int64, ns since leaderClockEpoch of its last message
+	peerSeen sync.Map
+
 	// atomic mirror of LeaderID for the message path, which must not take Mutex
 	// for metrics; nil when this node is the leader or there is none
 	leaderClock atomic.Pointer[leaderClock]
@@ -87,6 +104,7 @@ type leaderClock struct {
 	id       string
 	term     int          // term this peer last became the leader at, under Raft.Mutex
 	lastSeen atomic.Int64 // ns since leaderClockEpoch
-	// last heartbeat, same unit: leader stickiness (hearsLeaderOtherThan)
-	heartbeatAt atomic.Int64
+	// last message other than a vote, same unit: leader stickiness
+	// (hearsLeaderOtherThan)
+	activeAt atomic.Int64
 }

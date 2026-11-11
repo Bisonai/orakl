@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -58,24 +59,41 @@ func TestRequestVoteIgnoredWhileLeaderHeard(t *testing.T) {
 	assert.Equal(t, candidate, votedFor)
 }
 
-// Only heartbeats reset election timers, so only they hold off a vote: a leader
-// whose heartbeats stopped must not keep peers refusing while its jobs still run.
-func TestRequestVoteGrantedWhenOnlyLeaderJobsHeard(t *testing.T) {
+// Any leader message holds off a vote, so stickiness survives sparser heartbeats
+// (#2747). A vote from the leader doesn't: it is no sign of leading.
+func TestRequestVoteStickinessCountsLeaderMessages(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	node, _ := newLeaderLoopNode(ctx, t)
-	node.HandleCustomMessage = func(context.Context, Message) error { return nil }
-	leader, candidate := testPeerID(t), testPeerID(t)
-	require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, leader, 3)))
+	for name, tc := range map[string]struct {
+		msgType MessageType
+		granted bool
+	}{
+		"trigger":   {"trigger", false},
+		"replyVote": {ReplyVote, true},
+	} {
+		t.Run(name, func(t *testing.T) {
+			node, _ := newLeaderLoopNode(ctx, t)
+			node.HandleCustomMessage = func(context.Context, Message) error { return nil }
+			leader, candidate := testPeerID(t), testPeerID(t)
+			require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, leader, 3)))
 
-	time.Sleep(node.minElectionTimeout() + testLeaderInterval)
-	require.NoError(t, node.handleMessage(ctx, Message{Type: "trigger", SentFrom: leader}))
-	require.NoError(t, node.handleMessage(ctx, requestVoteFrom(t, candidate, 4)))
+			time.Sleep(node.minElectionTimeout() + testLeaderInterval)
+			data, err := encodeInner(ReplyRequestVoteMessage{VoteGranted: true, LeaderID: candidate})
+			require.NoError(t, err)
+			require.NoError(t, node.handleMessage(ctx, Message{Type: tc.msgType, SentFrom: leader, Data: data}))
+			require.NoError(t, node.handleMessage(ctx, requestVoteFrom(t, candidate, 4)))
 
-	term, votedFor, _ := voteState(node)
-	assert.Equal(t, 4, term)
-	assert.Equal(t, candidate, votedFor)
+			term, votedFor, _ := voteState(node)
+			if tc.granted {
+				assert.Equal(t, 4, term)
+				assert.Equal(t, candidate, votedFor)
+			} else {
+				assert.Equal(t, 3, term)
+				assert.Empty(t, votedFor)
+			}
+		})
+	}
 }
 
 // A leader that campaigns has lost its role, so hearing it is no reason to refuse.
@@ -106,9 +124,9 @@ func TestRequestVoteIgnoredByLeader(t *testing.T) {
 	assert.Equal(t, term, node.GetCurrentTerm())
 }
 
-// startCluster runs n fully connected nodes and waits until each sees the others
-// on the topic.
-func startCluster(ctx context.Context, t *testing.T, n int) []*Raft {
+// startCluster runs n fully connected nodes, each first passed to configure, and
+// waits until each sees the others on the topic.
+func startCluster(ctx context.Context, t *testing.T, n int, configure ...func(*Raft)) []*Raft {
 	t.Helper()
 	nodes := make([]*Raft, 0, n)
 	for i := 0; i < n; i++ {
@@ -126,6 +144,9 @@ func startCluster(ctx context.Context, t *testing.T, n int) []*Raft {
 		node := NewRaftNode(h, ps, topic, 100, time.Second)
 		node.LeaderJob = func(context.Context) error { return nil }
 		node.HandleCustomMessage = func(context.Context, Message) error { return nil }
+		for _, c := range configure {
+			c(node)
+		}
 		nodes = append(nodes, node)
 	}
 	for _, node := range nodes {
@@ -306,4 +327,115 @@ func TestSimultaneousCandidatesConverge(t *testing.T) {
 			assert.Greater(t, newLeader.GetCurrentTerm(), term)
 		})
 	}
+}
+
+func TestLiveVotersSkipsSilentPeer(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	nodes := startCluster(ctx, t, 2)
+	node, peerID := nodes[0], nodes[1].GetHostId()
+	setSeen := func(ago time.Duration) {
+		stamp, _ := node.peerSeen.LoadOrStore(peerID, &atomic.Int64{})
+		stamp.(*atomic.Int64).Store(int64(time.Since(leaderClockEpoch) - ago))
+	}
+
+	node.Mutex.Lock()
+	defer node.Mutex.Unlock()
+	setSeen(node.PeerSilenceTimeout / 2) // a stall below the timeout
+	assert.Equal(t, 1, node.liveVoters())
+	setSeen(node.PeerSilenceTimeout + time.Second)
+	assert.Equal(t, 0, node.liveVoters())
+
+	// a subscribed peer not heard from yet counts from now
+	node.peerSeen.Delete(peerID)
+	assert.Equal(t, 1, node.liveVoters())
+	_, ok := node.peerSeen.Load(peerID)
+	assert.True(t, ok)
+}
+
+// A leader that hangs but stays connected (subscribed, sends nothing) is replaced
+// on 2 nodes once it has been silent for PeerSilenceTimeout.
+func TestHungConnectedLeaderReplaced(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	const silence = 2 * time.Second
+	nodes := startCluster(ctx, t, 2, func(r *Raft) { r.PeerSilenceTimeout = silence })
+	leader := waitForSingleLeader(t, nodes, "no initial leader")
+	survivor := otherNode(nodes, leader)
+
+	// sendHeartbeat takes the mutex, and the test LeaderJob publishes nothing
+	leader.Mutex.Lock()
+	var unlock sync.Once
+	release := func() { unlock.Do(leader.Mutex.Unlock) }
+	defer release()
+
+	start := time.Now()
+	require.Eventually(t, func() bool { return survivor.GetRole() == Leader }, testElectionWait, 50*time.Millisecond, "survivor did not take over")
+	took := time.Since(start)
+	t.Logf("survivor led after %s", took)
+	// its last heartbeat came at most an interval before the lock
+	assert.GreaterOrEqual(t, took, silence-2*survivor.HeartbeatTimeout, "won before the peer counted as silent")
+
+	release()
+	newLeader := waitForSingleLeader(t, nodes, "hung leader did not rejoin")
+	assert.Equal(t, survivor, newLeader)
+}
+
+// Heartbeats alive, rounds dead: the leader resigns after LeaderJobWatchdog and
+// its peer takes over, not the resigned node again.
+func TestStuckLeaderJobResigns(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	const watchdog = time.Second
+	failing := map[*Raft]*atomic.Bool{}
+	nodes := startCluster(ctx, t, 2, func(r *Raft) {
+		r.LeaderJobWatchdog = watchdog
+		r.LeaderJobTimeout = 100 * time.Millisecond
+		fail := &atomic.Bool{}
+		failing[r] = fail
+		r.LeaderJob = func(context.Context) error {
+			if fail.Load() {
+				return fmt.Errorf("stuck")
+			}
+			return nil
+		}
+	})
+	leader := waitForSingleLeader(t, nodes, "no initial leader")
+	peer := otherNode(nodes, leader)
+	term := leader.GetCurrentTerm()
+
+	// healthy jobs keep it leading past the watchdog
+	time.Sleep(2 * watchdog)
+	require.Equal(t, Leader, leader.GetRole())
+	require.Equal(t, term, leader.GetCurrentTerm())
+
+	failing[leader].Store(true)
+	require.Eventually(t, func() bool { return leader.GetRole() != Leader }, 3*watchdog, 20*time.Millisecond, "stuck leader did not resign")
+
+	newLeader := waitForSingleLeader(t, nodes, "peer did not take over")
+	assert.Equal(t, peer, newLeader, "resigned node won its term back")
+}
+
+func TestResignedStuckLeaderHoldsOffCampaign(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	node, _ := newCandidate(ctx, t)
+	require.NoError(t, node.handleMessage(ctx, grantedVoteFor(t, node)))
+	require.Equal(t, Leader, node.GetRole())
+	node.Mutex.Lock()
+	resign := node.Resign
+	node.Mutex.Unlock()
+
+	node.resignStuckLeader(resign, node.LeaderJobWatchdog)
+	require.Equal(t, Follower, node.GetRole())
+	term := node.GetCurrentTerm()
+
+	forceNextElection(node)
+	node.startElection(ctx)
+	assert.Equal(t, Follower, node.GetRole())
+	assert.Equal(t, term, node.GetCurrentTerm())
 }
