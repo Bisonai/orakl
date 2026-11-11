@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// Retry/fallback/cache behaviour is covered in pkg/utils/configfetch; these
+// Retry/fallback behaviour is covered in pkg/utils/configfetch; these
 // tests only check the DAL wrapper (path + decoding + error propagation).
 
 const validConfigsBody = `[{"id":1,"name":"BTC-USDT","fetchInterval":2000,"aggregateInterval":5000,"submitInterval":15000}]`
@@ -25,7 +25,6 @@ func withFetchServer(t *testing.T, handler http.HandlerFunc) {
 	t.Cleanup(srv.Close)
 	t.Setenv("CONFIG_BASE_URL", srv.URL)
 	t.Setenv("CONFIG_FALLBACK_URL", "")
-	t.Setenv("CONFIG_CACHE_DIR", "")
 }
 
 func TestFetchConfigsDecodesBundle(t *testing.T) {

@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"path/filepath"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -25,7 +24,6 @@ func fastPolicy(t *testing.T) {
 	t.Cleanup(func() { rounds, backoff, timeout = origRounds, origBackoff, origTimeout })
 	t.Setenv("CONFIG_BASE_URL", "")
 	t.Setenv("CONFIG_FALLBACK_URL", "")
-	t.Setenv("CONFIG_CACHE_DIR", "")
 }
 
 // server answers with the given handlers in order (the last one repeats) and
@@ -140,29 +138,6 @@ func TestInvalidJSONIsNotRetried(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid JSON")
 	assert.Equal(t, int32(1), n.Load())
-}
-
-func TestCacheWrittenAndServedOnFailure(t *testing.T) {
-	fastPolicy(t)
-	dir := t.TempDir()
-	t.Setenv("CONFIG_CACHE_DIR", dir)
-
-	ok, _ := server(t, body(validBundle))
-	t.Setenv("CONFIG_BASE_URL", ok.URL)
-	_, err := Fetch(context.Background(), "/mag7/mainnet/AAPL.json")
-	require.NoError(t, err)
-	cached, err := os.ReadFile(filepath.Join(dir, "mag7_mainnet_AAPL.json"))
-	require.NoError(t, err)
-	assert.JSONEq(t, validBundle, string(cached))
-
-	down, _ := server(t, status(503))
-	t.Setenv("CONFIG_BASE_URL", down.URL)
-	b, err := Fetch(context.Background(), "/mag7/mainnet/AAPL.json")
-	require.NoError(t, err)
-	assert.JSONEq(t, validBundle, string(b))
-
-	_, err = Fetch(context.Background(), FeedsPath("mainnet"))
-	require.Error(t, err, "no cache for a path never fetched")
 }
 
 func TestCtxCancelDuringBackoff(t *testing.T) {

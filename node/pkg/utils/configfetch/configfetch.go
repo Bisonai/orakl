@@ -1,13 +1,10 @@
 // Package configfetch fetches orakl-config files (e.g. mainnet_feeds.json,
-// mag7/mainnet/AAPL.json) with retries, a fallback source and an optional
-// last-known-good disk cache.
+// mag7/mainnet/AAPL.json) with retries and a fallback source.
 //
 // Environment:
 //   - CONFIG_BASE_URL: primary source (default DefaultBaseURL).
 //   - CONFIG_FALLBACK_URL: secondary source, tried after the primary in every
 //     round (default DefaultFallbackURL; set to an empty string to disable).
-//   - CONFIG_CACHE_DIR: if set, every successful fetch is stored there and
-//     served when all sources fail (e.g. so a restart survives an outage).
 package configfetch
 
 import (
@@ -20,7 +17,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -69,8 +65,7 @@ func Get[T any](ctx context.Context, path string) (T, error) {
 // Fetch returns the raw body of path (which must start with "/"). Each round
 // tries every source in order; rounds repeat with backoff while any failure was
 // transient (network error, timeout, HTTP 5xx/408/429). A body that is not
-// valid JSON counts as a failure of that source. If all rounds fail and
-// CONFIG_CACHE_DIR holds a previous copy, that copy is returned.
+// valid JSON counts as a failure of that source.
 func Fetch(ctx context.Context, path string) ([]byte, error) {
 	if !strings.HasPrefix(path, "/") {
 		return nil, fmt.Errorf("invalid config path %q", path)
@@ -81,8 +76,6 @@ func Fetch(ctx context.Context, path string) ([]byte, error) {
 			return nil, fmt.Errorf("invalid config base url %q", b)
 		}
 	}
-	cacheDir := os.Getenv("CONFIG_CACHE_DIR")
-
 	wait := backoff
 	var errs []error
 	round := 1
@@ -93,9 +86,6 @@ func Fetch(ctx context.Context, path string) ([]byte, error) {
 			endpoint := base + path
 			body, r, err := fetchOnce(ctx, endpoint)
 			if err == nil {
-				if cacheDir != "" {
-					writeCache(cacheDir, path, body)
-				}
 				return body, nil
 			}
 			if ctxErr := ctx.Err(); ctxErr != nil {
@@ -116,14 +106,7 @@ func Fetch(ctx context.Context, path string) ([]byte, error) {
 		wait *= 2
 	}
 
-	fetchErr := fmt.Errorf("fetch config %s failed (round %d/%d): %w", path, round, rounds, errors.Join(errs...))
-	if cacheDir != "" {
-		if body, modTime, err := readCache(cacheDir, path); err == nil {
-			log.Warn().Err(fetchErr).Str("path", path).Time("cachedAt", modTime).Msg("Using cached config")
-			return body, nil
-		}
-	}
-	return nil, fetchErr
+	return nil, fmt.Errorf("fetch config %s failed (round %d/%d): %w", path, round, rounds, errors.Join(errs...))
 }
 
 func baseURLs() []string {
@@ -188,48 +171,4 @@ func withJitter(d time.Duration) time.Duration {
 		return d
 	}
 	return d + rand.N(d/4)
-}
-
-func cacheFile(dir, path string) string {
-	return filepath.Join(dir, strings.ReplaceAll(strings.TrimPrefix(path, "/"), "/", "_"))
-}
-
-// writeCache stores body atomically; failures are logged, never returned.
-func writeCache(dir, path string, body []byte) {
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		log.Warn().Err(err).Str("dir", dir).Msg("Failed to create config cache dir")
-		return
-	}
-	tmp, err := os.CreateTemp(dir, ".configfetch-*")
-	if err != nil {
-		log.Warn().Err(err).Str("dir", dir).Msg("Failed to write config cache")
-		return
-	}
-	_, err = tmp.Write(body)
-	if closeErr := tmp.Close(); err == nil {
-		err = closeErr
-	}
-	if err == nil {
-		err = os.Rename(tmp.Name(), cacheFile(dir, path))
-	}
-	if err != nil {
-		_ = os.Remove(tmp.Name())
-		log.Warn().Err(err).Str("path", path).Msg("Failed to write config cache")
-	}
-}
-
-func readCache(dir, path string) ([]byte, time.Time, error) {
-	name := cacheFile(dir, path)
-	info, err := os.Stat(name)
-	if err != nil {
-		return nil, time.Time{}, err
-	}
-	body, err := os.ReadFile(name)
-	if err != nil {
-		return nil, time.Time{}, err
-	}
-	if !json.Valid(body) {
-		return nil, time.Time{}, fmt.Errorf("cached config %s is not valid JSON", name)
-	}
-	return body, info.ModTime(), nil
 }
