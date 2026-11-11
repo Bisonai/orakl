@@ -70,6 +70,7 @@ type fakeLogClient struct {
 	utils.ClientInterface
 	mu        sync.Mutex
 	head      uint64
+	nextHeads []uint64 // returned (and consumed) before head, to move head between calls
 	chain     []types.Log
 	filterErr error
 	filterQs  []kaiaSdk.FilterQuery
@@ -79,6 +80,11 @@ type fakeLogClient struct {
 func (f *fakeLogClient) BlockNumber(ctx context.Context) (*big.Int, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
+	if len(f.nextHeads) > 0 {
+		h := f.nextHeads[0]
+		f.nextHeads = f.nextHeads[1:]
+		return new(big.Int).SetUint64(h), nil
+	}
 	return new(big.Int).SetUint64(f.head), nil
 }
 
@@ -233,6 +239,43 @@ func TestResubscribeWithoutLogsUsesInitialHead(t *testing.T) {
 	assert.Equal(t, uint64(501), second.query.FromBlock.Uint64())
 	assert.Equal(t, testLog(550, 0), recvLog(t, out))
 	assertNoLog(t, out)
+}
+
+func TestFirstSubscribeBackfillsBlocksMinedBeforeSubscribe(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	fc := newFakeClient(501)
+	fc.nextHeads = []uint64{500} // startBlock sees 500, block 501 mined before subscribe
+	fc.mine(501, testLog(501, 0))
+	out := make(chan types.Log)
+	subscribe(t, ctx, fc, out)
+
+	first := nextCall(t, fc.calls)
+	assert.Equal(t, uint64(501), first.query.FromBlock.Uint64())
+	assert.Equal(t, testLog(501, 0), recvLog(t, out))
+}
+
+func TestQuietPoolCursorAdvancesAfterBackfill(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	fc := newFakeClient(1000)
+	out := make(chan types.Log)
+	subscribe(t, ctx, fc, out)
+
+	first := nextCall(t, fc.calls)
+	assert.Equal(t, uint64(1001), first.query.FromBlock.Uint64())
+
+	fc.mine(2000)
+	first.sub.errCh <- errors.New("connection dropped")
+	second := nextCall(t, fc.calls)
+	assert.Equal(t, uint64(1001), second.query.FromBlock.Uint64())
+
+	second.sub.errCh <- errors.New("connection dropped")
+	third := nextCall(t, fc.calls)
+	// Advanced to head-backfillSafetyBlocks+1, not left at 1001.
+	assert.Equal(t, uint64(2000-backfillSafetyBlocks+1), third.query.FromBlock.Uint64())
 }
 
 func TestBackfillCappedAndChunked(t *testing.T) {

@@ -210,6 +210,10 @@ const (
 	// maxBackfillAttempts consecutive failed backfills resubscribe and retry;
 	// after that streaming continues and the gap is accepted.
 	maxBackfillAttempts = 3
+	// backfillSafetyBlocks: after a backfill the cursor advances only to
+	// head-backfillSafetyBlocks, so a getLogs backend lagging behind the head
+	// can't hide recent blocks, while a quiet pool doesn't rescan old ranges.
+	backfillSafetyBlocks = 32
 )
 
 // logFilterer is implemented by both eth_client.EthClient and kaia client.Client.
@@ -222,8 +226,6 @@ func (c *ChainReader) handleSubscription(ctx context.Context, config *SubscribeC
 	// so a resubscribe never restarts from the original start or jumps to the
 	// head at reconnect time.
 	var cursor *logCursor
-	// skipBackfill: cursor was just set from the head, nothing to fill yet.
-	skipBackfill := false
 	backfillFailures := 0
 	for {
 		if cursor == nil {
@@ -237,7 +239,6 @@ func (c *ChainReader) handleSubscription(ctx context.Context, config *SubscribeC
 				continue
 			}
 			cursor = &logCursor{block: start}
-			skipBackfill = config.BlockNumber == nil
 		}
 
 		query := kaia.FilterQuery{
@@ -249,7 +250,6 @@ func (c *ChainReader) handleSubscription(ctx context.Context, config *SubscribeC
 		logs := make(chan types.Log)
 		sub, err := c.client(config.ChainType).SubscribeFilterLogs(ctx, query, logs)
 		if err != nil {
-			skipBackfill = false
 			log.Error().Err(err).Msg("Failed to subscribe, retrying")
 			if !retryWithContext(ctx, c.RetryPeriod) {
 				return
@@ -258,21 +258,20 @@ func (c *ChainReader) handleSubscription(ctx context.Context, config *SubscribeC
 			continue
 		}
 
-		// Subscribe first, then backfill, so no block falls between the two.
-		// Logs streamed meanwhile are buffered by the RPC client and deduped.
+		// Subscribe first, then backfill, so no block falls between the two
+		// (this also covers blocks mined between startBlock and subscribe).
+		// Logs streamed meanwhile queue in the RPC client's subscription
+		// buffer and are deduped by the cursor.
 		stream := true
-		if !skipBackfill {
-			if err := c.backfill(ctx, config, query, cursor); err != nil {
-				backfillFailures++
-				if backfillFailures < maxBackfillAttempts {
-					log.Warn().Err(err).Str("Player", "ChainReader").Int("attempt", backfillFailures).Msg("Backfill failed, resubscribing")
-					stream = false
-				} else {
-					log.Warn().Err(err).Str("Player", "ChainReader").Msg("Backfill failed, streaming without it, logs may be missed")
-				}
+		if err := c.backfill(ctx, config, query, cursor); err != nil {
+			backfillFailures++
+			if backfillFailures < maxBackfillAttempts {
+				log.Warn().Err(err).Str("Player", "ChainReader").Int("attempt", backfillFailures).Msg("Backfill failed, resubscribing")
+				stream = false
+			} else {
+				log.Warn().Err(err).Str("Player", "ChainReader").Msg("Backfill failed, streaming without it, logs may be missed")
 			}
 		}
-		skipBackfill = false
 		if stream {
 			backfillFailures = 0
 			processLogs(ctx, sub, logs, config.Ch, cursor)
@@ -299,10 +298,7 @@ func (c *ChainReader) startBlock(ctx context.Context, config *SubscribeConfig) (
 	return head.Uint64() + 1, nil
 }
 
-// backfill delivers logs from cursor.block up to the current head. The cursor
-// only follows delivered logs (not the head), so a lagging eth_getLogs
-// backend can't make the stream's copies of its missing blocks look like
-// duplicates.
+// backfill delivers logs from cursor.block up to the current head.
 func (c *ChainReader) backfill(ctx context.Context, config *SubscribeConfig, query kaia.FilterQuery, cursor *logCursor) error {
 	cl := c.client(config.ChainType)
 	filterer, ok := cl.(logFilterer)
@@ -340,6 +336,9 @@ func (c *ChainReader) backfill(ctx context.Context, config *SubscribeConfig, que
 			}
 		}
 	}
+	if head >= backfillSafetyBlocks {
+		cursor.advanceTo(head - backfillSafetyBlocks + 1)
+	}
 	return nil
 }
 
@@ -367,6 +366,14 @@ func (lc *logCursor) markDelivered(vLog types.Log) {
 	lc.block = vLog.BlockNumber
 	lc.index = vLog.Index + 1
 	lc.blockHash = vLog.BlockHash
+}
+
+func (lc *logCursor) advanceTo(block uint64) {
+	if block > lc.block {
+		lc.block = block
+		lc.index = 0
+		lc.blockHash = common.Hash{}
+	}
 }
 
 // deliverLog sends vLog to ch unless it was already delivered or was removed
