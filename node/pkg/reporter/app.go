@@ -207,6 +207,14 @@ func (a *App) HandleWsMessage(ctx context.Context, data map[string]interface{}) 
 		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to process dal ws raw data")
 		return err
 	}
-	a.LatestDataMap.Store(data["symbol"], submissionData)
+	// Keep the newest: during a websocket swap two connections deliver data.
+	a.latestMu.Lock()
+	defer a.latestMu.Unlock()
+	if prev, ok := a.LatestDataMap.Load(submissionData.Symbol); ok {
+		if old, ok := prev.(SubmissionData); ok && old.AggregateTime > submissionData.AggregateTime {
+			return nil
+		}
+	}
+	a.LatestDataMap.Store(submissionData.Symbol, submissionData)
 	return nil
 }

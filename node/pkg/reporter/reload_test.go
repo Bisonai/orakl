@@ -223,3 +223,18 @@ func TestResubscribeUntilAddedPairHasData(t *testing.T) {
 	time.Sleep(3 * wsResubscribeDelay)
 	assert.Equal(t, settled, count(), "no resubscribe once data arrives")
 }
+
+func TestHandleWsMessageKeepsNewest(t *testing.T) {
+	a := New()
+	msg := func(ts string) map[string]interface{} {
+		return map[string]interface{}{"symbol": "A-B", "value": "1", "aggregateTime": ts, "proof": "0x01", "feedHash": "0x02"}
+	}
+	require.NoError(t, a.HandleWsMessage(context.Background(), msg("200")))
+	require.NoError(t, a.HandleWsMessage(context.Background(), msg("100")))
+	got, ok := GetLatestData(a.LatestDataMap, "A-B")
+	require.True(t, ok)
+	assert.Equal(t, int64(200), got.AggregateTime)
+	require.NoError(t, a.HandleWsMessage(context.Background(), msg("300")))
+	got, _ = GetLatestData(a.LatestDataMap, "A-B")
+	assert.Equal(t, int64(300), got.AggregateTime)
+}

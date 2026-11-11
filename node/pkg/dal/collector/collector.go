@@ -61,6 +61,10 @@ type Collector struct {
 	baseRedisHost, baseRedisPort string
 	subRedisHost, subRedisPort   string
 
+	// processCtx is the collector's run context, set in Start before any
+	// subscription runs (read without lock on the hot path).
+	processCtx context.Context
+
 	// redisMu guards runCtx and redisCancel (the live subscriptions, replaced on reload).
 	redisMu     sync.Mutex
 	runCtx      context.Context
@@ -188,6 +192,7 @@ func (c *Collector) Start(ctx context.Context) {
 	c.IsRunning = true
 
 	redisCtx, redisCancel := context.WithCancel(ctxWithCancel)
+	c.processCtx = ctxWithCancel
 	c.redisMu.Lock()
 	c.runCtx, c.redisCancel = ctxWithCancel, redisCancel
 	c.redisMu.Unlock()
@@ -245,11 +250,9 @@ func (c *Collector) redisRouter(ctx context.Context, msg *redis.Message) error {
 	// Process under the collector's context, not the subscription's: a
 	// config reload cancels old subscriptions, which must not abort queued
 	// jobs or an on-demand whitelist refresh they start.
-	c.redisMu.Lock()
-	if c.runCtx != nil {
-		ctx = c.runCtx
+	if c.processCtx != nil {
+		ctx = c.processCtx
 	}
-	c.redisMu.Unlock()
 
 	c.processPool.AddJob(func() {
 		c.processIncomingData(ctx, data)

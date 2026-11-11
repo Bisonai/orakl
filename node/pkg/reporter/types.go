@@ -43,6 +43,8 @@ type App struct {
 	LatestDataMap          *sync.Map // map[symbol]SubmissionData
 	LatestSubmittedDataMap *sync.Map // map[symbol]int64
 
+	latestMu sync.Mutex // serializes HandleWsMessage's newest-wins store
+
 	// mu guards the fields below and Reporters/WsHelper on config reload.
 	mu        sync.Mutex
 	deps      reporterDeps
