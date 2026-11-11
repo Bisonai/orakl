@@ -235,14 +235,7 @@ func fetchConfigs() ([]Config, error) {
 		log.Info().Str("Player", "Reporter").Msg("CHAIN env not set, defaulting to kairos")
 		chain = "kairos"
 	}
-	configs, err := configfetch.Get[[]Config](context.Background(), configfetch.FeedsPath(chain))
-	if err != nil {
-		return nil, err
-	}
-	if len(configs) == 0 {
-		return nil, errors.New("config bundle is empty")
-	}
-	return configs, nil
+	return configfetch.Get[[]Config](context.Background(), configfetch.FeedsPath(chain))
 }
 
 func handleWsMessage(ctx context.Context, data map[string]interface{}) error {
