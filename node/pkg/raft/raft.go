@@ -56,8 +56,15 @@ func NewRaftNode(
 	return r
 }
 
+// Run blocks until ctx is done and the topic subscription is released. The
+// topic itself stays open: its owner closes it, so a stopped node can Run again.
 func (r *Raft) Run(ctx context.Context) {
-	go r.subscribe(ctx)
+	subDone := make(chan struct{})
+	go func() {
+		defer close(subDone)
+		r.subscribe(ctx)
+	}()
+	defer func() { <-subDone }()
 	r.startElectionTimer()
 	for {
 		select {
@@ -94,10 +101,8 @@ func (r *Raft) subscribe(ctx context.Context) {
 		log.Error().Err(err).Msg("failed to subscribe to topic")
 		return
 	}
-	defer func() {
-		sub.Cancel()
-		r.Topic.Close()
-	}()
+	// cancel only: closing the topic here made a restarted node unusable (#2783)
+	defer sub.Cancel()
 	for {
 		select {
 		case <-ctx.Done():
@@ -109,7 +114,11 @@ func (r *Raft) subscribe(ctx context.Context) {
 				log.Error().Err(err).Msg("failed to get message from topic")
 				continue
 			}
-			r.MessageBuffer <- rawMsg
+			select {
+			case r.MessageBuffer <- rawMsg:
+			case <-ctx.Done():
+				return
+			}
 		}
 	}
 }
