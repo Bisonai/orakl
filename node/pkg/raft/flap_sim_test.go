@@ -178,7 +178,11 @@ func (n *simNode) handleCustom(ctx context.Context, msg Message) error {
 			// like startPriceCollectionTimeout: looks the round up again by ID,
 			// so it can act on a newer round that reuses the ID after pruning
 			go func() {
-				time.Sleep(n.collect)
+				select {
+				case <-time.After(n.collect):
+				case <-ctx.Done():
+					return
+				}
 				n.mu.Lock()
 				s, ok := n.rounds[m.Round]
 				if !ok || s.priced || len(s.prices) == 0 {
@@ -221,7 +225,11 @@ func (n *simNode) handleCustom(ctx context.Context, msg Message) error {
 		case 1:
 			// like startProofCollectionTimeout: by ID, with the first message
 			go func() {
-				time.Sleep(n.collect)
+				select {
+				case <-time.After(n.collect):
+				case <-ctx.Done():
+					return
+				}
 				n.mu.Lock()
 				defer n.mu.Unlock()
 				if s, ok := n.rounds[m.Round]; ok && !s.proved && len(s.proofs) > 0 {
@@ -301,10 +309,7 @@ func forward(ctx context.Context, t *testing.T, src, dst *simNode, link *simLink
 			if err != nil {
 				return
 			}
-			msg, err := src.r.unmarshalMessage(raw.Data)
-			if err != nil || msg.SentFrom != src.r.GetHostId() {
-				continue
-			}
+			// no peers on src's pubsub: everything here is src's own
 			select {
 			case link.queue <- simQueued{raw: raw, sent: time.Now()}:
 			case <-ctx.Done():
@@ -343,8 +348,6 @@ func short(id string) string {
 	return id
 }
 
-func roleOf(n *simNode) RoleType { return n.r.GetRole() }
-
 type simTrial struct {
 	dualLeader    time.Duration
 	mixed         int64
@@ -352,6 +355,8 @@ type simTrial struct {
 	zombie        int64
 	leaderless    float64 // share of the trial with no node in Role == Leader
 	stuck         bool    // started without a stable leader
+	handedOver    bool    // leader at the end isn't the one at the start
+	stall         time.Duration
 	leaderChanges int64
 }
 
@@ -423,7 +428,7 @@ func runFlapSim(t *testing.T, mode string, trials int) {
 				// elapsed, not the tick period: a slow receiver drops ticks
 				elapsed := now.Sub(last)
 				last = now
-				ra, rb := roleOf(a), roleOf(b)
+				ra, rb := a.r.GetRole(), b.r.GetRole()
 				if ra == Leader && rb == Leader {
 					dual.Add(int64(elapsed))
 				}
@@ -446,20 +451,20 @@ func runFlapSim(t *testing.T, mode string, trials int) {
 	// stray leader loops); the next stall is what breaks it, so the trial goes on.
 	stable := func() (in, out *simLink, stuck bool) {
 		ok := func() bool {
-			ra, rb := roleOf(a), roleOf(b)
+			ra, rb := a.r.GetRole(), b.r.GetRole()
 			return (ra == Leader) != (rb == Leader) && a.r.GetLeader() == b.r.GetLeader() && a.r.GetLeader() != ""
 		}
 		start := time.Now()
 		for !ok() {
 			if time.Since(start) > 300*scale {
 				if os.Getenv("RAFT_FLAP_SIM_VERBOSE") != "" {
-					t.Logf("  no stable leader: a=%s/%d/%s b=%s/%d/%s", roleOf(a), a.r.GetCurrentTerm(), short(a.r.GetLeader()), roleOf(b), b.r.GetCurrentTerm(), short(b.r.GetLeader()))
+					t.Logf("  no stable leader: a=%s/%d/%s b=%s/%d/%s", a.r.GetRole(), a.r.GetCurrentTerm(), short(a.r.GetLeader()), b.r.GetRole(), b.r.GetCurrentTerm(), short(b.r.GetLeader()))
 				}
 				return ab, ba, true
 			}
 			time.Sleep(scale / 2)
 		}
-		if roleOf(a) == Leader {
+		if a.r.GetRole() == Leader {
 			return ab, ba, false // follower b's inbound, outbound
 		}
 		return ba, ab, false
@@ -469,6 +474,7 @@ func runFlapSim(t *testing.T, mode string, trials int) {
 	for i := 0; i < trials; i++ {
 		in, out, stuck := stable()
 		time.Sleep(50 * scale) // past cooldown, rounds settled
+		leader0 := a.r.GetLeader()
 		mixed0 := a.mixed.Load() + b.mixed.Load()
 		zombie0 := a.zombie.Load() + b.zombie.Load()
 		subs0 := a.submissions.Load() + b.submissions.Load()
@@ -487,8 +493,11 @@ func runFlapSim(t *testing.T, mode string, trials int) {
 			out.stall(stall)
 		}
 		time.Sleep(150 * scale)
+		leader1 := a.r.GetLeader()
 
 		results = append(results, simTrial{
+			stall:         stall,
+			handedOver:    leader0 != "" && leader1 != "" && leader0 != leader1,
 			dualLeader:    time.Duration(dual.Load() - dual0),
 			leaderless:    float64(leaderless.Load()-leaderless0) / float64(time.Since(trialStart)),
 			stuck:         stuck,
@@ -515,13 +524,13 @@ func runFlapSim(t *testing.T, mode string, trials int) {
 	t.Logf("mode=%s trials=%d | per trial: mixed-proof submissions=%.2f submissions=%.1f leaderless=%.0f%% | started without a stable leader: %d",
 		mode, len(results), float64(allMixed)/nt, float64(allSubs)/nt, 100*allLeaderless/nt, stuckTrials)
 
-	// per flap: only trials where a leader change happened (stall too short
-	// for an election otherwise)
+	// per flap: only trials where leadership changed hands (stall too short for
+	// an election otherwise, or the old leader won back)
 	var dualSum time.Duration
 	var mixedSum, subsSum, zombieSum int64
 	duals := []time.Duration{}
 	for _, r := range results {
-		if r.leaderChanges == 0 || r.stuck {
+		if !r.handedOver || r.stuck {
 			continue
 		}
 		dualSum += r.dualLeader
@@ -541,7 +550,8 @@ func runFlapSim(t *testing.T, mode string, trials int) {
 		dualSum/time.Duration(flaps), duals[(flaps-1)/2], duals[flaps-1])
 	if os.Getenv("RAFT_FLAP_SIM_VERBOSE") != "" {
 		for i, r := range results {
-			t.Logf("  trial %2d: mixed=%d subs=%d stray=%d dual=%v changes=%d", i, r.mixed, r.submissions, r.zombie, r.dualLeader, r.leaderChanges)
+			t.Logf("  trial %2d: stall=%v handed-over=%t stuck=%t mixed=%d subs=%d stray=%d dual=%v changes=%d",
+				i, r.stall, r.handedOver, r.stuck, r.mixed, r.submissions, r.zombie, r.dualLeader, r.leaderChanges)
 		}
 	}
 }
