@@ -46,15 +46,18 @@ func (c *LocalAggregator) Run(ctx context.Context) {
 	localAggregateFrequency := localAggregateInterval
 
 	ticker := time.NewTicker(localAggregateFrequency)
+	// Use the local aggregatorCtx, not the field: a quick STOP->START
+	// reassigns the field, and the old loop must still observe its own
+	// cancellation.
 	go func() {
 		for {
 			select {
-			case <-c.aggregatorCtx.Done():
+			case <-aggregatorCtx.Done():
 				ticker.Stop()
 				return
 			case <-ticker.C:
 				go func() {
-					err := c.Job(c.aggregatorCtx)
+					err := c.Job(aggregatorCtx)
 					if err != nil {
 						log.Error().Str("Player", "LocalAggregator").Err(err).Msg("error in localAggregatorJob")
 					}

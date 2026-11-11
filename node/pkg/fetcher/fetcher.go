@@ -41,14 +41,16 @@ func (f *Fetcher) Run(ctx context.Context, proxies []Proxy) {
 
 	fetcherFrequency := time.Duration(f.FetchInterval) * time.Millisecond
 	ticker := time.NewTicker(fetcherFrequency)
+	// Use the local fetcherCtx, not the field: a quick STOP->START reassigns
+	// the field, and the old loop must still observe its own cancellation.
 	go func() {
 		for {
 			select {
-			case <-f.fetcherCtx.Done():
+			case <-fetcherCtx.Done():
 				ticker.Stop()
 				return
 			case <-ticker.C:
-				err := f.fetcherJob(f.fetcherCtx, proxies)
+				err := f.fetcherJob(fetcherCtx, proxies)
 				if err != nil && !errors.Is(err, errorSentinel.ErrFetcherNoDataFetched) {
 					log.Error().Str("Player", "Fetcher").Err(err).Msg("error in fetchAndInsert")
 				}
