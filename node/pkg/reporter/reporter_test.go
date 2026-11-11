@@ -78,7 +78,7 @@ func TestShouldReportDeviation(t *testing.T) {
 
 	app := New()
 
-	err := app.setReporters(ctx)
+	_, err := app.setReporters(ctx)
 	if err != nil {
 		t.Fatalf("error setting reporters: %v", err)
 	}

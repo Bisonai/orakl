@@ -1,6 +1,7 @@
 package reporter
 
 import (
+	"context"
 	"sync"
 	"time"
 
@@ -41,6 +42,25 @@ type App struct {
 	WsHelper               *wss.WebsocketHelper
 	LatestDataMap          *sync.Map // map[symbol]SubmissionData
 	LatestSubmittedDataMap *sync.Map // map[symbol]int64
+
+	// mu guards the fields below and Reporters/WsHelper on config reload.
+	mu        sync.Mutex
+	deps      reporterDeps
+	groups    map[int]*Reporter // regular reporters by submit interval (ms)
+	deviation *Reporter
+	pairs     map[string]int // applied pair -> submit interval (ms)
+	wsCancel  context.CancelFunc
+}
+
+// reporterDeps is what every reporter shares; built once, kept across reloads
+// (one chain helper, so one nonce manager).
+type reporterDeps struct {
+	contractAddress string
+	whitelist       []common.Address
+	chainHelper     *helper.ChainHelper
+	dalRestEndpoint string
+	dalWsEndpoint   string
+	dalApiKey       string
 }
 
 type JobType int
@@ -137,6 +157,10 @@ type Reporter struct {
 	LatestDataMap          *sync.Map
 	LatestSubmittedDataMap *sync.Map
 	Job                    func() error
+
+	pairsMu  sync.RWMutex // guards Pairs (replaced on config reload)
+	stop     chan struct{}
+	stopOnce sync.Once
 }
 
 type RawSubmissionData struct {
