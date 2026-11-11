@@ -2,14 +2,13 @@ package reporter
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"sync"
 
 	"bisonai.com/miko/node/pkg/chain/helper"
 	errorSentinel "bisonai.com/miko/node/pkg/error"
 	"bisonai.com/miko/node/pkg/secrets"
-	"bisonai.com/miko/node/pkg/utils/request"
+	"bisonai.com/miko/node/pkg/utils/configfetch"
 	"github.com/kaiachain/kaia/common"
 	"github.com/rs/zerolog/log"
 )
@@ -133,23 +132,13 @@ func (a *App) startReporters(ctx context.Context) {
 	}
 }
 
-// configBaseURL is the base for config.orakl.network bundle fetches.
-// In-package tests override it to point at a local httptest server;
-// production always uses the default.
-var configBaseURL = "https://config.orakl.network"
-
 func fetchConfigs() ([]Config, error) {
 	chain := os.Getenv("CHAIN")
 	if chain == "" {
 		log.Info().Str("Player", "Reporter").Msg("CHAIN env not set, defaulting to kairos")
 		chain = "kairos"
 	}
-	endpoint := fmt.Sprintf("%s/%s_feeds.json", configBaseURL, chain)
-	configs, err := request.Request[[]Config](request.WithEndpoint(endpoint))
-	if err != nil {
-		return nil, err
-	}
-	return configs, nil
+	return configfetch.Get[[]Config](context.Background(), configfetch.FeedsPath(chain))
 }
 
 func groupConfigsBySubmitIntervals(reporterConfigs []Config) map[int][]Config {

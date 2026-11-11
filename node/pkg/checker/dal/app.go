@@ -14,6 +14,7 @@ import (
 	"bisonai.com/miko/node/pkg/alert"
 	"bisonai.com/miko/node/pkg/checker"
 	"bisonai.com/miko/node/pkg/secrets"
+	"bisonai.com/miko/node/pkg/utils/configfetch"
 	"bisonai.com/miko/node/pkg/utils/request"
 	"bisonai.com/miko/node/pkg/wss"
 	"github.com/rs/zerolog/log"
@@ -234,12 +235,7 @@ func fetchConfigs() ([]Config, error) {
 		log.Info().Str("Player", "Reporter").Msg("CHAIN env not set, defaulting to kairos")
 		chain = "kairos"
 	}
-	endpoint := fmt.Sprintf("https://config.orakl.network/%s_feeds.json", chain)
-	configs, err := request.Request[[]Config](request.WithEndpoint(endpoint))
-	if err != nil {
-		return nil, err
-	}
-	return configs, nil
+	return configfetch.Get[[]Config](context.Background(), configfetch.FeedsPath(chain))
 }
 
 func handleWsMessage(ctx context.Context, data map[string]interface{}) error {

@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"math"
 	"math/big"
 	"net/http"
@@ -23,6 +22,7 @@ import (
 	errorSentinel "bisonai.com/miko/node/pkg/error"
 	"bisonai.com/miko/node/pkg/fetcher"
 	"bisonai.com/miko/node/pkg/secrets"
+	"bisonai.com/miko/node/pkg/utils/configfetch"
 	"bisonai.com/miko/node/pkg/utils/request"
 	"bisonai.com/miko/node/pkg/utils/retrier"
 )
@@ -31,7 +31,6 @@ const (
 	maxTxSubmissionRetries = 3
 	defaultInterval        = 60 * time.Second
 	submissionBuffer       = 5 * time.Second
-	mag7BaseUrl            = "https://config.orakl.network/mag7"
 )
 
 var urls = map[string]urlEntry{
@@ -72,20 +71,9 @@ var urls = map[string]urlEntry{
 	},
 }
 
-// fetchConfigBytes fetches a merged mag7 config and returns the raw response
-// body so it can be unmarshalled into multiple structs.
-func fetchConfigBytes(endpoint string) ([]byte, error) {
-	resp, err := request.RequestRaw(request.WithEndpoint(endpoint))
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("failed to fetch %s: status %d", endpoint, resp.StatusCode)
-	}
-
-	return io.ReadAll(resp.Body)
+// mag7Path is the orakl-config path of a merged mag7 config.
+func mag7Path(chain, name string) string {
+	return "/mag7" + strings.ReplaceAll(urls[name].endpoint, "{CHAIN}", chain)
 }
 
 func New(ctx context.Context) (*app, error) {
@@ -104,11 +92,11 @@ func New(ctx context.Context) (*app, error) {
 
 	entries := map[string]entry{}
 	for n, u := range urls {
-		mag7Url := mag7BaseUrl + strings.ReplaceAll(u.endpoint, "{CHAIN}", chain)
+		mag7Url := configfetch.URL(mag7Path(chain, n))
 
 		// The merged mag7 config carries fields for both the adaptor and the
 		// aggregator, so fetch once and unmarshal the same bytes into both.
-		body, err := fetchConfigBytes(mag7Url)
+		body, err := configfetch.Fetch(ctx, mag7Path(chain, n))
 		if err != nil {
 			return nil, err
 		}

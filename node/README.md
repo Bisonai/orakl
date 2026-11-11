@@ -131,6 +131,13 @@ ENCRYPT_PASSWORD=<Your Encrypt Password>
 # Chain name, 'kairos', 'mainnet', or 'test'
 CHAIN=<Your Chain Name>
 
+# Optional orakl-config source, defaults to https://config.orakl.network
+# CONFIG_BASE_URL=
+# Optional secondary source tried when the primary fails, defaults to https://raw.githubusercontent.com/Bisonai/orakl-config/master; set empty to disable
+# CONFIG_FALLBACK_URL=
+# Optional dir for last-known-good config copies, served if all sources fail. Unset = no cache
+# CONFIG_CACHE_DIR=
+
 # tx submission wallet for `kaia_helper`
 KAIA_REPORTER_PK=<Your Reporter PK>
 

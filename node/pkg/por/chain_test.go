@@ -1,9 +1,9 @@
 package por
 
 import (
-	"strings"
 	"testing"
 
+	"bisonai.com/miko/node/pkg/utils/configfetch"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -11,8 +11,9 @@ import (
 // urls map resolves to the canonical uppercase/new-chain form for the
 // mainnet/kairos chain values.
 func TestMergedURLResolution(t *testing.T) {
+	t.Setenv("CONFIG_BASE_URL", "")
 	build := func(chain, name string) string {
-		return mag7BaseUrl + strings.ReplaceAll(urls[name].endpoint, "{CHAIN}", chain)
+		return configfetch.URL(mag7Path(chain, name))
 	}
 
 	assert.Equal(t, "https://config.orakl.network/mag7/mainnet/AAPL.json", build("mainnet", "aapl"))
