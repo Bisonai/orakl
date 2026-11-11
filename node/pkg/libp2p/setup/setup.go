@@ -10,6 +10,7 @@ import (
 	"bisonai.com/miko/node/pkg/utils/retrier"
 
 	"github.com/libp2p/go-libp2p/core/host"
+	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/rs/zerolog/log"
 )
 
@@ -19,9 +20,16 @@ type BootPeerModel struct {
 }
 
 func ConnectThroughBootApi(ctx context.Context, h host.Host) error {
+	_, err := SyncThroughBootApi(ctx, h)
+	return err
+}
+
+// SyncThroughBootApi registers h with the boot API, dials the peers it returns
+// and returns their IDs (the peers reachable through the boot API).
+func SyncThroughBootApi(ctx context.Context, h host.Host) ([]peer.ID, error) {
 	url, err := utils.ExtractConnectionUrl(h)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	externalIp := os.Getenv("HOST_IP")
@@ -29,7 +37,7 @@ func ConnectThroughBootApi(ctx context.Context, h host.Host) error {
 		url, err = utils.ReplaceIpFromUrl(url, externalIp)
 		if err != nil {
 			log.Error().Err(err).Msg("failed to replace ip")
-			return err
+			return nil, err
 		}
 	}
 
@@ -46,15 +54,17 @@ func ConnectThroughBootApi(ctx context.Context, h host.Host) error {
 	}))
 	if err != nil {
 		log.Error().Err(err).Msg("Error connecting to boot API")
-		return err
+		return nil, err
 	}
 
+	known := make([]peer.ID, 0, len(dbPeers))
 	for _, dbPeer := range dbPeers {
 		info, err := utils.ConnectionUrl2AddrInfo(dbPeer.Url)
 		if err != nil {
 			log.Error().Err(err).Msg("error parsing peer url: " + dbPeer.Url)
 			continue
 		}
+		known = append(known, info.ID)
 
 		alreadyConnected := false
 		for _, p := range h.Network().Peers() {
@@ -80,5 +90,5 @@ func ConnectThroughBootApi(ctx context.Context, h host.Host) error {
 		}
 	}
 
-	return nil
+	return known, nil
 }
