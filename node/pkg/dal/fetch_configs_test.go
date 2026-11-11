@@ -62,6 +62,7 @@ func TestFetchConfigsRejectsEmptyBundle(t *testing.T) {
 
 			configs, err := fetchConfigs(context.Background(), "mainnet")
 			require.ErrorIs(t, err, errorsentinel.ErrDalEmptyConfigs)
+			assert.Contains(t, err.Error(), "mainnet_feeds.json")
 			assert.Nil(t, configs)
 		})
 	}

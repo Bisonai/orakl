@@ -2,6 +2,7 @@ package dal
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"time"
 
@@ -75,12 +76,13 @@ func Run(ctx context.Context) error {
 // see configfetch). An empty bundle (`[]`/`null`) is an error: starting with
 // zero feeds would silently serve nothing.
 func fetchConfigs(ctx context.Context, chain string) ([]Config, error) {
-	configs, err := configfetch.Get[[]Config](ctx, configfetch.FeedsPath(chain))
+	path := configfetch.FeedsPath(chain)
+	configs, err := configfetch.Get[[]Config](ctx, path)
 	if err != nil {
 		return nil, err
 	}
 	if len(configs) == 0 {
-		return nil, errorsentinel.ErrDalEmptyConfigs
+		return nil, fmt.Errorf("%s: %w", path, errorsentinel.ErrDalEmptyConfigs)
 	}
 	log.Info().Str("chain", chain).Int("count", len(configs)).Msg("Loaded configs")
 	return configs, nil
