@@ -27,8 +27,14 @@ var defaultReconnectBackoff = []time.Duration{
 	60 * time.Second,
 }
 
-// floor between boot API syncs, also across separate disconnect events
-const defaultMinSyncInterval = 1 * time.Second
+const (
+	// floor between boot API syncs, also across separate disconnect events
+	defaultMinSyncInterval = 1 * time.Second
+	// successful syncs in a row not listing a pending peer before it is
+	// dropped; tolerates a stale or racy boot list (sync reads before insert,
+	// RefreshJob deletes)
+	unlistedSyncsToDrop = 3
+)
 
 type App struct {
 	Host host.Host
@@ -40,8 +46,8 @@ type App struct {
 	minSyncInterval time.Duration
 
 	mu      sync.Mutex
-	pending map[peer.ID]struct{}
-	newPeer bool // a not-yet-pending peer was queued since the worker last looked
+	pending map[peer.ID]int // peer -> consecutive successful syncs not listing it
+	newPeer bool            // a not-yet-pending peer was queued since the worker last looked
 	wake    chan struct{}
 }
 
@@ -52,7 +58,7 @@ func New(bus *bus.MessageBus, h host.Host) *App {
 		reconnect:       setup.SyncThroughBootApi,
 		backoff:         defaultReconnectBackoff,
 		minSyncInterval: defaultMinSyncInterval,
-		pending:         make(map[peer.ID]struct{}),
+		pending:         make(map[peer.ID]int),
 		wake:            make(chan struct{}, 1),
 	}
 }
@@ -149,7 +155,7 @@ func (a *App) handleDisconnectEvent(e interface{}) {
 
 	a.mu.Lock()
 	if _, ok := a.pending[evt.Peer]; !ok {
-		a.pending[evt.Peer] = struct{}{}
+		a.pending[evt.Peer] = 0
 		a.newPeer = true
 	}
 	a.mu.Unlock()
@@ -175,7 +181,7 @@ func (a *App) reconnectWorker(ctx context.Context) {
 
 // reconnectUntilConnected syncs through the boot API right away, then with
 // backoff, until every pending peer is connected again or no longer listed by
-// the boot API, or ctx is done. A newly disconnected peer restarts the backoff.
+// the boot API (see prunePending), or ctx is done. A newly disconnected peer restarts the backoff.
 // It returns the time of the last sync.
 func (a *App) reconnectUntilConnected(ctx context.Context, lastSync time.Time) time.Time {
 	attempt := 0
@@ -231,9 +237,9 @@ func (a *App) waitBackoff(ctx context.Context, d time.Duration) (reset, ok bool)
 	}
 }
 
-// prunePending drops pending peers that are connected again and, after a
-// successful sync, peers the boot API does not list (e.g. the old ID of a
-// restarted node, or a non-oracle peer). It returns how many remain.
+// prunePending drops pending peers that are connected again and peers that
+// unlistedSyncsToDrop successful syncs in a row did not list (e.g. the old ID
+// of a restarted node, or a non-oracle peer). It returns how many remain.
 func (a *App) prunePending(known []peer.ID, syncOK bool) int {
 	listed := make(map[peer.ID]struct{}, len(known))
 	for _, p := range known {
@@ -242,10 +248,20 @@ func (a *App) prunePending(known []peer.ID, syncOK bool) int {
 
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	for p := range a.pending {
-		_, ok := listed[p]
-		if a.Host.Network().Connectedness(p) == network.Connected || (syncOK && !ok) {
+	for p, misses := range a.pending {
+		if a.Host.Network().Connectedness(p) == network.Connected {
 			delete(a.pending, p)
+			continue
+		}
+		if !syncOK {
+			continue
+		}
+		if _, ok := listed[p]; ok {
+			a.pending[p] = 0
+		} else if misses+1 >= unlistedSyncsToDrop {
+			delete(a.pending, p)
+		} else {
+			a.pending[p] = misses + 1
 		}
 	}
 	return len(a.pending)
