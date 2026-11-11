@@ -23,8 +23,8 @@ var submissionProxyContractAddr string
 
 const DEFAULT_SIGNER_CHECK_INTERVAL_HOUR = 24
 
-// checkTimeout bounds all chain reads of a single check run.
-const checkTimeout = 2 * time.Minute
+// readTimeout bounds each chain read so a hung RPC can't stall the checker forever.
+const readTimeout = 30 * time.Second
 
 // Seams for unit tests; production code uses the real chain reads and Slack alert.
 var (
@@ -55,9 +55,7 @@ func setUp(ctx context.Context) error {
 }
 
 func Start(ctx context.Context) error {
-	var err error
-	err = setUp(ctx)
-	if err != nil {
+	if err := setUp(ctx); err != nil {
 		return err
 	}
 
@@ -68,19 +66,21 @@ func Start(ctx context.Context) error {
 	// check never fails: read errors are alerted and retried on the next tick.
 	check(ctx)
 
-	for range checkTicker.C {
-		check(ctx)
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-checkTicker.C:
+			check(ctx)
+		}
 	}
-	return nil
 }
 
 func check(ctx context.Context) {
-	// Bound chain reads so a hung RPC can't stall the checker forever.
-	ctx, cancel := context.WithTimeout(ctx, checkTimeout)
-	defer cancel()
-
 	alarmMessage := ""
-	signerAddresses, err := getSignerAddresses(ctx, jsonRpcUrl, submissionProxyContractAddr)
+	readCtx, cancel := context.WithTimeout(ctx, readTimeout)
+	signerAddresses, err := getSignerAddresses(readCtx, jsonRpcUrl, submissionProxyContractAddr)
+	cancel()
 	if err != nil {
 		// Transient RPC errors must not exit sentinel: alert and retry on the next tick.
 		log.Error().Err(err).Msg("Failed to get signer addresses")
@@ -88,9 +88,16 @@ func check(ctx context.Context) {
 		return
 	}
 	log.Debug().Msgf("Signer addresses: %v", signerAddresses)
+	if len(signerAddresses) == 0 {
+		log.Warn().Msg("No signer addresses returned")
+		slackAlert("Signer checker found no signer addresses in submission proxy")
+		return
+	}
 
 	for _, signerAddress := range signerAddresses {
-		exp, err := extractExpirationFromContract(ctx, jsonRpcUrl, submissionProxyContractAddr, signerAddress)
+		readCtx, cancel := context.WithTimeout(ctx, readTimeout)
+		exp, err := extractExpirationFromContract(readCtx, jsonRpcUrl, submissionProxyContractAddr, signerAddress)
+		cancel()
 		if err == nil && exp == nil {
 			err = errors.New("nil expiration returned")
 		}

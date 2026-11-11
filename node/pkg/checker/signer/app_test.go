@@ -111,3 +111,43 @@ func TestCheckMixedSignersAlertsOnlyProblems(t *testing.T) {
 		t.Fatalf("alert missing expected content: %q", msg)
 	}
 }
+
+func TestCheckEmptySignerListAlerts(t *testing.T) {
+	alerts := stubSeams(t,
+		func(context.Context, string, string) ([]string, error) {
+			return []string{}, nil
+		},
+		func(context.Context, string, string, string) (*time.Time, error) {
+			t.Fatal("expiration read must not run for empty signer list")
+			return nil, nil
+		},
+	)
+
+	check(context.Background())
+	if len(*alerts) != 1 || !strings.Contains((*alerts)[0], "no signer addresses") {
+		t.Fatalf("expected empty-list alert, got %v", *alerts)
+	}
+}
+
+func TestStartSurvivesReadErrorAndStopsOnCancel(t *testing.T) {
+	t.Setenv("JSON_RPC_URL", "http://localhost:0")
+	t.Setenv("SUBMISSION_PROXY_CONTRACT", "0x0")
+	t.Setenv("SIGNER_CHECK_INTERVAL", "1h")
+	alerts := stubSeams(t,
+		func(context.Context, string, string) ([]string, error) {
+			return nil, errors.New("dial failed")
+		},
+		func(context.Context, string, string, string) (*time.Time, error) {
+			return nil, nil
+		},
+	)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if err := Start(ctx); err != nil {
+		t.Fatalf("Start returned error: %v", err)
+	}
+	if len(*alerts) != 1 {
+		t.Fatalf("expected startup check alert, got %v", *alerts)
+	}
+}

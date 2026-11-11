@@ -36,7 +36,10 @@ func ExtractExpirationFromContract(ctx context.Context, jsonrpc string, submissi
 	if !ok || rawTimestamp == nil {
 		return nil, fmt.Errorf("unexpected whitelist expiration type: %T", values[1])
 	}
-	expirationDate := time.Unix(int64(rawTimestamp.Int64()), 0)
+	if !rawTimestamp.IsInt64() {
+		return nil, fmt.Errorf("whitelist expiration out of int64 range: %s", rawTimestamp.String())
+	}
+	expirationDate := time.Unix(rawTimestamp.Int64(), 0)
 	return &expirationDate, nil
 }
 
