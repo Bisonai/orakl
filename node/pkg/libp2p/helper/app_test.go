@@ -122,26 +122,6 @@ func TestReconnectBacksOffUntilConnected(t *testing.T) {
 	require.Len(t, h1.Network().Peers(), 1)
 }
 
-func TestReconnectGivesUpAfterMaxAttempts(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	rec := &callRecorder{}
-	h1, h2 := newHost(t), newHost(t)
-	app := New(bus.New(10), h1)
-	app.reconnect = rec.knows(h2.ID())
-	app.backoff = []time.Duration{time.Millisecond}
-	app.maxAttempts = 3
-	app.minSyncInterval = 0
-	require.NoError(t, app.Run(ctx))
-	require.NoError(t, dial(ctx, h1, h2))
-
-	require.NoError(t, h1.Network().ClosePeer(h2.ID()))
-	require.Eventually(t, func() bool { return len(rec.snapshot()) >= 3 }, 2*time.Second, 5*time.Millisecond)
-	time.Sleep(100 * time.Millisecond)
-	require.Len(t, rec.snapshot(), 3)
-}
-
 func TestDisconnectEventDoesNotBlockEventLoop(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -224,28 +204,6 @@ func TestReconnectStopsOnCtxCancel(t *testing.T) {
 	}
 }
 
-func TestMinSyncIntervalAcrossEvents(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	rec := &callRecorder{}
-	app := New(bus.New(10), newHost(t))
-	other := newHost(t).ID()
-	app.reconnect = rec.knows(other)
-	app.maxAttempts = 1
-	app.minSyncInterval = 150 * time.Millisecond
-	go app.reconnectWorker(ctx)
-
-	app.handleDisconnectEvent(evtNotConnected(other))
-	require.Eventually(t, func() bool { return len(rec.snapshot()) == 1 }, time.Second, time.Millisecond)
-	time.Sleep(20 * time.Millisecond) // let worker give up and go idle
-	app.handleDisconnectEvent(evtNotConnected(other))
-	require.Eventually(t, func() bool { return len(rec.snapshot()) == 2 }, time.Second, time.Millisecond)
-
-	times := rec.snapshot()
-	require.GreaterOrEqual(t, times[1].Sub(times[0]), app.minSyncInterval)
-}
-
 func evtNotConnected(p peer.ID) event.EvtPeerConnectednessChanged {
 	return event.EvtPeerConnectednessChanged{Peer: p, Connectedness: network.NotConnected}
 }
@@ -282,12 +240,11 @@ func TestReconnectSyncErrorKeepsPeer(t *testing.T) {
 		return nil, errors.New("boot api down")
 	}
 	app.backoff = []time.Duration{time.Millisecond}
-	app.maxAttempts = 3
 	app.minSyncInterval = 0
 	go app.reconnectWorker(ctx)
 
 	app.handleDisconnectEvent(evtNotConnected(newHost(t).ID()))
-	require.Eventually(t, func() bool { return len(rec.snapshot()) == 3 }, time.Second, time.Millisecond)
+	require.Eventually(t, func() bool { return len(rec.snapshot()) >= 3 }, time.Second, time.Millisecond)
 }
 
 func TestNewDisconnectSkipsBackoff(t *testing.T) {
@@ -310,7 +267,37 @@ func TestNewDisconnectSkipsBackoff(t *testing.T) {
 	require.Eventually(t, func() bool { return len(rec.snapshot()) == 2 }, time.Second, time.Millisecond)
 }
 
-func TestGiveUpKeepsPeerQueuedDuringLastAttempt(t *testing.T) {
+func TestEmptyBackoffFallsBackToDefault(t *testing.T) {
+	app := &App{}
+	require.Equal(t, defaultReconnectBackoff[0], app.backoffAfter(1))
+	app.backoff = []time.Duration{time.Millisecond, time.Second}
+	require.Equal(t, time.Second, app.backoffAfter(10))
+}
+
+func TestReconnectKeepsRetryingAtCapUntilConnected(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	rec := &callRecorder{}
+	h1, h2 := newHost(t), newHost(t)
+	app := New(bus.New(10), h1)
+	app.reconnect = rec.knows(h2.ID())
+	app.backoff = []time.Duration{time.Millisecond}
+	app.minSyncInterval = 0
+	require.NoError(t, app.Run(ctx))
+	require.NoError(t, dial(ctx, h1, h2))
+
+	require.NoError(t, h1.Network().ClosePeer(h2.ID()))
+	require.Eventually(t, func() bool { return len(rec.snapshot()) >= 20 }, 2*time.Second, time.Millisecond, "no give-up while peer listed")
+
+	require.NoError(t, dial(ctx, h1, h2))
+	time.Sleep(50 * time.Millisecond)
+	n := len(rec.snapshot())
+	time.Sleep(50 * time.Millisecond)
+	require.Equal(t, n, len(rec.snapshot()), "worker must stop once reconnected")
+}
+
+func TestNewPeerDuringSyncRetriedNow(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -319,12 +306,11 @@ func TestGiveUpKeepsPeerQueuedDuringLastAttempt(t *testing.T) {
 	rec := &callRecorder{}
 	app.reconnect = func(context.Context, host.Host) ([]peer.ID, error) {
 		if rec.add() == 1 {
-			app.handleDisconnectEvent(evtNotConnected(b)) // b drops during last attempt for a
+			app.handleDisconnectEvent(evtNotConnected(b)) // b drops while syncing for a
 		}
 		return []peer.ID{a, b}, nil
 	}
-	app.backoff = []time.Duration{time.Millisecond}
-	app.maxAttempts = 1
+	app.backoff = []time.Duration{time.Hour}
 	app.minSyncInterval = 0
 	go app.reconnectWorker(ctx)
 
@@ -332,9 +318,44 @@ func TestGiveUpKeepsPeerQueuedDuringLastAttempt(t *testing.T) {
 	require.Eventually(t, func() bool { return len(rec.snapshot()) == 2 }, time.Second, time.Millisecond)
 }
 
-func TestEmptyBackoffFallsBackToDefault(t *testing.T) {
-	app := &App{}
-	require.Equal(t, defaultReconnectBackoff[0], app.backoffAfter(1))
-	app.backoff = []time.Duration{time.Millisecond, time.Second}
-	require.Equal(t, time.Second, app.backoffAfter(10))
+func TestRepeatEventForPendingPeerKeepsBackoff(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	a := newHost(t).ID()
+	rec := &callRecorder{}
+	app := New(bus.New(10), newHost(t))
+	app.reconnect = rec.knows(a)
+	app.backoff = []time.Duration{time.Hour}
+	app.minSyncInterval = 0
+	go app.reconnectWorker(ctx)
+
+	app.handleDisconnectEvent(evtNotConnected(a))
+	require.Eventually(t, func() bool { return len(rec.snapshot()) == 1 }, time.Second, time.Millisecond)
+	for i := 0; i < 10; i++ {
+		app.handleDisconnectEvent(evtNotConnected(a))
+	}
+	time.Sleep(50 * time.Millisecond)
+	require.Len(t, rec.snapshot(), 1, "repeat event for same pending peer must not skip backoff")
+}
+
+func TestMinSyncIntervalAcrossEvents(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	rec := &callRecorder{}
+	app := New(bus.New(10), newHost(t))
+	app.reconnect = rec.knows() // peer unlisted: loop ends after one sync
+	app.minSyncInterval = 150 * time.Millisecond
+	go app.reconnectWorker(ctx)
+
+	other := newHost(t).ID()
+	app.handleDisconnectEvent(evtNotConnected(other))
+	require.Eventually(t, func() bool { return len(rec.snapshot()) == 1 }, time.Second, time.Millisecond)
+	time.Sleep(20 * time.Millisecond) // let worker go idle
+	app.handleDisconnectEvent(evtNotConnected(other))
+	require.Eventually(t, func() bool { return len(rec.snapshot()) == 2 }, time.Second, time.Millisecond)
+
+	times := rec.snapshot()
+	require.GreaterOrEqual(t, times[1].Sub(times[0]), app.minSyncInterval)
 }
