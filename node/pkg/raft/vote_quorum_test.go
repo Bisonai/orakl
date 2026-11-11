@@ -58,6 +58,26 @@ func TestRequestVoteIgnoredWhileLeaderHeard(t *testing.T) {
 	assert.Equal(t, candidate, votedFor)
 }
 
+// Only heartbeats reset election timers, so only they hold off a vote: a leader
+// whose heartbeats stopped must not keep peers refusing while its jobs still run.
+func TestRequestVoteGrantedWhenOnlyLeaderJobsHeard(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	node, _ := newLeaderLoopNode(ctx, t)
+	node.HandleCustomMessage = func(context.Context, Message) error { return nil }
+	leader, candidate := testPeerID(t), testPeerID(t)
+	require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, leader, 3)))
+
+	time.Sleep(node.minElectionTimeout() + testLeaderInterval)
+	require.NoError(t, node.handleMessage(ctx, Message{Type: "trigger", SentFrom: leader}))
+	require.NoError(t, node.handleMessage(ctx, requestVoteFrom(t, candidate, 4)))
+
+	term, votedFor, _ := voteState(node)
+	assert.Equal(t, 4, term)
+	assert.Equal(t, candidate, votedFor)
+}
+
 // A leader that campaigns has lost its role, so hearing it is no reason to refuse.
 func TestRequestVoteFromHeardLeaderGranted(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -123,7 +143,8 @@ func startCluster(ctx context.Context, t *testing.T, n int) []*Raft {
 }
 
 // singleLeader returns the leader when exactly one node leads and every other
-// node follows it at its term.
+// node follows it. A follower can be at a higher term than its leader, when it
+// campaigned while the leader was heard.
 func singleLeader(nodes []*Raft) (*Raft, bool) {
 	var leader *Raft
 	for _, node := range nodes {
@@ -137,12 +158,12 @@ func singleLeader(nodes []*Raft) (*Raft, bool) {
 	if leader == nil {
 		return nil, false
 	}
-	term, id := leader.GetCurrentTerm(), leader.GetHostId()
+	id := leader.GetHostId()
 	for _, node := range nodes {
 		if node == leader {
 			continue
 		}
-		if node.GetRole() != Follower || node.GetLeader() != id || node.GetCurrentTerm() != term {
+		if node.GetRole() != Follower || node.GetLeader() != id {
 			return nil, false
 		}
 	}

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"math/rand"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -143,6 +144,9 @@ func (r *Raft) handleHeartbeat(msg Message) error {
 
 	// after validating: an invalid heartbeat must not split a real gap in two
 	r.recordLeaderSilence(msg.SentFrom)
+	if clock := r.leaderClock.Load(); clock != nil && clock.id == msg.SentFrom {
+		clock.heartbeatAt.Store(int64(time.Since(leaderClockEpoch)))
+	}
 
 	r.Mutex.Lock()
 	defer r.Mutex.Unlock()
@@ -263,11 +267,13 @@ func (r *Raft) handleReplyVote(ctx context.Context, msg Message) error {
 	return nil
 }
 
-// hearsLeaderOtherThan reports whether a message from the current leader arrived
+// hearsLeaderOtherThan reports whether a heartbeat from the current leader arrived
 // within the minimum election timeout, and that leader isn't candidate. A leader
-// campaigning has lost its role, and a node always votes for itself. Once the
-// leader falls silent this turns false before any peer can time out, so it can't
-// hold off an election that is needed.
+// campaigning has lost its role, and a node always votes for itself. Heartbeats
+// only, as only they reset election timers: a leader whose heartbeats stop but
+// whose other messages still flow must not keep peers refusing every candidate.
+// Once its heartbeats stop this turns false before any peer can time out, so it
+// can't hold off an election that is needed.
 func (r *Raft) hearsLeaderOtherThan(candidate string) bool {
 	if candidate == r.GetHostId() {
 		return false
@@ -276,9 +282,7 @@ func (r *Raft) hearsLeaderOtherThan(candidate string) bool {
 	if clock == nil || clock.id == candidate {
 		return false
 	}
-	// load first: lastSeen can't then be ahead of now
-	lastSeen := clock.lastSeen.Load()
-	return time.Since(leaderClockEpoch)-time.Duration(lastSeen) < r.minElectionTimeout()
+	return since(&clock.heartbeatAt) < r.minElectionTimeout()
 }
 
 // votesNeeded is a strict majority of the voters: the peers subscribed to this
@@ -413,7 +417,9 @@ func (r *Raft) followLeader(leaderID string) {
 	}
 	r.LeaderID = leaderID
 	clock := &leaderClock{id: leaderID, term: r.Term}
-	clock.lastSeen.Store(int64(time.Since(leaderClockEpoch)))
+	now := int64(time.Since(leaderClockEpoch))
+	clock.lastSeen.Store(now)
+	clock.heartbeatAt.Store(now)
 	r.recordLeaderChangeSilence(r.leaderClock.Swap(clock))
 }
 
@@ -429,9 +435,7 @@ func (r *Raft) recordLeaderChangeSilence(old *leaderClock) {
 	if old == nil {
 		return
 	}
-	// load first: lastSeen can't then be ahead of now
-	lastSeen := old.lastSeen.Load()
-	gap := time.Since(leaderClockEpoch) - time.Duration(lastSeen)
+	gap := since(&old.lastSeen)
 	if old.term == r.Term && gap < (MaxMissedHeartbeats+1)*5*r.HeartbeatTimeout {
 		return
 	}
@@ -461,6 +465,13 @@ func (r *Raft) recordLeaderSilence(sentFrom string) {
 			return
 		}
 	}
+}
+
+// since returns the time elapsed from a leaderClock timestamp.
+func since(stamp *atomic.Int64) time.Duration {
+	// load first: the stamp can't then be ahead of now
+	at := stamp.Load()
+	return time.Since(leaderClockEpoch) - time.Duration(at)
 }
 
 func (r *Raft) setLeaderState() {
@@ -554,7 +565,7 @@ func (r *Raft) minElectionTimeout() time.Duration {
 
 func (r *Raft) getRandomElectionTimeout() time.Duration {
 	baseTimeout := r.minElectionTimeout()
-	jitter := time.Duration(rand.Int63n(int64(r.HeartbeatTimeout * 5)))
+	jitter := time.Duration(rand.Int63n(int64(r.minElectionTimeout())))
 	return baseTimeout + jitter
 }
 

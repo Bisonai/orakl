@@ -87,4 +87,6 @@ type leaderClock struct {
 	id       string
 	term     int          // term this peer last became the leader at, under Raft.Mutex
 	lastSeen atomic.Int64 // ns since leaderClockEpoch
+	// last heartbeat, same unit: leader stickiness (hearsLeaderOtherThan)
+	heartbeatAt atomic.Int64
 }

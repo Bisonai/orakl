@@ -226,13 +226,25 @@ func TestLowerTermHeartbeatIgnoredWhileLeaderHeard(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	node, _ := newLeaderLoopNode(ctx, t)
-	leader := testPeerID(t)
-	require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, leader, 5)))
+	for _, role := range []RoleType{Follower, Candidate} {
+		t.Run(string(role), func(t *testing.T) {
+			node, _ := newLeaderLoopNode(ctx, t)
+			leader := testPeerID(t)
+			require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, leader, 5)))
+			term := 5
+			if role == Candidate {
+				// campaigns while the leader is still heard
+				node.CooldownPeriod = 0
+				node.MissedHeartbeats = MaxMissedHeartbeats
+				node.startElection(ctx)
+				term = 6
+			}
 
-	require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, testPeerID(t), 4)))
+			require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, testPeerID(t), 4)))
 
-	assert.Equal(t, Follower, node.GetRole())
-	assert.Equal(t, leader, node.GetLeader())
-	assert.Equal(t, 5, node.GetCurrentTerm())
+			assert.Equal(t, role, node.GetRole())
+			assert.Equal(t, leader, node.GetLeader())
+			assert.Equal(t, term, node.GetCurrentTerm())
+		})
+	}
 }
