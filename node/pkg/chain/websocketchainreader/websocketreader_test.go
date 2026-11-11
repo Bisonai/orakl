@@ -39,6 +39,12 @@ func TestCloseSkipsUnsetClients(t *testing.T) {
 	assert.True(t, kaia.closed)
 }
 
+// Backfill relies on the real clients exposing FilterLogs.
+var (
+	_ logFilterer = (*eth_client.EthClient)(nil)
+	_ logFilterer = (*client.Client)(nil)
+)
+
 type fakeSub struct {
 	errCh        chan error
 	unsubscribed chan struct{}
@@ -58,20 +64,58 @@ type subscribeCall struct {
 	sub   *fakeSub
 }
 
+// fakeLogClient models a node: the subscription never replays history (it only
+// gets what the test pushes as newly mined), FilterLogs serves the chain.
 type fakeLogClient struct {
 	utils.ClientInterface
-	head  *big.Int
-	calls chan subscribeCall
+	mu        sync.Mutex
+	head      uint64
+	chain     []types.Log
+	filterErr error
+	filterQs  []kaiaSdk.FilterQuery
+	calls     chan subscribeCall
 }
 
 func (f *fakeLogClient) BlockNumber(ctx context.Context) (*big.Int, error) {
-	return new(big.Int).Set(f.head), nil
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return new(big.Int).SetUint64(f.head), nil
 }
 
 func (f *fakeLogClient) SubscribeFilterLogs(ctx context.Context, q kaiaSdk.FilterQuery, ch chan<- types.Log) (kaiaSdk.Subscription, error) {
 	sub := newFakeSub()
 	f.calls <- subscribeCall{query: q, logs: ch, sub: sub}
 	return sub, nil
+}
+
+func (f *fakeLogClient) FilterLogs(ctx context.Context, q kaiaSdk.FilterQuery) ([]types.Log, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.filterQs = append(f.filterQs, q)
+	if f.filterErr != nil {
+		return nil, f.filterErr
+	}
+	var out []types.Log
+	for _, l := range f.chain {
+		if l.BlockNumber >= q.FromBlock.Uint64() && l.BlockNumber <= q.ToBlock.Uint64() {
+			out = append(out, l)
+		}
+	}
+	return out, nil
+}
+
+// mine appends logs to the chain and moves the head.
+func (f *fakeLogClient) mine(head uint64, logs ...types.Log) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.chain = append(f.chain, logs...)
+	f.head = head
+}
+
+func (f *fakeLogClient) filterQueries() []kaiaSdk.FilterQuery {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return append([]kaiaSdk.FilterQuery(nil), f.filterQs...)
 }
 
 func nextCall(t *testing.T, calls <-chan subscribeCall) subscribeCall {
@@ -96,8 +140,28 @@ func recvLog(t *testing.T, out <-chan types.Log) types.Log {
 	}
 }
 
-func newTestReader(fc *fakeLogClient) *ChainReader {
-	return &ChainReader{EthClient: fc, RetryPeriod: time.Millisecond}
+func assertNoLog(t *testing.T, out <-chan types.Log) {
+	t.Helper()
+	select {
+	case l := <-out:
+		t.Fatalf("unexpected log %d/%d", l.BlockNumber, l.Index)
+	case <-time.After(50 * time.Millisecond):
+	}
+}
+
+func newFakeClient(head uint64) *fakeLogClient {
+	return &fakeLogClient{head: head, calls: make(chan subscribeCall, 4)}
+}
+
+func subscribe(t *testing.T, ctx context.Context, fc *fakeLogClient, out chan types.Log, opts ...SubscribeOption) {
+	t.Helper()
+	r := &ChainReader{EthClient: fc, RetryPeriod: time.Millisecond}
+	opts = append([]SubscribeOption{
+		WithAddress("0x0000000000000000000000000000000000000001"),
+		WithChannel(out),
+		WithChainType(Ethereum),
+	}, opts...)
+	assert.NoError(t, r.Subscribe(ctx, opts...))
 }
 
 func testLog(block uint64, index uint) types.Log {
@@ -108,24 +172,22 @@ func TestResubscribeResumesFromLastDeliveredBlock(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	fc := &fakeLogClient{head: big.NewInt(1000), calls: make(chan subscribeCall, 4)}
+	fc := newFakeClient(20)
+	fc.mine(20, testLog(12, 0), testLog(15, 1))
 	out := make(chan types.Log)
-	err := newTestReader(fc).Subscribe(ctx,
-		WithAddress("0x0000000000000000000000000000000000000001"),
-		WithChannel(out),
-		WithChainType(Ethereum),
-		WithStartBlockNumber(big.NewInt(10)))
-	assert.NoError(t, err)
+	subscribe(t, ctx, fc, out, WithStartBlockNumber(big.NewInt(10)))
 
 	first := nextCall(t, fc.calls)
-	assert.Equal(t, int64(10), first.query.FromBlock.Int64())
+	assert.Equal(t, uint64(10), first.query.FromBlock.Uint64())
+	assert.Equal(t, testLog(12, 0), recvLog(t, out)) // backfilled
+	assert.Equal(t, testLog(15, 1), recvLog(t, out))
 
-	first.logs <- testLog(12, 0)
-	recvLog(t, out)
-	first.logs <- testLog(15, 1)
-	recvLog(t, out)
+	fc.mine(21, testLog(21, 0))
+	first.logs <- testLog(21, 0) // streamed
+	assert.Equal(t, testLog(21, 0), recvLog(t, out))
 
-	fc.head = big.NewInt(2000) // head moved during outage; must not be used
+	// Outage: later log of block 21 and block 25 mined while disconnected.
+	fc.mine(30, testLog(21, 1), testLog(25, 0))
 	first.sub.errCh <- errors.New("connection dropped")
 
 	second := nextCall(t, fc.calls)
@@ -134,35 +196,99 @@ func TestResubscribeResumesFromLastDeliveredBlock(t *testing.T) {
 	default:
 		t.Fatal("old subscription not unsubscribed before resubscribe")
 	}
-	// Inclusive resume: last delivered block, not start block and not head.
-	assert.Equal(t, int64(15), second.query.FromBlock.Int64())
+	// Inclusive resume: last delivered block, not start block (10) and not head (30).
+	assert.Equal(t, uint64(21), second.query.FromBlock.Uint64())
 
-	// Replayed log of block 15 is dropped; a new log of the same block and later blocks pass.
-	second.logs <- testLog(15, 1)
-	second.logs <- testLog(15, 2)
-	assert.Equal(t, testLog(15, 2), recvLog(t, out))
-	second.logs <- testLog(16, 0)
-	assert.Equal(t, testLog(16, 0), recvLog(t, out))
+	// Outage logs come from the backfill; already-delivered 21/0 is not resent.
+	assert.Equal(t, testLog(21, 1), recvLog(t, out))
+	assert.Equal(t, testLog(25, 0), recvLog(t, out))
+
+	// Seam duplicate from the stream is dropped; new logs pass.
+	second.logs <- testLog(25, 0)
+	second.logs <- testLog(31, 0)
+	assert.Equal(t, testLog(31, 0), recvLog(t, out))
+
+	qs := fc.filterQueries()
+	last := qs[len(qs)-1]
+	assert.Equal(t, uint64(21), last.FromBlock.Uint64())
+	assert.Equal(t, uint64(30), last.ToBlock.Uint64())
 }
 
 func TestResubscribeWithoutLogsUsesInitialHead(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	fc := &fakeLogClient{head: big.NewInt(500), calls: make(chan subscribeCall, 4)}
+	fc := newFakeClient(500)
+	fc.mine(500, testLog(500, 0)) // mined before subscribe: not delivered
 	out := make(chan types.Log)
-	assert.NoError(t, newTestReader(fc).Subscribe(ctx,
-		WithAddress("0x0000000000000000000000000000000000000001"),
-		WithChannel(out)))
+	subscribe(t, ctx, fc, out)
 
 	first := nextCall(t, fc.calls)
-	assert.Equal(t, int64(500), first.query.FromBlock.Int64())
+	assert.Equal(t, uint64(501), first.query.FromBlock.Uint64())
 
-	fc.head = big.NewInt(600)
+	fc.mine(600, testLog(550, 0))
 	first.sub.errCh <- errors.New("connection dropped")
 
 	second := nextCall(t, fc.calls)
-	assert.Equal(t, int64(500), second.query.FromBlock.Int64())
+	assert.Equal(t, uint64(501), second.query.FromBlock.Uint64())
+	assert.Equal(t, testLog(550, 0), recvLog(t, out))
+	assertNoLog(t, out)
+}
+
+func TestBackfillCappedAndChunked(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	fc := newFakeClient(0)
+	out := make(chan types.Log)
+	head := uint64(maxBackfillBlocks + 5000)
+	fc.mine(head, testLog(10, 0), testLog(head, 0))
+	subscribe(t, ctx, fc, out, WithStartBlockNumber(big.NewInt(1)))
+
+	nextCall(t, fc.calls)
+	assert.Equal(t, testLog(head, 0), recvLog(t, out)) // block 10 is beyond the cap
+
+	qs := fc.filterQueries()
+	assert.Len(t, qs, maxBackfillBlocks/backfillChunkBlocks)
+	assert.Equal(t, head-maxBackfillBlocks+1, qs[0].FromBlock.Uint64())
+	for _, q := range qs {
+		assert.LessOrEqual(t, q.ToBlock.Uint64()-q.FromBlock.Uint64()+1, uint64(backfillChunkBlocks))
+	}
+	assert.Equal(t, head, qs[len(qs)-1].ToBlock.Uint64())
+}
+
+func TestBackfillErrorKeepsStreaming(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	fc := newFakeClient(5)
+	fc.filterErr = errors.New("range not supported")
+	out := make(chan types.Log)
+	subscribe(t, ctx, fc, out, WithStartBlockNumber(big.NewInt(1)))
+
+	call := nextCall(t, fc.calls)
+	call.logs <- testLog(6, 0)
+	assert.Equal(t, testLog(6, 0), recvLog(t, out))
+}
+
+func TestRemovedLogSkippedAndReminedDelivered(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	fc := newFakeClient(100)
+	out := make(chan types.Log)
+	subscribe(t, ctx, fc, out)
+
+	call := nextCall(t, fc.calls)
+	call.logs <- testLog(101, 0)
+	assert.Equal(t, testLog(101, 0), recvLog(t, out))
+
+	removed := testLog(101, 0)
+	removed.Removed = true
+	call.logs <- removed
+	call.logs <- testLog(101, 0) // re-mined at the same position
+	assert.Equal(t, testLog(101, 0), recvLog(t, out))
+	assertNoLog(t, out)
 }
 
 func TestProcessLogsExitsOnContextCancel(t *testing.T) {
@@ -184,10 +310,8 @@ func TestProcessLogsExitsOnContextCancel(t *testing.T) {
 
 func TestHandleSubscriptionUnsubscribesOnContextCancel(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
-	fc := &fakeLogClient{head: big.NewInt(1), calls: make(chan subscribeCall, 1)}
-	assert.NoError(t, newTestReader(fc).Subscribe(ctx,
-		WithAddress("0x0000000000000000000000000000000000000001"),
-		WithChannel(make(chan types.Log))))
+	fc := newFakeClient(1)
+	subscribe(t, ctx, fc, make(chan types.Log))
 
 	call := nextCall(t, fc.calls)
 	cancel()

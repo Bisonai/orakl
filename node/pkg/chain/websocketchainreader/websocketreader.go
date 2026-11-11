@@ -199,26 +199,42 @@ func (c *ChainReader) Subscribe(ctx context.Context, opts ...SubscribeOption) er
 	return nil
 }
 
+// Log subscriptions only stream newly mined logs (FromBlock filters, it does
+// not replay history), so logs emitted while disconnected are backfilled with
+// eth_getLogs after every (re)subscribe.
+const (
+	backfillChunkBlocks = 1000
+	// maxBackfillBlocks bounds the backfill after a long outage; older logs
+	// are skipped since DEX consumers only care about recent prices.
+	maxBackfillBlocks = 10000
+)
+
+// logFilterer is implemented by both eth_client.EthClient and kaia client.Client.
+type logFilterer interface {
+	FilterLogs(ctx context.Context, q kaia.FilterQuery) ([]types.Log, error)
+}
+
 func (c *ChainReader) handleSubscription(ctx context.Context, config *SubscribeConfig) {
-	// startBlock is resolved once (config.BlockNumber or head at first
-	// subscribe) so a resubscribe never jumps to the head at reconnect time.
-	var startBlock *big.Int
-	cursor := &logCursor{}
+	// cursor is created once (config.BlockNumber or head+1 at first subscribe)
+	// so a resubscribe never restarts from the original start or jumps to the
+	// head at reconnect time.
+	var cursor *logCursor
 	for {
-		if startBlock == nil {
-			blockNumber, err := c.getBlockNumber(ctx, config)
+		if cursor == nil {
+			start, err := c.startBlock(ctx, config)
 			if err != nil {
 				log.Error().Err(err).Msg("Failed to get block number, retrying")
 				if !retryWithContext(ctx, c.RetryPeriod) {
 					return
 				}
+				log.Debug().Str("Player", "ChainReader").Msg("Retrying subscription")
 				continue
 			}
-			startBlock = blockNumber
+			cursor = &logCursor{block: start}
 		}
 
 		query := kaia.FilterQuery{
-			FromBlock: cursor.fromBlock(startBlock),
+			FromBlock: new(big.Int).SetUint64(cursor.block),
 			Addresses: []common.Address{common.HexToAddress(config.Address)},
 			Topics:    config.Topics,
 		}
@@ -230,10 +246,15 @@ func (c *ChainReader) handleSubscription(ctx context.Context, config *SubscribeC
 			if !retryWithContext(ctx, c.RetryPeriod) {
 				return
 			}
+			log.Debug().Str("Player", "ChainReader").Msg("Retrying subscription")
 			continue
 		}
 
-		processLogs(ctx, sub, logs, config.Ch, cursor)
+		// Subscribe first, then backfill, so no block falls between the two.
+		// Logs streamed meanwhile are buffered by the RPC client and deduped.
+		if c.backfill(ctx, config, query, cursor) {
+			processLogs(ctx, sub, logs, config.Ch, cursor)
+		}
 		sub.Unsubscribe()
 
 		if !retryWithContext(ctx, c.RetryPeriod) {
@@ -243,54 +264,116 @@ func (c *ChainReader) handleSubscription(ctx context.Context, config *SubscribeC
 	}
 }
 
-func (c *ChainReader) getBlockNumber(ctx context.Context, config *SubscribeConfig) (*big.Int, error) {
+func (c *ChainReader) startBlock(ctx context.Context, config *SubscribeConfig) (uint64, error) {
 	if config.BlockNumber != nil {
-		return new(big.Int).Set(config.BlockNumber), nil
+		return config.BlockNumber.Uint64(), nil
 	}
 
-	return c.client(config.ChainType).BlockNumber(ctx)
+	head, err := c.client(config.ChainType).BlockNumber(ctx)
+	if err != nil {
+		return 0, err
+	}
+	// Only logs mined after the first subscribe, as before.
+	return head.Uint64() + 1, nil
 }
 
-type logKey struct {
-	txHash common.Hash
-	index  uint
+// backfill delivers logs from cursor.block up to the current head. A failed
+// backfill is logged and streaming continues (same gap as before this
+// existed). Returns false only when ctx is done.
+func (c *ChainReader) backfill(ctx context.Context, config *SubscribeConfig, query kaia.FilterQuery, cursor *logCursor) bool {
+	cl := c.client(config.ChainType)
+	filterer, ok := cl.(logFilterer)
+	if !ok {
+		return true
+	}
+
+	headBig, err := cl.BlockNumber(ctx)
+	if err != nil {
+		log.Warn().Err(err).Str("Player", "ChainReader").Msg("Failed to get head for backfill, logs may be missed")
+		return ctx.Err() == nil
+	}
+	head := headBig.Uint64()
+	from := cursor.block
+	if from > head {
+		return true
+	}
+	if head-from+1 > maxBackfillBlocks {
+		log.Warn().Str("Player", "ChainReader").Uint64("from", from).Uint64("head", head).Msg("Backfill gap too large, skipping older blocks")
+		from = head - maxBackfillBlocks + 1
+	}
+
+	for chunkStart := from; chunkStart <= head; chunkStart += backfillChunkBlocks {
+		chunkEnd := min(chunkStart+backfillChunkBlocks-1, head)
+		q := query
+		q.FromBlock = new(big.Int).SetUint64(chunkStart)
+		q.ToBlock = new(big.Int).SetUint64(chunkEnd)
+		got, err := filterer.FilterLogs(ctx, q)
+		if err != nil {
+			log.Warn().Err(err).Str("Player", "ChainReader").Uint64("from", chunkStart).Uint64("to", chunkEnd).Msg("Backfill failed, logs may be missed")
+			return ctx.Err() == nil
+		}
+		for _, vLog := range got {
+			if !deliverLog(ctx, config.Ch, cursor, vLog) {
+				return false
+			}
+		}
+	}
+	cursor.advanceTo(head + 1)
+	return true
 }
 
-// logCursor tracks the highest block a log was delivered from and which logs
-// of that block were already delivered. A resubscribe starts at that block
-// (FromBlock is inclusive) rather than block+1, so later logs of the same
-// block are not lost; logs already delivered from it are dropped as
-// duplicates, since DEX consumers stamp every log with time.Now().
+// logCursor is the position of the next log to deliver. Log Index is unique
+// and increasing within a block, so (block, index) orders logs. A resubscribe
+// uses FromBlock = cursor.block (inclusive, not block+1) so later logs of a
+// partially delivered block are not lost; logs before the cursor are dropped
+// as duplicates, since DEX consumers stamp every log with time.Now().
 type logCursor struct {
-	set   bool
 	block uint64
-	seen  map[logKey]struct{}
+	index uint
 }
 
-func (lc *logCursor) fromBlock(startBlock *big.Int) *big.Int {
-	if !lc.set {
-		return startBlock
-	}
-	return new(big.Int).SetUint64(lc.block)
-}
-
-// isDuplicate reports whether vLog was already delivered from the cursor block.
-func (lc *logCursor) isDuplicate(vLog types.Log) bool {
-	if !lc.set || vLog.BlockNumber != lc.block {
-		return false
-	}
-	_, ok := lc.seen[logKey{vLog.TxHash, vLog.Index}]
-	return ok
+func (lc *logCursor) isNew(vLog types.Log) bool {
+	return vLog.BlockNumber > lc.block || (vLog.BlockNumber == lc.block && vLog.Index >= lc.index)
 }
 
 func (lc *logCursor) markDelivered(vLog types.Log) {
-	if !lc.set || vLog.BlockNumber > lc.block {
-		lc.set = true
+	lc.block = vLog.BlockNumber
+	lc.index = vLog.Index + 1
+}
+
+// rewind moves the cursor back to a reorged-out log so its canonical
+// replacement at the same or a later position is delivered.
+func (lc *logCursor) rewind(vLog types.Log) {
+	if !lc.isNew(vLog) {
 		lc.block = vLog.BlockNumber
-		lc.seen = make(map[logKey]struct{})
+		lc.index = vLog.Index
 	}
-	if vLog.BlockNumber == lc.block {
-		lc.seen[logKey{vLog.TxHash, vLog.Index}] = struct{}{}
+}
+
+func (lc *logCursor) advanceTo(block uint64) {
+	if block > lc.block {
+		lc.block = block
+		lc.index = 0
+	}
+}
+
+// deliverLog sends vLog to ch unless it was already delivered or was removed
+// by a reorg (consumers would treat an orphaned swap as a fresh price).
+// Returns false when ctx is done.
+func deliverLog(ctx context.Context, ch chan<- types.Log, cursor *logCursor, vLog types.Log) bool {
+	if vLog.Removed {
+		cursor.rewind(vLog)
+		return true
+	}
+	if !cursor.isNew(vLog) {
+		return true
+	}
+	select {
+	case ch <- vLog:
+		cursor.markDelivered(vLog)
+		return true
+	case <-ctx.Done():
+		return false
 	}
 }
 
@@ -341,13 +424,7 @@ func processLogs(ctx context.Context, sub kaia.Subscription, logs <-chan types.L
 			log.Warn().Err(err).Msg("Error in subscription")
 			return
 		case vLog := <-logs:
-			if cursor.isDuplicate(vLog) {
-				continue
-			}
-			select {
-			case ch <- vLog:
-				cursor.markDelivered(vLog)
-			case <-ctx.Done():
+			if !deliverLog(ctx, ch, cursor, vLog) {
 				return
 			}
 		}
