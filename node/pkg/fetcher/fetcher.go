@@ -39,19 +39,18 @@ func (f *Fetcher) Run(ctx context.Context, proxies []Proxy) {
 
 	fetcherFrequency := time.Duration(f.FetchInterval) * time.Millisecond
 	ticker := time.NewTicker(fetcherFrequency)
-	// Use the local fetcherCtx, not the field: a quick STOP->START reassigns
-	// the field, and the old loop must still observe its own cancellation.
+	// The loop must watch only its own fetcherCtx (captured here), so a quick
+	// STOP->START can't keep an old loop alive.
 	go func() {
+		defer ticker.Stop()
 		for {
 			select {
 			case <-fetcherCtx.Done():
-				ticker.Stop()
 				return
 			case <-ticker.C:
 				// select picks randomly when a tick and cancel are both ready;
 				// don't start a new job after STOP.
 				if fetcherCtx.Err() != nil {
-					ticker.Stop()
 					return
 				}
 				err := f.fetcherJob(fetcherCtx, proxies)
@@ -73,6 +72,11 @@ func (f *Fetcher) fetcherJob(ctx context.Context, proxies []Proxy) error {
 
 	if len(result) == 0 {
 		return errorSentinel.ErrFetcherNoDataFetched
+	}
+
+	// Drop results of a job that was still in flight when STOP/REFRESH landed.
+	if ctx.Err() != nil {
+		return nil
 	}
 
 	err = f.latestFeedDataMap.SetLatestFeedData(result)

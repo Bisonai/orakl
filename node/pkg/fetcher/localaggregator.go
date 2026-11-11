@@ -44,20 +44,18 @@ func (c *LocalAggregator) Run(ctx context.Context) {
 	localAggregateFrequency := localAggregateInterval
 
 	ticker := time.NewTicker(localAggregateFrequency)
-	// Use the local aggregatorCtx, not the field: a quick STOP->START
-	// reassigns the field, and the old loop must still observe its own
-	// cancellation.
+	// The loop must watch only its own aggregatorCtx (captured here), so a
+	// quick STOP->START can't keep an old loop alive.
 	go func() {
+		defer ticker.Stop()
 		for {
 			select {
 			case <-aggregatorCtx.Done():
-				ticker.Stop()
 				return
 			case <-ticker.C:
 				// select picks randomly when a tick and cancel are both ready;
 				// don't start a new job after STOP.
 				if aggregatorCtx.Err() != nil {
-					ticker.Stop()
 					return
 				}
 				go func() {
@@ -220,6 +218,12 @@ func calculateAggregatedPrice(valueWeightedAveragePrice, medianPrice float64) fl
 
 func (c *LocalAggregator) streamLocalAggregate(ctx context.Context, aggregated float64) error {
 	if aggregated == 0 {
+		return nil
+	}
+
+	// Don't cache or publish from a job that was still running when
+	// STOP/REFRESH cancelled its loop.
+	if ctx.Err() != nil {
 		return nil
 	}
 
