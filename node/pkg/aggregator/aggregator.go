@@ -72,6 +72,8 @@ func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string, config Co
 	}
 	aggregator.Raft.LeaderJob = aggregator.LeaderJob
 	aggregator.Raft.HandleCustomMessage = aggregator.HandleCustomMessage
+	// only the leader sends these; followers send price data and proofs
+	aggregator.Raft.LeaderMessageTypes = map[raft.MessageType]bool{Trigger: true, PriceFix: true}
 
 	return &aggregator, nil
 }

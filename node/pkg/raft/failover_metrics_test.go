@@ -376,7 +376,7 @@ func TestRecordLeaderSilenceClockNeverMovesBack(t *testing.T) {
 	clock.lastSeen.Store(ahead)
 
 	start, _ := silenceSamples(t)
-	node.recordLeaderSilence(leader)
+	node.recordLeaderSilence(leader, false)
 	count, _ := silenceSamples(t)
 	assert.Equal(t, start, count)
 	assert.Equal(t, ahead, clock.lastSeen.Load())
@@ -390,7 +390,7 @@ func TestRecordLeaderSilenceDoesNotAllocate(t *testing.T) {
 	leader := testPeerID(t)
 	require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, leader, 1)))
 
-	assert.Zero(t, testing.AllocsPerRun(100, func() { node.recordLeaderSilence(leader) }))
+	assert.Zero(t, testing.AllocsPerRun(100, func() { node.recordLeaderSilence(leader, false) }))
 }
 
 func TestStartElectionCountsOnlyStartedElections(t *testing.T) {
