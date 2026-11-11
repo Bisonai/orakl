@@ -187,7 +187,9 @@ func (a *App) startAggregator(ctx context.Context, aggregator *Aggregator) error
 	done := make(chan struct{})
 	aggregator.done = done
 
+	a.runs.start()
 	go func() {
+		defer a.runs.stop()
 		defer close(done)
 		aggregator.Run(nodeCtx)
 	}()

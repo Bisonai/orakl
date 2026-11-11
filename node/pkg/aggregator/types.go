@@ -47,6 +47,9 @@ type App struct {
 	// rounds persists RoundID advances of all aggregators to State (nil
 	// without State).
 	rounds *roundPersister
+
+	// running aggregator Run goroutines (WaitStopped)
+	runs runTracker
 }
 
 type Config = nodeconfig.Config
