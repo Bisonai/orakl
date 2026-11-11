@@ -463,27 +463,23 @@ func (r *Raft) recordLeaderSilence(sentFrom string, heartbeat bool) {
 	if heartbeat {
 		storeLater(&clock.heartbeatAt, now)
 	}
-	// handlers run concurrently: an older message landing last must not move
-	// the clock back, or the next gap comes out too long
-	for {
-		prev := clock.lastSeen.Load()
-		if now <= prev {
-			return
-		}
-		if clock.lastSeen.CompareAndSwap(prev, now) {
-			metrics.RecordRaftLeaderSilence(time.Duration(now - prev))
-			return
-		}
+	// an older message landing last would make the next gap too long
+	if prev, moved := storeLater(&clock.lastSeen, now); moved {
+		metrics.RecordRaftLeaderSilence(time.Duration(now - prev))
 	}
 }
 
-// storeLater moves stamp forward to now. Handlers run concurrently, so an older
-// message landing last must not move it back.
-func storeLater(stamp *atomic.Int64, now int64) {
+// storeLater moves stamp forward to now, and returns the value it replaced.
+// Handlers run concurrently, so an older message landing last must not move it
+// back: then it reports false.
+func storeLater(stamp *atomic.Int64, now int64) (prev int64, moved bool) {
 	for {
-		prev := stamp.Load()
-		if now <= prev || stamp.CompareAndSwap(prev, now) {
-			return
+		prev = stamp.Load()
+		if now <= prev {
+			return prev, false
+		}
+		if stamp.CompareAndSwap(prev, now) {
+			return prev, true
 		}
 	}
 }
