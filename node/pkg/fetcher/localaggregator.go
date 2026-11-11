@@ -70,6 +70,10 @@ func (c *LocalAggregator) Run(ctx context.Context) {
 }
 
 func (c *LocalAggregator) Job(ctx context.Context) error {
+	if ctx.Err() != nil {
+		return nil
+	}
+
 	feeds, err := c.collect(ctx)
 	if err != nil {
 		return err
@@ -221,12 +225,6 @@ func (c *LocalAggregator) streamLocalAggregate(ctx context.Context, aggregated f
 		return nil
 	}
 
-	// Don't cache or publish from a job that was still running when
-	// STOP/REFRESH cancelled its loop.
-	if ctx.Err() != nil {
-		return nil
-	}
-
 	// Synthetic configs (e.g. STG-KRW = STG-USDT * KRW-USD) source their
 	// multiplier from another config's most recent raw aggregate.  If the
 	// source isn't available yet we skip emitting this round rather than
@@ -264,6 +262,12 @@ func (c *LocalAggregator) streamLocalAggregate(ctx context.Context, aggregated f
 		} else {
 			aggregated *= entry.Value
 		}
+	}
+
+	// Don't cache or publish from a job that was still running when
+	// STOP/REFRESH cancelled its loop.
+	if ctx.Err() != nil {
+		return nil
 	}
 
 	// Cache our own raw value so other configs can multiply against us.
