@@ -206,6 +206,9 @@ func TestStalledFollowerDoesNotDeposeLeader(t *testing.T) {
 		require.NotEqual(t, Leader, follower.GetRole(), "candidate won without its peer's vote")
 		time.Sleep(testLeaderInterval)
 	}
+	// back to following, at its higher term
+	assert.Equal(t, Follower, follower.GetRole())
+	assert.Equal(t, leader.GetHostId(), follower.GetLeader())
 }
 
 func TestSurvivorTakesOverWhenLeaderDies(t *testing.T) {

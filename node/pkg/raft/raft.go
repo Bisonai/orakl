@@ -152,8 +152,15 @@ func (r *Raft) handleHeartbeat(msg Message) error {
 	currentRole := r.Role
 	currentTerm := r.Term
 
+	// A node that campaigned past a live leader its peers still hear stays at the
+	// higher term: the leader and those peers ignore its RequestVote. Without a
+	// live leader of its own it follows this one, or it would ignore the leader's
+	// heartbeats and keep campaigning against it for as long as it leads.
+	followLower := heartbeatMessage.Term < currentTerm && currentRole != Leader &&
+		!r.hearsLeaderOtherThan(heartbeatMessage.LeaderID)
+
 	// ends a candidacy, or a late granted vote would still make this node leader
-	if r.Role == Candidate && heartbeatMessage.Term >= currentTerm {
+	if r.Role == Candidate && (heartbeatMessage.Term >= currentTerm || followLower) {
 		r.Role = Follower
 	}
 
@@ -180,6 +187,8 @@ func (r *Raft) handleHeartbeat(msg Message) error {
 		} else {
 			r.followLeader(heartbeatMessage.LeaderID)
 		}
+	} else if followLower {
+		r.followLeader(heartbeatMessage.LeaderID)
 	}
 
 	return nil

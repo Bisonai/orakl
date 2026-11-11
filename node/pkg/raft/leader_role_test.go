@@ -198,16 +198,41 @@ func TestHeartbeatStepsCandidateDown(t *testing.T) {
 	}
 }
 
-// A stale heartbeat keeps its current effect (open question in #2747).
-func TestStaleHeartbeatLeavesCandidate(t *testing.T) {
+// A candidate whose RequestVote a live leader ignored (#2760) follows that
+// leader's lower-term heartbeats, keeping its own term.
+func TestLowerTermHeartbeatEndsCandidacyWithoutLiveLeader(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	node, _ := newCandidate(ctx, t)
+	node, jobs := newCandidate(ctx, t)
 	node.Term = 5
+	leader := testPeerID(t)
+
+	require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, leader, 4)))
+
+	assert.Equal(t, Follower, node.GetRole())
+	assert.Equal(t, leader, node.GetLeader())
+	assert.Equal(t, 5, node.GetCurrentTerm())
+
+	require.NoError(t, node.handleMessage(ctx, grantedVoteFor(t, node)))
+	assert.Equal(t, Follower, node.GetRole(), "late vote")
+	time.Sleep(testLoopSettle)
+	assert.Zero(t, jobs.Load(), "late vote")
+}
+
+// A stale heartbeat, e.g. from a deposed leader, doesn't move a node off a
+// leader it still hears (open question in #2747).
+func TestLowerTermHeartbeatIgnoredWhileLeaderHeard(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	node, _ := newLeaderLoopNode(ctx, t)
+	leader := testPeerID(t)
+	require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, leader, 5)))
 
 	require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, testPeerID(t), 4)))
 
-	assert.Equal(t, Candidate, node.GetRole())
+	assert.Equal(t, Follower, node.GetRole())
+	assert.Equal(t, leader, node.GetLeader())
 	assert.Equal(t, 5, node.GetCurrentTerm())
 }
