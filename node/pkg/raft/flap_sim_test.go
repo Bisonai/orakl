@@ -13,6 +13,8 @@ import (
 	"time"
 
 	libp2psetup "bisonai.com/miko/node/pkg/libp2p/setup"
+	"bisonai.com/miko/node/pkg/utils/calculator"
+	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/stretchr/testify/require"
 )
 
@@ -45,7 +47,7 @@ type simLink struct {
 }
 
 type simQueued struct {
-	msg  Message
+	raw  *pubsub.Message
 	sent time.Time
 }
 
@@ -127,11 +129,11 @@ func (n *simNode) leaderJob(ctx context.Context) error {
 	if n.r.GetRole() != Leader {
 		n.zombie.Add(1)
 	}
+	// like Aggregator.LeaderJob: mutex held across publish, so rounds go out in order
 	n.mu.Lock()
+	defer n.mu.Unlock()
 	n.round++
-	round := n.round
-	n.mu.Unlock()
-	return n.publish(ctx, simTrigger, simMsg{Round: round, TS: time.Now()})
+	return n.publish(ctx, simTrigger, simMsg{Round: n.round, TS: time.Now()})
 }
 
 func (n *simNode) handleCustom(ctx context.Context, msg Message) error {
@@ -234,12 +236,12 @@ func (n *simNode) handleCustom(ctx context.Context, msg Message) error {
 }
 
 // fix mirrors processCollectedPrices: only a leader publishes the price fix, the
-// median of the non-negative prices (GetInt64Med; mean for two).
+// median of the non-negative prices.
 func (n *simNode) fix(ctx context.Context, prices []int64, m simMsg) error {
 	if n.r.GetRole() != Leader {
 		return nil
 	}
-	valid := prices[:0]
+	valid := []int64{} // FilterNegative
 	for _, p := range prices {
 		if p >= 0 {
 			valid = append(valid, p)
@@ -248,10 +250,9 @@ func (n *simNode) fix(ctx context.Context, prices []int64, m simMsg) error {
 	if len(valid) == 0 {
 		return nil
 	}
-	sort.Slice(valid, func(i, j int) bool { return valid[i] < valid[j] })
-	median := valid[len(valid)/2]
-	if len(valid)%2 == 0 {
-		median = (valid[len(valid)/2-1] + median) / 2
+	median, err := calculator.GetInt64Med(valid)
+	if err != nil {
+		return err
 	}
 	return n.publish(ctx, simFix, simMsg{Round: m.Round, Value: median, TS: m.TS})
 }
@@ -287,7 +288,8 @@ func newSimNode(ctx context.Context, t *testing.T, scale time.Duration, job time
 	return n
 }
 
-// forward delivers everything src publishes to dst through link, in order.
+// forward delivers everything src publishes to dst's Run loop through link, in
+// order.
 func forward(ctx context.Context, t *testing.T, src, dst *simNode, link *simLink) {
 	t.Helper()
 	sub, err := src.r.Topic.Subscribe()
@@ -304,7 +306,7 @@ func forward(ctx context.Context, t *testing.T, src, dst *simNode, link *simLink
 				continue
 			}
 			select {
-			case link.queue <- simQueued{msg: msg, sent: time.Now()}:
+			case link.queue <- simQueued{raw: raw, sent: time.Now()}:
 			case <-ctx.Done():
 				return
 			}
@@ -320,7 +322,13 @@ func forward(ctx context.Context, t *testing.T, src, dst *simNode, link *simLink
 				if !link.open() {
 					continue
 				}
-				go func() { _ = dst.r.handleMessage(ctx, q.msg) }()
+				// into Run's buffer, as subscribe does: it competes with the
+				// election timer there
+				select {
+				case dst.r.MessageBuffer <- q.raw:
+				case <-ctx.Done():
+					return
+				}
 			case <-ctx.Done():
 				return
 			}
@@ -366,7 +374,7 @@ func TestFlapSimulation(t *testing.T) {
 	}
 	modes := []string{"inbound-queue", "both-queue", "inbound-drop", "both-drop"}
 	if v := os.Getenv("RAFT_FLAP_SIM_MODES"); v != "" {
-		modes = strings.Split(v, ",")
+		modes = strings.Split(strings.ReplaceAll(v, " ", ""), ",")
 	}
 	for _, mode := range modes {
 		require.Regexp(t, `^(inbound|both)-(queue|drop)(-rand)?$`, mode, "RAFT_FLAP_SIM_MODES")
@@ -399,6 +407,8 @@ func runFlapSim(t *testing.T, mode string, trials int) {
 	time.Sleep(3 * scale)
 	go b.r.Run(ctx)
 
+	// role sampler: resolution is one tick (scale/5), and the two roles are read
+	// under separate locks, so overlaps of a few ticks are approximate
 	var leaderChanges, dual, leaderless atomic.Int64
 	go func() {
 		tick := time.NewTicker(scale / 5)
@@ -462,10 +472,10 @@ func runFlapSim(t *testing.T, mode string, trials int) {
 		mixed0 := a.mixed.Load() + b.mixed.Load()
 		zombie0 := a.zombie.Load() + b.zombie.Load()
 		subs0 := a.submissions.Load() + b.submissions.Load()
-		dual.Store(0)
-		leaderless.Store(0)
+		// deltas, as the sampler keeps adding
+		dual0, leaderless0 := dual.Load(), leaderless.Load()
 		trialStart := time.Now()
-		leaderChanges.Store(0)
+		changes0 := leaderChanges.Load()
 
 		// follower stalls past its election timeout (2 missed + 1 timer)
 		stall := 40 * scale
@@ -479,13 +489,13 @@ func runFlapSim(t *testing.T, mode string, trials int) {
 		time.Sleep(150 * scale)
 
 		results = append(results, simTrial{
-			dualLeader:    time.Duration(dual.Load()),
-			leaderless:    float64(leaderless.Load()) / float64(time.Since(trialStart)),
+			dualLeader:    time.Duration(dual.Load() - dual0),
+			leaderless:    float64(leaderless.Load()-leaderless0) / float64(time.Since(trialStart)),
 			stuck:         stuck,
 			mixed:         a.mixed.Load() + b.mixed.Load() - mixed0,
 			submissions:   a.submissions.Load() + b.submissions.Load() - subs0,
 			zombie:        a.zombie.Load() + b.zombie.Load() - zombie0,
-			leaderChanges: leaderChanges.Load(),
+			leaderChanges: leaderChanges.Load() - changes0,
 		})
 	}
 
@@ -526,9 +536,9 @@ func runFlapSim(t *testing.T, mode string, trials int) {
 		return
 	}
 	sort.Slice(duals, func(i, j int) bool { return duals[i] < duals[j] })
-	t.Logf("mode=%s trials=%d flaps=%d | per flap: mixed-proof submissions=%.2f submissions=%.1f stray-loop triggers=%.2f | dual-leader mean=%v median=%v max=%v",
+	t.Logf("mode=%s trials=%d flaps=%d | per flap: mixed-proof submissions=%.2f submissions=%.1f stray-loop triggers=%.2f | dual-leader mean=%v p50=%v max=%v",
 		mode, len(results), flaps, float64(mixedSum)/float64(flaps), float64(subsSum)/float64(flaps), float64(zombieSum)/float64(flaps),
-		dualSum/time.Duration(flaps), duals[flaps/2], duals[flaps-1])
+		dualSum/time.Duration(flaps), duals[(flaps-1)/2], duals[flaps-1])
 	if os.Getenv("RAFT_FLAP_SIM_VERBOSE") != "" {
 		for i, r := range results {
 			t.Logf("  trial %2d: mixed=%d subs=%d stray=%d dual=%v changes=%d", i, r.mixed, r.submissions, r.zombie, r.dualLeader, r.leaderChanges)
