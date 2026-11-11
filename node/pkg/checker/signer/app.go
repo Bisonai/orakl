@@ -23,6 +23,13 @@ var submissionProxyContractAddr string
 
 const DEFAULT_SIGNER_CHECK_INTERVAL_HOUR = 24
 
+// Seams for unit tests; production code uses the real chain reads and Slack alert.
+var (
+	getSignerAddresses            = GetSignerAddresses
+	extractExpirationFromContract = ExtractExpirationFromContract
+	slackAlert                    = alert.SlackAlert
+)
+
 func setUp(ctx context.Context) error {
 	var err error
 	signerCheckInterval, err = time.ParseDuration(os.Getenv("SIGNER_CHECK_INTERVAL"))
@@ -71,21 +78,23 @@ func Start(ctx context.Context) error {
 
 func check(ctx context.Context) error {
 	alarmMessage := ""
-	signerAddresses, err := GetSignerAddresses(ctx, jsonRpcUrl, submissionProxyContractAddr)
-	log.Debug().Msgf("Signer addresses: %v", signerAddresses)
+	signerAddresses, err := getSignerAddresses(ctx, jsonRpcUrl, submissionProxyContractAddr)
 	if err != nil {
+		// Transient RPC errors must not exit sentinel: alert and retry on the next tick.
 		log.Error().Err(err).Msg("Failed to get signer addresses")
-		return err
+		slackAlert(fmt.Sprintf("Signer checker failed to get signer addresses: %v", err))
+		return nil
 	}
+	log.Debug().Msgf("Signer addresses: %v", signerAddresses)
 
 	for _, signerAddress := range signerAddresses {
-		exp, err := ExtractExpirationFromContract(ctx, jsonRpcUrl, submissionProxyContractAddr, signerAddress)
-		log.Debug().Msgf("Signer: %s, Expiration: %s", signerAddress, (*exp).String())
+		exp, err := extractExpirationFromContract(ctx, jsonRpcUrl, submissionProxyContractAddr, signerAddress)
 		if err != nil || exp == nil {
 			log.Error().Err(err).Msg(fmt.Sprintf("Failed to extract expiration for signer: %s", signerAddress))
 			alarmMessage += fmt.Sprintf("Failed to extract expiration for signer %s with following error: %v\n", signerAddress, err)
 			continue
 		}
+		log.Debug().Msgf("Signer: %s, Expiration: %s", signerAddress, exp.String())
 
 		expiryDate := *exp
 		now := time.Now()
@@ -94,7 +103,7 @@ func check(ctx context.Context) error {
 		}
 	}
 	if alarmMessage != "" {
-		alert.SlackAlert(alarmMessage)
+		slackAlert(alarmMessage)
 	}
 
 	return nil
