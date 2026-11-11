@@ -14,6 +14,7 @@ import (
 	"bisonai.com/miko/node/pkg/metrics"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/host"
+	"github.com/libp2p/go-libp2p/core/peer"
 )
 
 const HEARTBEAT_TIMEOUT = 100 * time.Millisecond
@@ -61,6 +62,8 @@ func (r *Raft) Run(ctx context.Context) {
 	for {
 		select {
 		case rawMsg := <-r.MessageBuffer:
+			// the signed author, not the payload's SentFrom
+			r.stampPeer(rawMsg.GetFrom())
 			go func(*pubsub.Message) {
 				msg, err := r.unmarshalMessage(rawMsg.Data)
 				if err != nil {
@@ -114,10 +117,9 @@ func (r *Raft) subscribe(ctx context.Context) {
 // handler for incoming messages
 
 func (r *Raft) handleMessage(ctx context.Context, msg Message) error {
-	r.stampPeer(msg.SentFrom)
 	// heartbeats record in handleHeartbeat, once validated
 	if msg.Type != Heartbeat {
-		r.recordLeaderSilence(msg.SentFrom, msg.Type != RequestVote && msg.Type != ReplyVote)
+		r.recordLeaderSilence(msg.SentFrom, r.LeaderMessageTypes[msg.Type])
 	}
 	switch msg.Type {
 	case Heartbeat:
@@ -268,24 +270,24 @@ func (r *Raft) handleReplyVote(ctx context.Context, msg Message) error {
 	if replyVoteMessage.VoteGranted && replyVoteMessage.LeaderID == r.GetHostId() && r.Role == Candidate {
 		r.VotesReceived++
 		log.Debug().Int("vote received", r.VotesReceived).Msg("vote received")
-		voters := r.liveVoters()
-		log.Debug().Int("live voters", voters).Msg("live voters")
-		if r.VotesReceived >= votesNeeded(voters) {
+		if r.VotesReceived >= votesNeeded(r.SubscribersCount()) {
 			r.becomeLeader(ctx)
+		} else if r.VotesReceived >= votesNeeded(r.liveVoters()) {
+			r.recountAfterGrace(ctx)
 		}
 	}
 	return nil
 }
 
-// hearsLeaderOtherThan reports whether a message other than a vote from the
-// current leader arrived within the minimum election timeout, and that leader
-// isn't candidate. A leader campaigning has lost its role, and a node always
-// votes for itself. Any leader message counts, not only heartbeats, so this
-// still holds once heartbeats are sent less often (#2747). Votes don't: a
-// resigned leader granting a candidate mustn't make its old followers refuse it.
-// A leader that goes quiet turns this false before any peer can time out; one
-// whose jobs stop resigns (LeaderJobWatchdog), so it can't hold off an election
-// that is needed for long.
+// hearsLeaderOtherThan reports whether a heartbeat or LeaderMessageTypes message
+// from the current leader arrived within the minimum election timeout, and that
+// leader isn't candidate. A leader campaigning has lost its role, and a node
+// always votes for itself. Rounds' leader messages count, not only heartbeats,
+// so this still holds once heartbeats are sent less often (#2747). Messages any
+// node sends (votes, price data, proofs) don't: a deposed leader still sends
+// them. A leader that goes quiet turns this false before any peer can time out;
+// one whose jobs stop resigns (LeaderJobWatchdog), so it can't hold off an
+// election that is needed for long.
 func (r *Raft) hearsLeaderOtherThan(candidate string) bool {
 	if candidate == r.GetHostId() {
 		return false
@@ -299,7 +301,10 @@ func (r *Raft) hearsLeaderOtherThan(candidate string) bool {
 
 // stampPeer records a message from a peer, for liveVoters. Runs for every
 // received message, so lock-free and allocating only for a new peer.
-func (r *Raft) stampPeer(id string) {
+func (r *Raft) stampPeer(id peer.ID) {
+	if id == r.Host.ID() {
+		return
+	}
 	now := int64(time.Since(leaderClockEpoch))
 	if stamp, ok := r.peerSeen.Load(id); ok {
 		storeLater(stamp.(*atomic.Int64), now)
@@ -316,11 +321,14 @@ func (r *Raft) stampPeer(id string) {
 // within PeerSilenceTimeout. A peer that hangs while still connected then stops
 // counting, so a lone candidate wins on its own vote after the timeout instead
 // of waiting for the connection to drop. A peer not heard from yet counts from
-// when it's first seen subscribed. The caller holds Mutex.
+// when it's first seen subscribed; one that left is forgotten. The caller holds
+// Mutex.
 func (r *Raft) liveVoters() int {
+	listed := r.Ps.ListPeers(r.Topic.String())
+	subscribed := make(map[peer.ID]bool, len(listed))
 	live := 0
-	for _, p := range r.Ps.ListPeers(r.Topic.String()) {
-		id := p.String()
+	for _, id := range listed {
+		subscribed[id] = true
 		stamp, ok := r.peerSeen.Load(id)
 		if !ok {
 			r.stampPeer(id)
@@ -331,7 +339,34 @@ func (r *Raft) liveVoters() int {
 			live++
 		}
 	}
+	r.peerSeen.Range(func(id, _ any) bool {
+		if !subscribed[id.(peer.ID)] {
+			r.peerSeen.Delete(id)
+		}
+		return true
+	})
 	return live
+}
+
+// recountAfterGrace wins the election a minimum election timeout from now if
+// the votes are then still enough, counting only live voters. A win that relies
+// on counting a silent peer out waits this long: followers only talk during
+// rounds, so a healthy peer can look silent until it answers this election, and
+// two candidates that each count the other out would both lead. A peer that's
+// alive answers within the grace and counts again. The caller holds Mutex.
+func (r *Raft) recountAfterGrace(ctx context.Context) {
+	if r.recountTerm == r.Term {
+		return
+	}
+	term := r.Term
+	r.recountTerm = term
+	time.AfterFunc(r.minElectionTimeout(), func() {
+		r.Mutex.Lock()
+		defer r.Mutex.Unlock()
+		if r.Role == Candidate && r.Term == term && r.VotesReceived >= votesNeeded(r.liveVoters()) {
+			r.becomeLeader(ctx)
+		}
+	})
 }
 
 // votesNeeded is a strict majority of the voters: the live peers on this node's
@@ -556,7 +591,8 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 	resign := r.Resign
 	heartbeatTicker := time.NewTicker(r.HeartbeatTimeout)
 	leaderJobTicker := time.NewTicker(r.LeaderJobTimeout)
-	watchdog := r.LeaderJobWatchdog
+	// a job interval near the watchdog would trip it between healthy jobs
+	watchdog := max(r.LeaderJobWatchdog, 3*r.LeaderJobTimeout)
 	// last successful job of this term, from when it began
 	jobDone := &atomic.Int64{}
 	jobDone.Store(int64(time.Since(leaderClockEpoch)))
@@ -635,7 +671,8 @@ func (r *Raft) minElectionTimeout() time.Duration {
 
 // resignStuckLeader gives up a term whose leader jobs stopped succeeding, while
 // its heartbeats would keep peers following it: rounds stop but no election
-// happens (e.g. #2749). It stops the heartbeats, and holds off campaigning for
+// happens (e.g. trigger publishes failing). A stall on Mutex (#2749) stops the
+// heartbeats too, so peers time out and count it out (liveVoters) instead. It stops the heartbeats, and holds off campaigning for
 // twice the longest a peer takes to notice and campaign, so a peer takes over
 // rather than this node winning the term back.
 func (r *Raft) resignStuckLeader(resign <-chan interface{}, watchdog time.Duration) {

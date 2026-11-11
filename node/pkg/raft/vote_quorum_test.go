@@ -59,8 +59,9 @@ func TestRequestVoteIgnoredWhileLeaderHeard(t *testing.T) {
 	assert.Equal(t, candidate, votedFor)
 }
 
-// Any leader message holds off a vote, so stickiness survives sparser heartbeats
-// (#2747). A vote from the leader doesn't: it is no sign of leading.
+// A leader-only message holds off a vote, so stickiness survives sparser
+// heartbeats (#2747). Messages any node sends (votes, price data) don't: a
+// deposed leader still sends them.
 func TestRequestVoteStickinessCountsLeaderMessages(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -70,11 +71,13 @@ func TestRequestVoteStickinessCountsLeaderMessages(t *testing.T) {
 		granted bool
 	}{
 		"trigger":   {"trigger", false},
+		"priceData": {"priceData", true},
 		"replyVote": {ReplyVote, true},
 	} {
 		t.Run(name, func(t *testing.T) {
 			node, _ := newLeaderLoopNode(ctx, t)
 			node.HandleCustomMessage = func(context.Context, Message) error { return nil }
+			node.LeaderMessageTypes = map[MessageType]bool{"trigger": true}
 			leader, candidate := testPeerID(t), testPeerID(t)
 			require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, leader, 3)))
 
@@ -334,7 +337,7 @@ func TestLiveVotersSkipsSilentPeer(t *testing.T) {
 	defer cancel()
 
 	nodes := startCluster(ctx, t, 2)
-	node, peerID := nodes[0], nodes[1].GetHostId()
+	node, peerID := nodes[0], nodes[1].Host.ID()
 	setSeen := func(ago time.Duration) {
 		stamp, _ := node.peerSeen.LoadOrStore(peerID, &atomic.Int64{})
 		stamp.(*atomic.Int64).Store(int64(time.Since(leaderClockEpoch) - ago))
@@ -352,6 +355,69 @@ func TestLiveVotersSkipsSilentPeer(t *testing.T) {
 	assert.Equal(t, 1, node.liveVoters())
 	_, ok := node.peerSeen.Load(peerID)
 	assert.True(t, ok)
+
+	// one that left the topic is forgotten
+	gone := peer.ID("gone")
+	node.peerSeen.Store(gone, &atomic.Int64{})
+	assert.Equal(t, 1, node.liveVoters())
+	_, ok = node.peerSeen.Load(gone)
+	assert.False(t, ok)
+}
+
+// A win that relies on counting a silent peer out waits for the grace: a peer
+// heard again within it counts again and stops the win; one still silent doesn't.
+func TestSilentPeerWinWaitsForGrace(t *testing.T) {
+	for name, heardAgain := range map[string]bool{"still silent": false, "heard again": true} {
+		t.Run(name, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			nodes := startCluster(ctx, t, 2)
+			leader := waitForSingleLeader(t, nodes, "no initial leader")
+			node := otherNode(nodes, leader)
+			// silences the leader, so nothing but this test moves the stamp
+			leader.Mutex.Lock()
+			defer leader.Mutex.Unlock()
+
+			setPeerSeen := func(ago time.Duration) {
+				stamp, _ := node.peerSeen.Load(leader.Host.ID())
+				stamp.(*atomic.Int64).Store(int64(time.Since(leaderClockEpoch) - ago))
+			}
+			node.Mutex.Lock()
+			node.Role, node.Term, node.VotesReceived = Candidate, node.Term+5, 0
+			setPeerSeen(node.PeerSilenceTimeout + time.Second)
+			node.Mutex.Unlock()
+
+			require.NoError(t, node.handleReplyVote(ctx, grantedVoteFor(t, node)))
+			assert.Equal(t, Candidate, node.GetRole(), "won before the grace")
+			if heardAgain {
+				setPeerSeen(0)
+			}
+
+			time.Sleep(node.minElectionTimeout() + testLoopSettle)
+			if heardAgain {
+				assert.Equal(t, Candidate, node.GetRole(), "won though the peer was heard")
+			} else {
+				assert.Equal(t, Leader, node.GetRole(), "didn't win once the grace passed")
+			}
+		})
+	}
+}
+
+func TestLeaderJobWatchdogAtLeastThreeJobIntervals(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	node, jobs := newLeaderLoopNode(ctx, t)
+	node.LeaderJobWatchdog = testLeaderInterval // below the job interval
+	node.LeaderJobTimeout = 4 * testLeaderInterval
+
+	node.Mutex.Lock()
+	node.becomeLeader(ctx)
+	node.Mutex.Unlock()
+
+	require.Eventually(t, func() bool { return jobs.Load() >= 3 }, 5*time.Second, testLeaderInterval)
+	assert.Equal(t, Leader, node.GetRole(), "resigned between healthy jobs")
 }
 
 // A leader that hangs but stays connected (subscribed, sends nothing) is replaced

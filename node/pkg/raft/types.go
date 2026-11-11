@@ -90,8 +90,14 @@ type Raft struct {
 	// no campaign before this, after resigning a stuck term; under Mutex
 	campaignAfter time.Time
 
-	// peer ID -> *atomic.Int64, ns since leaderClockEpoch of its last message
+	// message types only a leader sends, besides heartbeats; one from the
+	// current leader holds off votes (hearsLeaderOtherThan). Set before Run.
+	LeaderMessageTypes map[MessageType]bool
+
+	// peer.ID -> *atomic.Int64, ns since leaderClockEpoch of its last message
 	peerSeen sync.Map
+	// term a deferred win recount is pending for (handleReplyVote); under Mutex
+	recountTerm int
 
 	// atomic mirror of LeaderID for the message path, which must not take Mutex
 	// for metrics; nil when this node is the leader or there is none
@@ -104,7 +110,7 @@ type leaderClock struct {
 	id       string
 	term     int          // term this peer last became the leader at, under Raft.Mutex
 	lastSeen atomic.Int64 // ns since leaderClockEpoch
-	// last message other than a vote, same unit: leader stickiness
-	// (hearsLeaderOtherThan)
+	// last heartbeat or LeaderMessageTypes message, same unit: leader
+	// stickiness (hearsLeaderOtherThan)
 	activeAt atomic.Int64
 }
