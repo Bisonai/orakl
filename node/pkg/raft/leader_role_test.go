@@ -213,6 +213,8 @@ func TestLowerTermHeartbeatEndsCandidacyWithoutLiveLeader(t *testing.T) {
 	assert.Equal(t, Follower, node.GetRole())
 	assert.Equal(t, leader, node.GetLeader())
 	assert.Equal(t, 5, node.GetCurrentTerm())
+	_, votedFor, _ := voteState(node)
+	assert.Empty(t, votedFor, "own vote for an abandoned candidacy kept")
 
 	require.NoError(t, node.handleMessage(ctx, grantedVoteFor(t, node)))
 	assert.Equal(t, Follower, node.GetRole(), "late vote")
@@ -247,4 +249,23 @@ func TestLowerTermHeartbeatIgnoredWhileLeaderHeard(t *testing.T) {
 			assert.Equal(t, term, node.GetCurrentTerm())
 		})
 	}
+}
+
+// A stale leader heard first must not hold off a live one at a higher term.
+func TestLowerTermHeartbeatFromNewerLeaderTakesOver(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	node, _ := newCandidate(ctx, t)
+	node.Term = 7
+	stale, live := testPeerID(t), testPeerID(t)
+	require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, stale, 5)))
+	require.Equal(t, stale, node.GetLeader())
+
+	require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, live, 6)))
+	assert.Equal(t, live, node.GetLeader())
+
+	require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, stale, 5)))
+	assert.Equal(t, live, node.GetLeader(), "back to the stale leader")
+	assert.Equal(t, 7, node.GetCurrentTerm())
 }

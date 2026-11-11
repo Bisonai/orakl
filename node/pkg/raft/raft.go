@@ -113,7 +113,7 @@ func (r *Raft) subscribe(ctx context.Context) {
 func (r *Raft) handleMessage(ctx context.Context, msg Message) error {
 	// heartbeats record in handleHeartbeat, once validated
 	if msg.Type != Heartbeat {
-		r.recordLeaderSilence(msg.SentFrom)
+		r.recordLeaderSilence(msg.SentFrom, false)
 	}
 	switch msg.Type {
 	case Heartbeat:
@@ -143,10 +143,7 @@ func (r *Raft) handleHeartbeat(msg Message) error {
 	}
 
 	// after validating: an invalid heartbeat must not split a real gap in two
-	r.recordLeaderSilence(msg.SentFrom)
-	if clock := r.leaderClock.Load(); clock != nil && clock.id == msg.SentFrom {
-		clock.heartbeatAt.Store(int64(time.Since(leaderClockEpoch)))
-	}
+	r.recordLeaderSilence(msg.SentFrom, true)
 
 	r.Mutex.Lock()
 	defer r.Mutex.Unlock()
@@ -159,9 +156,12 @@ func (r *Raft) handleHeartbeat(msg Message) error {
 	// A node that campaigned past a live leader its peers still hear stays at the
 	// higher term: the leader and those peers ignore its RequestVote. Without a
 	// live leader of its own it follows this one, or it would ignore the leader's
-	// heartbeats and keep campaigning against it for as long as it leads.
+	// heartbeats and keep campaigning against it for as long as it leads. A
+	// leader at a higher term than the one it hears takes over, or a stale one
+	// heard first would hold it off.
 	followLower := heartbeatMessage.Term < currentTerm && currentRole != Leader &&
-		!r.hearsLeaderOtherThan(heartbeatMessage.LeaderID)
+		(!r.hearsLeaderOtherThan(heartbeatMessage.LeaderID) ||
+			heartbeatMessage.Term > r.leaderClock.Load().term)
 
 	// ends a candidacy, or a late granted vote would still make this node leader
 	if r.Role == Candidate && (heartbeatMessage.Term >= currentTerm || followLower) {
@@ -177,22 +177,27 @@ func (r *Raft) handleHeartbeat(msg Message) error {
 			r.ResignLeader()
 		}
 		r.Term = heartbeatMessage.Term
-		r.followLeader(heartbeatMessage.LeaderID)
+		r.followLeader(heartbeatMessage.LeaderID, heartbeatMessage.Term)
 
 		return nil
 	} else if heartbeatMessage.Term == currentTerm {
 		if currentRole == Leader {
 			if r.GetHostId() < heartbeatMessage.LeaderID {
 				r.ResignLeader()
-				r.followLeader(heartbeatMessage.LeaderID)
+				r.followLeader(heartbeatMessage.LeaderID, heartbeatMessage.Term)
 			} else {
 				return nil
 			}
 		} else {
-			r.followLeader(heartbeatMessage.LeaderID)
+			r.followLeader(heartbeatMessage.LeaderID, heartbeatMessage.Term)
 		}
 	} else if followLower {
-		r.followLeader(heartbeatMessage.LeaderID)
+		// it gave up campaigning, so its own vote at this term is void and
+		// mustn't deny a candidate at this term once the leader is gone
+		if r.VotedFor == r.GetHostId() {
+			r.VotedFor = ""
+		}
+		r.followLeader(heartbeatMessage.LeaderID, heartbeatMessage.Term)
 	}
 
 	return nil
@@ -406,21 +411,22 @@ func (r *Raft) ResignLeader() {
 	}
 }
 
-// followLeader sets another peer as the current leader, and restarts the silence
-// clock from now only if it changed. The caller holds Mutex.
-func (r *Raft) followLeader(leaderID string) {
+// followLeader sets another peer as the current leader at the term it leads in,
+// and restarts the silence clock from now only if it changed. The term can be
+// below this node's own (see handleHeartbeat). The caller holds Mutex.
+func (r *Raft) followLeader(leaderID string, term int) {
 	if r.LeaderID == leaderID {
 		if clock := r.leaderClock.Load(); clock != nil {
-			clock.term = r.Term // re-elected
+			clock.term = term // re-elected
 		}
 		return
 	}
 	r.LeaderID = leaderID
-	clock := &leaderClock{id: leaderID, term: r.Term}
+	clock := &leaderClock{id: leaderID, term: term}
 	now := int64(time.Since(leaderClockEpoch))
 	clock.lastSeen.Store(now)
 	clock.heartbeatAt.Store(now)
-	r.recordLeaderChangeSilence(r.leaderClock.Swap(clock))
+	r.recordLeaderChangeSilence(r.leaderClock.Swap(clock), term)
 }
 
 // recordLeaderChangeSilence observes how long the outgoing leader had been silent
@@ -429,14 +435,14 @@ func (r *Raft) followLeader(leaderID string) {
 // leaders at one term flip LeaderID on each heartbeat, which isn't a failover, so
 // it's skipped. Same term alone isn't enough, as terms aren't unique across nodes:
 // a real failover also shows silence past the missed heartbeats and minimum election
-// timers that detecting it takes (see getRandomElectionTimeout, startElection). The
-// caller holds Mutex.
-func (r *Raft) recordLeaderChangeSilence(old *leaderClock) {
+// timers that detecting it takes (see getRandomElectionTimeout, startElection).
+// term is the new leader's. The caller holds Mutex.
+func (r *Raft) recordLeaderChangeSilence(old *leaderClock, term int) {
 	if old == nil {
 		return
 	}
 	gap := since(&old.lastSeen)
-	if old.term == r.Term && gap < (MaxMissedHeartbeats+1)*5*r.HeartbeatTimeout {
+	if old.term == term && gap < (MaxMissedHeartbeats+1)*5*r.HeartbeatTimeout {
 		return
 	}
 	metrics.RecordRaftLeaderChangeSilence(gap)
@@ -446,13 +452,17 @@ func (r *Raft) recordLeaderChangeSilence(old *leaderClock) {
 // current leader. The message that makes a leader runs before its clock exists,
 // so it records nothing and no gap spans two leaders. Own messages never match:
 // the clock is nil while this node leads, and otherwise holds another peer. Runs
-// for every received message, so lock-free and no allocation.
-func (r *Raft) recordLeaderSilence(sentFrom string) {
+// for every received message, so lock-free and no allocation. A heartbeat also
+// stamps heartbeatAt, for leader stickiness.
+func (r *Raft) recordLeaderSilence(sentFrom string, heartbeat bool) {
 	clock := r.leaderClock.Load()
 	if clock == nil || clock.id != sentFrom {
 		return
 	}
 	now := int64(time.Since(leaderClockEpoch))
+	if heartbeat {
+		storeLater(&clock.heartbeatAt, now)
+	}
 	// handlers run concurrently: an older message landing last must not move
 	// the clock back, or the next gap comes out too long
 	for {
@@ -462,6 +472,17 @@ func (r *Raft) recordLeaderSilence(sentFrom string) {
 		}
 		if clock.lastSeen.CompareAndSwap(prev, now) {
 			metrics.RecordRaftLeaderSilence(time.Duration(now - prev))
+			return
+		}
+	}
+}
+
+// storeLater moves stamp forward to now. Handlers run concurrently, so an older
+// message landing last must not move it back.
+func storeLater(stamp *atomic.Int64, now int64) {
+	for {
+		prev := stamp.Load()
+		if now <= prev || stamp.CompareAndSwap(prev, now) {
 			return
 		}
 	}
@@ -484,7 +505,7 @@ func (r *Raft) setLeaderState() {
 	r.Term++
 	r.Role = Leader
 	r.LeaderID = r.GetHostId()
-	r.recordLeaderChangeSilence(r.leaderClock.Swap(nil))
+	r.recordLeaderChangeSilence(r.leaderClock.Swap(nil), r.Term)
 }
 
 func (r *Raft) becomeLeader(ctx context.Context) {
