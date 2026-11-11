@@ -322,20 +322,18 @@ func (r *Raft) stampPeer(id peer.ID) {
 	}
 }
 
-// liveVoters counts the peers subscribed to the topic that sent any message
-// within PeerSilenceTimeout (see voterCounts). The caller holds Mutex.
-func (r *Raft) liveVoters() int {
-	_, live := r.voterCounts()
-	return live
-}
-
 // voterCounts returns the peers subscribed to the topic, and those of them that
 // sent any message within PeerSilenceTimeout. A peer that hangs while still connected then stops
 // counting, so a lone candidate wins on its own vote after the timeout instead
 // of waiting for the connection to drop. A peer not heard from yet counts from
-// when it's first seen subscribed; one that left is forgotten. The caller holds
-// Mutex.
+// when it's first seen subscribed. One that left is forgotten only once long
+// silent too, so a hung peer whose connection flaps can't renew its grace. The
+// caller holds Mutex.
 func (r *Raft) voterCounts() (subscribed, live int) {
+	timeout := r.PeerSilenceTimeout
+	if timeout <= 0 {
+		timeout = DefaultPeerSilenceTimeout // zero would count every peer out
+	}
 	listed := r.Ps.ListPeers(r.Topic.String())
 	listedSet := make(map[peer.ID]bool, len(listed))
 	for _, id := range listed {
@@ -346,12 +344,12 @@ func (r *Raft) voterCounts() (subscribed, live int) {
 			live++
 			continue
 		}
-		if since(stamp.(*atomic.Int64)) < r.PeerSilenceTimeout {
+		if since(stamp.(*atomic.Int64)) < timeout {
 			live++
 		}
 	}
-	r.peerSeen.Range(func(id, _ any) bool {
-		if !listedSet[id.(peer.ID)] {
+	r.peerSeen.Range(func(id, stamp any) bool {
+		if !listedSet[id.(peer.ID)] && since(stamp.(*atomic.Int64)) > 6*timeout {
 			r.peerSeen.Delete(id)
 		}
 		return true
@@ -374,7 +372,10 @@ func (r *Raft) recountAfterGrace(ctx context.Context) {
 	time.AfterFunc(r.minElectionTimeout(), func() {
 		r.Mutex.Lock()
 		defer r.Mutex.Unlock()
-		if ctx.Err() == nil && r.Role == Candidate && r.Term == term && r.VotesReceived >= votesNeeded(r.liveVoters()) {
+		if ctx.Err() != nil || r.Role != Candidate || r.Term != term {
+			return
+		}
+		if _, live := r.voterCounts(); r.VotesReceived >= votesNeeded(live) {
 			r.becomeLeader(ctx)
 		}
 	})
@@ -604,6 +605,9 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 	leaderJobTicker := time.NewTicker(r.LeaderJobTimeout)
 	// a job interval near the watchdog would trip it between healthy jobs
 	watchdog := max(r.LeaderJobWatchdog, 3*r.LeaderJobTimeout)
+	if r.LeaderJobWatchdog <= 0 {
+		watchdog = max(DefaultLeaderJobWatchdog, 3*r.LeaderJobTimeout)
+	}
 	// last successful job of this term, from when it began
 	jobDone := &atomic.Int64{}
 	jobDone.Store(int64(time.Since(leaderClockEpoch)))
@@ -645,8 +649,12 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 				return
 
 			case <-heartbeatTicker.C:
-				if since(jobDone) > watchdog && r.resignStuckLeader(resign, watchdog) {
-					return
+				if since(jobDone) > watchdog {
+					if r.resignStuckLeader(resign, watchdog) {
+						return
+					}
+					// no peer to take over: check again a watchdog from now
+					storeLater(jobDone, int64(time.Since(leaderClockEpoch)))
 				}
 				err := r.sendHeartbeat(ctx, resign)
 				if err != nil {

@@ -333,6 +333,11 @@ func TestSimultaneousCandidatesConverge(t *testing.T) {
 	}
 }
 
+func liveCount(node *Raft) int {
+	_, live := node.voterCounts()
+	return live
+}
+
 func TestLiveVotersSkipsSilentPeer(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -347,22 +352,29 @@ func TestLiveVotersSkipsSilentPeer(t *testing.T) {
 	node.Mutex.Lock()
 	defer node.Mutex.Unlock()
 	setSeen(node.PeerSilenceTimeout / 2) // a stall below the timeout
-	assert.Equal(t, 1, node.liveVoters())
+	assert.Equal(t, 1, liveCount(node))
 	setSeen(node.PeerSilenceTimeout + time.Second)
-	assert.Equal(t, 0, node.liveVoters())
+	assert.Equal(t, 0, liveCount(node))
 
 	// a subscribed peer not heard from yet counts from now
 	node.peerSeen.Delete(peerID)
-	assert.Equal(t, 1, node.liveVoters())
+	assert.Equal(t, 1, liveCount(node))
 	_, ok := node.peerSeen.Load(peerID)
 	assert.True(t, ok)
 
-	// one that left the topic is forgotten
-	gone := peer.ID("gone")
-	node.peerSeen.Store(gone, &atomic.Int64{})
-	assert.Equal(t, 1, node.liveVoters())
+	// one that left the topic is forgotten once long silent, not before
+	gone, flapping := peer.ID("gone"), peer.ID("flapping")
+	old := &atomic.Int64{}
+	old.Store(int64(time.Since(leaderClockEpoch) - 7*node.PeerSilenceTimeout))
+	node.peerSeen.Store(gone, old)
+	recent := &atomic.Int64{}
+	recent.Store(int64(time.Since(leaderClockEpoch)))
+	node.peerSeen.Store(flapping, recent)
+	assert.Equal(t, 1, liveCount(node))
 	_, ok = node.peerSeen.Load(gone)
 	assert.False(t, ok)
+	_, ok = node.peerSeen.Load(flapping)
+	assert.True(t, ok)
 }
 
 // A win that relies on counting a silent peer out waits for the grace: a peer
