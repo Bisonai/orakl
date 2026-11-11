@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -109,7 +110,13 @@ func TestLeaderStopElectsAtOnce(t *testing.T) {
 func reconnect(ctx context.Context, t *testing.T, a, b *Raft) {
 	t.Helper()
 	require.NoError(t, a.Host.Network().ClosePeer(b.Host.ID()))
-	require.NoError(t, a.Host.Connect(ctx, peer.AddrInfo{ID: b.Host.ID(), Addrs: b.Host.Addrs()}))
+	// Connect is a no-op while the old connection is still closing
+	require.Eventually(t, func() bool {
+		return a.Host.Network().Connectedness(b.Host.ID()) != network.Connected
+	}, time.Second, time.Millisecond, "connection not closed")
+	dialCtx, cancel := context.WithTimeout(ctx, time.Second)
+	defer cancel()
+	require.NoError(t, a.Host.Connect(dialCtx, peer.AddrInfo{ID: b.Host.ID(), Addrs: b.Host.Addrs()}))
 }
 
 func leaveElections(t *testing.T) float64 {
@@ -134,10 +141,11 @@ func TestQuickReconnectDoesNotElect(t *testing.T) {
 	}
 	time.Sleep(2 * follower.peerLeaveGrace())
 
-	assert.Equal(t, before, leaveElections(t), "a quick reconnect started an election")
+	assert.Equal(t, before, leaveElections(t), "a quick reconnect started an election (disconnect %v, shutdown %v)",
+		electionsStarted(t, "disconnect"), electionsStarted(t, "shutdown"))
 	got, ok := singleLeader(nodes)
 	require.True(t, ok, "no single leader")
-	assert.Equal(t, leader, got, "leader changed")
+	assert.Equal(t, leader.GetHostId(), got.GetHostId(), "leader changed")
 	assert.Equal(t, term, follower.GetCurrentTerm())
 }
 
@@ -168,7 +176,7 @@ func TestLateReconnectHandsOverOnce(t *testing.T) {
 	time.Sleep(follower.maxElectionDetection() + follower.CooldownPeriod)
 	got, ok := singleLeader(nodes)
 	require.True(t, ok, "no single leader")
-	assert.Equal(t, follower, got, "leadership moved again")
+	assert.Equal(t, follower.GetHostId(), got.GetHostId(), "leadership moved again")
 	assert.Equal(t, term, follower.GetCurrentTerm())
 	assert.Equal(t, before, electionsStarted(t, "timeout")+leaveElections(t), "elected again after the reconnect")
 }

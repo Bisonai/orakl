@@ -3,6 +3,7 @@ package raft
 import (
 	"context"
 	"math/rand"
+	"sync/atomic"
 	"time"
 
 	"bisonai.com/miko/node/pkg/metrics"
@@ -33,12 +34,24 @@ import (
 func (r *Raft) watchPeerLeaves(ctx context.Context, events *pubsub.TopicEventHandler) {
 	defer events.Cancel()
 	grace := r.peerLeaveGrace()
+	// per peer, the number of events seen: a leave acts only if it is still
+	// the peer's latest, so a flap's earlier leave can't fire during a later one
+	seen := map[peer.ID]*atomic.Uint64{}
 	for {
 		event, err := events.NextPeerEvent(ctx)
 		if err != nil {
 			return
 		}
-		if event.Type != pubsub.PeerLeave || event.Peer == r.Host.ID() {
+		if event.Peer == r.Host.ID() {
+			continue
+		}
+		count, ok := seen[event.Peer]
+		if !ok {
+			count = &atomic.Uint64{}
+			seen[event.Peer] = count
+		}
+		seq := count.Add(1)
+		if event.Type != pubsub.PeerLeave {
 			continue
 		}
 		left := event.Peer
@@ -51,7 +64,11 @@ func (r *Raft) watchPeerLeaves(ctx context.Context, events *pubsub.TopicEventHan
 		// jittered, so with 3+ nodes the followers of a leader that left
 		// don't all campaign at once and split the vote
 		wait := grace + time.Duration(rand.Int63n(int64(r.minElectionTimeout()/2)+1))
-		time.AfterFunc(wait, func() { r.handlePeerLeft(ctx, left, reason) })
+		time.AfterFunc(wait, func() {
+			if count.Load() == seq {
+				r.handlePeerLeft(ctx, left, reason)
+			}
+		})
 	}
 }
 
@@ -71,6 +88,11 @@ func (r *Raft) handlePeerLeft(ctx context.Context, left peer.ID, reason string) 
 	r.Mutex.Lock()
 	defer r.Mutex.Unlock()
 	if ctx.Err() != nil || r.onTopic(left) {
+		return
+	}
+	// dropped and already reconnected: pubsub is still re-exchanging
+	// subscriptions, so this is a flap, not a lost leader
+	if reason == metrics.RaftElectionReasonDisconnect && r.Host.Network().Connectedness(left) == network.Connected {
 		return
 	}
 	switch r.Role {
