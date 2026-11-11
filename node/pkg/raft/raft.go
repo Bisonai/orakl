@@ -65,6 +65,18 @@ func (r *Raft) Run(ctx context.Context) {
 		r.subscribe(ctx)
 	}()
 	defer func() { <-subDone }()
+	if r.peerLeaveGrace() >= 0 {
+		if events, err := r.Topic.EventHandler(); err != nil {
+			log.Warn().Err(err).Str("Player", "Raft").Msg("no topic peer events, not electing on a leader leaving")
+		} else {
+			leavesDone := make(chan struct{})
+			go func() {
+				defer close(leavesDone)
+				r.watchPeerLeaves(ctx, events)
+			}()
+			defer func() { <-leavesDone }()
+		}
+	}
 	// a stopped node can't lead: without resigning, a restart keeps the Leader
 	// role with no leader loop, so it never campaigns and refuses votes
 	defer func() {
@@ -821,20 +833,29 @@ func (r *Raft) startElection(ctx context.Context) {
 		return
 	}
 
+	r.campaign(ctx, metrics.RaftElectionReasonTimeout)
+}
+
+// campaign starts an election for reason, unless a stuck term's hold-off or the
+// cooldown is active: then the timer retries it, with no missed heartbeats left
+// to count. The caller holds Mutex.
+func (r *Raft) campaign(ctx context.Context, reason string) {
 	if time.Now().Before(r.campaignAfter) {
 		log.Debug().Msg("resigned a stuck term, skipping election.")
+		r.MissedHeartbeats = MaxMissedHeartbeats
 		r.startElectionTimer()
 		return
 	}
 
 	if !r.LastElectionTime.IsZero() && time.Since(r.LastElectionTime) < r.CooldownPeriod {
 		log.Debug().Msg("Election cooldown period active, skipping election.")
+		r.MissedHeartbeats = MaxMissedHeartbeats
 		r.startElectionTimer()
 		return
 	}
 
-	log.Debug().Msg("start election")
-	metrics.RecordRaftElectionStarted(metrics.RaftElectionReasonTimeout)
+	log.Debug().Str("reason", reason).Msg("start election")
+	metrics.RecordRaftElectionStarted(reason)
 	r.Term++
 	r.VotesReceived = 0
 	r.Role = Candidate

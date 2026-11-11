@@ -86,6 +86,10 @@ type Raft struct {
 	PeerSilenceTimeout time.Duration
 	// a leader whose LeaderJob hasn't succeeded this long resigns
 	LeaderJobWatchdog time.Duration
+	// a follower whose leader left the topic campaigns this long after, if it
+	// is still gone (peer_leave.go); 0 is the minimum election timeout,
+	// negative never
+	PeerLeaveGrace time.Duration
 
 	// no campaign before this, after resigning a stuck term; under Mutex
 	campaignAfter time.Time
