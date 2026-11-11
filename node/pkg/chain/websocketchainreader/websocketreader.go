@@ -200,20 +200,25 @@ func (c *ChainReader) Subscribe(ctx context.Context, opts ...SubscribeOption) er
 }
 
 func (c *ChainReader) handleSubscription(ctx context.Context, config *SubscribeConfig) {
-	initialTrigger := true
+	// startBlock is resolved once (config.BlockNumber or head at first
+	// subscribe) so a resubscribe never jumps to the head at reconnect time.
+	var startBlock *big.Int
+	cursor := &logCursor{}
 	for {
-		blockNumber, err := c.getBlockNumber(ctx, config, initialTrigger)
-		if err != nil {
-			log.Error().Err(err).Msg("Failed to get block number, retrying")
-			if !retryWithContext(ctx, c.RetryPeriod) {
-				return
+		if startBlock == nil {
+			blockNumber, err := c.getBlockNumber(ctx, config)
+			if err != nil {
+				log.Error().Err(err).Msg("Failed to get block number, retrying")
+				if !retryWithContext(ctx, c.RetryPeriod) {
+					return
+				}
+				continue
 			}
-			log.Debug().Err(err).Str("Player", "ChainReader").Msg("Retrying subscription")
-			continue
+			startBlock = blockNumber
 		}
 
 		query := kaia.FilterQuery{
-			FromBlock: blockNumber,
+			FromBlock: cursor.fromBlock(startBlock),
 			Addresses: []common.Address{common.HexToAddress(config.Address)},
 			Topics:    config.Topics,
 		}
@@ -225,29 +230,68 @@ func (c *ChainReader) handleSubscription(ctx context.Context, config *SubscribeC
 			if !retryWithContext(ctx, c.RetryPeriod) {
 				return
 			}
-			log.Debug().Err(err).Str("Player", "ChainReader").Msg("Retrying subscription")
-			continue
-		}
-		defer sub.Unsubscribe()
-
-		if !processLogs(ctx, sub, logs, config.Ch) {
-			if !retryWithContext(ctx, c.RetryPeriod) {
-				return
-			}
-			log.Debug().Err(err).Str("Player", "ChainReader").Msg("Retrying subscription")
 			continue
 		}
 
-		initialTrigger = false
+		processLogs(ctx, sub, logs, config.Ch, cursor)
+		sub.Unsubscribe()
+
+		if !retryWithContext(ctx, c.RetryPeriod) {
+			return
+		}
+		log.Debug().Str("Player", "ChainReader").Msg("Retrying subscription")
 	}
 }
 
-func (c *ChainReader) getBlockNumber(ctx context.Context, config *SubscribeConfig, initialTrigger bool) (*big.Int, error) {
-	if initialTrigger && config.BlockNumber != nil {
-		return config.BlockNumber, nil
+func (c *ChainReader) getBlockNumber(ctx context.Context, config *SubscribeConfig) (*big.Int, error) {
+	if config.BlockNumber != nil {
+		return new(big.Int).Set(config.BlockNumber), nil
 	}
 
 	return c.client(config.ChainType).BlockNumber(ctx)
+}
+
+type logKey struct {
+	txHash common.Hash
+	index  uint
+}
+
+// logCursor tracks the highest block a log was delivered from and which logs
+// of that block were already delivered. A resubscribe starts at that block
+// (FromBlock is inclusive) rather than block+1, so later logs of the same
+// block are not lost; logs already delivered from it are dropped as
+// duplicates, since DEX consumers stamp every log with time.Now().
+type logCursor struct {
+	set   bool
+	block uint64
+	seen  map[logKey]struct{}
+}
+
+func (lc *logCursor) fromBlock(startBlock *big.Int) *big.Int {
+	if !lc.set {
+		return startBlock
+	}
+	return new(big.Int).SetUint64(lc.block)
+}
+
+// isDuplicate reports whether vLog was already delivered from the cursor block.
+func (lc *logCursor) isDuplicate(vLog types.Log) bool {
+	if !lc.set || vLog.BlockNumber != lc.block {
+		return false
+	}
+	_, ok := lc.seen[logKey{vLog.TxHash, vLog.Index}]
+	return ok
+}
+
+func (lc *logCursor) markDelivered(vLog types.Log) {
+	if !lc.set || vLog.BlockNumber > lc.block {
+		lc.set = true
+		lc.block = vLog.BlockNumber
+		lc.seen = make(map[logKey]struct{})
+	}
+	if vLog.BlockNumber == lc.block {
+		lc.seen[logKey{vLog.TxHash, vLog.Index}] = struct{}{}
+	}
 }
 
 func (c *ChainReader) client(chainType BlockchainType) utils.ClientInterface {
@@ -287,18 +331,24 @@ func retryWithContext(ctx context.Context, duration time.Duration) bool {
 	}
 }
 
-func processLogs(ctx context.Context, sub kaia.Subscription, logs <-chan types.Log, ch chan<- types.Log) bool {
+// processLogs forwards logs to ch until the subscription fails or ctx is done.
+func processLogs(ctx context.Context, sub kaia.Subscription, logs <-chan types.Log, ch chan<- types.Log, cursor *logCursor) {
 	for {
 		select {
+		case <-ctx.Done():
+			return
 		case err := <-sub.Err():
 			log.Warn().Err(err).Msg("Error in subscription")
-			return false
+			return
 		case vLog := <-logs:
+			if cursor.isDuplicate(vLog) {
+				continue
+			}
 			select {
 			case ch <- vLog:
-				continue
+				cursor.markDelivered(vLog)
 			case <-ctx.Done():
-				return false
+				return
 			}
 		}
 	}
