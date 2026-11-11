@@ -12,6 +12,7 @@ import (
 	"bisonai.com/miko/node/pkg/chain/helper"
 	libp2pSetup "bisonai.com/miko/node/pkg/libp2p/setup"
 	"bisonai.com/miko/node/pkg/nodeconfig"
+	"bisonai.com/miko/node/pkg/raft"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -239,6 +240,51 @@ func TestRestartAggregatorKeepsTopic(t *testing.T) {
 	}
 	assert.Eventually(t, subscribed, 2*time.Second, 20*time.Millisecond, "not subscribed after restart")
 	assert.NoError(t, agg.Raft.Topic.Publish(ctx, []byte("ping")), "topic unusable after restart")
+}
+
+// TestRestartedLeaderLeadsAgain: a node stopped while leading must resign, so
+// after a restart it can campaign and lead again. Otherwise it keeps the
+// Leader role with no leader loop: it sends nothing, never campaigns and
+// refuses votes; a lone node (kairos) stays stuck until a refresh.
+func TestRestartedLeaderLeadsAgain(t *testing.T) {
+	ctx := context.Background()
+	app, configID := newLifecycleTestApp(t, ctx)
+
+	configs, err := app.getConfigs(ctx)
+	if err != nil {
+		t.Fatal("error getting configs")
+	}
+	if err = app.setAggregators(ctx, app.Host, app.Pubsub, configs); err != nil {
+		t.Fatal("error initializing app")
+	}
+	agg := app.Aggregators[configID]
+	roundID := func() int32 {
+		agg.mu.RLock()
+		defer agg.mu.RUnlock()
+		return agg.RoundID
+	}
+
+	if err = app.startAggregator(ctx, agg); err != nil {
+		t.Fatal("error starting aggregator")
+	}
+	isLeader := func() bool { return agg.Raft.GetRole() == raft.Leader }
+	assert.Eventually(t, isLeader, 15*time.Second, 50*time.Millisecond, "lone node never led")
+	firstTerm := agg.Raft.GetCurrentTerm()
+
+	if err = app.stopAggregator(agg); err != nil {
+		t.Fatal("error stopping aggregator")
+	}
+	assert.NotEqual(t, raft.Leader, agg.Raft.GetRole(), "stopped node still leader")
+
+	if err = app.startAggregator(ctx, agg); err != nil {
+		t.Fatal("error restarting aggregator")
+	}
+	assert.Eventually(t, func() bool {
+		return isLeader() && agg.Raft.GetCurrentTerm() > firstTerm
+	}, 15*time.Second, 50*time.Millisecond, "restarted node never led again")
+	// leader loop runs again: rounds advance
+	afterElection := roundID()
+	assert.Eventually(t, func() bool { return roundID() > afterElection }, 15*time.Second, 50*time.Millisecond, "no rounds after restart")
 }
 
 // TestRefreshAfterStopRejoinsTopic: refresh tears aggregators down and joins

@@ -65,6 +65,15 @@ func (r *Raft) Run(ctx context.Context) {
 		r.subscribe(ctx)
 	}()
 	defer func() { <-subDone }()
+	// a stopped node can't lead: without resigning, a restart keeps the Leader
+	// role with no leader loop, so it never campaigns and refuses votes
+	defer func() {
+		r.Mutex.Lock()
+		defer r.Mutex.Unlock()
+		if r.Role == Leader {
+			r.ResignLeader()
+		}
+	}()
 	r.startElectionTimer()
 	for {
 		select {
