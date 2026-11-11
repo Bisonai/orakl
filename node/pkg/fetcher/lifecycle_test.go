@@ -39,6 +39,11 @@ func TestFetcherStopStartWhileJobInFlight(t *testing.T) {
 		w.Write([]byte(`{"price": "1.5"}`))
 	}))
 	defer srv.Close()
+	// Unblock the handler before srv.Close (defers run LIFO) so a failed
+	// require can't hang Close on the in-flight request.
+	var releaseOnce sync.Once
+	unblock := func() { releaseOnce.Do(func() { close(release) }) }
+	defer unblock()
 
 	definition, err := json.Marshal(map[string]any{
 		"url":      srv.URL,
@@ -55,7 +60,9 @@ func TestFetcherStopStartWhileJobInFlight(t *testing.T) {
 		latest,
 	)
 	app := &App{}
-	ctx := context.Background()
+	// Parent ctx cancelled at test end so loops never outlive a failed test.
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
 
 	require.NoError(t, app.startFetcher(ctx, f))
 
@@ -68,7 +75,7 @@ func TestFetcherStopStartWhileJobInFlight(t *testing.T) {
 	// STOP -> START while the first job is still blocked in the HTTP call.
 	require.NoError(t, app.stopFetcher(ctx, f))
 	require.NoError(t, app.startFetcher(ctx, f))
-	close(release)
+	unblock()
 
 	// Let the old goroutine finish its job and observe its cancelled ctx.
 	time.Sleep(5 * interval)
@@ -122,7 +129,8 @@ func TestLocalAggregatorStopStartLeavesOneLoop(t *testing.T) {
 		nil,
 	)
 	app := &App{}
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
 
 	require.NoError(t, app.startLocalAggregator(ctx, c))
 	for i := 0; i < 50; i++ {
