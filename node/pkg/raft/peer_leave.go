@@ -54,7 +54,7 @@ func (r *Raft) watchPeerLeaves(ctx context.Context, events *pubsub.TopicEventHan
 		if event.Type != pubsub.PeerLeave {
 			continue
 		}
-		left := event.Peer
+		left, leftAt := event.Peer, time.Now()
 		// at the leave, not after the grace: a reconnect in between would
 		// make a disconnect look like an unsubscribe
 		reason := metrics.RaftElectionReasonDisconnect
@@ -66,7 +66,7 @@ func (r *Raft) watchPeerLeaves(ctx context.Context, events *pubsub.TopicEventHan
 		wait := grace + time.Duration(rand.Int63n(int64(r.minElectionTimeout()/2)+1))
 		time.AfterFunc(wait, func() {
 			if count.Load() == seq {
-				r.handlePeerLeft(ctx, left, reason)
+				r.handlePeerLeft(ctx, left, leftAt, reason)
 			}
 		})
 	}
@@ -86,7 +86,7 @@ func (r *Raft) peerLeaveGrace() time.Duration {
 // handlePeerLeft acts on a peer that left the topic a grace ago and is still
 // gone. A follower of it campaigns at once, skipping the missed heartbeats; a
 // candidate recounts, as the vote it waited for won't come.
-func (r *Raft) handlePeerLeft(ctx context.Context, left peer.ID, reason string) {
+func (r *Raft) handlePeerLeft(ctx context.Context, left peer.ID, leftAt time.Time, reason string) {
 	r.Mutex.Lock()
 	defer r.Mutex.Unlock()
 	if ctx.Err() != nil || r.onTopic(left) {
@@ -103,10 +103,11 @@ func (r *Raft) handlePeerLeft(ctx context.Context, left peer.ID, reason string) 
 			return
 		}
 		// another follower got there first and has this node's vote, granted
-		// at a term past the leader's: a campaign of its own would only depose
-		// it (3+ nodes). The timer still runs if that candidate fails.
-		clock := r.leaderClock.Load()
-		if r.VotedFor != "" && r.VotedFor != r.GetHostId() && clock != nil && r.Term > clock.term {
+		// around the leave (its RequestVote can be handled before this node
+		// reads its own leave event): a campaign of its own would only depose
+		// it (3+ nodes). A vote from an earlier election doesn't count. The
+		// timer still runs if that candidate fails.
+		if r.VotedFor != "" && r.VotedFor != r.GetHostId() && r.votedAt.After(leftAt.Add(-r.minElectionTimeout())) {
 			return
 		}
 		log.Info().Str("Player", "Raft").Str("topic", r.Topic.String()).Str("leader", left.String()).Str("reason", reason).Msg("leader left the topic, starting election")

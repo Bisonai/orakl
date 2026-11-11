@@ -103,6 +103,8 @@ type Raft struct {
 	peerSeen sync.Map
 	// term a deferred win recount is pending for (handleReplyVote); under Mutex
 	recountTerm int
+	// when this node last granted its vote to another peer; under Mutex
+	votedAt time.Time
 	// when the election timer was last armed, ns since leaderClockEpoch; under Mutex
 	timerArmedAt int64
 

@@ -296,6 +296,7 @@ func (r *Raft) handleRequestVote(ctx context.Context, msg Message) error {
 	}
 
 	r.VotedFor = msg.SentFrom
+	r.votedAt = time.Now()
 	r.startElectionTimer()
 	log.Debug().Bool("vote granted", true).Msg("voted")
 	return r.sendReplyVote(ctx, msg.SentFrom, true)
@@ -870,6 +871,10 @@ func (r *Raft) startElection(ctx context.Context) {
 // cooldown is active: then the timer retries it, with no missed heartbeats left
 // to count. The caller holds Mutex.
 func (r *Raft) campaign(ctx context.Context, reason string) {
+	// a stopping node must not bump its term and solicit votes
+	if ctx.Err() != nil {
+		return
+	}
 	if time.Now().Before(r.campaignAfter) {
 		log.Debug().Msg("resigned a stuck term, skipping election.")
 		r.MissedHeartbeats = MaxMissedHeartbeats
