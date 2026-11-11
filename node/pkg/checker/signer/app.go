@@ -36,6 +36,10 @@ var (
 func setUp(ctx context.Context) error {
 	var err error
 	signerCheckInterval, err = time.ParseDuration(os.Getenv("SIGNER_CHECK_INTERVAL"))
+	if err == nil && signerCheckInterval <= 0 {
+		// time.NewTicker panics on non-positive intervals.
+		err = fmt.Errorf("non-positive interval %s", signerCheckInterval)
+	}
 	if err != nil {
 		signerCheckInterval = DEFAULT_SIGNER_CHECK_INTERVAL_HOUR * time.Hour
 		log.Info().Err(err).Msgf("Using default signer check interval of %d hours", DEFAULT_SIGNER_CHECK_INTERVAL_HOUR)

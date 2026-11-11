@@ -151,3 +151,17 @@ func TestStartSurvivesReadErrorAndStopsOnCancel(t *testing.T) {
 		t.Fatalf("expected startup check alert, got %v", *alerts)
 	}
 }
+
+func TestSetUpNonPositiveIntervalUsesDefault(t *testing.T) {
+	t.Setenv("JSON_RPC_URL", "http://localhost:0")
+	t.Setenv("SUBMISSION_PROXY_CONTRACT", "0x0")
+	for _, v := range []string{"0s", "-1h"} {
+		t.Setenv("SIGNER_CHECK_INTERVAL", v)
+		if err := setUp(context.Background()); err != nil {
+			t.Fatalf("setUp(%s): %v", v, err)
+		}
+		if signerCheckInterval != DEFAULT_SIGNER_CHECK_INTERVAL_HOUR*time.Hour {
+			t.Fatalf("interval %s: got %s, want default", v, signerCheckInterval)
+		}
+	}
+}
