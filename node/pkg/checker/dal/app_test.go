@@ -2,10 +2,31 @@ package dal
 
 import (
 	"context"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+func TestFetchConfigsRejectsEmptyBundle(t *testing.T) {
+	for _, body := range []string{`[]`, `null`} {
+		t.Run(body, func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				_, _ = w.Write([]byte(body))
+			}))
+			t.Cleanup(srv.Close)
+			t.Setenv("CONFIG_BASE_URL", srv.URL)
+			t.Setenv("CONFIG_FALLBACK_URL", "")
+			t.Setenv("CHAIN", "mainnet")
+
+			configs, err := fetchConfigs()
+			require.ErrorContains(t, err, "config bundle is empty")
+			assert.Nil(t, configs)
+		})
+	}
+}
 
 func TestHandleWsMessage(t *testing.T) {
 	// Create a mock context
