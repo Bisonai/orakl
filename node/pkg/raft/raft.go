@@ -78,13 +78,16 @@ func (r *Raft) Run(ctx context.Context) {
 		}
 	}
 	// a stopped node can't lead: without resigning, a restart keeps the Leader
-	// role with no leader loop, so it never campaigns and refuses votes
+	// role with no leader loop, so it never campaigns and refuses votes. Run
+	// returns once the leader loop and its jobs have, so a stopped node
+	// publishes no further round (becomeLeader refuses once ctx is done).
 	defer func() {
 		r.Mutex.Lock()
-		defer r.Mutex.Unlock()
 		if r.Role == Leader {
 			r.ResignLeader()
 		}
+		r.Mutex.Unlock()
+		r.waitLeaderLoops()
 	}()
 	r.Mutex.Lock()
 	r.startElectionTimer()
@@ -639,7 +642,13 @@ func (r *Raft) setLeaderState() {
 	r.recordLeaderChangeSilence(r.leaderClock.Swap(nil), r.Term)
 }
 
+// becomeLeader takes the role and starts the leader loop, unless ctx is done:
+// Run has returned or is returning, and a vote reply still being handled must
+// not make a stopped node lead. The caller holds Mutex.
 func (r *Raft) becomeLeader(ctx context.Context) {
+	if ctx.Err() != nil {
+		return
+	}
 	r.setLeaderState()
 
 	// captured before the goroutine starts: ResignLeader nils r.Resign and a
@@ -656,6 +665,9 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 	jobDone := &atomic.Int64{}
 	jobDone.Store(int64(time.Since(leaderClockEpoch)))
 	runJob := func() {
+		if ctx.Err() != nil {
+			return
+		}
 		if err := r.LeaderJob(ctx); err != nil {
 			log.Error().Err(err).Msg("failed to execute leader job")
 			return
@@ -663,7 +675,9 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 		storeLater(jobDone, int64(time.Since(leaderClockEpoch)))
 	}
 
+	r.leaderLoops.Add(1)
 	go func() {
+		defer r.leaderLoops.Done()
 		defer func() {
 			if r := recover(); r != nil {
 				log.Error().Msgf("recovered from panic in leader job: %v", r)
@@ -706,7 +720,9 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 				}
 
 			case <-leaderJobTicker.C:
+				r.leaderLoops.Add(1) // the loop's own count is held, so no Wait has returned
 				go func() {
+					defer r.leaderLoops.Done()
 					defer func() {
 						if r := recover(); r != nil {
 							log.Error().Msgf("recovered from panic in LeaderJob: %v", r)
@@ -725,6 +741,25 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 			}
 		}
 	}()
+}
+
+// leaderLoopStopWait bounds how long a stopping Run waits for the leader loop
+// and its jobs, so a job stuck in a publish can't hold a stop forever.
+const leaderLoopStopWait = 5 * time.Second
+
+// waitLeaderLoops waits for every leader loop and leader job goroutine to
+// return, up to leaderLoopStopWait. Called without Mutex: they take it.
+func (r *Raft) waitLeaderLoops() {
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		r.leaderLoops.Wait()
+	}()
+	select {
+	case <-done:
+	case <-time.After(leaderLoopStopWait):
+		log.Warn().Str("Player", "Raft").Dur("waited", leaderLoopStopWait).Msg("leader job still running after stop")
+	}
 }
 
 func (r *Raft) minElectionTimeout() time.Duration {

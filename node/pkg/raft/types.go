@@ -106,6 +106,9 @@ type Raft struct {
 	// when the election timer was last armed, ns since leaderClockEpoch; under Mutex
 	timerArmedAt int64
 
+	// leader loops and the leader jobs they started, for Run to wait on
+	leaderLoops sync.WaitGroup
+
 	// atomic mirror of LeaderID for the message path, which must not take Mutex
 	// for metrics; nil when this node is the leader or there is none
 	leaderClock atomic.Pointer[leaderClock]
