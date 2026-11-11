@@ -8,7 +8,11 @@ import (
 	"time"
 
 	"bisonai.com/miko/node/pkg/admin/tests"
+	"bisonai.com/miko/node/pkg/bus"
+	"bisonai.com/miko/node/pkg/chain/helper"
+	libp2pSetup "bisonai.com/miko/node/pkg/libp2p/setup"
 	"bisonai.com/miko/node/pkg/nodeconfig"
+	"bisonai.com/miko/node/pkg/raft"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -162,6 +166,153 @@ func TestStopAggregator(t *testing.T) {
 		t.Fatal("error stopping aggregator")
 	}
 	assert.Equal(t, false, testItems.app.Aggregators[testItems.tmpData.config.ID].isRunning)
+}
+
+// newLifecycleTestApp builds an app on a real libp2p host/pubsub without the
+// admin API (no Redis needed); lifecycle tests drive the app directly.
+func newLifecycleTestApp(t *testing.T, ctx context.Context) (*App, int32) {
+	t.Helper()
+	h, err := libp2pSetup.NewHost(ctx, libp2pSetup.WithHolePunch())
+	if err != nil {
+		t.Fatalf("error creating host: %v", err)
+	}
+	ps, err := libp2pSetup.MakePubsub(ctx, h)
+	if err != nil {
+		t.Fatalf("error creating pubsub: %v", err)
+	}
+	app := New(bus.New(10), h, ps, nil)
+	app.Configs = nodeconfig.New()
+	if err = app.Configs.Set([]nodeconfig.Entry{sampleConfigEntry("test_pair")}); err != nil {
+		t.Fatalf("error setting configs: %v", err)
+	}
+	signHelper, err := helper.NewSigner(ctx, helper.WithSignerPk("27894b84849f129e08f37634be4e8ccc4c7267d824eb8cfd285185854ba5b78d"))
+	if err != nil {
+		t.Fatalf("error creating signer: %v", err)
+	}
+	app.Signer = signHelper
+	t.Cleanup(func() {
+		_ = app.stopAllAggregators()
+		_ = h.Close()
+	})
+	return app, app.Configs.Configs()[0].ID
+}
+
+// TestRestartAggregatorKeepsTopic: stop then start (deactivate→activate,
+// stop→start app) must leave the aggregator on a usable topic. Stopping used
+// to close the topic, so the restarted raft loop could not subscribe/publish.
+func TestRestartAggregatorKeepsTopic(t *testing.T) {
+	ctx := context.Background()
+	app, configID := newLifecycleTestApp(t, ctx)
+
+	configs, err := app.getConfigs(ctx)
+	if err != nil {
+		t.Fatal("error getting configs")
+	}
+	err = app.setAggregators(ctx, app.Host, app.Pubsub, configs)
+	if err != nil {
+		t.Fatal("error initializing app")
+	}
+
+	agg := app.Aggregators[configID]
+	topicName := agg.Raft.Topic.String()
+	subscribed := func() bool {
+		for _, name := range app.Pubsub.GetTopics() {
+			if name == topicName {
+				return true
+			}
+		}
+		return false
+	}
+
+	if err = app.startAggregator(ctx, agg); err != nil {
+		t.Fatal("error starting aggregator")
+	}
+	assert.Eventually(t, subscribed, 2*time.Second, 20*time.Millisecond, "not subscribed after first start")
+
+	if err = app.stopAggregator(agg); err != nil {
+		t.Fatal("error stopping aggregator")
+	}
+	// operator stop/start calls are not back to back
+	time.Sleep(200 * time.Millisecond)
+
+	if err = app.startAggregator(ctx, agg); err != nil {
+		t.Fatal("error restarting aggregator")
+	}
+	assert.Eventually(t, subscribed, 2*time.Second, 20*time.Millisecond, "not subscribed after restart")
+	assert.NoError(t, agg.Raft.Topic.Publish(ctx, []byte("ping")), "topic unusable after restart")
+}
+
+// TestRestartedLeaderLeadsAgain: a node stopped while leading must resign, so
+// after a restart it can campaign and lead again. Otherwise it keeps the
+// Leader role with no leader loop: it sends nothing, never campaigns and
+// refuses votes; a lone node (kairos) stays stuck until a refresh.
+func TestRestartedLeaderLeadsAgain(t *testing.T) {
+	ctx := context.Background()
+	app, configID := newLifecycleTestApp(t, ctx)
+
+	configs, err := app.getConfigs(ctx)
+	if err != nil {
+		t.Fatal("error getting configs")
+	}
+	if err = app.setAggregators(ctx, app.Host, app.Pubsub, configs); err != nil {
+		t.Fatal("error initializing app")
+	}
+	agg := app.Aggregators[configID]
+	roundID := func() int32 {
+		agg.mu.RLock()
+		defer agg.mu.RUnlock()
+		return agg.RoundID
+	}
+
+	if err = app.startAggregator(ctx, agg); err != nil {
+		t.Fatal("error starting aggregator")
+	}
+	isLeader := func() bool { return agg.Raft.GetRole() == raft.Leader }
+	assert.Eventually(t, isLeader, 15*time.Second, 50*time.Millisecond, "lone node never led")
+	firstTerm := agg.Raft.GetCurrentTerm()
+
+	if err = app.stopAggregator(agg); err != nil {
+		t.Fatal("error stopping aggregator")
+	}
+	assert.NotEqual(t, raft.Leader, agg.Raft.GetRole(), "stopped node still leader")
+
+	if err = app.startAggregator(ctx, agg); err != nil {
+		t.Fatal("error restarting aggregator")
+	}
+	assert.Eventually(t, func() bool {
+		return isLeader() && agg.Raft.GetCurrentTerm() > firstTerm
+	}, 15*time.Second, 50*time.Millisecond, "restarted node never led again")
+	// leader loop runs again: rounds advance
+	afterElection := roundID()
+	assert.Eventually(t, func() bool { return roundID() > afterElection }, 15*time.Second, 50*time.Millisecond, "no rounds after restart")
+}
+
+// TestRefreshAfterStopRejoinsTopic: refresh tears aggregators down and joins
+// the same topic again; that join must succeed without waiting on an
+// asynchronous close.
+func TestRefreshAfterStopRejoinsTopic(t *testing.T) {
+	ctx := context.Background()
+	app, configID := newLifecycleTestApp(t, ctx)
+
+	configs, err := app.getConfigs(ctx)
+	if err != nil {
+		t.Fatal("error getting configs")
+	}
+	if err = app.setAggregators(ctx, app.Host, app.Pubsub, configs); err != nil {
+		t.Fatal("error initializing app")
+	}
+	if err = app.startAllAggregators(ctx); err != nil {
+		t.Fatal("error starting aggregators")
+	}
+
+	if err = app.setAggregators(ctx, app.Host, app.Pubsub, configs); err != nil {
+		t.Fatalf("refresh failed to rejoin topic: %v", err)
+	}
+	if err = app.startAllAggregators(ctx); err != nil {
+		t.Fatal("error restarting aggregators")
+	}
+	agg := app.Aggregators[configID]
+	assert.NoError(t, agg.Raft.Topic.Publish(ctx, []byte("ping")), "topic unusable after refresh")
 }
 
 func TestStopAggregatorById(t *testing.T) {

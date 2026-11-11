@@ -198,6 +198,8 @@ type Aggregator struct {
 	nodeCtx    context.Context
 	nodeCancel context.CancelFunc
 	isRunning  bool
+	// done closes when the Run goroutine started by startAggregator returns
+	done chan struct{}
 
 	mu sync.RWMutex
 }

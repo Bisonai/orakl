@@ -102,6 +102,13 @@ func (a *App) clearAggregators() error {
 			}
 		}
 	}
+	// aggregators are discarded here, so release their topics; a refresh
+	// joins the same topic names again
+	for _, aggregator := range a.Aggregators {
+		if err := aggregator.Raft.Topic.Close(); err != nil {
+			log.Warn().Str("Player", "Aggregator").Err(err).Msgf("Failed to close topic of aggregator with ID: %d", aggregator.ID)
+		}
+	}
 	a.Aggregators = make(map[int32]*Aggregator)
 	return nil
 }
@@ -177,8 +184,13 @@ func (a *App) startAggregator(ctx context.Context, aggregator *Aggregator) error
 	aggregator.nodeCtx = nodeCtx
 	aggregator.nodeCancel = cancel
 	aggregator.isRunning = true
+	done := make(chan struct{})
+	aggregator.done = done
 
-	go aggregator.Run(nodeCtx)
+	go func() {
+		defer close(done)
+		aggregator.Run(nodeCtx)
+	}()
 	log.Info().Str("Player", "Aggregator").Str("name", aggregator.Name).Msg("Aggregator started successfully")
 	return nil
 }
@@ -216,7 +228,10 @@ func (a *App) stopAggregator(aggregator *Aggregator) error {
 	}
 	aggregator.nodeCancel()
 	aggregator.isRunning = false
-	<-aggregator.nodeCtx.Done()
+	// wait for Run to return so its topic subscription is released
+	if aggregator.done != nil {
+		<-aggregator.done
+	}
 	return nil
 }
 
