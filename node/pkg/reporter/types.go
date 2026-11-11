@@ -49,6 +49,7 @@ type App struct {
 	groups    map[int]*Reporter // regular reporters by submit interval (ms)
 	deviation *Reporter
 	pairs     map[string]int // applied pair -> submit interval (ms)
+	configs   []Config       // applied bundle
 	wsCancel  context.CancelFunc
 }
 

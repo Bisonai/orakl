@@ -45,10 +45,7 @@ func NewReporter(ctx context.Context, opts ...ReporterOption) (*Reporter, error)
 		stop:                   make(chan struct{}),
 	}
 
-	reporter.Pairs = make([]string, 0, len(config.Configs))
-	for _, sa := range config.Configs {
-		reporter.Pairs = append(reporter.Pairs, sa.Name)
-	}
+	reporter.Pairs = configNames(config.Configs)
 
 	if config.JobType == ReportJob {
 		reporter.Job = func() error {

@@ -190,3 +190,36 @@ func TestReporterStopEndsRun(t *testing.T) {
 		t.Fatal("Run did not return after Stop")
 	}
 }
+
+// DAL may learn an added pair later than the reporter and ignores its
+// SUBSCRIBE until then: the reporter resubscribes until data arrives.
+func TestResubscribeUntilAddedPairHasData(t *testing.T) {
+	origGrace, origDelay := wsSwapGrace, wsResubscribeDelay
+	wsSwapGrace, wsResubscribeDelay = 20*time.Millisecond, 1500*time.Millisecond // > dial + 1s subscribe delay
+	t.Cleanup(func() { wsSwapGrace, wsResubscribeDelay = origGrace, origDelay })
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	ws, wsURL := newFakeDalWs(t)
+	count := func() int {
+		ws.mu.Lock()
+		defer ws.mu.Unlock()
+		return len(ws.subs)
+	}
+
+	a := newReloadApp(t, ctx, wsURL, []Config{{Name: "A-B", SubmitInterval: interval(60000)}})
+	require.Eventually(t, func() bool { return count() == 1 }, 5*time.Second, 20*time.Millisecond)
+
+	require.NoError(t, a.applyConfigs(ctx, []Config{
+		{Name: "A-B", SubmitInterval: interval(60000)},
+		{Name: "C-D", SubmitInterval: interval(60000)},
+	}))
+	// reload swap + at least one resubscribe while C-D has no data
+	require.Eventually(t, func() bool { return count() >= 3 }, 10*time.Second, 20*time.Millisecond)
+
+	a.LatestDataMap.Store("C-D", SubmissionData{})
+	time.Sleep(3 * wsResubscribeDelay) // let a pending resubscribe fire
+	settled := count()
+	time.Sleep(3 * wsResubscribeDelay)
+	assert.Equal(t, settled, count(), "no resubscribe once data arrives")
+}

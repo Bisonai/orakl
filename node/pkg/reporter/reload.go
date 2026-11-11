@@ -6,12 +6,20 @@ import (
 	"sort"
 	"time"
 
+	"bisonai.com/miko/node/pkg/wss"
 	"github.com/rs/zerolog/log"
 )
 
 // wsSwapGrace keeps the previous DAL websocket open this long after a reload
 // opened one with the new subscriptions, so deviation data has no gap.
 var wsSwapGrace = 10 * time.Second
+
+// An added pair without websocket data after wsResubscribeDelay triggers a
+// resubscribe, at most wsResubscribeAttempts times.
+var (
+	wsResubscribeDelay    = 5 * time.Minute
+	wsResubscribeAttempts = 6
+)
 
 const defaultSubmitInterval = 5000
 
@@ -52,9 +60,31 @@ func (a *App) applyConfigs(ctx context.Context, configs []Config) error {
 		return nil
 	}
 
-	grouped := groupConfigsBySubmitIntervals(configs)
+	var added, removed []string
+	for name := range newPairs {
+		if _, ok := a.pairs[name]; !ok {
+			added = append(added, name)
+		}
+	}
+	for name := range a.pairs {
+		if _, ok := newPairs[name]; !ok {
+			removed = append(removed, name)
+		}
+	}
+	sort.Strings(added)
+	sort.Strings(removed)
 
-	// create new groups first so an error leaves everything as it was
+	// create everything that can fail first, so an error changes nothing and
+	// the bundle is retried on the next reload
+	var ws *wss.WebsocketHelper
+	if len(added) > 0 || len(removed) > 0 {
+		var err error
+		ws, err = SetupDalWsHelper(ctx, configs, a.deps.dalWsEndpoint, a.deps.dalApiKey)
+		if err != nil {
+			return err
+		}
+	}
+	grouped := groupConfigsBySubmitIntervals(configs)
 	created := map[int]*Reporter{}
 	for interval, groupConfigs := range grouped {
 		if _, ok := a.groups[interval]; ok {
@@ -85,48 +115,89 @@ func (a *App) applyConfigs(ctx context.Context, configs []Config) error {
 
 	a.deviation.SetPairs(configNames(configs))
 
-	var added, removed []string
-	for name := range newPairs {
-		if _, ok := a.pairs[name]; !ok {
-			added = append(added, name)
-		}
-	}
-	for name := range a.pairs {
-		if _, ok := newPairs[name]; !ok {
-			removed = append(removed, name)
-			a.LatestDataMap.Delete(name)
-			a.LatestSubmittedDataMap.Delete(name)
-		}
-	}
-	sort.Strings(added)
-	sort.Strings(removed)
-
-	if len(added) > 0 || len(removed) > 0 {
-		a.swapWsHelper(ctx, configs)
+	for _, name := range removed {
+		a.LatestDataMap.Delete(name)
+		a.LatestSubmittedDataMap.Delete(name)
 	}
 
 	a.pairs = newPairs
+	a.configs = configs
 	a.rebuildReporterList()
+
+	if ws != nil {
+		a.swapWsHelper(ctx, ws)
+		if len(removed) > 0 {
+			// the old websocket may deliver removed pairs until it closes
+			time.AfterFunc(wsSwapGrace+time.Second, func() { a.forgetRemoved(removed) })
+		}
+		if len(added) > 0 {
+			a.scheduleResubscribe(ctx, added, 1)
+		}
+	}
+
 	log.Info().Str("Player", "Reporter").Strs("added", added).Strs("removed", removed).
 		Int("pairs", len(newPairs)).Int("reporters", len(a.Reporters)).Msg("reporter config reloaded")
 	return nil
 }
 
-// swapWsHelper opens a DAL websocket subscribed to configs and closes the
-// previous one after wsSwapGrace (both feed the same LatestDataMap). Caller
-// holds a.mu. On error the previous websocket stays.
-func (a *App) swapWsHelper(ctx context.Context, configs []Config) {
-	h, err := SetupDalWsHelper(ctx, configs, a.deps.dalWsEndpoint, a.deps.dalApiKey)
-	if err != nil {
-		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to create DAL websocket for reloaded config, keeping previous subscriptions")
-		return
-	}
+// swapWsHelper runs h and closes the previous DAL websocket after wsSwapGrace
+// (both feed the same LatestDataMap). Caller holds a.mu.
+func (a *App) swapWsHelper(ctx context.Context, h *wss.WebsocketHelper) {
 	wsCtx, cancel := context.WithCancel(ctx)
 	go h.Run(wsCtx, a.HandleWsMessage)
 	if old := a.wsCancel; old != nil {
 		time.AfterFunc(wsSwapGrace, old)
 	}
 	a.WsHelper, a.wsCancel = h, cancel
+}
+
+// forgetRemoved drops latest data of pairs that are (still) not configured.
+func (a *App) forgetRemoved(pairs []string) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	for _, name := range pairs {
+		if _, ok := a.pairs[name]; !ok {
+			a.LatestDataMap.Delete(name)
+		}
+	}
+}
+
+// scheduleResubscribe re-opens the DAL websocket if an added pair still has
+// no data after wsResubscribeDelay: DAL reloads on its own schedule and
+// ignores a SUBSCRIBE for a symbol it does not know yet, and the websocket
+// otherwise only reconnects every 12h.
+func (a *App) scheduleResubscribe(ctx context.Context, added []string, attempt int) {
+	time.AfterFunc(wsResubscribeDelay, func() {
+		if ctx.Err() != nil {
+			return
+		}
+		a.mu.Lock()
+		defer a.mu.Unlock()
+		var missing []string
+		for _, name := range added {
+			if _, configured := a.pairs[name]; !configured {
+				continue
+			}
+			if _, ok := a.LatestDataMap.Load(name); !ok {
+				missing = append(missing, name)
+			}
+		}
+		if len(missing) == 0 {
+			return
+		}
+		if attempt >= wsResubscribeAttempts {
+			log.Warn().Str("Player", "Reporter").Strs("pairs", missing).Msg("no DAL websocket data for added pairs, giving up resubscribing")
+			return
+		}
+		ws, err := SetupDalWsHelper(ctx, a.configs, a.deps.dalWsEndpoint, a.deps.dalApiKey)
+		if err != nil {
+			log.Error().Str("Player", "Reporter").Err(err).Msg("failed to create DAL websocket")
+			return
+		}
+		log.Info().Str("Player", "Reporter").Strs("pairs", missing).Int("attempt", attempt).Msg("no DAL websocket data for added pairs, resubscribing")
+		a.swapWsHelper(ctx, ws)
+		a.scheduleResubscribe(ctx, missing, attempt+1)
+	})
 }
 
 func configNames(configs []Config) []string {

@@ -127,6 +127,7 @@ func (a *App) buildReporters(ctx context.Context, configs []Config) error {
 	}
 	a.deviation = deviationReporter
 	a.pairs = pairIntervals(configs)
+	a.configs = configs
 	a.rebuildReporterList()
 
 	log.Info().Str("Player", "Reporter").Msgf("%d reporters set", len(a.Reporters))
