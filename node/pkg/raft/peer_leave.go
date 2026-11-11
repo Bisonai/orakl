@@ -72,11 +72,13 @@ func (r *Raft) watchPeerLeaves(ctx context.Context, events *pubsub.TopicEventHan
 	}
 }
 
-// peerLeaveGrace is PeerLeaveGrace, or the minimum election timeout when unset.
-// Negative disables electing on a leave.
+// peerLeaveGrace is PeerLeaveGrace, or when unset the minimum election timeout
+// plus a heartbeat interval: by then the leader's last message is past the
+// stickiness window (hearsLeaderOtherThan) on every peer, so none refuses the
+// first candidate. Negative disables electing on a leave.
 func (r *Raft) peerLeaveGrace() time.Duration {
 	if r.PeerLeaveGrace == 0 {
-		return r.minElectionTimeout()
+		return r.minElectionTimeout() + r.HeartbeatTimeout
 	}
 	return r.PeerLeaveGrace
 }
@@ -100,10 +102,11 @@ func (r *Raft) handlePeerLeft(ctx context.Context, left peer.ID, reason string) 
 		if r.LeaderID != left.String() {
 			return
 		}
-		// another follower got there first and has this node's vote: a
-		// campaign of its own would only depose it (3+ nodes). The timer
-		// still runs if that candidate fails.
-		if r.VotedFor != "" && r.VotedFor != left.String() && r.VotedFor != r.GetHostId() {
+		// another follower got there first and has this node's vote, granted
+		// at a term past the leader's: a campaign of its own would only depose
+		// it (3+ nodes). The timer still runs if that candidate fails.
+		clock := r.leaderClock.Load()
+		if r.VotedFor != "" && r.VotedFor != r.GetHostId() && clock != nil && r.Term > clock.term {
 			return
 		}
 		log.Info().Str("Player", "Raft").Str("topic", r.Topic.String()).Str("leader", left.String()).Str("reason", reason).Msg("leader left the topic, starting election")

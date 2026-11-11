@@ -229,3 +229,44 @@ func TestLeaderStopThreeNodesElectsOnce(t *testing.T) {
 	t.Logf("survivors led after %s", time.Since(start))
 	assert.Less(t, time.Since(start), 2*failoverBound, "split vote: fell back to the timeout")
 }
+
+// A follower whose leader left campaigns unless it already granted its vote
+// to another candidate since that leader's term: a vote from an older term
+// doesn't hold it back.
+func TestLeaderLeftVoteGuard(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	for name, tc := range map[string]struct {
+		voteTerm  int
+		campaigns bool
+	}{
+		"stale vote": {2, true},
+		"vote since": {4, false},
+	} {
+		t.Run(name, func(t *testing.T) {
+			node := newLivenessTestNode(ctx, t)
+			leader, candidate := testPeerID(t), testPeerID(t)
+			if tc.voteTerm < 3 {
+				require.NoError(t, node.handleMessage(ctx, requestVoteFrom(t, candidate, tc.voteTerm)))
+			}
+			require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, leader, 3)))
+			if tc.voteTerm > 3 {
+				// past the stickiness window, so the vote is granted
+				time.Sleep(node.minElectionTimeout() + testLeaderInterval)
+				require.NoError(t, node.handleMessage(ctx, requestVoteFrom(t, candidate, tc.voteTerm)))
+			}
+			_, votedFor, _ := voteState(node)
+			require.Equal(t, candidate, votedFor)
+
+			leaderID, err := peer.Decode(leader)
+			require.NoError(t, err)
+			node.handlePeerLeft(ctx, leaderID, "disconnect")
+			if tc.campaigns {
+				assert.Equal(t, Candidate, node.GetRole())
+			} else {
+				assert.Equal(t, Follower, node.GetRole())
+			}
+		})
+	}
+}

@@ -88,6 +88,7 @@ var (
 	ErrAggregatorGlobalAggregateInsertion = &CustomError{Service: Aggregator, Code: DatabaseError, Message: "Failed to insert global aggregator"}
 	ErrAggregatorNotFound                 = &CustomError{Service: Aggregator, Code: InternalError, Message: "Aggregator not found"}
 	ErrAggregatorCancelNotFound           = &CustomError{Service: Aggregator, Code: InternalError, Message: "Aggregator cancel function not found"}
+	ErrAggregatorShuttingDown             = &CustomError{Service: Aggregator, Code: InternalError, Message: "Aggregator app is shutting down"}
 	ErrAggregatorEmptyProof               = &CustomError{Service: Aggregator, Code: InternalError, Message: "Empty proof"}
 
 	ErrBusChannelNotFound  = &CustomError{Service: Others, Code: InternalError, Message: "Channel not found"}

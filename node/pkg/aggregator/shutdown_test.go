@@ -45,22 +45,23 @@ func TestShutdownResignsAndStopsRounds(t *testing.T) {
 
 func TestRunTrackerWait(t *testing.T) {
 	var tracker runTracker
-	require.NoError(t, tracker.wait(context.Background()), "nothing ran")
-
-	tracker.start()
-	tracker.start()
+	require.True(t, tracker.start())
+	require.True(t, tracker.start())
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
 	defer cancel()
-	assert.ErrorIs(t, tracker.wait(ctx), context.DeadlineExceeded)
+	assert.ErrorIs(t, tracker.closeAndWait(ctx), context.DeadlineExceeded)
 
 	tracker.stop()
-	tracker.stop()
-	require.NoError(t, tracker.wait(context.Background()))
-
-	// usable again after going idle
-	tracker.start()
 	done := make(chan error, 1)
-	go func() { done <- tracker.wait(context.Background()) }()
+	go func() { done <- tracker.closeAndWait(context.Background()) }()
 	tracker.stop()
 	require.NoError(t, <-done)
+}
+
+// A shutdown during startup: nothing ran yet when the wait returns, and no
+// aggregator starts after it.
+func TestRunTrackerRefusesStartAfterWait(t *testing.T) {
+	var tracker runTracker
+	require.NoError(t, tracker.closeAndWait(context.Background()), "nothing ran")
+	assert.False(t, tracker.start(), "started after shutdown")
 }

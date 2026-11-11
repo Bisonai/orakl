@@ -180,6 +180,9 @@ func (a *App) startAggregator(ctx context.Context, aggregator *Aggregator) error
 		return nil
 	}
 
+	if !a.runs.start() {
+		return errorSentinel.ErrAggregatorShuttingDown
+	}
 	nodeCtx, cancel := context.WithCancel(ctx)
 	aggregator.nodeCtx = nodeCtx
 	aggregator.nodeCancel = cancel
@@ -187,7 +190,6 @@ func (a *App) startAggregator(ctx context.Context, aggregator *Aggregator) error
 	done := make(chan struct{})
 	aggregator.done = done
 
-	a.runs.start()
 	go func() {
 		defer a.runs.stop()
 		defer close(done)
