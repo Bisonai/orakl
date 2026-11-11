@@ -23,6 +23,9 @@ var submissionProxyContractAddr string
 
 const DEFAULT_SIGNER_CHECK_INTERVAL_HOUR = 24
 
+// checkTimeout bounds all chain reads of a single check run.
+const checkTimeout = 2 * time.Minute
+
 // Seams for unit tests; production code uses the real chain reads and Slack alert.
 var (
 	getSignerAddresses            = GetSignerAddresses
@@ -62,34 +65,36 @@ func Start(ctx context.Context) error {
 	checkTicker := time.NewTicker(signerCheckInterval)
 	defer checkTicker.Stop()
 
-	err = check(ctx)
-	if err != nil {
-		return err
-	}
+	// check never fails: read errors are alerted and retried on the next tick.
+	check(ctx)
 
 	for range checkTicker.C {
-		err = check(ctx)
-		if err != nil {
-			return err
-		}
+		check(ctx)
 	}
 	return nil
 }
 
-func check(ctx context.Context) error {
+func check(ctx context.Context) {
+	// Bound chain reads so a hung RPC can't stall the checker forever.
+	ctx, cancel := context.WithTimeout(ctx, checkTimeout)
+	defer cancel()
+
 	alarmMessage := ""
 	signerAddresses, err := getSignerAddresses(ctx, jsonRpcUrl, submissionProxyContractAddr)
 	if err != nil {
 		// Transient RPC errors must not exit sentinel: alert and retry on the next tick.
 		log.Error().Err(err).Msg("Failed to get signer addresses")
 		slackAlert(fmt.Sprintf("Signer checker failed to get signer addresses: %v", err))
-		return nil
+		return
 	}
 	log.Debug().Msgf("Signer addresses: %v", signerAddresses)
 
 	for _, signerAddress := range signerAddresses {
 		exp, err := extractExpirationFromContract(ctx, jsonRpcUrl, submissionProxyContractAddr, signerAddress)
-		if err != nil || exp == nil {
+		if err == nil && exp == nil {
+			err = errors.New("nil expiration returned")
+		}
+		if err != nil {
 			log.Error().Err(err).Msg(fmt.Sprintf("Failed to extract expiration for signer: %s", signerAddress))
 			alarmMessage += fmt.Sprintf("Failed to extract expiration for signer %s with following error: %v\n", signerAddress, err)
 			continue
@@ -105,6 +110,4 @@ func check(ctx context.Context) error {
 	if alarmMessage != "" {
 		slackAlert(alarmMessage)
 	}
-
-	return nil
 }

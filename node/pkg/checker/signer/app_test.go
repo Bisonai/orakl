@@ -37,9 +37,7 @@ func TestCheckExpirationReadErrorDoesNotPanic(t *testing.T) {
 		},
 	)
 
-	if err := check(context.Background()); err != nil {
-		t.Fatalf("check returned error: %v", err)
-	}
+	check(context.Background())
 	if len(*alerts) != 1 {
 		t.Fatalf("expected 1 alert, got %d", len(*alerts))
 	}
@@ -59,15 +57,13 @@ func TestCheckNilExpirationWithoutErrorDoesNotPanic(t *testing.T) {
 		},
 	)
 
-	if err := check(context.Background()); err != nil {
-		t.Fatalf("check returned error: %v", err)
-	}
-	if len(*alerts) != 1 || !strings.Contains((*alerts)[0], "0xsigner1") {
-		t.Fatalf("expected alert for signer, got %v", *alerts)
+	check(context.Background())
+	if len(*alerts) != 1 || !strings.Contains((*alerts)[0], "0xsigner1") || !strings.Contains((*alerts)[0], "nil expiration") {
+		t.Fatalf("expected nil-expiration alert for signer, got %v", *alerts)
 	}
 }
 
-func TestCheckGetSignerAddressesErrorAlertsAndReturnsNil(t *testing.T) {
+func TestCheckGetSignerAddressesErrorAlerts(t *testing.T) {
 	alerts := stubSeams(t,
 		func(context.Context, string, string) ([]string, error) {
 			return nil, errors.New("dial failed")
@@ -78,9 +74,7 @@ func TestCheckGetSignerAddressesErrorAlertsAndReturnsNil(t *testing.T) {
 		},
 	)
 
-	if err := check(context.Background()); err != nil {
-		t.Fatalf("check returned error: %v", err)
-	}
+	check(context.Background())
 	if len(*alerts) != 1 || !strings.Contains((*alerts)[0], "dial failed") {
 		t.Fatalf("expected alert with failure, got %v", *alerts)
 	}
@@ -105,9 +99,7 @@ func TestCheckMixedSignersAlertsOnlyProblems(t *testing.T) {
 		},
 	)
 
-	if err := check(context.Background()); err != nil {
-		t.Fatalf("check returned error: %v", err)
-	}
+	check(context.Background())
 	if len(*alerts) != 1 {
 		t.Fatalf("expected 1 combined alert, got %d", len(*alerts))
 	}
