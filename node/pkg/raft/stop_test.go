@@ -69,3 +69,31 @@ func TestStoppedCandidateDoesNotLead(t *testing.T) {
 	time.Sleep(testLoopSettle)
 	assert.Zero(t, jobs.Load())
 }
+
+// A wait that gave up doesn't stop the count from being used again (a stop
+// that timed out, then a restarted Run leading).
+func TestGoroutineCountReusedAfterAbandonedWait(t *testing.T) {
+	var count goroutineCount
+	select {
+	case <-count.idleChan():
+	default:
+		t.Fatal("not idle before any add")
+	}
+
+	count.add()
+	abandoned := count.idleChan()
+	select {
+	case <-abandoned:
+		t.Fatal("idle with a goroutine running")
+	case <-time.After(testLeaderInterval):
+	}
+	count.add() // while the abandoned wait is pending
+	count.done()
+	count.done()
+	<-abandoned
+
+	count.add()
+	again := count.idleChan()
+	count.done()
+	<-again
+}

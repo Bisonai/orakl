@@ -147,8 +147,13 @@ func main() {
 	go handOverOnSignal(shutdownSteps{
 		stopAggregators: stopAggregators,
 		waitAggregators: a.WaitStopped,
-		closeHost:       host.Close,
-		flushRounds:     a.FlushRounds,
+		closeHost: func() error {
+			if host == nil {
+				return nil
+			}
+			return host.Close()
+		},
+		flushRounds: a.FlushRounds,
 	})
 
 	wg.Add(1)
@@ -204,6 +209,11 @@ func handOverOnSignal(steps shutdownSteps) {
 	signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGINT)
 	sig := <-sigCh
 	log.Info().Str("signal", sig.String()).Msg("shutting down, handing over")
+	go func() {
+		sig := <-sigCh
+		log.Warn().Str("signal", sig.String()).Msg("second signal, exiting without hand-over")
+		os.Exit(1)
+	}()
 	handOver(steps)
 	// no state.Close: other goroutines may still write; SQLite (WAL) is
 	// consistent on exit, and a round advanced after the flush is covered by

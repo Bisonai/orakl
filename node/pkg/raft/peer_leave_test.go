@@ -70,6 +70,7 @@ func TestLeaderDisconnectElectsAtOnce(t *testing.T) {
 	survivor := otherNode(nodes, leader)
 	before := electionsStarted(t, "disconnect")
 
+	time.Sleep(leader.CooldownPeriod) // past a first-election cooldown
 	start := time.Now()
 	require.NoError(t, leader.Host.Close())
 	require.Eventually(t, func() bool { return survivor.GetRole() == Leader }, failoverBound, 10*time.Millisecond,
@@ -89,6 +90,7 @@ func TestLeaderStopElectsAtOnce(t *testing.T) {
 	survivor := otherNode(nodes, leader)
 	before := electionsStarted(t, "shutdown")
 
+	time.Sleep(leader.CooldownPeriod) // past a first-election cooldown
 	start := time.Now()
 	running[leader].stop()
 	assert.Equal(t, Follower, leader.GetRole(), "stopped leader did not resign")
@@ -149,6 +151,8 @@ func TestLateReconnectHandsOverOnce(t *testing.T) {
 	leader := waitForSingleLeader(t, nodes, "no initial leader")
 	follower := otherNode(nodes, leader)
 
+	time.Sleep(leader.CooldownPeriod) // past a first-election cooldown
+
 	require.NoError(t, follower.Host.Network().ClosePeer(leader.Host.ID()))
 	require.Eventually(t, func() bool { return follower.GetRole() == Leader }, failoverBound, 10*time.Millisecond,
 		"follower did not take over")
@@ -191,4 +195,29 @@ func TestMixedFleetFailover(t *testing.T) {
 		running[leader].start(ctx)
 		require.Equal(t, survivor, waitForSingleLeader(t, nodes, "restarted node did not follow"))
 	}
+}
+
+// With 3 nodes both followers see the leader leave; the jittered grace keeps
+// them from campaigning at once and splitting the vote.
+func TestLeaderStopThreeNodesElectsOnce(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	nodes, running := startStoppableCluster(ctx, t, 3, noSilenceFallback)
+	leader := waitForSingleLeader(t, nodes, "no initial leader")
+	survivors := []*Raft{}
+	for _, node := range nodes {
+		if node != leader {
+			survivors = append(survivors, node)
+		}
+	}
+
+	// a survivor that campaigned in the first election keeps the cooldown
+	time.Sleep(leader.CooldownPeriod)
+
+	start := time.Now()
+	running[leader].stop()
+	waitForSingleLeader(t, survivors, "survivors did not elect")
+	t.Logf("survivors led after %s", time.Since(start))
+	assert.Less(t, time.Since(start), 2*failoverBound, "split vote: fell back to the timeout")
 }

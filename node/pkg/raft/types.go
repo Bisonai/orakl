@@ -107,7 +107,7 @@ type Raft struct {
 	timerArmedAt int64
 
 	// leader loops and the leader jobs they started, for Run to wait on
-	leaderLoops sync.WaitGroup
+	leaderLoops goroutineCount
 
 	// atomic mirror of LeaderID for the message path, which must not take Mutex
 	// for metrics; nil when this node is the leader or there is none

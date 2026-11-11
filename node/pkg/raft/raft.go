@@ -675,9 +675,9 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 		storeLater(jobDone, int64(time.Since(leaderClockEpoch)))
 	}
 
-	r.leaderLoops.Add(1)
+	r.leaderLoops.add()
 	go func() {
-		defer r.leaderLoops.Done()
+		defer r.leaderLoops.done()
 		defer func() {
 			if r := recover(); r != nil {
 				log.Error().Msgf("recovered from panic in leader job: %v", r)
@@ -720,9 +720,9 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 				}
 
 			case <-leaderJobTicker.C:
-				r.leaderLoops.Add(1) // the loop's own count is held, so no Wait has returned
+				r.leaderLoops.add()
 				go func() {
-					defer r.leaderLoops.Done()
+					defer r.leaderLoops.done()
 					defer func() {
 						if r := recover(); r != nil {
 							log.Error().Msgf("recovered from panic in LeaderJob: %v", r)
@@ -750,13 +750,8 @@ const leaderLoopStopWait = 5 * time.Second
 // waitLeaderLoops waits for every leader loop and leader job goroutine to
 // return, up to leaderLoopStopWait. Called without Mutex: they take it.
 func (r *Raft) waitLeaderLoops() {
-	done := make(chan struct{})
-	go func() {
-		defer close(done)
-		r.leaderLoops.Wait()
-	}()
 	select {
-	case <-done:
+	case <-r.leaderLoops.idleChan():
 	case <-time.After(leaderLoopStopWait):
 		log.Warn().Str("Player", "Raft").Dur("waited", leaderLoopStopWait).Msg("leader job still running after stop")
 	}
@@ -909,4 +904,44 @@ func (r *Raft) campaign(ctx context.Context, reason string) {
 
 func (r *Raft) unmarshalMessage(data []byte) (Message, error) {
 	return decodeMessage(data)
+}
+
+// goroutineCount counts running goroutines, with a channel closed whenever the
+// count is zero. Unlike a WaitGroup it can be added to while a wait that timed
+// out is abandoned, so a stop that gave up can't break a later Run. The zero
+// value is ready.
+type goroutineCount struct {
+	mu   sync.Mutex
+	n    int
+	idle chan struct{} // closed while n is 0; nil until the first add
+}
+
+func (c *goroutineCount) add() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.n == 0 {
+		c.idle = make(chan struct{})
+	}
+	c.n++
+}
+
+func (c *goroutineCount) done() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.n--
+	if c.n == 0 {
+		close(c.idle)
+	}
+}
+
+// idleChan returns a channel that is closed once the count is zero.
+func (c *goroutineCount) idleChan() <-chan struct{} {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.n == 0 {
+		closed := make(chan struct{})
+		close(closed)
+		return closed
+	}
+	return c.idle
 }
