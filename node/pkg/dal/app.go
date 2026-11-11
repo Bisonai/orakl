@@ -72,7 +72,16 @@ func Run(ctx context.Context) error {
 }
 
 // fetchConfigs fetches the chain's config bundle (retries, fallback source and
-// optional cache: see configfetch).
+// optional cache: see configfetch). An empty bundle (`[]`/`null`) is an error:
+// starting with zero feeds would silently serve nothing.
 func fetchConfigs(ctx context.Context, chain string) ([]Config, error) {
-	return configfetch.Get[[]Config](ctx, configfetch.FeedsPath(chain))
+	configs, err := configfetch.Get[[]Config](ctx, configfetch.FeedsPath(chain))
+	if err != nil {
+		return nil, err
+	}
+	if len(configs) == 0 {
+		return nil, errorsentinel.ErrDalEmptyConfigs
+	}
+	log.Info().Str("chain", chain).Int("count", len(configs)).Msg("Loaded configs")
+	return configs, nil
 }
