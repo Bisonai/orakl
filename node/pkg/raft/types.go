@@ -91,13 +91,16 @@ type Raft struct {
 	campaignAfter time.Time
 
 	// message types only a leader sends, besides heartbeats; one from the
-	// current leader holds off votes (hearsLeaderOtherThan). Set before Run.
+	// current leader holds off votes (hearsLeaderOtherThan) and, like a
+	// heartbeat, the election timer (heardLeaderSinceTimerArmed). Set before Run.
 	LeaderMessageTypes map[MessageType]bool
 
 	// peer.ID -> *atomic.Int64, ns since leaderClockEpoch of its last message
 	peerSeen sync.Map
 	// term a deferred win recount is pending for (handleReplyVote); under Mutex
 	recountTerm int
+	// when the election timer was last armed, ns since leaderClockEpoch; under Mutex
+	timerArmedAt int64
 
 	// atomic mirror of LeaderID for the message path, which must not take Mutex
 	// for metrics; nil when this node is the leader or there is none
@@ -107,9 +110,10 @@ type Raft struct {
 // leaderClock tracks when a leader's last message arrived. It lives as long as
 // that peer is the leader, so a gap is never measured across a leader change.
 type leaderClock struct {
-	id       string
-	term     int          // term this peer last became the leader at, under Raft.Mutex
-	lastSeen atomic.Int64 // ns since leaderClockEpoch
+	id         string
+	term       int          // term this peer last became the leader at, under Raft.Mutex
+	followedAt int64        // when it became the leader, ns since leaderClockEpoch; fixed
+	lastSeen   atomic.Int64 // ns since leaderClockEpoch
 	// last heartbeat or LeaderMessageTypes message, same unit: leader
 	// stickiness (hearsLeaderOtherThan)
 	activeAt atomic.Int64

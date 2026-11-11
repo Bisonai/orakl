@@ -74,7 +74,9 @@ func (r *Raft) Run(ctx context.Context) {
 			r.ResignLeader()
 		}
 	}()
+	r.Mutex.Lock()
 	r.startElectionTimer()
+	r.Mutex.Unlock()
 	for {
 		select {
 		case rawMsg := <-r.MessageBuffer:
@@ -87,7 +89,7 @@ func (r *Raft) Run(ctx context.Context) {
 					return
 				}
 
-				err = r.handleMessage(ctx, msg)
+				err = r.handleFrom(ctx, msg, rawMsg.GetFrom().String())
 				if err != nil {
 					if errors.Is(err, errorSentinel.ErrAggregatorNonLeaderRaftMessage) {
 						log.Debug().Err(err).Str("Player", "Raft").Msg("failed to handle message")
@@ -134,14 +136,24 @@ func (r *Raft) subscribe(ctx context.Context) {
 
 // handler for incoming messages
 
+// handleMessage handles a message whose payload SentFrom is taken as its author.
 func (r *Raft) handleMessage(ctx context.Context, msg Message) error {
+	return r.handleFrom(ctx, msg, msg.SentFrom)
+}
+
+// handleFrom handles a message published by author, the signed pubsub author.
+// Only a message whose SentFrom is its author counts as the leader being heard
+// (silence metrics, stickiness, liveness): another peer can't keep a leader
+// alive by naming it (#2782).
+func (r *Raft) handleFrom(ctx context.Context, msg Message, author string) error {
+	authentic := msg.SentFrom == author
 	// heartbeats record in handleHeartbeat, once validated
-	if msg.Type != Heartbeat {
-		r.recordLeaderSilence(msg.SentFrom, r.LeaderMessageTypes[msg.Type])
+	if msg.Type != Heartbeat && authentic {
+		r.recordLeaderSilence(author, r.LeaderMessageTypes[msg.Type])
 	}
 	switch msg.Type {
 	case Heartbeat:
-		return r.handleHeartbeat(msg)
+		return r.handleHeartbeat(msg, authentic)
 	case RequestVote:
 		return r.handleRequestVote(ctx, msg)
 	case ReplyVote:
@@ -151,7 +163,7 @@ func (r *Raft) handleMessage(ctx context.Context, msg Message) error {
 	}
 }
 
-func (r *Raft) handleHeartbeat(msg Message) error {
+func (r *Raft) handleHeartbeat(msg Message, authentic bool) error {
 	if msg.SentFrom == r.GetHostId() {
 		return nil
 	}
@@ -167,7 +179,9 @@ func (r *Raft) handleHeartbeat(msg Message) error {
 	}
 
 	// after validating: an invalid heartbeat must not split a real gap in two
-	r.recordLeaderSilence(msg.SentFrom, true)
+	if authentic {
+		r.recordLeaderSilence(msg.SentFrom, true)
+	}
 
 	r.Mutex.Lock()
 	defer r.Mutex.Unlock()
@@ -531,8 +545,8 @@ func (r *Raft) followLeader(leaderID string, term int) {
 		return
 	}
 	r.LeaderID = leaderID
-	clock := &leaderClock{id: leaderID, term: term}
 	now := int64(time.Since(leaderClockEpoch))
+	clock := &leaderClock{id: leaderID, term: term, followedAt: now}
 	clock.lastSeen.Store(now)
 	clock.activeAt.Store(now)
 	r.recordLeaderChangeSilence(r.leaderClock.Swap(clock), term)
@@ -737,13 +751,35 @@ func (r *Raft) maxElectionDetection() time.Duration {
 	return (MaxMissedHeartbeats + 1) * 2 * r.minElectionTimeout()
 }
 
+// heardLeaderSinceTimerArmed reports whether a LeaderMessageTypes message (or a
+// heartbeat) from the current leader arrived after the election timer was last
+// armed. It reads the leader's lock-free activeAt stamp, so the message path
+// takes no Mutex for it (#2749). Leader messages carry no term: only the leader
+// this node follows counts, and they never change who that is, which only a
+// heartbeat (with its term) or an election does. A deposed leader's late
+// trigger therefore counts only on a follower that hasn't heard of its
+// successor yet, and holds off its election by at most one timer period, as a
+// late heartbeat would. The caller holds Mutex.
+func (r *Raft) heardLeaderSinceTimerArmed() bool {
+	clock := r.leaderClock.Load()
+	if clock == nil {
+		return false
+	}
+	// the heartbeat that made it the leader already reset the timer
+	active := clock.activeAt.Load()
+	return active > r.timerArmedAt && active > clock.followedAt
+}
+
 func (r *Raft) getRandomElectionTimeout() time.Duration {
 	baseTimeout := r.minElectionTimeout()
 	jitter := time.Duration(rand.Int63n(int64(r.minElectionTimeout())))
 	return baseTimeout + jitter
 }
 
+// startElectionTimer (re)arms the election timer. The caller holds Mutex, or
+// nothing else runs yet.
 func (r *Raft) startElectionTimer() {
+	r.timerArmedAt = int64(time.Since(leaderClockEpoch))
 	if r.ElectionTimer != nil {
 		if !r.ElectionTimer.Stop() {
 			select {
@@ -767,6 +803,14 @@ func (r *Raft) startElection(ctx context.Context) {
 	// new leader. Stays disarmed: ResignLeader, the only way out of the role,
 	// restarts it.
 	if r.Role == Leader {
+		return
+	}
+
+	// a trigger or price fix from the leader since the timer was armed counts
+	// as a heartbeat, so a leader busy with rounds isn't timed out
+	if r.Role == Follower && r.heardLeaderSinceTimerArmed() {
+		r.MissedHeartbeats = 0
+		r.startElectionTimer()
 		return
 	}
 
