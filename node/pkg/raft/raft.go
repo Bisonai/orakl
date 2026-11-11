@@ -214,9 +214,13 @@ func (r *Raft) handleRequestVote(ctx context.Context, msg Message) error {
 	defer r.Mutex.Unlock()
 	// leader stickiness: neither a leader nor a node that still hears one grants
 	// a vote or adopts the candidate's term, so a node that stalled briefly can't
-	// depose a leader its peers hear. No reply: the candidate only counts grants.
-	if r.Role == Leader || r.hearsLeaderOtherThan(msg.SentFrom) {
+	// depose a leader its peers hear. A follower still denies, so the candidate
+	// hears from it and doesn't count it out as silent (liveVoters).
+	if r.Role == Leader {
 		return nil
+	}
+	if r.hearsLeaderOtherThan(msg.SentFrom) {
+		return r.sendReplyVote(ctx, msg.SentFrom, false)
 	}
 
 	var requestVoteMessage RequestVoteMessage
@@ -270,9 +274,10 @@ func (r *Raft) handleReplyVote(ctx context.Context, msg Message) error {
 	if replyVoteMessage.VoteGranted && replyVoteMessage.LeaderID == r.GetHostId() && r.Role == Candidate {
 		r.VotesReceived++
 		log.Debug().Int("vote received", r.VotesReceived).Msg("vote received")
-		if r.VotesReceived >= votesNeeded(r.SubscribersCount()) {
+		subscribed, live := r.voterCounts()
+		if r.VotesReceived >= votesNeeded(subscribed) {
 			r.becomeLeader(ctx)
-		} else if r.VotesReceived >= votesNeeded(r.liveVoters()) {
+		} else if r.VotesReceived >= votesNeeded(live) {
 			r.recountAfterGrace(ctx)
 		}
 	}
@@ -318,17 +323,23 @@ func (r *Raft) stampPeer(id peer.ID) {
 }
 
 // liveVoters counts the peers subscribed to the topic that sent any message
-// within PeerSilenceTimeout. A peer that hangs while still connected then stops
+// within PeerSilenceTimeout (see voterCounts). The caller holds Mutex.
+func (r *Raft) liveVoters() int {
+	_, live := r.voterCounts()
+	return live
+}
+
+// voterCounts returns the peers subscribed to the topic, and those of them that
+// sent any message within PeerSilenceTimeout. A peer that hangs while still connected then stops
 // counting, so a lone candidate wins on its own vote after the timeout instead
 // of waiting for the connection to drop. A peer not heard from yet counts from
 // when it's first seen subscribed; one that left is forgotten. The caller holds
 // Mutex.
-func (r *Raft) liveVoters() int {
+func (r *Raft) voterCounts() (subscribed, live int) {
 	listed := r.Ps.ListPeers(r.Topic.String())
-	subscribed := make(map[peer.ID]bool, len(listed))
-	live := 0
+	listedSet := make(map[peer.ID]bool, len(listed))
 	for _, id := range listed {
-		subscribed[id] = true
+		listedSet[id] = true
 		stamp, ok := r.peerSeen.Load(id)
 		if !ok {
 			r.stampPeer(id)
@@ -340,12 +351,12 @@ func (r *Raft) liveVoters() int {
 		}
 	}
 	r.peerSeen.Range(func(id, _ any) bool {
-		if !subscribed[id.(peer.ID)] {
+		if !listedSet[id.(peer.ID)] {
 			r.peerSeen.Delete(id)
 		}
 		return true
 	})
-	return live
+	return len(listed), live
 }
 
 // recountAfterGrace wins the election a minimum election timeout from now if
@@ -363,7 +374,7 @@ func (r *Raft) recountAfterGrace(ctx context.Context) {
 	time.AfterFunc(r.minElectionTimeout(), func() {
 		r.Mutex.Lock()
 		defer r.Mutex.Unlock()
-		if r.Role == Candidate && r.Term == term && r.VotesReceived >= votesNeeded(r.liveVoters()) {
+		if ctx.Err() == nil && r.Role == Candidate && r.Term == term && r.VotesReceived >= votesNeeded(r.liveVoters()) {
 			r.becomeLeader(ctx)
 		}
 	})
@@ -634,8 +645,7 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 				return
 
 			case <-heartbeatTicker.C:
-				if since(jobDone) > watchdog {
-					r.resignStuckLeader(resign, watchdog)
+				if since(jobDone) > watchdog && r.resignStuckLeader(resign, watchdog) {
 					return
 				}
 				err := r.sendHeartbeat(ctx, resign)
@@ -672,19 +682,26 @@ func (r *Raft) minElectionTimeout() time.Duration {
 // resignStuckLeader gives up a term whose leader jobs stopped succeeding, while
 // its heartbeats would keep peers following it: rounds stop but no election
 // happens (e.g. trigger publishes failing). A stall on Mutex (#2749) stops the
-// heartbeats too, so peers time out and count it out (liveVoters) instead. It stops the heartbeats, and holds off campaigning for
-// twice the longest a peer takes to notice and campaign, so a peer takes over
-// rather than this node winning the term back.
-func (r *Raft) resignStuckLeader(resign <-chan interface{}, watchdog time.Duration) {
+// heartbeats too, so peers time out and count it out (liveVoters) instead.
+//
+// It stops the heartbeats, and holds off campaigning for twice the longest a
+// peer takes to notice and campaign, so a peer takes over rather than this node
+// winning the term back. With no live peer to take over it keeps the term, as
+// resigning would only add an outage. Reports whether the loop must stop.
+func (r *Raft) resignStuckLeader(resign <-chan interface{}, watchdog time.Duration) bool {
 	r.Mutex.Lock()
 	defer r.Mutex.Unlock()
 	if resigned(resign) {
-		return
+		return true
+	}
+	if _, live := r.voterCounts(); live == 0 {
+		return false
 	}
 	log.Warn().Str("Player", "Raft").Dur("watchdog", watchdog).Msg("no leader job succeeded, resigning")
 	r.ResignLeader()
 	r.MissedHeartbeats = 0
 	r.campaignAfter = time.Now().Add(2 * r.maxElectionDetection())
+	return true
 }
 
 // maxElectionDetection is the longest a follower takes from a leader's last

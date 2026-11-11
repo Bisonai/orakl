@@ -9,6 +9,7 @@ import (
 	"time"
 
 	libp2psetup "bisonai.com/miko/node/pkg/libp2p/setup"
+	"bisonai.com/miko/node/pkg/metrics"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -486,22 +487,74 @@ func TestStuckLeaderJobResigns(t *testing.T) {
 }
 
 func TestResignedStuckLeaderHoldsOffCampaign(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	node, _ := newCandidate(ctx, t)
-	require.NoError(t, node.handleMessage(ctx, grantedVoteFor(t, node)))
-	require.Equal(t, Leader, node.GetRole())
+	// a live peer, so the resign goes ahead
+	nodes := startCluster(ctx, t, 2)
+	node := waitForSingleLeader(t, nodes, "no initial leader")
 	node.Mutex.Lock()
 	resign := node.Resign
 	node.Mutex.Unlock()
 
-	node.resignStuckLeader(resign, node.LeaderJobWatchdog)
-	require.Equal(t, Follower, node.GetRole())
-	term := node.GetCurrentTerm()
+	require.True(t, node.resignStuckLeader(resign, node.LeaderJobWatchdog))
+	require.NotEqual(t, Leader, node.GetRole())
 
 	forceNextElection(node)
+	electionsBefore := electionsStarted(t, metrics.RaftElectionReasonTimeout)
 	node.startElection(ctx)
-	assert.Equal(t, Follower, node.GetRole())
+	assert.NotEqual(t, Candidate, node.GetRole())
+	assert.Equal(t, electionsBefore, electionsStarted(t, metrics.RaftElectionReasonTimeout))
+}
+
+// Resigning helps only if a peer can take over: a lone leader whose jobs fail
+// keeps its term and keeps retrying.
+func TestLoneStuckLeaderKeepsLeading(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	node, jobs := newLeaderLoopNode(ctx, t)
+	node.LeaderJob = func(context.Context) error {
+		jobs.Add(1)
+		return fmt.Errorf("stuck")
+	}
+	node.LeaderJobWatchdog = 3 * testLeaderInterval
+
+	node.Mutex.Lock()
+	node.becomeLeader(ctx)
+	term := node.Term
+	node.Mutex.Unlock()
+
+	time.Sleep(5 * node.LeaderJobWatchdog)
+	assert.Equal(t, Leader, node.GetRole())
 	assert.Equal(t, term, node.GetCurrentTerm())
+	before := jobs.Load()
+	time.Sleep(testLoopSettle)
+	assert.Greater(t, jobs.Load(), before, "leader loop stopped")
+}
+
+// A follower that refuses for stickiness still answers, so the candidate hears
+// it and can't count it out as silent.
+func TestStickyRefusalReplies(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	node, _ := newLeaderLoopNode(ctx, t)
+	sub, err := node.Topic.Subscribe()
+	require.NoError(t, err)
+	defer sub.Cancel()
+
+	leader, candidate := testPeerID(t), testPeerID(t)
+	require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, leader, 3)))
+	require.NoError(t, node.handleMessage(ctx, requestVoteFrom(t, candidate, 4)))
+
+	raw, err := sub.Next(ctx)
+	require.NoError(t, err)
+	msg, err := node.unmarshalMessage(raw.Data)
+	require.NoError(t, err)
+	require.Equal(t, ReplyVote, msg.Type)
+	var reply ReplyRequestVoteMessage
+	require.NoError(t, decodeInner(msg.Data, &reply))
+	assert.False(t, reply.VoteGranted)
+	assert.Equal(t, candidate, reply.LeaderID)
 }
