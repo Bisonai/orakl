@@ -207,10 +207,7 @@ func (s *ServerV2) HealthCheckHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *ServerV2) SymbolsHandler(w http.ResponseWriter, r *http.Request) {
-	result := make([]string, 0, len(s.hub.Symbols))
-	for key := range s.hub.Symbols {
-		result = append(result, key)
-	}
+	result := s.hub.SymbolList()
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
