@@ -135,6 +135,8 @@ CHAIN=<Your Chain Name>
 # CONFIG_BASE_URL=
 # Optional secondary source tried when the primary fails, defaults to https://raw.githubusercontent.com/Bisonai/orakl-config/master; set empty to disable
 # CONFIG_FALLBACK_URL=
+# Optional reporter/DAL feed config reload interval (Go duration), defaults to 5m; 0 disables polling. SIGHUP also reloads. Only changes are applied; empty bundles or a >50% pair drop are refused (restart to apply)
+# CONFIG_RELOAD_INTERVAL=
 
 # tx submission wallet for `kaia_helper`
 KAIA_REPORTER_PK=<Your Reporter PK>
