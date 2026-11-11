@@ -26,7 +26,6 @@ func NewFetcher(config Config, feeds []Feed, latestFeedDataMap *LatestFeedDataMa
 	return &Fetcher{
 		Config:            config,
 		Feeds:             feeds,
-		fetcherCtx:        nil,
 		cancel:            nil,
 		latestFeedDataMap: latestFeedDataMap,
 		circuitBreakers:   newCircuitBreakerMap(),
@@ -35,7 +34,6 @@ func NewFetcher(config Config, feeds []Feed, latestFeedDataMap *LatestFeedDataMa
 
 func (f *Fetcher) Run(ctx context.Context, proxies []Proxy) {
 	fetcherCtx, cancel := context.WithCancel(ctx)
-	f.fetcherCtx = fetcherCtx
 	f.cancel = cancel
 	f.isRunning = true
 
@@ -50,6 +48,12 @@ func (f *Fetcher) Run(ctx context.Context, proxies []Proxy) {
 				ticker.Stop()
 				return
 			case <-ticker.C:
+				// select picks randomly when a tick and cancel are both ready;
+				// don't start a new job after STOP.
+				if fetcherCtx.Err() != nil {
+					ticker.Stop()
+					return
+				}
 				err := f.fetcherJob(fetcherCtx, proxies)
 				if err != nil && !errors.Is(err, errorSentinel.ErrFetcherNoDataFetched) {
 					log.Error().Str("Player", "Fetcher").Err(err).Msg("error in fetchAndInsert")

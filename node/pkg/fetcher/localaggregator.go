@@ -24,7 +24,6 @@ func NewLocalAggregator(
 	return &LocalAggregator{
 		Config:                 config,
 		Feeds:                  feeds,
-		aggregatorCtx:          nil,
 		cancel:                 nil,
 		bus:                    bus,
 		latestFeedDataMap:      latestFeedDataMap,
@@ -34,7 +33,6 @@ func NewLocalAggregator(
 
 func (c *LocalAggregator) Run(ctx context.Context) {
 	aggregatorCtx, cancel := context.WithCancel(ctx)
-	c.aggregatorCtx = aggregatorCtx
 	c.cancel = cancel
 	c.isRunning = true
 
@@ -56,6 +54,12 @@ func (c *LocalAggregator) Run(ctx context.Context) {
 				ticker.Stop()
 				return
 			case <-ticker.C:
+				// select picks randomly when a tick and cancel are both ready;
+				// don't start a new job after STOP.
+				if aggregatorCtx.Err() != nil {
+					ticker.Stop()
+					return
+				}
 				go func() {
 					err := c.Job(aggregatorCtx)
 					if err != nil {
