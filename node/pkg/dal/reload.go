@@ -10,13 +10,13 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// runConfigReload re-reads the chain's config bundle while DAL runs (see
+// startConfigReload re-reads the chain's config bundle while DAL runs (see
 // configreload) and applies added/removed symbols to the collector and hub.
-func runConfigReload(ctx context.Context, chain string, count int, c *collector.Collector, h *hub.Hub) {
+func startConfigReload(ctx context.Context, chain string, count int, c *collector.Collector, h *hub.Hub) {
 	r := configreload.New(configfetch.FeedsPath(chain), count,
 		func(config Config) string { return config.Name },
 		func(ctx context.Context, configs []Config) error { return ApplyConfigs(ctx, c, h, configs) })
-	r.Run(ctx, configreload.Interval(), configreload.NotifyHUP())
+	go r.Run(ctx, configreload.Interval(), configreload.NotifyHUP())
 }
 
 // ApplyConfigs applies a reloaded bundle: added symbols become subscribable; removed ones stop being

@@ -65,8 +65,9 @@ type Collector struct {
 	redisMu     sync.Mutex
 	runCtx      context.Context
 	redisCancel context.CancelFunc
-	// subscribe starts subscriptions to topics under ctx; replaceable in tests.
-	subscribe func(ctx context.Context, topics []string) error
+	// subscribe starts subscriptions to topics under ctx and returns a channel
+	// closed once they are connected; replaceable in tests.
+	subscribe func(ctx context.Context, topics []string) (<-chan struct{}, error)
 
 	IsRunning  bool
 	CancelFunc context.CancelFunc
@@ -240,6 +241,15 @@ func (c *Collector) redisRouter(ctx context.Context, msg *redis.Message) error {
 	if err != nil {
 		return err
 	}
+
+	// Process under the collector's context, not the subscription's: a
+	// config reload cancels old subscriptions, which must not abort queued
+	// jobs or an on-demand whitelist refresh they start.
+	c.redisMu.Lock()
+	if c.runCtx != nil {
+		ctx = c.runCtx
+	}
+	c.redisMu.Unlock()
 
 	c.processPool.AddJob(func() {
 		c.processIncomingData(ctx, data)

@@ -19,7 +19,9 @@ type Rediscribe struct {
 	port              string
 	reconnectInterval time.Duration
 
-	mu sync.Mutex
+	mu        sync.Mutex
+	ready     chan struct{}
+	readyOnce sync.Once
 }
 
 type RediscribeConfig struct {
@@ -87,6 +89,7 @@ func NewRediscribe(ctx context.Context, opts ...RediscribeOption) (*Rediscribe, 
 		port: config.RedisPort,
 
 		reconnectInterval: config.ReconnectInterval,
+		ready:             make(chan struct{}),
 	}, nil
 }
 
@@ -100,6 +103,7 @@ func (r *Rediscribe) Start(ctx context.Context) {
 				log.Error().Err(err).Msg("failed to establish initial connection")
 				return
 			}
+			r.readyOnce.Do(func() { close(r.ready) })
 
 			wg := new(sync.WaitGroup)
 			wg.Add(len(r.topics))
@@ -120,6 +124,11 @@ func (r *Rediscribe) Start(ctx context.Context) {
 			time.Sleep(r.reconnectInterval)
 		}
 	}
+}
+
+// Ready is closed once Start has connected for the first time.
+func (r *Rediscribe) Ready() <-chan struct{} {
+	return r.ready
 }
 
 func (r *Rediscribe) connect(ctx context.Context) error {

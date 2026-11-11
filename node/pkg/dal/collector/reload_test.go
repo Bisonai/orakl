@@ -18,17 +18,24 @@ type fakeSubscriber struct {
 	calls [][]string
 	ctxs  []context.Context
 	err   error
+	ready chan struct{} // nil: connected at once
 }
 
-func (f *fakeSubscriber) subscribe(ctx context.Context, topics []string) error {
+func (f *fakeSubscriber) subscribe(ctx context.Context, topics []string) (<-chan struct{}, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	if f.err != nil {
-		return f.err
+		return nil, f.err
 	}
 	f.calls = append(f.calls, topics)
 	f.ctxs = append(f.ctxs, ctx)
-	return nil
+	ready := f.ready
+	if ready == nil {
+		closed := make(chan struct{})
+		close(closed)
+		ready = closed
+	}
+	return ready, nil
 }
 
 // newTestCollector returns a started-looking collector (no redis, no chain).
@@ -147,4 +154,32 @@ func TestRemovedSymbolDataIgnored(t *testing.T) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	assert.NotContains(t, c.LatestTimestamps, "A-B")
+}
+
+func TestResubscribeKeepsPreviousUntilConnected(t *testing.T) {
+	orig := ResubscribeGrace
+	ResubscribeGrace = 50 * time.Millisecond
+	t.Cleanup(func() { ResubscribeGrace = orig })
+
+	c, f := newTestCollector(t, "A-B")
+	_, _, err := c.UpdateConfigs(context.Background(), cfgs("A-B", "C-D"))
+	require.NoError(t, err)
+
+	f.ready = make(chan struct{}) // redis unreachable for the next subscription
+	_, _, err = c.UpdateConfigs(context.Background(), cfgs("A-B", "C-D", "E-F"))
+	require.NoError(t, err)
+	time.Sleep(300 * time.Millisecond)
+	assert.NoError(t, f.ctxs[0].Err(), "previous subscription must stay while the new one is not connected")
+
+	close(f.ready)
+	require.Eventually(t, func() bool { return f.ctxs[0].Err() != nil }, 2*time.Second, 20*time.Millisecond)
+}
+
+func TestUpdateConfigsSubscribeErrorKeepsKeptConfig(t *testing.T) {
+	c, f := newTestCollector(t, "A-B")
+	f.err = assert.AnError
+	decimals := 4
+	_, _, err := c.UpdateConfigs(context.Background(), []Config{{Name: "A-B", Decimals: &decimals}, {Name: "E-F"}})
+	assert.Error(t, err)
+	assert.Nil(t, c.Configs["A-B"].Decimals)
 }

@@ -56,15 +56,10 @@ func (c *Collector) UpdateConfigs(ctx context.Context, configs []Config) (map[st
 	sort.Slice(added, func(i, j int) bool { return added[i].Name < added[j].Name })
 	sort.Strings(removed)
 
-	// Add maps before subscribing so the first update of an added symbol is
-	// not dropped as unknown; roll back if subscribing fails (the reload is
-	// then retried and sees the same additions).
+	// Add symbols before subscribing so the first update of an added symbol is
+	// not dropped as unknown; roll back if subscribing fails (nothing else has
+	// changed yet, and the reload is retried).
 	c.mu.Lock()
-	for name, config := range wanted {
-		if _, ok := c.FeedHashes[name]; ok {
-			c.Configs[name] = config
-		}
-	}
 	addedStreams := make(map[string]chan *dalcommon.OutgoingSubmissionData, len(added))
 	for _, config := range added {
 		stream := make(chan *dalcommon.OutgoingSubmissionData, OutgoingStreamSize)
@@ -86,6 +81,12 @@ func (c *Collector) UpdateConfigs(ctx context.Context, configs []Config) (map[st
 			return nil, nil, err
 		}
 	}
+
+	c.mu.Lock()
+	for name, config := range wanted {
+		c.Configs[name] = config
+	}
+	c.mu.Unlock()
 	return addedStreams, removed, nil
 }
 
@@ -115,7 +116,8 @@ func (c *Collector) RemoveSymbols(symbols []string) {
 }
 
 // resubscribe starts subscriptions to topics and closes the previous ones
-// after ResubscribeGrace.
+// ResubscribeGrace after the new ones connected (never while redis is
+// unreachable, so a reload during an outage does not drop working ones).
 func (c *Collector) resubscribe(topics []string) error {
 	c.redisMu.Lock()
 	defer c.redisMu.Unlock()
@@ -123,12 +125,21 @@ func (c *Collector) resubscribe(topics []string) error {
 		return errors.New("collector not started")
 	}
 	ctx, cancel := context.WithCancel(c.runCtx)
-	if err := c.subscribe(ctx, topics); err != nil {
+	ready, err := c.subscribe(ctx, topics)
+	if err != nil {
 		cancel()
 		return err
 	}
 	if old := c.redisCancel; old != nil {
-		time.AfterFunc(ResubscribeGrace, old)
+		grace := ResubscribeGrace
+		go func() {
+			select {
+			case <-ready:
+				time.AfterFunc(grace, old)
+			case <-ctx.Done(): // superseded by a newer subscription, or stopped
+				old()
+			}
+		}()
 	}
 	c.redisCancel = cancel
 	return nil
@@ -136,12 +147,12 @@ func (c *Collector) resubscribe(topics []string) error {
 
 // redisSubscribe subscribes to topics on the base redis and, if set, the sub
 // redis, until ctx is done.
-func (c *Collector) redisSubscribe(ctx context.Context, topics []string) error {
+func (c *Collector) redisSubscribe(ctx context.Context, topics []string) (<-chan struct{}, error) {
 	base, err := db.NewRediscribe(ctx,
 		db.WithRedisHost(c.baseRedisHost), db.WithRedisPort(c.baseRedisPort),
 		db.WithRedisTopics(topics), db.WithRedisRouter(c.redisRouter))
 	if err != nil {
-		return err
+		return nil, err
 	}
 	var sub *db.Rediscribe
 	if c.subRedisHost != "" && c.subRedisPort != "" {
@@ -149,13 +160,28 @@ func (c *Collector) redisSubscribe(ctx context.Context, topics []string) error {
 			db.WithRedisHost(c.subRedisHost), db.WithRedisPort(c.subRedisPort),
 			db.WithRedisTopics(topics), db.WithRedisRouter(c.redisRouter))
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 	go base.Start(ctx)
 	if sub != nil {
 		go sub.Start(ctx)
 	}
-	log.Info().Str("Player", "DalCollector").Int("topics", len(topics)).Msg("redis subscriptions replaced")
-	return nil
+	log.Info().Str("Player", "DalCollector").Int("topics", len(topics)).Msg("redis subscriptions started")
+
+	ready := make(chan struct{})
+	go func() {
+		for _, r := range []*db.Rediscribe{base, sub} {
+			if r == nil {
+				continue
+			}
+			select {
+			case <-r.Ready():
+			case <-ctx.Done():
+				return
+			}
+		}
+		close(ready)
+	}()
+	return ready, nil
 }
