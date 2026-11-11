@@ -91,6 +91,7 @@ type simNode struct {
 
 	submissions atomic.Int64
 	mixed       atomic.Int64 // proofs for different values: DAL "signer not whitelisted"
+	zombie      atomic.Int64 // triggers published while not Role == Leader (stray loop)
 }
 
 func (n *simNode) get(round int32) *simRound {
@@ -123,6 +124,9 @@ func (n *simNode) publish(ctx context.Context, typ MessageType, m simMsg) error 
 }
 
 func (n *simNode) leaderJob(ctx context.Context) error {
+	if n.r.GetRole() != Leader {
+		n.zombie.Add(1)
+	}
 	n.mu.Lock()
 	n.round++
 	round := n.round
@@ -165,13 +169,17 @@ func (n *simNode) handleCustom(ctx context.Context, msg Message) error {
 		switch len(s.prices) {
 		case 2:
 			s.priced = true
+			prices := append([]int64(nil), s.prices...)
 			n.mu.Unlock()
-			return n.fix(ctx, s.prices, m)
+			return n.fix(ctx, prices, m)
 		case 1:
+			// like startPriceCollectionTimeout: looks the round up again by ID,
+			// so it can act on a newer round that reuses the ID after pruning
 			go func() {
 				time.Sleep(n.collect)
 				n.mu.Lock()
-				if s.priced {
+				s, ok := n.rounds[m.Round]
+				if !ok || s.priced || len(s.prices) == 0 {
 					n.mu.Unlock()
 					return
 				}
@@ -209,11 +217,12 @@ func (n *simNode) handleCustom(ctx context.Context, msg Message) error {
 			s.proved = true
 			n.submit(s.proofs, m)
 		case 1:
+			// like startProofCollectionTimeout: by ID, with the first message
 			go func() {
 				time.Sleep(n.collect)
 				n.mu.Lock()
 				defer n.mu.Unlock()
-				if !s.proved {
+				if s, ok := n.rounds[m.Round]; ok && !s.proved && len(s.proofs) > 0 {
 					s.proved = true
 					n.submit(s.proofs, m)
 				}
@@ -224,16 +233,27 @@ func (n *simNode) handleCustom(ctx context.Context, msg Message) error {
 	return nil
 }
 
-// fix mirrors processCollectedPrices: only a leader publishes the price fix.
+// fix mirrors processCollectedPrices: only a leader publishes the price fix, the
+// median of the non-negative prices (GetInt64Med; mean for two).
 func (n *simNode) fix(ctx context.Context, prices []int64, m simMsg) error {
 	if n.r.GetRole() != Leader {
 		return nil
 	}
-	sum := int64(0)
+	valid := prices[:0]
 	for _, p := range prices {
-		sum += p
+		if p >= 0 {
+			valid = append(valid, p)
+		}
 	}
-	return n.publish(ctx, simFix, simMsg{Round: m.Round, Value: sum / int64(len(prices)), TS: m.TS})
+	if len(valid) == 0 {
+		return nil
+	}
+	sort.Slice(valid, func(i, j int) bool { return valid[i] < valid[j] })
+	median := valid[len(valid)/2]
+	if len(valid)%2 == 0 {
+		median = (valid[len(valid)/2-1] + median) / 2
+	}
+	return n.publish(ctx, simFix, simMsg{Round: m.Round, Value: median, TS: m.TS})
 }
 
 // submit mirrors processCollectedProofs; the DAL checks every proof against
@@ -294,11 +314,12 @@ func forward(ctx context.Context, t *testing.T, src, dst *simNode, link *simLink
 		for {
 			select {
 			case q := <-link.queue:
+				// latency from send, so a flushed backlog doesn't pile it up;
+				// stall checked on arrival
+				time.Sleep(time.Until(q.sent.Add(link.latency)))
 				if !link.open() {
 					continue
 				}
-				// latency from send, so a flushed backlog doesn't pile it up
-				time.Sleep(time.Until(q.sent.Add(link.latency)))
 				go func() { _ = dst.r.handleMessage(ctx, q.msg) }()
 			case <-ctx.Done():
 				return
@@ -320,6 +341,9 @@ type simTrial struct {
 	dualLeader    time.Duration
 	mixed         int64
 	submissions   int64
+	zombie        int64
+	leaderless    float64 // share of the trial with no node in Role == Leader
+	stuck         bool    // started without a stable leader
 	leaderChanges int64
 }
 
@@ -334,12 +358,18 @@ func TestFlapSimulation(t *testing.T) {
 		t.Skip("set RAFT_FLAP_SIM=1")
 	}
 	trials := 20
-	if v, err := strconv.Atoi(os.Getenv("RAFT_FLAP_SIM_TRIALS")); err == nil {
-		trials = v
+	if v := os.Getenv("RAFT_FLAP_SIM_TRIALS"); v != "" {
+		n, err := strconv.Atoi(v)
+		require.NoError(t, err, "RAFT_FLAP_SIM_TRIALS")
+		require.Positive(t, n, "RAFT_FLAP_SIM_TRIALS")
+		trials = n
 	}
 	modes := []string{"inbound-queue", "both-queue", "inbound-drop", "both-drop"}
 	if v := os.Getenv("RAFT_FLAP_SIM_MODES"); v != "" {
 		modes = strings.Split(v, ",")
+	}
+	for _, mode := range modes {
+		require.Regexp(t, `^(inbound|both)-(queue|drop)(-rand)?$`, mode, "RAFT_FLAP_SIM_MODES")
 	}
 	for _, mode := range modes {
 		t.Run(mode, func(t *testing.T) { runFlapSim(t, mode, trials) })
@@ -369,19 +399,26 @@ func runFlapSim(t *testing.T, mode string, trials int) {
 	time.Sleep(3 * scale)
 	go b.r.Run(ctx)
 
-	var leaderChanges, dual atomic.Int64
+	var leaderChanges, dual, leaderless atomic.Int64
 	go func() {
 		tick := time.NewTicker(scale / 5)
 		defer tick.Stop()
 		prev := [2]RoleType{}
+		last := time.Now()
 		for {
 			select {
 			case <-ctx.Done():
 				return
-			case <-tick.C:
+			case now := <-tick.C:
+				// elapsed, not the tick period: a slow receiver drops ticks
+				elapsed := now.Sub(last)
+				last = now
 				ra, rb := roleOf(a), roleOf(b)
 				if ra == Leader && rb == Leader {
-					dual.Add(int64(scale / 5))
+					dual.Add(int64(elapsed))
+				}
+				if ra != Leader && rb != Leader {
+					leaderless.Add(int64(elapsed))
 				}
 				if ra == Leader && prev[0] != Leader {
 					leaderChanges.Add(1)
@@ -394,31 +431,40 @@ func runFlapSim(t *testing.T, mode string, trials int) {
 		}
 	}()
 
-	stable := func() (in, out *simLink) {
+	// stable waits for one leader both follow. v0.0.27 code can end in an
+	// absorbing state (both followers, each following the other, kept there by
+	// stray leader loops); the next stall is what breaks it, so the trial goes on.
+	stable := func() (in, out *simLink, stuck bool) {
 		ok := func() bool {
 			ra, rb := roleOf(a), roleOf(b)
 			return (ra == Leader) != (rb == Leader) && a.r.GetLeader() == b.r.GetLeader() && a.r.GetLeader() != ""
 		}
 		start := time.Now()
 		for !ok() {
-			if time.Since(start) > 2000*scale {
-				t.Fatalf("no stable leader: a=%s/%d/%s b=%s/%d/%s", roleOf(a), a.r.GetCurrentTerm(), short(a.r.GetLeader()), roleOf(b), b.r.GetCurrentTerm(), short(b.r.GetLeader()))
+			if time.Since(start) > 300*scale {
+				if os.Getenv("RAFT_FLAP_SIM_VERBOSE") != "" {
+					t.Logf("  no stable leader: a=%s/%d/%s b=%s/%d/%s", roleOf(a), a.r.GetCurrentTerm(), short(a.r.GetLeader()), roleOf(b), b.r.GetCurrentTerm(), short(b.r.GetLeader()))
+				}
+				return ab, ba, true
 			}
 			time.Sleep(scale / 2)
 		}
 		if roleOf(a) == Leader {
-			return ab, ba // follower b's inbound, outbound
+			return ab, ba, false // follower b's inbound, outbound
 		}
-		return ba, ab
+		return ba, ab, false
 	}
 
 	results := make([]simTrial, 0, trials)
 	for i := 0; i < trials; i++ {
-		in, out := stable()
+		in, out, stuck := stable()
 		time.Sleep(50 * scale) // past cooldown, rounds settled
 		mixed0 := a.mixed.Load() + b.mixed.Load()
+		zombie0 := a.zombie.Load() + b.zombie.Load()
 		subs0 := a.submissions.Load() + b.submissions.Load()
 		dual.Store(0)
+		leaderless.Store(0)
+		trialStart := time.Now()
 		leaderChanges.Store(0)
 
 		// follower stalls past its election timeout (2 missed + 1 timer)
@@ -434,30 +480,58 @@ func runFlapSim(t *testing.T, mode string, trials int) {
 
 		results = append(results, simTrial{
 			dualLeader:    time.Duration(dual.Load()),
+			leaderless:    float64(leaderless.Load()) / float64(time.Since(trialStart)),
+			stuck:         stuck,
 			mixed:         a.mixed.Load() + b.mixed.Load() - mixed0,
 			submissions:   a.submissions.Load() + b.submissions.Load() - subs0,
+			zombie:        a.zombie.Load() + b.zombie.Load() - zombie0,
 			leaderChanges: leaderChanges.Load(),
 		})
 	}
 
-	var dualSum time.Duration
-	var mixedSum, subsSum, changeSum int64
-	duals := make([]time.Duration, 0, len(results))
+	// per trial: what a feed submits across a flap, outages included
+	var allMixed, allSubs int64
+	var allLeaderless float64
+	stuckTrials := 0
 	for _, r := range results {
+		allMixed += r.mixed
+		allSubs += r.submissions
+		allLeaderless += r.leaderless
+		if r.stuck {
+			stuckTrials++
+		}
+	}
+	nt := float64(len(results))
+	t.Logf("mode=%s trials=%d | per trial: mixed-proof submissions=%.2f submissions=%.1f leaderless=%.0f%% | started without a stable leader: %d",
+		mode, len(results), float64(allMixed)/nt, float64(allSubs)/nt, 100*allLeaderless/nt, stuckTrials)
+
+	// per flap: only trials where a leader change happened (stall too short
+	// for an election otherwise)
+	var dualSum time.Duration
+	var mixedSum, subsSum, zombieSum int64
+	duals := []time.Duration{}
+	for _, r := range results {
+		if r.leaderChanges == 0 || r.stuck {
+			continue
+		}
 		dualSum += r.dualLeader
 		mixedSum += r.mixed
 		subsSum += r.submissions
-		changeSum += r.leaderChanges
+		zombieSum += r.zombie
 		duals = append(duals, r.dualLeader)
 	}
+	flaps := len(duals)
+	if flaps == 0 {
+		t.Logf("mode=%s trials=%d: no flaps", mode, len(results))
+		return
+	}
 	sort.Slice(duals, func(i, j int) bool { return duals[i] < duals[j] })
-	n := len(results)
-	t.Logf("mode=%s trials=%d | mixed-proof submissions/flap=%.2f | submissions/flap=%.1f | dual-leader mean=%v median=%v max=%v | leader changes/flap=%.2f",
-		mode, n, float64(mixedSum)/float64(n), float64(subsSum)/float64(n),
-		dualSum/time.Duration(n), duals[n/2], duals[n-1], float64(changeSum)/float64(n))
+	t.Logf("mode=%s trials=%d flaps=%d | per flap: mixed-proof submissions=%.2f submissions=%.1f stray-loop triggers=%.2f | dual-leader mean=%v median=%v max=%v",
+		mode, len(results), flaps, float64(mixedSum)/float64(flaps), float64(subsSum)/float64(flaps), float64(zombieSum)/float64(flaps),
+		dualSum/time.Duration(flaps), duals[flaps/2], duals[flaps-1])
 	if os.Getenv("RAFT_FLAP_SIM_VERBOSE") != "" {
 		for i, r := range results {
-			t.Logf("  trial %2d: mixed=%d subs=%d dual=%v changes=%d", i, r.mixed, r.submissions, r.dualLeader, r.leaderChanges)
+			t.Logf("  trial %2d: mixed=%d subs=%d stray=%d dual=%v changes=%d", i, r.mixed, r.submissions, r.zombie, r.dualLeader, r.leaderChanges)
 		}
 	}
 }
