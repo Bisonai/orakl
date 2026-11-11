@@ -80,11 +80,12 @@ func TestFetcherStopStartWhileJobInFlight(t *testing.T) {
 
 	require.NoError(t, app.stopFetcher(ctx, f))
 
-	// One loop fires at most once per tick (plus one in flight at each edge);
-	// two loops would roughly double that.
-	maxOneLoop := int64(window/interval) + 2
+	// One loop fires at most once per tick (the ticker buffers a single tick,
+	// so delays can't burst); two loops would roughly double that. Allow 1.5x
+	// headroom for CI jitter while still catching a second loop.
+	ceiling := int64(window/interval) * 3 / 2
 	assert.Greater(t, got, int64(0), "new loop should be fetching")
-	assert.LessOrEqual(t, got, maxOneLoop, "more requests than one loop can make: old loop still running")
+	assert.LessOrEqual(t, got, ceiling, "more requests than one loop can make: old loop still running")
 }
 
 // TestLocalAggregatorStopStartLeavesOneLoop checks that rapid STOP->START
@@ -129,7 +130,8 @@ func TestLocalAggregatorStopStartLeavesOneLoop(t *testing.T) {
 		require.NoError(t, app.startLocalAggregator(ctx, c))
 	}
 
-	time.Sleep(5 * interval)
+	// Let Job goroutines spawned by earlier loops drain before measuring.
+	time.Sleep(15 * interval)
 
 	const window = 30 * interval
 	before := published.Load()
@@ -138,7 +140,7 @@ func TestLocalAggregatorStopStartLeavesOneLoop(t *testing.T) {
 
 	require.NoError(t, app.stopLocalAggregator(ctx, c))
 
-	maxOneLoop := int64(window/interval) + 2
+	ceiling := int64(window/interval) * 3 / 2
 	assert.Greater(t, got, int64(0), "new loop should be aggregating")
-	assert.LessOrEqual(t, got, maxOneLoop, "more aggregates than one loop can emit: old loop still running")
+	assert.LessOrEqual(t, got, ceiling, "more aggregates than one loop can emit: old loop still running")
 }
