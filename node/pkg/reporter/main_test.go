@@ -64,7 +64,8 @@ func TestMain(m *testing.M) {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(testConfigsFixture))
 	}))
-	configBaseURL = configServer.URL
+	os.Setenv("CONFIG_BASE_URL", configServer.URL)
+	os.Setenv("CONFIG_FALLBACK_URL", "")
 
 	var err error
 	dalKeyDir, err = os.MkdirTemp("", "dal-keys-")

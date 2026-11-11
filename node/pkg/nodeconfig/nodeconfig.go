@@ -17,7 +17,7 @@ import (
 	"sync"
 
 	"bisonai.com/miko/node/pkg/common/types"
-	"bisonai.com/miko/node/pkg/utils/request"
+	"bisonai.com/miko/node/pkg/utils/configfetch"
 )
 
 // defaults for intervals missing from the bundle (former Postgres column defaults)
@@ -103,19 +103,23 @@ func Default() *Store {
 	return defaultStore
 }
 
-// URL is the orakl-config bundle for $CHAIN (default kairos).
+// URL is the primary-source orakl-config bundle for $CHAIN (default kairos).
 func URL() string {
+	return configfetch.URL(feedsPath())
+}
+
+func feedsPath() string {
 	chain := os.Getenv("CHAIN")
 	if chain == "" {
 		chain = "kairos"
 	}
-	return fmt.Sprintf("https://config.orakl.network/%s_feeds.json", chain)
+	return configfetch.FeedsPath(chain)
 }
 
-// Sync loads the bundle from URL() and replaces the store content. On error
+// Sync loads the bundle (see configfetch) and replaces the store content. On error
 // the previous content is kept.
 func (s *Store) Sync(ctx context.Context) error {
-	entries, err := request.Request[[]Entry](request.WithEndpoint(URL()), request.WithContext(ctx))
+	entries, err := configfetch.Get[[]Entry](ctx, feedsPath())
 	if err != nil {
 		return fmt.Errorf("load config bundle %s: %w", URL(), err)
 	}
