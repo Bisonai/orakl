@@ -188,7 +188,10 @@ func (r *Raft) handleHeartbeat(msg Message) error {
 func (r *Raft) handleRequestVote(ctx context.Context, msg Message) error {
 	r.Mutex.Lock()
 	defer r.Mutex.Unlock()
-	if r.Role == Leader {
+	// leader stickiness: neither a leader nor a node that still hears one grants
+	// a vote or adopts the candidate's term, so a node that stalled briefly can't
+	// depose a leader its peers hear. No reply: the candidate only counts grants.
+	if r.Role == Leader || r.hearsLeaderOtherThan(msg.SentFrom) {
 		return nil
 	}
 
@@ -244,11 +247,37 @@ func (r *Raft) handleReplyVote(ctx context.Context, msg Message) error {
 		r.VotesReceived++
 		log.Debug().Int("vote received", r.VotesReceived).Msg("vote received")
 		log.Debug().Int("subscribers count", r.SubscribersCount()).Msg("subscribers count")
-		if r.VotesReceived >= (r.SubscribersCount()+1)/2 {
+		if r.VotesReceived >= votesNeeded(r.SubscribersCount()) {
 			r.becomeLeader(ctx)
 		}
 	}
 	return nil
+}
+
+// hearsLeaderOtherThan reports whether a message from the current leader arrived
+// within the minimum election timeout, and that leader isn't candidate. A leader
+// campaigning has lost its role, and a node always votes for itself. Once the
+// leader falls silent this turns false before any peer can time out, so it can't
+// hold off an election that is needed.
+func (r *Raft) hearsLeaderOtherThan(candidate string) bool {
+	if candidate == r.GetHostId() {
+		return false
+	}
+	clock := r.leaderClock.Load()
+	if clock == nil || clock.id == candidate {
+		return false
+	}
+	// load first: lastSeen can't then be ahead of now
+	lastSeen := clock.lastSeen.Load()
+	return time.Since(leaderClockEpoch)-time.Duration(lastSeen) < r.minElectionTimeout()
+}
+
+// votesNeeded is a strict majority of the voters: the peers subscribed to this
+// node's topic plus the node itself, whose own vote is counted. A lone node wins
+// on its own vote, so it keeps serving while every peer is gone; with any peer it
+// needs that peer's grant too.
+func votesNeeded(peers int) int {
+	return (peers+1)/2 + 1
 }
 
 // publishing messages
@@ -510,8 +539,12 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 	}()
 }
 
+func (r *Raft) minElectionTimeout() time.Duration {
+	return r.HeartbeatTimeout * 5
+}
+
 func (r *Raft) getRandomElectionTimeout() time.Duration {
-	baseTimeout := r.HeartbeatTimeout * 5
+	baseTimeout := r.minElectionTimeout()
 	jitter := time.Duration(rand.Int63n(int64(r.HeartbeatTimeout * 5)))
 	return baseTimeout + jitter
 }
