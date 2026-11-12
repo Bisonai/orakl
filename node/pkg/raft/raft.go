@@ -52,6 +52,8 @@ func NewRaftNode(
 
 		PeerSilenceTimeout: DefaultPeerSilenceTimeout,
 		LeaderJobWatchdog:  DefaultLeaderJobWatchdog,
+
+		SparseHeartbeat: SparseHeartbeatEnabled(),
 	}
 	return r
 }
@@ -441,6 +443,7 @@ func votesNeeded(peers int) int {
 
 func (r *Raft) PublishMessage(ctx context.Context, msg Message) error {
 	msg.Timestamp = time.Now()
+	sentAt := int64(time.Since(leaderClockEpoch))
 	data, err := encodeMessage(msg)
 	if err != nil {
 		return err
@@ -449,6 +452,7 @@ func (r *Raft) PublishMessage(ctx context.Context, msg Message) error {
 		return err
 	}
 	metrics.RecordP2PPublished(string(msg.Type), len(data))
+	r.stampLeaderSent(msg.Type, sentAt)
 	return nil
 }
 
@@ -714,6 +718,10 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 					}
 					// no peer to take over: check again a watchdog from now
 					storeLater(jobDone, int64(time.Since(leaderClockEpoch)))
+				}
+				if r.skipHeartbeat() {
+					metrics.RecordRaftHeartbeatSkipped()
+					continue
 				}
 				err := r.sendHeartbeat(ctx, resign)
 				if err != nil {

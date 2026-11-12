@@ -21,6 +21,7 @@ const (
 	RaftLeaderSilence       = "orakl_node_raft_leader_silence_seconds"
 	RaftLeaderChangeSilence = "orakl_node_raft_leader_change_silence_seconds"
 	RaftElectionsStarted    = "orakl_node_raft_elections_started_total"
+	RaftHeartbeatsSkipped   = "orakl_node_raft_heartbeats_skipped_total"
 
 	NameLabel     = "name"
 	ConfigLabel   = "config"

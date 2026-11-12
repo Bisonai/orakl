@@ -22,6 +22,14 @@ func TestRecordRaftElectionStarted(t *testing.T) {
 	}
 }
 
+func TestRecordRaftHeartbeatSkipped(t *testing.T) {
+	before := testutil.ToFloat64(raftHeartbeatsSkipped)
+
+	RecordRaftHeartbeatSkipped()
+
+	assert.Equal(t, before+1, testutil.ToFloat64(raftHeartbeatsSkipped))
+}
+
 func TestRecordRaftLeaderChangeSilence(t *testing.T) {
 	read := func() (uint64, float64) {
 		families, err := prometheus.DefaultGatherer.Gather()
