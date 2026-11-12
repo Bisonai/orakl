@@ -101,7 +101,22 @@ func NewHost(ctx context.Context, opts ...HostOption) (host.Host, error) {
 	return h, err
 }
 
+// PeerOutboundQueueSize is the per-peer outbound RPC queue. The library default
+// of 32 never blocks and drops on overflow: a leader of ~230 feeds sends ~2,300
+// heartbeats/s to its peer, so a short link stall would fill 32 slots in ~15 ms
+// and drop heartbeats, triggers and proofs instead of delaying them (#2822).
+// With few peers 1024 costs a few MB at most and covers ~0.5 s of stall.
+const PeerOutboundQueueSize = 1024
+
 func MakePubsub(ctx context.Context, host host.Host) (*pubsub.PubSub, error) {
 	log.Debug().Msg("creating pubsub instance")
-	return pubsub.NewGossipSub(ctx, host, pubsub.WithSeenMessagesTTL(30*time.Second))
+	return pubsub.NewGossipSub(ctx, host, pubsubOptions()...)
+}
+
+func pubsubOptions() []pubsub.Option {
+	return []pubsub.Option{
+		pubsub.WithSeenMessagesTTL(30 * time.Second),
+		pubsub.WithPeerOutboundQueueSize(PeerOutboundQueueSize),
+		pubsub.WithRawTracer(dropTracer{}),
+	}
 }

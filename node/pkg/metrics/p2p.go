@@ -40,6 +40,22 @@ var (
 		Name: metricnames.P2PPeerDisconnects,
 		Help: "P2P peers whose last connection closed, by peer type",
 	}, []string{metricnames.PeerTypeLabel})
+
+	p2pDroppedRPCs = promauto.NewCounter(prometheus.CounterOpts{
+		Name: metricnames.P2PDroppedRPCs,
+		Help: "Outbound pubsub RPCs dropped before sending, mostly because the peer's outbound queue was full",
+	})
+	p2pDroppedMessages = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: metricnames.P2PDroppedMessages,
+		Help: "Items inside dropped outbound pubsub RPCs, by kind: published messages, subscription changes, control messages",
+	}, []string{metricnames.KindLabel})
+)
+
+// Kinds of items inside a dropped outbound pubsub RPC.
+const (
+	P2PDroppedKindPublish      = "publish"
+	P2PDroppedKindSubscription = "subscription"
+	P2PDroppedKindControl      = "control"
 )
 
 func init() {
@@ -47,6 +63,25 @@ func init() {
 	for _, peerType := range []string{P2PPeerTypeOracle, P2PPeerTypeBoot, P2PPeerTypeUnknown} {
 		p2pPeerConnects.WithLabelValues(peerType)
 		p2pPeerDisconnects.WithLabelValues(peerType)
+	}
+	for _, kind := range []string{P2PDroppedKindPublish, P2PDroppedKindSubscription, P2PDroppedKindControl} {
+		p2pDroppedMessages.WithLabelValues(kind)
+	}
+}
+
+// RecordP2PDroppedRPC counts one dropped outbound RPC and the items it carried:
+// published messages, subscription changes and control messages (graft, prune,
+// ihave, iwant, idontwant).
+func RecordP2PDroppedRPC(publish, subscriptions, control int) {
+	p2pDroppedRPCs.Inc()
+	if publish > 0 {
+		p2pDroppedMessages.WithLabelValues(P2PDroppedKindPublish).Add(float64(publish))
+	}
+	if subscriptions > 0 {
+		p2pDroppedMessages.WithLabelValues(P2PDroppedKindSubscription).Add(float64(subscriptions))
+	}
+	if control > 0 {
+		p2pDroppedMessages.WithLabelValues(P2PDroppedKindControl).Add(float64(control))
 	}
 }
 
