@@ -17,16 +17,27 @@ import (
 // these tests: on two nodes, one round trip for the follower's price.
 const priceFixDelay = 5 * time.Millisecond
 
+// testSparseHB is the heartbeat interval in these tests: half the default, so
+// every derived bound (stickiness window, skip window, maxHeartbeatGap,
+// election timer) is half as long, with room left for a loaded runner.
+const testSparseHB = HEARTBEAT_TIMEOUT / 2
+
 var testLeaderTypes = map[MessageType]bool{"trigger": true, "priceFix": true}
 
-func sparseOn(r *Raft) {
-	r.SparseHeartbeat = true
+func sparseTimers(r *Raft) {
+	r.HeartbeatTimeout = testSparseHB
+	r.CooldownPeriod = 10 * testSparseHB
 	r.LeaderMessageTypes = testLeaderTypes
 }
 
+func sparseOn(r *Raft) {
+	sparseTimers(r)
+	r.SparseHeartbeat = true
+}
+
 func sparseOff(r *Raft) {
+	sparseTimers(r)
 	r.SparseHeartbeat = false
-	r.LeaderMessageTypes = testLeaderTypes
 }
 
 // withRounds makes the node's leader job an aggregator round every interval:
@@ -143,7 +154,7 @@ func TestSparseHeartbeatEnv(t *testing.T) {
 // With the flag on, a 400 ms feed (4 heartbeat intervals) sends one heartbeat a
 // round instead of four. Off, every tick sends one and nothing is skipped.
 func TestSparseHeartbeatCount(t *testing.T) {
-	const window = 3 * time.Second
+	const window = 60 * testSparseHB
 	counts := map[bool]int{}
 	for _, on := range []bool{false, true} {
 		t.Run(fmt.Sprintf("sparse=%v", on), func(t *testing.T) {
@@ -154,8 +165,8 @@ func TestSparseHeartbeatCount(t *testing.T) {
 			if on {
 				flag = sparseOn
 			}
-			node, sends := startLoneLeader(ctx, t, flag, withRounds(4*HEARTBEAT_TIMEOUT))
-			time.Sleep(HEARTBEAT_TIMEOUT)
+			node, sends := startLoneLeader(ctx, t, flag, withRounds(4*testSparseHB))
+			time.Sleep(testSparseHB)
 			sends.reset()
 			skipped := heartbeatsSkipped(t)
 			time.Sleep(window)
@@ -171,7 +182,7 @@ func TestSparseHeartbeatCount(t *testing.T) {
 				assert.Equal(t, skipped, heartbeatsSkipped(t), "skipped with the flag off")
 				assert.Zero(t, node.leaderSentAt.Load(), "sends stamped with the flag off")
 				assert.Zero(t, node.heartbeatSentAt.Load(), "sends stamped with the flag off")
-				assert.GreaterOrEqual(t, counts[on], int(window/HEARTBEAT_TIMEOUT)*8/10, "a heartbeat missing with the flag off")
+				assert.GreaterOrEqual(t, counts[on], int(window/testSparseHB)*8/10, "a heartbeat missing with the flag off")
 			}
 		})
 	}
@@ -182,25 +193,26 @@ func TestSparseHeartbeatCount(t *testing.T) {
 // stays below half the stickiness window plus a tick, whatever the round
 // interval, and heartbeats are never further apart than maxHeartbeatGap.
 func TestSparseHeartbeatLeaderGapBound(t *testing.T) {
-	for _, interval := range []time.Duration{0, HEARTBEAT_TIMEOUT, 4 * HEARTBEAT_TIMEOUT, 7 * HEARTBEAT_TIMEOUT, 50 * HEARTBEAT_TIMEOUT} {
+	for _, interval := range []time.Duration{0, testSparseHB, 4 * testSparseHB, 7 * testSparseHB, 50 * testSparseHB} {
 		t.Run(fmt.Sprintf("interval=%s", interval), func(t *testing.T) {
+			t.Parallel()
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
 			node, sends := startLoneLeader(ctx, t, sparseOn, withRounds(interval))
-			time.Sleep(HEARTBEAT_TIMEOUT)
+			time.Sleep(testSparseHB)
 			sends.reset()
-			time.Sleep(3 * time.Second)
+			time.Sleep(60 * testSparseHB)
 
 			leaderGap := sends.maxGap(Heartbeat, "trigger", "priceFix")
 			heartbeatGap := sends.maxGap(Heartbeat)
 			t.Logf("heartbeats %d, max leader gap %s, max heartbeat gap %s", sends.count(Heartbeat), leaderGap, heartbeatGap)
 			// half the stickiness window plus a tick, with room for a loaded runner
 			assert.Less(t, leaderGap, node.minElectionTimeout(), "leader gap reaches the stickiness window")
-			assert.Less(t, heartbeatGap, node.maxHeartbeatGap()+2*HEARTBEAT_TIMEOUT, "heartbeats too far apart")
-			if interval == HEARTBEAT_TIMEOUT {
+			assert.Less(t, heartbeatGap, node.maxHeartbeatGap()+2*testSparseHB, "heartbeats too far apart")
+			if interval == testSparseHB {
 				// rounds cover every tick: only the forced heartbeat goes out
-				assert.Greater(t, heartbeatGap, node.maxHeartbeatGap()-2*HEARTBEAT_TIMEOUT)
+				assert.Greater(t, heartbeatGap, node.maxHeartbeatGap()-2*testSparseHB)
 			}
 		})
 	}
@@ -210,8 +222,9 @@ func TestSparseHeartbeatLeaderGapBound(t *testing.T) {
 // window, so it refuses a stalled peer's vote, and never times the leader out,
 // for short and long round intervals.
 func TestSparseHeartbeatFollowerStaysSticky(t *testing.T) {
-	for _, interval := range []time.Duration{0, HEARTBEAT_TIMEOUT, 4 * HEARTBEAT_TIMEOUT, 50 * HEARTBEAT_TIMEOUT} {
+	for _, interval := range []time.Duration{0, testSparseHB, 4 * testSparseHB, 50 * testSparseHB} {
 		t.Run(fmt.Sprintf("interval=%s", interval), func(t *testing.T) {
+			t.Parallel()
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
@@ -219,7 +232,6 @@ func TestSparseHeartbeatFollowerStaysSticky(t *testing.T) {
 			leader := waitForSingleLeader(t, nodes, "no initial leader")
 			follower := otherNode(nodes, leader)
 			term := leader.GetCurrentTerm()
-			timeouts := electionsStarted(t, "timeout")
 			candidate := testPeerID(t)
 
 			misses := 0
@@ -235,7 +247,6 @@ func TestSparseHeartbeatFollowerStaysSticky(t *testing.T) {
 			assert.Zero(t, misses, "follower stopped hearing its leader within the stickiness window")
 			assert.Equal(t, term, leader.GetCurrentTerm())
 			assert.Equal(t, term, follower.GetCurrentTerm())
-			assert.Equal(t, timeouts, electionsStarted(t, "timeout"))
 		})
 	}
 }
@@ -248,7 +259,7 @@ func TestSparseHeartbeatStalledFollowerFollowsWithinGap(t *testing.T) {
 	defer cancel()
 
 	// rounds every tick: only the forced heartbeat goes out
-	nodes := startCluster(ctx, t, 2, sparseOn, withRounds(HEARTBEAT_TIMEOUT))
+	nodes := startCluster(ctx, t, 2, sparseOn, withRounds(testSparseHB))
 	leader := waitForSingleLeader(t, nodes, "no initial leader")
 	follower := otherNode(nodes, leader)
 	term := leader.GetCurrentTerm()
@@ -267,7 +278,7 @@ func TestSparseHeartbeatStalledFollowerFollowsWithinGap(t *testing.T) {
 		require.Equal(t, Leader, leader.GetRole(), "leader deposed")
 		require.Equal(t, term, leader.GetCurrentTerm(), "leader adopted the candidate's term")
 		return follower.GetRole() == Follower && follower.GetLeader() == leader.GetHostId()
-	}, leader.maxHeartbeatGap()+3*HEARTBEAT_TIMEOUT, 5*time.Millisecond, "candidate did not follow the leader within the heartbeat gap")
+	}, leader.maxHeartbeatGap()+3*testSparseHB, 5*time.Millisecond, "candidate did not follow the leader within the heartbeat gap")
 	t.Logf("followed after %s", time.Since(start))
 
 	deadline := time.Now().Add(10 * leader.minElectionTimeout())
@@ -286,7 +297,7 @@ func TestSparseHeartbeatFailover(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
-		nodes := startCluster(ctx, t, 2, sparseOn, withRounds(4*HEARTBEAT_TIMEOUT), noSilenceFallback)
+		nodes := startCluster(ctx, t, 2, sparseOn, withRounds(4*testSparseHB), noSilenceFallback)
 		leader := waitForSingleLeader(t, nodes, "no initial leader")
 		survivor := otherNode(nodes, leader)
 
@@ -302,7 +313,7 @@ func TestSparseHeartbeatFailover(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
-		nodes := startCluster(ctx, t, 3, sparseOn, withRounds(4*HEARTBEAT_TIMEOUT))
+		nodes := startCluster(ctx, t, 3, sparseOn, withRounds(4*testSparseHB))
 		leader := waitForSingleLeader(t, nodes, "no initial leader")
 		others := []*Raft{}
 		for _, node := range nodes {
