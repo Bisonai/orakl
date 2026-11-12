@@ -107,6 +107,9 @@ type Raft struct {
 	// node published, ns since leaderClockEpoch; only with SparseHeartbeat
 	heartbeatSentAt atomic.Int64
 	leaderSentAt    atomic.Int64
+	// last LeaderMessageTypes message received from another peer, same unit;
+	// only with SparseHeartbeat
+	rivalLeaderAt atomic.Int64
 
 	// peer.ID -> *atomic.Int64, ns since leaderClockEpoch of its last message
 	peerSeen sync.Map

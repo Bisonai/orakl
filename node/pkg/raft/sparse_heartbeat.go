@@ -29,12 +29,21 @@ import (
 // follows. maxHeartbeatGap (1 s) is below the earliest such node campaigns
 // against the leader: MaxMissedHeartbeats+1 expiries of at least 500 ms.
 //
+// Two leaders resolve only through a heartbeat, which carries the term: a
+// leader that receives another peer's trigger or price fix sends a heartbeat
+// every tick for maxHeartbeatGap, so a dual leadership (e.g. after a partition
+// heals) ends as fast as with the flag off.
+//
 // Every peer must count leader messages as liveness (#2813, v0.0.32+): an
 // older follower times out a leader whose heartbeats are 1 s apart.
 
 // SparseHeartbeatEnvVar enables sparse heartbeats when set to a true value
 // (strconv.ParseBool). Unset or invalid is off: every tick sends a heartbeat.
 const SparseHeartbeatEnvVar = "P2P_SPARSE_HEARTBEAT"
+
+// neverSent is a stamp long enough ago that nothing is skipped on it: 0 is
+// recent in a process's first second.
+const neverSent = -1 << 62
 
 // SparseHeartbeatEnabled reports whether SparseHeartbeatEnvVar is set to true.
 func SparseHeartbeatEnabled() bool {
@@ -64,20 +73,30 @@ func (r *Raft) skipHeartbeat() bool {
 	// half a tick of slack: heartbeats sit on ticks, so the forced one goes
 	// out on the tick a full maxHeartbeatGap after the last
 	return since(&r.leaderSentAt) < r.sparseHeartbeatWindow() &&
-		since(&r.heartbeatSentAt) < r.maxHeartbeatGap()-r.HeartbeatTimeout/2
+		since(&r.heartbeatSentAt) < r.maxHeartbeatGap()-r.HeartbeatTimeout/2 &&
+		since(&r.rivalLeaderAt) >= r.maxHeartbeatGap()
 }
 
 // stampLeaderSent records a published heartbeat or leader message, at sentAt
-// (ns since leaderClockEpoch, taken before publishing, so a slow publish only
-// makes the next heartbeat earlier). Only with SparseHeartbeat on.
-func (r *Raft) stampLeaderSent(msgType MessageType, sentAt int64) {
-	if !r.SparseHeartbeat {
+// (taken before publishing, so a slow publish only makes the next heartbeat
+// earlier). Only with SparseHeartbeat on.
+func (r *Raft) stampLeaderSent(msgType MessageType, sentAt time.Time) {
+	if !r.SparseHeartbeat || (msgType != Heartbeat && !r.LeaderMessageTypes[msgType]) {
 		return
 	}
+	stamp := int64(sentAt.Sub(leaderClockEpoch))
 	if msgType == Heartbeat {
-		storeLater(&r.heartbeatSentAt, sentAt)
-	} else if !r.LeaderMessageTypes[msgType] {
+		storeLater(&r.heartbeatSentAt, stamp)
+	}
+	storeLater(&r.leaderSentAt, stamp)
+}
+
+// stampRivalLeader records a LeaderMessageTypes message from another peer,
+// signed by author. Only with SparseHeartbeat on; a follower's stamp is unused.
+func (r *Raft) stampRivalLeader(msgType MessageType, author string) {
+	if !r.SparseHeartbeat || !r.LeaderMessageTypes[msgType] || author == r.GetHostId() {
 		return
 	}
-	storeLater(&r.leaderSentAt, sentAt)
+	storeLater(&r.rivalLeaderAt, int64(time.Since(leaderClockEpoch)))
 }
+

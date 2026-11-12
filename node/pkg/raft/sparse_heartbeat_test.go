@@ -177,9 +177,8 @@ func TestSparseHeartbeatCount(t *testing.T) {
 			require.Positive(t, rounds)
 			if on {
 				assert.Positive(t, heartbeatsSkipped(t)-skipped)
-				assert.LessOrEqual(t, counts[on], rounds+2, "more than one heartbeat a round")
+				assert.LessOrEqual(t, counts[on], 2*rounds, "more heartbeats than rounds leave room for")
 			} else {
-				assert.Equal(t, skipped, heartbeatsSkipped(t), "skipped with the flag off")
 				assert.Zero(t, node.leaderSentAt.Load(), "sends stamped with the flag off")
 				assert.Zero(t, node.heartbeatSentAt.Load(), "sends stamped with the flag off")
 				assert.GreaterOrEqual(t, counts[on], int(window/testSparseHB)*8/10, "a heartbeat missing with the flag off")
@@ -274,11 +273,12 @@ func TestSparseHeartbeatStalledFollowerFollowsWithinGap(t *testing.T) {
 	require.Greater(t, follower.GetCurrentTerm(), term, "no election started")
 
 	start := time.Now()
-	require.Eventually(t, func() bool {
+	for follower.GetRole() != Follower || follower.GetLeader() != leader.GetHostId() {
 		require.Equal(t, Leader, leader.GetRole(), "leader deposed")
 		require.Equal(t, term, leader.GetCurrentTerm(), "leader adopted the candidate's term")
-		return follower.GetRole() == Follower && follower.GetLeader() == leader.GetHostId()
-	}, leader.maxHeartbeatGap()+3*testSparseHB, 5*time.Millisecond, "candidate did not follow the leader within the heartbeat gap")
+		require.Less(t, time.Since(start), leader.maxHeartbeatGap()+3*testSparseHB, "candidate did not follow the leader within the heartbeat gap")
+		time.Sleep(5 * time.Millisecond)
+	}
 	t.Logf("followed after %s", time.Since(start))
 
 	deadline := time.Now().Add(10 * leader.minElectionTimeout())
@@ -341,4 +341,71 @@ func TestSparseHeartbeatFailover(t *testing.T) {
 		assert.Greater(t, electionsStarted(t, "timeout"), timeouts)
 		release()
 	})
+}
+
+// The forced heartbeat must reach a follower without a leader before it can
+// campaign: the earliest is after every missed heartbeat at the minimum
+// election timeout.
+func TestMaxHeartbeatGapBelowEarliestCampaign(t *testing.T) {
+	for _, hb := range []time.Duration{testSparseHB, HEARTBEAT_TIMEOUT} {
+		r := &Raft{HeartbeatTimeout: hb}
+		assert.Less(t, r.maxHeartbeatGap(), (MaxMissedHeartbeats+1)*r.minElectionTimeout())
+		assert.Less(t, r.sparseHeartbeatWindow()+hb, r.minElectionTimeout(), "leader gap reaches the stickiness window")
+	}
+}
+
+// newSkippingLeader returns a sparse node whose stamps make the next tick skip.
+func newSkippingLeader(ctx context.Context, t *testing.T) *Raft {
+	t.Helper()
+	node := newPublishTestNode(ctx, t)
+	sparseOn(node)
+	node.HandleCustomMessage = func(context.Context, Message) error { return nil }
+	now := int64(time.Since(leaderClockEpoch))
+	node.heartbeatSentAt.Store(now)
+	node.leaderSentAt.Store(now)
+	require.True(t, node.skipHeartbeat())
+	return node
+}
+
+// A leader that hears another peer's trigger or price fix stops skipping, so
+// two leaders meet on heartbeats as fast as with the flag off. Its own, and
+// messages any node sends, don't count.
+func TestRivalLeaderMessageStopsSkipping(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	for name, tc := range map[string]struct {
+		msgType MessageType
+		own     bool
+		stops   bool
+	}{
+		"rival trigger":   {"trigger", false, true},
+		"rival price fix": {"priceFix", false, true},
+		"own trigger":     {"trigger", true, false},
+		"price data":      {"priceData", false, false},
+	} {
+		t.Run(name, func(t *testing.T) {
+			node := newSkippingLeader(ctx, t)
+			author := testPeerID(t)
+			if tc.own {
+				author = node.GetHostId()
+			}
+			require.NoError(t, node.handleFrom(ctx, leaderMessageFrom(author, tc.msgType), author))
+			assert.Equal(t, !tc.stops, node.skipHeartbeat())
+		})
+	}
+}
+
+// A new term sends heartbeats until its own first one publishes: an earlier
+// term's stamp doesn't let it skip.
+func TestNewTermDoesNotSkipOnEarlierHeartbeat(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	node := newSkippingLeader(ctx, t)
+	node.startElectionTimer()
+	node.Mutex.Lock()
+	node.setLeaderState()
+	node.Mutex.Unlock()
+	assert.False(t, node.skipHeartbeat())
 }

@@ -167,6 +167,7 @@ func (r *Raft) handleFrom(ctx context.Context, msg Message, author string) error
 	// heartbeats record in handleHeartbeat, once validated
 	if msg.Type != Heartbeat && authentic {
 		r.recordLeaderSilence(author, r.LeaderMessageTypes[msg.Type])
+		r.stampRivalLeader(msg.Type, author)
 	}
 	switch msg.Type {
 	case Heartbeat:
@@ -443,7 +444,6 @@ func votesNeeded(peers int) int {
 
 func (r *Raft) PublishMessage(ctx context.Context, msg Message) error {
 	msg.Timestamp = time.Now()
-	sentAt := int64(time.Since(leaderClockEpoch))
 	data, err := encodeMessage(msg)
 	if err != nil {
 		return err
@@ -452,7 +452,7 @@ func (r *Raft) PublishMessage(ctx context.Context, msg Message) error {
 		return err
 	}
 	metrics.RecordP2PPublished(string(msg.Type), len(data))
-	r.stampLeaderSent(msg.Type, sentAt)
+	r.stampLeaderSent(msg.Type, msg.Timestamp)
 	return nil
 }
 
@@ -645,6 +645,10 @@ func (r *Raft) setLeaderState() {
 	r.Role = Leader
 	r.LeaderID = r.GetHostId()
 	r.recordLeaderChangeSilence(r.leaderClock.Swap(nil), r.Term)
+	// no skipping until this term's first heartbeat publishes (skipHeartbeat)
+	if r.SparseHeartbeat {
+		r.heartbeatSentAt.Store(neverSent)
+	}
 }
 
 // becomeLeader takes the role and starts the leader loop, unless ctx is done:
