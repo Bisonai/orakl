@@ -31,6 +31,9 @@ func (a *App) Run(ctx context.Context) error {
 	}
 
 	a.startReporters(ctx)
+	if a.local != nil {
+		go a.local.runWhitelistRefresh(ctx)
+	}
 
 	reloader := configreload.New(configfetch.FeedsPath(chainName()), len(configs),
 		func(c Config) string { return c.Name }, a.applyConfigs)
@@ -40,19 +43,22 @@ func (a *App) Run(ctx context.Context) error {
 }
 
 func (a *App) setReporters(ctx context.Context) ([]Config, error) {
-	dalApiKey := secrets.GetSecret("API_KEY")
-	if dalApiKey == "" {
-		return nil, errorSentinel.ErrReporterDalApiKeyNotFound
-	}
+	var dalApiKey, dalWsEndpoint, dalRestEndpoint string
+	if a.local == nil {
+		dalApiKey = secrets.GetSecret("API_KEY")
+		if dalApiKey == "" {
+			return nil, errorSentinel.ErrReporterDalApiKeyNotFound
+		}
 
-	dalWsEndpoint := os.Getenv("DAL_WS_URL")
-	if dalWsEndpoint == "" {
-		dalWsEndpoint = "ws://orakl-dal.orakl.svc.cluster.local/ws"
-	}
+		dalWsEndpoint = os.Getenv("DAL_WS_URL")
+		if dalWsEndpoint == "" {
+			dalWsEndpoint = "ws://orakl-dal.orakl.svc.cluster.local/ws"
+		}
 
-	dalRestEndpoint := os.Getenv("DAL_REST_URL")
-	if dalRestEndpoint == "" {
-		return nil, errorSentinel.ErrReporterDalRestEndpointNotFound
+		dalRestEndpoint = os.Getenv("DAL_REST_URL")
+		if dalRestEndpoint == "" {
+			return nil, errorSentinel.ErrReporterDalRestEndpointNotFound
+		}
 	}
 
 	contractAddress := os.Getenv("SUBMISSION_PROXY_CONTRACT")
@@ -70,6 +76,11 @@ func (a *App) setReporters(ctx context.Context) ([]Config, error) {
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to get whitelist, starting with empty whitelist")
 		cachedWhitelist = []common.Address{}
+	}
+	if a.local != nil {
+		a.local.chainHelper = chainHelper
+		a.local.contractAddress = contractAddress
+		a.local.setWhitelist(cachedWhitelist)
 	}
 
 	configs, err := fetchConfigs()
@@ -99,11 +110,13 @@ func (a *App) setReporters(ctx context.Context) ([]Config, error) {
 // buildReporters creates the DAL websocket helper, the interval reporters and
 // the deviation reporter for configs. Caller holds a.mu.
 func (a *App) buildReporters(ctx context.Context, configs []Config) error {
-	dalWsHelper, dalWsHelperErr := SetupDalWsHelper(ctx, configs, a.deps.dalWsEndpoint, a.deps.dalApiKey)
-	if dalWsHelperErr != nil {
-		return dalWsHelperErr
+	if a.local == nil {
+		dalWsHelper, dalWsHelperErr := SetupDalWsHelper(ctx, configs, a.deps.dalWsEndpoint, a.deps.dalApiKey)
+		if dalWsHelperErr != nil {
+			return dalWsHelperErr
+		}
+		a.WsHelper = dalWsHelper
 	}
-	a.WsHelper = dalWsHelper
 
 	a.groups = map[int]*Reporter{}
 	groupedConfigs := groupConfigsBySubmitIntervals(configs)
@@ -146,6 +159,7 @@ func (a *App) newReporter(ctx context.Context, interval int, configs []Config, j
 		WithLatestDataMap(a.LatestDataMap),
 		WithLatestSubmittedDataMap(a.LatestSubmittedDataMap),
 		WithDalRestEndpoint(a.deps.dalRestEndpoint),
+		withLocalSource(a.local),
 	)
 }
 
@@ -170,9 +184,11 @@ func (a *App) startReporters(ctx context.Context) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
-	wsCtx, wsCancel := context.WithCancel(ctx)
-	a.wsCancel = wsCancel
-	go a.WsHelper.Run(wsCtx, a.HandleWsMessage)
+	if a.WsHelper != nil {
+		wsCtx, wsCancel := context.WithCancel(ctx)
+		a.wsCancel = wsCancel
+		go a.WsHelper.Run(wsCtx, a.HandleWsMessage)
+	}
 
 	for _, reporter := range a.Reporters {
 		go reporter.Run(ctx)

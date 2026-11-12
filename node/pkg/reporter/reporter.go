@@ -42,6 +42,7 @@ func NewReporter(ctx context.Context, opts ...ReporterOption) (*Reporter, error)
 		KaiaHelper:             config.KaiaHelper,
 		LatestDataMap:          config.LatestDataMap,
 		LatestSubmittedDataMap: config.LatestSubmittedDataMap,
+		local:                  config.Local,
 		stop:                   make(chan struct{}),
 	}
 
@@ -109,12 +110,21 @@ func (r *Reporter) regularReporterJob(ctx context.Context) error {
 	if len(pairs) == 0 {
 		return nil
 	}
-	pairsMap, err := GetLatestDataRest(ctx, r.DalRestEndpoint, pairs)
-	if err != nil {
-		return err
+	var pairsMap map[string]SubmissionData
+	if r.local != nil {
+		pairsMap = r.local.prepare(ctx, r.local.latest(r.LatestDataMap, pairs))
+		if len(pairsMap) == 0 {
+			return nil
+		}
+	} else {
+		var err error
+		pairsMap, err = GetLatestDataRest(ctx, r.DalRestEndpoint, pairs)
+		if err != nil {
+			return err
+		}
 	}
 
-	err = r.report(ctx, pairsMap)
+	err := r.report(ctx, pairsMap)
 	if err != nil {
 		return err
 	}
@@ -124,6 +134,9 @@ func (r *Reporter) regularReporterJob(ctx context.Context) error {
 func (r *Reporter) deviationJob(ctx context.Context) error {
 	r.pruneSubmitted()
 	deviatingAggregates := GetDeviatingAggregates(r.LatestSubmittedDataMap, r.LatestDataMap, r.deviationThreshold)
+	if r.local != nil {
+		deviatingAggregates = r.local.prepare(ctx, deviatingAggregates)
+	}
 	if len(deviatingAggregates) == 0 {
 		return nil
 	}

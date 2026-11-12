@@ -34,6 +34,10 @@ type SubmissionData struct {
 	Proof           Proof
 }
 
+// SubmissionHook receives every global aggregate with its proof; leader is
+// whether this node led the feed's round. It must not block.
+type SubmissionHook func(data SubmissionData, leader bool)
+
 type App struct {
 	Bus                   *bus.MessageBus
 	Configs               *nodeconfig.Store
@@ -43,6 +47,10 @@ type App struct {
 	Signer                *helper.Signer
 	LatestLocalAggregates *LatestLocalAggregates
 	State                 *nodestate.Store
+
+	// OnSubmission, if set before Run, gets every aggregator's submission
+	// data (in-node reporter).
+	OnSubmission SubmissionHook
 
 	// rounds persists RoundID advances of all aggregators to State (nil
 	// without State).
@@ -197,6 +205,9 @@ type Aggregator struct {
 
 	// rounds persists every RoundID advance (nil: not persisted)
 	rounds *roundPersister
+
+	// onSubmission gets each round's submission data (nil: none)
+	onSubmission SubmissionHook
 
 	nodeCtx    context.Context
 	nodeCancel context.CancelFunc

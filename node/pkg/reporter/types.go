@@ -53,6 +53,10 @@ type App struct {
 	pairs     map[string]int // applied pair -> submit interval (ms)
 	configs   []Config       // applied bundle
 	wsCancel  context.CancelFunc
+
+	// local is set when the reporter runs inside the node (NewNodeApp): data
+	// comes from Ingest instead of DAL. nil: standalone reporter.
+	local *localSource
 }
 
 // reporterDeps is what every reporter shares; built once, kept across reloads
@@ -84,6 +88,7 @@ type ReporterConfig struct {
 	KaiaHelper             *helper.ChainHelper
 	LatestDataMap          *sync.Map // map[symbol]SubmissionData
 	LatestSubmittedDataMap *sync.Map // map[symbol]int64
+	Local                  *localSource
 }
 
 type ReporterOption func(*ReporterConfig)
@@ -141,6 +146,12 @@ func WithLatestSubmittedDataMap(latestSubmittedDataMap *sync.Map) ReporterOption
 	}
 }
 
+func withLocalSource(local *localSource) ReporterOption {
+	return func(c *ReporterConfig) {
+		c.Local = local
+	}
+}
+
 func WithDalRestEndpoint(endpoint string) ReporterOption {
 	return func(c *ReporterConfig) {
 		c.DalRestEndpoint = endpoint
@@ -156,6 +167,8 @@ type Reporter struct {
 
 	contractAddress    string
 	deviationThreshold float64
+
+	local *localSource // nil: data from DAL
 
 	LatestDataMap          *sync.Map
 	LatestSubmittedDataMap *sync.Map

@@ -159,6 +159,7 @@ func (a *App) initializeLoadedAggregators(ctx context.Context, loadedConfigs []C
 		if err != nil {
 			return err
 		}
+		tmpNode.onSubmission = a.OnSubmission
 		a.Aggregators[config.ID] = tmpNode
 
 	}

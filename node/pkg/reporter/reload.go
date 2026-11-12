@@ -77,7 +77,7 @@ func (a *App) applyConfigs(ctx context.Context, configs []Config) error {
 	// create everything that can fail first, so an error changes nothing and
 	// the bundle is retried on the next reload
 	var ws *wss.WebsocketHelper
-	if len(added) > 0 || len(removed) > 0 {
+	if a.local == nil && (len(added) > 0 || len(removed) > 0) {
 		var err error
 		ws, err = SetupDalWsHelper(ctx, configs, a.deps.dalWsEndpoint, a.deps.dalApiKey)
 		if err != nil {
@@ -118,6 +118,9 @@ func (a *App) applyConfigs(ctx context.Context, configs []Config) error {
 	for _, name := range removed {
 		a.LatestDataMap.Delete(name)
 		a.LatestSubmittedDataMap.Delete(name)
+		if a.local != nil {
+			a.local.leaders.Delete(name)
+		}
 	}
 
 	a.pairs = newPairs

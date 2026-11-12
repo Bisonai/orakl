@@ -20,6 +20,7 @@ import (
 	"bisonai.com/miko/node/pkg/libp2p/helper"
 	libp2pSetup "bisonai.com/miko/node/pkg/libp2p/setup"
 	"bisonai.com/miko/node/pkg/nodestate"
+	"bisonai.com/miko/node/pkg/reporter"
 	"bisonai.com/miko/node/pkg/utils/loginit"
 	"bisonai.com/miko/node/pkg/utils/retrier"
 	"github.com/rs/zerolog/log"
@@ -142,6 +143,9 @@ func main() {
 	log.Info().Msg("Fetcher started")
 
 	a := aggregator.New(mb, host, ps, state)
+	if nodeReporterEnabled() {
+		startNodeReporter(ctx, a)
+	}
 	// cancelled on shutdown: every aggregator stops and resigns
 	aggregatorCtx, stopAggregators := context.WithCancel(ctx)
 	helperApp := helper.New(mb, host)
@@ -177,6 +181,30 @@ func main() {
 	log.Info().Msg("libp2p helper started")
 
 	wg.Wait()
+}
+
+// nodeReporterEnabled reports whether NODE_REPORTER_ENABLED turns on the
+// in-node reporter (default off).
+func nodeReporterEnabled() bool {
+	enabled, _ := strconv.ParseBool(os.Getenv("NODE_REPORTER_ENABLED"))
+	return enabled
+}
+
+// startNodeReporter submits the feeds this node leads on-chain. It must run
+// before the aggregator starts, so every aggregator gets the hook. A reporter
+// that fails to start is logged; the node keeps aggregating.
+func startNodeReporter(ctx context.Context, a *aggregator.App) {
+	r := reporter.NewNodeApp()
+	a.OnSubmission = func(data aggregator.SubmissionData, leader bool) {
+		r.Ingest(data.Symbol, data.GlobalAggregate.Value, data.GlobalAggregate.Timestamp, data.Proof.Proof, leader)
+	}
+	go func() {
+		if err := r.Run(ctx); err != nil {
+			log.Error().Err(err).Msg("Failed to start in-node reporter")
+			return
+		}
+		log.Info().Msg("In-node reporter started")
+	}()
 }
 
 // Per-step bounds of the shutdown hand-over; 13 s in all, well under the
