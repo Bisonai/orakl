@@ -228,17 +228,19 @@ func (c *ChainReader) handleSubscription(ctx context.Context, config *SubscribeC
 			log.Debug().Err(err).Str("Player", "ChainReader").Msg("Retrying subscription")
 			continue
 		}
-		defer sub.Unsubscribe()
-
-		if !processLogs(ctx, sub, logs, config.Ch) {
-			if !retryWithContext(ctx, c.RetryPeriod) {
-				return
-			}
-			log.Debug().Err(err).Str("Player", "ChainReader").Msg("Retrying subscription")
-			continue
-		}
-
+		// the configured start block applies to the first subscribe only; a
+		// resubscribe starts from the head. Subscriptions don't replay history
+		// either way, and DEX consumers re-read pool state by polling.
 		initialTrigger = false
+
+		processLogs(ctx, sub, logs, config.Ch)
+		// release before resubscribing (a defer here would pile up per reconnect)
+		sub.Unsubscribe()
+
+		if !retryWithContext(ctx, c.RetryPeriod) {
+			return
+		}
+		log.Debug().Str("Player", "ChainReader").Msg("Retrying subscription")
 	}
 }
 
@@ -287,18 +289,25 @@ func retryWithContext(ctx context.Context, duration time.Duration) bool {
 	}
 }
 
-func processLogs(ctx context.Context, sub kaia.Subscription, logs <-chan types.Log, ch chan<- types.Log) bool {
+// processLogs forwards logs to ch until the subscription fails or ctx is done.
+func processLogs(ctx context.Context, sub kaia.Subscription, logs <-chan types.Log, ch chan<- types.Log) {
 	for {
 		select {
+		case <-ctx.Done():
+			return
 		case err := <-sub.Err():
 			log.Warn().Err(err).Msg("Error in subscription")
-			return false
+			return
 		case vLog := <-logs:
+			// a reorged-out log: consumers would treat the orphaned swap as a
+			// fresh price
+			if vLog.Removed {
+				continue
+			}
 			select {
 			case ch <- vLog:
-				continue
 			case <-ctx.Done():
-				return false
+				return
 			}
 		}
 	}
