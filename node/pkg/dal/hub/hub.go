@@ -24,8 +24,9 @@ type Hub struct {
 	Clients    map[*websocket.Conn]map[string]struct{}
 	Register   chan *websocket.Conn
 	Unregister chan *websocket.Conn
-	broadcast  map[string]chan *dalcommon.OutgoingSubmissionData
-	mu         sync.RWMutex
+	// ctx is set by Start; symbols added after it get their broadcaster at once.
+	ctx context.Context
+	mu  sync.RWMutex
 }
 
 const (
@@ -50,21 +51,66 @@ func NewHub(symbols map[string]struct{}) *Hub {
 		Clients:    make(map[*websocket.Conn]map[string]struct{}),
 		Register:   make(chan *websocket.Conn),
 		Unregister: make(chan *websocket.Conn),
-		broadcast:  make(map[string]chan *dalcommon.OutgoingSubmissionData),
 	}
 }
 
+// Start starts the hub's goroutines and returns.
 func (h *Hub) Start(ctx context.Context, collector *collector.Collector) {
 	go h.handleClientRegistration(ctx)
 
-	h.initializeBroadcastChannels(collector)
-
+	h.mu.Lock()
+	h.ctx = ctx
+	streams := collector.Streams()
 	for symbol := range h.Symbols {
-		sym := symbol // Capture loop variable to avoid potential race condition
-		go h.broadcastDataForSymbol(ctx, sym)
+		if stream, ok := streams[symbol]; ok {
+			go h.broadcastDataForSymbol(ctx, symbol, stream)
+		}
 	}
+	h.mu.Unlock()
 
 	go h.cleanupJob(ctx)
+}
+
+// SymbolList returns the subscribable symbols.
+func (h *Hub) SymbolList() []string {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	out := make([]string, 0, len(h.Symbols))
+	for symbol := range h.Symbols {
+		out = append(out, symbol)
+	}
+	return out
+}
+
+// AddSymbols makes symbols subscribable and broadcasts their streams (a
+// config reload added them).
+func (h *Hub) AddSymbols(streams map[string]chan *dalcommon.OutgoingSubmissionData) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	for symbol, stream := range streams {
+		if _, ok := h.Symbols[symbol]; ok {
+			continue
+		}
+		h.Symbols[symbol] = struct{}{}
+		if h.ctx != nil {
+			go h.broadcastDataForSymbol(h.ctx, symbol, stream)
+		}
+	}
+}
+
+// RemoveSymbols stops serving symbols (a config reload removed them): they are
+// no longer subscribable and are dropped from client subscriptions. Clients
+// are not notified; they just stop receiving the symbol. The broadcaster ends
+// when the collector closes the stream.
+func (h *Hub) RemoveSymbols(symbols []string) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	for _, symbol := range symbols {
+		delete(h.Symbols, symbol)
+		for _, subscriptions := range h.Clients {
+			delete(subscriptions, symbol)
+		}
+	}
 }
 
 // HandleSubscription subscribes client to the known symbols in msg and returns
@@ -136,14 +182,8 @@ func (h *Hub) removeClient(client *websocket.Conn) {
 
 }
 
-func (h *Hub) initializeBroadcastChannels(collector *collector.Collector) {
-	for symbol, stream := range collector.OutgoingStream {
-		h.broadcast[symbol] = stream
-	}
-}
-
-func (h *Hub) broadcastDataForSymbol(ctx context.Context, symbol string) {
-	for data := range h.broadcast[symbol] {
+func (h *Hub) broadcastDataForSymbol(ctx context.Context, symbol string, stream chan *dalcommon.OutgoingSubmissionData) {
+	for data := range stream {
 		h.castSubmissionData(ctx, data, symbol)
 	}
 }

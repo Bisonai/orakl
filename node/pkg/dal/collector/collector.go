@@ -36,7 +36,13 @@ const (
 	// legitimate rotation while preventing a sustained mismatch (e.g. a signer freeze, where every
 	// feed's proof is rejected ~2.5x/s) from spawning hundreds of on-chain calls per second.
 	OnDemandRefreshCooldown = 1 * time.Second
+	OutgoingStreamSize      = 1000
 )
+
+// ResubscribeGrace keeps the previous redis subscriptions open this long after a config reload
+// started new ones (which connect asynchronously), so unchanged symbols see no gap (duplicates
+// are dropped by the timestamp compare-and-swap). A var so tests can shorten it.
+var ResubscribeGrace = 30 * time.Second
 
 type Config = types.Config
 
@@ -51,6 +57,21 @@ type Collector struct {
 
 	baseRediscribe *db.Rediscribe
 	subRediscribe  *db.Rediscribe
+
+	baseRedisHost, baseRedisPort string
+	subRedisHost, subRedisPort   string
+
+	// processCtx is the collector's run context, set in Start before any
+	// subscription runs (read without lock on the hot path).
+	processCtx context.Context
+
+	// redisMu guards runCtx and redisCancel (the live subscriptions, replaced on reload).
+	redisMu     sync.Mutex
+	runCtx      context.Context
+	redisCancel context.CancelFunc
+	// subscribe starts subscriptions to topics under ctx and returns a channel
+	// closed once they are connected; replaceable in tests.
+	subscribe func(ctx context.Context, topics []string) (<-chan struct{}, error)
 
 	IsRunning  bool
 	CancelFunc context.CancelFunc
@@ -115,15 +136,21 @@ func NewCollector(ctx context.Context, configs []types.Config) (*Collector, erro
 		LatestData:       make(map[string]*dalcommon.OutgoingSubmissionData),
 		Configs:          make(map[string]Config, len(configs)),
 
+		baseRedisHost: baseRedisHost,
+		baseRedisPort: baseRedisPort,
+		subRedisHost:  subRedisHost,
+		subRedisPort:  subRedisPort,
+
 		chainReader:                 chainReader,
 		CachedWhitelist:             initialWhitelist,
 		submissionProxyContractAddr: submissionProxyContractAddr,
 		processPool:                 pool.NewPool(ProcessWorkerCount),
 	}
+	collector.subscribe = collector.redisSubscribe
 
 	redisTopics := []string{}
 	for _, config := range configs {
-		collector.OutgoingStream[config.Name] = make(chan *dalcommon.OutgoingSubmissionData, 1000)
+		collector.OutgoingStream[config.Name] = make(chan *dalcommon.OutgoingSubmissionData, OutgoingStreamSize)
 		collector.FeedHashes[config.Name] = crypto.Keccak256([]byte(config.Name))
 		collector.Configs[config.Name] = config
 		redisTopics = append(redisTopics, keys.SubmissionDataStreamKey(config.Name))
@@ -164,8 +191,14 @@ func (c *Collector) Start(ctx context.Context) {
 	c.CancelFunc = cancel
 	c.IsRunning = true
 
+	redisCtx, redisCancel := context.WithCancel(ctxWithCancel)
+	c.processCtx = ctxWithCancel
+	c.redisMu.Lock()
+	c.runCtx, c.redisCancel = ctxWithCancel, redisCancel
+	c.redisMu.Unlock()
+
 	c.processPool.Run(ctxWithCancel)
-	c.receive(ctxWithCancel)
+	c.receive(redisCtx)
 	go c.refreshOracles(ctxWithCancel)
 }
 
@@ -214,6 +247,13 @@ func (c *Collector) redisRouter(ctx context.Context, msg *redis.Message) error {
 		return err
 	}
 
+	// Process under the collector's context, not the subscription's: a
+	// config reload cancels old subscriptions, which must not abort queued
+	// jobs or an on-demand whitelist refresh they start.
+	if c.processCtx != nil {
+		ctx = c.processCtx
+	}
+
 	c.processPool.AddJob(func() {
 		c.processIncomingData(ctx, data)
 	})
@@ -223,6 +263,11 @@ func (c *Collector) redisRouter(ctx context.Context, msg *redis.Message) error {
 func (c *Collector) compareAndSwapLatestTimestamp(data *aggregator.SubmissionData) bool {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+
+	// removed by a config reload (old subscriptions linger for ResubscribeGrace)
+	if _, known := c.FeedHashes[data.Symbol]; !known {
+		return false
+	}
 
 	old, ok := c.LatestTimestamps[data.Symbol]
 	if !ok || data.GlobalAggregate.Timestamp.After(old) {
@@ -250,12 +295,18 @@ func (c *Collector) processIncomingData(ctx context.Context, data *aggregator.Su
 			return
 		}
 
+		// Under the lock so a concurrent RemoveSymbols neither races the map nor closes the
+		// stream mid-send (the send never blocks).
 		c.mu.Lock()
+		defer c.mu.Unlock()
+		stream, known := c.OutgoingStream[result.Symbol]
+		if !known {
+			return
+		}
 		c.LatestData[result.Symbol] = result
-		c.mu.Unlock()
 
 		select {
-		case c.OutgoingStream[result.Symbol] <- result:
+		case stream <- result:
 		default:
 			log.Debug().Str("Player", "DalCollector").Str("Symbol", result.Symbol).Msg("outgoing stream full, dropping data")
 		}
@@ -266,9 +317,10 @@ func (c *Collector) IncomingDataToOutgoingData(ctx context.Context, data *aggreg
 	c.mu.RLock()
 	whitelist := make([]kaiacommon.Address, len(c.CachedWhitelist))
 	copy(whitelist, c.CachedWhitelist)
+	feedHashBytes, ok := c.FeedHashes[data.Symbol]
+	config, hasConfig := c.Configs[data.Symbol]
 	c.mu.RUnlock()
 
-	feedHashBytes, ok := c.FeedHashes[data.Symbol]
 	if !ok {
 		return nil, errorsentinel.ErrDalFeedHashNotFound
 	}
@@ -289,10 +341,8 @@ func (c *Collector) IncomingDataToOutgoingData(ctx context.Context, data *aggreg
 	}
 
 	decimals := DefaultDecimals
-	if config, ok := c.Configs[data.Symbol]; ok {
-		if config.Decimals != nil && *config.Decimals != 0 {
-			decimals = strconv.Itoa(*config.Decimals)
-		}
+	if hasConfig && config.Decimals != nil && *config.Decimals != 0 {
+		decimals = strconv.Itoa(*config.Decimals)
 	}
 
 	return &dalcommon.OutgoingSubmissionData{

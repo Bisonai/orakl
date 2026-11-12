@@ -116,7 +116,7 @@ tasks:
   test-utils:
     dotenv: [".env"]
     cmds:
-      - go test ./pkg/utils/tests -v
+      - go test ./pkg/utils/tests ./pkg/utils/configreload -v
   test-bus:
     cmds:
       - go test ./pkg/bus -v
@@ -150,7 +150,7 @@ tasks:
   test-dal:
     dotenv: [".env"]
     cmds:
-      - go test ./pkg/dal/tests ./pkg/dal/apiv2/... ./pkg/dal/utils/... -v
+      - go test ./pkg/dal ./pkg/dal/collector ./pkg/dal/hub ./pkg/dal/tests ./pkg/dal/apiv2/... ./pkg/dal/utils/... -v
 
   test-raft:
     dotenv: [".env"]

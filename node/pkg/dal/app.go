@@ -61,7 +61,9 @@ func Run(ctx context.Context) error {
 	collector.Start(ctx)
 
 	hub := hub.HubSetup(ctx, configs)
-	go hub.Start(ctx, collector)
+	hub.Start(ctx, collector)
+
+	startConfigReload(ctx, chain, len(configs), collector, hub)
 
 	err = apiv2.Start(ctx, apiv2.WithCollector(collector), apiv2.WithHub(hub), apiv2.WithKeyCache(keyCache), apiv2.WithKeyStore(keyStore))
 	if err != nil {

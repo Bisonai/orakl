@@ -42,12 +42,10 @@ func NewReporter(ctx context.Context, opts ...ReporterOption) (*Reporter, error)
 		KaiaHelper:             config.KaiaHelper,
 		LatestDataMap:          config.LatestDataMap,
 		LatestSubmittedDataMap: config.LatestSubmittedDataMap,
+		stop:                   make(chan struct{}),
 	}
 
-	reporter.Pairs = make([]string, 0, len(config.Configs))
-	for _, sa := range config.Configs {
-		reporter.Pairs = append(reporter.Pairs, sa.Name)
-	}
+	reporter.Pairs = configNames(config.Configs)
 
 	if config.JobType == ReportJob {
 		reporter.Job = func() error {
@@ -65,11 +63,15 @@ func NewReporter(ctx context.Context, opts ...ReporterOption) (*Reporter, error)
 func (r *Reporter) Run(ctx context.Context) {
 	log.Info().Msgf("Reporter ticker starting with interval: %v", r.SubmissionInterval)
 	ticker := time.NewTicker(r.SubmissionInterval)
+	defer ticker.Stop()
 
 	for {
 		select {
 		case <-ctx.Done():
 			log.Debug().Str("Player", "Reporter").Msg("context done, stopping reporter")
+			return
+		case <-r.stop:
+			log.Info().Str("Player", "Reporter").Msgf("reporter with interval %v stopped", r.SubmissionInterval)
 			return
 		case <-ticker.C:
 			go func() {
@@ -82,8 +84,32 @@ func (r *Reporter) Run(ctx context.Context) {
 	}
 }
 
+// Stop ends Run after its current tick; a job already running finishes (its
+// submission is never cancelled mid-flight).
+func (r *Reporter) Stop() {
+	r.stopOnce.Do(func() { close(r.stop) })
+}
+
+// GetPairs returns a snapshot of the pairs; a job reads it once at its start.
+func (r *Reporter) GetPairs() []string {
+	r.pairsMu.RLock()
+	defer r.pairsMu.RUnlock()
+	return append([]string(nil), r.Pairs...)
+}
+
+// SetPairs replaces the pairs from the next job on.
+func (r *Reporter) SetPairs(pairs []string) {
+	r.pairsMu.Lock()
+	defer r.pairsMu.Unlock()
+	r.Pairs = append([]string(nil), pairs...)
+}
+
 func (r *Reporter) regularReporterJob(ctx context.Context) error {
-	pairsMap, err := GetLatestDataRest(ctx, r.DalRestEndpoint, r.Pairs)
+	pairs := r.GetPairs()
+	if len(pairs) == 0 {
+		return nil
+	}
+	pairsMap, err := GetLatestDataRest(ctx, r.DalRestEndpoint, pairs)
 	if err != nil {
 		return err
 	}
@@ -96,6 +122,7 @@ func (r *Reporter) regularReporterJob(ctx context.Context) error {
 }
 
 func (r *Reporter) deviationJob(ctx context.Context) error {
+	r.pruneSubmitted()
 	deviatingAggregates := GetDeviatingAggregates(r.LatestSubmittedDataMap, r.LatestDataMap, r.deviationThreshold)
 	if len(deviatingAggregates) == 0 {
 		return nil
@@ -174,6 +201,28 @@ func (r *Reporter) report(ctx context.Context, pairs map[string]SubmissionData) 
 	log.Debug().Str("Player", "Reporter").Msgf("reporting done for reporter with interval: %v", r.SubmissionInterval)
 
 	return nil
+}
+
+// pruneSubmitted drops pairs no longer configured from LatestSubmittedDataMap,
+// so the deviation job never submits a removed pair (an in-flight job may
+// still record one after the reload cleaned the map).
+func (r *Reporter) pruneSubmitted() {
+	pairs := r.GetPairs()
+	if len(pairs) == 0 {
+		return
+	}
+	active := make(map[string]struct{}, len(pairs))
+	for _, p := range pairs {
+		active[p] = struct{}{}
+	}
+	r.LatestSubmittedDataMap.Range(func(key, _ any) bool {
+		if pair, ok := key.(string); ok {
+			if _, keep := active[pair]; !keep {
+				r.LatestSubmittedDataMap.Delete(key)
+			}
+		}
+		return true
+	})
 }
 
 func mergeErrors(errs []error) error {
