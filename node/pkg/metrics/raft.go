@@ -15,9 +15,11 @@ import (
 const (
 	// the election timer ran out: the leader missed heartbeats
 	RaftElectionReasonTimeout = "timeout"
-	// the leader's connection dropped (it left the feed's topic, not connected)
+	// the leader's connection dropped (it left the feed's topic, not connected),
+	// including a node shutdown, which closes its host at once
 	RaftElectionReasonDisconnect = "disconnect"
-	// the leader left the feed's topic while still connected: it stopped or shut down
+	// the leader left the feed's topic while still connected: its aggregator
+	// stopped, or a shutdown's unsubscribe arrived before the disconnect
 	RaftElectionReasonShutdown = "shutdown"
 )
 

@@ -49,6 +49,10 @@ type App struct {
 	pending map[peer.ID]int // peer -> consecutive successful syncs not listing it
 	newPeer bool            // a not-yet-pending peer was queued since the worker last looked
 	wake    chan struct{}
+
+	// set by CloseHost; stopEvents ends the event loop and reconnect worker
+	hostClosed bool
+	stopEvents context.CancelFunc
 }
 
 func New(bus *bus.MessageBus, h host.Host) *App {
@@ -66,13 +70,42 @@ func New(bus *bus.MessageBus, h host.Host) *App {
 func (a *App) Run(ctx context.Context) error {
 	defer a.subscribe(ctx)
 
+	// the reconnect side stops on CloseHost, the bus side only with ctx
+	eventsCtx, stopEvents := context.WithCancel(ctx)
+	a.mu.Lock()
+	closed := a.hostClosed
+	a.stopEvents = stopEvents
+	a.mu.Unlock()
+	if closed {
+		stopEvents()
+		return nil
+	}
+
 	sub, err := a.Host.EventBus().Subscribe(new(event.EvtPeerConnectednessChanged))
 	if err != nil {
+		stopEvents()
 		return fmt.Errorf("event subscription failed: %w", err)
 	}
 
-	a.subscribeLibp2pEvent(ctx, sub)
+	a.subscribeLibp2pEvent(eventsCtx, sub)
 	return nil
+}
+
+// CloseHost stops the reconnect worker, then closes the host. A closed host
+// can't reconnect: the disconnects its close causes would otherwise start boot
+// API syncs that only fail ("host has no non-local addresses"). Safe to call
+// before Run, and more than once.
+func (a *App) CloseHost() error {
+	a.mu.Lock()
+	a.hostClosed = true
+	if a.stopEvents != nil {
+		a.stopEvents()
+	}
+	a.mu.Unlock()
+	if a.Host == nil {
+		return nil
+	}
+	return a.Host.Close()
 }
 
 func (a *App) subscribe(ctx context.Context) {
@@ -196,9 +229,16 @@ func (a *App) reconnectUntilConnected(ctx context.Context, lastSync time.Time) t
 			}
 		}
 
+		// stopped (host closed) while waking or waiting: no sync
+		if ctx.Err() != nil {
+			return lastSync
+		}
 		known, err := a.reconnect(ctx, a.Host)
 		lastSync = time.Now()
 		attempt++
+		if ctx.Err() != nil {
+			return lastSync // a sync cut by the host closing; its error is noise
+		}
 		if err != nil {
 			log.Error().Err(err).Str("Player", "Libp2pHelper").Int("attempt", attempt).Msg("Error occurred on boot API sync")
 		}

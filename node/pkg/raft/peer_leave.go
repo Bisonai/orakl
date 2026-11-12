@@ -18,8 +18,8 @@ import (
 // libp2p tells a feed's Raft that a peer is gone through the topic's own peer
 // events: pubsub drops a peer from every topic, and emits PeerLeave, when its
 // connection closes (it notices on the first failed stream read, as soon as the
-// connection does) or when the peer unsubscribes (an aggregator stop or a node
-// shutdown). The same step removes it from ListPeers, so it stops counting as a
+// connection does; a node shutdown closes its host for this) or when the peer
+// unsubscribes (an aggregator stop). The same step removes it from ListPeers, so it stops counting as a
 // voter at once (voterCounts) and a lone survivor wins on its own vote. Each
 // Raft watches its own topic, so the libp2p layer needs no list of Rafts and no
 // package imports another.

@@ -26,22 +26,22 @@ func (l *stepLog) get() []string {
 	return append([]string(nil), l.steps...)
 }
 
-// The hand-over resigns (stops the aggregators and waits for them) before it
-// closes the host, and flushes rounds last, once nothing can advance them.
+// The hand-over closes the host right after stopping the aggregators, so peers
+// elect while they stop, and flushes rounds last, once nothing can advance them.
 func TestHandOverOrder(t *testing.T) {
 	var log stepLog
 	stopped := make(chan struct{})
 	handOver(shutdownSteps{
 		stopAggregators: func() { log.add("stop"); close(stopped) },
+		closeHost:       func() error { log.add("close"); return nil },
 		waitAggregators: func(ctx context.Context) error {
 			<-stopped
 			log.add("wait")
 			return nil
 		},
-		closeHost:   func() error { log.add("close"); return nil },
 		flushRounds: func(context.Context) error { log.add("flush"); return nil },
 	})
-	assert.Equal(t, []string{"stop", "wait", "close", "flush"}, log.get())
+	assert.Equal(t, []string{"stop", "close", "wait", "flush"}, log.get())
 }
 
 // A step that hangs is cut at its bound, and the rest still run: rounds are
