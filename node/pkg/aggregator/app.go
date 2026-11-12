@@ -180,6 +180,9 @@ func (a *App) startAggregator(ctx context.Context, aggregator *Aggregator) error
 		return nil
 	}
 
+	if !a.runs.start() {
+		return errorSentinel.ErrAggregatorShuttingDown
+	}
 	nodeCtx, cancel := context.WithCancel(ctx)
 	aggregator.nodeCtx = nodeCtx
 	aggregator.nodeCancel = cancel
@@ -188,6 +191,7 @@ func (a *App) startAggregator(ctx context.Context, aggregator *Aggregator) error
 	aggregator.done = done
 
 	go func() {
+		defer a.runs.stop()
 		defer close(done)
 		aggregator.Run(nodeCtx)
 	}()

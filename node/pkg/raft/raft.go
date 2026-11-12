@@ -65,16 +65,33 @@ func (r *Raft) Run(ctx context.Context) {
 		r.subscribe(ctx)
 	}()
 	defer func() { <-subDone }()
+	if r.peerLeaveGrace() >= 0 {
+		if events, err := r.Topic.EventHandler(); err != nil {
+			log.Warn().Err(err).Str("Player", "Raft").Msg("no topic peer events, not electing on a leader leaving")
+		} else {
+			leavesDone := make(chan struct{})
+			go func() {
+				defer close(leavesDone)
+				r.watchPeerLeaves(ctx, events)
+			}()
+			defer func() { <-leavesDone }()
+		}
+	}
 	// a stopped node can't lead: without resigning, a restart keeps the Leader
-	// role with no leader loop, so it never campaigns and refuses votes
+	// role with no leader loop, so it never campaigns and refuses votes. Run
+	// returns once the leader loop and its jobs have, so a stopped node
+	// publishes no further round (becomeLeader refuses once ctx is done).
 	defer func() {
 		r.Mutex.Lock()
-		defer r.Mutex.Unlock()
 		if r.Role == Leader {
 			r.ResignLeader()
 		}
+		r.Mutex.Unlock()
+		r.waitLeaderLoops()
 	}()
+	r.Mutex.Lock()
 	r.startElectionTimer()
+	r.Mutex.Unlock()
 	for {
 		select {
 		case rawMsg := <-r.MessageBuffer:
@@ -87,7 +104,7 @@ func (r *Raft) Run(ctx context.Context) {
 					return
 				}
 
-				err = r.handleMessage(ctx, msg)
+				err = r.handleFrom(ctx, msg, rawMsg.GetFrom().String())
 				if err != nil {
 					if errors.Is(err, errorSentinel.ErrAggregatorNonLeaderRaftMessage) {
 						log.Debug().Err(err).Str("Player", "Raft").Msg("failed to handle message")
@@ -134,14 +151,24 @@ func (r *Raft) subscribe(ctx context.Context) {
 
 // handler for incoming messages
 
+// handleMessage handles a message whose payload SentFrom is taken as its author.
 func (r *Raft) handleMessage(ctx context.Context, msg Message) error {
+	return r.handleFrom(ctx, msg, msg.SentFrom)
+}
+
+// handleFrom handles a message published by author, the signed pubsub author.
+// Only a message whose SentFrom is its author counts as the leader being heard
+// (silence metrics, stickiness, liveness): another peer can't keep a leader
+// alive by naming it (#2782).
+func (r *Raft) handleFrom(ctx context.Context, msg Message, author string) error {
+	authentic := msg.SentFrom == author
 	// heartbeats record in handleHeartbeat, once validated
-	if msg.Type != Heartbeat {
-		r.recordLeaderSilence(msg.SentFrom, r.LeaderMessageTypes[msg.Type])
+	if msg.Type != Heartbeat && authentic {
+		r.recordLeaderSilence(author, r.LeaderMessageTypes[msg.Type])
 	}
 	switch msg.Type {
 	case Heartbeat:
-		return r.handleHeartbeat(msg)
+		return r.handleHeartbeat(msg, authentic)
 	case RequestVote:
 		return r.handleRequestVote(ctx, msg)
 	case ReplyVote:
@@ -151,7 +178,7 @@ func (r *Raft) handleMessage(ctx context.Context, msg Message) error {
 	}
 }
 
-func (r *Raft) handleHeartbeat(msg Message) error {
+func (r *Raft) handleHeartbeat(msg Message, authentic bool) error {
 	if msg.SentFrom == r.GetHostId() {
 		return nil
 	}
@@ -167,7 +194,9 @@ func (r *Raft) handleHeartbeat(msg Message) error {
 	}
 
 	// after validating: an invalid heartbeat must not split a real gap in two
-	r.recordLeaderSilence(msg.SentFrom, true)
+	if authentic {
+		r.recordLeaderSilence(msg.SentFrom, true)
+	}
 
 	r.Mutex.Lock()
 	defer r.Mutex.Unlock()
@@ -267,6 +296,7 @@ func (r *Raft) handleRequestVote(ctx context.Context, msg Message) error {
 	}
 
 	r.VotedFor = msg.SentFrom
+	r.votedAt = time.Now()
 	r.startElectionTimer()
 	log.Debug().Bool("vote granted", true).Msg("voted")
 	return r.sendReplyVote(ctx, msg.SentFrom, true)
@@ -531,8 +561,8 @@ func (r *Raft) followLeader(leaderID string, term int) {
 		return
 	}
 	r.LeaderID = leaderID
-	clock := &leaderClock{id: leaderID, term: term}
 	now := int64(time.Since(leaderClockEpoch))
+	clock := &leaderClock{id: leaderID, term: term, followedAt: now}
 	clock.lastSeen.Store(now)
 	clock.activeAt.Store(now)
 	r.recordLeaderChangeSilence(r.leaderClock.Swap(clock), term)
@@ -613,7 +643,13 @@ func (r *Raft) setLeaderState() {
 	r.recordLeaderChangeSilence(r.leaderClock.Swap(nil), r.Term)
 }
 
+// becomeLeader takes the role and starts the leader loop, unless ctx is done:
+// Run has returned or is returning, and a vote reply still being handled must
+// not make a stopped node lead. The caller holds Mutex.
 func (r *Raft) becomeLeader(ctx context.Context) {
+	if ctx.Err() != nil {
+		return
+	}
 	r.setLeaderState()
 
 	// captured before the goroutine starts: ResignLeader nils r.Resign and a
@@ -630,6 +666,9 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 	jobDone := &atomic.Int64{}
 	jobDone.Store(int64(time.Since(leaderClockEpoch)))
 	runJob := func() {
+		if ctx.Err() != nil {
+			return
+		}
 		if err := r.LeaderJob(ctx); err != nil {
 			log.Error().Err(err).Msg("failed to execute leader job")
 			return
@@ -637,7 +676,9 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 		storeLater(jobDone, int64(time.Since(leaderClockEpoch)))
 	}
 
+	r.leaderLoops.add()
 	go func() {
+		defer r.leaderLoops.done()
 		defer func() {
 			if r := recover(); r != nil {
 				log.Error().Msgf("recovered from panic in leader job: %v", r)
@@ -680,7 +721,9 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 				}
 
 			case <-leaderJobTicker.C:
+				r.leaderLoops.add()
 				go func() {
+					defer r.leaderLoops.done()
 					defer func() {
 						if r := recover(); r != nil {
 							log.Error().Msgf("recovered from panic in LeaderJob: %v", r)
@@ -699,6 +742,20 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 			}
 		}
 	}()
+}
+
+// leaderLoopStopWait bounds how long a stopping Run waits for the leader loop
+// and its jobs, so a job stuck in a publish can't hold a stop forever.
+const leaderLoopStopWait = 5 * time.Second
+
+// waitLeaderLoops waits for every leader loop and leader job goroutine to
+// return, up to leaderLoopStopWait. Called without Mutex: they take it.
+func (r *Raft) waitLeaderLoops() {
+	select {
+	case <-r.leaderLoops.idleChan():
+	case <-time.After(leaderLoopStopWait):
+		log.Warn().Str("Player", "Raft").Dur("waited", leaderLoopStopWait).Msg("leader job still running after stop")
+	}
 }
 
 func (r *Raft) minElectionTimeout() time.Duration {
@@ -737,13 +794,35 @@ func (r *Raft) maxElectionDetection() time.Duration {
 	return (MaxMissedHeartbeats + 1) * 2 * r.minElectionTimeout()
 }
 
+// heardLeaderSinceTimerArmed reports whether a LeaderMessageTypes message (or a
+// heartbeat) from the current leader arrived after the election timer was last
+// armed. It reads the leader's lock-free activeAt stamp, so the message path
+// takes no Mutex for it (#2749). Leader messages carry no term: only the leader
+// this node follows counts, and they never change who that is, which only a
+// heartbeat (with its term) or an election does. A deposed leader's late
+// trigger therefore counts only on a follower that hasn't heard of its
+// successor yet, and holds off its election by at most one timer period, as a
+// late heartbeat would. The caller holds Mutex.
+func (r *Raft) heardLeaderSinceTimerArmed() bool {
+	clock := r.leaderClock.Load()
+	if clock == nil {
+		return false
+	}
+	// the heartbeat that made it the leader already reset the timer
+	active := clock.activeAt.Load()
+	return active > r.timerArmedAt && active > clock.followedAt
+}
+
 func (r *Raft) getRandomElectionTimeout() time.Duration {
 	baseTimeout := r.minElectionTimeout()
 	jitter := time.Duration(rand.Int63n(int64(r.minElectionTimeout())))
 	return baseTimeout + jitter
 }
 
+// startElectionTimer (re)arms the election timer. The caller holds Mutex, or
+// nothing else runs yet.
 func (r *Raft) startElectionTimer() {
+	r.timerArmedAt = int64(time.Since(leaderClockEpoch))
 	if r.ElectionTimer != nil {
 		if !r.ElectionTimer.Stop() {
 			select {
@@ -770,6 +849,14 @@ func (r *Raft) startElection(ctx context.Context) {
 		return
 	}
 
+	// a trigger or price fix from the leader since the timer was armed counts
+	// as a heartbeat, so a leader busy with rounds isn't timed out
+	if r.Role == Follower && r.heardLeaderSinceTimerArmed() {
+		r.MissedHeartbeats = 0
+		r.startElectionTimer()
+		return
+	}
+
 	if r.MissedHeartbeats < MaxMissedHeartbeats {
 		r.MissedHeartbeats++
 		log.Debug().Int("missed heartbeats", r.MissedHeartbeats).Msg("missed heartbeats")
@@ -777,20 +864,33 @@ func (r *Raft) startElection(ctx context.Context) {
 		return
 	}
 
+	r.campaign(ctx, metrics.RaftElectionReasonTimeout)
+}
+
+// campaign starts an election for reason, unless a stuck term's hold-off or the
+// cooldown is active: then the timer retries it, with no missed heartbeats left
+// to count. The caller holds Mutex.
+func (r *Raft) campaign(ctx context.Context, reason string) {
+	// a stopping node must not bump its term and solicit votes
+	if ctx.Err() != nil {
+		return
+	}
 	if time.Now().Before(r.campaignAfter) {
 		log.Debug().Msg("resigned a stuck term, skipping election.")
+		r.MissedHeartbeats = MaxMissedHeartbeats
 		r.startElectionTimer()
 		return
 	}
 
 	if !r.LastElectionTime.IsZero() && time.Since(r.LastElectionTime) < r.CooldownPeriod {
 		log.Debug().Msg("Election cooldown period active, skipping election.")
+		r.MissedHeartbeats = MaxMissedHeartbeats
 		r.startElectionTimer()
 		return
 	}
 
-	log.Debug().Msg("start election")
-	metrics.RecordRaftElectionStarted(metrics.RaftElectionReasonTimeout)
+	log.Debug().Str("reason", reason).Msg("start election")
+	metrics.RecordRaftElectionStarted(reason)
 	r.Term++
 	r.VotesReceived = 0
 	r.Role = Candidate
@@ -809,4 +909,44 @@ func (r *Raft) startElection(ctx context.Context) {
 
 func (r *Raft) unmarshalMessage(data []byte) (Message, error) {
 	return decodeMessage(data)
+}
+
+// goroutineCount counts running goroutines, with a channel closed whenever the
+// count is zero. Unlike a WaitGroup it can be added to while a wait that timed
+// out is abandoned, so a stop that gave up can't break a later Run. The zero
+// value is ready.
+type goroutineCount struct {
+	mu   sync.Mutex
+	n    int
+	idle chan struct{} // closed while n is 0; nil until the first add
+}
+
+func (c *goroutineCount) add() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.n == 0 {
+		c.idle = make(chan struct{})
+	}
+	c.n++
+}
+
+func (c *goroutineCount) done() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.n--
+	if c.n == 0 {
+		close(c.idle)
+	}
+}
+
+// idleChan returns a channel that is closed once the count is zero.
+func (c *goroutineCount) idleChan() <-chan struct{} {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.n == 0 {
+		closed := make(chan struct{})
+		close(closed)
+		return closed
+	}
+	return c.idle
 }
