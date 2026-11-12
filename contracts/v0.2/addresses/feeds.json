@@ -21,6 +21,13 @@
       "feed": "0x532f0d71c77d9b30c3913e3425255e01b38fa848"
     }
   },
+  "AAPL-USD": {
+    "tag": "single",
+    "kairos": {
+      "proxy": "0xe9866efcc7c4a6e611967438c7923d7fabd01a61",
+      "feed": "0xb77d63ffd4ef64e59bc7ec862b029987aaf6ad24"
+    }
+  },
   "AAVE-KRW": {
     "tag": "basic",
     "mainnet": {
@@ -107,6 +114,13 @@
     "kairos": {
       "proxy": "0xc8c86562a8324f190ea8a20f49d9035995774a9d",
       "feed": "0x0d6ac72dcbb839b997322ab34be2b416d0e7fc6d"
+    }
+  },
+  "AMZN-USD": {
+    "tag": "single",
+    "kairos": {
+      "proxy": "0x4d81f24324b892eff7ce5ad5eb255a2c76301f44",
+      "feed": "0xded2d4e608b1714b6427d49d653db693fc342ec5"
     }
   },
   "APT-KRW": {
@@ -934,6 +948,13 @@
       "feed": "0x795fb33e90e61fbf30f8dd503d69866f4051f941"
     }
   },
+  "GOOGL-USD": {
+    "tag": "single",
+    "kairos": {
+      "proxy": "0x564282cda4451cf5ca60ab4ea5c682edf8bca551",
+      "feed": "0x0a8354be902cd3a98d1fbbab59a57815b03e8225"
+    }
+  },
   "GRASS-USDT": {
     "tag": "standard",
     "mainnet": {
@@ -1396,6 +1417,13 @@
       "feed": "0x3b4fa59bf321642d9a978ca79743c65010bcc25b"
     }
   },
+  "META-USD": {
+    "tag": "single",
+    "kairos": {
+      "proxy": "0xe5ac1fe8fb0442384f4ac9862aecc566dd8ad093",
+      "feed": "0x94e0ccdfd7c1084fe66fb577dbe42bef621ef861"
+    }
+  },
   "MINA-KRW": {
     "tag": "basic",
     "mainnet": {
@@ -1460,6 +1488,13 @@
     "kairos": {
       "proxy": "0xa7b5a53f57f38bebf5cc2eee427ccc51b73efafa",
       "feed": "0x8163e9d7d46f9f8d47d91f2927be0f7d592f9c3c"
+    }
+  },
+  "MSFT-USD": {
+    "tag": "single",
+    "kairos": {
+      "proxy": "0x597080ffe9ed1bd04e51b7aa8b3c7ef6a1fbd891",
+      "feed": "0xa082da3612683b4c2abb4f15d4f68ff50f5029c7"
     }
   },
   "MTL-KRW": {
@@ -1548,6 +1583,13 @@
     "kairos": {
       "proxy": "0xa69bb85092c17ba81e33ca18f4c93f5ae2a784f1",
       "feed": "0x3bedbd1bf26ea705bedf1328dafd764480d60c00"
+    }
+  },
+  "NVDA-USD": {
+    "tag": "single",
+    "kairos": {
+      "proxy": "0x893a3a028180873d166fe8de7e297eb3dfa871d2",
+      "feed": "0x04909b60606df18d1a2662da940dbf532488a6d5"
     }
   },
   "OKB-USDT": {
@@ -2164,6 +2206,13 @@
     "kairos": {
       "proxy": "0x4139770329359f3aed32f27362a30963939ca99b",
       "feed": "0xbd3ebcbc927957be2b97a73c068c06986ed92511"
+    }
+  },
+  "TSLA-USD": {
+    "tag": "single",
+    "kairos": {
+      "proxy": "0x2cbd90750ec309fdd1eab9c0816ecb69683beb4b",
+      "feed": "0xfa2bc93cd944f9403e0c7e3bccfb8ab397738bd3"
     }
   },
   "TUSD-USDT": {
