@@ -188,7 +188,7 @@ func TestSparseHeartbeatCount(t *testing.T) {
 				assert.LessOrEqual(t, counts[on], 2*rounds, "more heartbeats than rounds leave room for")
 			} else {
 				assert.Zero(t, node.leaderSentAt.Load(), "sends stamped with the flag off")
-				assert.Zero(t, node.heartbeatSentAt.Load(), "sends stamped with the flag off")
+				assert.Zero(t, node.wantHeartbeatsAt.Load(), "stamped with the flag off")
 				assert.GreaterOrEqual(t, counts[on], int(window/testSparseHB)*8/10, "a heartbeat missing with the flag off")
 			}
 		})
@@ -261,6 +261,7 @@ func TestSparseHeartbeatFollowerStaysSticky(t *testing.T) {
 // A follower that stalled and campaigned at a higher term can't depose the
 // leader, and the leader's term reaches it within maxHeartbeatGap even when
 // rounds make every other heartbeat redundant: it follows the leader again.
+// Its RequestVote makes the leader send every tick, so in practice at once.
 func TestSparseHeartbeatStalledFollowerFollowsWithinGap(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -362,19 +363,19 @@ func TestMaxHeartbeatGapBelowEarliestCampaign(t *testing.T) {
 	}
 }
 
-// newSkippingLeader returns a sparse node whose stamps make the next tick skip.
-func newSkippingLeader(ctx context.Context, t *testing.T) *Raft {
+// newSkippingLeader returns a sparse node whose stamps make a tick skip, given
+// a heartbeat at the returned time.
+func newSkippingLeader(ctx context.Context, t *testing.T) (*Raft, int64) {
 	t.Helper()
 	node := newPublishTestNode(ctx, t)
 	sparseOn(node)
 	node.HandleCustomMessage = func(context.Context, Message) error { return nil }
 	now := int64(time.Since(leaderClockEpoch))
-	node.heartbeatSentAt.Store(now)
 	node.leaderSentAt.Store(now)
 	// 0 is recent in the test binary's first second
-	node.rivalLeaderAt.Store(neverSent)
-	require.True(t, node.skipHeartbeat())
-	return node
+	node.wantHeartbeatsAt.Store(neverSent)
+	require.True(t, node.skipHeartbeat(now))
+	return node, now
 }
 
 // A leader that hears another peer's trigger or price fix stops skipping, so
@@ -394,44 +395,61 @@ func TestRivalLeaderMessageStopsSkipping(t *testing.T) {
 		"rival trigger":   {"trigger", false, true},
 		"rival price fix": {"priceFix", false, true},
 		"own trigger":     {"trigger", true, false},
+		"request vote":    {RequestVote, false, true},
 		"price data":      {"priceData", false, false},
 	} {
 		t.Run(name, func(t *testing.T) {
-			node := newSkippingLeader(ctx, t)
+			node, heartbeatAt := newSkippingLeader(ctx, t)
 			author := testPeerID(t)
 			if tc.own {
 				author = node.GetHostId()
 			}
 			msg := leaderMessageFrom(author, tc.msgType)
-			if tc.msgType == Heartbeat {
+			switch tc.msgType {
+			case Heartbeat:
 				msg = heartbeatFrom(t, author, 1)
+			case RequestVote:
+				msg = requestVoteFrom(t, author, 1)
 			}
-			require.NoError(t, node.handleFrom(ctx, msg, author))
-			assert.Equal(t, !tc.stops, node.skipHeartbeat())
+			_ = node.handleFrom(ctx, msg, author)
+			assert.Equal(t, !tc.stops, node.skipHeartbeat(heartbeatAt))
 		})
 	}
 }
 
-// A new term sends heartbeats until its own first one publishes: an earlier
-// term's stamp doesn't let it skip, nor does that term's heartbeat finishing
-// its publish late.
-func TestNewTermDoesNotSkipOnEarlierHeartbeat(t *testing.T) {
+// A term that has published no heartbeat yet doesn't skip, however recent
+// its leader messages; an invalid heartbeat from another peer doesn't stop
+// skipping.
+func TestSkipNeedsOwnHeartbeat(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	node := newSkippingLeader(ctx, t)
-	node.startElectionTimer()
-	node.Mutex.Lock()
-	node.setLeaderState()
-	earlier := node.Resign
-	node.setLeaderState()
-	current := node.Resign
-	node.Mutex.Unlock()
-	assert.False(t, node.skipHeartbeat())
+	node, heartbeatAt := newSkippingLeader(ctx, t)
+	assert.False(t, node.skipHeartbeat(neverSent))
 
-	node.stampHeartbeatSent(earlier, time.Now())
-	assert.False(t, node.skipHeartbeat(), "an earlier term's heartbeat counted")
+	rival, other := testPeerID(t), testPeerID(t)
+	_ = node.handleFrom(ctx, heartbeatFrom(t, other, 1), rival) // LeaderID mismatch
+	assert.True(t, node.skipHeartbeat(heartbeatAt), "an invalid heartbeat stopped skipping")
+}
 
-	node.stampHeartbeatSent(current, time.Now())
-	assert.True(t, node.skipHeartbeat())
+// A node joining the topic of a sparse leader whose rounds cover every tick
+// gets a heartbeat at once (the join makes the leader send every tick), and
+// follows it without an election.
+func TestSparseHeartbeatJoinerFollows(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	nodes := newCluster(ctx, t, 2, sparseOn, withRounds(testSparseHB))
+	leader, joiner := nodes[0], nodes[1]
+	go leader.Run(ctx)
+	waitForSingleLeader(t, []*Raft{leader}, "lone node did not lead")
+	term := leader.GetCurrentTerm()
+	time.Sleep(leader.maxHeartbeatGap()) // past any earlier reason to send every tick
+
+	start := time.Now()
+	go joiner.Run(ctx)
+	waitForSingleLeader(t, nodes, "joiner did not follow")
+	t.Logf("joiner followed after %s", time.Since(start))
+	assert.Equal(t, term, leader.GetCurrentTerm())
+	assert.Equal(t, leader.GetHostId(), joiner.GetLeader())
 }

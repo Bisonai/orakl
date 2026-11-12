@@ -103,13 +103,12 @@ type Raft struct {
 	// (sparse_heartbeat.go); NewRaftNode sets it from P2P_SPARSE_HEARTBEAT.
 	// Set before Run.
 	SparseHeartbeat bool
-	// last heartbeat, and last heartbeat or LeaderMessageTypes message, this
-	// node published, ns since leaderClockEpoch; only with SparseHeartbeat
-	heartbeatSentAt atomic.Int64
-	leaderSentAt    atomic.Int64
-	// last LeaderMessageTypes message received from another peer, same unit;
-	// only with SparseHeartbeat
-	rivalLeaderAt atomic.Int64
+	// last heartbeat or LeaderMessageTypes message this node published, ns
+	// since leaderClockEpoch; only with SparseHeartbeat
+	leaderSentAt atomic.Int64
+	// last event that wants a heartbeat every tick (stampWantHeartbeats), same
+	// unit; only with SparseHeartbeat
+	wantHeartbeatsAt atomic.Int64
 
 	// peer.ID -> *atomic.Int64, ns since leaderClockEpoch of its last message
 	peerSeen sync.Map

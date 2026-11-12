@@ -167,9 +167,7 @@ func (r *Raft) handleFrom(ctx context.Context, msg Message, author string) error
 	// heartbeats record in handleHeartbeat, once validated
 	if msg.Type != Heartbeat && authentic {
 		r.recordLeaderSilence(author, r.LeaderMessageTypes[msg.Type])
-	}
-	if authentic {
-		r.stampRivalLeader(msg.Type, author)
+		r.stampWantHeartbeats(msg.Type, author)
 	}
 	switch msg.Type {
 	case Heartbeat:
@@ -201,6 +199,7 @@ func (r *Raft) handleHeartbeat(msg Message, authentic bool) error {
 	// after validating: an invalid heartbeat must not split a real gap in two
 	if authentic {
 		r.recordLeaderSilence(msg.SentFrom, true)
+		r.stampWantHeartbeats(Heartbeat, msg.SentFrom)
 	}
 
 	r.Mutex.Lock()
@@ -484,13 +483,11 @@ func (r *Raft) sendHeartbeat(ctx context.Context, resign <-chan interface{}) err
 		SentFrom: r.GetHostId(),
 		Data:     marshalledHeartbeatMsg,
 	}
-	sentAt := time.Now()
 	err = r.PublishMessage(ctx, message)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to send heartbeat")
 		return err
 	}
-	r.stampHeartbeatSent(resign, sentAt)
 	return nil
 }
 
@@ -649,10 +646,6 @@ func (r *Raft) setLeaderState() {
 	r.Role = Leader
 	r.LeaderID = r.GetHostId()
 	r.recordLeaderChangeSilence(r.leaderClock.Swap(nil), r.Term)
-	// no skipping until this term's first heartbeat publishes (skipHeartbeat)
-	if r.SparseHeartbeat {
-		r.heartbeatSentAt.Store(neverSent)
-	}
 }
 
 // becomeLeader takes the role and starts the leader loop, unless ctx is done:
@@ -699,10 +692,20 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 		defer heartbeatTicker.Stop()
 		defer leaderJobTicker.Stop()
 
-		err := r.sendHeartbeat(ctx, resign)
-		if err != nil {
-			log.Error().Err(err).Msg("failed to send heartbeat")
+		// this term's last published heartbeat, for skipHeartbeat; only this
+		// goroutine uses it, so an earlier term's loop can't move it
+		heartbeatAt := int64(neverSent)
+		beat := func() {
+			at := int64(time.Since(leaderClockEpoch))
+			if err := r.sendHeartbeat(ctx, resign); err != nil {
+				log.Error().Err(err).Msg("failed to send heartbeat")
+				return
+			}
+			heartbeatAt = at
+			r.stampLeaderSent(at)
 		}
+
+		beat()
 		if resigned(resign) {
 			return
 		}
@@ -727,14 +730,11 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 					// no peer to take over: check again a watchdog from now
 					storeLater(jobDone, int64(time.Since(leaderClockEpoch)))
 				}
-				if r.skipHeartbeat() {
+				if r.skipHeartbeat(heartbeatAt) {
 					metrics.RecordRaftHeartbeatSkipped()
 					continue
 				}
-				err := r.sendHeartbeat(ctx, resign)
-				if err != nil {
-					log.Error().Err(err).Msg("failed to send heartbeat")
-				}
+				beat()
 
 			case <-leaderJobTicker.C:
 				r.leaderLoops.add()
