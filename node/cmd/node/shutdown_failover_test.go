@@ -121,6 +121,7 @@ func TestHandOverPeerLeadsEveryFeedAtOnce(t *testing.T) {
 
 	start := time.Now()
 	done := make(chan struct{})
+	t.Cleanup(func() { <-done }) // a failed assertion still waits, before the hosts close
 	go func() {
 		defer close(done)
 		handOver(shutdownSteps{

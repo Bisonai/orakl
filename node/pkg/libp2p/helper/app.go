@@ -83,9 +83,10 @@ func (a *App) Run(ctx context.Context) error {
 
 	sub, err := a.Host.EventBus().Subscribe(new(event.EvtPeerConnectednessChanged))
 	if err != nil {
+		stopping := eventsCtx.Err() != nil // CloseHost raced this start, or ctx done
 		stopEvents()
-		if eventsCtx.Err() != nil {
-			return nil // stopping (CloseHost raced this start, or ctx done)
+		if stopping {
+			return nil
 		}
 		return fmt.Errorf("event subscription failed: %w", err)
 	}

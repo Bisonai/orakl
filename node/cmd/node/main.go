@@ -244,12 +244,14 @@ func handOver(steps shutdownSteps) {
 	}
 	hostClosed := time.Since(start)
 
+	waitStart := time.Now()
 	ctx, cancel := context.WithTimeout(context.Background(), resignTimeout)
 	if err := steps.waitAggregators(ctx); err != nil {
 		log.Error().Err(err).Msg("aggregators still running at shutdown")
 	}
 	cancel()
 	resigned := time.Since(start)
+	aggregatorsWait := time.Since(waitStart)
 
 	ctx, cancel = context.WithTimeout(context.Background(), flushTimeout)
 	if err := steps.flushRounds(ctx); err != nil {
@@ -261,6 +263,7 @@ func handOver(steps shutdownSteps) {
 	log.Info().
 		Dur("resigned", resigned).
 		Dur("hostClosed", hostClosed).
+		Dur("aggregatorsWait", aggregatorsWait).
 		Dur("total", time.Since(start)).
 		Msg("shutdown hand-over done")
 }
