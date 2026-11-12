@@ -51,6 +51,9 @@ func (r *Raft) watchPeerLeaves(ctx context.Context, events *pubsub.TopicEventHan
 			seen[event.Peer] = count
 		}
 		seq := count.Add(1)
+		if event.Type == pubsub.PeerJoin {
+			r.wantHeartbeatsFromJoin()
+		}
 		if event.Type != pubsub.PeerLeave {
 			continue
 		}

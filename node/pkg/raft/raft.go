@@ -52,6 +52,8 @@ func NewRaftNode(
 
 		PeerSilenceTimeout: DefaultPeerSilenceTimeout,
 		LeaderJobWatchdog:  DefaultLeaderJobWatchdog,
+
+		SparseHeartbeat: SparseHeartbeatEnabled(),
 	}
 	return r
 }
@@ -165,6 +167,7 @@ func (r *Raft) handleFrom(ctx context.Context, msg Message, author string) error
 	// heartbeats record in handleHeartbeat, once validated
 	if msg.Type != Heartbeat && authentic {
 		r.recordLeaderSilence(author, r.LeaderMessageTypes[msg.Type])
+		r.stampWantHeartbeats(msg.Type, author)
 	}
 	switch msg.Type {
 	case Heartbeat:
@@ -196,6 +199,7 @@ func (r *Raft) handleHeartbeat(msg Message, authentic bool) error {
 	// after validating: an invalid heartbeat must not split a real gap in two
 	if authentic {
 		r.recordLeaderSilence(msg.SentFrom, true)
+		r.stampWantHeartbeats(Heartbeat, msg.SentFrom)
 	}
 
 	r.Mutex.Lock()
@@ -449,6 +453,7 @@ func (r *Raft) PublishMessage(ctx context.Context, msg Message) error {
 		return err
 	}
 	metrics.RecordP2PPublished(string(msg.Type), len(data))
+	r.stampLeaderMessageSent(msg.Type, msg.Timestamp)
 	return nil
 }
 
@@ -687,10 +692,20 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 		defer heartbeatTicker.Stop()
 		defer leaderJobTicker.Stop()
 
-		err := r.sendHeartbeat(ctx, resign)
-		if err != nil {
-			log.Error().Err(err).Msg("failed to send heartbeat")
+		// this term's last published heartbeat, for skipHeartbeat; only this
+		// goroutine uses it, so an earlier term's loop can't move it
+		heartbeatAt := int64(neverSent)
+		beat := func() {
+			at := int64(time.Since(leaderClockEpoch))
+			if err := r.sendHeartbeat(ctx, resign); err != nil {
+				log.Error().Err(err).Msg("failed to send heartbeat")
+				return
+			}
+			heartbeatAt = at
+			r.stampLeaderSent(at)
 		}
+
+		beat()
 		if resigned(resign) {
 			return
 		}
@@ -715,10 +730,11 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 					// no peer to take over: check again a watchdog from now
 					storeLater(jobDone, int64(time.Since(leaderClockEpoch)))
 				}
-				err := r.sendHeartbeat(ctx, resign)
-				if err != nil {
-					log.Error().Err(err).Msg("failed to send heartbeat")
+				if r.skipHeartbeat(heartbeatAt) {
+					metrics.RecordRaftHeartbeatSkipped()
+					continue
 				}
+				beat()
 
 			case <-leaderJobTicker.C:
 				r.leaderLoops.add()

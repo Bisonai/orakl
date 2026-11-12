@@ -26,7 +26,6 @@ func NewFetcher(config Config, feeds []Feed, latestFeedDataMap *LatestFeedDataMa
 	return &Fetcher{
 		Config:            config,
 		Feeds:             feeds,
-		fetcherCtx:        nil,
 		cancel:            nil,
 		latestFeedDataMap: latestFeedDataMap,
 		circuitBreakers:   newCircuitBreakerMap(),
@@ -35,20 +34,26 @@ func NewFetcher(config Config, feeds []Feed, latestFeedDataMap *LatestFeedDataMa
 
 func (f *Fetcher) Run(ctx context.Context, proxies []Proxy) {
 	fetcherCtx, cancel := context.WithCancel(ctx)
-	f.fetcherCtx = fetcherCtx
 	f.cancel = cancel
 	f.isRunning = true
 
 	fetcherFrequency := time.Duration(f.FetchInterval) * time.Millisecond
 	ticker := time.NewTicker(fetcherFrequency)
+	// The loop must watch only its own fetcherCtx (captured here), so a quick
+	// STOP->START can't keep an old loop alive.
 	go func() {
+		defer ticker.Stop()
 		for {
 			select {
-			case <-f.fetcherCtx.Done():
-				ticker.Stop()
+			case <-fetcherCtx.Done():
 				return
 			case <-ticker.C:
-				err := f.fetcherJob(f.fetcherCtx, proxies)
+				// select picks randomly when a tick and cancel are both ready;
+				// don't start a new job after STOP.
+				if fetcherCtx.Err() != nil {
+					return
+				}
+				err := f.fetcherJob(fetcherCtx, proxies)
 				if err != nil && !errors.Is(err, errorSentinel.ErrFetcherNoDataFetched) {
 					log.Error().Str("Player", "Fetcher").Err(err).Msg("error in fetchAndInsert")
 				}
@@ -67,6 +72,11 @@ func (f *Fetcher) fetcherJob(ctx context.Context, proxies []Proxy) error {
 
 	if len(result) == 0 {
 		return errorSentinel.ErrFetcherNoDataFetched
+	}
+
+	// Drop results of a job that was still in flight when STOP/REFRESH landed.
+	if ctx.Err() != nil {
+		return nil
 	}
 
 	err = f.latestFeedDataMap.SetLatestFeedData(result)

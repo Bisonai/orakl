@@ -24,7 +24,6 @@ func NewLocalAggregator(
 	return &LocalAggregator{
 		Config:                 config,
 		Feeds:                  feeds,
-		aggregatorCtx:          nil,
 		cancel:                 nil,
 		bus:                    bus,
 		latestFeedDataMap:      latestFeedDataMap,
@@ -34,7 +33,6 @@ func NewLocalAggregator(
 
 func (c *LocalAggregator) Run(ctx context.Context) {
 	aggregatorCtx, cancel := context.WithCancel(ctx)
-	c.aggregatorCtx = aggregatorCtx
 	c.cancel = cancel
 	c.isRunning = true
 
@@ -46,15 +44,22 @@ func (c *LocalAggregator) Run(ctx context.Context) {
 	localAggregateFrequency := localAggregateInterval
 
 	ticker := time.NewTicker(localAggregateFrequency)
+	// The loop must watch only its own aggregatorCtx (captured here), so a
+	// quick STOP->START can't keep an old loop alive.
 	go func() {
+		defer ticker.Stop()
 		for {
 			select {
-			case <-c.aggregatorCtx.Done():
-				ticker.Stop()
+			case <-aggregatorCtx.Done():
 				return
 			case <-ticker.C:
+				// select picks randomly when a tick and cancel are both ready;
+				// don't start a new job after STOP.
+				if aggregatorCtx.Err() != nil {
+					return
+				}
 				go func() {
-					err := c.Job(c.aggregatorCtx)
+					err := c.Job(aggregatorCtx)
 					if err != nil {
 						log.Error().Str("Player", "LocalAggregator").Err(err).Msg("error in localAggregatorJob")
 					}
@@ -65,6 +70,10 @@ func (c *LocalAggregator) Run(ctx context.Context) {
 }
 
 func (c *LocalAggregator) Job(ctx context.Context) error {
+	if ctx.Err() != nil {
+		return nil
+	}
+
 	feeds, err := c.collect(ctx)
 	if err != nil {
 		return err
@@ -253,6 +262,12 @@ func (c *LocalAggregator) streamLocalAggregate(ctx context.Context, aggregated f
 		} else {
 			aggregated *= entry.Value
 		}
+	}
+
+	// Don't cache or publish from a job that was still running when
+	// STOP/REFRESH cancelled its loop.
+	if ctx.Err() != nil {
+		return nil
 	}
 
 	// Cache our own raw value so other configs can multiply against us.

@@ -28,9 +28,18 @@ func ExtractExpirationFromContract(ctx context.Context, jsonrpc string, submissi
 		return nil, err
 	}
 
-	values := readResult.([]interface{})
-	rawTimestamp := values[1].(*big.Int)
-	expirationDate := time.Unix(int64(rawTimestamp.Int64()), 0)
+	values, ok := readResult.([]interface{})
+	if !ok || len(values) < 2 {
+		return nil, fmt.Errorf("unexpected whitelist result: %v", readResult)
+	}
+	rawTimestamp, ok := values[1].(*big.Int)
+	if !ok || rawTimestamp == nil {
+		return nil, fmt.Errorf("unexpected whitelist expiration type: %T", values[1])
+	}
+	if !rawTimestamp.IsInt64() {
+		return nil, fmt.Errorf("whitelist expiration out of int64 range: %s", rawTimestamp.String())
+	}
+	expirationDate := time.Unix(rawTimestamp.Int64(), 0)
 	return &expirationDate, nil
 }
 
@@ -48,8 +57,14 @@ func GetSignerAddresses(ctx context.Context, jsonrpc string, submissionProxy str
 		return nil, err
 	}
 
-	hexData := rawData.([]interface{})
-	hexAddress := hexData[0].([]common.Address)
+	hexData, ok := rawData.([]interface{})
+	if !ok || len(hexData) < 1 {
+		return nil, fmt.Errorf("unexpected getAllOracles result: %v", rawData)
+	}
+	hexAddress, ok := hexData[0].([]common.Address)
+	if !ok {
+		return nil, fmt.Errorf("unexpected getAllOracles address type: %T", hexData[0])
+	}
 	addresses := make([]string, len(hexAddress))
 	for i, address := range hexAddress {
 		addresses[i] = address.Hex()

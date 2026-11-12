@@ -43,6 +43,10 @@ var (
 		Name: metricnames.RaftElectionsStarted,
 		Help: "Raft elections started by this node, by reason",
 	}, []string{metricnames.ReasonLabel})
+	raftHeartbeatsSkipped = promauto.NewCounter(prometheus.CounterOpts{
+		Name: metricnames.RaftHeartbeatsSkipped,
+		Help: "Heartbeats this node skipped as leader because a recent leader message made them redundant (P2P_SPARSE_HEARTBEAT)",
+	})
 )
 
 func init() {
@@ -66,4 +70,9 @@ func RecordRaftLeaderChangeSilence(gap time.Duration) {
 // RecordRaftElectionStarted counts one election started for reason.
 func RecordRaftElectionStarted(reason string) {
 	raftElectionsStarted.WithLabelValues(reason).Inc()
+}
+
+// RecordRaftHeartbeatSkipped counts one heartbeat a leader skipped.
+func RecordRaftHeartbeatSkipped() {
+	raftHeartbeatsSkipped.Inc()
 }
