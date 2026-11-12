@@ -52,3 +52,18 @@ func TestFetchConfigsNoRetryOn404(t *testing.T) {
 	assert.Contains(t, err.Error(), "status 404")
 	assert.Equal(t, int32(1), calls.Load())
 }
+
+func TestFetchConfigsRejectsEmptyBundle(t *testing.T) {
+	for _, body := range []string{`[]`, `null`} {
+		t.Run(body, func(t *testing.T) {
+			withFetchServer(t, func(w http.ResponseWriter, r *http.Request) {
+				_, _ = w.Write([]byte(body))
+			})
+
+			configs, err := fetchConfigs(context.Background(), "mainnet")
+			require.ErrorIs(t, err, errorsentinel.ErrDalEmptyConfigs)
+			assert.Contains(t, err.Error(), "mainnet_feeds.json")
+			assert.Nil(t, configs)
+		})
+	}
+}

@@ -214,6 +214,7 @@ var (
 	ErrDalKeyStoreNotFound     = &CustomError{Service: Dal, Code: InternalError, Message: "Key store not found"}
 	ErrDalFeedHashNotFound     = &CustomError{Service: Dal, Code: InternalError, Message: "Feed hash not found"}
 	ErrDalSymbolsNotFound      = &CustomError{Service: Dal, Code: InternalError, Message: "Symbols not found"}
+	ErrDalEmptyConfigs         = &CustomError{Service: Dal, Code: InternalError, Message: "Empty config bundle"}
 	ErrDalChainEnvNotFound     = &CustomError{Service: Dal, Code: InternalError, Message: "Chain env not found"}
 
 	ErrReducerCastToFloatFail          = &CustomError{Service: Others, Code: InternalError, Message: "Failed to cast to float"}
