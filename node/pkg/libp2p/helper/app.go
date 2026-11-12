@@ -85,7 +85,7 @@ func (a *App) Run(ctx context.Context) error {
 	if err != nil {
 		stopEvents()
 		if eventsCtx.Err() != nil {
-			return nil // CloseHost raced this start: nothing to reconnect
+			return nil // stopping (CloseHost raced this start, or ctx done)
 		}
 		return fmt.Errorf("event subscription failed: %w", err)
 	}

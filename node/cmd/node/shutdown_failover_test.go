@@ -40,6 +40,9 @@ func allRoles(nodes []*raft.Raft, role raft.RoleType) bool {
 // sent together, overflow pubsub's per-peer queue and are retried late.
 func TestHandOverPeerLeadsEveryFeedAtOnce(t *testing.T) {
 	const feeds = 100
+	if testing.Short() {
+		t.Skip("two hosts, 200 Rafts, ~10 s")
+	}
 	const slowStop = 3 * time.Second // aggregators slow to stop, as on mainnet
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -124,7 +127,13 @@ func TestHandOverPeerLeadsEveryFeedAtOnce(t *testing.T) {
 			stopAggregators: stopRuns,
 			closeHost:       reconnects.CloseHost,
 			waitAggregators: func(ctx context.Context) error {
-				runs.Wait()
+				stopped := make(chan struct{})
+				go func() { runs.Wait(); close(stopped) }()
+				select {
+				case <-stopped:
+				case <-ctx.Done():
+					return ctx.Err()
+				}
 				select {
 				case <-time.After(slowStop):
 				case <-ctx.Done():
