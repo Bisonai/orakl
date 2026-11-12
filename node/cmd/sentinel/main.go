@@ -7,7 +7,9 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog/log"
 
 	"bisonai.com/miko/node/pkg/checker/balance"
@@ -16,6 +18,7 @@ import (
 	"bisonai.com/miko/node/pkg/checker/health"
 	"bisonai.com/miko/node/pkg/checker/inspect"
 	"bisonai.com/miko/node/pkg/checker/offset"
+	"bisonai.com/miko/node/pkg/checker/onchain"
 	"bisonai.com/miko/node/pkg/checker/peers"
 	"bisonai.com/miko/node/pkg/checker/price"
 	"bisonai.com/miko/node/pkg/checker/signer"
@@ -44,6 +47,8 @@ func main() {
 				log.Error().Err(err).Msg("failed to write response")
 			}
 		})
+
+		http.Handle("/metrics", promhttp.Handler())
 
 		if err := http.ListenAndServe(":"+port, nil); err != nil {
 			log.Fatal().Err(err).Msg("failed to start http server")
@@ -145,6 +150,27 @@ func main() {
 	}()
 
 	log.Info().Msg("inspect checker started")
+
+	runOnchainChecker, _ := strconv.ParseBool(os.Getenv("RUN_ONCHAIN_CHECKER"))
+	if runOnchainChecker {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			// Exports on-chain feed state on /metrics; restart on setup failure
+			// (e.g. config fetch) instead of stopping the other checkers.
+			for {
+				if err := onchain.Start(ctx); err != nil {
+					log.Error().Err(err).Msg("on-chain checker stopped, restarting in 1m")
+				}
+				select {
+				case <-ctx.Done():
+					return
+				case <-time.After(time.Minute):
+				}
+			}
+		}()
+		log.Info().Msg("on-chain checker started")
+	}
 
 	runPriceChecker, _ := strconv.ParseBool(os.Getenv("RUN_PRICE_CHECKER"))
 	if runPriceChecker {
