@@ -3,6 +3,7 @@ package raft
 import (
 	"context"
 	"fmt"
+	"os"
 	"slices"
 	"sync"
 	"testing"
@@ -12,6 +13,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// TestMain keeps a developer's P2P_SPARSE_HEARTBEAT out of the tests that
+// build nodes with NewRaftNode and expect a heartbeat every tick.
+func TestMain(m *testing.M) {
+	_ = os.Unsetenv(SparseHeartbeatEnvVar)
+	os.Exit(m.Run())
+}
 
 // priceFixDelay is how long after a trigger the leader sends its price fix in
 // these tests: on two nodes, one round trip for the follower's price.
@@ -363,6 +371,8 @@ func newSkippingLeader(ctx context.Context, t *testing.T) *Raft {
 	now := int64(time.Since(leaderClockEpoch))
 	node.heartbeatSentAt.Store(now)
 	node.leaderSentAt.Store(now)
+	// 0 is recent in the test binary's first second
+	node.rivalLeaderAt.Store(neverSent)
 	require.True(t, node.skipHeartbeat())
 	return node
 }
@@ -379,6 +389,8 @@ func TestRivalLeaderMessageStopsSkipping(t *testing.T) {
 		own     bool
 		stops   bool
 	}{
+		"rival heartbeat": {Heartbeat, false, true},
+		"own heartbeat":   {Heartbeat, true, false},
 		"rival trigger":   {"trigger", false, true},
 		"rival price fix": {"priceFix", false, true},
 		"own trigger":     {"trigger", true, false},
@@ -390,14 +402,19 @@ func TestRivalLeaderMessageStopsSkipping(t *testing.T) {
 			if tc.own {
 				author = node.GetHostId()
 			}
-			require.NoError(t, node.handleFrom(ctx, leaderMessageFrom(author, tc.msgType), author))
+			msg := leaderMessageFrom(author, tc.msgType)
+			if tc.msgType == Heartbeat {
+				msg = heartbeatFrom(t, author, 1)
+			}
+			require.NoError(t, node.handleFrom(ctx, msg, author))
 			assert.Equal(t, !tc.stops, node.skipHeartbeat())
 		})
 	}
 }
 
 // A new term sends heartbeats until its own first one publishes: an earlier
-// term's stamp doesn't let it skip.
+// term's stamp doesn't let it skip, nor does that term's heartbeat finishing
+// its publish late.
 func TestNewTermDoesNotSkipOnEarlierHeartbeat(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -406,6 +423,15 @@ func TestNewTermDoesNotSkipOnEarlierHeartbeat(t *testing.T) {
 	node.startElectionTimer()
 	node.Mutex.Lock()
 	node.setLeaderState()
+	earlier := node.Resign
+	node.setLeaderState()
+	current := node.Resign
 	node.Mutex.Unlock()
 	assert.False(t, node.skipHeartbeat())
+
+	node.stampHeartbeatSent(earlier, time.Now())
+	assert.False(t, node.skipHeartbeat(), "an earlier term's heartbeat counted")
+
+	node.stampHeartbeatSent(current, time.Now())
+	assert.True(t, node.skipHeartbeat())
 }

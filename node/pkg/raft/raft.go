@@ -167,6 +167,8 @@ func (r *Raft) handleFrom(ctx context.Context, msg Message, author string) error
 	// heartbeats record in handleHeartbeat, once validated
 	if msg.Type != Heartbeat && authentic {
 		r.recordLeaderSilence(author, r.LeaderMessageTypes[msg.Type])
+	}
+	if authentic {
 		r.stampRivalLeader(msg.Type, author)
 	}
 	switch msg.Type {
@@ -452,7 +454,7 @@ func (r *Raft) PublishMessage(ctx context.Context, msg Message) error {
 		return err
 	}
 	metrics.RecordP2PPublished(string(msg.Type), len(data))
-	r.stampLeaderSent(msg.Type, msg.Timestamp)
+	r.stampLeaderMessageSent(msg.Type, msg.Timestamp)
 	return nil
 }
 
@@ -482,11 +484,13 @@ func (r *Raft) sendHeartbeat(ctx context.Context, resign <-chan interface{}) err
 		SentFrom: r.GetHostId(),
 		Data:     marshalledHeartbeatMsg,
 	}
+	sentAt := time.Now()
 	err = r.PublishMessage(ctx, message)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to send heartbeat")
 		return err
 	}
+	r.stampHeartbeatSent(resign, sentAt)
 	return nil
 }
 

@@ -30,7 +30,7 @@ import (
 // against the leader: MaxMissedHeartbeats+1 expiries of at least 500 ms.
 //
 // Two leaders resolve only through a heartbeat, which carries the term: a
-// leader that receives another peer's trigger or price fix sends a heartbeat
+// leader that receives another peer's heartbeat, trigger or price fix sends a heartbeat
 // every tick for maxHeartbeatGap, so a dual leadership (e.g. after a partition
 // heals) ends as fast as with the flag off.
 //
@@ -77,26 +77,42 @@ func (r *Raft) skipHeartbeat() bool {
 		since(&r.rivalLeaderAt) >= r.maxHeartbeatGap()
 }
 
-// stampLeaderSent records a published heartbeat or leader message, at sentAt
-// (taken before publishing, so a slow publish only makes the next heartbeat
-// earlier). Only with SparseHeartbeat on.
-func (r *Raft) stampLeaderSent(msgType MessageType, sentAt time.Time) {
-	if !r.SparseHeartbeat || (msgType != Heartbeat && !r.LeaderMessageTypes[msgType]) {
+// stampLeaderMessageSent records a published LeaderMessageTypes message, at
+// sentAt (taken before publishing, so a slow publish only makes the next
+// heartbeat earlier). Only with SparseHeartbeat on.
+func (r *Raft) stampLeaderMessageSent(msgType MessageType, sentAt time.Time) {
+	if !r.SparseHeartbeat || !r.LeaderMessageTypes[msgType] {
+		return
+	}
+	storeLater(&r.leaderSentAt, int64(sentAt.Sub(leaderClockEpoch)))
+}
+
+// stampHeartbeatSent records a heartbeat published at sentAt by the leader loop
+// that owns resign. Under Mutex, where setLeaderState closes an earlier term's
+// resign and clears the stamp: a heartbeat of that term finishing its publish
+// late must not let the new term skip before its own first heartbeat.
+func (r *Raft) stampHeartbeatSent(resign <-chan interface{}, sentAt time.Time) {
+	if !r.SparseHeartbeat {
 		return
 	}
 	stamp := int64(sentAt.Sub(leaderClockEpoch))
-	if msgType == Heartbeat {
-		storeLater(&r.heartbeatSentAt, stamp)
+	r.Mutex.Lock()
+	defer r.Mutex.Unlock()
+	if resigned(resign) {
+		return
 	}
+	storeLater(&r.heartbeatSentAt, stamp)
 	storeLater(&r.leaderSentAt, stamp)
 }
 
-// stampRivalLeader records a LeaderMessageTypes message from another peer,
-// signed by author. Only with SparseHeartbeat on; a follower's stamp is unused.
+// stampRivalLeader records a heartbeat or LeaderMessageTypes message from
+// another peer, signed by author: while this node leads, another leader. Only
+// with SparseHeartbeat on; a follower's stamp is unused. A deposed leader's
+// late round counts too, which costs at most maxHeartbeatGap of heartbeats
+// on every tick after a failover.
 func (r *Raft) stampRivalLeader(msgType MessageType, author string) {
-	if !r.SparseHeartbeat || !r.LeaderMessageTypes[msgType] || author == r.GetHostId() {
+	if !r.SparseHeartbeat || (msgType != Heartbeat && !r.LeaderMessageTypes[msgType]) || author == r.GetHostId() {
 		return
 	}
 	storeLater(&r.rivalLeaderAt, int64(time.Since(leaderClockEpoch)))
 }
-
