@@ -17,6 +17,8 @@ const (
 	P2PPublishedBytes    = "orakl_node_p2p_published_bytes_total"
 	P2PPeerConnects      = "orakl_node_p2p_peer_connects_total"
 	P2PPeerDisconnects   = "orakl_node_p2p_peer_disconnects_total"
+	P2PDroppedRPCs       = "orakl_node_p2p_dropped_rpcs_total"
+	P2PDroppedMessages   = "orakl_node_p2p_dropped_messages_total"
 
 	RaftLeaderSilence       = "orakl_node_raft_leader_silence_seconds"
 	RaftLeaderChangeSilence = "orakl_node_raft_leader_change_silence_seconds"
@@ -28,4 +30,5 @@ const (
 	TypeLabel     = "type"
 	ReasonLabel   = "reason"
 	PeerTypeLabel = "peer_type"
+	KindLabel     = "kind"
 )
