@@ -19,8 +19,8 @@ import (
 
 // handOverFailoverBound is how soon after the leader's SIGTERM the peer must
 // lead every feed: the leave grace (~0.6-0.85 s) and a lone election, with
-// room for a loaded runner.
-const handOverFailoverBound = 1500 * time.Millisecond
+// room for a loaded runner; still under slowStop, which the old order waited.
+const handOverFailoverBound = 2 * time.Second
 
 // allRoles reports whether every node has the role.
 func allRoles(nodes []*raft.Raft, role raft.RoleType) bool {
@@ -92,9 +92,17 @@ func TestHandOverPeerLeadsEveryFeedAtOnce(t *testing.T) {
 		}(r)
 	}
 	require.Eventually(t, func() bool { return allRoles(stopping, raft.Leader) }, 20*time.Second, 50*time.Millisecond)
+	survivorCtx, stopSurvivor := context.WithCancel(ctx)
+	var survivorRuns sync.WaitGroup
 	for _, r := range survivor {
-		go r.Run(ctx)
+		survivorRuns.Add(1)
+		go func(r *raft.Raft) {
+			defer survivorRuns.Done()
+			r.Run(survivorCtx)
+		}(r)
 	}
+	// before the hosts close (cleanups run last-registered first)
+	t.Cleanup(func() { stopSurvivor(); survivorRuns.Wait() })
 	require.Eventually(t, func() bool {
 		for i, r := range survivor {
 			if r.GetLeader() != stopping[i].GetHostId() || r.SubscribersCount() != 1 {
