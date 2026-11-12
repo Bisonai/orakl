@@ -24,9 +24,6 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: "20.10.0"
-          registry-url: "https://registry.npmjs.org"
-          scope: "@bisonai"
-          always-auth: true
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
@@ -47,6 +44,10 @@ jobs:
         run: echo "VERSION=`npm view @bisonai/orakl-contracts version`" >> $GITHUB_OUTPUT
       - name: Publish package
         if: steps.packageJsonVersion.outputs.value != steps.npmPackageVersion.outputs.VERSION
-        run: yarn contracts publish --new-version ${{ steps.packageJsonVersion.outputs.value }} --access public
+        # .npmrc only here, so install/test never need the token
+        run: |
+          echo '//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}' > "$RUNNER_TEMP/.npmrc"
+          yarn contracts publish --new-version ${{ steps.packageJsonVersion.outputs.value }} --access public
         env:
+          NPM_CONFIG_USERCONFIG: ${{ runner.temp }}/.npmrc
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
