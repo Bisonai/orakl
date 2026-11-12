@@ -47,6 +47,9 @@ type App struct {
 	// rounds persists RoundID advances of all aggregators to State (nil
 	// without State).
 	rounds *roundPersister
+
+	// running aggregator Run goroutines (WaitStopped)
+	runs runTracker
 }
 
 type Config = nodeconfig.Config
@@ -198,6 +201,8 @@ type Aggregator struct {
 	nodeCtx    context.Context
 	nodeCancel context.CancelFunc
 	isRunning  bool
+	// done closes when the Run goroutine started by startAggregator returns
+	done chan struct{}
 
 	mu sync.RWMutex
 }

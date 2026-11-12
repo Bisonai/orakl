@@ -88,6 +88,7 @@ var (
 	ErrAggregatorGlobalAggregateInsertion = &CustomError{Service: Aggregator, Code: DatabaseError, Message: "Failed to insert global aggregator"}
 	ErrAggregatorNotFound                 = &CustomError{Service: Aggregator, Code: InternalError, Message: "Aggregator not found"}
 	ErrAggregatorCancelNotFound           = &CustomError{Service: Aggregator, Code: InternalError, Message: "Aggregator cancel function not found"}
+	ErrAggregatorShuttingDown             = &CustomError{Service: Aggregator, Code: InternalError, Message: "Aggregator app is shutting down"}
 	ErrAggregatorEmptyProof               = &CustomError{Service: Aggregator, Code: InternalError, Message: "Empty proof"}
 
 	ErrBusChannelNotFound  = &CustomError{Service: Others, Code: InternalError, Message: "Channel not found"}
@@ -213,6 +214,7 @@ var (
 	ErrDalKeyStoreNotFound     = &CustomError{Service: Dal, Code: InternalError, Message: "Key store not found"}
 	ErrDalFeedHashNotFound     = &CustomError{Service: Dal, Code: InternalError, Message: "Feed hash not found"}
 	ErrDalSymbolsNotFound      = &CustomError{Service: Dal, Code: InternalError, Message: "Symbols not found"}
+	ErrDalEmptyConfigs         = &CustomError{Service: Dal, Code: InternalError, Message: "Empty config bundle"}
 	ErrDalChainEnvNotFound     = &CustomError{Service: Dal, Code: InternalError, Message: "Chain env not found"}
 
 	ErrReducerCastToFloatFail          = &CustomError{Service: Others, Code: InternalError, Message: "Failed to cast to float"}

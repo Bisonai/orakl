@@ -11,8 +11,15 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
-// RaftElectionReasonTimeout is an election started by the election timer.
-const RaftElectionReasonTimeout = "timeout"
+// Reasons an election starts.
+const (
+	// the election timer ran out: the leader missed heartbeats
+	RaftElectionReasonTimeout = "timeout"
+	// the leader's connection dropped (it left the feed's topic, not connected)
+	RaftElectionReasonDisconnect = "disconnect"
+	// the leader left the feed's topic while still connected: it stopped or shut down
+	RaftElectionReasonShutdown = "shutdown"
+)
 
 // raftSilenceBuckets are fine around the election threshold (~1.5-3 s at the 100 ms
 // heartbeat), with a tail for gaps that span an election: a peer winning again only
@@ -38,7 +45,9 @@ var (
 
 func init() {
 	// exported at 0, so the first election shows up in rate() and increase()
-	raftElectionsStarted.WithLabelValues(RaftElectionReasonTimeout)
+	for _, reason := range []string{RaftElectionReasonTimeout, RaftElectionReasonDisconnect, RaftElectionReasonShutdown} {
+		raftElectionsStarted.WithLabelValues(reason)
+	}
 }
 
 // RecordRaftLeaderSilence observes one gap between messages from a feed's leader.

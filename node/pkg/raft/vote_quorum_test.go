@@ -132,6 +132,18 @@ func TestRequestVoteIgnoredByLeader(t *testing.T) {
 // waits until each sees the others on the topic.
 func startCluster(ctx context.Context, t *testing.T, n int, configure ...func(*Raft)) []*Raft {
 	t.Helper()
+	nodes := newCluster(ctx, t, n, configure...)
+	for _, node := range nodes {
+		go node.Run(ctx)
+	}
+	waitForSubscribed(t, nodes, n)
+	return nodes
+}
+
+// newCluster builds n fully connected nodes, each first passed to configure,
+// without running them.
+func newCluster(ctx context.Context, t *testing.T, n int, configure ...func(*Raft)) []*Raft {
+	t.Helper()
 	nodes := make([]*Raft, 0, n)
 	for i := 0; i < n; i++ {
 		h, err := libp2psetup.NewHost(ctx)
@@ -153,9 +165,12 @@ func startCluster(ctx context.Context, t *testing.T, n int, configure ...func(*R
 		}
 		nodes = append(nodes, node)
 	}
-	for _, node := range nodes {
-		go node.Run(ctx)
-	}
+	return nodes
+}
+
+// waitForSubscribed waits until each of the nodes sees n-1 peers on the topic.
+func waitForSubscribed(t *testing.T, nodes []*Raft, n int) {
+	t.Helper()
 	require.Eventually(t, func() bool {
 		for _, node := range nodes {
 			if node.SubscribersCount() != n-1 {
@@ -164,7 +179,6 @@ func startCluster(ctx context.Context, t *testing.T, n int, configure ...func(*R
 		}
 		return true
 	}, testElectionWait, 50*time.Millisecond, "peers not subscribed")
-	return nodes
 }
 
 // singleLeader returns the leader when exactly one node leads and every other
