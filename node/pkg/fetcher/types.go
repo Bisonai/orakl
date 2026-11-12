@@ -77,7 +77,6 @@ type Fetcher struct {
 	Config
 	Feeds []Feed
 
-	fetcherCtx        context.Context
 	cancel            context.CancelFunc
 	isRunning         bool
 	latestFeedDataMap *LatestFeedDataMap
@@ -88,10 +87,9 @@ type LocalAggregator struct {
 	Config
 	Feeds []Feed
 
-	aggregatorCtx context.Context
-	cancel        context.CancelFunc
-	isRunning     bool
-	bus           *bus.MessageBus
+	cancel    context.CancelFunc
+	isRunning bool
+	bus       *bus.MessageBus
 
 	latestFeedDataMap      *LatestFeedDataMap
 	localAggregateValueMap *LocalAggregateValueMap
