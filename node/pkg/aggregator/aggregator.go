@@ -410,6 +410,11 @@ func (n *Aggregator) processCollectedProofs(ctx context.Context, proofMessage Pr
 	}
 	metrics.SetGlobalAggregate(n.Name, globalAggregate.Value, globalAggregate.Round, globalAggregate.Timestamp)
 
+	// stopped: on shutdown the host closes first, so a round counting only
+	// this node's proof (no subscribers left) must not be submitted
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	err := publishSubmissionData(ctx, data)
 	if err != nil {
 		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to publish global aggregate and proof")

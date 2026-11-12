@@ -387,3 +387,40 @@ func TestMinSyncIntervalAcrossEvents(t *testing.T) {
 		require.GreaterOrEqual(t, times[i].Sub(times[i-1]), app.minSyncInterval, "gap %d", i)
 	}
 }
+
+// Closing the host through CloseHost drops its connections, but the worker
+// doesn't try to reconnect: a closed host can't (#2817).
+func TestCloseHostStopsReconnect(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	rec := &callRecorder{}
+	app, h1, h2 := connectedPair(t, ctx, func(h2 host.Host) reconnectFunc { return rec.knows(h2.ID()) },
+		[]time.Duration{10 * time.Millisecond})
+	require.Eventually(t, func() bool { return h2.Network().Connectedness(h1.ID()) == network.Connected },
+		time.Second, 5*time.Millisecond)
+
+	require.NoError(t, app.CloseHost())
+	require.Eventually(t, func() bool { return h2.Network().Connectedness(h1.ID()) != network.Connected },
+		time.Second, 5*time.Millisecond, "close did not drop the connection")
+	time.Sleep(200 * time.Millisecond) // many backoffs
+	require.Empty(t, rec.snapshot(), "reconnect tried after the host closed")
+	require.NoError(t, app.CloseHost(), "second close")
+}
+
+// CloseHost before Run (a shutdown during startup) leaves Run with no worker.
+func TestCloseHostBeforeRun(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	rec := &callRecorder{}
+	app := New(bus.New(10), newHost(t))
+	app.reconnect = rec.knows()
+	app.minSyncInterval = 0
+	require.NoError(t, app.CloseHost())
+	require.NoError(t, app.Run(ctx))
+
+	app.handleDisconnectEvent(evtNotConnected(newHost(t).ID()))
+	time.Sleep(100 * time.Millisecond)
+	require.Empty(t, rec.snapshot())
+}

@@ -144,16 +144,13 @@ func main() {
 	a := aggregator.New(mb, host, ps, state)
 	// cancelled on shutdown: every aggregator stops and resigns
 	aggregatorCtx, stopAggregators := context.WithCancel(ctx)
+	helperApp := helper.New(mb, host)
 	go handOverOnSignal(shutdownSteps{
 		stopAggregators: stopAggregators,
+		// stops the reconnect worker first: a closed host can't reconnect
+		closeHost:       helperApp.CloseHost,
 		waitAggregators: a.WaitStopped,
-		closeHost: func() error {
-			if host == nil {
-				return nil
-			}
-			return host.Close()
-		},
-		flushRounds: a.FlushRounds,
+		flushRounds:     a.FlushRounds,
 	})
 
 	wg.Add(1)
@@ -171,7 +168,6 @@ func main() {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		helperApp := helper.New(mb, host)
 		libp2pHelperErr := helperApp.Run(ctx)
 		if libp2pHelperErr != nil {
 			log.Error().Err(libp2pHelperErr).Msg("Failed to start libp2p helper")
@@ -195,12 +191,13 @@ var (
 type shutdownSteps struct {
 	// cancels every aggregator's Run: each feed's Raft resigns the leader role
 	stopAggregators func()
+	// peers see the disconnect and drop this node from every feed's topic at
+	// once, so each elects without it; the per-feed unsubscribes alone are
+	// best-effort and arrive late when many feeds stop together
+	closeHost func() error
 	// until every aggregator's Run returned, so none produces a round after
 	waitAggregators func(context.Context) error
-	// peers see the disconnect and elect at once, for any feed whose
-	// unsubscribe didn't reach them first
-	closeHost   func() error
-	flushRounds func(context.Context) error
+	flushRounds     func(context.Context) error
 }
 
 // handOverOnSignal hands over and exits on SIGTERM/SIGINT.
@@ -223,21 +220,17 @@ func handOverOnSignal(steps shutdownSteps) {
 
 // handOver gives up every feed this node leads, so peers take over within
 // about a second instead of timing it out: it stops the aggregators (each
-// resigns, and its topic unsubscribe tells peers at once), waits until none can
-// produce a round, closes the libp2p host so peers also see the disconnect,
-// then persists rounds so the next start continues after the last used one.
-// Each step is bounded and the next runs regardless. The node's network path
-// must outlive this, or nothing reaches the peers.
+// resigns), closes the libp2p host at once so peers see the disconnect and
+// elect without this node, waits until no aggregator can produce a round, then
+// persists rounds (local) so the next start continues after the last used one.
+// Waiting for the aggregators before the close kept peers without a leader for
+// that long (#2817). Each step is bounded and the next runs regardless. The
+// node's network path must outlive the close, or the disconnect only reaches
+// the peers once their connection times out.
 func handOver(steps shutdownSteps) {
 	start := time.Now()
 
 	steps.stopAggregators()
-	ctx, cancel := context.WithTimeout(context.Background(), resignTimeout)
-	if err := steps.waitAggregators(ctx); err != nil {
-		log.Error().Err(err).Msg("aggregators still running at shutdown")
-	}
-	cancel()
-	resigned := time.Since(start)
 
 	closed := make(chan error, 1)
 	go func() { closed <- steps.closeHost() }()
@@ -251,6 +244,15 @@ func handOver(steps shutdownSteps) {
 	}
 	hostClosed := time.Since(start)
 
+	waitStart := time.Now()
+	ctx, cancel := context.WithTimeout(context.Background(), resignTimeout)
+	if err := steps.waitAggregators(ctx); err != nil {
+		log.Error().Err(err).Msg("aggregators still running at shutdown")
+	}
+	cancel()
+	resigned := time.Since(start)
+	aggregatorsWait := time.Since(waitStart)
+
 	ctx, cancel = context.WithTimeout(context.Background(), flushTimeout)
 	if err := steps.flushRounds(ctx); err != nil {
 		log.Error().Err(err).Msg("failed to persist rounds on shutdown")
@@ -261,6 +263,7 @@ func handOver(steps shutdownSteps) {
 	log.Info().
 		Dur("resigned", resigned).
 		Dur("hostClosed", hostClosed).
+		Dur("aggregatorsWait", aggregatorsWait).
 		Dur("total", time.Since(start)).
 		Msg("shutdown hand-over done")
 }
