@@ -99,6 +99,17 @@ type Raft struct {
 	// heartbeat, the election timer (heardLeaderSinceTimerArmed). Set before Run.
 	LeaderMessageTypes map[MessageType]bool
 
+	// a leader skips heartbeats that a recent leader message makes redundant
+	// (sparse_heartbeat.go); NewRaftNode sets it from P2P_SPARSE_HEARTBEAT.
+	// Set before Run.
+	SparseHeartbeat bool
+	// last heartbeat or LeaderMessageTypes message this node published, ns
+	// since leaderClockEpoch; only with SparseHeartbeat
+	leaderSentAt atomic.Int64
+	// last event that wants a heartbeat every tick (stampWantHeartbeats), same
+	// unit; only with SparseHeartbeat
+	wantHeartbeatsAt atomic.Int64
+
 	// peer.ID -> *atomic.Int64, ns since leaderClockEpoch of its last message
 	peerSeen sync.Map
 	// term a deferred win recount is pending for (handleReplyVote); under Mutex
