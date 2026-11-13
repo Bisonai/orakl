@@ -13,10 +13,6 @@ tasks:
     dotenv: [".env"]
     cmds:
       - go run ./cmd/node
-  por:
-    dotenv: [".env"]
-    cmds:
-      - go run ./cmd/por/main.go
   fetcher:
     dotenv: [".env"]
     cmds:
@@ -136,10 +132,6 @@ tasks:
     dotenv: [".env"]
     cmds:
       - go test ./pkg/chain/tests -v
-  test-por:
-    dotenv: [".env"]
-    cmds:
-      - go test ./pkg/por -v
   test-wss:
     cmds:
       - go test ./pkg/wss -v

@@ -65,7 +65,6 @@ Check the source code inside `./pkg` for details:
 - **Raft**: Implements simple raft consensus for leader election and syncing among multiple peers.
 - **Reporter**: Submits data from `global_aggregates` with the latest Round to the chain.
 - **Utils**: Contains helper functions usable among other packages.
-- **Por**: Package to run a separate service for POR.
 - **wss**: Helper package for websocket implementation
 - **websocketfetcher**: Fetcher app based on websocket
 - **dal**: Data Availability Layer API
@@ -515,29 +514,6 @@ set GOOS=linux
 set GOARCH=amd64
 ```
 
-# POR
-
-Por service stands for proof of reserve. To be updated later, with scalability to support multiple providers.
-
-## Quickstart
-
-### Set .env variables
-
-```sh
-# POR
-POR_REPORTER_PK=
-POR_CHAIN=
-POR_PROVIDER_URL=
-# (optional) defaults to 3000
-POR_PORT=
-```
-
-### Run
-
-```sh
-task local:por
-```
-
 # Sentinel
 
 # Orakl sentinel
@@ -581,8 +557,6 @@ ORAKL_API_URL=
 ORAKL_NODE_ADMIN_URL=
 # (required) Orakl Delegator URL to retrieve fee payer address
 ORAKL_DELEGATOR_URL=
-# (required) POR URL to retrieve POR reporter address
-POR_URL=
 # (required) Slack webhook URL
 SLACK_WEBHOOK_URL=
 # (required) Submission proxy contract to read signer expiration

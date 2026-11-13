@@ -9,7 +9,6 @@ export const ORAKL_NETWORK_DELEGATOR_URL =
 
 export const DELEGATOR_TIMEOUT = Number(process.env.DELEGATOR_TIMEOUT) || 3000
 export const RPC_URL_TIMEOUT = Number(process.env.RPC_URL_TIMEOUT) || 3000
-export const POR_TIMEOUT = Number(process.env.POR_TIMEOUT) || 5000
 
 export const DEPLOYMENT_NAME = process.env.DEPLOYMENT_NAME || 'orakl'
 export const NODE_ENV = process.env.NODE_ENV
@@ -24,15 +23,10 @@ export const REDIS_PORT = process.env.REDIS_PORT ? Number(process.env.REDIS_PORT
 export const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL || ''
 export const LISTENER_DELAY = Number(process.env.LISTENER_DELAY) || 500
 
-// POR
-export const POR_AGGREGATOR_HASH = process.env.POR_AGGREGATOR_HASH || ''
-export const POR_LATENCY_BUFFER = 60000 // submission latency buffer for POR in millisecs
-
 // Gas mimimums
 export const VRF_FULFILL_GAS_MINIMUM = 1_000_000
 export const REQUEST_RESPONSE_FULFILL_GAS_MINIMUM = 400_000
 export const DATA_FEED_FULFILL_GAS_MINIMUM = 400_000
-export const POR_GAS_MINIMUM = 400_000
 export const VRF_FULLFILL_GAS_PER_WORD = 1_000
 
 // Service ports are used for communication to watchman from the outside
@@ -43,7 +37,6 @@ export const REPORTER_PORT = process.env.REPORTER_PORT || 6_000
 export const DATA_FEED_SERVICE_NAME = 'DATA_FEED'
 export const VRF_SERVICE_NAME = 'VRF'
 export const REQUEST_RESPONSE_SERVICE_NAME = 'REQUEST_RESPONSE'
-export const POR_SERVICE_NAME = 'POR'
 
 // Data Feed
 export const MAX_DATA_STALENESS = 5_000

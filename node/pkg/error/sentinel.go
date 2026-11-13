@@ -12,7 +12,6 @@ const (
 	Reporter
 	BootAPI
 	Admin
-	Por
 	Dal
 	Others
 )
@@ -36,7 +35,6 @@ var ServiceNames = map[Service]string{
 	Reporter:   "Reporter",
 	BootAPI:    "BootAPI",
 	Admin:      "Admin",
-	Por:        "POR",
 	Others:     "Others",
 }
 
@@ -159,14 +157,6 @@ var (
 	ErrLibP2pEmptyNonLocalAddress = &CustomError{Service: Others, Code: InternalError, Message: "Host has no non-local addresses"}
 	ErrLibP2pAddressSplitFail     = &CustomError{Service: Others, Code: InternalError, Message: "Failed to split address"}
 	ErrLibP2pFailToConnectPeer    = &CustomError{Service: Others, Code: InternalError, Message: "Failed to connect to peer"}
-
-	ErrPorProviderUrlNotFound = &CustomError{Service: Por, Code: InternalError, Message: "POR_PROVIDER_URL not found"}
-	ErrPorReporterPkNotFound  = &CustomError{Service: Por, Code: InvalidInputError, Message: "POR_REPORTER_PK not found"}
-	ErrPorRawResultCastFail   = &CustomError{Service: Por, Code: InternalError, Message: "Failed to cast raw result to slice"}
-	ErrPorRoundIdCastFail     = &CustomError{Service: Por, Code: InternalError, Message: "Failed to cast round id to int32"}
-	ErrPorUpdatedAtCastFail   = &CustomError{Service: Por, Code: InternalError, Message: "Failed to cast updated at to big.Int"}
-	ErrPorAnswerCastFail      = &CustomError{Service: Por, Code: InternalError, Message: "Failed to cast answer to big.Int"}
-	ErrPorJobFail             = &CustomError{Service: Por, Code: InternalError, Message: "job failed"}
 
 	ErrRaftLeaderIdMismatch = &CustomError{Service: Others, Code: InternalError, Message: "Leader id mismatch"}
 

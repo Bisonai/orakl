@@ -4,10 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"math"
 	"math/big"
-	"net/http"
 	"os"
 	"strconv"
 	"time"
@@ -131,11 +129,6 @@ func getUrls() (Urls, error) {
 		return Urls{}, errors.New("ORAKL_DELEGATOR_URL not found")
 	}
 
-	porUrl := os.Getenv("POR_URL")
-	if porUrl == "" {
-		return Urls{}, errors.New("POR_URL not found")
-	}
-
 	jsonRpcUrl := os.Getenv("JSON_RPC_URL")
 	if jsonRpcUrl == "" {
 		return Urls{}, errors.New("JSON_RPC_URL not found")
@@ -146,7 +139,6 @@ func getUrls() (Urls, error) {
 		MikoApiUrl:       mikoApiUrl,
 		MikoNodeAdminUrl: mikoNodeAdminUrl,
 		MikoDelegatorUrl: mikoDelegatorUrl,
-		PorUrl:           porUrl,
 	}, nil
 }
 
@@ -158,12 +150,6 @@ func loadWallets(ctx context.Context, urls Urls) ([]Wallet, error) {
 		return result, err
 	}
 	result = append(result, apiWallets...)
-
-	porWallet, err := loadWalletFromPor(ctx, urls.PorUrl)
-	if err != nil {
-		return result, err
-	}
-	result = append(result, porWallet)
 
 	delegatorWallet, err := loadWalletFromDelegator(ctx, urls.MikoDelegatorUrl)
 	if err != nil {
@@ -208,39 +194,6 @@ func loadWalletFromMikoApi(ctx context.Context, url string) ([]Wallet, error) {
 		result = append(result, wallet)
 	}
 	return result, nil
-}
-
-func loadWalletFromPor(ctx context.Context, url string) (Wallet, error) {
-	wallet := Wallet{}
-	resp, err := request.RequestRaw(request.WithEndpoint(url + porEndpoint))
-	if err != nil {
-		return wallet, err
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		log.Info().
-			Int("status", resp.StatusCode).
-			Str("url", url+porEndpoint).
-			Str("func", "loadWalletFromPor").
-			Msg("failed to make request")
-		return wallet, errors.New("status not okay from por wallet request")
-	}
-
-	reporter, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return wallet, err
-	}
-
-	address := common.HexToAddress(string(reporter))
-	wallet = Wallet{
-		Address: address,
-		Balance: 0,
-		Minimum: SubmitterAlarmAmount,
-		Tag:     "reporter loaded from por",
-
-		BalanceHistory: []BalanceHistoryEntry{},
-	}
-	return wallet, nil
 }
 
 func loadWalletFromDelegator(ctx context.Context, url string) (Wallet, error) {

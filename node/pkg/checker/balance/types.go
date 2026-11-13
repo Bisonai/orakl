@@ -10,7 +10,6 @@ import (
 const (
 	mikoApiEndpoint          = "/reporter"
 	mikoDelegatorEndpoint    = "/sign/feePayer"
-	porEndpoint              = "/address"
 	DefaultRRMinimum         = 1
 	BalanceHistoryTTL        = 60 * time.Minute
 	MinimalIncreaseThreshold = 0.5
@@ -30,7 +29,6 @@ type Urls struct {
 	MikoApiUrl       string
 	MikoNodeAdminUrl string
 	MikoDelegatorUrl string
-	PorUrl           string
 }
 
 type Wallet struct {
