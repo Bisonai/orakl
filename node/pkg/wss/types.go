@@ -23,7 +23,6 @@ type WebsocketHelper struct {
 	ReadLimit         int64
 	ReconnectInterval time.Duration
 	InactivityTimeout time.Duration
-	lastMessageTime   time.Time
 }
 
 type ConnectionConfig struct {
@@ -119,6 +118,12 @@ func NewWebsocketHelper(ctx context.Context, opts ...ConnectionOption) (*Websock
 	if config.Endpoint == "" {
 		log.Error().Msg("endpoint is required")
 		return nil, fmt.Errorf("endpoint is required")
+	}
+
+	// a non-positive window would expire every read immediately (endless reconnect loop)
+	if config.ReconnectInterval <= 0 || config.InactivityTimeout <= 0 {
+		log.Error().Msg("reconnect interval and inactivity timeout must be positive")
+		return nil, fmt.Errorf("reconnect interval and inactivity timeout must be positive")
 	}
 
 	if config.Subscriptions == nil {
