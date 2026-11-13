@@ -310,7 +310,7 @@ func (c *Collector) processIncomingData(ctx context.Context, data *aggregator.Su
 		c.mu.Lock()
 		defer c.mu.Unlock()
 		stream, known := c.OutgoingStream[result.Symbol]
-		if !known {
+		if !known || ctx.Err() != nil {
 			return
 		}
 		// A newer (or same-timestamp duplicate) value may have been delivered while this one
