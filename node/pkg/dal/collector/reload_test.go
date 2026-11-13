@@ -150,7 +150,7 @@ func TestRemovedSymbolDataIgnored(t *testing.T) {
 	c, _ := newTestCollector(t, "A-B")
 	c.RemoveSymbols([]string{"A-B"})
 	data := &aggregator.SubmissionData{Symbol: "A-B", GlobalAggregate: aggregator.GlobalAggregate{Timestamp: time.Now()}}
-	assert.False(t, c.compareAndSwapLatestTimestamp(data))
+	assert.False(t, c.isNewer(data))
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	assert.NotContains(t, c.LatestTimestamps, "A-B")

@@ -42,7 +42,7 @@ const (
 
 // ResubscribeGrace keeps the previous redis subscriptions open this long after a config reload
 // started new ones (which connect asynchronously), so unchanged symbols see no gap (duplicates
-// are dropped by the timestamp compare-and-swap). A var so tests can shorten it.
+// are dropped by the timestamp check). A var so tests can shorten it.
 var ResubscribeGrace = 30 * time.Second
 
 type Config = types.Config
@@ -264,22 +264,24 @@ func (c *Collector) redisRouter(ctx context.Context, msg *redis.Message) error {
 	return nil
 }
 
-func (c *Collector) compareAndSwapLatestTimestamp(data *aggregator.SubmissionData) bool {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+// isNewer reports whether data is for a known symbol and newer than the last value delivered
+// for it. It only reads, so a message that later fails verification does not block others.
+func (c *Collector) isNewer(data *aggregator.SubmissionData) bool {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
 
 	// removed by a config reload (old subscriptions linger for ResubscribeGrace)
 	if _, known := c.FeedHashes[data.Symbol]; !known {
 		return false
 	}
+	return c.newerThanDeliveredLocked(data)
+}
 
+// newerThanDeliveredLocked reports whether data is strictly newer than the last delivered value
+// for its symbol. Callers hold c.mu.
+func (c *Collector) newerThanDeliveredLocked(data *aggregator.SubmissionData) bool {
 	old, ok := c.LatestTimestamps[data.Symbol]
-	if !ok || data.GlobalAggregate.Timestamp.After(old) {
-		c.LatestTimestamps[data.Symbol] = data.GlobalAggregate.Timestamp
-		return true
-	}
-
-	return false
+	return !ok || data.GlobalAggregate.Timestamp.After(old)
 }
 
 func (c *Collector) processIncomingData(ctx context.Context, data *aggregator.SubmissionData) {
@@ -287,8 +289,8 @@ func (c *Collector) processIncomingData(ctx context.Context, data *aggregator.Su
 	case <-ctx.Done():
 		return
 	default:
-		valid := c.compareAndSwapLatestTimestamp(data)
-		if !valid {
+		// cheap early reject before verification; re-checked under the lock below
+		if !c.isNewer(data) {
 			log.Debug().Str("Player", "DalCollector").Str("Symbol", data.Symbol).Msg("old data recieved")
 			return
 		}
@@ -311,6 +313,13 @@ func (c *Collector) processIncomingData(ctx context.Context, data *aggregator.Su
 		if !known {
 			return
 		}
+		// A newer (or same-timestamp duplicate) value may have been delivered while this one
+		// was verified; never move LatestData or the stream backwards.
+		if !c.newerThanDeliveredLocked(data) {
+			log.Debug().Str("Player", "DalCollector").Str("Symbol", data.Symbol).Msg("newer data delivered during verification")
+			return
+		}
+		c.LatestTimestamps[data.Symbol] = data.GlobalAggregate.Timestamp
 		c.LatestData[result.Symbol] = result
 
 		select {
