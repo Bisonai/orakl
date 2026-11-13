@@ -75,6 +75,7 @@ func TestOlderDataVerifiedLastDoesNotOverwrite(t *testing.T) {
 	require.Equal(t, t1.UnixMilli(), <-f.entered)
 
 	c.processIncomingData(ctx, submission("A-B", t2, nil))
+	require.Equal(t, t2.UnixMilli(), <-f.entered, "newer data must reach verification")
 	close(gate)
 	<-done
 
@@ -101,13 +102,15 @@ func TestConcurrentDuplicateDeliveredOnce(t *testing.T) {
 			c.processIncomingData(ctx, submission("A-B", ts, nil))
 		}()
 	}
-	// both copies are verifying before either delivers (on unfixed code the second is
-	// dropped up front, which also yields a single delivery)
-	timeout := time.After(time.Second)
+	// both copies are verifying before either delivers, so only the locked re-check dedups
+	timeout := time.After(5 * time.Second)
 	for i := 0; i < 2; i++ {
 		select {
 		case <-f.entered:
 		case <-timeout:
+			close(gate)
+			wg.Wait()
+			t.Fatal("both copies must reach verification")
 		}
 	}
 	close(gate)
