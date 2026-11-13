@@ -116,7 +116,14 @@ func TestConcurrentSameTimestampDeliveredOnce(t *testing.T) {
 	close(gate)
 	wg.Wait()
 
-	assert.Len(t, drain(c.OutgoingStream["A-B"]), 1)
+	want := strconv.FormatInt(ts.UnixMilli(), 10)
+	assert.Equal(t, []string{want}, drain(c.OutgoingStream["A-B"]))
+	latest, err := c.GetLatestData("A-B")
+	require.NoError(t, err)
+	assert.Equal(t, want, latest.AggregateTime)
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	assert.Empty(t, c.inFlight)
 }
 
 // An identical copy (base + sub redis) arriving while the first is verifying is not verified again.

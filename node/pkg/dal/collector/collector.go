@@ -77,7 +77,7 @@ type Collector struct {
 	// replaceable in tests to control verification timing.
 	toOutgoing func(ctx context.Context, data *aggregator.SubmissionData) (*dalcommon.OutgoingSubmissionData, error)
 	// inFlight holds messages being verified (see claim), guarded by mu; lazily created.
-	inFlight map[string]struct{}
+	inFlight map[inFlightKey]struct{}
 
 	IsRunning  bool
 	CancelFunc context.CancelFunc
@@ -267,42 +267,62 @@ func (c *Collector) redisRouter(ctx context.Context, msg *redis.Message) error {
 	return nil
 }
 
+// inFlightKey identifies a message by content, so identical copies from base and sub redis
+// share a key.
+type inFlightKey struct {
+	symbol    string
+	timestamp int64
+	value     int64
+	proof     kaiacommon.Hash
+}
+
+func newInFlightKey(data *aggregator.SubmissionData) inFlightKey {
+	return inFlightKey{
+		symbol:    data.Symbol,
+		timestamp: data.GlobalAggregate.Timestamp.UnixNano(),
+		value:     data.GlobalAggregate.Value,
+		proof:     crypto.Keccak256Hash(data.Proof.Proof),
+	}
+}
+
 // claim reports whether data should be verified: its symbol is known, it is newer than the last
 // value delivered for it, and an identical copy (base + sub redis) is not already being verified.
 // It only marks data in flight, so a message that fails verification does not block a different
-// message with the same timestamp. Callers release the returned key with releaseLocked.
-func (c *Collector) claim(data *aggregator.SubmissionData) (string, bool) {
+// message with the same timestamp. Callers release the claim by deleting key from c.inFlight.
+func (c *Collector) claim(data *aggregator.SubmissionData) (inFlightKey, bool) {
+	key := newInFlightKey(data)
+
+	// most rejects (old data, duplicates) only need the read lock
+	c.mu.RLock()
+	ok := c.claimableLocked(data, key)
+	c.mu.RUnlock()
+	if !ok {
+		return key, false
+	}
+
 	c.mu.Lock()
 	defer c.mu.Unlock()
-
-	// removed by a config reload (old subscriptions linger for ResubscribeGrace)
-	if _, known := c.FeedHashes[data.Symbol]; !known {
-		return "", false
-	}
-	if !c.newerThanDeliveredLocked(data) {
-		return "", false
-	}
-	key := inFlightKey(data)
-	if _, busy := c.inFlight[key]; busy {
-		return "", false
+	if !c.claimableLocked(data, key) {
+		return key, false
 	}
 	if c.inFlight == nil {
-		c.inFlight = make(map[string]struct{})
+		c.inFlight = make(map[inFlightKey]struct{})
 	}
 	c.inFlight[key] = struct{}{}
 	return key, true
 }
 
-// releaseLocked ends the in-flight claim for key. Callers hold c.mu.
-func (c *Collector) releaseLocked(key string) {
-	delete(c.inFlight, key)
-}
-
-func inFlightKey(data *aggregator.SubmissionData) string {
-	return data.Symbol + "|" +
-		strconv.FormatInt(data.GlobalAggregate.Timestamp.UnixNano(), 10) + "|" +
-		strconv.FormatInt(data.GlobalAggregate.Value, 10) + "|" +
-		string(data.Proof.Proof)
+// claimableLocked reports whether claim may mark data in flight. Callers hold c.mu.
+func (c *Collector) claimableLocked(data *aggregator.SubmissionData, key inFlightKey) bool {
+	// removed by a config reload (old subscriptions linger for ResubscribeGrace)
+	if _, known := c.FeedHashes[data.Symbol]; !known {
+		return false
+	}
+	if !c.newerThanDeliveredLocked(data) {
+		return false
+	}
+	_, busy := c.inFlight[key]
+	return !busy
 }
 
 // newerThanDeliveredLocked reports whether data is strictly newer than the last delivered value
@@ -323,12 +343,18 @@ func (c *Collector) processIncomingData(ctx context.Context, data *aggregator.Su
 			log.Debug().Str("Player", "DalCollector").Str("Symbol", data.Symbol).Msg("old or duplicate data recieved")
 			return
 		}
+		// released under the commit lock below; this covers every other exit
+		released := false
+		defer func() {
+			if !released {
+				c.mu.Lock()
+				delete(c.inFlight, key)
+				c.mu.Unlock()
+			}
+		}()
 
 		result, err := c.toOutgoing(ctx, data)
 		if err != nil {
-			c.mu.Lock()
-			c.releaseLocked(key)
-			c.mu.Unlock()
 			log.Error().Err(err).Str("Player", "DalCollector").Msg("failed to convert incoming data to outgoing data")
 			return
 		}
@@ -337,7 +363,8 @@ func (c *Collector) processIncomingData(ctx context.Context, data *aggregator.Su
 		// stream mid-send (the send never blocks).
 		c.mu.Lock()
 		defer c.mu.Unlock()
-		c.releaseLocked(key)
+		delete(c.inFlight, key)
+		released = true
 		stream, known := c.OutgoingStream[result.Symbol]
 		if !known || ctx.Err() != nil {
 			return
