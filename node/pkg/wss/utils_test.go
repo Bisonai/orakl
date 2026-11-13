@@ -83,8 +83,11 @@ func TestReconnectTicker(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, conn)
 
-	// Run the WebSocket helper in a separate goroutine
-	go conn.Run(context.Background(), func(ctx context.Context, data map[string]any) error {
+	// Run the WebSocket helper in a separate goroutine; cancel so it does not
+	// keep redialing the closed server during later tests
+	runCtx, cancelRun := context.WithCancel(context.Background())
+	defer cancelRun()
+	go conn.Run(runCtx, func(ctx context.Context, data map[string]any) error {
 		// Handle data if necessary
 		return nil
 	})
@@ -115,8 +118,11 @@ func TestInactivityTimer(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, conn)
 
-	// Run the WebSocket helper in a separate goroutine
-	go conn.Run(context.Background(), func(ctx context.Context, data map[string]any) error {
+	// Run the WebSocket helper in a separate goroutine; cancel so it does not
+	// keep redialing the closed server during later tests
+	runCtx, cancelRun := context.WithCancel(context.Background())
+	defer cancelRun()
+	go conn.Run(runCtx, func(ctx context.Context, data map[string]any) error {
 		// Handle data if necessary
 		return nil
 	})
@@ -376,6 +382,9 @@ func TestRunInactivityCountsFromLastMessage(t *testing.T) {
 		return
 	}
 	assert.Equal(t, int32(1), routed.Load())
+	if !assert.NotZero(t, sentAt.Load(), "server never sent the message") {
+		return
+	}
 	sent := time.Unix(0, sentAt.Load())
 	assert.GreaterOrEqual(t, conns[1].accepted.Sub(sent), inactivity*3/4, "inactivity not counted from the last message")
 }
@@ -387,7 +396,8 @@ func TestRunReconnectsSilentConnAtReconnectInterval(t *testing.T) {
 		context.Background(),
 		WithEndpoint(rs.url()),
 		WithInactivityTimeout(time.Hour),
-		// longer than dial + 1s pre-subscribe wait, so the deadline hits mid-read
+		// longer than dial + 1s pre-subscribe wait, so a timer started with Run
+		// expires mid-read rather than before the first read
 		WithReconnectInterval(1500*time.Millisecond),
 	)
 	assert.NoError(t, err)
@@ -455,4 +465,11 @@ func TestRunKeepsActiveConn(t *testing.T) {
 	time.Sleep(1*time.Second + 6*inactivity)
 	stop()
 	assert.Len(t, rs.snapshot(), 1, "active connection should not be reconnected")
+}
+
+func TestNewWebsocketHelperRejectsNonPositiveWindows(t *testing.T) {
+	_, err := NewWebsocketHelper(context.Background(), WithEndpoint("ws://x"), WithInactivityTimeout(0))
+	assert.Error(t, err)
+	_, err = NewWebsocketHelper(context.Background(), WithEndpoint("ws://x"), WithReconnectInterval(-time.Second))
+	assert.Error(t, err)
 }

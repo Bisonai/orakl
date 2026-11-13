@@ -120,6 +120,12 @@ func NewWebsocketHelper(ctx context.Context, opts ...ConnectionOption) (*Websock
 		return nil, fmt.Errorf("endpoint is required")
 	}
 
+	// a non-positive window would expire every read immediately (endless reconnect loop)
+	if config.ReconnectInterval <= 0 || config.InactivityTimeout <= 0 {
+		log.Error().Msg("reconnect interval and inactivity timeout must be positive")
+		return nil, fmt.Errorf("reconnect interval and inactivity timeout must be positive")
+	}
+
 	if config.Subscriptions == nil {
 		log.Warn().Msg("no subscriptions provided")
 	}

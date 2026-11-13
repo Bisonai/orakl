@@ -117,6 +117,7 @@ func (ws *WebsocketHelper) Run(ctx context.Context, router func(context.Context,
 // forever. nhooyr.io/websocket closes the conn when a read ctx expires; the
 // caller's Close afterwards returns nil without blocking.
 func (ws *WebsocketHelper) readUntilReconnect(ctx context.Context, readFunc func(context.Context, *websocket.Conn) (map[string]interface{}, error), router func(context.Context, map[string]any) error) {
+	// both windows start once dial + subscribe are done
 	reconnectAt := time.Now().Add(ws.ReconnectInterval)
 	lastMessageTime := time.Now()
 
@@ -134,10 +135,11 @@ func (ws *WebsocketHelper) readUntilReconnect(ctx context.Context, readFunc func
 		if err != nil {
 			switch {
 			case ctx.Err() != nil:
-			// cancel() already ran, so only DeadlineExceeded means the deadline hit
-			case errors.Is(readCtx.Err(), context.DeadlineExceeded):
-				log.Info().Str("endpoint", ws.Endpoint).Msg(reason)
 			case isErrorNormalClosure(err):
+			// a close frame from the server wins over the deadline, so its reason is logged;
+			// cancel() already ran, so only DeadlineExceeded means the deadline hit
+			case websocket.CloseStatus(err) == -1 && errors.Is(readCtx.Err(), context.DeadlineExceeded):
+				log.Info().Str("endpoint", ws.Endpoint).Msg(reason)
 			default:
 				log.Warn().Err(err).Str("endpoint", ws.Endpoint).Msg("error reading from websocket, reconnecting")
 			}
