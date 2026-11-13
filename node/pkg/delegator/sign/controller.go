@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"bisonai.com/miko/node/pkg/delegator/store"
 	"bisonai.com/miko/node/pkg/delegator/utils"
 
 	"github.com/go-playground/validator"
@@ -165,6 +166,23 @@ func insertV2(c *fiber.Ctx) error {
 
 	signedRawTxHash := TxToHash(signedTransaction)
 
+	if s := utils.GetStore(c); s != nil {
+		from, _ := transaction.From()
+		record := store.Transaction{
+			Timestamp: time.Now(),
+			Sender:    from.Hex(),
+			Contract:  to,
+			Selector:  selector,
+			Nonce:     transaction.Nonce(),
+			TxHash:    signedTransaction.Hash().Hex(),
+			Token:     tokenName(c),
+		}
+		if err := s.RecordTransaction(c.Context(), record); err != nil {
+			log.Error().Err(err).Msg("failed to record transaction")
+		}
+		return c.JSON(SignModel{SignedRawTx: &signedRawTxHash})
+	}
+
 	defer func() {
 		succeed := true
 		payload.Timestamp = &utils.CustomDateTime{Time: time.Now()}
@@ -237,6 +255,17 @@ func validateFunction(c *fiber.Ctx, address, selector string) error {
 	if _, ok := validFunctions.Load(key); ok {
 		return nil
 	}
+	if s := utils.GetStore(c); s != nil {
+		allowed, err := s.FunctionAllowed(c.Context(), address, selector)
+		if err != nil {
+			return err
+		}
+		if !allowed {
+			return fmt.Errorf("not approved function %s for contract %s", selector, address)
+		}
+		validFunctions.Store(key, struct{}{})
+		return nil
+	}
 	functions, err := utils.QueryRows[FunctionModel](c, GetFunctionByToAndEncodedName, map[string]any{"to": address, "encodedName": selector})
 	if err != nil {
 		return err
@@ -252,6 +281,16 @@ func validateContractAddress(c *fiber.Ctx, address string) error {
 	validContracts := c.Locals("validContracts").(*sync.Map)
 	if _, ok := validContracts.Load(address); ok {
 		log.Info().Str("address", address).Msg("contract approved through cache")
+		return nil
+	} else if s := utils.GetStore(c); s != nil {
+		allowed, err := s.ContractAllowed(c.Context(), address)
+		if err != nil {
+			return err
+		}
+		if !allowed {
+			return fmt.Errorf("not approved contract address")
+		}
+		validContracts.Store(address, struct{}{})
 		return nil
 	} else {
 		contract, err := utils.QueryRow[ContractModel](c, GetContractByAddress, map[string]any{"address": address})

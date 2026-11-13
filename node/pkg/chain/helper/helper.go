@@ -91,11 +91,12 @@ func NewChainHelper(ctx context.Context, opts ...ChainHelperOption) (*ChainHelpe
 	delegatorUrl := os.Getenv(EnvDelegatorUrl)
 
 	return &ChainHelper{
-		client:       primaryClient,
-		wallet:       wallet,
-		chainID:      chainID,
-		delegatorUrl: delegatorUrl,
-		noncemanager: nonceManager,
+		client:         primaryClient,
+		wallet:         wallet,
+		chainID:        chainID,
+		delegatorUrl:   delegatorUrl,
+		delegatorToken: secrets.GetSecret(DelegatorToken),
+		noncemanager:   nonceManager,
 	}, nil
 }
 
@@ -113,11 +114,16 @@ func (t *ChainHelper) GetSignedFromDelegator(tx *types.Transaction) (*types.Tran
 		return nil, err
 	}
 
-	result, err := request.Request[signedTx](
-		request.WithEndpoint(t.delegatorUrl+DelegatorEndpoint),
+	opts := []request.RequestOption{
+		request.WithEndpoint(t.delegatorUrl + DelegatorEndpoint),
 		request.WithMethod("POST"),
 		request.WithBody(payload),
-		request.WithTimeout(DelegatorTimeout))
+		request.WithTimeout(DelegatorTimeout),
+	}
+	if t.delegatorToken != "" {
+		opts = append(opts, request.WithHeaders(map[string]string{"Authorization": "Bearer " + t.delegatorToken}))
+	}
+	result, err := request.Request[signedTx](opts...)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to request sign from delegator")
 		return nil, err

@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"bisonai.com/miko/node/pkg/delegator/secrets"
+	"bisonai.com/miko/node/pkg/delegator/store"
 	"bisonai.com/miko/node/pkg/utils/crossorigin"
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
 	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
@@ -32,8 +33,12 @@ type FeePayer struct {
 }
 
 type AppConfig struct {
+	// Postgres is nil in SQLite mode (Store set).
 	Postgres *pgxpool.Pool
-	App      *fiber.App
+	// Store is the SQLite state, used when DATABASE_URL is unset and
+	// DELEGATOR_SQLITE_DIR is set; nil in Postgres mode.
+	Store *store.Store
+	App   *fiber.App
 }
 
 // FeePayerRetryInterval is how long to wait before re-reading the fee payer key
@@ -50,8 +55,9 @@ var (
 // indirected so tests can substitute a loader that panics, which is the only
 // way to exercise the recover in reloadFeePayer.
 var (
-	loadFeePayerFromVault = LoadFeePayerFromVault
-	loadFeePayerFromGSM   = LoadFeePayerFromGSM
+	loadFeePayerFromVault       = LoadFeePayerFromVault
+	loadFeePayerFromGSM         = LoadFeePayerFromGSM
+	loadFeePayerFromOnePassword = LoadFeePayerFromOnePassword
 )
 
 func Setup(options ...string) (AppConfig, error) {
@@ -64,9 +70,28 @@ func Setup(options ...string) (AppConfig, error) {
 		version = "test"
 	}
 
-	pgxPool, pgxError := pgxpool.New(context.Background(), os.Getenv("DATABASE_URL"))
-	if pgxError != nil {
-		return appConfig, pgxError
+	var (
+		pgxPool *pgxpool.Pool
+		sqlite  *store.Store
+	)
+	if databaseURL := os.Getenv("DATABASE_URL"); databaseURL != "" || store.DirFromEnv() == "" {
+		var pgxError error
+		pgxPool, pgxError = pgxpool.New(context.Background(), databaseURL)
+		if pgxError != nil {
+			return appConfig, pgxError
+		}
+	} else {
+		retention, err := store.RetentionFromEnv()
+		if err != nil {
+			return appConfig, err
+		}
+		// must exist: a wrong path or unmounted volume must not start with an
+		// empty allowlist
+		sqlite, err = store.Open(context.Background(), store.DirFromEnv(), retention, false)
+		if err != nil {
+			return appConfig, err
+		}
+		log.Info().Str("dir", store.DirFromEnv()).Int("retentionDays", retention).Msg("delegator running on SQLite")
 	}
 
 	feePayerErr := InitFeePayerPK(context.Background(), pgxPool)
@@ -92,6 +117,8 @@ func Setup(options ...string) (AppConfig, error) {
 	app.Use(func(c *fiber.Ctx) error {
 		c.Locals("feePayer", CurrentFeePayer())
 		c.Locals("pgxConn", pgxPool)
+		// wrapped: fasthttp closes io.Closer locals at the end of each request
+		c.Locals("store", storeRef{sqlite})
 		c.Locals("validContracts", validContracts)
 		c.Locals("validFunctions", validFunctions)
 		return c.Next()
@@ -107,6 +134,7 @@ func Setup(options ...string) (AppConfig, error) {
 
 	appConfig = AppConfig{
 		Postgres: pgxPool,
+		Store:    sqlite,
 		App:      app,
 	}
 	return appConfig, nil
@@ -121,6 +149,7 @@ func InitFeePayerPK(ctx context.Context, pgxPool *pgxpool.Pool) error {
 
 	useGoogleSecretManager, _ := strconv.ParseBool(os.Getenv("USE_GOOGLE_SECRET_MANAGER"))
 	useVault, _ := strconv.ParseBool(os.Getenv("USE_VAULT"))
+	useOnePassword, _ := strconv.ParseBool(os.Getenv(EnvUseOnePassword))
 
 	var (
 		pk  string
@@ -129,6 +158,8 @@ func InitFeePayerPK(ctx context.Context, pgxPool *pgxpool.Pool) error {
 	switch {
 	case useVault:
 		pk, err = loadFeePayerFromVault(ctx)
+	case useOnePassword:
+		pk, err = loadFeePayerFromOnePassword(ctx)
 	case useGoogleSecretManager:
 		pk, err = loadFeePayerFromGSM(ctx)
 	default:
@@ -268,6 +299,16 @@ func CurrentFeePayer() string {
 	feePayerMu.RLock()
 	defer feePayerMu.RUnlock()
 	return feePayer
+}
+
+// storeRef holds the store in request locals without exposing Close, which
+// fasthttp would call after every request.
+type storeRef struct{ s *store.Store }
+
+// GetStore returns the SQLite store, or nil in Postgres mode.
+func GetStore(c *fiber.Ctx) *store.Store {
+	ref, _ := c.Locals("store").(storeRef)
+	return ref.s
 }
 
 func GetPgx(c *fiber.Ctx) (*pgxpool.Pool, error) {

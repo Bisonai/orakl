@@ -6,6 +6,7 @@ on:
       - "master"
     paths:
       - "node/pkg/delegator/**"
+      - "node/cmd/delegator/**"
   workflow_dispatch:
 
 jobs:
@@ -49,7 +50,7 @@ jobs:
       - name: Run test
         run: |
           cd ./node/pkg/delegator
-          go test ./tests -v
+          go test ./... -v
         env:
           DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/miko-test?search_path=public"
           PROVIDER_URL: "https://public-en-kairos.node.kaia.io"
