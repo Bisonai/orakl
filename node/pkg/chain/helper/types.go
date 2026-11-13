@@ -22,7 +22,7 @@ type ChainHelper struct {
 	delegatorUrl string
 	// delegatorToken is sent as a bearer token when set
 	delegatorToken string
-	noncemanager *noncemanagerv2.NonceManagerV2
+	noncemanager   *noncemanagerv2.NonceManagerV2
 }
 
 type ChainHelperConfig struct {
