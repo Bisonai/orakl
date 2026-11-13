@@ -117,7 +117,8 @@ func Setup(options ...string) (AppConfig, error) {
 	app.Use(func(c *fiber.Ctx) error {
 		c.Locals("feePayer", CurrentFeePayer())
 		c.Locals("pgxConn", pgxPool)
-		c.Locals("store", sqlite)
+		// wrapped: fasthttp closes io.Closer locals at the end of each request
+		c.Locals("store", storeRef{sqlite})
 		c.Locals("validContracts", validContracts)
 		c.Locals("validFunctions", validFunctions)
 		return c.Next()
@@ -300,10 +301,14 @@ func CurrentFeePayer() string {
 	return feePayer
 }
 
+// storeRef holds the store in request locals without exposing Close, which
+// fasthttp would call after every request.
+type storeRef struct{ s *store.Store }
+
 // GetStore returns the SQLite store, or nil in Postgres mode.
 func GetStore(c *fiber.Ctx) *store.Store {
-	s, _ := c.Locals("store").(*store.Store)
-	return s
+	ref, _ := c.Locals("store").(storeRef)
+	return ref.s
 }
 
 func GetPgx(c *fiber.Ctx) (*pgxpool.Pool, error) {

@@ -11,6 +11,7 @@ import (
 	"math/big"
 	"net/http"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"bisonai.com/miko/node/pkg/delegator/store"
@@ -119,6 +120,25 @@ func TestSignV2SQLite(t *testing.T) {
 		assert.Equal(t, "0x"+hex.EncodeToString(selector), gotSelector)
 		assert.Equal(t, int64(7), gotNonce)
 		assert.Equal(t, signed.Hash().Hex(), gotHash)
+	})
+
+	t.Run("store stays open across requests", func(t *testing.T) {
+		tx, _ := signedSenderTx(t, contract, append(selector, 0x02), chainID)
+		code, body := signRequest(t, appConfig.App, tx)
+		require.Equal(t, http.StatusOK, code, body)
+
+		files, err := appConfig.Store.TransactionFiles()
+		require.NoError(t, err)
+		db, err := sql.Open("sqlite", filepath.Join(dir, files[0]))
+		require.NoError(t, err)
+		defer db.Close()
+		var n int
+		require.NoError(t, db.QueryRow("SELECT COUNT(*) FROM transactions").Scan(&n))
+		assert.Equal(t, 2, n)
+
+		ok, err := appConfig.Store.ContractAllowed(context.Background(), strings.ToLower(contract.Hex()))
+		require.NoError(t, err)
+		assert.True(t, ok)
 	})
 
 	t.Run("other function is refused", func(t *testing.T) {
