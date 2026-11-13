@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -136,9 +137,12 @@ func (ws *WebsocketHelper) readUntilReconnect(ctx context.Context, readFunc func
 			switch {
 			case ctx.Err() != nil:
 			case isErrorNormalClosure(err):
-			// a close frame from the server wins over the deadline, so its reason is logged;
-			// cancel() already ran, so only DeadlineExceeded means the deadline hit
-			case websocket.CloseStatus(err) == -1 && errors.Is(readCtx.Err(), context.DeadlineExceeded):
+			// The deadline hit only if readCtx expired (cancel() already ran, so check
+			// DeadlineExceeded) and the error is what nhooyr returns for it (ctx error,
+			// or net.ErrClosed after its timeoutLoop closed the conn). Other errors,
+			// e.g. a close frame or reset racing the deadline, keep their Warn log.
+			case errors.Is(readCtx.Err(), context.DeadlineExceeded) &&
+				(errors.Is(err, context.DeadlineExceeded) || errors.Is(err, net.ErrClosed)):
 				log.Info().Str("endpoint", ws.Endpoint).Msg(reason)
 			default:
 				log.Warn().Err(err).Str("endpoint", ws.Endpoint).Msg("error reading from websocket, reconnecting")
