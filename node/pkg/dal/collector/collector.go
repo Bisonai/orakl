@@ -73,9 +73,11 @@ type Collector struct {
 	// subscribe starts subscriptions to topics under ctx and returns a channel
 	// closed once they are connected; replaceable in tests.
 	subscribe func(ctx context.Context, topics []string) (<-chan struct{}, error)
-	// toOutgoing verifies and converts incoming data; nil means IncomingDataToOutgoingData.
-	// Replaceable in tests to control verification timing.
+	// toOutgoing verifies and converts incoming data (IncomingDataToOutgoingData);
+	// replaceable in tests to control verification timing.
 	toOutgoing func(ctx context.Context, data *aggregator.SubmissionData) (*dalcommon.OutgoingSubmissionData, error)
+	// inFlight holds messages being verified (see claim), guarded by mu; lazily created.
+	inFlight map[string]struct{}
 
 	IsRunning  bool
 	CancelFunc context.CancelFunc
@@ -151,6 +153,7 @@ func NewCollector(ctx context.Context, configs []types.Config) (*Collector, erro
 		processPool:                 pool.NewPool(ProcessWorkerCount),
 	}
 	collector.subscribe = collector.redisSubscribe
+	collector.toOutgoing = collector.IncomingDataToOutgoingData
 
 	redisTopics := []string{}
 	for _, config := range configs {
@@ -264,17 +267,42 @@ func (c *Collector) redisRouter(ctx context.Context, msg *redis.Message) error {
 	return nil
 }
 
-// isNewer reports whether data is for a known symbol and newer than the last value delivered
-// for it. It only reads, so a message that later fails verification does not block others.
-func (c *Collector) isNewer(data *aggregator.SubmissionData) bool {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
+// claim reports whether data should be verified: its symbol is known, it is newer than the last
+// value delivered for it, and an identical copy (base + sub redis) is not already being verified.
+// It only marks data in flight, so a message that fails verification does not block a different
+// message with the same timestamp. Callers release the returned key with releaseLocked.
+func (c *Collector) claim(data *aggregator.SubmissionData) (string, bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 
 	// removed by a config reload (old subscriptions linger for ResubscribeGrace)
 	if _, known := c.FeedHashes[data.Symbol]; !known {
-		return false
+		return "", false
 	}
-	return c.newerThanDeliveredLocked(data)
+	if !c.newerThanDeliveredLocked(data) {
+		return "", false
+	}
+	key := inFlightKey(data)
+	if _, busy := c.inFlight[key]; busy {
+		return "", false
+	}
+	if c.inFlight == nil {
+		c.inFlight = make(map[string]struct{})
+	}
+	c.inFlight[key] = struct{}{}
+	return key, true
+}
+
+// releaseLocked ends the in-flight claim for key. Callers hold c.mu.
+func (c *Collector) releaseLocked(key string) {
+	delete(c.inFlight, key)
+}
+
+func inFlightKey(data *aggregator.SubmissionData) string {
+	return data.Symbol + "|" +
+		strconv.FormatInt(data.GlobalAggregate.Timestamp.UnixNano(), 10) + "|" +
+		strconv.FormatInt(data.GlobalAggregate.Value, 10) + "|" +
+		string(data.Proof.Proof)
 }
 
 // newerThanDeliveredLocked reports whether data is strictly newer than the last delivered value
@@ -290,17 +318,17 @@ func (c *Collector) processIncomingData(ctx context.Context, data *aggregator.Su
 		return
 	default:
 		// cheap early reject before verification; re-checked under the lock below
-		if !c.isNewer(data) {
-			log.Debug().Str("Player", "DalCollector").Str("Symbol", data.Symbol).Msg("old data recieved")
+		key, ok := c.claim(data)
+		if !ok {
+			log.Debug().Str("Player", "DalCollector").Str("Symbol", data.Symbol).Msg("old or duplicate data recieved")
 			return
 		}
 
-		toOutgoing := c.toOutgoing
-		if toOutgoing == nil {
-			toOutgoing = c.IncomingDataToOutgoingData
-		}
-		result, err := toOutgoing(ctx, data)
+		result, err := c.toOutgoing(ctx, data)
 		if err != nil {
+			c.mu.Lock()
+			c.releaseLocked(key)
+			c.mu.Unlock()
 			log.Error().Err(err).Str("Player", "DalCollector").Msg("failed to convert incoming data to outgoing data")
 			return
 		}
@@ -309,14 +337,15 @@ func (c *Collector) processIncomingData(ctx context.Context, data *aggregator.Su
 		// stream mid-send (the send never blocks).
 		c.mu.Lock()
 		defer c.mu.Unlock()
+		c.releaseLocked(key)
 		stream, known := c.OutgoingStream[result.Symbol]
 		if !known || ctx.Err() != nil {
 			return
 		}
-		// A newer (or same-timestamp duplicate) value may have been delivered while this one
-		// was verified; never move LatestData or the stream backwards.
+		// A newer or same-timestamp value may have been delivered while this one was verified;
+		// never move LatestData or the stream backwards.
 		if !c.newerThanDeliveredLocked(data) {
-			log.Debug().Str("Player", "DalCollector").Str("Symbol", data.Symbol).Msg("newer data delivered during verification")
+			log.Debug().Str("Player", "DalCollector").Str("Symbol", data.Symbol).Msg("data not newer than delivered after verification")
 			return
 		}
 		c.LatestTimestamps[data.Symbol] = data.GlobalAggregate.Timestamp

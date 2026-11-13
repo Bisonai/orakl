@@ -85,8 +85,8 @@ func TestOlderDataVerifiedLastDoesNotOverwrite(t *testing.T) {
 	assert.Equal(t, []string{strconv.FormatInt(t2.UnixMilli(), 10)}, drain(c.OutgoingStream["A-B"]), "stream must not go backwards")
 }
 
-// Duplicates of one timestamp (base + sub redis) verified concurrently are delivered once.
-func TestConcurrentDuplicateDeliveredOnce(t *testing.T) {
+// Same-timestamp messages with different proofs verified concurrently are delivered once.
+func TestConcurrentSameTimestampDeliveredOnce(t *testing.T) {
 	c, _ := newTestCollector(t, "A-B")
 	gate := make(chan struct{})
 	ts := time.UnixMilli(1_700_000_000_000)
@@ -95,14 +95,14 @@ func TestConcurrentDuplicateDeliveredOnce(t *testing.T) {
 	ctx := context.Background()
 
 	var wg sync.WaitGroup
-	for i := 0; i < 2; i++ {
+	for i := byte(0); i < 2; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			c.processIncomingData(ctx, submission("A-B", ts, nil))
+			c.processIncomingData(ctx, submission("A-B", ts, []byte{i}))
 		}()
 	}
-	// both copies are verifying before either delivers, so only the locked re-check dedups
+	// both are verifying before either delivers, so only the locked re-check dedups
 	timeout := time.After(5 * time.Second)
 	for i := 0; i < 2; i++ {
 		select {
@@ -110,13 +110,39 @@ func TestConcurrentDuplicateDeliveredOnce(t *testing.T) {
 		case <-timeout:
 			close(gate)
 			wg.Wait()
-			t.Fatal("both copies must reach verification")
+			t.Fatal("both messages must reach verification")
 		}
 	}
 	close(gate)
 	wg.Wait()
 
 	assert.Len(t, drain(c.OutgoingStream["A-B"]), 1)
+}
+
+// An identical copy (base + sub redis) arriving while the first is verifying is not verified again.
+func TestIdenticalCopyVerifiedOnce(t *testing.T) {
+	c, _ := newTestCollector(t, "A-B")
+	gate := make(chan struct{})
+	ts := time.UnixMilli(1_700_000_000_000)
+	f := &fakeOutgoing{gates: map[int64]chan struct{}{ts.UnixMilli(): gate}, entered: make(chan int64, 2)}
+	c.toOutgoing = f.convert
+	ctx := context.Background()
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		c.processIncomingData(ctx, submission("A-B", ts, []byte{1}))
+	}()
+	require.Equal(t, ts.UnixMilli(), <-f.entered)
+	c.processIncomingData(ctx, submission("A-B", ts, []byte{1}))
+	close(gate)
+	<-done
+
+	assert.Empty(t, f.entered, "identical copy must not be verified twice")
+	assert.Len(t, drain(c.OutgoingStream["A-B"]), 1)
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	assert.Empty(t, c.inFlight)
 }
 
 // A message failing verification must not block a valid message with the same timestamp.
