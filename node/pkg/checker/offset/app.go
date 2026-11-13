@@ -15,14 +15,11 @@ import (
 
 	"bisonai.com/miko/node/pkg/alert"
 	"bisonai.com/miko/node/pkg/checker"
-	"bisonai.com/miko/node/pkg/db"
 	metricnames "bisonai.com/miko/node/pkg/metrics/names"
-	"bisonai.com/miko/node/pkg/secrets"
 	"bisonai.com/miko/node/pkg/utils/request"
 
 	"time"
 
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prometheus/common/expfmt"
 	"github.com/prometheus/common/model"
 	"github.com/rs/zerolog/log"
@@ -38,16 +35,6 @@ const (
 
 	nodeMetricsEndpoint = "/metrics"
 	nodeMetricsTimeout  = 10 * time.Second
-
-	PorAlarmThreshold     = 3
-	PorAlarmOffset        = 300 * time.Second
-	GetPorOffchainOffsets = `SELECT
-	name,
-	EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - MAX(timestamp))) AS delay
-FROM
-	por_offchain
-GROUP BY
-	name`
 )
 
 // aggregateMetrics holds the latest aggregates of one config read from node
@@ -59,33 +46,13 @@ type aggregateMetrics struct {
 	GlobalTimestamp *float64
 }
 
-type PorOffsetResult struct {
-	Name  string
-	Delay float64
-}
-
 var localAggregateAlarmCount map[string]int
 var globalAggregateAlarmCount map[string]int
-var porOffchainAlarmCount map[string]int
 var metricsFetchFailCount int
 
 func Start(ctx context.Context) error {
 	localAggregateAlarmCount = make(map[string]int)
 	globalAggregateAlarmCount = make(map[string]int)
-	porOffchainAlarmCount = make(map[string]int)
-
-	serviceDBUrl := secrets.GetSecret("SERVICE_DB_URL")
-	if serviceDBUrl == "" {
-		log.Error().Msg("Missing SERVICE_DB_URL")
-		return errors.New("missing SERVICE_DB_URL")
-	}
-
-	serviceDB, err := db.GetTransientPool(ctx, serviceDBUrl)
-	if err != nil {
-		log.Error().Err(err).Msg("Error getting service DB connection")
-		return err
-	}
-	defer serviceDB.Close()
 
 	ticker := time.NewTicker(DefaultCheckInterval)
 	defer ticker.Stop()
@@ -96,37 +63,9 @@ func Start(ctx context.Context) error {
 			log.Info().Msg("context cancelled, shutting down")
 			return ctx.Err()
 		case <-ticker.C:
-			go checkPorOffsets(ctx, serviceDB)
 			// synchronous: alarm counters are not safe for concurrent runs
 			checkOffsets(ctx)
 		}
-	}
-}
-
-func checkPorOffsets(ctx context.Context, serviceDB *pgxpool.Pool) {
-	msg := ""
-
-	res, err := db.QueryRowsTransient[PorOffsetResult](ctx, serviceDB, GetPorOffchainOffsets, nil)
-	if err != nil {
-		log.Error().Err(err).Msg("Error getting por offchain offsets")
-		return
-	}
-
-	for _, r := range res {
-		log.Debug().Str("name", r.Name).Float64("delay", r.Delay).Msg("checking por offset")
-		if r.Delay > PorAlarmOffset.Seconds() {
-			porOffchainAlarmCount[r.Name]++
-			if porOffchainAlarmCount[r.Name] > PorAlarmThreshold {
-				msg += fmt.Sprintf("(por offchain offset) %s: %v seconds\n", r.Name, r.Delay)
-				porOffchainAlarmCount[r.Name] = 0
-			}
-		} else {
-			porOffchainAlarmCount[r.Name] = 0
-		}
-	}
-
-	if msg != "" {
-		alert.SlackAlert(msg)
 	}
 }
 

@@ -36,21 +36,6 @@ func TestLoadWalletFromMikoApi(t *testing.T) {
 	assert.Equal(t, testAddr1, wallets[1].Address.Hex())
 }
 
-func TestLoadWalletFromPor(t *testing.T) {
-	ctx := context.Background()
-	mockServer := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		rw.Write([]byte(testAddr0))
-	}))
-	defer mockServer.Close()
-
-	wallet, err := loadWalletFromPor(ctx, mockServer.URL)
-	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
-	}
-
-	assert.Equal(t, testAddr0, wallet.Address.Hex())
-}
-
 func TestLoadWalletFromDelegator(t *testing.T) {
 	ctx := context.Background()
 	mockServer := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {

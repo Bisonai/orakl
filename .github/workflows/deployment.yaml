@@ -16,7 +16,6 @@ on:
           - "api"
           - "request-response"
           - "delegator"
-          - "por"
           - "node"
           - "boot-api"
           - "sentinel"
