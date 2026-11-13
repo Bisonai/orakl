@@ -1,7 +1,9 @@
 package main
 
 import (
+	"context"
 	_ "embed"
+	"fmt"
 	"os"
 
 	"bisonai.com/miko/node/pkg/delegator/contract"
@@ -23,6 +25,14 @@ func main() {
 		log.Info().Msg("env file is not found, continuing without .env file")
 	}
 
+	if len(os.Args) > 1 && os.Args[1] == "allow" {
+		if err := runAllow(context.Background(), os.Args[2:], os.Stdin, os.Stdout); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		return
+	}
+
 	loginit.InitZeroLog()
 
 	appConfig, err := utils.Setup("0.0.1")
@@ -30,13 +40,15 @@ func main() {
 		panic(err)
 	}
 
-	postgres := appConfig.Postgres
 	app := appConfig.App
-
-	defer postgres.Close()
-
 	v1 := app.Group("/api/v1")
-	SetRouter(v1)
+	if appConfig.Store != nil {
+		defer appConfig.Store.Close()
+		SetSigningRouter(v1)
+	} else {
+		defer appConfig.Postgres.Close()
+		SetRouter(v1)
+	}
 
 	var port string
 	port = os.Getenv("APP_PORT")
@@ -49,6 +61,15 @@ func main() {
 		panic(err)
 	}
 
+}
+
+// SetSigningRouter registers the SQLite-mode routes: no allowlist or
+// transaction management API (use 'allow' on the CLI).
+func SetSigningRouter(router fiber.Router) {
+	router.Get("", func(c *fiber.Ctx) error {
+		return c.SendString("Orakl Network Delegator")
+	})
+	sign.SigningRoutes(router)
 }
 
 func SetRouter(router fiber.Router) {
