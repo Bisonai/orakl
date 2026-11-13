@@ -23,7 +23,6 @@ type WebsocketHelper struct {
 	ReadLimit         int64
 	ReconnectInterval time.Duration
 	InactivityTimeout time.Duration
-	lastMessageTime   time.Time
 }
 
 type ConnectionConfig struct {
