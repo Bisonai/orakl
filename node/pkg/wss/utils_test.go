@@ -5,6 +5,8 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -216,4 +218,241 @@ func TestRunReturnsOnCancelAfterServerGone(t *testing.T) {
 	case <-time.After(3 * time.Second):
 		t.Fatal("Run did not return after context cancel")
 	}
+}
+
+// connRecord is the server-side view of one accepted websocket connection.
+type connRecord struct {
+	accepted time.Time
+	closed   time.Time
+}
+
+// recordingServer accepts websocket connections, runs onConn for each and
+// records when each connection was accepted and when the client went away.
+type recordingServer struct {
+	*httptest.Server
+	mu    sync.Mutex
+	conns []*connRecord
+}
+
+func newRecordingServer(t *testing.T, onConn func(ctx context.Context, conn *websocket.Conn, idx int)) *recordingServer {
+	t.Helper()
+	rs := &recordingServer{}
+	rs.Server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		conn, err := websocket.Accept(w, r, nil)
+		if err != nil {
+			return
+		}
+		defer conn.CloseNow()
+
+		rec := &connRecord{accepted: time.Now()}
+		rs.mu.Lock()
+		idx := len(rs.conns)
+		rs.conns = append(rs.conns, rec)
+		rs.mu.Unlock()
+
+		ctx, cancel := context.WithCancel(r.Context())
+		defer cancel()
+		if onConn != nil {
+			go onConn(ctx, conn, idx)
+		}
+
+		// drain until the client goes away; also answers control frames
+		for {
+			if _, _, err := conn.Read(ctx); err != nil {
+				break
+			}
+		}
+		rs.mu.Lock()
+		rec.closed = time.Now()
+		rs.mu.Unlock()
+	}))
+	t.Cleanup(rs.Server.Close)
+	return rs
+}
+
+func (rs *recordingServer) url() string {
+	return "ws" + rs.URL[len("http"):] + "/ws"
+}
+
+func (rs *recordingServer) snapshot() []connRecord {
+	rs.mu.Lock()
+	defer rs.mu.Unlock()
+	out := make([]connRecord, len(rs.conns))
+	for i, c := range rs.conns {
+		out[i] = *c
+	}
+	return out
+}
+
+func (rs *recordingServer) waitDials(n int, timeout time.Duration) []connRecord {
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		if s := rs.snapshot(); len(s) >= n {
+			return s
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	return rs.snapshot()
+}
+
+// startRun runs ws.Run in the background and returns a stop func that cancels
+// it and fails the test if Run does not return promptly.
+func startRun(t *testing.T, ws *WebsocketHelper, router func(context.Context, map[string]any) error) func() {
+	t.Helper()
+	if router == nil {
+		router = func(context.Context, map[string]any) error { return nil }
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
+	go func() {
+		ws.Run(ctx, router)
+		close(done)
+	}()
+	stopped := false
+	stop := func() {
+		if stopped {
+			return
+		}
+		stopped = true
+		cancel()
+		select {
+		case <-done:
+		case <-time.After(2 * time.Second):
+			t.Fatal("Run did not return promptly after context cancel")
+		}
+	}
+	t.Cleanup(stop)
+	return stop
+}
+
+func TestRunReconnectsSilentConnAfterInactivity(t *testing.T) {
+	const inactivity = 200 * time.Millisecond
+	rs := newRecordingServer(t, nil)
+
+	ws, err := NewWebsocketHelper(context.Background(), WithEndpoint(rs.url()), WithInactivityTimeout(inactivity))
+	assert.NoError(t, err)
+	stop := startRun(t, ws, nil)
+
+	// each cycle = dial + 1s pre-subscribe wait + inactivity
+	conns := rs.waitDials(3, 6*time.Second)
+	stop()
+	if !assert.GreaterOrEqual(t, len(conns), 3, "silent connection was not reconnected") {
+		return
+	}
+	// the second connection must also wait a full inactivity window, i.e. the
+	// last message time is reset per connection
+	for i := 0; i < 2; i++ {
+		lifetime := conns[i+1].accepted.Sub(conns[i].accepted)
+		assert.GreaterOrEqual(t, lifetime, time.Second+inactivity*3/4, "connection %d reconnected too early", i)
+	}
+}
+
+func TestRunInactivityCountsFromLastMessage(t *testing.T) {
+	const inactivity = 500 * time.Millisecond
+	var sentAt atomic.Int64
+	rs := newRecordingServer(t, func(ctx context.Context, conn *websocket.Conn, idx int) {
+		if idx != 0 {
+			return
+		}
+		// client starts reading ~1s after dial; send one message while it reads
+		if sleepCtx(ctx, 1300*time.Millisecond) != nil {
+			return
+		}
+		sentAt.Store(time.Now().UnixNano())
+		_ = wsjson.Write(ctx, conn, map[string]any{"a": 1})
+	})
+
+	var routed atomic.Int32
+	ws, err := NewWebsocketHelper(context.Background(), WithEndpoint(rs.url()), WithInactivityTimeout(inactivity))
+	assert.NoError(t, err)
+	stop := startRun(t, ws, func(context.Context, map[string]any) error {
+		routed.Add(1)
+		return nil
+	})
+
+	conns := rs.waitDials(2, 5*time.Second)
+	stop()
+	if !assert.GreaterOrEqual(t, len(conns), 2, "connection silent after one message was not reconnected") {
+		return
+	}
+	assert.Equal(t, int32(1), routed.Load())
+	sent := time.Unix(0, sentAt.Load())
+	assert.GreaterOrEqual(t, conns[1].accepted.Sub(sent), inactivity*3/4, "inactivity not counted from the last message")
+}
+
+func TestRunReconnectsSilentConnAtReconnectInterval(t *testing.T) {
+	rs := newRecordingServer(t, nil)
+
+	ws, err := NewWebsocketHelper(
+		context.Background(),
+		WithEndpoint(rs.url()),
+		WithInactivityTimeout(time.Hour),
+		// longer than dial + 1s pre-subscribe wait, so the deadline hits mid-read
+		WithReconnectInterval(1500*time.Millisecond),
+	)
+	assert.NoError(t, err)
+	stop := startRun(t, ws, nil)
+
+	conns := rs.waitDials(2, 5*time.Second)
+	stop()
+	if !assert.GreaterOrEqual(t, len(conns), 2, "silent connection was not reconnected at ReconnectInterval") {
+		return
+	}
+	assert.GreaterOrEqual(t, conns[1].accepted.Sub(conns[0].accepted), 1500*time.Millisecond)
+}
+
+func TestRunEmptyReadsDoNotCountAsActivity(t *testing.T) {
+	const inactivity = 500 * time.Millisecond
+	rs := newRecordingServer(t, func(ctx context.Context, conn *websocket.Conn, idx int) {
+		// app-level heartbeat only, no data
+		for sleepCtx(ctx, 100*time.Millisecond) == nil {
+			if conn.Write(ctx, websocket.MessageText, []byte("pong")) != nil {
+				return
+			}
+		}
+	})
+
+	// mirrors providers (bitget, bitmart, xt) that return (nil, nil) for "pong"
+	pongReader := func(ctx context.Context, conn *websocket.Conn) (map[string]any, error) {
+		_, data, err := conn.Read(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if string(data) == "pong" {
+			return nil, nil
+		}
+		return map[string]any{"raw": string(data)}, nil
+	}
+
+	ws, err := NewWebsocketHelper(
+		context.Background(),
+		WithEndpoint(rs.url()),
+		WithInactivityTimeout(inactivity),
+		WithCustomReadFunc(pongReader),
+	)
+	assert.NoError(t, err)
+	stop := startRun(t, ws, nil)
+
+	conns := rs.waitDials(3, 6*time.Second)
+	stop()
+	assert.GreaterOrEqual(t, len(conns), 3, "heartbeat-only connection was not reconnected")
+}
+
+func TestRunKeepsActiveConn(t *testing.T) {
+	const inactivity = 500 * time.Millisecond
+	rs := newRecordingServer(t, func(ctx context.Context, conn *websocket.Conn, idx int) {
+		for sleepCtx(ctx, 100*time.Millisecond) == nil {
+			if wsjson.Write(ctx, conn, map[string]any{"a": 1}) != nil {
+				return
+			}
+		}
+	})
+
+	ws, err := NewWebsocketHelper(context.Background(), WithEndpoint(rs.url()), WithInactivityTimeout(inactivity))
+	assert.NoError(t, err)
+	stop := startRun(t, ws, nil)
+
+	time.Sleep(1*time.Second + 6*inactivity)
+	stop()
+	assert.Len(t, rs.snapshot(), 1, "active connection should not be reconnected")
 }
