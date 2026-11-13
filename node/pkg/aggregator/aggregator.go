@@ -415,6 +415,9 @@ func (n *Aggregator) processCollectedProofs(ctx context.Context, proofMessage Pr
 	if err := ctx.Err(); err != nil {
 		return err
 	}
+	if n.onSubmission != nil {
+		n.onSubmission(data, n.Raft.GetRole() == raft.Leader)
+	}
 	err := publishSubmissionData(ctx, data)
 	if err != nil {
 		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to publish global aggregate and proof")

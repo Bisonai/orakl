@@ -12,6 +12,7 @@ import (
 
 	"bisonai.com/miko/node/pkg/aggregator"
 	"bisonai.com/miko/node/pkg/chain/chainreader"
+	"bisonai.com/miko/node/pkg/chain/proof"
 	"bisonai.com/miko/node/pkg/common/keys"
 	"bisonai.com/miko/node/pkg/common/types"
 	dalcommon "bisonai.com/miko/node/pkg/dal/common"
@@ -325,8 +326,7 @@ func (c *Collector) IncomingDataToOutgoingData(ctx context.Context, data *aggreg
 		return nil, errorsentinel.ErrDalFeedHashNotFound
 	}
 
-	orderedProof, err := orderProof(
-		ctx,
+	orderedProof, err := proof.Order(
 		data.Proof.Proof,
 		data.GlobalAggregate.Value,
 		data.GlobalAggregate.Timestamp,
