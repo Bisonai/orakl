@@ -73,6 +73,9 @@ type Collector struct {
 	// subscribe starts subscriptions to topics under ctx and returns a channel
 	// closed once they are connected; replaceable in tests.
 	subscribe func(ctx context.Context, topics []string) (<-chan struct{}, error)
+	// toOutgoing verifies and converts incoming data; nil means IncomingDataToOutgoingData.
+	// Replaceable in tests to control verification timing.
+	toOutgoing func(ctx context.Context, data *aggregator.SubmissionData) (*dalcommon.OutgoingSubmissionData, error)
 
 	IsRunning  bool
 	CancelFunc context.CancelFunc
@@ -290,7 +293,11 @@ func (c *Collector) processIncomingData(ctx context.Context, data *aggregator.Su
 			return
 		}
 
-		result, err := c.IncomingDataToOutgoingData(ctx, data)
+		toOutgoing := c.toOutgoing
+		if toOutgoing == nil {
+			toOutgoing = c.IncomingDataToOutgoingData
+		}
+		result, err := toOutgoing(ctx, data)
 		if err != nil {
 			log.Error().Err(err).Str("Player", "DalCollector").Msg("failed to convert incoming data to outgoing data")
 			return
