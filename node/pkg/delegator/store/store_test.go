@@ -133,3 +133,49 @@ func TestRetentionFromEnv(t *testing.T) {
 	_, err = RetentionFromEnv()
 	assert.Error(t, err)
 }
+
+func TestTokens(t *testing.T) {
+	ctx := context.Background()
+	s, err := Open(ctx, t.TempDir(), 0, true)
+	require.NoError(t, err)
+	defer s.Close()
+
+	_, err = s.AddToken(ctx, " ")
+	assert.Error(t, err)
+
+	tokenA, err := s.AddToken(ctx, "node-a")
+	require.NoError(t, err)
+	assert.Regexp(t, `^dlg_[0-9a-f]{64}$`, tokenA)
+	tokenB, err := s.AddToken(ctx, "node-b")
+	require.NoError(t, err)
+	assert.NotEqual(t, tokenA, tokenB)
+
+	_, err = s.AddToken(ctx, "node-a")
+	assert.Error(t, err, "duplicate name")
+
+	var stored int
+	require.NoError(t, s.config.QueryRow("SELECT COUNT(*) FROM tokens WHERE hash = ? OR name = ?", tokenA, tokenA).Scan(&stored))
+	assert.Equal(t, 0, stored, "raw token is never stored")
+
+	name, ok, err := s.TokenName(ctx, tokenA)
+	require.NoError(t, err)
+	assert.True(t, ok)
+	assert.Equal(t, "node-a", name)
+	for _, bad := range []string{"", "dlg_00", tokenA + "0"} {
+		_, ok, err = s.TokenName(ctx, bad)
+		require.NoError(t, err)
+		assert.False(t, ok, bad)
+	}
+
+	tokens, err := s.ListTokens(ctx)
+	require.NoError(t, err)
+	require.Len(t, tokens, 2)
+	assert.Equal(t, "node-a", tokens[0].Name)
+
+	removed, err := s.RemoveToken(ctx, "node-a")
+	require.NoError(t, err)
+	assert.True(t, removed)
+	_, ok, err = s.TokenName(ctx, tokenA)
+	require.NoError(t, err)
+	assert.False(t, ok)
+}

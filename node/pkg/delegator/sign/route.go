@@ -7,7 +7,7 @@ import (
 // SigningRoutes registers only the routes that work without Postgres
 // (SQLite mode): signing, key reload and fee payer address.
 func SigningRoutes(router fiber.Router) {
-	sign := router.Group("/sign")
+	sign := router.Group("/sign", RequireToken)
 
 	sign.Post("/v2", insertV2)
 

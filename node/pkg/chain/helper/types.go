@@ -20,6 +20,8 @@ type ChainHelper struct {
 	wallet       string
 	chainID      *big.Int
 	delegatorUrl string
+	// delegatorToken is sent as a bearer token when set
+	delegatorToken string
 	noncemanager *noncemanagerv2.NonceManagerV2
 }
 
@@ -108,6 +110,8 @@ const (
 	DelegatorEndpoint = "/api/v1/sign/v2"
 
 	EnvDelegatorUrl = "DELEGATOR_URL"
+	// DelegatorToken is the delegator bearer token (env or Vault secret).
+	DelegatorToken  = "DELEGATOR_TOKEN"
 	KaiaProviderUrl = "KAIA_PROVIDER_URL"
 	KaiaReporterPk  = "KAIA_REPORTER_PK"
 	SignerPk        = "SIGNER_PK"

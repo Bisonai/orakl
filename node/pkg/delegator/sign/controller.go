@@ -175,6 +175,7 @@ func insertV2(c *fiber.Ctx) error {
 			Selector:  selector,
 			Nonce:     transaction.Nonce(),
 			TxHash:    signedTransaction.Hash().Hex(),
+			Token:     tokenName(c),
 		}
 		if err := s.RecordTransaction(c.Context(), record); err != nil {
 			log.Error().Err(err).Msg("failed to record transaction")

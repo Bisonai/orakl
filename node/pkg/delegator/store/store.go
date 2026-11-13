@@ -5,6 +5,8 @@ package store
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/sha256"
 	"database/sql"
 	"encoding/csv"
 	"encoding/hex"
@@ -36,6 +38,8 @@ const (
 	txPrefix   = "transactions-"
 	txSuffix   = ".db"
 	dayLayout  = "20060102"
+
+	tokenPrefix = "dlg_"
 )
 
 const configSchema = `
@@ -44,6 +48,11 @@ CREATE TABLE IF NOT EXISTS allowed (
 	selector    TEXT NOT NULL,
 	description TEXT NOT NULL DEFAULT '',
 	PRIMARY KEY (contract, selector)
+);
+CREATE TABLE IF NOT EXISTS tokens (
+	name       TEXT PRIMARY KEY,
+	hash       TEXT NOT NULL UNIQUE,
+	created_at TEXT NOT NULL
 );`
 
 const txSchema = `
@@ -54,7 +63,8 @@ CREATE TABLE IF NOT EXISTS transactions (
 	contract  TEXT NOT NULL,
 	selector  TEXT NOT NULL,
 	nonce     INTEGER NOT NULL,
-	tx_hash   TEXT NOT NULL
+	tx_hash   TEXT NOT NULL,
+	token     TEXT NOT NULL DEFAULT ''
 );`
 
 const upsertQuery = `INSERT INTO allowed (contract, selector, description) VALUES (?, ?, ?)
@@ -81,6 +91,14 @@ type Transaction struct {
 	Selector  string
 	Nonce     uint64
 	TxHash    string
+	// Token is the name of the token that authorized the request.
+	Token string
+}
+
+// TokenInfo describes an API token; the token itself is never stored.
+type TokenInfo struct {
+	Name      string
+	CreatedAt string
 }
 
 type Store struct {
@@ -261,6 +279,75 @@ func (s *Store) ImportCSV(ctx context.Context, r io.Reader) (int, error) {
 	return n, tx.Commit()
 }
 
+func hashToken(token string) string {
+	sum := sha256.Sum256([]byte(token))
+	return hex.EncodeToString(sum[:])
+}
+
+// AddToken creates a token named name and returns it; only its SHA-256 is
+// stored, so it cannot be shown again.
+func (s *Store) AddToken(ctx context.Context, name string) (string, error) {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return "", errors.New("empty token name")
+	}
+	raw := make([]byte, 32)
+	if _, err := rand.Read(raw); err != nil {
+		return "", err
+	}
+	token := tokenPrefix + hex.EncodeToString(raw)
+	_, err := s.config.ExecContext(ctx, "INSERT INTO tokens (name, hash, created_at) VALUES (?, ?, ?)",
+		name, hashToken(token), time.Now().UTC().Format(time.RFC3339))
+	if err != nil {
+		return "", fmt.Errorf("add token %q: %w", name, err)
+	}
+	return token, nil
+}
+
+// RemoveToken revokes the token named name; reports whether one was removed.
+func (s *Store) RemoveToken(ctx context.Context, name string) (bool, error) {
+	res, err := s.config.ExecContext(ctx, "DELETE FROM tokens WHERE name = ?", name)
+	if err != nil {
+		return false, err
+	}
+	n, err := res.RowsAffected()
+	return n > 0, err
+}
+
+// ListTokens returns the token names ordered by name.
+func (s *Store) ListTokens(ctx context.Context) ([]TokenInfo, error) {
+	rows, err := s.config.QueryContext(ctx, "SELECT name, created_at FROM tokens ORDER BY name")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var result []TokenInfo
+	for rows.Next() {
+		var info TokenInfo
+		if err := rows.Scan(&info.Name, &info.CreatedAt); err != nil {
+			return nil, err
+		}
+		result = append(result, info)
+	}
+	return result, rows.Err()
+}
+
+// TokenName returns the name of token and whether it is valid.
+func (s *Store) TokenName(ctx context.Context, token string) (string, bool, error) {
+	if token == "" {
+		return "", false, nil
+	}
+	var name string
+	err := s.config.QueryRowContext(ctx, "SELECT name FROM tokens WHERE hash = ?", hashToken(token)).Scan(&name)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", false, nil
+	}
+	if err != nil {
+		return "", false, err
+	}
+	return name, true, nil
+}
+
 // RecordTransaction appends t to the file of its UTC day, switching files at
 // midnight and then deleting files older than the retention.
 func (s *Store) RecordTransaction(ctx context.Context, t Transaction) error {
@@ -281,9 +368,9 @@ func (s *Store) RecordTransaction(ctx context.Context, t Transaction) error {
 	}
 
 	_, err := s.txDB.ExecContext(ctx,
-		"INSERT INTO transactions (timestamp, sender, contract, selector, nonce, tx_hash) VALUES (?, ?, ?, ?, ?, ?)",
+		"INSERT INTO transactions (timestamp, sender, contract, selector, nonce, tx_hash, token) VALUES (?, ?, ?, ?, ?, ?, ?)",
 		t.Timestamp.UTC().Format(time.RFC3339Nano), strings.ToLower(t.Sender), strings.ToLower(t.Contract),
-		strings.ToLower(t.Selector), int64(t.Nonce), t.TxHash)
+		strings.ToLower(t.Selector), int64(t.Nonce), t.TxHash, t.Token)
 	return err
 }
 

@@ -25,6 +25,14 @@ func main() {
 		log.Info().Msg("env file is not found, continuing without .env file")
 	}
 
+	if len(os.Args) > 1 && os.Args[1] == "token" {
+		if err := runToken(context.Background(), os.Args[2:], os.Stdout); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		return
+	}
+
 	if len(os.Args) > 1 && os.Args[1] == "allow" {
 		if err := runAllow(context.Background(), os.Args[2:], os.Stdin, os.Stdout); err != nil {
 			fmt.Fprintln(os.Stderr, err)
