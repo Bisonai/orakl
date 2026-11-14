@@ -9,7 +9,7 @@ COPY node node
 WORKDIR /app/node
 
 # https://github.com/klaytn/klaytn/issues/197#issuecomment-612597933
-RUN CGO_ENABLED=1 CGO_CFLAGS="-O -D__BLST_PORTABLE__" CGO_CFLAGS_ALLOW="-O -D__BLST_PORTABLE__" CC=x86_64-linux-gnu-gcc GOOS=linux GOARCH=amd64 go build -o delegatorbin -ldflags="-w -s" ./cmd/delegator/main.go
+RUN CGO_ENABLED=1 CGO_CFLAGS="-O -D__BLST_PORTABLE__" CGO_CFLAGS_ALLOW="-O -D__BLST_PORTABLE__" CC=x86_64-linux-gnu-gcc GOOS=linux GOARCH=amd64 go build -o delegatorbin -ldflags="-w -s" ./cmd/delegator
 # debian:bookworm-slim
 FROM debian:bookworm-slim
 
