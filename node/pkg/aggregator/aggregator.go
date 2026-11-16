@@ -3,7 +3,6 @@ package aggregator
 import (
 	"bytes"
 	"context"
-	"math"
 
 	"time"
 
@@ -153,15 +152,18 @@ func (n *Aggregator) HandleTriggerMessage(ctx context.Context, msg raft.Message)
 		log.Debug().Str("Player", "Aggregator").Str("Sender", msg.SentFrom).Str("CurrentLeader", currentLeader).Str("Me", n.Raft.GetHostId()).Msg("trigger message sent from non-leader")
 		return errorSentinel.ErrAggregatorNonLeaderRaftMessage
 	}
-	// prune only for accepted triggers: unvalidated input must not drop round state (#2853)
-	defer n.pruneRounds(triggerMessage.RoundID)
 
+	// the leader's own trigger is its current round
+	currentRoundID := triggerMessage.RoundID
 	if msg.SentFrom != n.Raft.GetHostId() {
 		n.mu.Lock()
 		n.RoundID = max(triggerMessage.RoundID, n.RoundID)
 		n.rounds.Advance(n.Name, n.RoundID)
+		currentRoundID = n.RoundID
 		n.mu.Unlock()
 	}
+	// prune only for accepted triggers: unvalidated input must not drop round state (#2853)
+	defer n.pruneRounds(triggerMessage.RoundID, currentRoundID)
 
 	n.roundTriggers.mu.Lock()
 	defer n.roundTriggers.mu.Unlock()
@@ -516,18 +518,14 @@ func (n *Aggregator) PublishProofMessage(ctx context.Context, roundId int32, val
 	return n.Raft.PublishMessage(ctx, message)
 }
 
-// pruneRounds keeps the last roundHistory rounds up to anchor, the newer of
-// the accepted trigger round and n.RoundID, plus roundLookahead rounds after
-// it; other rounds are dropped.
-func (n *Aggregator) pruneRounds(acceptedRoundID int32) {
-	n.mu.Lock()
-	anchor := max(acceptedRoundID, n.RoundID)
-	n.mu.Unlock()
-	low := anchor - (roundHistory - 1)
-	high := anchor
-	if anchor <= math.MaxInt32-roundLookahead {
-		high = anchor + roundLookahead
-	}
+// pruneRounds keeps the state of rounds from roundHistory-1 before the
+// accepted trigger round up to roundLookahead after the current round
+// (currentRoundID >= acceptedRoundID) and drops the rest. Anchoring the low
+// end on the accepted round keeps a stale trigger's own round locked, as before.
+func (n *Aggregator) pruneRounds(acceptedRoundID, currentRoundID int32) {
+	// int64: no wrap around near the int32 limits
+	low := int64(acceptedRoundID) - (roundHistory - 1)
+	high := int64(currentRoundID) + roundLookahead
 
 	n.roundTriggers.pruneOutside(low, high)
 	n.roundPrices.pruneOutside(low, high)

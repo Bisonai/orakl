@@ -2,7 +2,8 @@ package aggregator
 
 import (
 	"context"
-	"sort"
+	"maps"
+	"slices"
 	"testing"
 	"time"
 
@@ -27,12 +28,7 @@ func seedRounds(agg *Aggregator, rounds ...int32) {
 }
 
 func sortedKeys[V any](m map[int32]V) []int32 {
-	keys := make([]int32, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
-	}
-	sort.Slice(keys, func(i, j int) bool { return keys[i] < keys[j] })
-	return keys
+	return slices.Sorted(maps.Keys(m))
 }
 
 // assertRounds checks that every per-round map holds exactly want.
@@ -87,9 +83,9 @@ func TestRejectedTriggerKeepsRoundState(t *testing.T) {
 	assert.Equal(t, int32(50), agg.RoundID)
 }
 
-// An accepted leader trigger keeps roundHistory rounds up to the current one
-// plus roundLookahead rounds ahead, and a stale leader trigger never drops
-// current rounds.
+// An accepted leader trigger keeps roundHistory rounds up to its round plus
+// roundLookahead rounds ahead of the current one; a stale leader trigger never
+// drops current rounds.
 func TestLeaderTriggerPrunesOnlyOldRounds(t *testing.T) {
 	ctx := context.Background()
 	agg := newRoundTestAggregator(t, ctx, "PRUNE-LEADER", nil)
@@ -108,10 +104,16 @@ func TestLeaderTriggerPrunesOnlyOldRounds(t *testing.T) {
 	assert.Equal(t, kept, sortedKeys(agg.roundProofs.proofs))
 	assert.Equal(t, kept, sortedKeys(agg.roundPriceFixes.locked))
 
-	// a stale leader trigger is anchored on n.RoundID, not its own round
+	// a stale leader trigger keeps current rounds and its own round's lock
+	// (so a replay of it is deduplicated)
 	require.NoError(t, sendTrigger(t, ctx, agg, "leader-peer", 30))
 	assert.Equal(t, int32(51), agg.RoundID)
-	assert.Equal(t, keptTriggers, sortedKeys(agg.roundTriggers.locked))
+	assert.Equal(t, append([]int32{30}, keptTriggers...), sortedKeys(agg.roundTriggers.locked))
 	assert.Equal(t, kept, sortedKeys(agg.roundPrices.prices))
 	assert.Equal(t, kept, sortedKeys(agg.roundProofs.proofs))
+
+	// the next leader trigger prunes it again
+	require.NoError(t, sendTrigger(t, ctx, agg, "leader-peer", 52))
+	assert.Equal(t, roundRange(43, 53), sortedKeys(agg.roundTriggers.locked))
+	assert.Equal(t, append(roundRange(43, 50), 52, 53), sortedKeys(agg.roundPrices.prices))
 }

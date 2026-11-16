@@ -18,11 +18,11 @@ import (
 const (
 	AGREEMENT_QUORUM = 0.5
 
-	// roundHistory is how many rounds up to the current one keep their state.
+	// roundHistory is how many rounds up to an accepted trigger's round keep
+	// their state when it prunes.
 	roundHistory = 10
 	// roundLookahead is how many rounds ahead of the current one keep their
-	// state (messages racing ahead of their trigger); further ones are dropped
-	// so peers can't grow round state without bound.
+	// state when a trigger prunes (messages racing ahead of their trigger).
 	roundLookahead = 2
 
 	Trigger   raft.MessageType = "trigger"
@@ -75,10 +75,10 @@ type RoundTriggers struct {
 }
 
 // pruneOutside keeps only rounds in [low, high].
-func (r *RoundTriggers) pruneOutside(low, high int32) {
+func (r *RoundTriggers) pruneOutside(low, high int64) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	deleteRoundsOutside(r.locked, low, high)
+	r.locked = keepRounds(r.locked, low, high)
 }
 
 type RoundPrices struct {
@@ -98,12 +98,12 @@ func (r *RoundPrices) isReplay(roundID int32, sender string) bool {
 }
 
 // pruneOutside keeps only rounds in [low, high].
-func (r *RoundPrices) pruneOutside(low, high int32) {
+func (r *RoundPrices) pruneOutside(low, high int64) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	deleteRoundsOutside(r.locked, low, high)
-	deleteRoundsOutside(r.prices, low, high)
-	deleteRoundsOutside(r.senders, low, high)
+	r.locked = keepRounds(r.locked, low, high)
+	r.prices = keepRounds(r.prices, low, high)
+	r.senders = keepRounds(r.senders, low, high)
 }
 
 type RoundPriceFixes struct {
@@ -112,10 +112,10 @@ type RoundPriceFixes struct {
 }
 
 // pruneOutside keeps only rounds in [low, high].
-func (r *RoundPriceFixes) pruneOutside(low, high int32) {
+func (r *RoundPriceFixes) pruneOutside(low, high int64) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	deleteRoundsOutside(r.locked, low, high)
+	r.locked = keepRounds(r.locked, low, high)
 }
 
 type RoundProofs struct {
@@ -135,21 +135,24 @@ func (r *RoundProofs) isReplay(roundID int32, sender string) bool {
 }
 
 // pruneOutside keeps only rounds in [low, high].
-func (r *RoundProofs) pruneOutside(low, high int32) {
+func (r *RoundProofs) pruneOutside(low, high int64) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	deleteRoundsOutside(r.locked, low, high)
-	deleteRoundsOutside(r.proofs, low, high)
-	deleteRoundsOutside(r.senders, low, high)
+	r.locked = keepRounds(r.locked, low, high)
+	r.proofs = keepRounds(r.proofs, low, high)
+	r.senders = keepRounds(r.senders, low, high)
 }
 
-// deleteRoundsOutside removes the entries of rounds outside [low, high].
-func deleteRoundsOutside[V any](m map[int32]V, low, high int32) {
-	for roundID := range m {
-		if roundID < low || roundID > high {
-			delete(m, roundID)
+// keepRounds returns a new map with only the rounds in [low, high]; a new map
+// so memory of a burst of rounds is released (Go maps don't shrink).
+func keepRounds[V any](m map[int32]V, low, high int64) map[int32]V {
+	kept := make(map[int32]V)
+	for roundID, v := range m {
+		if r := int64(roundID); r >= low && r <= high {
+			kept[roundID] = v
 		}
 	}
+	return kept
 }
 
 type Aggregator struct {
