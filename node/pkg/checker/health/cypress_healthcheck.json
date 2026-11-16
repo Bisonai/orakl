@@ -12,10 +12,6 @@
     "url": "https://dal.mainnet.orakl.network/"
   },
   {
-    "name": "orakl-delegator",
-    "url": "http://orakl-delegator.orakl.svc.cluster.local:80/api/v1/"
-  },
-  {
     "name": "orakl-request-response-core",
     "url": "http://orakl-request-response-core.orakl.svc.cluster.local:8080/"
   },
