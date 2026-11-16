@@ -210,7 +210,6 @@ func (t *ChainHelper) SubmitDelegatedFallbackDirect(ctx context.Context, contrac
 
 	tx, err = t.GetSignedFromDelegator(tx)
 	if err != nil {
-		log.Warn().Err(err).Uint64("nonce", nonce).Msg("delegator sign failed, falling back to direct tx")
 		tx, err = utils.MakeDirectTx(ctx, t.client, contractAddress, t.wallet, functionString, t.chainID, nonce, args...)
 		if err != nil {
 			t.noncemanager.Release(lease)
