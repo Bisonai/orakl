@@ -72,9 +72,9 @@ func TestReleaseReusesNonce(t *testing.T) {
 	// build failed for 52 and 51: lowest released first, then the pool resumes
 	m.Release(leases[2])
 	m.Release(leases[1])
-	assert.Equal(t, uint64(51), m.GetNonce())
-	assert.Equal(t, uint64(52), m.GetNonce())
-	assert.Equal(t, uint64(55), m.GetNonce())
+	assert.Equal(t, uint64(51), m.Acquire().Nonce)
+	assert.Equal(t, uint64(52), m.Acquire().Nonce)
+	assert.Equal(t, uint64(55), m.Acquire().Nonce)
 }
 
 func TestReleaseIgnoresDuplicateAndUnissued(t *testing.T) {
@@ -84,9 +84,9 @@ func TestReleaseIgnoresDuplicateAndUnissued(t *testing.T) {
 	m.Release(l)
 	m.Release(&Lease{Nonce: 7}) // not handed out yet
 	m.Release(nil)
-	assert.Equal(t, uint64(0), m.GetNonce())
-	assert.Equal(t, uint64(1), m.GetNonce())
-	assert.Equal(t, uint64(2), m.GetNonce())
+	assert.Equal(t, uint64(0), m.Acquire().Nonce)
+	assert.Equal(t, uint64(1), m.Acquire().Nonce)
+	assert.Equal(t, uint64(2), m.Acquire().Nonce)
 }
 
 func TestDoubleReleaseAfterReissueIgnored(t *testing.T) {
@@ -96,9 +96,11 @@ func TestDoubleReleaseAfterReissueIgnored(t *testing.T) {
 	b := m.Acquire() // 0 re-issued to b
 	assert.Equal(t, uint64(0), b.Nonce)
 
-	// a second release of a must not hand 0 out again while b holds it
+	// a second release of a, or a lease not from Acquire, must not hand 0
+	// out again while b holds it
 	m.Release(a)
-	assert.Equal(t, uint64(1), m.GetNonce())
+	m.Release(&Lease{Nonce: 0})
+	assert.Equal(t, uint64(1), m.Acquire().Nonce)
 }
 
 func TestReleaseAfterResetIgnored(t *testing.T) {
@@ -112,8 +114,8 @@ func TestReleaseAfterResetIgnored(t *testing.T) {
 	// 10 is back in the re-seeded pool; releasing the stale lease must not
 	// hand it out twice
 	m.Release(old)
-	assert.Equal(t, uint64(10), m.GetNonce())
-	assert.Equal(t, uint64(11), m.GetNonce())
+	assert.Equal(t, uint64(10), m.Acquire().Nonce)
+	assert.Equal(t, uint64(11), m.Acquire().Nonce)
 }
 
 func TestReleaseAcrossFillPool(t *testing.T) {
@@ -123,8 +125,8 @@ func TestReleaseAcrossFillPool(t *testing.T) {
 		held = append(held, m.Acquire())
 	}
 	m.Release(held[3])
-	assert.Equal(t, uint64(3), m.GetNonce())
-	assert.Equal(t, uint64(poolSize), m.GetNonce())
+	assert.Equal(t, uint64(3), m.Acquire().Nonce)
+	assert.Equal(t, uint64(poolSize), m.Acquire().Nonce)
 }
 
 func TestConcurrentAcquireRelease(t *testing.T) {
@@ -157,7 +159,7 @@ func TestConcurrentAcquireRelease(t *testing.T) {
 	// every kept nonce is unique and they form 0..len-1 with no gap once the
 	// remaining released nonces are taken
 	for len(m.released) > 0 {
-		kept[m.GetNonce()]++
+		kept[m.Acquire().Nonce]++
 	}
 	for n, c := range kept {
 		assert.Equal(t, 1, c, "nonce %d handed out %d times", n, c)

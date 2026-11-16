@@ -17,7 +17,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var errFake2854 = errors.New("fake rpc error")
+var errFakeRPC = errors.New("fake rpc error")
 
 // nonceFakeClient fails SuggestGasPrice on the listed call numbers (1-based)
 // and fails every SendTransaction, recording the sent nonces.
@@ -37,7 +37,7 @@ func (c *nonceFakeClient) SuggestGasPrice(context.Context) (*big.Int, error) {
 	defer c.mu.Unlock()
 	c.gasCalls++
 	if c.failGasCall[c.gasCalls] {
-		return nil, errFake2854
+		return nil, errFakeRPC
 	}
 	return big.NewInt(25), nil
 }
@@ -48,7 +48,7 @@ func (c *nonceFakeClient) SendTransaction(_ context.Context, tx *types.Transacti
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.sent = append(c.sent, tx.Nonce())
-	return errFake2854
+	return errFakeRPC
 }
 func (c *nonceFakeClient) CallContract(context.Context, kaia.CallMsg, *big.Int) ([]byte, error) {
 	return nil, nil
@@ -68,7 +68,7 @@ func (c *nonceFakeClient) SubscribeNewHead(context.Context, chan<- *types.Header
 	return nil, nil
 }
 
-const testFunc2854 = "submit(uint256)"
+const testSubmitFunc = "submit(uint256)"
 
 func newNonceTestHelper(t *testing.T, failGasCall ...int) (*ChainHelper, *nonceFakeClient) {
 	t.Helper()
@@ -90,11 +90,11 @@ func TestSubmitDelegatedReleasesNonceOnDelegatedBuildError(t *testing.T) {
 	h, client := newNonceTestHelper(t, 1)
 	ctx := context.Background()
 
-	err := h.SubmitDelegatedFallbackDirect(ctx, "0x1234", testFunc2854, big.NewInt(1))
-	require.ErrorIs(t, err, errFake2854)
+	err := h.SubmitDelegatedFallbackDirect(ctx, "0x1234", testSubmitFunc, big.NewInt(1))
+	require.ErrorIs(t, err, errFakeRPC)
 
 	// next submission must reuse nonce 100 instead of leaving a gap
-	_ = h.SubmitDelegatedFallbackDirect(ctx, "0x1234", testFunc2854, big.NewInt(1))
+	_ = h.SubmitDelegatedFallbackDirect(ctx, "0x1234", testSubmitFunc, big.NewInt(1))
 	assert.Equal(t, []uint64{100}, client.sent)
 }
 
@@ -103,11 +103,11 @@ func TestSubmitDelegatedReleasesNonceOnFallbackBuildError(t *testing.T) {
 	h, client := newNonceTestHelper(t, 2)
 	ctx := context.Background()
 
-	err := h.SubmitDelegatedFallbackDirect(ctx, "0x1234", testFunc2854, big.NewInt(1))
-	require.ErrorIs(t, err, errFake2854)
+	err := h.SubmitDelegatedFallbackDirect(ctx, "0x1234", testSubmitFunc, big.NewInt(1))
+	require.ErrorIs(t, err, errFakeRPC)
 	assert.Empty(t, client.sent)
 
-	_ = h.SubmitDelegatedFallbackDirect(ctx, "0x1234", testFunc2854, big.NewInt(1))
+	_ = h.SubmitDelegatedFallbackDirect(ctx, "0x1234", testSubmitFunc, big.NewInt(1))
 	assert.Equal(t, []uint64{100}, client.sent)
 }
 
@@ -116,8 +116,8 @@ func TestSubmitDelegatedKeepsNonceOnSendError(t *testing.T) {
 	ctx := context.Background()
 
 	// send errors are ambiguous: the nonce must not be reused
-	_ = h.SubmitDelegatedFallbackDirect(ctx, "0x1234", testFunc2854, big.NewInt(1))
-	_ = h.SubmitDelegatedFallbackDirect(ctx, "0x1234", testFunc2854, big.NewInt(1))
+	_ = h.SubmitDelegatedFallbackDirect(ctx, "0x1234", testSubmitFunc, big.NewInt(1))
+	_ = h.SubmitDelegatedFallbackDirect(ctx, "0x1234", testSubmitFunc, big.NewInt(1))
 	assert.Equal(t, []uint64{100, 101}, client.sent)
 }
 
@@ -125,14 +125,14 @@ func TestMakeDirectTxReleasesNonceOnBuildError(t *testing.T) {
 	h, _ := newNonceTestHelper(t, 2)
 	ctx := context.Background()
 
-	tx, err := h.MakeDirectTx(ctx, "0x1234", testFunc2854, big.NewInt(1))
+	tx, err := h.MakeDirectTx(ctx, "0x1234", testSubmitFunc, big.NewInt(1))
 	require.NoError(t, err)
 	assert.Equal(t, uint64(100), tx.Nonce())
 
-	_, err = h.MakeDirectTx(ctx, "0x1234", testFunc2854, big.NewInt(1))
-	require.ErrorIs(t, err, errFake2854)
+	_, err = h.MakeDirectTx(ctx, "0x1234", testSubmitFunc, big.NewInt(1))
+	require.ErrorIs(t, err, errFakeRPC)
 
-	tx, err = h.MakeDirectTx(ctx, "0x1234", testFunc2854, big.NewInt(1))
+	tx, err = h.MakeDirectTx(ctx, "0x1234", testSubmitFunc, big.NewInt(1))
 	require.NoError(t, err)
 	assert.Equal(t, uint64(101), tx.Nonce())
 }

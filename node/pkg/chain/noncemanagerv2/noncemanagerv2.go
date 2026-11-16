@@ -23,6 +23,7 @@ type NonceManagerV2 struct {
 	next uint64
 	// gen changes on Reset so a lease taken before a reset can't be
 	// released into the re-seeded pool (it could duplicate a pool nonce).
+	// Starts at 1 so a zero-value Lease is never accepted.
 	gen uint64
 }
 
@@ -63,11 +64,8 @@ func New(ctx context.Context, client utils.ClientInterface, wallet string) (*Non
 		client:    client,
 		wallet:    wallet,
 		next:      currentNonce,
+		gen:       1,
 	}, nil
-}
-
-func (m *NonceManagerV2) GetNonce() uint64 {
-	return m.Acquire().Nonce
 }
 
 // Acquire returns the lowest released nonce if any, else the next pool nonce.
