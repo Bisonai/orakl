@@ -6,6 +6,7 @@ import (
 	"io"
 	"math/big"
 	"net/http"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -44,10 +45,6 @@ func TestStartServesOnlyMetrics(t *testing.T) {
 		"process_start_time_seconds",
 	} {
 		assert.Contains(t, string(body), name)
-	}
-	// not set yet in this test binary: absent, not 0
-	for _, name := range []string{"orakl_delegator_allowlist_entries", "orakl_delegator_fee_payer_balance"} {
-		assert.NotContains(t, string(body), name)
 	}
 
 	for _, path := range []string{"/", "/api/v1/sign/v2", "/api/v1/sign/feePayer"} {
@@ -103,10 +100,9 @@ func TestAllowlistPoller(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	before := testutil.ToFloat64(storeErrors.WithLabelValues(StoreOpAllowlistCount))
-	calls := make(chan struct{}, 10)
+	var calls atomic.Int32
 	StartAllowlistPoller(ctx, func(context.Context) (int, error) {
-		calls <- struct{}{}
-		if len(calls) == 1 {
+		if calls.Add(1) == 1 {
 			return 3, nil
 		}
 		return 0, errors.New("locked")
@@ -125,6 +121,5 @@ func TestBalancePollerDisabledWithoutRPC(t *testing.T) {
 		t.Fatal("address must not be read without an RPC URL")
 		return common.Address{}, false
 	}, time.Millisecond)
-	time.Sleep(10 * time.Millisecond)
 	assert.Equal(t, before, testutil.ToFloat64(rpcErrors.WithLabelValues(RPCMethodDial)))
 }

@@ -9,14 +9,11 @@ import (
 func SigningRoutes(router fiber.Router) {
 	sign := router.Group("/sign")
 
-	// own token check, after observeSign so auth rejections are counted. The
-	// group-wide check below is registered later and insertV2 never calls
-	// Next, so it does not run for /v2; it covers every other /sign path.
+	// token checked per route, not group-wide, so that on /v2 it runs after
+	// observeSign and auth rejections are counted. Every route needs it.
 	sign.Post("/v2", observeSign, RequireToken, insertV2)
-
-	sign.Use(RequireToken)
-	sign.Get("/initialize", initialize)
-	sign.Get("/feePayer", getFeePayerAddress)
+	sign.Get("/initialize", RequireToken, initialize)
+	sign.Get("/feePayer", RequireToken, getFeePayerAddress)
 }
 
 func Routes(router fiber.Router) {

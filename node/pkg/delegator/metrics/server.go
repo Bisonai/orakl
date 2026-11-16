@@ -66,7 +66,6 @@ func StartBalancePoller(ctx context.Context, rpcURL string, address func() (comm
 			if err != nil {
 				rpcError(RPCMethodDial)
 				log.Warn().Err(err).Msg("failed to dial RPC for fee payer balance")
-				c = nil
 				return
 			}
 		}

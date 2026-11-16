@@ -1,6 +1,7 @@
 package sign
 
 import (
+	"errors"
 	"time"
 
 	"bisonai.com/miko/node/pkg/delegator/metrics"
@@ -34,6 +35,15 @@ func observeSign(c *fiber.Ctx) (err error) {
 func reject(c *fiber.Ctx, result string, err error) error {
 	c.Locals(signResultKey, result)
 	return err
+}
+
+// rejectInvalid tags err as invalid_tx and answers 400: the client sent it.
+func rejectInvalid(c *fiber.Ctx, err error) error {
+	var fe *fiber.Error
+	if !errors.As(err, &fe) {
+		err = fiber.NewError(fiber.StatusBadRequest, err.Error())
+	}
+	return reject(c, metrics.ResultInvalidTx, err)
 }
 
 // signResult maps the handler outcome to a result label. Untagged errors are

@@ -178,7 +178,7 @@ func TestSignMetricsSQLite(t *testing.T) {
 		for name, body := range cases {
 			assertCounted(t, metrics.ResultInvalidTx, "node-a", func() {
 				code := rawSignRequest(t, app, body, token)
-				assert.NotEqual(t, http.StatusOK, code, name)
+				assert.Equal(t, http.StatusBadRequest, code, name)
 			})
 		}
 	})
@@ -195,7 +195,7 @@ func TestSignMetricsSQLite(t *testing.T) {
 
 	t.Run("other /sign routes are not counted and still need a token", func(t *testing.T) {
 		assertCounted(t, "", "", func() {
-			for _, path := range []string{"/api/v1/sign/feePayer", "/api/v1/sign/initialize", "/api/v1/sign/unknown"} {
+			for _, path := range []string{"/api/v1/sign/feePayer", "/api/v1/sign/initialize"} {
 				req, err := http.NewRequest(http.MethodGet, path, nil)
 				require.NoError(t, err)
 				resp, err := app.Test(req, -1)

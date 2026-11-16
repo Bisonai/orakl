@@ -132,24 +132,24 @@ func getFeePayerAddress(c *fiber.Ctx) error {
 func insertV2(c *fiber.Ctx) error {
 	payload := new(SignInsertPayload)
 	if err := c.BodyParser(payload); err != nil {
-		return reject(c, metrics.ResultInvalidTx, err)
+		return rejectInvalid(c, err)
 	}
 
 	transaction, err := HashToTx(payload.RawTx)
 	if err != nil {
-		return reject(c, metrics.ResultInvalidTx, err)
+		return rejectInvalid(c, err)
 	}
 
 	validate := validator.New()
 	if err = validate.Struct(payload); err != nil {
-		return reject(c, metrics.ResultInvalidTx, err)
+		return rejectInvalid(c, err)
 	}
 
 	// validate what gets signed: the decoded tx, not the request's to/input
 	// fields, which are only stored and need not match RawTx
 	to, selector, err := txTarget(transaction)
 	if err != nil {
-		return reject(c, metrics.ResultInvalidTx, fiber.NewError(fiber.StatusBadRequest, err.Error()))
+		return rejectInvalid(c, err)
 	}
 	if err = validateContractAddress(c, to); err != nil {
 		return allowlistRejection(c, transaction, to, selector, metrics.StoreOpContractLookup, err)
@@ -338,7 +338,7 @@ func signTxByFeePayerV2(c *fiber.Ctx, tx *types.Transaction) (*types.Transaction
 	updatedTx, err := updateFeePayer(tx, crypto.PubkeyToAddress(*publicKeyECDSA))
 	if err != nil {
 		// legacy (Ethereum) txs have no from field
-		return nil, reject(c, metrics.ResultInvalidTx, err)
+		return nil, rejectInvalid(c, err)
 	}
 
 	return types.SignTxAsFeePayer(updatedTx, types.NewEIP155Signer(tx.ChainId()), feePayerKey)
