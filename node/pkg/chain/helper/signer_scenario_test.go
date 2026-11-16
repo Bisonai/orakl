@@ -538,6 +538,28 @@ func TestScenario_AdoptPromoteFailRetriedOnNextReconcile(t *testing.T) {
 	}
 }
 
+// #2856 review — duplicate rows for one address: the active row must win, so the promote retry
+// never re-activates a stale duplicate over it.
+func TestScenario_DuplicateAddressPrefersActiveRow(t *testing.T) {
+	ctx := context.Background()
+	aHex, aAddr, aPK := genKey(t)
+	store := newFakeStore()
+	store.addKey(aHex, aAddr, "retired")
+	activeID := store.addKey(aHex, aAddr, "active")
+	chain := newFakeChain()
+	chain.setWhitelisted(aAddr)
+
+	s := newScenarioSigner(chain, store)
+	s.PK, s.activeAddr, s.usable, s.cachedExpiration = aPK, aAddr, true, time.Now().Add(time.Hour)
+
+	if err := s.reconcile(ctx, false); err != nil {
+		t.Fatalf("reconcile: %v", err)
+	}
+	if act := store.findState("active"); act == nil || act.ID != activeID {
+		t.Fatalf("expected row %d to stay active, got %+v", activeID, act)
+	}
+}
+
 // Concurrency: many concurrent signs racing repeated reconciles must be data-race-free (run with
 // -race). Exercises the mu (sign-path fields) vs rotateMu (reconcile) locking discipline.
 func TestScenario_ConcurrentSignAndReconcile(t *testing.T) {
