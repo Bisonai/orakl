@@ -18,6 +18,9 @@ import (
 const (
 	AGREEMENT_QUORUM = 0.5
 
+	// roundHistory is how many rounds up to the current one keep their state.
+	roundHistory = 10
+
 	Trigger   raft.MessageType = "trigger"
 	PriceData raft.MessageType = "priceData"
 	PriceFix  raft.MessageType = "priceFix"
@@ -67,19 +70,11 @@ type RoundTriggers struct {
 	mu     sync.Mutex
 }
 
-func (r *RoundTriggers) leaveOnlyLast10Entries(roundID int32) {
+// pruneBefore drops rounds older than cutoff and keeps every round >= cutoff.
+func (r *RoundTriggers) pruneBefore(cutoff int32) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-
-	newLocked := make(map[int32]bool)
-
-	for i := roundID; i > roundID-10; i-- {
-		if val, exists := r.locked[i]; exists {
-			newLocked[i] = val
-		}
-	}
-
-	r.locked = newLocked
+	deleteRoundsBefore(r.locked, cutoff)
 }
 
 type RoundPrices struct {
@@ -98,33 +93,13 @@ func (r *RoundPrices) isReplay(roundID int32, sender string) bool {
 	return false
 }
 
-func (r *RoundPrices) leaveOnlyLast10Entries(roundID int32) {
+// pruneBefore drops rounds older than cutoff and keeps every round >= cutoff.
+func (r *RoundPrices) pruneBefore(cutoff int32) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-
-	newLocked := make(map[int32]bool)
-	for i := roundID; i > roundID-10; i-- {
-		if val, exists := r.locked[i]; exists {
-			newLocked[i] = val
-		}
-	}
-	r.locked = newLocked
-
-	newPrices := make(map[int32][]int64)
-	for i := roundID; i > roundID-10; i-- {
-		if val, exists := r.prices[i]; exists {
-			newPrices[i] = val
-		}
-	}
-	r.prices = newPrices
-
-	newSenders := make(map[int32][]string)
-	for i := roundID; i > roundID-10; i-- {
-		if val, exists := r.senders[i]; exists {
-			newSenders[i] = val
-		}
-	}
-	r.senders = newSenders
+	deleteRoundsBefore(r.locked, cutoff)
+	deleteRoundsBefore(r.prices, cutoff)
+	deleteRoundsBefore(r.senders, cutoff)
 }
 
 type RoundPriceFixes struct {
@@ -132,17 +107,11 @@ type RoundPriceFixes struct {
 	mu     sync.Mutex
 }
 
-func (r *RoundPriceFixes) leaveOnlyLast10Entries(roundID int32) {
+// pruneBefore drops rounds older than cutoff and keeps every round >= cutoff.
+func (r *RoundPriceFixes) pruneBefore(cutoff int32) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-
-	newLocked := make(map[int32]bool)
-	for i := roundID; i > roundID-10; i-- {
-		if val, exists := r.locked[i]; exists {
-			newLocked[i] = val
-		}
-	}
-	r.locked = newLocked
+	deleteRoundsBefore(r.locked, cutoff)
 }
 
 type RoundProofs struct {
@@ -161,33 +130,22 @@ func (r *RoundProofs) isReplay(roundID int32, sender string) bool {
 	return false
 }
 
-func (r *RoundProofs) leaveOnlyLast10Entries(roundID int32) {
+// pruneBefore drops rounds older than cutoff and keeps every round >= cutoff.
+func (r *RoundProofs) pruneBefore(cutoff int32) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	deleteRoundsBefore(r.locked, cutoff)
+	deleteRoundsBefore(r.proofs, cutoff)
+	deleteRoundsBefore(r.senders, cutoff)
+}
 
-	newLocked := make(map[int32]bool)
-	for i := roundID; i > roundID-10; i-- {
-		if val, exists := r.locked[i]; exists {
-			newLocked[i] = val
+// deleteRoundsBefore removes the entries of rounds older than cutoff.
+func deleteRoundsBefore[V any](m map[int32]V, cutoff int32) {
+	for roundID := range m {
+		if roundID < cutoff {
+			delete(m, roundID)
 		}
 	}
-	r.locked = newLocked
-
-	newProofs := make(map[int32][][]byte)
-	for i := roundID; i > roundID-10; i-- {
-		if val, exists := r.proofs[i]; exists {
-			newProofs[i] = val
-		}
-	}
-	r.proofs = newProofs
-
-	newSenders := make(map[int32][]string)
-	for i := roundID; i > roundID-10; i-- {
-		if val, exists := r.senders[i]; exists {
-			newSenders[i] = val
-		}
-	}
-	r.senders = newSenders
 }
 
 type Aggregator struct {

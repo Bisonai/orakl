@@ -142,8 +142,6 @@ func (n *Aggregator) HandleTriggerMessage(ctx context.Context, msg raft.Message)
 		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to unmarshal trigger message")
 		return err
 	}
-	defer n.leaveOnlyLast10Entries(triggerMessage.RoundID)
-
 	if triggerMessage.RoundID == 0 {
 		log.Error().Str("Player", "Aggregator").Msg("invalid trigger message")
 		return errorSentinel.ErrAggregatorInvalidRaftMessage
@@ -154,6 +152,8 @@ func (n *Aggregator) HandleTriggerMessage(ctx context.Context, msg raft.Message)
 		log.Debug().Str("Player", "Aggregator").Str("Sender", msg.SentFrom).Str("CurrentLeader", currentLeader).Str("Me", n.Raft.GetHostId()).Msg("trigger message sent from non-leader")
 		return errorSentinel.ErrAggregatorNonLeaderRaftMessage
 	}
+	// prune only for accepted triggers: unvalidated input must not drop round state (#2853)
+	defer n.pruneRounds(triggerMessage.RoundID)
 
 	if msg.SentFrom != n.Raft.GetHostId() {
 		n.mu.Lock()
@@ -515,9 +515,17 @@ func (n *Aggregator) PublishProofMessage(ctx context.Context, roundId int32, val
 	return n.Raft.PublishMessage(ctx, message)
 }
 
-func (n *Aggregator) leaveOnlyLast10Entries(roundID int32) {
-	n.roundTriggers.leaveOnlyLast10Entries(roundID)
-	n.roundPrices.leaveOnlyLast10Entries(roundID)
-	n.roundPriceFixes.leaveOnlyLast10Entries(roundID)
-	n.roundProofs.leaveOnlyLast10Entries(roundID)
+// pruneRounds keeps the last roundHistory rounds up to the newer of the
+// accepted trigger round and n.RoundID, plus any newer round; older ones are
+// dropped.
+func (n *Aggregator) pruneRounds(acceptedRoundID int32) {
+	n.mu.Lock()
+	anchor := max(acceptedRoundID, n.RoundID)
+	n.mu.Unlock()
+	cutoff := anchor - (roundHistory - 1)
+
+	n.roundTriggers.pruneBefore(cutoff)
+	n.roundPrices.pruneBefore(cutoff)
+	n.roundPriceFixes.pruneBefore(cutoff)
+	n.roundProofs.pruneBefore(cutoff)
 }
