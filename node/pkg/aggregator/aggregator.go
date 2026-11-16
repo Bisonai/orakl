@@ -250,17 +250,18 @@ func (n *Aggregator) HandlePriceDataMessage(ctx context.Context, msg raft.Messag
 // trigger is a round no peer has used (#2867). Followers keep their locks:
 // re-running a used round ID with new prices would break the rule that a
 // round ID is never reused (see loadLatestRound). It returns the highest round
-// a peer was ahead at; this leader's rounds up to it are stale (0: none).
+// a peer was ahead at; this leader's rounds up to it are stale (0: none),
+// whoever sent the message (also its own or an older node's price).
 //
 // Like a follower adopting an accepted trigger's RoundID, the jump has no
 // upper bound (#2711).
 func (n *Aggregator) catchUpToPeer(sender string, peerRoundID int32) int32 {
-	if peerRoundID == 0 || sender == n.Raft.GetHostId() || n.Raft.GetRole() != raft.Leader {
+	if n.Raft.GetRole() != raft.Leader {
 		return 0
 	}
 	n.mu.Lock()
 	defer n.mu.Unlock()
-	if peerRoundID > n.RoundID {
+	if sender != n.Raft.GetHostId() && peerRoundID > n.RoundID {
 		log.Warn().Str("Player", "Aggregator").Str("Name", n.Name).Str("Sender", sender).Int32("RoundID", n.RoundID).Int32("PeerRoundID", peerRoundID).Msg("leader behind a peer, catching up")
 		n.RoundID = peerRoundID
 		n.rounds.Advance(n.Name, n.RoundID)

@@ -83,6 +83,8 @@ func TestLaggingLeaderCatchesUpToFollower(t *testing.T) {
 	)
 	for _, leaderStart := range []int32{30, 44} {
 		t.Run(fmt.Sprint("leader at ", leaderStart), func(t *testing.T) {
+			// published and messageRound decode JSON
+			t.Setenv("P2P_ENCODING", "json")
 			ctx := context.Background()
 
 			leader := newRoundTestAggregator(t, ctx, fmt.Sprint("CATCHUP-LEADER-", leaderStart), nil)
@@ -150,4 +152,35 @@ func TestLaggingLeaderCatchesUpToFollower(t *testing.T) {
 			assert.Equal(t, roundRange(followerRound+1, followerRound+1), sortedKeys(leader.roundTriggers.locked))
 		})
 	}
+}
+
+func sendPriceData(t *testing.T, ctx context.Context, agg *Aggregator, from string, round, latest int32) {
+	t.Helper()
+	data, err := encodeInner(PriceDataMessage{RoundID: round, PriceData: 100, Timestamp: time.Now(), LatestRoundID: latest})
+	require.NoError(t, err)
+	require.NoError(t, agg.HandlePriceDataMessage(ctx, raft.Message{Type: PriceData, SentFrom: from, Data: data}))
+}
+
+// Once caught up, the leader drops every price for a round a peer already
+// used, also its own and an older node's (no LatestRoundID).
+func TestCaughtUpLeaderDropsAllPricesForStaleRounds(t *testing.T) {
+	t.Setenv("P2P_ENCODING", "json")
+	ctx := context.Background()
+	leader := newRoundTestAggregator(t, ctx, "CATCHUP-STALE", nil)
+	self := leader.Raft.GetHostId()
+	leader.Raft.Role = raft.Leader
+	leader.Raft.LeaderID = self
+	leader.RoundID = 32 // triggered 31 and 32 before any reply
+
+	sendPriceData(t, ctx, leader, "ahead-peer", 31, 51)
+	sendPriceData(t, ctx, leader, self, 32, 32)
+	sendPriceData(t, ctx, leader, "old-peer", 32, 0)
+
+	leader.mu.RLock()
+	assert.Equal(t, int32(51), leader.RoundID)
+	leader.mu.RUnlock()
+	leader.roundPrices.mu.Lock()
+	defer leader.roundPrices.mu.Unlock()
+	assert.Equal(t, []int32{31, 32}, sortedKeys(leader.roundPrices.locked))
+	assert.Empty(t, leader.roundPrices.prices, "no price stored for a stale round")
 }
