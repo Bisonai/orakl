@@ -15,7 +15,6 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"bisonai.com/miko/node/pkg/alert"
-	"bisonai.com/miko/node/pkg/utils/request"
 )
 
 func init() {
@@ -23,25 +22,24 @@ func init() {
 }
 
 func setUp() error {
-	ctx := context.Background()
-
-	urls, err := getUrls()
-	if err != nil {
-		log.Error().Err(err).Msg("Error getting urls")
-		return err
+	jsonRpcUrl := os.Getenv("JSON_RPC_URL")
+	if jsonRpcUrl == "" {
+		return errors.New("JSON_RPC_URL not found")
 	}
 
-	err = setClient(urls.JsonRpcUrl)
+	err := setClient(jsonRpcUrl)
 	if err != nil {
 		log.Error().Err(err).Msg("Error setting up client")
 		return err
 	}
 
-	wallets, err = loadWallets(ctx, urls)
+	wallets, err = ParseWallets(os.Getenv(EnvWallets))
 	if err != nil {
 		log.Error().Err(err).Msg("Error loading wallets")
 		return err
 	}
+	registerWalletMetrics(wallets)
+	log.Info().Int("wallets", len(wallets)).Msg("Loaded balance wallets")
 	return nil
 }
 
@@ -78,23 +76,8 @@ func Start(ctx context.Context) error {
 }
 
 func loadEnvs() {
-	SubmitterAlarmAmount = 25
-	DelegatorAlarmAmount = 10000
-	if os.Getenv("CHAIN") == "mainnet" {
-		DelegatorAlarmAmount = 50000
-	}
 	BalanceCheckInterval = 60 * time.Second
 	BalanceAlarmInterval = 30 * time.Minute
-
-	submitterAlarmAmountRaw := os.Getenv("SUBMITTER_ALARM_AMOUNT")
-	if submitterAlarmAmountRaw != "" && isNumber(submitterAlarmAmountRaw) {
-		SubmitterAlarmAmount, _ = strconv.ParseFloat(submitterAlarmAmountRaw, 64)
-	}
-
-	delegatorAlarmAmountRaw := os.Getenv("DELEGATOR_ALARM_AMOUNT")
-	if delegatorAlarmAmountRaw != "" && isNumber(delegatorAlarmAmountRaw) {
-		DelegatorAlarmAmount, _ = strconv.ParseFloat(delegatorAlarmAmountRaw, 64)
-	}
 
 	checkInterval := os.Getenv("BALANCE_CHECK_INTERVAL")
 	parsedCheckInterval, err := time.ParseDuration(checkInterval)
@@ -111,107 +94,6 @@ func loadEnvs() {
 	} else {
 		BalanceAlarmInterval = parsedAlarmInterval
 	}
-}
-
-func getUrls() (Urls, error) {
-	mikoApiUrl := os.Getenv("ORAKL_API_URL")
-	if mikoApiUrl == "" {
-		return Urls{}, errors.New("ORAKL_API_URL not found")
-	}
-
-	mikoNodeAdminUrl := os.Getenv("ORAKL_NODE_ADMIN_URL")
-	if mikoNodeAdminUrl == "" {
-		return Urls{}, errors.New("ORAKL_NODE_ADMIN_URL not found")
-	}
-
-	mikoDelegatorUrl := os.Getenv("ORAKL_DELEGATOR_URL")
-	if mikoDelegatorUrl == "" {
-		return Urls{}, errors.New("ORAKL_DELEGATOR_URL not found")
-	}
-
-	jsonRpcUrl := os.Getenv("JSON_RPC_URL")
-	if jsonRpcUrl == "" {
-		return Urls{}, errors.New("JSON_RPC_URL not found")
-	}
-
-	return Urls{
-		JsonRpcUrl:       jsonRpcUrl,
-		MikoApiUrl:       mikoApiUrl,
-		MikoNodeAdminUrl: mikoNodeAdminUrl,
-		MikoDelegatorUrl: mikoDelegatorUrl,
-	}, nil
-}
-
-func loadWallets(ctx context.Context, urls Urls) ([]Wallet, error) {
-	result := []Wallet{}
-
-	apiWallets, err := loadWalletFromMikoApi(ctx, urls.MikoApiUrl)
-	if err != nil {
-		return result, err
-	}
-	result = append(result, apiWallets...)
-
-	delegatorWallet, err := loadWalletFromDelegator(ctx, urls.MikoDelegatorUrl)
-	if err != nil {
-		return result, err
-	}
-	result = append(result, delegatorWallet)
-
-	return result, nil
-}
-
-func loadWalletFromMikoApi(ctx context.Context, url string) ([]Wallet, error) {
-	type ReporterModel struct {
-		Address string `json:"address"`
-		Service string `json:"service"`
-	}
-
-	result := []Wallet{}
-	reporters, err := request.Request[[]ReporterModel](request.WithEndpoint(url+mikoApiEndpoint), request.WithTimeout(30*time.Second))
-	if err != nil {
-		return result, err
-	}
-
-	for _, reporter := range reporters {
-		if reporter.Service == "DATA_FEED" {
-			continue
-		}
-
-		address := common.HexToAddress(reporter.Address)
-		minimumBalance := SubmitterAlarmAmount
-		if reporter.Service == "REQUEST_RESPONSE" {
-			minimumBalance = DefaultRRMinimum
-		}
-
-		wallet := Wallet{
-			Address: address,
-			Balance: 0,
-			Minimum: minimumBalance,
-			Tag:     "reporter loaded from miko api",
-
-			BalanceHistory: []BalanceHistoryEntry{},
-		}
-		result = append(result, wallet)
-	}
-	return result, nil
-}
-
-func loadWalletFromDelegator(ctx context.Context, url string) (Wallet, error) {
-	wallet := Wallet{}
-	feePayer, err := request.Request[string](request.WithEndpoint(url + mikoDelegatorEndpoint))
-	if err != nil {
-		return wallet, err
-	}
-	address := common.HexToAddress(feePayer)
-	wallet = Wallet{
-		Address: address,
-		Balance: 0,
-		Minimum: DelegatorAlarmAmount,
-		Tag:     "reporter loaded from delegator",
-
-		BalanceHistory: []BalanceHistoryEntry{},
-	}
-	return wallet, nil
 }
 
 func getBalance(ctx context.Context, address common.Address) (float64, error) {
@@ -232,9 +114,11 @@ func updateBalances(ctx context.Context, wallets []Wallet) {
 		time.Sleep(500 * time.Millisecond) //gracefully request to prevent json rpc blockage
 		balance, err := getBalance(ctx, wallet.Address)
 		if err != nil {
+			rpcErrorsCounter.Inc()
 			log.Error().Err(err).Str("address", wallet.Address.Hex()).Msg("Error getting balance")
 			continue
 		}
+		recordBalance(wallet, balance, time.Now())
 		log.Debug().Str("address", wallet.Address.Hex()).Float64("balance", balance).Str("tag", wallet.Tag).Msg("Updated balance")
 		wallets[i].Balance = balance
 
