@@ -114,3 +114,90 @@ func TestAddSymbolsBeforeStart(t *testing.T) {
 	stream <- &dalcommon.OutgoingSubmissionData{Symbol: "C-D"}
 	require.Eventually(t, func() bool { return len(stream) == 0 }, 2*time.Second, 10*time.Millisecond)
 }
+
+// A client whose close handshake blocks (peer never reads, so never answers
+// the close frame) must not stall a concurrent broadcast to another client.
+func TestSlowCloseDoesNotStallBroadcast(t *testing.T) {
+	cases := map[string]func(h *Hub, slow *websocket.Conn){
+		"removeClient": func(h *Hub, slow *websocket.Conn) { h.removeClient(slow) },
+		"cleanup":      func(h *Hub, _ *websocket.Conn) { h.cleanup() },
+	}
+	for name, remove := range cases {
+		t.Run(name, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			col := &collector.Collector{OutgoingStream: map[string]chan *dalcommon.OutgoingSubmissionData{}}
+			h := NewHub(map[string]struct{}{"A-B": {}})
+			h.Start(ctx, col)
+			srv := wsServer(t, h)
+			url := "ws" + srv.URL[len("http"):]
+
+			healthy, _, err := websocket.Dial(ctx, url, nil)
+			require.NoError(t, err)
+			defer healthy.CloseNow()
+			require.NoError(t, wsjson.Write(ctx, healthy, Subscription{Method: "SUBSCRIBE", Params: []string{"submission@A-B"}}))
+			require.Eventually(t, func() bool { return subscriptionsOf(h, "A-B") == 1 }, 2*time.Second, 10*time.Millisecond)
+
+			// slow peer: never reads, never subscribes
+			slowPeer, _, err := websocket.Dial(ctx, url, nil)
+			require.NoError(t, err)
+			defer slowPeer.CloseNow()
+
+			var slow *websocket.Conn
+			require.Eventually(t, func() bool {
+				h.mu.RLock()
+				defer h.mu.RUnlock()
+				for c, subs := range h.Clients {
+					if len(subs) == 0 {
+						slow = c
+						return true
+					}
+				}
+				return false
+			}, 2*time.Second, 10*time.Millisecond)
+
+			const bound = 2 * time.Second // close handshake waits ~5 s
+			start := time.Now()
+			go remove(h, slow)
+
+			removed := make(chan struct{})
+			go func() {
+				defer close(removed)
+				for {
+					h.mu.RLock()
+					_, ok := h.Clients[slow]
+					h.mu.RUnlock()
+					if !ok {
+						return
+					}
+					time.Sleep(5 * time.Millisecond)
+				}
+			}()
+			select {
+			case <-removed:
+			case <-time.After(bound):
+				t.Fatal("hub lock held while closing slow client")
+			}
+
+			broadcastDone := make(chan struct{})
+			go func() {
+				defer close(broadcastDone)
+				h.castSubmissionData(ctx, &dalcommon.OutgoingSubmissionData{Symbol: "A-B", Value: "1"}, "A-B")
+			}()
+
+			readCtx, readCancel := context.WithTimeout(ctx, bound)
+			defer readCancel()
+			var got dalcommon.OutgoingSubmissionData
+			require.NoError(t, wsjson.Read(readCtx, healthy, &got))
+			assert.Equal(t, "1", got.Value)
+
+			select {
+			case <-broadcastDone:
+			case <-time.After(bound):
+				t.Fatal("broadcast stalled by slow client close")
+			}
+			assert.Less(t, time.Since(start), bound)
+		})
+	}
+}
