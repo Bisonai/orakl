@@ -77,6 +77,8 @@ type fakeStore struct {
 	keys       []utils.SignerKey
 	nextID     int64
 	promoteErr error
+	// promoteFailN makes the next N Promote calls fail (transient DB error).
+	promoteFailN int
 }
 
 func newFakeStore() *fakeStore { return &fakeStore{} }
@@ -122,6 +124,10 @@ func (s *fakeStore) Promote(_ context.Context, id int64) error {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if s.promoteFailN > 0 {
+		s.promoteFailN--
+		return errors.New("db blip")
+	}
 	for i := range s.keys {
 		if s.keys[i].State == "active" && s.keys[i].ID != id {
 			s.keys[i].State = "retired"
@@ -442,6 +448,93 @@ func TestScenario_RotateAdoptsEvenIfPromoteFails(t *testing.T) {
 	_ = s.reconcile(ctx, true)
 	if s.activeAddr == aAddr || !s.usable {
 		t.Fatal("expected in-memory adoption of the confirmed new key even when DB promote fails")
+	}
+}
+
+// #2856 — rotation lands but the DB promote fails once: the next reconcile (alreadyActive path)
+// must retry Promote so the DB active row matches the in-memory key, without interrupting signing.
+func TestScenario_RotatePromoteFailRetriedOnNextReconcile(t *testing.T) {
+	ctx := context.Background()
+	aHex, aAddr, aPK := genKey(t)
+	store := newFakeStore()
+	store.addKey(aHex, aAddr, "active")
+	store.promoteFailN = 1
+	chain := newFakeChain()
+	chain.setExp(aAddr, 3*24*time.Hour) // near expiry -> triggers rotation
+	// updateOracle deactivates the old key and whitelists the new one (real contract behaviour).
+	chain.updateOracle = func(f *fakeChain, _ string, newAddr common.Address) error {
+		f.setDeactivated(aAddr)
+		f.setWhitelisted(newAddr)
+		return nil
+	}
+
+	s := newScenarioSigner(chain, store)
+	s.PK, s.activeAddr, s.usable, s.cachedExpiration = aPK, aAddr, true, time.Now().Add(3*24*time.Hour)
+	s.lastConfirmedAt = time.Now()
+
+	_ = s.reconcile(ctx, true)
+	newAddr := s.activeAddr
+	if newAddr == aAddr || !s.usable {
+		t.Fatal("expected in-memory adoption of the rotated key")
+	}
+	if act := store.findState("active"); act == nil || !strings.EqualFold(*act.Address, aAddr.Hex()) {
+		t.Fatal("precondition: DB active row should still be the old key after the failed promote")
+	}
+	if _, err := s.MakeGlobalAggregateProof(1, time.Now(), "X"); err != nil {
+		t.Fatalf("signing interrupted after failed promote: %v", err)
+	}
+
+	if err := s.reconcile(ctx, true); err != nil {
+		t.Fatalf("reconcile: %v", err)
+	}
+	act := store.findState("active")
+	if act == nil || !strings.EqualFold(*act.Address, newAddr.Hex()) {
+		t.Fatalf("expected DB active row to be adopted key %s after retry, got %+v", newAddr.Hex(), act)
+	}
+	if s.activeAddr != newAddr {
+		t.Fatal("in-memory key changed on retry")
+	}
+	if _, err := s.MakeGlobalAggregateProof(1, time.Now(), "X"); err != nil {
+		t.Fatalf("signing interrupted after promote retry: %v", err)
+	}
+}
+
+// #2856 — ensureActive adopts a whitelisted pending key but its Promote fails once: the next
+// reconcile must retry Promote on the alreadyActive path.
+func TestScenario_AdoptPromoteFailRetriedOnNextReconcile(t *testing.T) {
+	ctx := context.Background()
+	oldHex, oldAddr, oldPK := genKey(t)
+	newHex, newAddr, _ := genKey(t)
+	store := newFakeStore()
+	store.addKey(oldHex, oldAddr, "active")
+	store.addKey(newHex, newAddr, "pending")
+	store.promoteFailN = 1
+	chain := newFakeChain()
+	chain.setDeactivated(oldAddr)
+	chain.setWhitelisted(newAddr)
+
+	s := newScenarioSigner(chain, store)
+	s.PK, s.activeAddr, s.usable, s.cachedExpiration = oldPK, oldAddr, true, time.Now().Add(time.Hour)
+
+	if err := s.reconcile(ctx, true); err != nil {
+		t.Fatalf("reconcile: %v", err)
+	}
+	if s.activeAddr != newAddr || !s.usable {
+		t.Fatal("expected adoption of whitelisted pending key")
+	}
+	if act := store.findState("active"); act == nil || !strings.EqualFold(*act.Address, oldAddr.Hex()) {
+		t.Fatal("precondition: DB active row should still be the old key after the failed promote")
+	}
+
+	if err := s.reconcile(ctx, true); err != nil {
+		t.Fatalf("reconcile: %v", err)
+	}
+	act := store.findState("active")
+	if act == nil || !strings.EqualFold(*act.Address, newAddr.Hex()) {
+		t.Fatalf("expected DB active row to be adopted key %s after retry, got %+v", newAddr.Hex(), act)
+	}
+	if _, err := s.MakeGlobalAggregateProof(1, time.Now(), "X"); err != nil {
+		t.Fatalf("signing interrupted: %v", err)
 	}
 }
 
