@@ -58,22 +58,22 @@ func StartBalancePoller(ctx context.Context, rpcURL string, address func() (comm
 		log.Info().Msg("PROVIDER_URL not set, fee payer balance metric disabled")
 		return
 	}
-	var reader BalanceReader
-	dial := func() BalanceReader {
-		if reader == nil {
-			c, err := client.Dial(rpcURL)
+	var c *client.Client
+	go poll(ctx, interval, func(ctx context.Context) {
+		if c == nil {
+			var err error
+			c, err = client.DialContext(ctx, rpcURL)
 			if err != nil {
 				rpcError(RPCMethodDial)
 				log.Warn().Err(err).Msg("failed to dial RPC for fee payer balance")
-				return nil
+				c = nil
+				return
 			}
-			reader = c
 		}
-		return reader
-	}
-	go poll(ctx, interval, func(ctx context.Context) {
-		if r := dial(); r != nil {
-			pollBalance(ctx, r, address)
+		if !pollBalance(ctx, c, address) {
+			// redialed next tick: a dropped ws connection never recovers
+			c.Close()
+			c = nil
 		}
 	})
 }
@@ -108,18 +108,20 @@ func poll(ctx context.Context, interval time.Duration, fn func(context.Context))
 	}
 }
 
-func pollBalance(ctx context.Context, r BalanceReader, address func() (common.Address, bool)) {
+// pollBalance reports false on an RPC error.
+func pollBalance(ctx context.Context, r BalanceReader, address func() (common.Address, bool)) bool {
 	addr, ok := address()
 	if !ok {
-		return
+		return true
 	}
 	peb, err := r.BalanceAt(ctx, addr, nil)
 	if err != nil {
 		rpcError(RPCMethodBalanceAt)
 		log.Warn().Err(err).Msg("failed to read fee payer balance")
-		return
+		return false
 	}
 	setFeePayerBalance(PebToKaia(peb))
+	return true
 }
 
 // PebToKaia converts peb (1e-18 KAIA) to KAIA.

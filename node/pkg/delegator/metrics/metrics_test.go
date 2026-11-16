@@ -39,12 +39,15 @@ func TestStartServesOnlyMetrics(t *testing.T) {
 		"orakl_delegator_sign_duration_seconds",
 		"orakl_delegator_last_sign_success_timestamp_seconds",
 		"orakl_delegator_store_errors_total",
-		"orakl_delegator_allowlist_entries",
 		"orakl_delegator_rpc_errors_total",
 		"go_goroutines",
 		"process_start_time_seconds",
 	} {
 		assert.Contains(t, string(body), name)
+	}
+	// not set yet in this test binary: absent, not 0
+	for _, name := range []string{"orakl_delegator_allowlist_entries", "orakl_delegator_fee_payer_balance"} {
+		assert.NotContains(t, string(body), name)
 	}
 
 	for _, path := range []string{"/", "/api/v1/sign/v2", "/api/v1/sign/feePayer"} {

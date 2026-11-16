@@ -9,8 +9,9 @@ import (
 func SigningRoutes(router fiber.Router) {
 	sign := router.Group("/sign")
 
-	// before the group-wide token check, which it repeats, so auth rejections
-	// are counted; insertV2 ends the chain, so the Use below never runs for it
+	// own token check, after observeSign so auth rejections are counted. The
+	// group-wide check below is registered later and insertV2 never calls
+	// Next, so it does not run for /v2; it covers every other /sign path.
 	sign.Post("/v2", observeSign, RequireToken, insertV2)
 
 	sign.Use(RequireToken)

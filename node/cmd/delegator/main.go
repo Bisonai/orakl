@@ -113,11 +113,10 @@ func feePayerAddress() (common.Address, bool) {
 
 func allowlistCounter(appConfig utils.AppConfig) func(context.Context) (int, error) {
 	if appConfig.Store != nil {
-		return func(ctx context.Context) (int, error) {
-			entries, err := appConfig.Store.List(ctx)
-			return len(entries), err
-		}
+		return appConfig.Store.Count
 	}
+	// functions.contract_id is a NOT NULL foreign key, and an existing
+	// contract row is its approval, so every function row is signable
 	return func(ctx context.Context) (int, error) {
 		var n int
 		err := appConfig.Postgres.QueryRow(ctx, "SELECT COUNT(*) FROM functions").Scan(&n)

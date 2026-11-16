@@ -42,25 +42,25 @@ var (
 		Help:    "Time from request to signed response, successful requests only.",
 		Buckets: []float64{.001, .0025, .005, .01, .025, .05, .1, .25, .5, 1, 2.5},
 	})
-	lastSignSuccess = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "orakl_delegator_last_sign_success_timestamp_seconds",
-		Help: "Unix time of the last successfully signed transaction.",
-	})
 	storeErrors = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: "orakl_delegator_store_errors_total",
 		Help: "Store (SQLite or Postgres) read/write failures by operation.",
 	}, []string{"op"})
-	allowlistEntries = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "orakl_delegator_allowlist_entries",
-		Help: "Allowed (contract, function) entries in the store.",
-	})
 	rpcErrors = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: "orakl_delegator_rpc_errors_total",
 		Help: "RPC errors of the fee payer balance poller by method.",
 	}, []string{"method"})
 
-	// registered on the first successful poll, so a missing RPC or a failing
-	// one never exports a balance of 0 that would look like an empty account
+	// registered on first set, so no 0 is exported before the first value
+	// (an empty account or allowlist, or a sign in 1970, to an alert)
+	lastSignSuccess = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "orakl_delegator_last_sign_success_timestamp_seconds",
+		Help: "Unix time of the last successfully signed transaction.",
+	})
+	allowlistEntries = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "orakl_delegator_allowlist_entries",
+		Help: "Allowed (contract, function) entries in the store.",
+	})
 	feePayerBalance = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "orakl_delegator_fee_payer_balance",
 		Help: "Fee payer balance in KAIA.",
@@ -69,11 +69,13 @@ var (
 		Name: "orakl_delegator_fee_payer_balance_last_update_timestamp_seconds",
 		Help: "Unix time of the last successful fee payer balance poll.",
 	})
-	registerBalanceOnce sync.Once
+	registerLastSignOnce  sync.Once
+	registerAllowlistOnce sync.Once
+	registerBalanceOnce   sync.Once
 )
 
 func init() {
-	prometheus.MustRegister(signRequests, signDuration, lastSignSuccess, storeErrors, allowlistEntries, rpcErrors)
+	prometheus.MustRegister(signRequests, signDuration, storeErrors, rpcErrors)
 	// zero series so rate() and absence alerts work before the first event
 	for _, r := range results {
 		signRequests.WithLabelValues(r, "")
@@ -92,6 +94,7 @@ func ObserveSign(result, caller string, d time.Duration) {
 	signRequests.WithLabelValues(result, caller).Inc()
 	if result == ResultOK {
 		signDuration.Observe(d.Seconds())
+		registerLastSignOnce.Do(func() { prometheus.MustRegister(lastSignSuccess) })
 		lastSignSuccess.SetToCurrentTime()
 	}
 }
@@ -103,6 +106,7 @@ func StoreError(op string) {
 
 // SetAllowlistEntries sets the allowlist size.
 func SetAllowlistEntries(n int) {
+	registerAllowlistOnce.Do(func() { prometheus.MustRegister(allowlistEntries) })
 	allowlistEntries.Set(float64(n))
 }
 
