@@ -40,8 +40,16 @@ func start(addr string) (*http.Server, net.Addr, error) {
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to bind %s %s: %w", EnvAddr, addr, err)
 	}
+	if !isLoopback(ln.Addr()) {
+		log.Warn().Str("addr", ln.Addr().String()).Msg("delegator metrics listen beyond loopback; they expose token names and fee payer balance unauthenticated")
+	}
 	log.Info().Str("addr", ln.Addr().String()).Msg("delegator metrics server started")
 	return adminmetrics.Serve(ln), ln.Addr(), nil
+}
+
+func isLoopback(addr net.Addr) bool {
+	tcp, ok := addr.(*net.TCPAddr)
+	return ok && tcp.IP.IsLoopback()
 }
 
 // BalanceReader is the part of the RPC client the balance poller needs.
@@ -96,9 +104,7 @@ func poll(ctx context.Context, interval time.Duration, fn func(context.Context))
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 	for {
-		pctx, cancel := context.WithTimeout(ctx, pollTimeout)
-		fn(pctx)
-		cancel()
+		runPoll(ctx, fn)
 		select {
 		case <-ctx.Done():
 			return
@@ -108,6 +114,19 @@ func poll(ctx context.Context, interval time.Duration, fn func(context.Context))
 }
 
 // pollBalance reports false on an RPC error.
+// runPoll runs one poll. A panic (RPC client, store) ends only this poll:
+// there is no recover middleware here and metrics must not stop signing.
+func runPoll(ctx context.Context, fn func(context.Context)) {
+	pctx, cancel := context.WithTimeout(ctx, pollTimeout)
+	defer cancel()
+	defer func() {
+		if r := recover(); r != nil {
+			log.Error().Interface("panic", r).Msg("delegator metrics poll panicked")
+		}
+	}()
+	fn(pctx)
+}
+
 func pollBalance(ctx context.Context, r BalanceReader, address func() (common.Address, bool)) bool {
 	addr, ok := address()
 	if !ok {

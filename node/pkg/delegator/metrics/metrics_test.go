@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"math/big"
+	"net"
 	"net/http"
 	"sync/atomic"
 	"testing"
@@ -56,8 +57,23 @@ func TestStartServesOnlyMetrics(t *testing.T) {
 }
 
 func TestStartBindError(t *testing.T) {
-	_, err := Start("256.0.0.1:1")
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	defer ln.Close()
+	_, err = Start(ln.Addr().String())
 	assert.ErrorContains(t, err, EnvAddr)
+}
+
+func TestRunPollRecovers(t *testing.T) {
+	assert.NotPanics(t, func() {
+		runPoll(context.Background(), func(context.Context) { panic("rpc client bug") })
+	})
+}
+
+func TestIsLoopback(t *testing.T) {
+	assert.True(t, isLoopback(&net.TCPAddr{IP: net.ParseIP("127.0.0.1")}))
+	assert.True(t, isLoopback(&net.TCPAddr{IP: net.ParseIP("::1")}))
+	assert.False(t, isLoopback(&net.TCPAddr{IP: net.IPv4zero}))
 }
 
 type fakeBalance struct {

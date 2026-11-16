@@ -195,7 +195,7 @@ func TestSignMetricsSQLite(t *testing.T) {
 
 	t.Run("other /sign routes are not counted and still need a token", func(t *testing.T) {
 		assertCounted(t, "", "", func() {
-			for _, path := range []string{"/api/v1/sign/feePayer", "/api/v1/sign/initialize"} {
+			for _, path := range []string{"/api/v1/sign/feePayer", "/api/v1/sign/initialize", "/api/v1/sign/unknown"} {
 				req, err := http.NewRequest(http.MethodGet, path, nil)
 				require.NoError(t, err)
 				resp, err := app.Test(req, -1)

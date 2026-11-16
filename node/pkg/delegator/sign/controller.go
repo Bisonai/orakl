@@ -151,6 +151,10 @@ func insertV2(c *fiber.Ctx) error {
 	if err != nil {
 		return rejectInvalid(c, err)
 	}
+	// legacy (Ethereum) txs have no from field and cannot be fee delegated
+	if _, err = transaction.From(); err != nil {
+		return rejectInvalid(c, err)
+	}
 	if err = validateContractAddress(c, to); err != nil {
 		return allowlistRejection(c, transaction, to, selector, metrics.StoreOpContractLookup, err)
 	}
@@ -337,8 +341,7 @@ func signTxByFeePayerV2(c *fiber.Ctx, tx *types.Transaction) (*types.Transaction
 
 	updatedTx, err := updateFeePayer(tx, crypto.PubkeyToAddress(*publicKeyECDSA))
 	if err != nil {
-		// legacy (Ethereum) txs have no from field
-		return nil, rejectInvalid(c, err)
+		return nil, err
 	}
 
 	return types.SignTxAsFeePayer(updatedTx, types.NewEIP155Signer(tx.ChainId()), feePayerKey)
