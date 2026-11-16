@@ -400,9 +400,10 @@ func (s *Signer) loadCandidates(ctx context.Context) ([]*signerCandidate, error)
 		id := k.ID
 		if prev, ok := seen[addr]; ok {
 			// Duplicate address (e.g. a NULL-address row whose backfill hit the unique index):
-			// prefer the active row so ensureActive never promotes a stale duplicate over it.
-			if k.State == "active" && prev.state != "active" {
-				prev.id, prev.pkHex, prev.state = &id, k.PK, k.State
+			// keep the row with the strongest state (active > pending > retired), so ensureActive
+			// never promotes a stale duplicate and an interrupted pending key stays resumable.
+			if keyStateRank(k.State) > keyStateRank(prev.state) {
+				prev.id, prev.state = &id, k.State
 			}
 			continue
 		}
@@ -412,6 +413,18 @@ func (s *Signer) loadCandidates(ctx context.Context) ([]*signerCandidate, error)
 	}
 
 	return cands, nil
+}
+
+// keyStateRank orders signer_key states for de-duplicating rows of one address.
+func keyStateRank(state string) int {
+	switch state {
+	case "active":
+		return 2
+	case "pending":
+		return 1
+	default:
+		return 0
+	}
 }
 
 // pickChosen prefers an already-active row (avoids churn), otherwise any whitelisted candidate.
@@ -439,15 +452,11 @@ func pickReusablePending(cands []*signerCandidate, exclude common.Address) *sign
 // memory. Idempotent: if it is already the active in-memory key it only refreshes the cached
 // expiration, and retries the DB promote if an earlier one failed (row not yet "active").
 func (s *Signer) ensureActive(ctx context.Context, chosen *signerCandidate) error {
-	// Every candidate has a keyring row.
-	if chosen.id == nil {
-		return errorSentinel.ErrChainSignerNoWhitelistedKey
-	}
 	// Persist the chosen key as the single active row. Also covers the case where an earlier
 	// Promote (rotation or adoption) failed after the key was adopted in memory. chosen.state
 	// comes from this reconcile's LoadKeys, so there is no DB write when already in sync.
 	// Failure is non-fatal: memory follows the chain, and the next reconcile retries.
-	if chosen.state != "active" {
+	if chosen.state != "active" && chosen.id != nil {
 		if err := s.store.Promote(ctx, *chosen.id); err != nil {
 			log.Warn().Str("Player", "Signer").Err(err).Msg("failed to promote chosen key in DB; will retry")
 		}

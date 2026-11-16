@@ -538,13 +538,45 @@ func TestScenario_AdoptPromoteFailRetriedOnNextReconcile(t *testing.T) {
 	}
 }
 
-// #2856 review — duplicate rows for one address: the active row must win, so the promote retry
-// never re-activates a stale duplicate over it.
-func TestScenario_DuplicateAddressPrefersActiveRow(t *testing.T) {
+// #2856 review — duplicate rows for one address (a legacy NULL-address row, whose backfill would
+// hit the real store's unique address index, plus an addressed row): the strongest state wins,
+// so the promote retry never re-activates a stale duplicate and a pending duplicate stays resumable.
+func TestScenario_DuplicateAddressKeepsStrongestRow(t *testing.T) {
+	ctx := context.Background()
+	for _, tc := range []struct{ nullState, addrState, want string }{
+		{"retired", "active", "active"},
+		{"pending", "active", "active"},
+		{"retired", "pending", "pending"},
+		{"pending", "retired", "pending"},
+	} {
+		aHex, aAddr, _ := genKey(t)
+		store := newFakeStore()
+		nullID := store.addKey(aHex, aAddr, tc.nullState)
+		store.keys[len(store.keys)-1].Address = nil // legacy row without address
+		addrID := store.addKey(aHex, aAddr, tc.addrState)
+		wantID := addrID
+		if tc.nullState == tc.want {
+			wantID = nullID
+		}
+
+		s := newScenarioSigner(newFakeChain(), store)
+		cands, err := s.loadCandidates(ctx)
+		if err != nil {
+			t.Fatalf("loadCandidates: %v", err)
+		}
+		if len(cands) != 1 || cands[0].state != tc.want || *cands[0].id != wantID {
+			t.Fatalf("%+v: expected one candidate id=%d state=%s, got %+v", tc, wantID, tc.want, cands)
+		}
+	}
+}
+
+// #2856 review — the alreadyActive path must not promote a stale duplicate over the active row.
+func TestScenario_DuplicateAddressRetryKeepsActiveRow(t *testing.T) {
 	ctx := context.Background()
 	aHex, aAddr, aPK := genKey(t)
 	store := newFakeStore()
 	store.addKey(aHex, aAddr, "retired")
+	store.keys[len(store.keys)-1].Address = nil
 	activeID := store.addKey(aHex, aAddr, "active")
 	chain := newFakeChain()
 	chain.setWhitelisted(aAddr)
