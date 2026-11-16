@@ -170,6 +170,11 @@ func (n *Aggregator) HandleTriggerMessage(ctx context.Context, msg raft.Message)
 
 	if n.roundTriggers.locked[triggerMessage.RoundID] {
 		log.Debug().Str("Player", "Aggregator").Str("Sender", msg.SentFrom).Str("CurrentLeader", currentLeader).Str("Me", n.Raft.GetHostId()).Int32("RoundID", triggerMessage.RoundID).Msg("trigger message already processed")
+		if triggerMessage.RoundID < currentRoundID {
+			// the leader is behind this node: report this node's round (no
+			// price) so it catches up instead of retrying used rounds (#2867)
+			return n.PublishPriceDataMessage(ctx, triggerMessage.RoundID, -1, triggerMessage.Timestamp, currentRoundID)
+		}
 		return nil
 	}
 	n.roundTriggers.locked[triggerMessage.RoundID] = true

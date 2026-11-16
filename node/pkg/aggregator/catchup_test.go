@@ -3,6 +3,7 @@ package aggregator
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"testing"
 	"time"
 
@@ -61,73 +62,92 @@ func messageRound(t *testing.T, msg raft.Message) int32 {
 	return m.RoundID
 }
 
-// A new leader behind its follower (fresh DB or missed triggers) catches up to
-// the follower's round instead of triggering rounds the follower already used
-// and dedupes (#2867): its triggers move past the follower's locks within
-// maxLaggingTriggers, the follower answers the next new round, and no round
-// the follower already used gets an aggregate.
+// messagePrice decodes a price data message's price.
+func messagePrice(t *testing.T, msg raft.Message) int64 {
+	t.Helper()
+	var m PriceDataMessage
+	require.NoError(t, decodeInner(msg.Data, &m))
+	return m.PriceData
+}
+
+// A new leader behind its follower (fresh DB, or missed triggers as a
+// follower) catches up to the follower's round instead of triggering rounds
+// the follower already used and dedupes (#2867): its triggers move past the
+// follower's locks within maxLaggingTriggers, the follower answers the next
+// new round, and no round the follower already used gets a price or an
+// aggregate. Leader start 30 is below the follower's lock window, 44 inside it.
 func TestLaggingLeaderCatchesUpToFollower(t *testing.T) {
 	const (
-		leaderStart        = 30
 		followerRound      = 51
 		maxLaggingTriggers = 1 // triggers at or below followerRound
 	)
-	ctx := context.Background()
+	for _, leaderStart := range []int32{30, 44} {
+		t.Run(fmt.Sprint("leader at ", leaderStart), func(t *testing.T) {
+			ctx := context.Background()
 
-	leader := newRoundTestAggregator(t, ctx, "CATCHUP-LEADER", nil)
-	follower := newRoundTestAggregator(t, ctx, "CATCHUP-FOLLOWER", nil)
-	leaderID := leader.Raft.GetHostId()
-	leader.Raft.Role = raft.Leader
-	leader.Raft.LeaderID = leaderID
-	leader.RoundID = leaderStart
-	follower.Raft.LeaderID = leaderID
-	follower.RoundID = followerRound
-	seedRounds(follower, roundRange(42, followerRound)...)
-	follower.LatestLocalAggregates.Store(follower.ID, &LocalAggregate{ConfigID: follower.ID, Value: 100})
+			leader := newRoundTestAggregator(t, ctx, fmt.Sprint("CATCHUP-LEADER-", leaderStart), nil)
+			follower := newRoundTestAggregator(t, ctx, fmt.Sprint("CATCHUP-FOLLOWER-", leaderStart), nil)
+			leaderID := leader.Raft.GetHostId()
+			leader.Raft.Role = raft.Leader
+			leader.Raft.LeaderID = leaderID
+			leader.RoundID = leaderStart
+			follower.Raft.LeaderID = leaderID
+			follower.RoundID = followerRound
+			seedRounds(follower, roundRange(42, followerRound)...)
+			follower.LatestLocalAggregates.Store(follower.ID, &LocalAggregate{ConfigID: follower.ID, Value: 100})
 
-	followerPrices := published(t, ctx, follower, PriceData)
-	leaderFixes := published(t, ctx, leader, PriceFix)
-	// let the subscriptions settle before the first publish
-	time.Sleep(50 * time.Millisecond)
+			// Subscribe registers synchronously: no publish below is missed
+			followerPrices := published(t, ctx, follower, PriceData)
+			leaderFixes := published(t, ctx, leader, PriceFix)
 
-	var triggers []int32
-	for len(triggers) < 15 {
-		require.NoError(t, leader.LeaderJob(ctx))
-		round := leader.RoundID
-		triggers = append(triggers, round)
-		require.NoError(t, sendTrigger(t, ctx, follower, leaderID, round))
+			leaderRound := func() int32 {
+				leader.mu.RLock()
+				defer leader.mu.RUnlock()
+				return leader.RoundID
+			}
 
-		msg, ok := next(followerPrices, 500*time.Millisecond)
-		if !ok {
-			continue // the follower deduped the round
-		}
-		require.Equal(t, round, messageRound(t, msg))
-		require.NoError(t, leader.HandlePriceDataMessage(ctx, msg))
-		if round > followerRound {
-			break
-		}
+			var triggers []int32
+			for len(triggers) < 15 {
+				require.NoError(t, leader.LeaderJob(ctx))
+				round := leaderRound()
+				triggers = append(triggers, round)
+				require.NoError(t, sendTrigger(t, ctx, follower, leaderID, round))
+
+				msg, ok := next(followerPrices, 500*time.Millisecond)
+				if !ok {
+					continue // the follower deduped the round
+				}
+				require.Equal(t, round, messageRound(t, msg))
+				if round >= 42 && round <= followerRound {
+					assert.Equal(t, int64(-1), messagePrice(t, msg), "follower priced round %d it already used", round)
+				}
+				require.NoError(t, leader.HandlePriceDataMessage(ctx, msg))
+				if round > followerRound {
+					break
+				}
+			}
+
+			lagging := 0
+			for _, r := range triggers {
+				if r <= followerRound {
+					lagging++
+				}
+			}
+			assert.LessOrEqual(t, lagging, maxLaggingTriggers, "triggers before catching up: %v", triggers)
+			require.Greater(t, triggers[len(triggers)-1], int32(followerRound), "leader never caught up: %v", triggers)
+			assert.Equal(t, int32(followerRound+1), triggers[len(triggers)-1], "first new round right after the follower's")
+
+			// only the new round gets an aggregate, not the lagging one
+			fix, ok := next(leaderFixes, time.Second)
+			require.True(t, ok, "no price fix for the new round")
+			assert.Equal(t, int32(followerRound+1), messageRound(t, fix))
+			_, ok = next(leaderFixes, 200*time.Millisecond)
+			assert.False(t, ok, "price fix for a round the follower already used")
+
+			// the window stays bounded on both sides
+			require.NoError(t, sendTrigger(t, ctx, leader, leaderID, followerRound+1))
+			assert.Equal(t, roundRange(followerRound+1-(roundHistory-1), followerRound+1), sortedKeys(follower.roundTriggers.locked))
+			assert.Equal(t, roundRange(followerRound+1, followerRound+1), sortedKeys(leader.roundTriggers.locked))
+		})
 	}
-
-	lagging := 0
-	for _, r := range triggers {
-		assert.False(t, r >= 42 && r <= followerRound, "leader triggered round %d the follower already used", r)
-		if r <= followerRound {
-			lagging++
-		}
-	}
-	assert.LessOrEqual(t, lagging, maxLaggingTriggers, "triggers before catching up: %v", triggers)
-	require.Greater(t, triggers[len(triggers)-1], int32(followerRound), "leader never caught up: %v", triggers)
-	assert.Equal(t, int32(followerRound+1), triggers[len(triggers)-1], "first new round right after the follower's")
-
-	// only the new round gets an aggregate, not the lagging one
-	fix, ok := next(leaderFixes, time.Second)
-	require.True(t, ok, "no price fix for the new round")
-	assert.Equal(t, int32(followerRound+1), messageRound(t, fix))
-	_, ok = next(leaderFixes, 200*time.Millisecond)
-	assert.False(t, ok, "price fix for a round the follower already used")
-
-	// the window stays bounded on both sides
-	require.NoError(t, sendTrigger(t, ctx, leader, leaderID, followerRound+1))
-	assert.Equal(t, roundRange(followerRound+1-(roundHistory-1), followerRound+1), sortedKeys(follower.roundTriggers.locked))
-	assert.Equal(t, roundRange(followerRound+1, followerRound+1), sortedKeys(leader.roundTriggers.locked))
 }
