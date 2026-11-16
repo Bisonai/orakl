@@ -63,7 +63,7 @@ func newTestManager(t *testing.T, start uint64) (*NonceManagerV2, *fakeClient) {
 func TestReleaseReusesNonce(t *testing.T) {
 	m, _ := newTestManager(t, 50)
 
-	leases := make([]Lease, 5)
+	leases := make([]*Lease, 5)
 	for i := range leases {
 		leases[i] = m.Acquire()
 		assert.Equal(t, uint64(50+i), leases[i].Nonce)
@@ -82,10 +82,23 @@ func TestReleaseIgnoresDuplicateAndUnissued(t *testing.T) {
 	l := m.Acquire()
 	m.Release(l)
 	m.Release(l)
-	m.Release(Lease{Nonce: 7}) // not handed out yet
+	m.Release(&Lease{Nonce: 7}) // not handed out yet
+	m.Release(nil)
 	assert.Equal(t, uint64(0), m.GetNonce())
 	assert.Equal(t, uint64(1), m.GetNonce())
 	assert.Equal(t, uint64(2), m.GetNonce())
+}
+
+func TestDoubleReleaseAfterReissueIgnored(t *testing.T) {
+	m, _ := newTestManager(t, 0)
+	a := m.Acquire()
+	m.Release(a)
+	b := m.Acquire() // 0 re-issued to b
+	assert.Equal(t, uint64(0), b.Nonce)
+
+	// a second release of a must not hand 0 out again while b holds it
+	m.Release(a)
+	assert.Equal(t, uint64(1), m.GetNonce())
 }
 
 func TestReleaseAfterResetIgnored(t *testing.T) {
@@ -105,7 +118,7 @@ func TestReleaseAfterResetIgnored(t *testing.T) {
 
 func TestReleaseAcrossFillPool(t *testing.T) {
 	m, _ := newTestManager(t, 0)
-	var held []Lease
+	var held []*Lease
 	for i := 0; i < poolSize; i++ {
 		held = append(held, m.Acquire())
 	}

@@ -3,7 +3,7 @@ package noncemanagerv2
 import (
 	"context"
 	"errors"
-	"sort"
+	"slices"
 	"sync"
 
 	"bisonai.com/miko/node/pkg/chain/utils"
@@ -27,10 +27,11 @@ type NonceManagerV2 struct {
 }
 
 // Lease is a nonce handed out by Acquire. Pass it to Release only when the
-// tx using it was certainly not broadcast.
+// tx using it was certainly not broadcast. A lease can be released once.
 type Lease struct {
-	Nonce uint64
-	gen   uint64
+	Nonce    uint64
+	gen      uint64
+	released bool // guarded by NonceManagerV2.mu
 }
 
 const (
@@ -70,14 +71,14 @@ func (m *NonceManagerV2) GetNonce() uint64 {
 }
 
 // Acquire returns the lowest released nonce if any, else the next pool nonce.
-func (m *NonceManagerV2) Acquire() Lease {
+func (m *NonceManagerV2) Acquire() *Lease {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	if len(m.released) > 0 {
 		nonce := m.released[0]
-		m.released = m.released[1:]
-		return Lease{Nonce: nonce, gen: m.gen}
+		m.released = slices.Delete(m.released, 0, 1)
+		return &Lease{Nonce: nonce, gen: m.gen}
 	}
 
 	if len(m.noncePool) < minimumNoncePoolSize {
@@ -86,27 +87,27 @@ func (m *NonceManagerV2) Acquire() Lease {
 
 	nonce := <-m.noncePool
 	m.next = nonce + 1
-	return Lease{Nonce: nonce, gen: m.gen}
+	return &Lease{Nonce: nonce, gen: m.gen}
 }
 
 // Release hands back a nonce whose tx was never broadcast, so the next
 // Acquire reuses it instead of leaving a gap. Leases from before a Reset,
-// nonces not yet handed out and duplicates are ignored.
-func (m *NonceManagerV2) Release(l Lease) {
+// already released leases (the nonce may have been re-issued) and nonces not
+// yet handed out are ignored.
+func (m *NonceManagerV2) Release(l *Lease) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	if l.gen != m.gen || l.Nonce >= m.next {
+	if l == nil || l.released || l.gen != m.gen || l.Nonce >= m.next {
 		return
 	}
+	l.released = true
 
-	i := sort.Search(len(m.released), func(i int) bool { return m.released[i] >= l.Nonce })
-	if i < len(m.released) && m.released[i] == l.Nonce {
+	i, found := slices.BinarySearch(m.released, l.Nonce)
+	if found {
 		return
 	}
-	m.released = append(m.released, 0)
-	copy(m.released[i+1:], m.released[i:])
-	m.released[i] = l.Nonce
+	m.released = slices.Insert(m.released, i, l.Nonce)
 }
 
 func (m *NonceManagerV2) Reset(ctx context.Context) error {
