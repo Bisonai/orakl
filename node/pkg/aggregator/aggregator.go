@@ -186,7 +186,7 @@ func (n *Aggregator) HandleTriggerMessage(ctx context.Context, msg raft.Message)
 		value = localAggregate.Value
 	}
 
-	return n.PublishPriceDataMessage(ctx, triggerMessage.RoundID, value, triggerMessage.Timestamp)
+	return n.PublishPriceDataMessage(ctx, triggerMessage.RoundID, value, triggerMessage.Timestamp, currentRoundID)
 }
 
 func (n *Aggregator) HandlePriceDataMessage(ctx context.Context, msg raft.Message) error {
@@ -202,11 +202,21 @@ func (n *Aggregator) HandlePriceDataMessage(ctx context.Context, msg raft.Messag
 		return errorSentinel.ErrAggregatorInvalidRaftMessage
 	}
 
+	// before roundPrices.mu: LeaderJob holds n.mu while it publishes
+	staleThrough := n.catchUpToPeer(msg.SentFrom, priceDataMessage.LatestRoundID)
+
 	n.roundPrices.mu.Lock()
 	defer n.roundPrices.mu.Unlock()
 
 	if n.roundPrices.locked[priceDataMessage.RoundID] {
 		log.Debug().Str("Player", "Aggregator").Str("Sender", msg.SentFrom).Str("Me", n.Raft.GetHostId()).Str("transmissionDelay", time.Since(msg.Timestamp).String()).Int32("RoundID", priceDataMessage.RoundID).Msg("price data message already processed")
+		return nil
+	}
+
+	if priceDataMessage.RoundID <= staleThrough {
+		// a peer already used this round ID: no new aggregate for it
+		n.roundPrices.locked[priceDataMessage.RoundID] = true
+		log.Warn().Str("Player", "Aggregator").Str("Name", n.Name).Str("Sender", msg.SentFrom).Int32("RoundID", priceDataMessage.RoundID).Int32("PeerRoundID", staleThrough).Msg("dropping round already used by a peer")
 		return nil
 	}
 
@@ -228,6 +238,30 @@ func (n *Aggregator) HandlePriceDataMessage(ctx context.Context, msg raft.Messag
 	}
 
 	return nil
+}
+
+// catchUpToPeer moves a lagging leader (fresh DB, or missed triggers as a
+// follower) past peerRoundID, the round a peer reported using, so its next
+// trigger is a round no peer has used (#2867). Followers keep their locks:
+// re-running a used round ID with new prices would break the rule that a
+// round ID is never reused (see loadLatestRound). It returns the highest round
+// a peer was ahead at; this leader's rounds up to it are stale (0: none).
+//
+// Like a follower adopting an accepted trigger's RoundID, the jump has no
+// upper bound (#2711).
+func (n *Aggregator) catchUpToPeer(sender string, peerRoundID int32) int32 {
+	if peerRoundID == 0 || sender == n.Raft.GetHostId() || n.Raft.GetRole() != raft.Leader {
+		return 0
+	}
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	if peerRoundID > n.RoundID {
+		log.Warn().Str("Player", "Aggregator").Str("Name", n.Name).Str("Sender", sender).Int32("RoundID", n.RoundID).Int32("PeerRoundID", peerRoundID).Msg("leader behind a peer, catching up")
+		n.RoundID = peerRoundID
+		n.rounds.Advance(n.Name, n.RoundID)
+		n.peerRoundID = peerRoundID
+	}
+	return n.peerRoundID
 }
 
 func (n *Aggregator) storeRoundPriceData(roundID int32, priceData int64, sender string) {
@@ -451,11 +485,14 @@ func (n *Aggregator) PublishTriggerMessage(ctx context.Context, roundId int32, t
 	return n.Raft.PublishMessage(ctx, message)
 }
 
-func (n *Aggregator) PublishPriceDataMessage(ctx context.Context, roundId int32, value int64, timestamp time.Time) error {
+// PublishPriceDataMessage publishes this node's price for roundId;
+// latestRoundId is this node's current RoundID (see PriceDataMessage).
+func (n *Aggregator) PublishPriceDataMessage(ctx context.Context, roundId int32, value int64, timestamp time.Time, latestRoundId int32) error {
 	priceDataMessage := PriceDataMessage{
-		RoundID:   roundId,
-		PriceData: value,
-		Timestamp: timestamp,
+		RoundID:       roundId,
+		PriceData:     value,
+		Timestamp:     timestamp,
+		LatestRoundID: latestRoundId,
 	}
 
 	marshalledPriceDataMessage, err := encodeInner(priceDataMessage)

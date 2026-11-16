@@ -171,6 +171,11 @@ type Aggregator struct {
 	// rounds persists every RoundID advance (nil: not persisted)
 	rounds *roundPersister
 
+	// peerRoundID is the highest round a peer reported using while it was
+	// ahead of this node as leader; this node's rounds up to it are stale and
+	// produce no aggregate (under mu)
+	peerRoundID int32
+
 	// onSubmission gets each round's submission data (nil: none)
 	onSubmission SubmissionHook
 
@@ -187,6 +192,10 @@ type PriceDataMessage struct {
 	RoundID   int32     `json:"roundID"`
 	PriceData int64     `json:"priceData"`
 	Timestamp time.Time `json:"timestamp"`
+	// LatestRoundID is the sender's RoundID when it answered the trigger, so a
+	// lagging leader can move past rounds its peers already used (#2867).
+	// 0: not reported (older nodes).
+	LatestRoundID int32 `json:"latestRoundID,omitempty"`
 }
 
 type PriceFixMessage struct {

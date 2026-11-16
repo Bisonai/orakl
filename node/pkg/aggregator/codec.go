@@ -24,9 +24,10 @@ type wireTrigger struct {
 }
 
 type wirePriceData struct {
-	RoundID   int32 `msgpack:"r"`
-	PriceData int64 `msgpack:"p"`
-	Timestamp int64 `msgpack:"ts"`
+	RoundID       int32 `msgpack:"r"`
+	PriceData     int64 `msgpack:"p"`
+	Timestamp     int64 `msgpack:"ts"`
+	LatestRoundID int32 `msgpack:"lr,omitempty"`
 }
 
 type wirePriceFix struct {
@@ -61,9 +62,10 @@ func encodeInner(v any) ([]byte, error) {
 		})
 	case PriceDataMessage:
 		return msgpack.Marshal(&wirePriceData{
-			RoundID:   m.RoundID,
-			PriceData: m.PriceData,
-			Timestamp: m.Timestamp.UnixNano(),
+			RoundID:       m.RoundID,
+			PriceData:     m.PriceData,
+			Timestamp:     m.Timestamp.UnixNano(),
+			LatestRoundID: m.LatestRoundID,
 		})
 	case PriceFixMessage:
 		return msgpack.Marshal(&wirePriceFix{
@@ -112,6 +114,7 @@ func decodeInner(data []byte, v any) error {
 		m.RoundID = w.RoundID
 		m.PriceData = w.PriceData
 		m.Timestamp = time.Unix(0, w.Timestamp)
+		m.LatestRoundID = w.LatestRoundID
 		return nil
 	case *PriceFixMessage:
 		var w wirePriceFix
