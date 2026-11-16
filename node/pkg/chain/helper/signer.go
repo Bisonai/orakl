@@ -431,7 +431,7 @@ func pickReusablePending(cands []*signerCandidate, exclude common.Address) *sign
 
 // ensureActive makes the chosen (whitelisted) candidate the durable active key and adopts it in
 // memory. Idempotent: if it is already the active in-memory key it only refreshes the cached
-// expiration.
+// expiration, and retries the DB promote if an earlier one failed (row not yet "active").
 func (s *Signer) ensureActive(ctx context.Context, chosen *signerCandidate) error {
 	s.mu.RLock()
 	alreadyActive := s.usable && !s.rotating && s.activeAddr == chosen.addr
@@ -441,6 +441,17 @@ func (s *Signer) ensureActive(ctx context.Context, chosen *signerCandidate) erro
 		s.cachedExpiration = chosen.exp
 		s.lastConfirmedAt = time.Now() // active key freshly re-confirmed whitelisted on-chain
 		s.mu.Unlock()
+		// A previous Promote (rotation or adoption) failed: memory signs with this key but the DB
+		// row is still pending. chosen.state comes from this reconcile's LoadKeys, so this adds no
+		// DB call when already in sync. Failure is non-fatal; the next reconcile retries.
+		if chosen.state != "active" && chosen.id != nil {
+			if err := s.store.Promote(ctx, *chosen.id); err != nil {
+				log.Warn().Str("Player", "Signer").Err(err).Msg("failed to promote adopted key in DB; will retry")
+			} else {
+				log.Info().Str("Player", "Signer").Str("activeSigner", chosen.addr.Hex()).
+					Msg("promoted adopted signer key in DB")
+			}
+		}
 		return nil
 	}
 
