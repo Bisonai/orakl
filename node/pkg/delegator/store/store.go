@@ -75,7 +75,7 @@ var (
 	selectorPattern = regexp.MustCompile(`^0x[0-9a-f]{8}$`)
 	// name(type,type,...): no spaces, balanced outer parentheses
 	signaturePattern = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*\([A-Za-z0-9_\[\],()]*\)$`)
-	txFilePattern   = regexp.MustCompile(`^` + txPrefix + `(\d{8})` + txSuffix + `$`)
+	txFilePattern    = regexp.MustCompile(`^` + txPrefix + `(\d{8})` + txSuffix + `$`)
 )
 
 // Entry is one allowed (contract, function selector) pair.
