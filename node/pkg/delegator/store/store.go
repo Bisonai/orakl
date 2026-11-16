@@ -202,6 +202,13 @@ func (s *Store) FunctionAllowed(ctx context.Context, contract, selector string) 
 	return n > 0, err
 }
 
+// Count returns the number of allowed (contract, selector) entries.
+func (s *Store) Count(ctx context.Context) (int, error) {
+	var n int
+	err := s.config.QueryRowContext(ctx, "SELECT COUNT(*) FROM allowed").Scan(&n)
+	return n, err
+}
+
 // Upsert allows function (selector or signature) on contract.
 func (s *Store) Upsert(ctx context.Context, contract, function, description string) (Entry, error) {
 	contract, selector, err := NormalizeEntry(contract, function)
