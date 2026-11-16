@@ -62,10 +62,9 @@ func ParseWallets(raw string) ([]Wallet, error) {
 		}
 		seen[addr] = true
 		result = append(result, Wallet{
-			Tag:            role,
-			Address:        addr,
-			Minimum:        minimum,
-			BalanceHistory: []BalanceHistoryEntry{},
+			Tag:     role,
+			Address: addr,
+			Minimum: minimum,
 		})
 	}
 	if len(result) == 0 {
