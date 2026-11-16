@@ -42,7 +42,7 @@ const (
 
 // ResubscribeGrace keeps the previous redis subscriptions open this long after a config reload
 // started new ones (which connect asynchronously), so unchanged symbols see no gap (duplicates
-// are dropped by the timestamp compare-and-swap). A var so tests can shorten it.
+// are dropped by the timestamp check). A var so tests can shorten it.
 var ResubscribeGrace = 30 * time.Second
 
 type Config = types.Config
@@ -73,6 +73,11 @@ type Collector struct {
 	// subscribe starts subscriptions to topics under ctx and returns a channel
 	// closed once they are connected; replaceable in tests.
 	subscribe func(ctx context.Context, topics []string) (<-chan struct{}, error)
+	// toOutgoing verifies and converts incoming data (IncomingDataToOutgoingData);
+	// replaceable in tests to control verification timing.
+	toOutgoing func(ctx context.Context, data *aggregator.SubmissionData) (*dalcommon.OutgoingSubmissionData, error)
+	// inFlight holds messages being verified (see claim), guarded by mu; lazily created.
+	inFlight map[inFlightKey]struct{}
 
 	IsRunning  bool
 	CancelFunc context.CancelFunc
@@ -148,6 +153,7 @@ func NewCollector(ctx context.Context, configs []types.Config) (*Collector, erro
 		processPool:                 pool.NewPool(ProcessWorkerCount),
 	}
 	collector.subscribe = collector.redisSubscribe
+	collector.toOutgoing = collector.IncomingDataToOutgoingData
 
 	redisTopics := []string{}
 	for _, config := range configs {
@@ -261,22 +267,69 @@ func (c *Collector) redisRouter(ctx context.Context, msg *redis.Message) error {
 	return nil
 }
 
-func (c *Collector) compareAndSwapLatestTimestamp(data *aggregator.SubmissionData) bool {
+// inFlightKey identifies a message by content, so identical copies from base and sub redis
+// share a key.
+type inFlightKey struct {
+	symbol    string
+	timestamp int64
+	value     int64
+	proof     kaiacommon.Hash
+}
+
+func newInFlightKey(data *aggregator.SubmissionData) inFlightKey {
+	return inFlightKey{
+		symbol:    data.Symbol,
+		timestamp: data.GlobalAggregate.Timestamp.UnixNano(),
+		value:     data.GlobalAggregate.Value,
+		proof:     crypto.Keccak256Hash(data.Proof.Proof),
+	}
+}
+
+// claim reports whether data should be verified: its symbol is known, it is newer than the last
+// value delivered for it, and an identical copy (base + sub redis) is not already being verified.
+// It only marks data in flight, so a message that fails verification does not block a different
+// message with the same timestamp. Callers release the claim by deleting key from c.inFlight.
+func (c *Collector) claim(data *aggregator.SubmissionData) (inFlightKey, bool) {
+	key := newInFlightKey(data)
+
+	// most rejects (old data, duplicates) only need the read lock
+	c.mu.RLock()
+	ok := c.claimableLocked(data, key)
+	c.mu.RUnlock()
+	if !ok {
+		return key, false
+	}
+
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	if !c.claimableLocked(data, key) {
+		return key, false
+	}
+	if c.inFlight == nil {
+		c.inFlight = make(map[inFlightKey]struct{})
+	}
+	c.inFlight[key] = struct{}{}
+	return key, true
+}
 
+// claimableLocked reports whether claim may mark data in flight. Callers hold c.mu.
+func (c *Collector) claimableLocked(data *aggregator.SubmissionData, key inFlightKey) bool {
 	// removed by a config reload (old subscriptions linger for ResubscribeGrace)
 	if _, known := c.FeedHashes[data.Symbol]; !known {
 		return false
 	}
-
-	old, ok := c.LatestTimestamps[data.Symbol]
-	if !ok || data.GlobalAggregate.Timestamp.After(old) {
-		c.LatestTimestamps[data.Symbol] = data.GlobalAggregate.Timestamp
-		return true
+	if !c.newerThanDeliveredLocked(data) {
+		return false
 	}
+	_, busy := c.inFlight[key]
+	return !busy
+}
 
-	return false
+// newerThanDeliveredLocked reports whether data is strictly newer than the last delivered value
+// for its symbol. Callers hold c.mu.
+func (c *Collector) newerThanDeliveredLocked(data *aggregator.SubmissionData) bool {
+	old, ok := c.LatestTimestamps[data.Symbol]
+	return !ok || data.GlobalAggregate.Timestamp.After(old)
 }
 
 func (c *Collector) processIncomingData(ctx context.Context, data *aggregator.SubmissionData) {
@@ -284,13 +337,23 @@ func (c *Collector) processIncomingData(ctx context.Context, data *aggregator.Su
 	case <-ctx.Done():
 		return
 	default:
-		valid := c.compareAndSwapLatestTimestamp(data)
-		if !valid {
-			log.Debug().Str("Player", "DalCollector").Str("Symbol", data.Symbol).Msg("old data recieved")
+		// cheap early reject before verification; re-checked under the lock below
+		key, ok := c.claim(data)
+		if !ok {
+			log.Debug().Str("Player", "DalCollector").Str("Symbol", data.Symbol).Msg("old or duplicate data recieved")
 			return
 		}
+		// released under the commit lock below; this covers every other exit
+		released := false
+		defer func() {
+			if !released {
+				c.mu.Lock()
+				delete(c.inFlight, key)
+				c.mu.Unlock()
+			}
+		}()
 
-		result, err := c.IncomingDataToOutgoingData(ctx, data)
+		result, err := c.toOutgoing(ctx, data)
 		if err != nil {
 			log.Error().Err(err).Str("Player", "DalCollector").Msg("failed to convert incoming data to outgoing data")
 			return
@@ -300,10 +363,19 @@ func (c *Collector) processIncomingData(ctx context.Context, data *aggregator.Su
 		// stream mid-send (the send never blocks).
 		c.mu.Lock()
 		defer c.mu.Unlock()
+		delete(c.inFlight, key)
+		released = true
 		stream, known := c.OutgoingStream[result.Symbol]
-		if !known {
+		if !known || ctx.Err() != nil {
 			return
 		}
+		// A newer or same-timestamp value may have been delivered while this one was verified;
+		// never move LatestData or the stream backwards.
+		if !c.newerThanDeliveredLocked(data) {
+			log.Debug().Str("Player", "DalCollector").Str("Symbol", data.Symbol).Msg("data not newer than delivered after verification")
+			return
+		}
+		c.LatestTimestamps[data.Symbol] = data.GlobalAggregate.Timestamp
 		c.LatestData[result.Symbol] = result
 
 		select {

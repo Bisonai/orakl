@@ -53,6 +53,7 @@ func newTestCollector(t *testing.T, names ...string) (*Collector, *fakeSubscribe
 		runCtx:           ctx,
 		subscribe:        f.subscribe,
 	}
+	c.toOutgoing = c.IncomingDataToOutgoingData
 	for _, n := range names {
 		c.OutgoingStream[n] = make(chan *dalcommon.OutgoingSubmissionData, OutgoingStreamSize)
 		c.FeedHashes[n] = []byte(n)
@@ -150,7 +151,8 @@ func TestRemovedSymbolDataIgnored(t *testing.T) {
 	c, _ := newTestCollector(t, "A-B")
 	c.RemoveSymbols([]string{"A-B"})
 	data := &aggregator.SubmissionData{Symbol: "A-B", GlobalAggregate: aggregator.GlobalAggregate{Timestamp: time.Now()}}
-	assert.False(t, c.compareAndSwapLatestTimestamp(data))
+	_, ok := c.claim(data)
+	assert.False(t, ok)
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	assert.NotContains(t, c.LatestTimestamps, "A-B")
