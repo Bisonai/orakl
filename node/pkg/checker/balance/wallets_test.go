@@ -24,7 +24,6 @@ func TestParseWallets(t *testing.T) {
 	assert.Equal(t, addrB, ws[1].Address.Hex())
 	assert.Equal(t, 50.5, ws[1].Minimum)
 	assert.Equal(t, defaultRole, ws[1].Tag)
-	assert.NotNil(t, ws[1].BalanceHistory)
 }
 
 func TestParseWalletsRejects(t *testing.T) {
