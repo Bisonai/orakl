@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -81,11 +82,6 @@ func (ws *WebsocketHelper) Run(ctx context.Context, router func(context.Context,
 		ws.IsRunning = false
 	}()
 
-	reconnectTicker := time.NewTicker(ws.ReconnectInterval)
-	inactivityTimer := time.NewTimer(ws.InactivityTimeout)
-	defer reconnectTicker.Stop()
-	defer inactivityTimer.Stop()
-
 	for {
 		if ctx.Err() != nil {
 			log.Info().Str("endpoint", ws.Endpoint).Msg("context cancelled, stopping websocket")
@@ -105,45 +101,70 @@ func (ws *WebsocketHelper) Run(ctx context.Context, router func(context.Context,
 			}
 			continue
 		}
-	innerLoop:
-		for {
-			select {
-			case <-ctx.Done():
-				log.Info().Str("endpoint", ws.Endpoint).Msg("context cancelled, stopping websocket")
-				ws.Close()
-				return
-			case <-reconnectTicker.C:
-				log.Info().Str("endpoint", ws.Endpoint).Msg("reconnect interval exceeded during read, closing websocket")
-				break innerLoop
-			case <-inactivityTimer.C:
-				if time.Since(ws.lastMessageTime) > ws.InactivityTimeout {
-					log.Info().Str("endpoint", ws.Endpoint).Msg("inactivity timeout exceeded, closing websocket")
-					break innerLoop
-				}
-				inactivityTimer.Reset(ws.InactivityTimeout - time.Since(ws.lastMessageTime))
-			default:
-				data, err := readFunc(ctx, ws.Conn)
-				if err != nil {
-					if isErrorNormalClosure(err) {
-						break innerLoop
-					}
-					log.Warn().Err(err).Str("endpoint", ws.Endpoint).Msg("error reading from websocket, reconnecting")
-					break innerLoop
-				}
 
-				ws.lastMessageTime = time.Now()
-
-				if len(data) != 0 {
-					go func(context.Context, map[string]any) {
-						routerErr := router(ctx, data)
-						if routerErr != nil {
-							log.Warn().Err(routerErr).Str("endpoint", ws.Endpoint).Msg("error processing websocket message")
-						}
-					}(ctx, data)
-				}
-			}
-		}
+		ws.readUntilReconnect(ctx, readFunc, router)
 		ws.Close()
+
+		if ctx.Err() != nil {
+			log.Info().Str("endpoint", ws.Endpoint).Msg("context cancelled, stopping websocket")
+			return
+		}
+	}
+}
+
+// readUntilReconnect reads from the current connection until it should be
+// replaced: read error, inactivity timeout or reconnect interval. Each read is
+// bounded by a deadline, so a connection that is open but silent cannot block
+// forever. nhooyr.io/websocket closes the conn when a read ctx expires; the
+// caller's Close afterwards returns nil without blocking.
+func (ws *WebsocketHelper) readUntilReconnect(ctx context.Context, readFunc func(context.Context, *websocket.Conn) (map[string]interface{}, error), router func(context.Context, map[string]any) error) {
+	// both windows start once dial + subscribe are done
+	reconnectAt := time.Now().Add(ws.ReconnectInterval)
+	lastMessageTime := time.Now()
+
+	for {
+		deadline := lastMessageTime.Add(ws.InactivityTimeout)
+		reason := "inactivity timeout exceeded, closing websocket"
+		if reconnectAt.Before(deadline) {
+			deadline = reconnectAt
+			reason = "reconnect interval exceeded, closing websocket"
+		}
+
+		readCtx, cancel := context.WithDeadline(ctx, deadline)
+		data, err := readFunc(readCtx, ws.Conn)
+		cancel()
+		if err != nil {
+			switch {
+			case ctx.Err() != nil:
+			case isErrorNormalClosure(err):
+			// The deadline hit only if readCtx expired (cancel() already ran, so check
+			// DeadlineExceeded) and the error is what nhooyr returns for it (ctx error,
+			// or net.ErrClosed after its timeoutLoop closed the conn). Other errors,
+			// e.g. a close frame or reset racing the deadline, keep their Warn log.
+			case errors.Is(readCtx.Err(), context.DeadlineExceeded) &&
+				(errors.Is(err, context.DeadlineExceeded) || errors.Is(err, net.ErrClosed)):
+				log.Info().Str("endpoint", ws.Endpoint).Msg(reason)
+			default:
+				log.Warn().Err(err).Str("endpoint", ws.Endpoint).Msg("error reading from websocket, reconnecting")
+			}
+			return
+		}
+
+		// Only non-empty data counts as activity. Readers return (nil, nil) for
+		// app-level heartbeats (e.g. "pong"), which prove the socket is up but not
+		// that the subscription delivers; counting them would keep a dead
+		// subscription open until the reconnect interval.
+		if len(data) == 0 {
+			continue
+		}
+		lastMessageTime = time.Now()
+
+		go func(context.Context, map[string]any) {
+			routerErr := router(ctx, data)
+			if routerErr != nil {
+				log.Warn().Err(routerErr).Str("endpoint", ws.Endpoint).Msg("error processing websocket message")
+			}
+		}(ctx, data)
 	}
 }
 
