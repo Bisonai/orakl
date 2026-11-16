@@ -8,6 +8,7 @@ import (
 
 	"bisonai.com/miko/node/pkg/delegator/contract"
 	"bisonai.com/miko/node/pkg/delegator/function"
+	"bisonai.com/miko/node/pkg/delegator/metrics"
 	"bisonai.com/miko/node/pkg/delegator/organization"
 	"bisonai.com/miko/node/pkg/delegator/reporter"
 	"bisonai.com/miko/node/pkg/delegator/sign"
@@ -16,6 +17,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/joho/godotenv"
+	"github.com/kaiachain/kaia/common"
 	"github.com/rs/zerolog/log"
 )
 
@@ -58,6 +60,10 @@ func main() {
 		SetRouter(v1)
 	}
 
+	if err := startMetrics(context.Background(), appConfig); err != nil {
+		panic(err)
+	}
+
 	var port string
 	port = os.Getenv("APP_PORT")
 	if port == "" {
@@ -78,6 +84,45 @@ func SetSigningRouter(router fiber.Router) {
 		return c.SendString("Orakl Network Delegator")
 	})
 	sign.SigningRoutes(router)
+}
+
+// startMetrics serves metrics on METRICS_ADDR (empty: disabled) and starts
+// the fee payer balance (needs PROVIDER_URL) and allowlist size pollers.
+func startMetrics(ctx context.Context, appConfig utils.AppConfig) error {
+	srv, err := metrics.Start(os.Getenv(metrics.EnvAddr))
+	if err != nil || srv == nil {
+		return err
+	}
+	metrics.StartBalancePoller(ctx, os.Getenv("PROVIDER_URL"), feePayerAddress, metrics.PollInterval)
+	metrics.StartAllowlistPoller(ctx, allowlistCounter(appConfig), metrics.PollInterval)
+	return nil
+}
+
+// feePayerAddress returns the address of the loaded fee payer key, if any.
+func feePayerAddress() (common.Address, bool) {
+	pk := utils.CurrentFeePayer()
+	if pk == "" {
+		return common.Address{}, false
+	}
+	addr, err := utils.GetPublicKey(pk)
+	if err != nil {
+		return common.Address{}, false
+	}
+	return common.HexToAddress(addr), true
+}
+
+func allowlistCounter(appConfig utils.AppConfig) func(context.Context) (int, error) {
+	if appConfig.Store != nil {
+		return func(ctx context.Context) (int, error) {
+			entries, err := appConfig.Store.List(ctx)
+			return len(entries), err
+		}
+	}
+	return func(ctx context.Context) (int, error) {
+		var n int
+		err := appConfig.Postgres.QueryRow(ctx, "SELECT COUNT(*) FROM functions").Scan(&n)
+		return n, err
+	}
 }
 
 func SetRouter(router fiber.Router) {
