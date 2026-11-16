@@ -136,8 +136,14 @@ func (t *ChainHelper) GetSignedFromDelegator(tx *types.Transaction) (*types.Tran
 }
 
 func (t *ChainHelper) MakeDirectTx(ctx context.Context, contractAddressHex string, functionString string, args ...interface{}) (*types.Transaction, error) {
-	nonce := t.noncemanager.GetNonce()
-	return utils.MakeDirectTx(ctx, t.client, contractAddressHex, t.wallet, functionString, t.chainID, nonce, args...)
+	lease := t.noncemanager.Acquire()
+	tx, err := utils.MakeDirectTx(ctx, t.client, contractAddressHex, t.wallet, functionString, t.chainID, lease.Nonce, args...)
+	if err != nil {
+		// build failed, nothing sent: hand the nonce back to avoid a gap
+		t.noncemanager.Release(lease)
+		return nil, err
+	}
+	return tx, nil
 }
 
 func (t *ChainHelper) Submit(ctx context.Context, tx *types.Transaction) error {
@@ -189,11 +195,16 @@ func (t *ChainHelper) PublicAddressString() (string, error) {
 }
 
 func (t *ChainHelper) SubmitDelegatedFallbackDirect(ctx context.Context, contractAddress, functionString string, args ...interface{}) error {
-	nonce := t.noncemanager.GetNonce()
+	lease := t.noncemanager.Acquire()
+	nonce := lease.Nonce
 	log.Debug().Uint64("nonce", nonce).Msg("nonce")
 
+	// Release the nonce only on errors before SubmitRawTx (nothing sent; the
+	// delegator only signs). Send errors are ambiguous (the tx may be in the
+	// txpool, or the node rejected the nonce as too low), so keep them as is.
 	tx, err := utils.MakeFeeDelegatedTx(ctx, t.client, contractAddress, t.wallet, functionString, t.chainID, nonce, args...)
 	if err != nil {
+		t.noncemanager.Release(lease)
 		return err
 	}
 
@@ -201,6 +212,7 @@ func (t *ChainHelper) SubmitDelegatedFallbackDirect(ctx context.Context, contrac
 	if err != nil {
 		tx, err = utils.MakeDirectTx(ctx, t.client, contractAddress, t.wallet, functionString, t.chainID, nonce, args...)
 		if err != nil {
+			t.noncemanager.Release(lease)
 			return err
 		}
 
