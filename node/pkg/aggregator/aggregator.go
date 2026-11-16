@@ -286,9 +286,18 @@ func (n *Aggregator) startPriceCollectionTimeout(ctx context.Context, roundID in
 
 	select {
 	case <-timer.C:
+		// a catch-up since the round started made it stale (#2867)
+		n.mu.RLock()
+		stale := roundID <= n.peerRoundID
+		n.mu.RUnlock()
+
 		n.roundPrices.mu.Lock()
 		defer n.roundPrices.mu.Unlock()
 
+		if stale {
+			n.roundPrices.locked[roundID] = true
+			return
+		}
 		if !n.roundPrices.locked[roundID] && len(n.roundPrices.prices[roundID]) >= (n.Raft.SubscribersCount()+1)/2 {
 			log.Debug().Str("Player", "Aggregator").Int32("roundId", roundID).Msg("timeout reached, processing available prices")
 			err := n.processCollectedPrices(ctx, roundID, timestamp)

@@ -36,7 +36,11 @@ func published(t *testing.T, ctx context.Context, agg *Aggregator, msgType raft.
 			if json.Unmarshal(raw.Data, &msg) != nil || msg.Type != msgType {
 				continue
 			}
-			out <- msg
+			select {
+			case out <- msg:
+			case <-ctx.Done():
+				return
+			}
 		}
 	}()
 	return out
@@ -183,4 +187,31 @@ func TestCaughtUpLeaderDropsAllPricesForStaleRounds(t *testing.T) {
 	defer leader.roundPrices.mu.Unlock()
 	assert.Equal(t, []int32{31, 32}, sortedKeys(leader.roundPrices.locked))
 	assert.Empty(t, leader.roundPrices.prices, "no price stored for a stale round")
+}
+
+// A round whose collection timeout started before the leader caught up gets
+// no aggregate when the timeout fires.
+func TestCollectionTimeoutSkipsRoundStaleSinceStart(t *testing.T) {
+	t.Setenv("P2P_ENCODING", "json")
+	ctx := context.Background()
+	leader := newRoundTestAggregator(t, ctx, "CATCHUP-TIMEOUT", nil)
+	self := leader.Raft.GetHostId()
+	leader.Raft.Role = raft.Leader
+	leader.Raft.LeaderID = self
+	leader.RoundID = 32
+	fixes := published(t, ctx, leader, PriceFix)
+
+	// own price for 31 stored, its timeout pending; then a peer's reply for
+	// 32 catches the leader up past 31
+	leader.roundPrices.prices[31] = []int64{100}
+	leader.roundPrices.senders[31] = []string{self}
+	sendPriceData(t, ctx, leader, "ahead-peer", 32, 51)
+
+	leader.startPriceCollectionTimeout(ctx, 31, time.Now())
+
+	leader.roundPrices.mu.Lock()
+	assert.True(t, leader.roundPrices.locked[31])
+	leader.roundPrices.mu.Unlock()
+	_, ok := next(fixes, 200*time.Millisecond)
+	assert.False(t, ok, "price fix for a round a peer already used")
 }
