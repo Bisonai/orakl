@@ -142,8 +142,6 @@ func (n *Aggregator) HandleTriggerMessage(ctx context.Context, msg raft.Message)
 		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to unmarshal trigger message")
 		return err
 	}
-	defer n.leaveOnlyLast10Entries(triggerMessage.RoundID)
-
 	if triggerMessage.RoundID == 0 {
 		log.Error().Str("Player", "Aggregator").Msg("invalid trigger message")
 		return errorSentinel.ErrAggregatorInvalidRaftMessage
@@ -155,12 +153,17 @@ func (n *Aggregator) HandleTriggerMessage(ctx context.Context, msg raft.Message)
 		return errorSentinel.ErrAggregatorNonLeaderRaftMessage
 	}
 
+	// the leader's own trigger is its current round
+	currentRoundID := triggerMessage.RoundID
 	if msg.SentFrom != n.Raft.GetHostId() {
 		n.mu.Lock()
 		n.RoundID = max(triggerMessage.RoundID, n.RoundID)
 		n.rounds.Advance(n.Name, n.RoundID)
+		currentRoundID = n.RoundID
 		n.mu.Unlock()
 	}
+	// prune only for accepted triggers: unvalidated input must not drop round state (#2853)
+	defer n.pruneRounds(triggerMessage.RoundID, currentRoundID)
 
 	n.roundTriggers.mu.Lock()
 	defer n.roundTriggers.mu.Unlock()
@@ -515,9 +518,17 @@ func (n *Aggregator) PublishProofMessage(ctx context.Context, roundId int32, val
 	return n.Raft.PublishMessage(ctx, message)
 }
 
-func (n *Aggregator) leaveOnlyLast10Entries(roundID int32) {
-	n.roundTriggers.leaveOnlyLast10Entries(roundID)
-	n.roundPrices.leaveOnlyLast10Entries(roundID)
-	n.roundPriceFixes.leaveOnlyLast10Entries(roundID)
-	n.roundProofs.leaveOnlyLast10Entries(roundID)
+// pruneRounds keeps the state of rounds from roundHistory-1 before the
+// accepted trigger round up to roundLookahead after the current round
+// (currentRoundID >= acceptedRoundID) and drops the rest. Anchoring the low
+// end on the accepted round keeps a stale trigger's own round locked, as before.
+func (n *Aggregator) pruneRounds(acceptedRoundID, currentRoundID int32) {
+	// int64: no wrap around near the int32 limits
+	low := int64(acceptedRoundID) - (roundHistory - 1)
+	high := int64(currentRoundID) + roundLookahead
+
+	n.roundTriggers.pruneOutside(low, high)
+	n.roundPrices.pruneOutside(low, high)
+	n.roundPriceFixes.pruneOutside(low, high)
+	n.roundProofs.pruneOutside(low, high)
 }
