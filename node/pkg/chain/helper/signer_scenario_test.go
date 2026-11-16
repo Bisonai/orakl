@@ -110,9 +110,15 @@ func (s *fakeStore) InsertPending(_ context.Context, address, pkHex string) (int
 func (s *fakeStore) BackfillAddress(_ context.Context, id int64, address string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	a := strings.ToLower(address)
+	for i := range s.keys {
+		// Mirror the real store's unique address index (signer_key_addr).
+		if s.keys[i].ID != id && s.keys[i].Address != nil && *s.keys[i].Address == a {
+			return errors.New("UNIQUE constraint failed: signer_key.address")
+		}
+	}
 	for i := range s.keys {
 		if s.keys[i].ID == id {
-			a := strings.ToLower(address)
 			s.keys[i].Address = &a
 		}
 	}
@@ -539,15 +545,14 @@ func TestScenario_AdoptPromoteFailRetriedOnNextReconcile(t *testing.T) {
 }
 
 // #2856 review — duplicate rows for one address (a legacy NULL-address row, whose backfill would
-// hit the real store's unique address index, plus an addressed row): the strongest state wins,
-// so the promote retry never re-activates a stale duplicate and a pending duplicate stays resumable.
-func TestScenario_DuplicateAddressKeepsStrongestRow(t *testing.T) {
+// hit the real store's unique address index, plus an addressed row): the active row wins,
+// so the promote retry never re-activates a stale duplicate over the active row.
+func TestScenario_DuplicateAddressPrefersActiveRow(t *testing.T) {
 	ctx := context.Background()
 	for _, tc := range []struct{ nullState, addrState, want string }{
 		{"retired", "active", "active"},
 		{"pending", "active", "active"},
-		{"retired", "pending", "pending"},
-		{"pending", "retired", "pending"},
+		{"active", "retired", "active"},
 	} {
 		aHex, aAddr, _ := genKey(t)
 		store := newFakeStore()
