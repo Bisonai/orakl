@@ -8,30 +8,19 @@ import (
 )
 
 const (
-	mikoApiEndpoint          = "/reporter"
-	mikoDelegatorEndpoint    = "/sign/feePayer"
-	DefaultRRMinimum         = 1
 	BalanceHistoryTTL        = 60 * time.Minute
 	MinimalIncreaseThreshold = 0.5
 	ChunkSize                = 10
 )
 
-var SubmitterAlarmAmount float64
-var DelegatorAlarmAmount float64
 var BalanceCheckInterval time.Duration
 var BalanceAlarmInterval time.Duration
 
 var kaiaClient *client.Client
 var wallets []Wallet
 
-type Urls struct {
-	JsonRpcUrl       string
-	MikoApiUrl       string
-	MikoNodeAdminUrl string
-	MikoDelegatorUrl string
-}
-
 type Wallet struct {
+	// Tag is the wallet's role (BALANCE_WALLETS), used in metrics and alerts.
 	Tag     string
 	Address common.Address `db:"address" json:"address"`
 	Balance float64        `db:"balance" json:"balance"`
