@@ -3,6 +3,7 @@ package aggregator
 import (
 	"bytes"
 	"context"
+	"math"
 
 	"time"
 
@@ -515,17 +516,21 @@ func (n *Aggregator) PublishProofMessage(ctx context.Context, roundId int32, val
 	return n.Raft.PublishMessage(ctx, message)
 }
 
-// pruneRounds keeps the last roundHistory rounds up to the newer of the
-// accepted trigger round and n.RoundID, plus any newer round; older ones are
-// dropped.
+// pruneRounds keeps the last roundHistory rounds up to anchor, the newer of
+// the accepted trigger round and n.RoundID, plus roundLookahead rounds after
+// it; other rounds are dropped.
 func (n *Aggregator) pruneRounds(acceptedRoundID int32) {
 	n.mu.Lock()
 	anchor := max(acceptedRoundID, n.RoundID)
 	n.mu.Unlock()
-	cutoff := anchor - (roundHistory - 1)
+	low := anchor - (roundHistory - 1)
+	high := anchor
+	if anchor <= math.MaxInt32-roundLookahead {
+		high = anchor + roundLookahead
+	}
 
-	n.roundTriggers.pruneBefore(cutoff)
-	n.roundPrices.pruneBefore(cutoff)
-	n.roundPriceFixes.pruneBefore(cutoff)
-	n.roundProofs.pruneBefore(cutoff)
+	n.roundTriggers.pruneOutside(low, high)
+	n.roundPrices.pruneOutside(low, high)
+	n.roundPriceFixes.pruneOutside(low, high)
+	n.roundProofs.pruneOutside(low, high)
 }

@@ -87,28 +87,31 @@ func TestRejectedTriggerKeepsRoundState(t *testing.T) {
 	assert.Equal(t, int32(50), agg.RoundID)
 }
 
-// An accepted leader trigger prunes rounds older than the window but keeps
-// newer rounds, and a stale leader trigger never drops current rounds.
+// An accepted leader trigger keeps roundHistory rounds up to the current one
+// plus roundLookahead rounds ahead, and a stale leader trigger never drops
+// current rounds.
 func TestLeaderTriggerPrunesOnlyOldRounds(t *testing.T) {
 	ctx := context.Background()
 	agg := newRoundTestAggregator(t, ctx, "PRUNE-LEADER", nil)
 	agg.RoundID = 50
 	agg.Raft.LeaderID = "leader-peer"
-	// 60: state that arrived ahead of its trigger
-	seedRounds(agg, append(roundRange(35, 50), 60)...)
+	// 52, 53: state racing ahead of its trigger (kept); 54, 60: too far ahead (dropped)
+	seedRounds(agg, append(roundRange(35, 50), 52, 53, 54, 60)...)
+	kept := append(roundRange(42, 50), 52, 53)
+	keptTriggers := roundRange(42, 53) // 51 locked by the trigger itself
 
 	require.NoError(t, sendTrigger(t, ctx, agg, "leader-peer", 51))
 	assert.Equal(t, int32(51), agg.RoundID)
-	// window 42..51 (51 only in roundTriggers, set by this trigger) + 60
-	assert.Equal(t, append(roundRange(42, 51), 60), sortedKeys(agg.roundTriggers.locked))
-	assert.Equal(t, append(roundRange(42, 50), 60), sortedKeys(agg.roundPrices.prices))
-	assert.Equal(t, append(roundRange(42, 50), 60), sortedKeys(agg.roundProofs.proofs))
-	assert.Equal(t, append(roundRange(42, 50), 60), sortedKeys(agg.roundPriceFixes.locked))
+	assert.Equal(t, keptTriggers, sortedKeys(agg.roundTriggers.locked))
+	assert.Equal(t, kept, sortedKeys(agg.roundPrices.prices))
+	assert.Equal(t, kept, sortedKeys(agg.roundPrices.senders))
+	assert.Equal(t, kept, sortedKeys(agg.roundProofs.proofs))
+	assert.Equal(t, kept, sortedKeys(agg.roundPriceFixes.locked))
 
 	// a stale leader trigger is anchored on n.RoundID, not its own round
 	require.NoError(t, sendTrigger(t, ctx, agg, "leader-peer", 30))
 	assert.Equal(t, int32(51), agg.RoundID)
-	assert.Equal(t, append(roundRange(42, 51), 60), sortedKeys(agg.roundTriggers.locked))
-	assert.Equal(t, append(roundRange(42, 50), 60), sortedKeys(agg.roundPrices.prices))
-	assert.Equal(t, append(roundRange(42, 50), 60), sortedKeys(agg.roundProofs.proofs))
+	assert.Equal(t, keptTriggers, sortedKeys(agg.roundTriggers.locked))
+	assert.Equal(t, kept, sortedKeys(agg.roundPrices.prices))
+	assert.Equal(t, kept, sortedKeys(agg.roundProofs.proofs))
 }

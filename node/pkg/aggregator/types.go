@@ -20,6 +20,10 @@ const (
 
 	// roundHistory is how many rounds up to the current one keep their state.
 	roundHistory = 10
+	// roundLookahead is how many rounds ahead of the current one keep their
+	// state (messages racing ahead of their trigger); further ones are dropped
+	// so peers can't grow round state without bound.
+	roundLookahead = 2
 
 	Trigger   raft.MessageType = "trigger"
 	PriceData raft.MessageType = "priceData"
@@ -70,11 +74,11 @@ type RoundTriggers struct {
 	mu     sync.Mutex
 }
 
-// pruneBefore drops rounds older than cutoff and keeps every round >= cutoff.
-func (r *RoundTriggers) pruneBefore(cutoff int32) {
+// pruneOutside keeps only rounds in [low, high].
+func (r *RoundTriggers) pruneOutside(low, high int32) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	deleteRoundsBefore(r.locked, cutoff)
+	deleteRoundsOutside(r.locked, low, high)
 }
 
 type RoundPrices struct {
@@ -93,13 +97,13 @@ func (r *RoundPrices) isReplay(roundID int32, sender string) bool {
 	return false
 }
 
-// pruneBefore drops rounds older than cutoff and keeps every round >= cutoff.
-func (r *RoundPrices) pruneBefore(cutoff int32) {
+// pruneOutside keeps only rounds in [low, high].
+func (r *RoundPrices) pruneOutside(low, high int32) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	deleteRoundsBefore(r.locked, cutoff)
-	deleteRoundsBefore(r.prices, cutoff)
-	deleteRoundsBefore(r.senders, cutoff)
+	deleteRoundsOutside(r.locked, low, high)
+	deleteRoundsOutside(r.prices, low, high)
+	deleteRoundsOutside(r.senders, low, high)
 }
 
 type RoundPriceFixes struct {
@@ -107,11 +111,11 @@ type RoundPriceFixes struct {
 	mu     sync.Mutex
 }
 
-// pruneBefore drops rounds older than cutoff and keeps every round >= cutoff.
-func (r *RoundPriceFixes) pruneBefore(cutoff int32) {
+// pruneOutside keeps only rounds in [low, high].
+func (r *RoundPriceFixes) pruneOutside(low, high int32) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	deleteRoundsBefore(r.locked, cutoff)
+	deleteRoundsOutside(r.locked, low, high)
 }
 
 type RoundProofs struct {
@@ -130,19 +134,19 @@ func (r *RoundProofs) isReplay(roundID int32, sender string) bool {
 	return false
 }
 
-// pruneBefore drops rounds older than cutoff and keeps every round >= cutoff.
-func (r *RoundProofs) pruneBefore(cutoff int32) {
+// pruneOutside keeps only rounds in [low, high].
+func (r *RoundProofs) pruneOutside(low, high int32) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	deleteRoundsBefore(r.locked, cutoff)
-	deleteRoundsBefore(r.proofs, cutoff)
-	deleteRoundsBefore(r.senders, cutoff)
+	deleteRoundsOutside(r.locked, low, high)
+	deleteRoundsOutside(r.proofs, low, high)
+	deleteRoundsOutside(r.senders, low, high)
 }
 
-// deleteRoundsBefore removes the entries of rounds older than cutoff.
-func deleteRoundsBefore[V any](m map[int32]V, cutoff int32) {
+// deleteRoundsOutside removes the entries of rounds outside [low, high].
+func deleteRoundsOutside[V any](m map[int32]V, low, high int32) {
 	for roundID := range m {
-		if roundID < cutoff {
+		if roundID < low || roundID > high {
 			delete(m, roundID)
 		}
 	}
