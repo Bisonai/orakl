@@ -73,6 +73,8 @@ ON CONFLICT(contract, selector) DO UPDATE SET description = excluded.description
 var (
 	addressPattern  = regexp.MustCompile(`^0x[0-9a-f]{40}$`)
 	selectorPattern = regexp.MustCompile(`^0x[0-9a-f]{8}$`)
+	// name(type,type,...): no spaces, balanced outer parentheses
+	signaturePattern = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*\([A-Za-z0-9_\[\],()]*\)$`)
 	txFilePattern   = regexp.MustCompile(`^` + txPrefix + `(\d{8})` + txSuffix + `$`)
 )
 
@@ -170,6 +172,11 @@ func NormalizeEntry(contract, function string) (string, string, error) {
 	}
 	function = strings.TrimSpace(function)
 	if strings.Contains(function, "(") {
+		// e.g. "submit(bytes32[]" from an unquoted CSV field: a wrong selector,
+		// accepted silently, would refuse every real request.
+		if !signaturePattern.MatchString(function) {
+			return "", "", fmt.Errorf("invalid function signature %q (quote CSV fields that contain commas)", function)
+		}
 		hash := crypto.Keccak256([]byte(function))
 		return contract, "0x" + hex.EncodeToString(hash[:4]), nil
 	}

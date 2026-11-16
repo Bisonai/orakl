@@ -26,6 +26,20 @@ func TestNormalizeEntry(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, selector, selector2)
 
+	for _, bad := range []string{"submit(bytes32[]", "submit (uint256)", "submit(uint256", "(uint256)"} {
+		_, _, err = NormalizeEntry(proxy, bad)
+		assert.Error(t, err, bad)
+	}
+
+	n, err := func() (int, error) {
+		s, err := Open(context.Background(), t.TempDir(), 0, true)
+		require.NoError(t, err)
+		defer s.Close()
+		return s.ImportCSV(context.Background(), strings.NewReader(proxy+",submit(bytes32[],int256[],uint256[],bytes[]),unquoted\n"))
+	}()
+	assert.Error(t, err, "unquoted signature with commas is refused")
+	assert.Zero(t, n)
+
 	_, _, err = NormalizeEntry("0x1234", selector)
 	assert.Error(t, err)
 	_, _, err = NormalizeEntry(proxy, "0x1234")
@@ -178,4 +192,18 @@ func TestTokens(t *testing.T) {
 	_, ok, err = s.TokenName(ctx, tokenA)
 	require.NoError(t, err)
 	assert.False(t, ok)
+}
+
+func TestImportCSVQuotedSignature(t *testing.T) {
+	ctx := context.Background()
+	s, err := Open(ctx, t.TempDir(), 0, true)
+	require.NoError(t, err)
+	defer s.Close()
+
+	n, err := s.ImportCSV(ctx, strings.NewReader(`"`+proxy+`","submit(bytes32[],int256[],uint256[],bytes[])","SubmissionProxy submit"`+"\n"))
+	require.NoError(t, err)
+	assert.Equal(t, 1, n)
+	entries, err := s.List(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, []Entry{{Contract: proxy, Selector: "0xf07154be", Description: "SubmissionProxy submit"}}, entries)
 }
