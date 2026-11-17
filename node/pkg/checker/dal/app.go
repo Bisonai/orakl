@@ -8,10 +8,8 @@ import (
 	"os"
 	"slices"
 	"strconv"
-	"strings"
 	"time"
 
-	"bisonai.com/miko/node/pkg/alert"
 	"bisonai.com/miko/node/pkg/checker"
 	"bisonai.com/miko/node/pkg/secrets"
 	"bisonai.com/miko/node/pkg/utils/configfetch"
@@ -26,37 +24,17 @@ func (u *UpdateTimes) Store(symbol string, time time.Time) {
 	u.lastUpdates[symbol] = time
 }
 
-func (u *UpdateTimes) CheckLastUpdateOffsets(alarmCount map[string]int) []string {
+// exportLastUpdates publishes the last WebSocket push time per symbol.
+func (u *UpdateTimes) exportLastUpdates() {
 	u.mu.RLock()
 	defer u.mu.RUnlock()
 
-	websocketNotPushedCount := 0
-	var messages []string
 	for symbol, updateTime := range u.lastUpdates {
 		if slices.Contains(checker.SymbolsToBeDelisted, symbol) {
 			continue
 		}
-
-		elapsedTime := time.Since(updateTime)
-		if elapsedTime > WsPushThreshold {
-			alarmCount[symbol]++
-			if alarmCount[symbol] > AlarmOffsetPerPair {
-				message := fmt.Sprintf("(%s) Websocket not pushed for %v seconds", symbol, elapsedTime.Seconds())
-				messages = append(messages, message)
-				alarmCount[symbol] = 0
-			} else if alarmCount[symbol] > AlarmOffsetInTotal {
-				websocketNotPushedCount++
-			}
-		} else {
-			alarmCount[symbol] = 0
-		}
+		wsLastPushGauge.WithLabelValues(symbol).Set(float64(updateTime.UnixMilli()) / 1e3)
 	}
-
-	if websocketNotPushedCount > 0 {
-		messages = append(messages, fmt.Sprintf("Websocket not being pushed for %d symbols", websocketNotPushedCount))
-	}
-
-	return messages
 }
 
 func Start(ctx context.Context) error {
@@ -124,18 +102,15 @@ func Start(ctx context.Context) error {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
-	networkDelayAlarmCount := 0
-	alarmCount := map[string]int{}
-	wsDelayAlarmCount := map[string]int{}
-
+	// Alerts: Prometheus rules on the exported orakl_dal_check_* metrics.
+	restSymbols := map[string]struct{}{}
 	for range ticker.C {
-		err := checkDal(endpoint, key, alarmCount, &networkDelayAlarmCount)
+		err := checkDal(endpoint, key, restSymbols)
 		if err != nil {
+			restErrorsCounter.Inc()
 			log.Error().Str("Player", "DalChecker").Err(err).Msg("error in checkDal")
 		}
-		log.Debug().Msg("checking DAL WebSocket")
-		checkDalWs(wsDelayAlarmCount)
-		log.Debug().Msg("checked DAL WebSocket")
+		updateTimes.exportLastUpdates()
 	}
 	return nil
 }
@@ -148,34 +123,32 @@ func buildSubscriptionParams(configs []Config) []string {
 	return params
 }
 
-func checkDal(endpoint string, key string, alarmCount map[string]int, networkDelayAlarmCount *int) error {
-	msg := ""
-
+// checkDal exports the aggregate time of every DAL REST entry. restSymbols
+// holds the symbols exported last round; symbols no longer served are dropped
+// so they don't look stale forever.
+func checkDal(endpoint string, key string, restSymbols map[string]struct{}) error {
 	now := time.Now()
 	resp, err := request.Request[[]OutgoingSubmissionData](
 		request.WithEndpoint(endpoint+"/latest-data-feeds/all"),
 		request.WithHeaders(map[string]string{"X-API-Key": key}),
 		request.WithTimeout(RestTimeout),
 	)
-	networkDelay := time.Since(now)
-
-	if networkDelay > NetworkDelayThreshold {
-		*networkDelayAlarmCount++
-		if *networkDelayAlarmCount > AlarmOffsetInTotal {
-			msg += fmt.Sprintf("(DAL) network delay: %s\n", networkDelay)
-			*networkDelayAlarmCount = 0
-		}
-	} else {
-		*networkDelayAlarmCount = 0
-	}
-
+	restDurationGauge.Set(time.Since(now).Seconds())
 	if err != nil {
 		return err
 	}
 
-	totalDelayed := 0
+	seen := map[string]struct{}{}
+	empty := 0
 	for _, data := range resp {
 		if slices.Contains(checker.SymbolsToBeDelisted, data.Symbol) {
+			continue
+		}
+		if isDataEmpty(&data) {
+			log.Debug().Str("Player", "DalChecker").Any("data", data).Msg("data is empty")
+			empty++
+		}
+		if data.Symbol == "" {
 			continue
 		}
 
@@ -184,45 +157,25 @@ func checkDal(endpoint string, key string, alarmCount map[string]int, networkDel
 			log.Error().Str("Player", "DalChecker").Err(err).Msg("failed to convert timestamp string to int64")
 			continue
 		}
+		log.Debug().Str("Player", "DalChecker").Str("symbol", data.Symbol).Dur("offset", time.Since(time.UnixMilli(rawTimestamp))).Msg("DAL price check")
 
-		offset := time.Since(time.UnixMilli(rawTimestamp))
-		log.Debug().Str("Player", "DalChecker").Dur("network delay", networkDelay).Str("symbol", data.Symbol).Dur("offset", offset).Msg("DAL price check")
+		restAggregateTimestampGauge.WithLabelValues(data.Symbol).Set(float64(rawTimestamp) / 1e3)
+		seen[data.Symbol] = struct{}{}
+	}
 
-		if isDataEmpty(&data) {
-			log.Debug().Str("Player", "DalChecker").Msg("data is empty")
-			msg += fmt.Sprintf("(DAL) empty data exists among data\n %v\n", data)
+	for symbol := range restSymbols {
+		if _, ok := seen[symbol]; !ok {
+			restAggregateTimestampGauge.DeleteLabelValues(symbol)
+			delete(restSymbols, symbol)
 		}
-
-		if offset > DelayOffset+networkDelay {
-			alarmCount[data.Symbol]++
-			if alarmCount[data.Symbol] > AlarmOffsetPerPair {
-				msg += fmt.Sprintf("(DAL) %s price update delayed by %s\n", data.Symbol, offset)
-				alarmCount[data.Symbol] = 0
-			} else if alarmCount[data.Symbol] > AlarmOffsetInTotal {
-				totalDelayed++
-			}
-		} else {
-			alarmCount[data.Symbol] = 0
-		}
-
+	}
+	for symbol := range seen {
+		restSymbols[symbol] = struct{}{}
 	}
 
-	if totalDelayed > 0 {
-		msg += fmt.Sprintf("DAL price update delayed by %d symbols\n", totalDelayed)
-	}
-
-	if msg != "" {
-		alert.SlackAlert(msg)
-	}
-
+	restEmptyFeedsGauge.Set(float64(empty))
+	restLastSuccessGauge.Set(float64(time.Now().Unix()))
 	return nil
-}
-
-func checkDalWs(wsPushAlarmCount map[string]int) {
-	log.Debug().Msg("checking WebSocket message push")
-	if msgs := updateTimes.CheckLastUpdateOffsets(wsPushAlarmCount); len(msgs) > 0 {
-		alert.SlackAlert(strings.Join(msgs, "\n"))
-	}
 }
 
 func isDataEmpty(data *OutgoingSubmissionData) bool {

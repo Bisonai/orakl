@@ -3,19 +3,14 @@ package balance
 import (
 	"context"
 	"errors"
-	"fmt"
 	"math"
 	"math/big"
 	"os"
-	"strconv"
 	"time"
 
 	"github.com/kaiachain/kaia/client"
 	"github.com/kaiachain/kaia/common"
 	"github.com/rs/zerolog/log"
-
-	"bisonai.com/miko/node/pkg/alert"
-	"bisonai.com/miko/node/pkg/utils/request"
 )
 
 func init() {
@@ -23,25 +18,24 @@ func init() {
 }
 
 func setUp() error {
-	ctx := context.Background()
-
-	urls, err := getUrls()
-	if err != nil {
-		log.Error().Err(err).Msg("Error getting urls")
-		return err
+	jsonRpcUrl := os.Getenv("JSON_RPC_URL")
+	if jsonRpcUrl == "" {
+		return errors.New("JSON_RPC_URL not found")
 	}
 
-	err = setClient(urls.JsonRpcUrl)
+	err := setClient(jsonRpcUrl)
 	if err != nil {
 		log.Error().Err(err).Msg("Error setting up client")
 		return err
 	}
 
-	wallets, err = loadWallets(ctx, urls)
+	wallets, err = ParseWallets(os.Getenv(EnvWallets))
 	if err != nil {
 		log.Error().Err(err).Msg("Error loading wallets")
 		return err
 	}
+	registerWalletMetrics(wallets)
+	log.Info().Int("wallets", len(wallets)).Msg("Loaded balance wallets")
 	return nil
 }
 
@@ -64,37 +58,19 @@ func Start(ctx context.Context) error {
 	checkTicker := time.NewTicker(BalanceCheckInterval)
 	defer checkTicker.Stop()
 
-	alarmTicker := time.NewTicker(BalanceAlarmInterval)
-	defer alarmTicker.Stop()
-
+	// Alerts: Prometheus rules on the exported orakl_balance_* metrics.
 	for {
 		select {
+		case <-ctx.Done():
+			return nil
 		case <-checkTicker.C:
 			updateBalances(ctx, wallets)
-		case <-alarmTicker.C:
-			alarm(wallets)
 		}
 	}
 }
 
 func loadEnvs() {
-	SubmitterAlarmAmount = 25
-	DelegatorAlarmAmount = 10000
-	if os.Getenv("CHAIN") == "mainnet" {
-		DelegatorAlarmAmount = 50000
-	}
 	BalanceCheckInterval = 60 * time.Second
-	BalanceAlarmInterval = 30 * time.Minute
-
-	submitterAlarmAmountRaw := os.Getenv("SUBMITTER_ALARM_AMOUNT")
-	if submitterAlarmAmountRaw != "" && isNumber(submitterAlarmAmountRaw) {
-		SubmitterAlarmAmount, _ = strconv.ParseFloat(submitterAlarmAmountRaw, 64)
-	}
-
-	delegatorAlarmAmountRaw := os.Getenv("DELEGATOR_ALARM_AMOUNT")
-	if delegatorAlarmAmountRaw != "" && isNumber(delegatorAlarmAmountRaw) {
-		DelegatorAlarmAmount, _ = strconv.ParseFloat(delegatorAlarmAmountRaw, 64)
-	}
 
 	checkInterval := os.Getenv("BALANCE_CHECK_INTERVAL")
 	parsedCheckInterval, err := time.ParseDuration(checkInterval)
@@ -104,114 +80,6 @@ func loadEnvs() {
 		BalanceCheckInterval = parsedCheckInterval
 	}
 
-	alarmInterval := os.Getenv("BALANCE_ALARM_INTERVAL")
-	parsedAlarmInterval, err := time.ParseDuration(alarmInterval)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to parse BALANCE_ALARM_INTERVAL, using default 10s")
-	} else {
-		BalanceAlarmInterval = parsedAlarmInterval
-	}
-}
-
-func getUrls() (Urls, error) {
-	mikoApiUrl := os.Getenv("ORAKL_API_URL")
-	if mikoApiUrl == "" {
-		return Urls{}, errors.New("ORAKL_API_URL not found")
-	}
-
-	mikoNodeAdminUrl := os.Getenv("ORAKL_NODE_ADMIN_URL")
-	if mikoNodeAdminUrl == "" {
-		return Urls{}, errors.New("ORAKL_NODE_ADMIN_URL not found")
-	}
-
-	mikoDelegatorUrl := os.Getenv("ORAKL_DELEGATOR_URL")
-	if mikoDelegatorUrl == "" {
-		return Urls{}, errors.New("ORAKL_DELEGATOR_URL not found")
-	}
-
-	jsonRpcUrl := os.Getenv("JSON_RPC_URL")
-	if jsonRpcUrl == "" {
-		return Urls{}, errors.New("JSON_RPC_URL not found")
-	}
-
-	return Urls{
-		JsonRpcUrl:       jsonRpcUrl,
-		MikoApiUrl:       mikoApiUrl,
-		MikoNodeAdminUrl: mikoNodeAdminUrl,
-		MikoDelegatorUrl: mikoDelegatorUrl,
-	}, nil
-}
-
-func loadWallets(ctx context.Context, urls Urls) ([]Wallet, error) {
-	result := []Wallet{}
-
-	apiWallets, err := loadWalletFromMikoApi(ctx, urls.MikoApiUrl)
-	if err != nil {
-		return result, err
-	}
-	result = append(result, apiWallets...)
-
-	delegatorWallet, err := loadWalletFromDelegator(ctx, urls.MikoDelegatorUrl)
-	if err != nil {
-		return result, err
-	}
-	result = append(result, delegatorWallet)
-
-	return result, nil
-}
-
-func loadWalletFromMikoApi(ctx context.Context, url string) ([]Wallet, error) {
-	type ReporterModel struct {
-		Address string `json:"address"`
-		Service string `json:"service"`
-	}
-
-	result := []Wallet{}
-	reporters, err := request.Request[[]ReporterModel](request.WithEndpoint(url+mikoApiEndpoint), request.WithTimeout(30*time.Second))
-	if err != nil {
-		return result, err
-	}
-
-	for _, reporter := range reporters {
-		if reporter.Service == "DATA_FEED" {
-			continue
-		}
-
-		address := common.HexToAddress(reporter.Address)
-		minimumBalance := SubmitterAlarmAmount
-		if reporter.Service == "REQUEST_RESPONSE" {
-			minimumBalance = DefaultRRMinimum
-		}
-
-		wallet := Wallet{
-			Address: address,
-			Balance: 0,
-			Minimum: minimumBalance,
-			Tag:     "reporter loaded from miko api",
-
-			BalanceHistory: []BalanceHistoryEntry{},
-		}
-		result = append(result, wallet)
-	}
-	return result, nil
-}
-
-func loadWalletFromDelegator(ctx context.Context, url string) (Wallet, error) {
-	wallet := Wallet{}
-	feePayer, err := request.Request[string](request.WithEndpoint(url + mikoDelegatorEndpoint))
-	if err != nil {
-		return wallet, err
-	}
-	address := common.HexToAddress(feePayer)
-	wallet = Wallet{
-		Address: address,
-		Balance: 0,
-		Minimum: DelegatorAlarmAmount,
-		Tag:     "reporter loaded from delegator",
-
-		BalanceHistory: []BalanceHistoryEntry{},
-	}
-	return wallet, nil
 }
 
 func getBalance(ctx context.Context, address common.Address) (float64, error) {
@@ -227,95 +95,16 @@ func getBalance(ctx context.Context, address common.Address) (float64, error) {
 }
 
 func updateBalances(ctx context.Context, wallets []Wallet) {
-	cutoff := time.Now().Add(-BalanceHistoryTTL)
 	for i, wallet := range wallets {
 		time.Sleep(500 * time.Millisecond) //gracefully request to prevent json rpc blockage
 		balance, err := getBalance(ctx, wallet.Address)
 		if err != nil {
+			rpcErrorsCounter.Inc()
 			log.Error().Err(err).Str("address", wallet.Address.Hex()).Msg("Error getting balance")
 			continue
 		}
-		log.Debug().Str("address", wallet.Address.Hex()).Float64("balance", balance).Str("tag", wallet.Tag).Msg("Updated balance")
+		recordBalance(wallet, balance, time.Now())
 		wallets[i].Balance = balance
-
-		balanceHistoryEntry := BalanceHistoryEntry{
-			Timestamp: time.Now(),
-			Balance:   balance,
-		}
-		wallets[i].BalanceHistory = append(wallets[i].BalanceHistory, balanceHistoryEntry)
-
-		var recentHistory []BalanceHistoryEntry
-		for _, entry := range wallets[i].BalanceHistory {
-			if entry.IsRecent(cutoff) {
-				recentHistory = append(recentHistory, entry)
-			}
-		}
-		wallets[i].BalanceHistory = recentHistory
-
-		log.Debug().
-			Str("address", wallet.Address.Hex()).
-			Float64("balance", balance).
-			Str("tag", wallet.Tag).
-			Msg("Updated balance and recorded history")
+		log.Debug().Str("address", wallet.Address.Hex()).Float64("balance", balance).Str("role", wallet.Tag).Msg("Updated balance")
 	}
-}
-
-func alarm(wallets []Wallet) {
-	var alarmMessage = ""
-	for _, wallet := range wallets {
-		log.Debug().Str("address", wallet.Address.Hex()).Float64("balance", wallet.Balance).Float64("minimum", wallet.Minimum).Str("tag", wallet.Tag).Msg(wallet.Tag)
-		if wallet.Balance < wallet.Minimum {
-			log.Warn().Str("address", wallet.Address.Hex()).Float64("balance", wallet.Balance).Msg("Balance lower than minimum")
-			alarmMessage += fmt.Sprintf("%s balance(%f) is lower than minimum(%f) | %s\n", wallet.Address.Hex(), wallet.Balance, wallet.Minimum, wallet.Tag)
-		}
-
-		if len(wallet.BalanceHistory) < 30 {
-			continue
-		}
-
-		latestDrainage := wallet.BalanceHistory[len(wallet.BalanceHistory)-1].Balance - wallet.BalanceHistory[len(wallet.BalanceHistory)-ChunkSize].Balance
-		averageDrainage := getAverageDrainage(wallet.BalanceHistory)
-
-		if latestDrainage > averageDrainage || averageDrainage == 0 {
-			continue
-		}
-
-		drainageChangeRatio := (averageDrainage - latestDrainage) / math.Abs(averageDrainage)
-		if drainageChangeRatio > MinimalIncreaseThreshold {
-			log.Warn().Str("address", wallet.Address.Hex()).Float64("latestDrainage", latestDrainage).Float64("averageDrainage", averageDrainage).Msg("Increased balance")
-			alarmMessage += fmt.Sprintf("%s balance drained faster by %.2f%% | %s\n", wallet.Address.Hex(), drainageChangeRatio*100, wallet.Tag)
-		}
-	}
-
-	if alarmMessage != "" {
-		alert.SlackAlert(alarmMessage)
-	}
-}
-
-func isNumber(s string) bool {
-	_, err := strconv.ParseFloat(s, 64)
-	return err == nil
-}
-
-func getAverageDrainage(history []BalanceHistoryEntry) float64 {
-	drainageList := []float64{}
-	for i := 0; i < len(history); i += ChunkSize {
-		if i+ChunkSize-1 >= len(history) {
-			break
-		}
-		drainage := history[i+ChunkSize-1].Balance - history[i].Balance
-		if drainage < 0 { // Only consider negative drainage
-			drainageList = append(drainageList, drainage)
-		}
-	}
-
-	if len(drainageList) == 0 {
-		return 0
-	}
-
-	sum := float64(0)
-	for _, value := range drainageList {
-		sum += value
-	}
-	return sum / float64(len(drainageList))
 }

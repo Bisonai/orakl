@@ -3,7 +3,6 @@ package price
 import (
 	"context"
 	"errors"
-	"fmt"
 	"math"
 	"strconv"
 	"strings"
@@ -12,7 +11,6 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"bisonai.com/miko/node/pkg/alert"
 	"bisonai.com/miko/node/pkg/utils/request"
 )
 
@@ -46,6 +44,8 @@ func Start(ctx context.Context, opts ...Option) error {
 		return errors.New("no tracking pairs provided")
 	}
 
+	thresholdGauge.Set(app.priceDiffThreshold)
+	// Alerts: Prometheus rules on the exported orakl_price_check_* metrics.
 	app.run(ctx)
 	return nil
 }
@@ -90,15 +90,27 @@ func (a *App) process() error {
 	wg.Wait()
 
 	if dalPriceFetchErr != nil {
+		errorsCounter.WithLabelValues("dal").Inc()
+	}
+	if binancePriceFetchErr != nil {
+		errorsCounter.WithLabelValues("binance").Inc()
+	}
+	if dalPriceFetchErr != nil {
 		return dalPriceFetchErr
 	}
-
 	if binancePriceFetchErr != nil {
 		return binancePriceFetchErr
 	}
 
-	// compare prices
 	log.Info().Msg("comparing prices")
+	recordPrices(comparePrices(dalPrices, binancePrices), time.Now())
+	return nil
+}
+
+// comparePrices pairs DAL and Binance prices ([dal, binance]) of pairs both
+// sources returned; zero DAL prices are skipped (diff undefined).
+func comparePrices(dalPrices, binancePrices map[baseAndQuote]float64) map[baseAndQuote][2]float64 {
+	compared := map[baseAndQuote][2]float64{}
 	for e, p := range dalPrices {
 		if p == 0 {
 			log.Info().Float64("price", p).Any("baseAndQuote", e).Msg("price is zero")
@@ -109,24 +121,14 @@ func (a *App) process() error {
 		if !ok {
 			continue
 		}
-		log.Info().Str("base", e.base).Str("quote", e.quote).Float64("dal_price", p).Float64("binance_price", binancePrices[e]).Msg("price difference")
-
-		diff := math.Abs(p-bp) / p
-		if diff > a.priceDiffThreshold {
-			alert.SlackAlertWithEndpoint(
-				fmt.Sprintf(
-					"%.2g%% threshold exceeded: diff %.4g%% (delta %.6g) for %s-%s [dal: %.6g, binance: %.6g]",
-					a.priceDiffThreshold*100,
-					diff*100,
-					p-bp,
-					e.base, e.quote,
-					p, bp,
-				),
-				a.slackEndpoint,
-			)
-		}
+		log.Info().Str("base", e.base).Str("quote", e.quote).Float64("dal_price", p).Float64("binance_price", bp).Msg("price difference")
+		compared[e] = [2]float64{p, bp}
 	}
-	return nil
+	return compared
+}
+
+func diffRatio(dal, binance float64) float64 {
+	return math.Abs(dal-binance) / dal
 }
 
 func (a *App) collectDalPrices() (map[baseAndQuote]float64, error) {

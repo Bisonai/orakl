@@ -29,8 +29,8 @@ func (c *fakeClient) PendingNonceAt(context.Context, common.Address) (uint64, er
 	defer c.mu.Unlock()
 	return c.nonce, nil
 }
-func (c *fakeClient) SuggestGasPrice(context.Context) (*big.Int, error)          { return nil, nil }
-func (c *fakeClient) EstimateGas(context.Context, kaia.CallMsg) (uint64, error)  { return 0, nil }
+func (c *fakeClient) SuggestGasPrice(context.Context) (*big.Int, error)         { return nil, nil }
+func (c *fakeClient) EstimateGas(context.Context, kaia.CallMsg) (uint64, error) { return 0, nil }
 func (c *fakeClient) SendTransaction(context.Context, *types.Transaction) error { return nil }
 func (c *fakeClient) CallContract(context.Context, kaia.CallMsg, *big.Int) ([]byte, error) {
 	return nil, nil

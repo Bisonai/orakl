@@ -18,6 +18,13 @@ import (
 const (
 	AGREEMENT_QUORUM = 0.5
 
+	// roundHistory is how many rounds up to an accepted trigger's round keep
+	// their state when it prunes.
+	roundHistory = 10
+	// roundLookahead is how many rounds ahead of the current one keep their
+	// state when a trigger prunes (messages racing ahead of their trigger).
+	roundLookahead = 2
+
 	Trigger   raft.MessageType = "trigger"
 	PriceData raft.MessageType = "priceData"
 	PriceFix  raft.MessageType = "priceFix"
@@ -67,19 +74,11 @@ type RoundTriggers struct {
 	mu     sync.Mutex
 }
 
-func (r *RoundTriggers) leaveOnlyLast10Entries(roundID int32) {
+// pruneOutside keeps only rounds in [low, high].
+func (r *RoundTriggers) pruneOutside(low, high int64) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-
-	newLocked := make(map[int32]bool)
-
-	for i := roundID; i > roundID-10; i-- {
-		if val, exists := r.locked[i]; exists {
-			newLocked[i] = val
-		}
-	}
-
-	r.locked = newLocked
+	r.locked = keepRounds(r.locked, low, high)
 }
 
 type RoundPrices struct {
@@ -98,33 +97,13 @@ func (r *RoundPrices) isReplay(roundID int32, sender string) bool {
 	return false
 }
 
-func (r *RoundPrices) leaveOnlyLast10Entries(roundID int32) {
+// pruneOutside keeps only rounds in [low, high].
+func (r *RoundPrices) pruneOutside(low, high int64) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-
-	newLocked := make(map[int32]bool)
-	for i := roundID; i > roundID-10; i-- {
-		if val, exists := r.locked[i]; exists {
-			newLocked[i] = val
-		}
-	}
-	r.locked = newLocked
-
-	newPrices := make(map[int32][]int64)
-	for i := roundID; i > roundID-10; i-- {
-		if val, exists := r.prices[i]; exists {
-			newPrices[i] = val
-		}
-	}
-	r.prices = newPrices
-
-	newSenders := make(map[int32][]string)
-	for i := roundID; i > roundID-10; i-- {
-		if val, exists := r.senders[i]; exists {
-			newSenders[i] = val
-		}
-	}
-	r.senders = newSenders
+	r.locked = keepRounds(r.locked, low, high)
+	r.prices = keepRounds(r.prices, low, high)
+	r.senders = keepRounds(r.senders, low, high)
 }
 
 type RoundPriceFixes struct {
@@ -132,17 +111,11 @@ type RoundPriceFixes struct {
 	mu     sync.Mutex
 }
 
-func (r *RoundPriceFixes) leaveOnlyLast10Entries(roundID int32) {
+// pruneOutside keeps only rounds in [low, high].
+func (r *RoundPriceFixes) pruneOutside(low, high int64) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-
-	newLocked := make(map[int32]bool)
-	for i := roundID; i > roundID-10; i-- {
-		if val, exists := r.locked[i]; exists {
-			newLocked[i] = val
-		}
-	}
-	r.locked = newLocked
+	r.locked = keepRounds(r.locked, low, high)
 }
 
 type RoundProofs struct {
@@ -161,33 +134,25 @@ func (r *RoundProofs) isReplay(roundID int32, sender string) bool {
 	return false
 }
 
-func (r *RoundProofs) leaveOnlyLast10Entries(roundID int32) {
+// pruneOutside keeps only rounds in [low, high].
+func (r *RoundProofs) pruneOutside(low, high int64) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	r.locked = keepRounds(r.locked, low, high)
+	r.proofs = keepRounds(r.proofs, low, high)
+	r.senders = keepRounds(r.senders, low, high)
+}
 
-	newLocked := make(map[int32]bool)
-	for i := roundID; i > roundID-10; i-- {
-		if val, exists := r.locked[i]; exists {
-			newLocked[i] = val
+// keepRounds returns a new map with only the rounds in [low, high]; a new map
+// so memory of a burst of rounds is released (Go maps don't shrink).
+func keepRounds[V any](m map[int32]V, low, high int64) map[int32]V {
+	kept := make(map[int32]V)
+	for roundID, v := range m {
+		if r := int64(roundID); r >= low && r <= high {
+			kept[roundID] = v
 		}
 	}
-	r.locked = newLocked
-
-	newProofs := make(map[int32][][]byte)
-	for i := roundID; i > roundID-10; i-- {
-		if val, exists := r.proofs[i]; exists {
-			newProofs[i] = val
-		}
-	}
-	r.proofs = newProofs
-
-	newSenders := make(map[int32][]string)
-	for i := roundID; i > roundID-10; i-- {
-		if val, exists := r.senders[i]; exists {
-			newSenders[i] = val
-		}
-	}
-	r.senders = newSenders
+	return kept
 }
 
 type Aggregator struct {
@@ -206,6 +171,11 @@ type Aggregator struct {
 	// rounds persists every RoundID advance (nil: not persisted)
 	rounds *roundPersister
 
+	// peerRoundID is the highest round a peer reported using while it was
+	// ahead of this node as leader; this node's rounds up to it are stale and
+	// produce no aggregate (under mu)
+	peerRoundID int32
+
 	// onSubmission gets each round's submission data (nil: none)
 	onSubmission SubmissionHook
 
@@ -222,6 +192,10 @@ type PriceDataMessage struct {
 	RoundID   int32     `json:"roundID"`
 	PriceData int64     `json:"priceData"`
 	Timestamp time.Time `json:"timestamp"`
+	// LatestRoundID is the sender's RoundID when it answered the trigger, so a
+	// lagging leader can move past rounds its peers already used (#2867).
+	// 0: not reported (older nodes).
+	LatestRoundID int32 `json:"latestRoundID,omitempty"`
 }
 
 type PriceFixMessage struct {

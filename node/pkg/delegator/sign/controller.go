@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"bisonai.com/miko/node/pkg/delegator/metrics"
 	"bisonai.com/miko/node/pkg/delegator/store"
 	"bisonai.com/miko/node/pkg/delegator/utils"
 
@@ -131,32 +132,34 @@ func getFeePayerAddress(c *fiber.Ctx) error {
 func insertV2(c *fiber.Ctx) error {
 	payload := new(SignInsertPayload)
 	if err := c.BodyParser(payload); err != nil {
-		return err
+		return rejectInvalid(c, err)
 	}
 
 	transaction, err := HashToTx(payload.RawTx)
 	if err != nil {
-		return err
+		return rejectInvalid(c, err)
 	}
 
 	validate := validator.New()
 	if err = validate.Struct(payload); err != nil {
-		return err
+		return rejectInvalid(c, err)
 	}
 
 	// validate what gets signed: the decoded tx, not the request's to/input
 	// fields, which are only stored and need not match RawTx
 	to, selector, err := txTarget(transaction)
 	if err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+		return rejectInvalid(c, err)
+	}
+	// legacy (Ethereum) txs have no from field and cannot be fee delegated
+	if _, err = transaction.From(); err != nil {
+		return rejectInvalid(c, err)
 	}
 	if err = validateContractAddress(c, to); err != nil {
-		logRejected(transaction, to, selector, err)
-		return fiber.NewError(fiber.StatusForbidden, err.Error())
+		return allowlistRejection(c, transaction, to, selector, metrics.StoreOpContractLookup, err)
 	}
 	if err = validateFunction(c, to, selector); err != nil {
-		logRejected(transaction, to, selector, err)
-		return fiber.NewError(fiber.StatusForbidden, err.Error())
+		return allowlistRejection(c, transaction, to, selector, metrics.StoreOpFunctionLookup, err)
 	}
 
 	signedTransaction, err := signTxByFeePayerV2(c, transaction)
@@ -178,6 +181,7 @@ func insertV2(c *fiber.Ctx) error {
 			Token:     tokenName(c),
 		}
 		if err := s.RecordTransaction(c.Context(), record); err != nil {
+			metrics.StoreError(metrics.StoreOpRecordTx)
 			log.Error().Err(err).Msg("failed to record transaction")
 		}
 		return c.JSON(SignModel{SignedRawTx: &signedRawTxHash})
@@ -193,6 +197,7 @@ func insertV2(c *fiber.Ctx) error {
 
 		_, err := insertTransaction(c, payload)
 		if err != nil {
+			metrics.StoreError(metrics.StoreOpRecordTx)
 			log.Error().Err(err).Msg("failed to insert transaction")
 		}
 	}()
@@ -247,6 +252,17 @@ func logRejected(tx *types.Transaction, to, selector string, reason error) {
 	log.Warn().Str("from", strings.ToLower(from.Hex())).Str("to", to).Str("selector", selector).Err(reason).Msg("sign request rejected")
 }
 
+// allowlistRejection maps a validateContractAddress/validateFunction error:
+// not allowlisted is a 403, a failed lookup a store error (500).
+func allowlistRejection(c *fiber.Ctx, tx *types.Transaction, to, selector, op string, err error) error {
+	var notAllowlisted notAllowlistedError
+	if !errors.As(err, &notAllowlisted) {
+		return storeError(c, op, err)
+	}
+	logRejected(tx, to, selector, err)
+	return reject(c, metrics.ResultNotAllowlisted, fiber.NewError(fiber.StatusForbidden, err.Error()))
+}
+
 // validateFunction requires the selector to be registered for the contract.
 // Approvals are cached for the process lifetime, like validateContractAddress.
 func validateFunction(c *fiber.Ctx, address, selector string) error {
@@ -261,7 +277,7 @@ func validateFunction(c *fiber.Ctx, address, selector string) error {
 			return err
 		}
 		if !allowed {
-			return fmt.Errorf("not approved function %s for contract %s", selector, address)
+			return notAllowlistedError(fmt.Sprintf("not approved function %s for contract %s", selector, address))
 		}
 		validFunctions.Store(key, struct{}{})
 		return nil
@@ -271,7 +287,7 @@ func validateFunction(c *fiber.Ctx, address, selector string) error {
 		return err
 	}
 	if len(functions) == 0 {
-		return fmt.Errorf("not approved function %s for contract %s", selector, address)
+		return notAllowlistedError(fmt.Sprintf("not approved function %s for contract %s", selector, address))
 	}
 	validFunctions.Store(key, struct{}{})
 	return nil
@@ -288,18 +304,20 @@ func validateContractAddress(c *fiber.Ctx, address string) error {
 			return err
 		}
 		if !allowed {
-			return fmt.Errorf("not approved contract address")
+			return notAllowlistedError("not approved contract address")
 		}
 		validContracts.Store(address, struct{}{})
 		return nil
 	} else {
 		contract, err := utils.QueryRow[ContractModel](c, GetContractByAddress, map[string]any{"address": address})
-		if err == nil && contract.ContractId != nil {
-			validContracts.Store(address, struct{}{})
-			return nil
-		} else {
-			return fmt.Errorf("not approved contract address")
+		if err != nil {
+			return err
 		}
+		if contract.ContractId == nil {
+			return notAllowlistedError("not approved contract address")
+		}
+		validContracts.Store(address, struct{}{})
+		return nil
 	}
 }
 

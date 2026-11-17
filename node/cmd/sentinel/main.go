@@ -14,10 +14,7 @@ import (
 
 	"bisonai.com/miko/node/pkg/checker/balance"
 	"bisonai.com/miko/node/pkg/checker/dal"
-	"bisonai.com/miko/node/pkg/checker/dbcronjob"
 	"bisonai.com/miko/node/pkg/checker/health"
-	"bisonai.com/miko/node/pkg/checker/inspect"
-	"bisonai.com/miko/node/pkg/checker/offset"
 	"bisonai.com/miko/node/pkg/checker/onchain"
 	"bisonai.com/miko/node/pkg/checker/peers"
 	"bisonai.com/miko/node/pkg/checker/price"
@@ -115,42 +112,6 @@ func main() {
 
 	log.Info().Msg("dal checker started")
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		err := dbcronjob.Start(ctx)
-		if err != nil {
-			log.Error().Err(err).Msg("error starting dbcronjob checker")
-			os.Exit(1)
-		}
-	}()
-
-	log.Info().Msg("dbcronjob checker started")
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		err := offset.Start(ctx)
-		if err != nil {
-			log.Error().Err(err).Msg("error starting offset checker")
-			os.Exit(1)
-		}
-	}()
-
-	log.Info().Msg("offset checker started")
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		err := inspect.Start(ctx)
-		if err != nil {
-			log.Error().Err(err).Msg("error starting inspect checker")
-			os.Exit(1)
-		}
-	}()
-
-	log.Info().Msg("inspect checker started")
-
 	runOnchainChecker, _ := strconv.ParseBool(os.Getenv("RUN_ONCHAIN_CHECKER"))
 	if runOnchainChecker {
 		wg.Add(1)
@@ -175,7 +136,6 @@ func main() {
 	runPriceChecker, _ := strconv.ParseBool(os.Getenv("RUN_PRICE_CHECKER"))
 	if runPriceChecker {
 		dalApiKey := secrets.GetSecret("DAL_API_KEY")
-		slackEndpoint := secrets.GetSecret("PRICE_CHECK_SLACK")
 		trackingPairsRaw := os.Getenv("PRICE_CHECK_PAIRS")
 		trackingPairs := strings.Split(trackingPairsRaw, ",")
 		for i := range trackingPairs {
@@ -195,7 +155,6 @@ func main() {
 			err := price.Start(
 				ctx,
 				price.WithDalApiKey(dalApiKey),
-				price.WithSlackEndpoint(slackEndpoint),
 				price.WithTrackingPairs(trackingPairs),
 				price.WithpriceDiffThreshold(threshold),
 			)

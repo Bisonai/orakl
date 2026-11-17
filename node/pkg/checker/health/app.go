@@ -6,11 +6,11 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	neturl "net/url"
 	"os"
 	"strings"
 	"time"
 
-	"bisonai.com/miko/node/pkg/alert"
 	"bisonai.com/miko/node/pkg/secrets"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
@@ -95,26 +95,23 @@ func Start(ctx context.Context) error {
 	ticker := time.NewTicker(HealthCheckInterval)
 	defer ticker.Stop()
 
-	downServices := make(map[string]bool)
-
 	for range ticker.C {
-		alarmMessage := ""
 		for _, healthCheckUrl := range HealthCheckUrls {
-			log.Debug().Str("name", healthCheckUrl.Name).Str("url", healthCheckUrl.Url).Msg("Checking health")
-			isAlive := checkUrl(ctx, healthCheckUrl)
-			if !isAlive {
-				downServices[healthCheckUrl.Name] = true
-				alarmMessage += healthCheckUrl.Name + " is down\n"
-			} else if serviceWasDown, serviceNameFound := downServices[healthCheckUrl.Name]; serviceWasDown && serviceNameFound {
-				downServices[healthCheckUrl.Name] = false
-				alarmMessage += healthCheckUrl.Name + " is back up\n"
-			}
+			log.Debug().Str("name", healthCheckUrl.Name).Str("url", redactURL(healthCheckUrl.Url)).Msg("Checking health")
+			recordHealth(healthCheckUrl.Name, checkUrl(ctx, healthCheckUrl))
 		}
-		if alarmMessage != "" {
-			alert.SlackAlert(alarmMessage)
-		}
+		recordRound(time.Now())
 	}
 	return nil
+}
+
+// redactURL masks the password of a URL for logging (SERVICE_DB_URL carries one).
+func redactURL(raw string) string {
+	u, err := neturl.Parse(raw)
+	if err != nil {
+		return "<unparsable url>"
+	}
+	return u.Redacted()
 }
 
 func checkUrl(ctx context.Context, healthCheckUrl HealthCheckUrl) bool {
@@ -156,14 +153,14 @@ func checkRedis(ctx context.Context, url string) bool {
 func checkPgs(ctx context.Context, url string) bool {
 	pool, err := pgxpool.New(ctx, url)
 	if err != nil {
-		log.Info().Err(err).Msgf("Failed to check PostgreSQL URL: %s", url)
+		log.Info().Err(err).Msgf("Failed to check PostgreSQL URL: %s", redactURL(url))
 		return false
 	}
 	defer pool.Close()
 
 	err = pool.Ping(ctx)
 	if err != nil {
-		log.Info().Err(err).Msgf("Failed to check PostgreSQL URL: %s", url)
+		log.Info().Err(err).Msgf("Failed to check PostgreSQL URL: %s", redactURL(url))
 		return false
 	}
 	return true

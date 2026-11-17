@@ -19,10 +19,9 @@ type binanceResponse struct {
 }
 
 type App struct {
-	slackUrl                 string
-	dalApiKey, slackEndpoint string
-	trackingPairs            map[baseAndQuote]struct{}
-	priceDiffThreshold       float64
+	dalApiKey          string
+	trackingPairs      map[baseAndQuote]struct{}
+	priceDiffThreshold float64
 }
 
 type Option func(*App)
@@ -30,12 +29,6 @@ type Option func(*App)
 func WithDalApiKey(apiKey string) Option {
 	return func(a *App) {
 		a.dalApiKey = apiKey
-	}
-}
-
-func WithSlackEndpoint(endpoint string) Option {
-	return func(a *App) {
-		a.slackEndpoint = endpoint
 	}
 }
 
@@ -48,12 +41,6 @@ func WithTrackingPairs(pairs []string) Option {
 			}
 			a.trackingPairs[baseAndQuote{base: splitted[0], quote: splitted[1]}] = struct{}{}
 		}
-	}
-}
-
-func WithSlackUrl(url string) Option {
-	return func(a *App) {
-		a.slackUrl = url
 	}
 }
 

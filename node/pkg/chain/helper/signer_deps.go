@@ -9,6 +9,7 @@ import (
 
 	"bisonai.com/miko/node/pkg/chain/utils"
 	errorSentinel "bisonai.com/miko/node/pkg/error"
+	"bisonai.com/miko/node/pkg/metrics/submission"
 	"bisonai.com/miko/node/pkg/nodestate"
 	"bisonai.com/miko/node/pkg/utils/encryptor"
 	"github.com/kaiachain/kaia/common"
@@ -73,7 +74,7 @@ func (c *realOracleChain) UpdateOracle(ctx context.Context, signWithPkHex string
 		return err
 	}
 	defer ch.Close()
-	return ch.SubmitDelegatedFallbackDirect(ctx, c.contractAddr, UpdateSignerFuncSignature, newAddr)
+	return ch.submitDelegatedFallbackDirect(ctx, submission.PurposeRotate, c.contractAddr, UpdateSignerFuncSignature, newAddr)
 }
 
 // retiredKeyRetention is how long retired keys are kept before GC.

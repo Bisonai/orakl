@@ -20,7 +20,6 @@ on:
           - "boot-api"
           - "sentinel"
           - "dal"
-          - "reporter"
       image-tag:
         description: "Existing ECR image tag (e.g. v0.0.26.20261030.0534.abc1234)"
         required: true

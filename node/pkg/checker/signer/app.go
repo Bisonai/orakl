@@ -7,7 +7,6 @@ import (
 	"os"
 	"time"
 
-	"bisonai.com/miko/node/pkg/alert"
 	"github.com/rs/zerolog/log"
 )
 
@@ -26,11 +25,10 @@ const DEFAULT_SIGNER_CHECK_INTERVAL_HOUR = 24
 // readTimeout bounds each chain read so a hung RPC can't stall the checker forever.
 const readTimeout = 30 * time.Second
 
-// Seams for unit tests; production code uses the real chain reads and Slack alert.
+// Seams for unit tests; production code uses the real chain reads.
 var (
 	getSignerAddresses            = GetSignerAddresses
 	extractExpirationFromContract = ExtractExpirationFromContract
-	slackAlert                    = alert.SlackAlert
 )
 
 func setUp(ctx context.Context) error {
@@ -67,7 +65,7 @@ func Start(ctx context.Context) error {
 	checkTicker := time.NewTicker(signerCheckInterval)
 	defer checkTicker.Stop()
 
-	// check never fails: read errors are alerted and retried on the next tick.
+	// check never fails: read errors are counted and retried on the next tick.
 	check(ctx)
 
 	for {
@@ -80,24 +78,27 @@ func Start(ctx context.Context) error {
 	}
 }
 
+// check exports signer expirations; alerts are Prometheus rules on orakl_signer_*.
 func check(ctx context.Context) {
-	alarmMessage := ""
 	readCtx, cancel := context.WithTimeout(ctx, readTimeout)
 	signerAddresses, err := getSignerAddresses(readCtx, jsonRpcUrl, submissionProxyContractAddr)
 	cancel()
 	if err != nil {
-		// Transient RPC errors must not exit sentinel: alert and retry on the next tick.
+		// Transient RPC errors must not exit sentinel: count and retry on the next tick.
 		log.Error().Err(err).Msg("Failed to get signer addresses")
-		slackAlert(fmt.Sprintf("Signer checker failed to get signer addresses: %v", err))
+		errorsCounter.Inc()
 		return
 	}
 	log.Debug().Msgf("Signer addresses: %v", signerAddresses)
 	if len(signerAddresses) == 0 {
 		log.Warn().Msg("No signer addresses returned")
-		slackAlert("Signer checker found no signer addresses in submission proxy")
-		return
 	}
 
+	// drop signers no longer registered
+	expiryGauge.Reset()
+	countGauge.Set(float64(len(signerAddresses)))
+
+	failed := false
 	for _, signerAddress := range signerAddresses {
 		readCtx, cancel := context.WithTimeout(ctx, readTimeout)
 		exp, err := extractExpirationFromContract(readCtx, jsonRpcUrl, submissionProxyContractAddr, signerAddress)
@@ -107,18 +108,14 @@ func check(ctx context.Context) {
 		}
 		if err != nil {
 			log.Error().Err(err).Msg(fmt.Sprintf("Failed to extract expiration for signer: %s", signerAddress))
-			alarmMessage += fmt.Sprintf("Failed to extract expiration for signer %s with following error: %v\n", signerAddress, err)
+			errorsCounter.Inc()
+			failed = true
 			continue
 		}
 		log.Debug().Msgf("Signer: %s, Expiration: %s", signerAddress, exp.String())
-
-		expiryDate := *exp
-		now := time.Now()
-		if now.Before(expiryDate) && now.Add(6*24*time.Hour).After(expiryDate) {
-			alarmMessage += fmt.Sprintf("Auto signer renewal didn't work as expected for wallet %s. Expiry date: %s\n", signerAddress, exp.String())
-		}
+		expiryGauge.WithLabelValues(signerAddress).Set(float64(exp.Unix()))
 	}
-	if alarmMessage != "" {
-		slackAlert(alarmMessage)
+	if !failed {
+		recordLastSuccess(time.Now())
 	}
 }

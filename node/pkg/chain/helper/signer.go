@@ -8,6 +8,7 @@ import (
 
 	"bisonai.com/miko/node/pkg/chain/utils"
 	errorSentinel "bisonai.com/miko/node/pkg/error"
+	"bisonai.com/miko/node/pkg/metrics/submission"
 	"bisonai.com/miko/node/pkg/nodestate"
 	"bisonai.com/miko/node/pkg/secrets"
 	"github.com/kaiachain/kaia/common"
@@ -86,6 +87,8 @@ func getSignerPk(config SignerConfig) (string, error) {
 }
 
 func NewSigner(ctx context.Context, opts ...SignerOption) (*Signer, error) {
+	// rotation sends via the delegator: export its counters from startup
+	submission.Register()
 	config := SignerConfig{
 		renewInterval:  DefaultSignerRenewInterval,
 		renewThreshold: DefaultSignerRenewThreshold,
@@ -380,7 +383,7 @@ func (s *Signer) loadCandidates(ctx context.Context) ([]*signerCandidate, error)
 	}
 
 	cands := make([]*signerCandidate, 0, len(keys))
-	seen := map[common.Address]bool{}
+	seen := map[common.Address]*signerCandidate{}
 	for i := range keys {
 		k := keys[i]
 		var addr common.Address
@@ -397,12 +400,18 @@ func (s *Signer) loadCandidates(ctx context.Context) ([]*signerCandidate, error)
 				log.Warn().Str("Player", "Signer").Err(bErr).Msg("failed to backfill signer_key address")
 			}
 		}
-		if seen[addr] {
+		id := k.ID
+		if prev, ok := seen[addr]; ok {
+			// Duplicate address (e.g. a NULL-address row whose backfill hit the unique index):
+			// prefer the active row, so ensureActive never promotes a stale duplicate over it.
+			if k.State == "active" && prev.state != "active" {
+				prev.id, prev.state = &id, k.State
+			}
 			continue
 		}
-		seen[addr] = true
-		id := k.ID
-		cands = append(cands, &signerCandidate{id: &id, addr: addr, pkHex: k.PK, state: k.State})
+		c := &signerCandidate{id: &id, addr: addr, pkHex: k.PK, state: k.State}
+		seen[addr] = c
+		cands = append(cands, c)
 	}
 
 	return cands, nil
@@ -431,7 +440,7 @@ func pickReusablePending(cands []*signerCandidate, exclude common.Address) *sign
 
 // ensureActive makes the chosen (whitelisted) candidate the durable active key and adopts it in
 // memory. Idempotent: if it is already the active in-memory key it only refreshes the cached
-// expiration.
+// expiration, and retries the DB promote if an earlier one failed (row not yet "active").
 func (s *Signer) ensureActive(ctx context.Context, chosen *signerCandidate) error {
 	s.mu.RLock()
 	alreadyActive := s.usable && !s.rotating && s.activeAddr == chosen.addr
@@ -441,22 +450,27 @@ func (s *Signer) ensureActive(ctx context.Context, chosen *signerCandidate) erro
 		s.cachedExpiration = chosen.exp
 		s.lastConfirmedAt = time.Now() // active key freshly re-confirmed whitelisted on-chain
 		s.mu.Unlock()
-		return nil
+	} else {
+		// Every candidate to adopt must have a keyring row to persist as active.
+		if chosen.id == nil {
+			return errorSentinel.ErrChainSignerNoWhitelistedKey
+		}
+		if err := s.adopt(chosen.pkHex, chosen.addr, chosen.exp); err != nil {
+			return err
+		}
+		log.Info().Str("Player", "Signer").Str("activeSigner", chosen.addr.Hex()).
+			Msg("adopted on-chain-whitelisted signer key")
 	}
 
-	// Persist the chosen key as the single active row (every candidate has a keyring row).
-	if chosen.id == nil {
-		return errorSentinel.ErrChainSignerNoWhitelistedKey
+	// Persist the adopted key as the single active row. Also covers the case where an earlier
+	// Promote (rotation or adoption) failed after the key was adopted in memory. chosen.state
+	// comes from this reconcile's LoadKeys, so there is no DB write when already in sync.
+	// Failure is non-fatal: memory follows the chain, and the next reconcile retries.
+	if chosen.state != "active" && chosen.id != nil {
+		if err := s.store.Promote(ctx, *chosen.id); err != nil {
+			log.Warn().Str("Player", "Signer").Err(err).Msg("failed to promote chosen key in DB; will retry")
+		}
 	}
-	if err := s.store.Promote(ctx, *chosen.id); err != nil {
-		log.Warn().Str("Player", "Signer").Err(err).Msg("failed to promote chosen key in DB")
-	}
-
-	if err := s.adopt(chosen.pkHex, chosen.addr, chosen.exp); err != nil {
-		return err
-	}
-	log.Info().Str("Player", "Signer").Str("activeSigner", chosen.addr.Hex()).
-		Msg("adopted on-chain-whitelisted signer key")
 	return nil
 }
 

@@ -68,6 +68,10 @@ func TestAllowlist(t *testing.T) {
 	_, err = s.ImportCSV(ctx, strings.NewReader(proxy+",bad\n"))
 	assert.Error(t, err)
 
+	count, err := s.Count(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, 2, count)
+
 	entries, err := s.List(ctx)
 	require.NoError(t, err)
 	assert.Equal(t, []Entry{
