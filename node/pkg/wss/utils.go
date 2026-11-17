@@ -65,9 +65,10 @@ func (ws *WebsocketHelper) Dial(ctx context.Context) error {
 		conn.SetReadLimit(ws.ReadLimit)
 	}
 
-	// close a conn left over from a previous Dial instead of leaking it
+	// drop a conn left over from a previous Dial instead of leaking it;
+	// CloseNow so Dial does not wait on a close handshake
 	if old := ws.conn.Swap(conn); old != nil {
-		_ = old.Close(websocket.StatusNormalClosure, "")
+		_ = old.CloseNow()
 	}
 	return nil
 }
@@ -131,6 +132,7 @@ func (ws *WebsocketHelper) Run(ctx context.Context, router func(context.Context,
 func (ws *WebsocketHelper) readUntilReconnect(ctx context.Context, readFunc func(context.Context, *websocket.Conn) (map[string]interface{}, error), router func(context.Context, map[string]any) error) {
 	conn := ws.conn.Load()
 	if conn == nil {
+		log.Warn().Str("endpoint", ws.Endpoint).Msg("websocket closed before reading, reconnecting")
 		return
 	}
 	connCtx, cancelConn := context.WithCancel(ctx)
