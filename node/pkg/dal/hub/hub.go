@@ -2,6 +2,8 @@ package hub
 
 import (
 	"context"
+	"errors"
+	"net"
 	"strings"
 	"sync"
 	"time"
@@ -165,21 +167,33 @@ func (h *Hub) addClient(client *websocket.Conn) {
 
 func (h *Hub) removeClient(client *websocket.Conn) {
 	h.mu.Lock() // Use write lock for both checking and removal
-	defer h.mu.Unlock()
 	subscriptions, ok := h.Clients[client]
 	if !ok {
+		h.mu.Unlock()
 		return
 	}
 	delete(h.Clients, client)
 	for symbol := range subscriptions {
 		delete(subscriptions, symbol)
 	}
+	h.mu.Unlock()
 
-	err := client.Close(websocket.StatusNormalClosure, "")
-	if err != nil {
-		log.Warn().Err(err).Msg("failed to write close message")
+	// Close after unlock: the close handshake can block for seconds.
+	closeAsync([]*websocket.Conn{client}, websocket.StatusNormalClosure, "")
+}
+
+// closeAsync closes clients in the background, outside h.mu: Close waits up to
+// ~5 s each way for the peer's close frame, which must not stall the hub.
+// Closing an already closed conn is a no-op in nhooyr websocket, and Close is
+// safe to call concurrently with an in-flight Write.
+func closeAsync(clients []*websocket.Conn, code websocket.StatusCode, reason string) {
+	for _, client := range clients {
+		go func(c *websocket.Conn) {
+			if err := c.Close(code, reason); err != nil && !errors.Is(err, net.ErrClosed) {
+				log.Warn().Err(err).Msg("failed to write close message")
+			}
+		}(client)
 	}
-
 }
 
 func (h *Hub) broadcastDataForSymbol(ctx context.Context, symbol string, stream chan *dalcommon.OutgoingSubmissionData) {
@@ -217,9 +231,9 @@ func (h *Hub) castSubmissionData(ctx context.Context, data *dalcommon.OutgoingSu
 		h.mu.Lock()
 		for _, client := range failedClients {
 			delete(h.Clients, client)
-			client.Close(websocket.StatusGoingAway, "write failed")
 		}
 		h.mu.Unlock()
+		closeAsync(failedClients, websocket.StatusGoingAway, "write failed")
 	}
 }
 
@@ -238,13 +252,15 @@ func (h *Hub) cleanupJob(ctx context.Context) {
 }
 
 func (h *Hub) cleanup() {
+	var idle []*websocket.Conn
 	h.mu.Lock()
-	defer h.mu.Unlock()
-
 	for client, subscriptions := range h.Clients {
 		if len(subscriptions) == 0 {
 			delete(h.Clients, client)
-			client.Close(websocket.StatusNormalClosure, "")
+			idle = append(idle, client)
 		}
 	}
+	h.mu.Unlock()
+
+	closeAsync(idle, websocket.StatusNormalClosure, "")
 }
