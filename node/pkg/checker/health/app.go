@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	neturl "net/url"
 	"os"
 	"strings"
 	"time"
@@ -96,12 +97,21 @@ func Start(ctx context.Context) error {
 
 	for range ticker.C {
 		for _, healthCheckUrl := range HealthCheckUrls {
-			log.Debug().Str("name", healthCheckUrl.Name).Str("url", healthCheckUrl.Url).Msg("Checking health")
+			log.Debug().Str("name", healthCheckUrl.Name).Str("url", redactURL(healthCheckUrl.Url)).Msg("Checking health")
 			recordHealth(healthCheckUrl.Name, checkUrl(ctx, healthCheckUrl))
 		}
 		recordRound(time.Now())
 	}
 	return nil
+}
+
+// redactURL masks the password of a URL for logging (SERVICE_DB_URL carries one).
+func redactURL(raw string) string {
+	u, err := neturl.Parse(raw)
+	if err != nil {
+		return "<unparsable url>"
+	}
+	return u.Redacted()
 }
 
 func checkUrl(ctx context.Context, healthCheckUrl HealthCheckUrl) bool {
@@ -143,14 +153,14 @@ func checkRedis(ctx context.Context, url string) bool {
 func checkPgs(ctx context.Context, url string) bool {
 	pool, err := pgxpool.New(ctx, url)
 	if err != nil {
-		log.Info().Err(err).Msgf("Failed to check PostgreSQL URL: %s", url)
+		log.Info().Err(err).Msgf("Failed to check PostgreSQL URL: %s", redactURL(url))
 		return false
 	}
 	defer pool.Close()
 
 	err = pool.Ping(ctx)
 	if err != nil {
-		log.Info().Err(err).Msgf("Failed to check PostgreSQL URL: %s", url)
+		log.Info().Err(err).Msgf("Failed to check PostgreSQL URL: %s", redactURL(url))
 		return false
 	}
 	return true
