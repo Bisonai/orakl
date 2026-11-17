@@ -81,3 +81,28 @@ func TestAggregatorInnerRoundTripBothFormats(t *testing.T) {
 		}
 	})
 }
+
+// PriceData carries the sender's latest round in both formats; a payload
+// without it (older node) decodes to 0 (#2867).
+func TestPriceDataLatestRoundIDRoundTrip(t *testing.T) {
+	msg := PriceDataMessage{RoundID: 31, PriceData: 100, Timestamp: time.Now(), LatestRoundID: 51}
+	for _, encoding := range []string{"json", "msgpack"} {
+		t.Run(encoding, func(t *testing.T) {
+			t.Setenv("P2P_ENCODING", encoding)
+			b, err := encodeInner(msg)
+			require.NoError(t, err)
+			var got PriceDataMessage
+			require.NoError(t, decodeInner(b, &got))
+			assert.Equal(t, msg.RoundID, got.RoundID)
+			assert.Equal(t, msg.LatestRoundID, got.LatestRoundID)
+
+			old := msg
+			old.LatestRoundID = 0
+			b, err = encodeInner(old)
+			require.NoError(t, err)
+			got = PriceDataMessage{}
+			require.NoError(t, decodeInner(b, &got))
+			assert.Equal(t, int32(0), got.LatestRoundID)
+		})
+	}
+}
