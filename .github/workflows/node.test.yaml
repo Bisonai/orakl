@@ -19,7 +19,6 @@ on:
       - "!node/cmd/delegator/**"
       - "!node/cmd/api/**"
       - "!node/cmd/sentinel/**"
-      - "!node/cmd/reporter/**"
       - "!node/pkg/reporter/**"
       - "!node/pkg/raft/**"
   workflow_dispatch:

@@ -6,7 +6,6 @@ on:
       - "master"
     paths:
       - "node/pkg/reporter/**"
-      - "node/cmd/reporter/**"
   workflow_dispatch:
 
 jobs:
