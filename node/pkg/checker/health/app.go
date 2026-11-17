@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"bisonai.com/miko/node/pkg/alert"
 	"bisonai.com/miko/node/pkg/secrets"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
@@ -95,24 +94,12 @@ func Start(ctx context.Context) error {
 	ticker := time.NewTicker(HealthCheckInterval)
 	defer ticker.Stop()
 
-	downServices := make(map[string]bool)
-
 	for range ticker.C {
-		alarmMessage := ""
 		for _, healthCheckUrl := range HealthCheckUrls {
 			log.Debug().Str("name", healthCheckUrl.Name).Str("url", healthCheckUrl.Url).Msg("Checking health")
-			isAlive := checkUrl(ctx, healthCheckUrl)
-			if !isAlive {
-				downServices[healthCheckUrl.Name] = true
-				alarmMessage += healthCheckUrl.Name + " is down\n"
-			} else if serviceWasDown, serviceNameFound := downServices[healthCheckUrl.Name]; serviceWasDown && serviceNameFound {
-				downServices[healthCheckUrl.Name] = false
-				alarmMessage += healthCheckUrl.Name + " is back up\n"
-			}
+			recordHealth(healthCheckUrl.Name, checkUrl(ctx, healthCheckUrl))
 		}
-		if alarmMessage != "" {
-			alert.SlackAlert(alarmMessage)
-		}
+		recordRound(time.Now())
 	}
 	return nil
 }
