@@ -8,6 +8,7 @@ import (
 
 	"bisonai.com/miko/node/pkg/chain/utils"
 	errorSentinel "bisonai.com/miko/node/pkg/error"
+	"bisonai.com/miko/node/pkg/metrics/submission"
 	"bisonai.com/miko/node/pkg/nodestate"
 	"bisonai.com/miko/node/pkg/secrets"
 	"github.com/kaiachain/kaia/common"
@@ -86,6 +87,8 @@ func getSignerPk(config SignerConfig) (string, error) {
 }
 
 func NewSigner(ctx context.Context, opts ...SignerOption) (*Signer, error) {
+	// rotation sends via the delegator: export its counters from startup
+	submission.Register()
 	config := SignerConfig{
 		renewInterval:  DefaultSignerRenewInterval,
 		renewThreshold: DefaultSignerRenewThreshold,

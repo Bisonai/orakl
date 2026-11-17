@@ -8,6 +8,7 @@ import (
 
 	"bisonai.com/miko/node/pkg/chain/helper"
 	errorSentinel "bisonai.com/miko/node/pkg/error"
+	"bisonai.com/miko/node/pkg/metrics/submission"
 	"bisonai.com/miko/node/pkg/secrets"
 	"bisonai.com/miko/node/pkg/utils/configfetch"
 	"bisonai.com/miko/node/pkg/utils/configreload"
@@ -24,6 +25,10 @@ func New() *App {
 }
 
 func (a *App) Run(ctx context.Context) error {
+	// export submission counters at 0 before the first send, so a fallback
+	// right after start still shows up in increase()
+	submission.Register()
+
 	configs, err := a.setReporters(ctx)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to set reporters")

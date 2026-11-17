@@ -75,6 +75,16 @@ func NewChainHelper(ctx context.Context, opts ...ChainHelperOption) (*ChainHelpe
 		return nil, err
 	}
 
+	// the token is only used with a delegator: read-only users never fail on it
+	delegatorUrl := os.Getenv(EnvDelegatorUrl)
+	var delegatorToken string
+	if delegatorUrl != "" {
+		delegatorToken, err = parseDelegatorToken(secrets.GetSecret(DelegatorToken))
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	primaryClient, err := dialFuncs[config.BlockchainType](config.ProviderUrl)
 	if err != nil {
 		return nil, err
@@ -89,13 +99,6 @@ func NewChainHelper(ctx context.Context, opts ...ChainHelperOption) (*ChainHelpe
 	wallet := strings.TrimPrefix(config.ReporterPk, "0x")
 
 	nonceManager, err := noncemanagerv2.New(ctx, primaryClient, wallet)
-	if err != nil {
-		return nil, err
-	}
-
-	delegatorUrl := os.Getenv(EnvDelegatorUrl)
-
-	delegatorToken, err := parseDelegatorToken(secrets.GetSecret(DelegatorToken))
 	if err != nil {
 		return nil, err
 	}
@@ -132,10 +135,12 @@ func (t *ChainHelper) GetSignedFromDelegator(tx *types.Transaction) (*types.Tran
 }
 
 // signFromDelegator is GetSignedFromDelegator plus a bounded failure reason
-// (submission.Reason*) for metrics; reason is empty on success.
+// (submission.Reason*) for metrics; reason is empty on success or when no
+// delegator is configured.
 func (t *ChainHelper) signFromDelegator(tx *types.Transaction) (*types.Transaction, string, error) {
 	if t.delegatorUrl == "" {
-		return nil, submission.ReasonRequest, errorSentinel.ErrChainDelegatorUrlNotFound
+		// not a delegator failure: callers send direct (PathDirect)
+		return nil, "", errorSentinel.ErrChainDelegatorUrlNotFound
 	}
 
 	payload, err := utils.MakePayload(tx)
@@ -154,7 +159,8 @@ func (t *ChainHelper) signFromDelegator(tx *types.Transaction) (*types.Transacti
 	}
 	result, err := request.Request[signedTx](opts...)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to request sign from delegator")
+		// debug only: fallback callers warn rate-limited
+		log.Debug().Err(err).Msg("failed to request sign from delegator")
 		return nil, delegatorErrorReason(err), err
 	}
 
@@ -240,8 +246,8 @@ func (t *ChainHelper) SubmitDelegatedFallbackDirect(ctx context.Context, contrac
 }
 
 // submitDelegatedFallbackDirect sends a fee-delegated tx, or a direct tx paid
-// by t's key when the delegator is unset or fails. Each send is counted by
-// path and purpose; a delegator failure is counted and warned (rate-limited).
+// by t's key when the delegator is unset or fails. Each attempt is counted by
+// path and purpose once the path is known (before build/broadcast); a delegator failure is counted and warned (rate-limited).
 func (t *ChainHelper) submitDelegatedFallbackDirect(ctx context.Context, purpose, contractAddress, functionString string, args ...interface{}) error {
 	nonce := t.noncemanager.GetNonce()
 	log.Debug().Uint64("nonce", nonce).Msg("nonce")
@@ -252,6 +258,7 @@ func (t *ChainHelper) submitDelegatedFallbackDirect(ctx context.Context, purpose
 	}
 
 	signed, path := t.signOrFallback(tx, purpose)
+	submission.RecordSubmission(path, purpose)
 	if signed == nil {
 		signed, err = utils.MakeDirectTx(ctx, t.client, contractAddress, t.wallet, functionString, t.chainID, nonce, args...)
 		if err != nil {
@@ -259,7 +266,6 @@ func (t *ChainHelper) submitDelegatedFallbackDirect(ctx context.Context, purpose
 		}
 	}
 
-	submission.RecordSubmission(path, purpose)
 	return utils.SubmitRawTx(ctx, t.client, signed)
 }
 

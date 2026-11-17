@@ -124,20 +124,30 @@ func TestSignOrFallback(t *testing.T) {
 	ok := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_ = json.NewEncoder(w).Encode(map[string]string{"signedRawTx": utils.TxToHash(tx)})
 	})
-	closed := httptest.NewServer(ok)
-	closedURL := closed.URL
-	closed.Close()
+	// drops the connection without a response: a transport error
+	hangup := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		conn, _, err := w.(http.Hijacker).Hijack()
+		require.NoError(t, err)
+		_ = conn.Close()
+	})
+	reasons := []string{submission.ReasonRequest, submission.ReasonHTTPStatus, submission.ReasonInvalidResponse}
+	errorTotals := func() map[string]float64 {
+		out := map[string]float64{}
+		for _, r := range reasons {
+			out[r] = counterValue(t, metricnames.ReporterDelegatorErrors, map[string]string{metricnames.ReasonLabel: r, metricnames.PurposeLabel: submission.PurposeRotate})
+		}
+		return out
+	}
 
 	for _, tc := range []struct {
 		name     string
 		handler  http.Handler // nil: no delegator url
-		url      string       // overrides the server url
 		wantPath string
 		reason   string // expected delegator error reason, "" for none
 	}{
 		{name: "delegated", handler: ok, wantPath: submission.PathDelegated},
 		{name: "no delegator", wantPath: submission.PathDirect},
-		{name: "transport error", url: closedURL, wantPath: submission.PathDirectFallback, reason: submission.ReasonRequest},
+		{name: "transport error", handler: hangup, wantPath: submission.PathDirectFallback, reason: submission.ReasonRequest},
 		{name: "non-200", handler: http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusUnauthorized)
 		}), wantPath: submission.PathDirectFallback, reason: submission.ReasonHTTPStatus},
@@ -152,14 +162,13 @@ func TestSignOrFallback(t *testing.T) {
 		}), wantPath: submission.PathDirectFallback, reason: submission.ReasonInvalidResponse},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			ch := &ChainHelper{delegatorUrl: tc.url}
+			ch := &ChainHelper{}
 			if tc.handler != nil {
 				server := httptest.NewServer(tc.handler)
 				defer server.Close()
 				ch.delegatorUrl = server.URL
 			}
-			errLabels := map[string]string{metricnames.ReasonLabel: tc.reason, metricnames.PurposeLabel: submission.PurposeRotate}
-			before := counterValue(t, metricnames.ReporterDelegatorErrors, errLabels)
+			before := errorTotals()
 
 			signed, path := ch.signOrFallback(tx, submission.PurposeRotate)
 
@@ -169,9 +178,11 @@ func TestSignOrFallback(t *testing.T) {
 			} else {
 				assert.Nil(t, signed)
 			}
+			want := before
 			if tc.reason != "" {
-				assert.Equal(t, before+1, counterValue(t, metricnames.ReporterDelegatorErrors, errLabels))
+				want[tc.reason]++
 			}
+			assert.Equal(t, want, errorTotals())
 		})
 	}
 }

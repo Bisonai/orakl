@@ -2,8 +2,9 @@
 // delegator could not sign. A direct_fallback means the sending key (reporter,
 // or old signer on rotation) paid gas instead of the fee payer, so alert on it.
 //
-// Kept apart from pkg/metrics, and registered on first use, so binaries that
-// only import the chain helper (e.g. sentinel) export none of these series.
+// Kept apart from pkg/metrics, and registered only by Register (called at
+// reporter/signer startup) or first use, so binaries that only import the
+// chain helper (e.g. sentinel) export none of these series.
 package submission
 
 import (
@@ -45,7 +46,7 @@ var (
 	registerOnce sync.Once
 	submissions  = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: metricnames.ReporterSubmissions,
-		Help: "Reporter transactions sent, by fee path (delegated, direct_fallback, direct) and purpose (submit, rotate)",
+		Help: "Reporter transactions attempted (counted before broadcast), by fee path (delegated, direct_fallback, direct) and purpose (submit, rotate)",
 	}, []string{metricnames.PathLabel, metricnames.PurposeLabel})
 	delegatorErrors = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: metricnames.ReporterDelegatorErrors,
@@ -53,9 +54,10 @@ var (
 	}, []string{metricnames.ReasonLabel, metricnames.PurposeLabel})
 )
 
-// register adds the collectors to the default registry with every series at 0,
-// so a later fallback shows up in rate() and increase().
-func register() {
+// Register adds the collectors to the default registry with every series at 0,
+// so a later fallback shows up in rate() and increase(). Idempotent; call it at
+// startup of anything that sends, before the first send.
+func Register() {
 	registerOnce.Do(func() {
 		prometheus.MustRegister(submissions, delegatorErrors)
 		for _, purpose := range []string{PurposeSubmit, PurposeRotate} {
@@ -69,14 +71,14 @@ func register() {
 	})
 }
 
-// RecordSubmission counts one transaction sent on path for purpose.
+// RecordSubmission counts one transaction attempted on path for purpose.
 func RecordSubmission(path, purpose string) {
-	register()
+	Register()
 	submissions.WithLabelValues(path, purpose).Inc()
 }
 
 // RecordDelegatorError counts one failed delegator sign request.
 func RecordDelegatorError(reason, purpose string) {
-	register()
+	Register()
 	delegatorErrors.WithLabelValues(reason, purpose).Inc()
 }
