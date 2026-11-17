@@ -190,8 +190,14 @@ func delegatorErrorReason(err error) string {
 }
 
 func (t *ChainHelper) MakeDirectTx(ctx context.Context, contractAddressHex string, functionString string, args ...interface{}) (*types.Transaction, error) {
-	nonce := t.noncemanager.GetNonce()
-	return utils.MakeDirectTx(ctx, t.client, contractAddressHex, t.wallet, functionString, t.chainID, nonce, args...)
+	lease := t.noncemanager.Acquire()
+	tx, err := utils.MakeDirectTx(ctx, t.client, contractAddressHex, t.wallet, functionString, t.chainID, lease.Nonce, args...)
+	if err != nil {
+		// build failed, nothing sent: hand the nonce back to avoid a gap
+		t.noncemanager.Release(lease)
+		return nil, err
+	}
+	return tx, nil
 }
 
 func (t *ChainHelper) Submit(ctx context.Context, tx *types.Transaction) error {
@@ -250,11 +256,16 @@ func (t *ChainHelper) SubmitDelegatedFallbackDirect(ctx context.Context, contrac
 // by t's key when the delegator is unset or fails. Each attempt is counted by
 // path and purpose once the path is known (before build/broadcast); a delegator failure is counted and warned (rate-limited).
 func (t *ChainHelper) submitDelegatedFallbackDirect(ctx context.Context, purpose, contractAddress, functionString string, args ...interface{}) error {
-	nonce := t.noncemanager.GetNonce()
+	lease := t.noncemanager.Acquire()
+	nonce := lease.Nonce
 	log.Debug().Uint64("nonce", nonce).Msg("nonce")
 
+	// Release the nonce only on errors before SubmitRawTx (nothing sent; the
+	// delegator only signs). Send errors are ambiguous (the tx may be in the
+	// txpool, or the node rejected the nonce as too low), so keep them as is.
 	tx, err := utils.MakeFeeDelegatedTx(ctx, t.client, contractAddress, t.wallet, functionString, t.chainID, nonce, args...)
 	if err != nil {
+		t.noncemanager.Release(lease)
 		return err
 	}
 
@@ -263,6 +274,7 @@ func (t *ChainHelper) submitDelegatedFallbackDirect(ctx context.Context, purpose
 	if signed == nil {
 		signed, err = utils.MakeDirectTx(ctx, t.client, contractAddress, t.wallet, functionString, t.chainID, nonce, args...)
 		if err != nil {
+			t.noncemanager.Release(lease)
 			return err
 		}
 	}
