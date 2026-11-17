@@ -17,9 +17,12 @@ import (
 
 func (ws *WebsocketHelper) Dial(ctx context.Context) error {
 	dialOption := &websocket.DialOptions{}
+	// local copy: Endpoint is read by other goroutines (logs), so Dial must not
+	// rewrite the field on every reconnect
+	endpoint := ws.Endpoint
 	if ws.Proxy != "" {
-		if strings.HasPrefix(ws.Endpoint, "wss") {
-			ws.Endpoint = strings.Replace(ws.Endpoint, "wss", "ws", 1)
+		if strings.HasPrefix(endpoint, "wss") {
+			endpoint = strings.Replace(endpoint, "wss", "ws", 1)
 		}
 
 		proxyURL, err := url.Parse(ws.Proxy)
@@ -52,9 +55,9 @@ func (ws *WebsocketHelper) Dial(ctx context.Context) error {
 	if ws.CustomDialFunc != nil {
 		dialFunc = *ws.CustomDialFunc
 	}
-	conn, _, err := dialFunc(ctx, ws.Endpoint, dialOption)
+	conn, _, err := dialFunc(ctx, endpoint, dialOption)
 	if err != nil {
-		log.Warn().Err(err).Str("endpoint", ws.Endpoint).Msg("error opening websocket connection")
+		log.Warn().Err(err).Str("endpoint", endpoint).Msg("error opening websocket connection")
 		return err
 	}
 
@@ -62,7 +65,10 @@ func (ws *WebsocketHelper) Dial(ctx context.Context) error {
 		conn.SetReadLimit(ws.ReadLimit)
 	}
 
-	ws.conn.Store(conn)
+	// close a conn left over from a previous Dial instead of leaking it
+	if old := ws.conn.Swap(conn); old != nil {
+		_ = old.Close(websocket.StatusNormalClosure, "")
+	}
 	return nil
 }
 
@@ -239,11 +245,7 @@ func (ws *WebsocketHelper) Write(ctx context.Context, message interface{}) error
 		return ErrNotConnected
 	}
 
-	err := wsjson.Write(ctx, conn, message)
-	if err != nil {
-		return err
-	}
-	return nil
+	return writeJSON(ctx, conn, message)
 }
 
 // RawWrite sends message as a text frame on the current connection. It
@@ -254,7 +256,7 @@ func (ws *WebsocketHelper) RawWrite(ctx context.Context, message string) error {
 		return ErrNotConnected
 	}
 
-	return conn.Write(ctx, websocket.MessageText, []byte(message))
+	return writeText(ctx, conn, message)
 }
 
 func (ws *WebsocketHelper) Read(ctx context.Context, ch chan any) error {

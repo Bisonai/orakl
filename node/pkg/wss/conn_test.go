@@ -228,3 +228,22 @@ func contains(msgs []string, want string) bool {
 	}
 	return false
 }
+
+func TestWriteWithDoneCtxKeepsConn(t *testing.T) {
+	rs := newRecordingServer(t, nil)
+	ws, err := NewWebsocketHelper(context.Background(), WithEndpoint(rs.url()))
+	require.NoError(t, err)
+	require.NoError(t, ws.Dial(context.Background()))
+	defer ws.Close()
+
+	done, cancel := context.WithCancel(context.Background())
+	cancel()
+	// nhooyr closes the conn when a write ctx expires; a done ctx (e.g. from a
+	// previous connection's router) must not reach it
+	for i := 0; i < 50; i++ {
+		assert.ErrorIs(t, ws.Write(done, map[string]any{"a": 1}), context.Canceled)
+		assert.ErrorIs(t, ws.RawWrite(done, "x"), context.Canceled)
+	}
+	time.Sleep(50 * time.Millisecond)
+	assert.NoError(t, ws.RawWrite(context.Background(), "still-open"))
+}

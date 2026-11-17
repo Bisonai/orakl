@@ -14,8 +14,9 @@ var (
 	// ErrNotConnected is returned by WebsocketHelper writes when there is no
 	// live connection.
 	ErrNotConnected = errors.New("websocket is not connected")
-	// ErrConnClosed is returned by a connection-bound ConnWriter once its
-	// connection has ended.
+	// ErrConnClosed is returned by a connection-bound ConnWriter once the
+	// helper has ended its connection. A write that fails before the helper
+	// notices the conn is gone (e.g. broken pipe) returns the underlying error.
 	ErrConnClosed = errors.New("websocket connection closed")
 )
 
@@ -44,14 +45,14 @@ func (w *connWriter) Write(ctx context.Context, message any) error {
 	if w.closed() {
 		return ErrConnClosed
 	}
-	return w.wrap(wsjson.Write(ctx, w.conn, message))
+	return w.wrap(writeJSON(ctx, w.conn, message))
 }
 
 func (w *connWriter) RawWrite(ctx context.Context, message string) error {
 	if w.closed() {
 		return ErrConnClosed
 	}
-	return w.wrap(w.conn.Write(ctx, websocket.MessageText, []byte(message)))
+	return w.wrap(writeText(ctx, w.conn, message))
 }
 
 func (w *connWriter) closed() bool {
@@ -73,6 +74,23 @@ func (w *connWriter) wrap(err error) error {
 		return fmt.Errorf("%w: %w", ErrConnClosed, err)
 	}
 	return err
+}
+
+// writeJSON and writeText refuse an already-done ctx: nhooyr.io/websocket
+// closes the whole conn when a write ctx expires, so writing with e.g. the
+// cancelled ctx of a previous connection would tear down a healthy one.
+func writeJSON(ctx context.Context, conn *websocket.Conn, message any) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	return wsjson.Write(ctx, conn, message)
+}
+
+func writeText(ctx context.Context, conn *websocket.Conn, message string) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	return conn.Write(ctx, websocket.MessageText, []byte(message))
 }
 
 // WriterFromContext returns the writer bound to the connection a router
