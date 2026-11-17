@@ -79,16 +79,16 @@ func (ws *WebsocketHelper) IsRunning() bool {
 }
 
 func (ws *WebsocketHelper) Run(ctx context.Context, router func(context.Context, map[string]any) error) {
+	if !ws.running.CompareAndSwap(false, true) {
+		log.Warn().Str("endpoint", ws.Endpoint).Msg("websocket is already running")
+		return
+	}
+	defer ws.running.Store(false)
+
 	readFunc := defaultReader
 	if ws.CustomReadFunc != nil {
 		readFunc = *ws.CustomReadFunc
 	}
-
-	if !ws.running.CompareAndSwap(false, true) {
-		log.Warn().Msg("websocket is already running")
-		return
-	}
-	defer ws.running.Store(false)
 
 	for {
 		if ctx.Err() != nil {
@@ -111,7 +111,6 @@ func (ws *WebsocketHelper) Run(ctx context.Context, router func(context.Context,
 		}
 
 		ws.readUntilReconnect(ctx, readFunc, router)
-		ws.Close()
 
 		if ctx.Err() != nil {
 			log.Info().Str("endpoint", ws.Endpoint).Msg("context cancelled, stopping websocket")
@@ -123,8 +122,8 @@ func (ws *WebsocketHelper) Run(ctx context.Context, router func(context.Context,
 // readUntilReconnect reads from the current connection until it should be
 // replaced: read error, inactivity timeout or reconnect interval. Each read is
 // bounded by a deadline, so a connection that is open but silent cannot block
-// forever. nhooyr.io/websocket closes the conn when a read ctx expires; the
-// caller's Close afterwards returns nil without blocking.
+// forever. nhooyr.io/websocket closes the conn when a read ctx expires, so
+// closing it here afterwards does not block.
 //
 // Routers run with a per-connection ctx that is cancelled when this
 // connection ends and that carries a ConnWriter bound to it (see
@@ -135,6 +134,8 @@ func (ws *WebsocketHelper) readUntilReconnect(ctx context.Context, readFunc func
 		log.Warn().Str("endpoint", ws.Endpoint).Msg("websocket closed before reading, reconnecting")
 		return
 	}
+	// close the conn this loop read from, not whatever is current by then
+	defer ws.closeConn(conn)
 	connCtx, cancelConn := context.WithCancel(ctx)
 	defer cancelConn()
 	connCtx = context.WithValue(connCtx, connWriterKey{}, &connWriter{conn: conn, done: connCtx.Done()})
@@ -284,6 +285,16 @@ func (ws *WebsocketHelper) Close() error {
 	if conn == nil {
 		return nil
 	}
+	return ws.closeAndLog(conn)
+}
+
+// closeConn detaches conn if it is still current, then closes it.
+func (ws *WebsocketHelper) closeConn(conn *websocket.Conn) {
+	ws.conn.CompareAndSwap(conn, nil)
+	_ = ws.closeAndLog(conn)
+}
+
+func (ws *WebsocketHelper) closeAndLog(conn *websocket.Conn) error {
 	err := conn.Close(websocket.StatusNormalClosure, "")
 	if err != nil {
 		log.Warn().Err(err).Str("endpoint", ws.Endpoint).Msg("error closing websocket")

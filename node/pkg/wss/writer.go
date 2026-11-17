@@ -45,14 +45,14 @@ func (w *connWriter) Write(ctx context.Context, message any) error {
 	if w.closed() {
 		return ErrConnClosed
 	}
-	return w.wrap(writeJSON(ctx, w.conn, message))
+	return w.wrap(ctx, writeJSON(ctx, w.conn, message))
 }
 
 func (w *connWriter) RawWrite(ctx context.Context, message string) error {
 	if w.closed() {
 		return ErrConnClosed
 	}
-	return w.wrap(writeText(ctx, w.conn, message))
+	return w.wrap(ctx, writeText(ctx, w.conn, message))
 }
 
 func (w *connWriter) closed() bool {
@@ -65,10 +65,11 @@ func (w *connWriter) closed() bool {
 }
 
 // wrap marks errors caused by the connection having gone away with
-// ErrConnClosed, keeping the underlying error in the message.
-func (w *connWriter) wrap(err error) error {
-	if err == nil {
-		return nil
+// ErrConnClosed, keeping the underlying error in the message. The caller's own
+// ctx errors are returned as is.
+func (w *connWriter) wrap(ctx context.Context, err error) error {
+	if err == nil || ctx.Err() != nil {
+		return err
 	}
 	if w.closed() || errors.Is(err, net.ErrClosed) {
 		return fmt.Errorf("%w: %w", ErrConnClosed, err)
@@ -77,8 +78,9 @@ func (w *connWriter) wrap(err error) error {
 }
 
 // writeJSON and writeText refuse an already-done ctx: nhooyr.io/websocket
-// closes the whole conn when a write ctx expires, so writing with e.g. the
-// cancelled ctx of a previous connection would tear down a healthy one.
+// closes the whole conn when a write ctx is done, so writing with e.g. the
+// cancelled ctx of a previous connection would tear down a healthy one. A ctx
+// that ends mid-write still closes the conn.
 func writeJSON(ctx context.Context, conn *websocket.Conn, message any) error {
 	if err := ctx.Err(); err != nil {
 		return err
@@ -98,7 +100,7 @@ func writeText(ctx context.Context, conn *websocket.Conn, message string) error 
 // false for contexts not derived from a router ctx.
 func WriterFromContext(ctx context.Context) (ConnWriter, bool) {
 	w, ok := ctx.Value(connWriterKey{}).(*connWriter)
-	if !ok || w == nil {
+	if !ok {
 		return nil, false
 	}
 	return w, true

@@ -125,7 +125,7 @@ func TestWriterFromContextBoundToItsConn(t *testing.T) {
 		}
 		_ = wsjson.Write(ctx, conn, map[string]any{"from": 0})
 		// close only after the router reply had time to arrive
-		if sleepCtx(ctx, 300*time.Millisecond) != nil {
+		if sleepCtx(ctx, time.Second) != nil {
 			return
 		}
 		_ = conn.Close(websocket.StatusNormalClosure, "")
