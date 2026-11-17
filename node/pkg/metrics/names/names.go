@@ -25,6 +25,9 @@ const (
 	RaftElectionsStarted    = "orakl_node_raft_elections_started_total"
 	RaftHeartbeatsSkipped   = "orakl_node_raft_heartbeats_skipped_total"
 
+	ReporterSubmissions     = "orakl_node_reporter_submissions_total"
+	ReporterDelegatorErrors = "orakl_node_reporter_delegator_errors_total"
+
 	NameLabel     = "name"
 	ConfigLabel   = "config"
 	FeedLabel     = "feed"
@@ -32,4 +35,6 @@ const (
 	ReasonLabel   = "reason"
 	PeerTypeLabel = "peer_type"
 	KindLabel     = "kind"
+	PathLabel     = "path"
+	PurposeLabel  = "purpose"
 )
