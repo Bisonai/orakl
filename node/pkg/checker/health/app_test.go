@@ -73,3 +73,16 @@ func TestCheckRedis(t *testing.T) {
 
 	assert.True(t, result)
 }
+
+func TestRedactURL(t *testing.T) {
+	cases := map[string]string{
+		"postgresql://user:secret@10.0.0.1:5432/node": "postgresql://user:xxxxx@10.0.0.1:5432/node",
+		"http://orakl-api.orakl.svc/health":           "http://orakl-api.orakl.svc/health",
+		"postgresql://user:p%zz@host/db":              "<unparsable url>",
+	}
+	for in, want := range cases {
+		if got := redactURL(in); got != want {
+			t.Errorf("redactURL(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
