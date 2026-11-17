@@ -75,7 +75,8 @@ func NewChainHelper(ctx context.Context, opts ...ChainHelperOption) (*ChainHelpe
 		return nil, err
 	}
 
-	// the token is only used with a delegator: read-only users never fail on it
+	// the token is only used with a delegator: without DELEGATOR_URL it is
+	// ignored; with it, a bad token fails every helper (fail fast at startup)
 	delegatorUrl := os.Getenv(EnvDelegatorUrl)
 	var delegatorToken string
 	if delegatorUrl != "" {

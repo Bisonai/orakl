@@ -127,7 +127,10 @@ func TestSignOrFallback(t *testing.T) {
 	// drops the connection without a response: a transport error
 	hangup := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		conn, _, err := w.(http.Hijacker).Hijack()
-		require.NoError(t, err)
+		if err != nil {
+			t.Errorf("hijack: %v", err) // not FailNow: off the test goroutine
+			return
+		}
 		_ = conn.Close()
 	})
 	reasons := []string{submission.ReasonRequest, submission.ReasonHTTPStatus, submission.ReasonInvalidResponse}
