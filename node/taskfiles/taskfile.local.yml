@@ -21,11 +21,6 @@ tasks:
     dotenv: [".env"]
     cmds:
       - go run ./cmd/dal/main.go
-  reporter:
-    dotenv: [".env"]
-    cmds:
-      - go run ./cmd/reporter/main.go
-
   sentinel:
     dotenv: [".env"]
     cmds:
