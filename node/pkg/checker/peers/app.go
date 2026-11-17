@@ -2,17 +2,13 @@ package peers
 
 import (
 	"errors"
-	"fmt"
 	"os"
 	"time"
 
-	"bisonai.com/miko/node/pkg/alert"
 	"bisonai.com/miko/node/pkg/utils/request"
 	"github.com/rs/zerolog/log"
 )
 
-var peerCount int
-var failCount int
 var peerCheckInterval time.Duration
 
 const (
@@ -33,12 +29,9 @@ func setUp() error {
 		log.Info().Err(err).Dur("peerCheckInterval", peerCheckInterval).Msg("Using default peer check interval of 10s")
 	}
 
-	initialCount, err := checkPeerCounts()
-	if err != nil {
-		return err
+	if os.Getenv("ORAKL_NODE_ADMIN_URL") == "" {
+		return errors.New("ORAKL_NODE_ADMIN_URL not found")
 	}
-	peerCount = initialCount
-	failCount = 0
 
 	return nil
 }
@@ -53,26 +46,23 @@ func Start() error {
 	checkTicker := time.NewTicker(peerCheckInterval)
 	defer checkTicker.Stop()
 
+	check()
 	for range checkTicker.C {
-		newPeerCount, err := checkPeerCounts()
-		log.Debug().Int("peer count", newPeerCount).Msg("peer count")
-		if err != nil {
-			log.Warn().Err(err).Msg("Failed to check peer count")
-			failCount++
-			if failCount > 10 {
-				alert.SlackAlert(fmt.Sprintf("failed to check peer count %d times. Check miko Sentinel logs", failCount))
-				failCount = 0
-			}
-			continue
-		}
-		failCount = 0
-
-		if newPeerCount != peerCount {
-			alarm(newPeerCount, peerCount)
-			peerCount = newPeerCount
-		}
+		check()
 	}
 	return nil
+}
+
+// check exports the peer count; alerts are Prometheus rules on orakl_peers_*.
+func check() {
+	count, err := checkPeerCounts()
+	if err != nil {
+		log.Warn().Err(err).Msg("Failed to check peer count")
+		errorsCounter.Inc()
+		return
+	}
+	log.Debug().Int("peer count", count).Msg("peer count")
+	recordPeerCount(count, time.Now())
 }
 
 func checkPeerCounts() (int, error) {
@@ -82,24 +72,21 @@ func checkPeerCounts() (int, error) {
 	}
 
 	maxCount := 0
+	succeeded := false
 	for i := 0; i < SAMPLE_COUNT; i++ {
 		resp, err := request.Request[peerCountResponse](request.WithEndpoint(mikoNodeAdminUrl+peerCountEndpoint), request.WithTimeout(10*time.Second))
 		if err != nil {
 			log.Warn().Err(err).Int("sample", i).Msg("failed to get peer count sample")
 			continue
 		}
+		succeeded = true
 		if resp.Count > maxCount {
 			maxCount = resp.Count
 		}
 	}
+	if !succeeded {
+		return 0, errors.New("all peer count samples failed")
+	}
 
 	return maxCount, nil
-}
-
-func alarm(newCount int, oldCount int) {
-	if newCount > oldCount {
-		alert.SlackAlert(fmt.Sprintf("number of peers in orakl offchain cluster has increased from %d to %d", oldCount, newCount))
-	} else {
-		alert.SlackAlert(fmt.Sprintf("number of peers in orakl offchain cluster has decreased from %d to %d", oldCount, newCount))
-	}
 }

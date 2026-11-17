@@ -7,12 +7,6 @@ import (
 
 const (
 	DefaultDalCheckInterval = 10 * time.Second
-	DelayOffset             = 5 * time.Second
-	AlarmOffsetPerPair      = 10
-	AlarmOffsetInTotal      = 3
-	WsDelayThreshold        = 9 * time.Second
-	WsPushThreshold         = 5 * time.Second
-	NetworkDelayThreshold   = 6 * time.Second
 
 	RestTimeout = 10 * time.Second
 )
