@@ -74,7 +74,7 @@ func TestWsDataHandling(t *testing.T) {
 	for {
 		select {
 		case <-ticker.C:
-			if app.WsHelper != nil && app.WsHelper.IsRunning {
+			if app.WsHelper != nil && app.WsHelper.IsRunning() {
 				submissionDataCount = 0
 				for _, symbol := range symbols {
 					if _, ok := app.LatestDataMap.Load(symbol); ok {
