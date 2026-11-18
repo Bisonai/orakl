@@ -3,6 +3,7 @@ package kucoin
 import (
 	"context"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"net/http"
@@ -15,8 +16,6 @@ import (
 )
 
 type KucoinFetcher common.Fetcher
-
-var pingInterval = DEFAULT_PING_INTERVAL
 
 func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInterface, error) {
 	config := &common.FetcherConfig{}
@@ -50,8 +49,7 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 		})
 	}
 
-	ws, err := wss.NewWebsocketHelper(ctx,
-		wss.WithCustomDialFunc(fetcher.customDialFunc),
+	ws, err := newWebsocketHelper(ctx, TokenUrl,
 		wss.WithEndpoint(URL),
 		wss.WithSubscriptions(subscriptions),
 		wss.WithProxyUrl(config.Proxy))
@@ -106,55 +104,68 @@ func (f *KucoinFetcher) handleMessage(ctx context.Context, message map[string]an
 }
 
 func (f *KucoinFetcher) Run(ctx context.Context) {
-	go f.pingJob(ctx, time.Duration(pingInterval)*time.Millisecond)
 	f.Ws.Run(ctx, f.handleMessage)
 }
 
-func (f *KucoinFetcher) pingJob(ctx context.Context, interval time.Duration) {
-	pingTicker := time.NewTicker(interval)
-	defer pingTicker.Stop()
+// newWebsocketHelper wires the bullet-API dial and the client ping. The ping
+// interval comes from the bullet API on every dial and is applied to that
+// connection; it is per helper, so fetchers do not share it.
+func newWebsocketHelper(ctx context.Context, tokenURL string, opts ...wss.ConnectionOption) (*wss.WebsocketHelper, error) {
+	var pingIntervalMs atomic.Int64
+	pingIntervalMs.Store(DEFAULT_PING_INTERVAL)
 
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-pingTicker.C:
-			if ctx.Err() != nil {
-				return
-			}
-			log.Debug().Msg("sending ping message to kucoin server")
-			err := f.Ws.Write(ctx, Ping{
-				ID:   1,
-				Type: "ping",
-			})
-			if err != nil {
-				// Keep pinging: Ws.Run reconnects, so a write failing during the
-				// close-to-redial window must not stop pings on later conns.
-				log.Error().Str("Player", "Kucoin").Err(err).Msg("error in kucoin.pingJob")
-			}
+	opts = append(opts,
+		wss.WithCustomDialFunc(newDialFunc(tokenURL, &pingIntervalMs)),
+		wss.WithKeepalive(DEFAULT_PING_INTERVAL*time.Millisecond, ping),
+		wss.WithKeepaliveIntervalFunc(func() time.Duration {
+			return time.Duration(pingIntervalMs.Load()) * time.Millisecond
+		}),
+	)
+	return wss.NewWebsocketHelper(ctx, opts...)
+}
+
+// ping is the client keepalive.
+func ping(ctx context.Context, w wss.ConnWriter) error {
+	log.Debug().Msg("sending ping message to kucoin server")
+	return w.Write(ctx, Ping{
+		ID:   1,
+		Type: "ping",
+	})
+}
+
+// newDialFunc fetches a token and ping interval from the bullet API before
+// each dial and stores the interval (validated, else the default) in
+// pingIntervalMs for the connection being dialed.
+func newDialFunc(tokenURL string, pingIntervalMs *atomic.Int64) func(context.Context, string, *websocket.DialOptions) (*websocket.Conn, *http.Response, error) {
+	return func(ctx context.Context, endpoint string, dialOptions *websocket.DialOptions) (*websocket.Conn, *http.Response, error) {
+		token, interval, err := getTokenAndPingInterval(tokenURL)
+		if err != nil {
+			log.Error().Str("Player", "Kucoin").Err(err).Msg("error in kucoin.customDialFunc")
+			return nil, nil, err
 		}
+		if interval <= 0 {
+			log.Warn().Str("Player", "Kucoin").Int("pingInterval", interval).Msg("invalid kucoin ping interval, using default")
+			interval = DEFAULT_PING_INTERVAL
+		}
+		pingIntervalMs.Store(int64(interval))
+		log.Debug().Int("pingInterval", interval).Msg("kucoin ping interval set")
+
+		url := endpoint + "?token=" + token
+
+		return websocket.Dial(ctx, url, dialOptions)
 	}
 }
 
-func (f *KucoinFetcher) customDialFunc(ctx context.Context, endpoint string, dialOptions *websocket.DialOptions) (*websocket.Conn, *http.Response, error) {
-	token, interval, err := f.getTokenAndPingInterval()
-	if err != nil {
-		log.Error().Str("Player", "Kucoin").Err(err).Msg("error in kucoin.customDialFunc")
-		return nil, nil, err
-	}
-	pingInterval = interval
-	log.Debug().Int("pingInterval", interval).Msg("kucoin ping interval set")
-
-	url := endpoint + "?token=" + token
-
-	return websocket.Dial(ctx, url, dialOptions)
-}
-
-func (f *KucoinFetcher) getTokenAndPingInterval() (string, int, error) {
-	resp, err := request.Request[TokenResponse](request.WithEndpoint(TokenUrl), request.WithMethod("POST"))
+// getTokenAndPingInterval returns the token and the ping interval in ms; the
+// interval is 0 when the response has no instance server.
+func getTokenAndPingInterval(tokenURL string) (string, int, error) {
+	resp, err := request.Request[TokenResponse](request.WithEndpoint(tokenURL), request.WithMethod("POST"))
 	if err != nil {
 		log.Error().Str("Player", "Kucoin").Err(err).Msg("error in kucoin.getToken")
-		return "", 18000, err
+		return "", DEFAULT_PING_INTERVAL, err
+	}
+	if len(resp.Data.InstanceServers) == 0 {
+		return resp.Data.Token, 0, nil
 	}
 	return resp.Data.Token, resp.Data.InstanceServers[0].PingInterval, nil
 }

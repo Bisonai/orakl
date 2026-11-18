@@ -13,6 +13,10 @@ import (
 
 type BitgetFetcher common.Fetcher
 
+// PingInterval: bitget expects a "ping" every 30 seconds
+// https://www.bitget.com/api-doc/common/websocket-intro
+const PingInterval = 30 * time.Second
+
 func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInterface, error) {
 	config := &common.FetcherConfig{}
 	for _, opt := range opts {
@@ -41,6 +45,7 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 		wss.WithCustomReadFunc(fetcher.customReadFunc),
 		wss.WithEndpoint(URL),
 		wss.WithSubscriptions([]any{subscription}),
+		wss.WithKeepalive(PingInterval, ping),
 		wss.WithProxyUrl(config.Proxy))
 	if err != nil {
 		log.Error().Str("Player", "Bitget").Err(err).Msg("error in bitget.New")
@@ -76,29 +81,13 @@ func (f *BitgetFetcher) handleMessage(ctx context.Context, message map[string]an
 }
 
 func (f *BitgetFetcher) Run(ctx context.Context) {
-	f.ping(ctx)
 	f.Ws.Run(ctx, f.handleMessage)
 }
 
-func (f *BitgetFetcher) ping(ctx context.Context) {
-	// ping timer expected to have 30 seconds interval
-	// https://www.bitget.com/api-doc/common/websocket-intro
-	ticker := time.NewTicker(30 * time.Second)
-	go func() {
-		for {
-			select {
-			case <-ticker.C:
-				log.Debug().Str("Player", "Bitget").Msg("sending ping message to bitget server")
-				err := f.Ws.RawWrite(ctx, "ping")
-				if err != nil {
-					log.Error().Str("Player", "Bitget").Err(err).Msg("error in bitget.ping")
-				}
-			case <-ctx.Done():
-				ticker.Stop()
-				return
-			}
-		}
-	}()
+// ping is the client keepalive, sent every PingInterval on each connection.
+func ping(ctx context.Context, w wss.ConnWriter) error {
+	log.Debug().Str("Player", "Bitget").Msg("sending ping message to bitget server")
+	return w.RawWrite(ctx, "ping")
 }
 
 func (f *BitgetFetcher) customReadFunc(ctx context.Context, conn *websocket.Conn) (map[string]interface{}, error) {
