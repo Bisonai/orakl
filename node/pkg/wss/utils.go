@@ -128,6 +128,7 @@ type connSession struct {
 	ctx           context.Context
 	cancel        context.CancelCauseFunc
 	keepaliveDone chan struct{}
+	writer        *connWriter
 }
 
 // startSession sets up the per-connection ctx and writer for conn and starts
@@ -141,6 +142,7 @@ func (ws *WebsocketHelper) startSession(ctx context.Context, conn *websocket.Con
 		ctx:           ContextWithWriter(connCtx, writer),
 		cancel:        cancel,
 		keepaliveDone: make(chan struct{}),
+		writer:        writer,
 	}
 	if ws.keepaliveFn == nil {
 		close(s.keepaliveDone)
@@ -178,6 +180,7 @@ func (ws *WebsocketHelper) readUntilReconnect(ctx context.Context, session *conn
 	defer ws.endSession(session)
 	conn := session.conn
 	connCtx := session.ctx
+	session.writer.reading.Store(true)
 
 	// both windows start once dial + subscribe are done
 	reconnectAt := time.Now().Add(ws.ReconnectInterval)

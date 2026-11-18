@@ -32,6 +32,33 @@ func WithKeepalive(interval time.Duration, fn KeepaliveFunc) ConnectionOption {
 	}
 }
 
+// PingTimeout is the longest a WithPingKeepalive ping waits for its pong.
+const PingTimeout = 10 * time.Second
+
+// WithPingKeepalive is WithKeepalive with a websocket protocol ping frame as
+// the keepalive, for servers that drop connections without client traffic
+// but have no app-level ping message. Each ping waits for its pong for
+// min(interval, PingTimeout); a missing pong counts as a keepalive failure.
+// Pongs are read by Run's read loop, so while subscribing (before that loop
+// starts on the connection) a missing pong is not a failure.
+func WithPingKeepalive(interval time.Duration) ConnectionOption {
+	timeout := min(interval, PingTimeout)
+	return WithKeepalive(interval, func(ctx context.Context, w ConnWriter) error {
+		p, ok := w.(pinger)
+		if !ok {
+			return errNoPinger
+		}
+		return p.ping(ctx, timeout)
+	})
+}
+
+// pinger is implemented by the conn-bound writer the keepalive receives.
+type pinger interface {
+	ping(ctx context.Context, timeout time.Duration) error
+}
+
+var errNoPinger = errors.New("keepalive writer cannot send pings")
+
 // WithKeepaliveIntervalFunc lets the keepalive interval change per
 // connection: intervalFn is called once at the start of every connection
 // (after dial, so a custom dial func can update what it returns). A

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"sync/atomic"
 	"time"
 
 	"nhooyr.io/websocket"
@@ -45,6 +46,9 @@ type connWriterKey struct{}
 type connWriter struct {
 	conn *websocket.Conn
 	ctx  context.Context
+	// reading is set once Run's read loop runs on conn; until then nothing
+	// reads pongs
+	reading atomic.Bool
 }
 
 func (w *connWriter) Write(ctx context.Context, message any) error {
@@ -66,6 +70,27 @@ func (w *connWriter) RawWrite(ctx context.Context, message string) error {
 		return err
 	}
 	return w.wrap(writeText(w.ctx, w.conn, message, true))
+}
+
+// ping sends a ping frame and waits up to timeout for the pong. Ending the
+// connection aborts it.
+func (w *connWriter) ping(ctx context.Context, timeout time.Duration) error {
+	if w.closed() {
+		return ErrConnClosed
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	pctx, cancel := context.WithTimeout(w.ctx, timeout)
+	defer cancel()
+	err := w.conn.Ping(pctx)
+	if err != nil && pctx.Err() != nil && !w.closed() && !w.reading.Load() {
+		// no pong can be read before the read loop starts (e.g. while
+		// subscribing); the ping frame went out, which is what keeps the server
+		// from closing (a failed write closes the conn, failing the subscribe)
+		return nil
+	}
+	return w.wrap(err)
 }
 
 func (w *connWriter) closed() bool {
