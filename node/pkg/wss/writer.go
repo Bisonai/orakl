@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -84,13 +85,21 @@ func (w *connWriter) ping(ctx context.Context, timeout time.Duration) error {
 	pctx, cancel := context.WithTimeout(w.ctx, timeout)
 	defer cancel()
 	err := w.conn.Ping(pctx)
-	if err != nil && pctx.Err() != nil && !w.closed() && !w.reading.Load() {
+	if err != nil && !w.closed() && !w.reading.Load() && isPongTimeout(err) {
 		// no pong can be read before the read loop starts (e.g. while
 		// subscribing); the ping frame went out, which is what keeps the server
-		// from closing (a failed write closes the conn, failing the subscribe)
+		// from closing
 		return nil
 	}
 	return w.wrap(err)
+}
+
+// isPongTimeout reports whether a Ping error is the wait for the pong
+// timing out after the ping frame was written. nhooyr.io/websocket (v1.8.11)
+// has no typed error for it; a timed-out frame write reports "failed to
+// write control frame" instead (and closes the conn).
+func isPongTimeout(err error) bool {
+	return errors.Is(err, context.DeadlineExceeded) && strings.Contains(err.Error(), "failed to wait for pong")
 }
 
 func (w *connWriter) closed() bool {

@@ -28,7 +28,8 @@ const (
 	// The server closes a connection ~30s after the last client message (error
 	// 9901 "websocket closing connection automatically") even while tickers are
 	// streaming; a websocket ping frame every 10s keeps it open. Pongs are
-	// consumed inside the websocket library and never reach the read loop.
+	// handled by the websocket library during the helper's reads and never
+	// count as data activity (see ReadTimeout).
 	PingInterval = 10 * time.Second
 
 	// ReadTimeout is the helper's inactivity timeout: a connection kept open
