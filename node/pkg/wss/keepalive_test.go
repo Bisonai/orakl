@@ -186,6 +186,7 @@ func TestNewWebsocketHelperRejectsBadKeepalive(t *testing.T) {
 		"zero interval":          WithKeepalive(0, fn),
 		"negative interval":      WithKeepalive(-time.Second, fn),
 		"nil func":               WithKeepalive(time.Second, nil),
+		"zero interval, nil func": WithKeepalive(0, nil),
 		"interval func w/o func": WithKeepaliveIntervalFunc(func() time.Duration { return time.Second }),
 	} {
 		t.Run(name, func(t *testing.T) {

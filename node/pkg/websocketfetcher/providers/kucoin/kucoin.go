@@ -147,12 +147,14 @@ func newDialFunc(tokenURL string, pingIntervalMs *atomic.Int64) func(context.Con
 			log.Warn().Str("Player", "Kucoin").Int("pingInterval", interval).Msg("invalid kucoin ping interval, using default")
 			interval = DEFAULT_PING_INTERVAL
 		}
+		url := endpoint + "?token=" + token
+		conn, resp, err := websocket.Dial(ctx, url, dialOptions)
+		if err != nil {
+			return conn, resp, err
+		}
 		pingIntervalMs.Store(int64(interval))
 		log.Debug().Int("pingInterval", interval).Msg("kucoin ping interval set")
-
-		url := endpoint + "?token=" + token
-
-		return websocket.Dial(ctx, url, dialOptions)
+		return conn, resp, nil
 	}
 }
 

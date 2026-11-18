@@ -115,7 +115,11 @@ func (f *GopaxFetcher) customReadFunc(ctx context.Context, conn *websocket.Conn)
 			log.Warn().Str("Player", "Gopax").Msg("no websocket writer in read ctx, ping not answered")
 			return nil, nil
 		}
-		_ = w.RawWrite(ctx, "\"primus::pong::"+rawResponse[15:])
+		// async, so a slow write cannot hold up the read loop and its deadline;
+		// WithoutCancel because the read ctx ends as soon as this returns
+		pong := "\"primus::pong::" + rawResponse[15:]
+		writeCtx := context.WithoutCancel(ctx)
+		go func() { _ = w.RawWrite(writeCtx, pong) }()
 
 		return nil, nil
 	}

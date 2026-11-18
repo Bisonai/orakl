@@ -49,14 +49,21 @@ func (w *connWriter) Write(ctx context.Context, message any) error {
 	if w.closed() {
 		return ErrConnClosed
 	}
-	return w.wrap(ctx, writeJSON(ctx, w.conn, message))
+	// the caller's own ctx error is returned as is
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	return w.wrap(writeJSON(ctx, w.conn, message))
 }
 
 func (w *connWriter) RawWrite(ctx context.Context, message string) error {
 	if w.closed() {
 		return ErrConnClosed
 	}
-	return w.wrap(ctx, writeText(ctx, w.conn, message))
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	return w.wrap(writeText(ctx, w.conn, message))
 }
 
 func (w *connWriter) closed() bool {
@@ -69,10 +76,9 @@ func (w *connWriter) closed() bool {
 }
 
 // wrap marks errors caused by the connection having gone away with
-// ErrConnClosed, keeping the underlying error in the message. The caller's own
-// ctx errors are returned as is.
-func (w *connWriter) wrap(ctx context.Context, err error) error {
-	if err == nil || ctx.Err() != nil {
+// ErrConnClosed, keeping the underlying error in the message.
+func (w *connWriter) wrap(err error) error {
+	if err == nil {
 		return err
 	}
 	if w.closed() || errors.Is(err, net.ErrClosed) {
@@ -84,21 +90,33 @@ func (w *connWriter) wrap(ctx context.Context, err error) error {
 // WriteTimeout bounds every write made through the helper or a ConnWriter.
 const WriteTimeout = 10 * time.Second
 
-// writeCtx returns the ctx a write actually runs with. nhooyr.io/websocket
-// closes the whole conn when a write ctx ends mid-write, so a caller ctx (e.g.
-// a router ctx) must not be able to tear down a healthy conn: the write runs
-// detached from the caller's cancellation and deadline, bounded by
-// WriteTimeout instead. An already-done caller ctx is refused up front.
-func writeCtx(ctx context.Context) (context.Context, context.CancelFunc, error) {
+// boundCtx returns the ctx a write actually runs with, bounded by
+// WriteTimeout. nhooyr.io/websocket closes the whole conn when a write ctx
+// ends mid-write, so unless attached is set, the write runs detached from the
+// caller's cancellation and deadline: a caller ctx (e.g. a router ctx) must
+// not be able to tear down a healthy conn. An already-done caller ctx is
+// refused up front either way.
+func boundCtx(ctx context.Context, attached bool) (context.Context, context.CancelFunc, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, nil, err
 	}
-	wctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), WriteTimeout)
+	if !attached {
+		ctx = context.WithoutCancel(ctx)
+	}
+	wctx, cancel := context.WithTimeout(ctx, WriteTimeout)
 	return wctx, cancel, nil
 }
 
 func writeJSON(ctx context.Context, conn *websocket.Conn, message any) error {
-	wctx, cancel, err := writeCtx(ctx)
+	return writeJSONCtx(ctx, conn, message, false)
+}
+
+func writeText(ctx context.Context, conn *websocket.Conn, message string) error {
+	return writeTextCtx(ctx, conn, message, false)
+}
+
+func writeJSONCtx(ctx context.Context, conn *websocket.Conn, message any, attached bool) error {
+	wctx, cancel, err := boundCtx(ctx, attached)
 	if err != nil {
 		return err
 	}
@@ -106,8 +124,8 @@ func writeJSON(ctx context.Context, conn *websocket.Conn, message any) error {
 	return wsjson.Write(wctx, conn, message)
 }
 
-func writeText(ctx context.Context, conn *websocket.Conn, message string) error {
-	wctx, cancel, err := writeCtx(ctx)
+func writeTextCtx(ctx context.Context, conn *websocket.Conn, message string, attached bool) error {
+	wctx, cancel, err := boundCtx(ctx, attached)
 	if err != nil {
 		return err
 	}

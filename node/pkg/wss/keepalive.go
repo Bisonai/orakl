@@ -26,6 +26,7 @@ func WithKeepalive(interval time.Duration, fn KeepaliveFunc) ConnectionOption {
 	return func(c *ConnectionConfig) {
 		c.KeepaliveInterval = interval
 		c.KeepaliveFunc = fn
+		c.keepaliveSet = true
 	}
 }
 

@@ -221,14 +221,21 @@ func (ws *WebsocketHelper) dialAndSubscribe(ctx context.Context) error {
 		if err := ctx.Err(); err != nil {
 			return err
 		}
+		conn := ws.conn.Load()
+		if conn == nil {
+			return ErrNotConnected
+		}
+		// Subscribe writes stay attached to the run ctx so shutdown is not
+		// held up by a blocked write; aborting one closes this
+		// half-subscribed conn, which is dropped on error anyway.
 		for _, subscription := range ws.Subscriptions {
 			switch casted := subscription.(type) {
 			case []byte:
-				if err := ws.RawWrite(ctx, string(casted)); err != nil {
+				if err := writeTextCtx(ctx, conn, string(casted), true); err != nil {
 					return err
 				}
 			default:
-				if err := ws.Write(ctx, casted); err != nil {
+				if err := writeJSONCtx(ctx, conn, casted, true); err != nil {
 					return err
 				}
 			}

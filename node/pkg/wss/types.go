@@ -50,6 +50,7 @@ type ConnectionConfig struct {
 	KeepaliveInterval     time.Duration
 	KeepaliveFunc         KeepaliveFunc
 	KeepaliveIntervalFunc func() time.Duration
+	keepaliveSet          bool
 }
 
 type ConnectionOption func(*ConnectionConfig)
@@ -140,11 +141,11 @@ func NewWebsocketHelper(ctx context.Context, opts ...ConnectionOption) (*Websock
 		return nil, fmt.Errorf("reconnect interval and inactivity timeout must be positive")
 	}
 
-	if config.KeepaliveFunc != nil && config.KeepaliveInterval <= 0 {
+	if config.keepaliveSet && config.KeepaliveInterval <= 0 {
 		log.Error().Msg("keepalive interval must be positive")
 		return nil, fmt.Errorf("keepalive interval must be positive")
 	}
-	if config.KeepaliveFunc == nil && (config.KeepaliveInterval != 0 || config.KeepaliveIntervalFunc != nil) {
+	if config.KeepaliveFunc == nil && (config.keepaliveSet || config.KeepaliveIntervalFunc != nil) {
 		log.Error().Msg("keepalive func is required")
 		return nil, fmt.Errorf("keepalive func is required")
 	}
