@@ -14,36 +14,39 @@ import (
 type Writer struct {
 	mu     sync.Mutex
 	frames []string
-	// Err, if set, is returned by every write (nothing is recorded).
-	Err error
+	err    error
+}
+
+// SetErr makes every later write return err (nothing is recorded); nil
+// restores normal recording.
+func (w *Writer) SetErr(err error) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	w.err = err
 }
 
 var _ wss.ConnWriter = (*Writer)(nil)
 
 func (w *Writer) Write(_ context.Context, message any) error {
-	if w.Err != nil {
-		return w.Err
-	}
 	b, err := json.Marshal(message)
 	if err != nil {
 		return err
 	}
-	w.record(string(b))
-	return nil
+	return w.record(string(b))
 }
 
 func (w *Writer) RawWrite(_ context.Context, message string) error {
-	if w.Err != nil {
-		return w.Err
-	}
-	w.record(message)
-	return nil
+	return w.record(message)
 }
 
-func (w *Writer) record(frame string) {
+func (w *Writer) record(frame string) error {
 	w.mu.Lock()
 	defer w.mu.Unlock()
+	if w.err != nil {
+		return w.err
+	}
 	w.frames = append(w.frames, frame)
+	return nil
 }
 
 // Frames returns the recorded frames in order.
