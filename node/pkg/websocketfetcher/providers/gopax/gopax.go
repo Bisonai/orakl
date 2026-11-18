@@ -109,7 +109,13 @@ func (f *GopaxFetcher) customReadFunc(ctx context.Context, conn *websocket.Conn)
 
 	if strings.HasPrefix(rawResponse, "\"primus::ping::") {
 		log.Debug().Str("Player", "Gopax").Msg("received pong")
-		_ = f.Ws.RawWrite(ctx, "\"primus::pong::"+rawResponse[15:])
+		// the read ctx carries the writer bound to the conn being read
+		w, ok := wss.WriterFromContext(ctx)
+		if !ok {
+			log.Warn().Str("Player", "Gopax").Msg("no websocket writer in read ctx, ping not answered")
+			return nil, nil
+		}
+		_ = w.RawWrite(ctx, "\"primus::pong::"+rawResponse[15:])
 
 		return nil, nil
 	}

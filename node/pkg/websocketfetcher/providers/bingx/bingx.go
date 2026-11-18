@@ -53,7 +53,12 @@ func (f *BingxFetcher) handleMessage(ctx context.Context, message map[string]any
 			log.Error().Str("Player", "Bingx").Err(err).Msg("error in bingx.handleMessage, failed to parse heartbeat")
 			return err
 		}
-		err = f.Ws.Write(ctx, HeartbeatResonse{
+		// reply on the connection the ping came on
+		w, ok := wss.WriterFromContext(ctx)
+		if !ok {
+			return wss.ErrNoConnWriter
+		}
+		err = w.Write(ctx, HeartbeatResonse{
 			Pong: heartbeat.Ping,
 			Time: heartbeat.Time,
 		})
