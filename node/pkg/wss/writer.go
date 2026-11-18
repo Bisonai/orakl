@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"strings"
+	"sync/atomic"
 	"time"
 
 	"nhooyr.io/websocket"
@@ -45,6 +47,9 @@ type connWriterKey struct{}
 type connWriter struct {
 	conn *websocket.Conn
 	ctx  context.Context
+	// reading is set once Run's read loop runs on conn; until then nothing
+	// reads pongs
+	reading atomic.Bool
 }
 
 func (w *connWriter) Write(ctx context.Context, message any) error {
@@ -66,6 +71,38 @@ func (w *connWriter) RawWrite(ctx context.Context, message string) error {
 		return err
 	}
 	return w.wrap(writeText(w.ctx, w.conn, message, true))
+}
+
+// ping sends a ping frame and waits up to timeout for the pong. Ending the
+// connection aborts it.
+func (w *connWriter) ping(ctx context.Context, timeout time.Duration) error {
+	if w.closed() {
+		return ErrConnClosed
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	// sampled before sending: a ping sent before the read loop started may
+	// time out just after it starts
+	reading := w.reading.Load()
+	pctx, cancel := context.WithTimeout(w.ctx, timeout)
+	defer cancel()
+	err := w.conn.Ping(pctx)
+	if err != nil && !w.closed() && !reading && isPongTimeout(err) {
+		// no pong can be read before the read loop starts (e.g. while
+		// subscribing); the ping frame went out, which is what keeps the server
+		// from closing; whether the peer answers is unknown
+		return errKeepaliveSkipped
+	}
+	return w.wrap(err)
+}
+
+// isPongTimeout reports whether a Ping error is the wait for the pong
+// timing out after the ping frame was written. nhooyr.io/websocket (v1.8.11)
+// has no typed error for it; a timed-out frame write reports "failed to
+// write control frame" instead (and closes the conn).
+func isPongTimeout(err error) bool {
+	return errors.Is(err, context.DeadlineExceeded) && strings.Contains(err.Error(), "failed to wait for pong")
 }
 
 func (w *connWriter) closed() bool {

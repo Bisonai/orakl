@@ -3,19 +3,15 @@ package orangex
 import (
 	"context"
 	"encoding/json"
-	"net/http"
 	"sort"
 	"strconv"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"bisonai.com/miko/node/pkg/utils/arr"
 	"bisonai.com/miko/node/pkg/websocketfetcher/common"
 	"bisonai.com/miko/node/pkg/wss"
 	"github.com/rs/zerolog/log"
-	"nhooyr.io/websocket"
-	"nhooyr.io/websocket/wsjson"
 )
 
 const URL = "wss://api.orangex.com/ws/api/v1"
@@ -32,15 +28,13 @@ const (
 	// The server closes a connection ~30s after the last client message (error
 	// 9901 "websocket closing connection automatically") even while tickers are
 	// streaming; a websocket ping frame every 10s keeps it open. Pongs are
-	// consumed inside the websocket library and never reach the read loop.
+	// handled by the websocket library during the helper's reads and never
+	// count as data activity (see ReadTimeout).
 	PingInterval = 10 * time.Second
-	PingTimeout  = 10 * time.Second
 
-	// ReadTimeout bounds each read. The wss helper only checks its inactivity
-	// timer between reads, so without this a connection kept open by pings
-	// but carrying no data (e.g. its subscribe was rejected) would sit silent
-	// until the 12h reconnect. On timeout the helper reconnects and
-	// resubscribes.
+	// ReadTimeout is the helper's inactivity timeout: a connection kept open
+	// by pings but carrying no data (e.g. its subscribe was rejected)
+	// reconnects and resubscribes after this long.
 	ReadTimeout = 60 * time.Second
 
 	// ErrCodeAutoClose is sent right before the server drops an idle connection.
@@ -50,23 +44,17 @@ const (
 type OrangeXFetcher struct {
 	FeedMap        map[string][]int32
 	FeedDataBuffer chan *common.FeedData
-	Conns          []*Connection
+	// Conns has one helper per subscription chunk, each up to
+	// MaxChannelsPerConnection channels.
+	Conns []*wss.WebsocketHelper
 }
 
-// Connection is one websocket carrying up to MaxChannelsPerConnection channels.
-// current mirrors the helper's live conn: the helper reassigns ws.Conn on
-// every reconnect without synchronization, so pingJob reads this instead.
-type Connection struct {
-	Ws      *wss.WebsocketHelper
-	current atomic.Pointer[websocket.Conn]
-}
-
-func (c *Connection) dial(ctx context.Context, url string, opts *websocket.DialOptions) (*websocket.Conn, *http.Response, error) {
-	conn, resp, err := websocket.Dial(ctx, url, opts)
-	if err == nil {
-		c.current.Store(conn)
-	}
-	return conn, resp, err
+// connParams are the endpoint and timings of every connection; tests
+// shorten them.
+type connParams struct {
+	endpoint     string
+	pingInterval time.Duration
+	readTimeout  time.Duration
 }
 
 type Params struct {
@@ -118,6 +106,15 @@ type TickerResponse struct {
 }
 
 func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInterface, error) {
+	fetcher, err := newFetcher(ctx, connParams{endpoint: URL, pingInterval: PingInterval, readTimeout: ReadTimeout}, opts...)
+	if err != nil {
+		// no typed nil in the interface
+		return nil, err
+	}
+	return fetcher, nil
+}
+
+func newFetcher(ctx context.Context, params connParams, opts ...common.FetcherOption) (*OrangeXFetcher, error) {
 	config := &common.FetcherConfig{}
 	for _, opt := range opts {
 		opt(config)
@@ -143,19 +140,17 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 			return nil, err
 		}
 
-		connection := &Connection{}
 		ws, err := wss.NewWebsocketHelper(ctx,
-			wss.WithEndpoint(URL),
-			wss.WithCustomDialFunc(connection.dial),
+			wss.WithEndpoint(params.endpoint),
 			wss.WithSubscriptions([]any{raw}),
-			wss.WithCustomReadFunc(readWithTimeout),
+			wss.WithPingKeepalive(params.pingInterval),
+			wss.WithInactivityTimeout(params.readTimeout),
 			wss.WithProxyUrl(config.Proxy))
 		if err != nil {
 			log.Error().Str("Player", "OrangeX").Err(err).Msg("error in orangex.New")
 			return nil, err
 		}
-		connection.Ws = ws
-		fetcher.Conns = append(fetcher.Conns, connection)
+		fetcher.Conns = append(fetcher.Conns, ws)
 	}
 
 	return fetcher, nil
@@ -242,55 +237,14 @@ func (f *OrangeXFetcher) handleMessage(ctx context.Context, message map[string]a
 
 func (f *OrangeXFetcher) Run(ctx context.Context) {
 	var wg sync.WaitGroup
-	for _, connection := range f.Conns {
-		go pingJob(ctx, connection)
+	for _, ws := range f.Conns {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			connection.Ws.Run(ctx, f.handleMessage)
+			ws.Run(ctx, f.handleMessage)
 		}()
 	}
 	wg.Wait()
-}
-
-func readWithTimeout(ctx context.Context, conn *websocket.Conn) (map[string]any, error) {
-	readCtx, cancel := context.WithTimeout(ctx, ReadTimeout)
-	defer cancel()
-
-	var data map[string]any
-	if err := wsjson.Read(readCtx, conn, &data); err != nil {
-		return nil, err
-	}
-	if len(data) == 0 {
-		return nil, nil
-	}
-	return data, nil
-}
-
-// pingJob keeps a connection from being auto-closed by the server. Ping
-// errors are expected while the helper is reconnecting, so keep ticking; the
-// per-ping timeout keeps a stalled connection from blocking the job.
-func pingJob(ctx context.Context, connection *Connection) {
-	ticker := time.NewTicker(PingInterval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-ticker.C:
-			conn := connection.current.Load()
-			if conn == nil {
-				continue
-			}
-			pingCtx, cancel := context.WithTimeout(ctx, PingTimeout)
-			err := conn.Ping(pingCtx)
-			cancel()
-			if err != nil {
-				log.Debug().Str("Player", "OrangeX").Err(err).Msg("error in orangex.pingJob")
-			}
-		}
-	}
 }
 
 func TickerResponseToFeedData(data TickerResponse, feedMap map[string][]int32) ([]*common.FeedData, error) {

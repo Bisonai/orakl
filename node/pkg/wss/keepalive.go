@@ -3,6 +3,7 @@ package wss
 import (
 	"context"
 	"errors"
+	"net"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -31,6 +32,38 @@ func WithKeepalive(interval time.Duration, fn KeepaliveFunc) ConnectionOption {
 		c.keepaliveSet = true
 	}
 }
+
+// PingTimeout is the longest a WithPingKeepalive ping waits for its pong.
+const PingTimeout = 10 * time.Second
+
+// WithPingKeepalive is WithKeepalive with a websocket protocol ping frame as
+// the keepalive, for servers that drop connections without client traffic
+// but have no app-level ping message. Each ping waits for its pong for
+// min(interval, PingTimeout) (this interval, not one from
+// WithKeepaliveIntervalFunc); a missing pong counts as a keepalive failure.
+// Pongs are read by Run's read loop, so while subscribing (before that loop
+// starts on the connection) a missing pong is not a failure.
+func WithPingKeepalive(interval time.Duration) ConnectionOption {
+	timeout := min(interval, PingTimeout)
+	return WithKeepalive(interval, func(ctx context.Context, w ConnWriter) error {
+		p, ok := w.(pinger)
+		if !ok {
+			return errNoPinger
+		}
+		return p.ping(ctx, timeout)
+	})
+}
+
+// pinger is implemented by the conn-bound writer the keepalive receives.
+type pinger interface {
+	ping(ctx context.Context, timeout time.Duration) error
+}
+
+var errNoPinger = errors.New("keepalive writer cannot send pings")
+
+// errKeepaliveSkipped marks a keepalive that proves neither health nor
+// failure; the consecutive-failure count is left as is.
+var errKeepaliveSkipped = errors.New("keepalive result unknown")
 
 // WithKeepaliveIntervalFunc lets the keepalive interval change per
 // connection: intervalFn is called once at the start of every connection
@@ -72,9 +105,13 @@ func (ws *WebsocketHelper) runKeepalive(ctx context.Context, interval time.Durat
 		}
 
 		err := ws.keepaliveFn(ctx, w)
-		if ctx.Err() != nil {
-			// the connection ended meanwhile; the next one runs its own keepalive
+		if ctx.Err() != nil || errors.Is(err, net.ErrClosed) {
+			// the connection ended meanwhile (its ctx may not be cancelled yet);
+			// the next one runs its own keepalive
 			return
+		}
+		if errors.Is(err, errKeepaliveSkipped) {
+			continue
 		}
 		if err == nil {
 			failures = 0
