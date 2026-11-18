@@ -96,7 +96,7 @@ func (ws *WebsocketHelper) Run(ctx context.Context, router func(context.Context,
 			return
 		}
 
-		err := ws.dialAndSubscribe(ctx)
+		session, err := ws.dialAndSubscribe(ctx)
 		if err != nil {
 			if ctx.Err() != nil {
 				log.Info().Str("endpoint", ws.Endpoint).Msg("context cancelled, stopping websocket")
@@ -110,7 +110,7 @@ func (ws *WebsocketHelper) Run(ctx context.Context, router func(context.Context,
 			continue
 		}
 
-		ws.readUntilReconnect(ctx, readFunc, router)
+		ws.readUntilReconnect(ctx, session, readFunc, router)
 
 		if ctx.Err() != nil {
 			log.Info().Str("endpoint", ws.Endpoint).Msg("context cancelled, stopping websocket")
@@ -119,26 +119,65 @@ func (ws *WebsocketHelper) Run(ctx context.Context, router func(context.Context,
 	}
 }
 
-// readUntilReconnect reads from the current connection until it should be
+// connSession is one dialed connection with its per-connection ctx and the
+// keepalive running on it.
+type connSession struct {
+	conn *websocket.Conn
+	// ctx is cancelled when the connection ends and carries the ConnWriter
+	// bound to it (see WriterFromContext)
+	ctx           context.Context
+	cancel        context.CancelCauseFunc
+	keepaliveDone chan struct{}
+}
+
+// startSession sets up the per-connection ctx and writer for conn and starts
+// the keepalive (WithKeepalive), if any, right away, so it also runs while
+// subscribing.
+func (ws *WebsocketHelper) startSession(ctx context.Context, conn *websocket.Conn) *connSession {
+	connCtx, cancel := context.WithCancelCause(ctx)
+	writer := &connWriter{conn: conn, ctx: connCtx}
+	s := &connSession{
+		conn:          conn,
+		ctx:           ContextWithWriter(connCtx, writer),
+		cancel:        cancel,
+		keepaliveDone: make(chan struct{}),
+	}
+	if ws.keepaliveFn == nil {
+		close(s.keepaliveDone)
+		return s
+	}
+	// read after Dial, so a custom dial func can set it for this conn
+	interval := ws.keepaliveInterval()
+	go func() {
+		defer close(s.keepaliveDone)
+		ws.runKeepalive(s.ctx, interval, writer, func() { cancel(errKeepaliveFailed) })
+	}()
+	return s
+}
+
+// endSession ends the connection: cancels its ctx (aborting in-flight
+// keepalive / router writes), closes the conn and waits for the keepalive to
+// stop.
+func (ws *WebsocketHelper) endSession(s *connSession) {
+	s.cancel(nil)
+	// close the conn of this session, not whatever is current by then
+	ws.closeConn(s.conn)
+	<-s.keepaliveDone
+}
+
+// readUntilReconnect reads from the session's connection until it should be
 // replaced: read error, inactivity timeout or reconnect interval. Each read is
 // bounded by a deadline, so a connection that is open but silent cannot block
 // forever. nhooyr.io/websocket closes the conn when a read ctx expires, so
 // closing it here afterwards does not block.
 //
-// Routers run with a per-connection ctx that is cancelled when this
-// connection ends and that carries a ConnWriter bound to it (see
-// WriterFromContext).
-func (ws *WebsocketHelper) readUntilReconnect(ctx context.Context, readFunc func(context.Context, *websocket.Conn) (map[string]interface{}, error), router func(context.Context, map[string]any) error) {
-	conn := ws.conn.Load()
-	if conn == nil {
-		log.Warn().Str("endpoint", ws.Endpoint).Msg("websocket closed before reading, reconnecting")
-		return
-	}
-	// close the conn this loop read from, not whatever is current by then
-	defer ws.closeConn(conn)
-	connCtx, cancelConn := context.WithCancel(ctx)
-	defer cancelConn()
-	connCtx = context.WithValue(connCtx, connWriterKey{}, &connWriter{conn: conn, done: connCtx.Done()})
+// Routers and the read func run with the session ctx, which is cancelled when
+// this connection ends and carries a ConnWriter bound to it. The session is
+// ended before this returns.
+func (ws *WebsocketHelper) readUntilReconnect(ctx context.Context, session *connSession, readFunc func(context.Context, *websocket.Conn) (map[string]interface{}, error), router func(context.Context, map[string]any) error) {
+	defer ws.endSession(session)
+	conn := session.conn
+	connCtx := session.ctx
 
 	// both windows start once dial + subscribe are done
 	reconnectAt := time.Now().Add(ws.ReconnectInterval)
@@ -158,6 +197,8 @@ func (ws *WebsocketHelper) readUntilReconnect(ctx context.Context, readFunc func
 		if err != nil {
 			switch {
 			case ctx.Err() != nil:
+			case errors.Is(context.Cause(connCtx), errKeepaliveFailed):
+				log.Warn().Str("endpoint", ws.Endpoint).Int("failures", MaxKeepaliveFailures).Msg("websocket keepalive failing, reconnecting")
 			case isErrorNormalClosure(err):
 			// The deadline hit only if readCtx expired (cancel() already ran, so check
 			// DeadlineExceeded) and the error is what nhooyr returns for it (ctx error,
@@ -190,7 +231,17 @@ func (ws *WebsocketHelper) readUntilReconnect(ctx context.Context, readFunc func
 	}
 }
 
-func (ws *WebsocketHelper) dialAndSubscribe(ctx context.Context) error {
+// subscribeWait is the pause after dialing and after each subscription.
+func (ws *WebsocketHelper) subscribeWait() time.Duration {
+	if ws.subscribeDelay > 0 {
+		return ws.subscribeDelay
+	}
+	return time.Second
+}
+
+// dialAndSubscribe dials, starts the connection's session (incl. keepalive)
+// and subscribes. On a subscribe error the session is ended before returning.
+func (ws *WebsocketHelper) dialAndSubscribe(ctx context.Context) (*connSession, error) {
 	dialJob := func() error {
 		if err := ctx.Err(); err != nil {
 			return err
@@ -198,45 +249,58 @@ func (ws *WebsocketHelper) dialAndSubscribe(ctx context.Context) error {
 		return ws.Dial(ctx)
 	}
 
+	err := retrier.Retry(dialJob, 3, 1, 10)
+	if err != nil {
+		return nil, err
+	}
+	conn := ws.conn.Load()
+	if conn == nil {
+		return nil, ErrNotConnected
+	}
+	session := ws.startSession(ctx, conn)
+	// Subscribe on the session ctx: it follows the run ctx (shutdown is not
+	// held up by a blocked write; aborting one closes this half-subscribed
+	// conn, which is dropped on error anyway) and ends when the keepalive
+	// gives up on the conn.
+	subCtx := session.ctx
+
 	subscribeJob := func() error {
-		if err := ctx.Err(); err != nil {
+		if err := subCtx.Err(); err != nil {
 			return err
 		}
 		for _, subscription := range ws.Subscriptions {
 			switch casted := subscription.(type) {
 			case []byte:
-				if err := ws.RawWrite(ctx, string(casted)); err != nil {
+				if err := writeText(subCtx, conn, string(casted), true); err != nil {
 					return err
 				}
 			default:
-				if err := ws.Write(ctx, casted); err != nil {
+				if err := writeJSON(subCtx, conn, casted, true); err != nil {
 					return err
 				}
 			}
-			if err := sleepCtx(ctx, time.Second); err != nil {
+			if err := sleepCtx(subCtx, ws.subscribeWait()); err != nil {
 				return err
 			}
 		}
 		return nil
 	}
 
-	err := retrier.Retry(dialJob, 3, 1, 10)
-	if err != nil {
-		return err
-	}
-
 	// Some providers block immediate subscription after dialing
-	err = sleepCtx(ctx, time.Second)
+	err = sleepCtx(subCtx, ws.subscribeWait())
 	if err == nil {
 		err = retrier.Retry(subscribeJob, 3, 1, 10)
 	}
 	if err != nil {
-		// close half-open conn so it isn't leaked on retry or exit
-		ws.Close()
-		return err
+		if cause := context.Cause(subCtx); errors.Is(cause, errKeepaliveFailed) {
+			err = cause
+		}
+		// end the half-open conn and its keepalive so neither leaks on retry or exit
+		ws.endSession(session)
+		return nil, err
 	}
 
-	return nil
+	return session, nil
 }
 
 // Write sends message as JSON on the current connection. It returns
@@ -248,7 +312,7 @@ func (ws *WebsocketHelper) Write(ctx context.Context, message interface{}) error
 		return ErrNotConnected
 	}
 
-	return writeJSON(ctx, conn, message)
+	return writeJSON(ctx, conn, message, false)
 }
 
 // RawWrite sends message as a text frame on the current connection. It
@@ -259,7 +323,7 @@ func (ws *WebsocketHelper) RawWrite(ctx context.Context, message string) error {
 		return ErrNotConnected
 	}
 
-	return writeText(ctx, conn, message)
+	return writeText(ctx, conn, message, false)
 }
 
 func (ws *WebsocketHelper) Read(ctx context.Context, ch chan any) error {

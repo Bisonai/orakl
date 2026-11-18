@@ -12,6 +12,10 @@ import (
 
 type BybitFetcher common.Fetcher
 
+// PingInterval: bybit expects a ping every 20 seconds for a stable subscription
+// https://bybit-exchange.github.io/docs/v5/ws/connect#how-to-send-the-heartbeat-packet
+const PingInterval = 20 * time.Second
+
 func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInterface, error) {
 	config := &common.FetcherConfig{}
 	for _, opt := range opts {
@@ -42,6 +46,7 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 	ws, err := wss.NewWebsocketHelper(ctx,
 		wss.WithEndpoint(URL),
 		wss.WithSubscriptions(subscriptions),
+		wss.WithKeepalive(PingInterval, ping),
 		wss.WithProxyUrl(config.Proxy))
 	if err != nil {
 		log.Error().Str("Player", "Bybit").Err(err).Msg("error in bybit.New")
@@ -76,29 +81,13 @@ func (f *BybitFetcher) handleMessage(ctx context.Context, message map[string]any
 }
 
 func (f *BybitFetcher) Run(ctx context.Context) {
-	go f.ping(ctx)
 	f.Ws.Run(ctx, f.handleMessage)
 }
 
-func (f *BybitFetcher) ping(ctx context.Context) {
-	// bybit expects ping message every 20seconds for stable subscription
-	// https://bybit-exchange.github.io/docs/v5/ws/connect#how-to-send-the-heartbeat-packet
-	ticker := time.NewTicker(20 * time.Second)
-	go func() {
-		for {
-			select {
-			case <-ticker.C:
-				log.Debug().Str("Player", "Bybit").Msg("sending ping message to bybit server")
-				err := f.Ws.Write(ctx, Heartbeat{
-					Op: "ping",
-				})
-				if err != nil {
-					log.Error().Str("Player", "Bybit").Err(err).Msg("error in bybit.ping")
-				}
-			case <-ctx.Done():
-				ticker.Stop()
-				return
-			}
-		}
-	}()
+// ping is the client keepalive, sent every PingInterval on each connection.
+func ping(ctx context.Context, w wss.ConnWriter) error {
+	log.Debug().Str("Player", "Bybit").Msg("sending ping message to bybit server")
+	return w.Write(ctx, Heartbeat{
+		Op: "ping",
+	})
 }

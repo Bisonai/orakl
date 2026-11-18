@@ -47,6 +47,7 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 		wss.WithCompressionMode(),
 		wss.WithEndpoint(URL),
 		wss.WithSubscriptions(subscriptions),
+		wss.WithKeepalive(pingInterval, ping),
 		wss.WithProxyUrl(config.Proxy))
 	if err != nil {
 		log.Error().Str("Player", "Xt").Err(err).Msg("error in xt.New")
@@ -84,27 +85,12 @@ func (f *XtFetcher) handleMessage(ctx context.Context, message map[string]any) e
 }
 
 func (f *XtFetcher) Run(ctx context.Context) {
-	go f.ping(ctx, pingInterval)
 	f.Ws.Run(ctx, f.handleMessage)
 }
 
-func (f *XtFetcher) ping(ctx context.Context, interval time.Duration) {
-	ticker := time.NewTicker(interval)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-ticker.C:
-			if ctx.Err() != nil {
-				return
-			}
-			err := f.Ws.RawWrite(ctx, "ping")
-			if err != nil {
-				log.Error().Str("Player", "Xt").Err(err).Msg("error in xt.ping")
-			}
-		}
-	}
+// ping is the client keepalive, sent every pingInterval on each connection.
+func ping(ctx context.Context, w wss.ConnWriter) error {
+	return w.RawWrite(ctx, "ping")
 }
 
 func (f *XtFetcher) customReadFunc(ctx context.Context, conn *websocket.Conn) (map[string]interface{}, error) {

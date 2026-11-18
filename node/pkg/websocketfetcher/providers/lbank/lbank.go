@@ -52,7 +52,12 @@ func (f *LbankFetcher) handleMessage(ctx context.Context, message map[string]any
 			log.Error().Str("Player", "Lbank").Err(err).Msg("error in MessageToPing")
 			return err
 		}
-		return f.Ws.Write(ctx, Pong{
+		// reply on the connection the ping came on
+		w, ok := wss.WriterFromContext(ctx)
+		if !ok {
+			return wss.ErrNoConnWriter
+		}
+		return w.Write(ctx, Pong{
 			Action: "pong",
 			Pong:   ping.Ping,
 		})

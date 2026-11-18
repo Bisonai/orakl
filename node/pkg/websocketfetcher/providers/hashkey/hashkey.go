@@ -35,6 +35,7 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 	ws, err := wss.NewWebsocketHelper(ctx,
 		wss.WithEndpoint(URL),
 		wss.WithSubscriptions(subscriptions),
+		wss.WithKeepalive(time.Duration(PingInterval)*time.Millisecond, ping),
 		wss.WithProxyUrl(config.Proxy))
 	if err != nil {
 		log.Error().Str("Player", "Hashkey").Err(err).Msg("error in hashkey.New")
@@ -85,26 +86,13 @@ func (f *HashkeyFetcher) handleMessage(ctx context.Context, message map[string]a
 }
 
 func (f *HashkeyFetcher) Run(ctx context.Context) {
-	go f.pingJob(ctx)
 	f.Ws.Run(ctx, f.handleMessage)
 }
 
-// pingJob is the client keep-alive. HashKey never pings us and drops a silent
-// connection after ~30s; a `{"ping":<ms>}` every 10s keeps it open (pingJob is
-// the only writer, so this does not race with the read loop).
-func (f *HashkeyFetcher) pingJob(ctx context.Context) {
-	ticker := time.NewTicker(time.Duration(PingInterval) * time.Millisecond)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-ticker.C:
-			if err := f.Ws.Write(ctx, Ping{Ping: time.Now().UnixMilli()}); err != nil {
-				log.Error().Str("Player", "Hashkey").Err(err).Msg("error in hashkey.pingJob")
-				return
-			}
-		}
-	}
+// ping is the client keep-alive. HashKey never pings us and drops a silent
+// connection after ~30s; a `{"ping":<ms>}` every 10s keeps it open. The wss
+// helper runs it on each connection, so a failed dial or write does not stop
+// it for later connections.
+func ping(ctx context.Context, w wss.ConnWriter) error {
+	return w.Write(ctx, Ping{Ping: time.Now().UnixMilli()})
 }

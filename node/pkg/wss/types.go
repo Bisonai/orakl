@@ -18,6 +18,14 @@ type WebsocketHelper struct {
 	// running guards Run against concurrent invocations.
 	running atomic.Bool
 
+	// keepalive (see WithKeepalive); keepaliveFn is nil when disabled
+	keepaliveFn         KeepaliveFunc
+	keepaliveFallback   time.Duration
+	keepaliveIntervalFn func() time.Duration
+	// subscribeDelay overrides the 1s pause after dial and after each
+	// subscription (tests only)
+	subscribeDelay time.Duration
+
 	Endpoint          string
 	Subscriptions     []any
 	Proxy             string
@@ -41,6 +49,11 @@ type ConnectionConfig struct {
 	ReadLimit         int64
 	ReconnectInterval time.Duration
 	InactivityTimeout time.Duration
+
+	KeepaliveInterval     time.Duration
+	KeepaliveFunc         KeepaliveFunc
+	KeepaliveIntervalFunc func() time.Duration
+	keepaliveSet          bool
 }
 
 type ConnectionOption func(*ConnectionConfig)
@@ -131,6 +144,15 @@ func NewWebsocketHelper(ctx context.Context, opts ...ConnectionOption) (*Websock
 		return nil, fmt.Errorf("reconnect interval and inactivity timeout must be positive")
 	}
 
+	if config.keepaliveSet && config.KeepaliveInterval <= 0 {
+		log.Error().Msg("keepalive interval must be positive")
+		return nil, fmt.Errorf("keepalive interval must be positive")
+	}
+	if config.KeepaliveFunc == nil && (config.keepaliveSet || config.KeepaliveIntervalFunc != nil) {
+		log.Error().Msg("keepalive func is required")
+		return nil, fmt.Errorf("keepalive func is required")
+	}
+
 	if config.Subscriptions == nil {
 		log.Warn().Msg("no subscriptions provided")
 	}
@@ -143,6 +165,10 @@ func NewWebsocketHelper(ctx context.Context, opts ...ConnectionOption) (*Websock
 		RequestHeaders:    config.RequestHeaders,
 		ReconnectInterval: config.ReconnectInterval,
 		InactivityTimeout: config.InactivityTimeout,
+
+		keepaliveFn:         config.KeepaliveFunc,
+		keepaliveFallback:   config.KeepaliveInterval,
+		keepaliveIntervalFn: config.KeepaliveIntervalFunc,
 	}
 
 	if config.DialFunc != nil {
