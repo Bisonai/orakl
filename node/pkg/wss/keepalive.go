@@ -3,6 +3,7 @@ package wss
 import (
 	"context"
 	"errors"
+	"net"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -60,6 +61,10 @@ type pinger interface {
 
 var errNoPinger = errors.New("keepalive writer cannot send pings")
 
+// errKeepaliveSkipped marks a keepalive that proves neither health nor
+// failure; the consecutive-failure count is left as is.
+var errKeepaliveSkipped = errors.New("keepalive result unknown")
+
 // WithKeepaliveIntervalFunc lets the keepalive interval change per
 // connection: intervalFn is called once at the start of every connection
 // (after dial, so a custom dial func can update what it returns). A
@@ -100,9 +105,13 @@ func (ws *WebsocketHelper) runKeepalive(ctx context.Context, interval time.Durat
 		}
 
 		err := ws.keepaliveFn(ctx, w)
-		if ctx.Err() != nil {
-			// the connection ended meanwhile; the next one runs its own keepalive
+		if ctx.Err() != nil || errors.Is(err, net.ErrClosed) {
+			// the connection ended meanwhile (its ctx may not be cancelled yet);
+			// the next one runs its own keepalive
 			return
+		}
+		if errors.Is(err, errKeepaliveSkipped) {
+			continue
 		}
 		if err == nil {
 			failures = 0

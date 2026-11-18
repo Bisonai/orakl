@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -276,8 +277,10 @@ func TestRun_OneConnectionPerChunk(t *testing.T) {
 // Error replies are logged (9901 at warn, others at error) and the conn keeps
 // delivering tickers.
 func TestRun_ErrorReplyLogged(t *testing.T) {
-	const limitReply = `{"id":"1","jsonrpc":"2.0","error":{"code":1005,"message":"Subscription channel limit exceeded","data":{"limit":"30","requestedNew":"30","projected":"60","current":"30","marker":"run-test"}}}`
-	const autoClose = `{"id":"-1","jsonrpc":"2.0","error":{"code":9901,"message":"websocket closing connection automatically run-test"}}`
+	// logs is shared by all tests and -count runs: tag this run's replies
+	marker := strconv.FormatInt(time.Now().UnixNano(), 10)
+	limitReply := `{"id":"1","jsonrpc":"2.0","error":{"code":1005,"message":"Subscription channel limit exceeded","data":{"limit":"30","requestedNew":"30","projected":"60","current":"30","marker":"` + marker + `"}}}`
+	autoClose := `{"id":"-1","jsonrpc":"2.0","error":{"code":9901,"message":"websocket closing connection automatically ` + marker + `"}}`
 	fs := newFakeServer(t, func(ctx context.Context, conn *websocket.Conn) {
 		for _, msg := range []string{limitReply, autoClose, tickerMessage("BTC-USDT")} {
 			if send(ctx, conn, msg) != nil {
@@ -295,10 +298,10 @@ func TestRun_ErrorReplyLogged(t *testing.T) {
 			if !strings.Contains(line, "orangex returned an error response") {
 				continue
 			}
-			if strings.Contains(line, `"marker":"run-test"`) {
+			if strings.Contains(line, `"marker":"`+marker+`"`) {
 				limitLine = line
 			}
-			if strings.Contains(line, "automatically run-test") {
+			if strings.Contains(line, "automatically "+marker) {
 				autoCloseLine = line
 			}
 		}

@@ -91,8 +91,8 @@ func (w *connWriter) ping(ctx context.Context, timeout time.Duration) error {
 	if err != nil && !w.closed() && !reading && isPongTimeout(err) {
 		// no pong can be read before the read loop starts (e.g. while
 		// subscribing); the ping frame went out, which is what keeps the server
-		// from closing
-		return nil
+		// from closing; whether the peer answers is unknown
+		return errKeepaliveSkipped
 	}
 	return w.wrap(err)
 }
