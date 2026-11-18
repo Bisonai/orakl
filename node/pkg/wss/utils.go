@@ -136,7 +136,7 @@ func (ws *WebsocketHelper) readUntilReconnect(ctx context.Context, readFunc func
 		return
 	}
 	connCtx, cancelConn := context.WithCancelCause(ctx)
-	writer := &connWriter{conn: conn, done: connCtx.Done()}
+	writer := &connWriter{conn: conn, ctx: connCtx}
 	connCtx = ContextWithWriter(connCtx, writer)
 
 	keepaliveDone := make(chan struct{})
@@ -150,9 +150,9 @@ func (ws *WebsocketHelper) readUntilReconnect(ctx context.Context, readFunc func
 		close(keepaliveDone)
 	}
 	defer func() {
+		// aborts in-flight keepalive / router writes on this conn
 		cancelConn(nil)
-		// close the conn this loop read from, not whatever is current by then;
-		// closing first also fails an in-flight keepalive write fast
+		// close the conn this loop read from, not whatever is current by then
 		ws.closeConn(conn)
 		<-keepaliveDone
 	}()
@@ -231,11 +231,11 @@ func (ws *WebsocketHelper) dialAndSubscribe(ctx context.Context) error {
 		for _, subscription := range ws.Subscriptions {
 			switch casted := subscription.(type) {
 			case []byte:
-				if err := writeTextCtx(ctx, conn, string(casted), true); err != nil {
+				if err := writeText(ctx, conn, string(casted), true); err != nil {
 					return err
 				}
 			default:
-				if err := writeJSONCtx(ctx, conn, casted, true); err != nil {
+				if err := writeJSON(ctx, conn, casted, true); err != nil {
 					return err
 				}
 			}
@@ -274,7 +274,7 @@ func (ws *WebsocketHelper) Write(ctx context.Context, message interface{}) error
 		return ErrNotConnected
 	}
 
-	return writeJSON(ctx, conn, message)
+	return writeJSON(ctx, conn, message, false)
 }
 
 // RawWrite sends message as a text frame on the current connection. It
@@ -285,7 +285,7 @@ func (ws *WebsocketHelper) RawWrite(ctx context.Context, message string) error {
 		return ErrNotConnected
 	}
 
-	return writeText(ctx, conn, message)
+	return writeText(ctx, conn, message, false)
 }
 
 func (ws *WebsocketHelper) Read(ctx context.Context, ch chan any) error {

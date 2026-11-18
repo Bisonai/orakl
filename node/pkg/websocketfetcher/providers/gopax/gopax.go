@@ -119,7 +119,11 @@ func (f *GopaxFetcher) customReadFunc(ctx context.Context, conn *websocket.Conn)
 		// WithoutCancel because the read ctx ends as soon as this returns
 		pong := "\"primus::pong::" + rawResponse[15:]
 		writeCtx := context.WithoutCancel(ctx)
-		go func() { _ = w.RawWrite(writeCtx, pong) }()
+		go func() {
+			if err := w.RawWrite(writeCtx, pong); err != nil {
+				log.Warn().Str("Player", "Gopax").Err(err).Msg("failed to answer primus ping")
+			}
+		}()
 
 		return nil, nil
 	}

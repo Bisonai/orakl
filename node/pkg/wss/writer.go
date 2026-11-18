@@ -38,22 +38,24 @@ var _ ConnWriter = (*WebsocketHelper)(nil)
 type connWriterKey struct{}
 
 // connWriter is bound to a single connection. Once that connection has ended
-// (done is closed) writes fail with ErrConnClosed; they never reach a newer
-// connection.
+// (ctx, the helper's per-connection ctx, is done) writes fail with
+// ErrConnClosed; they never reach a newer connection. Writes run on ctx
+// bounded by WriteTimeout, not on the caller's ctx: ending the connection
+// aborts them, a caller ctx ending mid-write does not.
 type connWriter struct {
 	conn *websocket.Conn
-	done <-chan struct{}
+	ctx  context.Context
 }
 
 func (w *connWriter) Write(ctx context.Context, message any) error {
 	if w.closed() {
 		return ErrConnClosed
 	}
-	// the caller's own ctx error is returned as is
+	// an already-done caller ctx is refused, its error returned as is
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	return w.wrap(writeJSON(ctx, w.conn, message))
+	return w.wrap(writeJSON(w.ctx, w.conn, message, true))
 }
 
 func (w *connWriter) RawWrite(ctx context.Context, message string) error {
@@ -63,12 +65,12 @@ func (w *connWriter) RawWrite(ctx context.Context, message string) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	return w.wrap(writeText(ctx, w.conn, message))
+	return w.wrap(writeText(w.ctx, w.conn, message, true))
 }
 
 func (w *connWriter) closed() bool {
 	select {
-	case <-w.done:
+	case <-w.ctx.Done():
 		return true
 	default:
 		return false
@@ -107,15 +109,7 @@ func boundCtx(ctx context.Context, attached bool) (context.Context, context.Canc
 	return wctx, cancel, nil
 }
 
-func writeJSON(ctx context.Context, conn *websocket.Conn, message any) error {
-	return writeJSONCtx(ctx, conn, message, false)
-}
-
-func writeText(ctx context.Context, conn *websocket.Conn, message string) error {
-	return writeTextCtx(ctx, conn, message, false)
-}
-
-func writeJSONCtx(ctx context.Context, conn *websocket.Conn, message any, attached bool) error {
+func writeJSON(ctx context.Context, conn *websocket.Conn, message any, attached bool) error {
 	wctx, cancel, err := boundCtx(ctx, attached)
 	if err != nil {
 		return err
@@ -124,7 +118,7 @@ func writeJSONCtx(ctx context.Context, conn *websocket.Conn, message any, attach
 	return wsjson.Write(wctx, conn, message)
 }
 
-func writeTextCtx(ctx context.Context, conn *websocket.Conn, message string, attached bool) error {
+func writeText(ctx context.Context, conn *websocket.Conn, message string, attached bool) error {
 	wctx, cancel, err := boundCtx(ctx, attached)
 	if err != nil {
 		return err
