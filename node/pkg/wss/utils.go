@@ -127,18 +127,35 @@ func (ws *WebsocketHelper) Run(ctx context.Context, router func(context.Context,
 //
 // Routers run with a per-connection ctx that is cancelled when this
 // connection ends and that carries a ConnWriter bound to it (see
-// WriterFromContext).
+// WriterFromContext). The keepalive (WithKeepalive), if any, runs on the same
+// ctx and writer and is stopped before this returns.
 func (ws *WebsocketHelper) readUntilReconnect(ctx context.Context, readFunc func(context.Context, *websocket.Conn) (map[string]interface{}, error), router func(context.Context, map[string]any) error) {
 	conn := ws.conn.Load()
 	if conn == nil {
 		log.Warn().Str("endpoint", ws.Endpoint).Msg("websocket closed before reading, reconnecting")
 		return
 	}
-	// close the conn this loop read from, not whatever is current by then
-	defer ws.closeConn(conn)
-	connCtx, cancelConn := context.WithCancel(ctx)
-	defer cancelConn()
-	connCtx = context.WithValue(connCtx, connWriterKey{}, &connWriter{conn: conn, done: connCtx.Done()})
+	connCtx, cancelConn := context.WithCancelCause(ctx)
+	writer := &connWriter{conn: conn, done: connCtx.Done()}
+	connCtx = ContextWithWriter(connCtx, writer)
+
+	keepaliveDone := make(chan struct{})
+	if ws.keepaliveFn != nil {
+		interval := ws.keepaliveInterval()
+		go func() {
+			defer close(keepaliveDone)
+			ws.runKeepalive(connCtx, interval, writer, func() { cancelConn(errKeepaliveFailed) })
+		}()
+	} else {
+		close(keepaliveDone)
+	}
+	defer func() {
+		cancelConn(nil)
+		// close the conn this loop read from, not whatever is current by then;
+		// closing first also fails an in-flight keepalive write fast
+		ws.closeConn(conn)
+		<-keepaliveDone
+	}()
 
 	// both windows start once dial + subscribe are done
 	reconnectAt := time.Now().Add(ws.ReconnectInterval)
@@ -158,6 +175,8 @@ func (ws *WebsocketHelper) readUntilReconnect(ctx context.Context, readFunc func
 		if err != nil {
 			switch {
 			case ctx.Err() != nil:
+			case errors.Is(context.Cause(connCtx), errKeepaliveFailed):
+				log.Warn().Str("endpoint", ws.Endpoint).Int("failures", MaxKeepaliveFailures).Msg("websocket keepalive failing, reconnecting")
 			case isErrorNormalClosure(err):
 			// The deadline hit only if readCtx expired (cancel() already ran, so check
 			// DeadlineExceeded) and the error is what nhooyr returns for it (ctx error,

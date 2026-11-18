@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"time"
 
 	"nhooyr.io/websocket"
 	"nhooyr.io/websocket/wsjson"
@@ -18,6 +19,9 @@ var (
 	// helper has ended its connection. A write that fails before the helper
 	// notices the conn is gone (e.g. broken pipe) returns the underlying error.
 	ErrConnClosed = errors.New("websocket connection closed")
+	// ErrNoConnWriter is returned by code that needs WriterFromContext when
+	// the ctx carries no writer.
+	ErrNoConnWriter = errors.New("no websocket writer in context")
 )
 
 // ConnWriter writes to a websocket connection.
@@ -77,31 +81,50 @@ func (w *connWriter) wrap(ctx context.Context, err error) error {
 	return err
 }
 
-// writeJSON and writeText refuse an already-done ctx: nhooyr.io/websocket
-// closes the whole conn when a write ctx is done, so writing with e.g. the
-// cancelled ctx of a previous connection would tear down a healthy one. A ctx
-// that ends mid-write still closes the conn.
-func writeJSON(ctx context.Context, conn *websocket.Conn, message any) error {
+// WriteTimeout bounds every write made through the helper or a ConnWriter.
+const WriteTimeout = 10 * time.Second
+
+// writeCtx returns the ctx a write actually runs with. nhooyr.io/websocket
+// closes the whole conn when a write ctx ends mid-write, so a caller ctx (e.g.
+// a router ctx) must not be able to tear down a healthy conn: the write runs
+// detached from the caller's cancellation and deadline, bounded by
+// WriteTimeout instead. An already-done caller ctx is refused up front.
+func writeCtx(ctx context.Context) (context.Context, context.CancelFunc, error) {
 	if err := ctx.Err(); err != nil {
+		return nil, nil, err
+	}
+	wctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), WriteTimeout)
+	return wctx, cancel, nil
+}
+
+func writeJSON(ctx context.Context, conn *websocket.Conn, message any) error {
+	wctx, cancel, err := writeCtx(ctx)
+	if err != nil {
 		return err
 	}
-	return wsjson.Write(ctx, conn, message)
+	defer cancel()
+	return wsjson.Write(wctx, conn, message)
 }
 
 func writeText(ctx context.Context, conn *websocket.Conn, message string) error {
-	if err := ctx.Err(); err != nil {
+	wctx, cancel, err := writeCtx(ctx)
+	if err != nil {
 		return err
 	}
-	return conn.Write(ctx, websocket.MessageText, []byte(message))
+	defer cancel()
+	return conn.Write(wctx, websocket.MessageText, []byte(message))
 }
 
 // WriterFromContext returns the writer bound to the connection a router
-// message arrived on. Run puts it into the ctx passed to the router. ok is
-// false for contexts not derived from a router ctx.
+// message arrived on. Run puts it into the ctx passed to the router and to the
+// read func. ok is false for contexts not derived from such a ctx.
 func WriterFromContext(ctx context.Context) (ConnWriter, bool) {
-	w, ok := ctx.Value(connWriterKey{}).(*connWriter)
-	if !ok {
-		return nil, false
-	}
-	return w, true
+	w, ok := ctx.Value(connWriterKey{}).(ConnWriter)
+	return w, ok
+}
+
+// ContextWithWriter returns a copy of ctx carrying w, as Run does for each
+// connection. Useful to test routers that reply via WriterFromContext.
+func ContextWithWriter(ctx context.Context, w ConnWriter) context.Context {
+	return context.WithValue(ctx, connWriterKey{}, w)
 }
