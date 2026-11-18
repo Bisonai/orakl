@@ -22,6 +22,9 @@ type WebsocketHelper struct {
 	keepaliveFn         KeepaliveFunc
 	keepaliveFallback   time.Duration
 	keepaliveIntervalFn func() time.Duration
+	// subscribeDelay overrides the 1s pause after dial and after each
+	// subscription (tests only)
+	subscribeDelay time.Duration
 
 	Endpoint          string
 	Subscriptions     []any

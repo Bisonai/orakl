@@ -4,6 +4,7 @@ package wss
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -50,7 +51,7 @@ func TestKeepaliveRunsPerConnection(t *testing.T) {
 	var calls writerLog
 	ws, err := NewWebsocketHelper(context.Background(),
 		WithEndpoint(rs.url()),
-		// every cycle = dial + 1s pre-subscribe wait + 500ms
+		// every cycle = dial + 10ms pre-subscribe wait + 500ms
 		WithReconnectInterval(500*time.Millisecond),
 		WithKeepalive(50*time.Millisecond, func(ctx context.Context, w ConnWriter) error {
 			calls.add(w)
@@ -58,6 +59,9 @@ func TestKeepaliveRunsPerConnection(t *testing.T) {
 		}),
 	)
 	require.NoError(t, err)
+	// keepalive also runs during the post-dial wait; keep it short so a
+	// conn lives ~ReconnectInterval
+	ws.subscribeDelay = 10 * time.Millisecond
 	stop := startRun(t, ws, nil)
 
 	conns := rs.waitDials(4, 10*time.Second)
@@ -163,6 +167,7 @@ func TestKeepaliveIntervalPerConnection(t *testing.T) {
 		}),
 	)
 	require.NoError(t, err)
+	ws.subscribeDelay = 10 * time.Millisecond
 	stop := startRun(t, ws, nil)
 
 	conns := rs.waitDials(4, 10*time.Second)
@@ -262,4 +267,92 @@ func TestWriteSurvivesCallerCancelMidWrite(t *testing.T) {
 			t.Fatalf("server did not receive %q", want)
 		}
 	}
+}
+
+// #2906: providers send one subscribe frame per feed with a pause after each,
+// so the keepalive must already run while subscribing.
+func TestKeepaliveRunsDuringSubscribe(t *testing.T) {
+	rs := newRecordingServer(t, nil)
+	const subs = 20
+	subscriptions := make([]any, subs)
+	for i := range subscriptions {
+		subscriptions[i] = []byte(fmt.Sprintf("sub-%d", i))
+	}
+	ws, err := NewWebsocketHelper(context.Background(),
+		WithEndpoint(rs.url()),
+		WithSubscriptions(subscriptions),
+		WithKeepalive(30*time.Millisecond, func(ctx context.Context, w ConnWriter) error {
+			return w.RawWrite(ctx, "ka")
+		}),
+	)
+	require.NoError(t, err)
+	// ~1s of subscribing: 50ms after dial + 50ms after each frame
+	ws.subscribeDelay = 50 * time.Millisecond
+	stop := startRun(t, ws, nil)
+
+	last := fmt.Sprintf("sub-%d", subs-1)
+	require.Eventually(t, func() bool {
+		s := rs.snapshot()
+		return len(s) > 0 && contains(s[0].msgs, last)
+	}, 5*time.Second, 10*time.Millisecond, "subscribe did not finish")
+	stop()
+
+	msgs := rs.snapshot()[0].msgs
+	kaBeforeFirst, kaBeforeLast := 0, 0
+	seenFirst := false
+	for _, m := range msgs {
+		if m == "sub-0" {
+			seenFirst = true
+		}
+		if m == last {
+			break
+		}
+		if m == "ka" {
+			kaBeforeLast++
+			if !seenFirst {
+				kaBeforeFirst++
+			}
+		}
+	}
+	assert.GreaterOrEqual(t, kaBeforeFirst, 1, "no keepalive between dial and first subscribe")
+	assert.GreaterOrEqual(t, kaBeforeLast, 15, "keepalive not sent during subscribe")
+}
+
+// A failed subscribe ends the keepalive started for that conn: no loop
+// survives into the next attempt.
+func TestKeepaliveStopsAfterFailedSubscribe(t *testing.T) {
+	rs := newRecordingServer(t, nil)
+	var calls writerLog
+	ws, err := NewWebsocketHelper(context.Background(),
+		WithEndpoint(rs.url()),
+		// not JSON-encodable: every subscribe attempt fails before writing
+		WithSubscriptions([]any{make(chan int)}),
+		WithKeepalive(10*time.Millisecond, func(ctx context.Context, w ConnWriter) error {
+			calls.add(w)
+			return w.RawWrite(ctx, "ka")
+		}),
+	)
+	require.NoError(t, err)
+	ws.subscribeDelay = 50 * time.Millisecond
+	stop := startRun(t, ws, nil)
+
+	conns := rs.waitDials(4, 10*time.Second)
+	stop()
+	require.GreaterOrEqual(t, len(conns), 4, "expected >= 3 failed subscribes")
+
+	writers := calls.snapshot()
+	seen := map[ConnWriter]bool{}
+	var last ConnWriter
+	for _, w := range writers {
+		if w != last {
+			assert.False(t, seen[w], "keepalive of a failed-subscribe conn called again")
+			seen[w] = true
+			last = w
+		}
+	}
+	assert.GreaterOrEqual(t, len(seen), 3, "keepalive did not run during subscribe attempts")
+
+	n := len(calls.snapshot())
+	time.Sleep(100 * time.Millisecond)
+	assert.Equal(t, n, len(calls.snapshot()), "keepalive kept running after Run returned")
 }

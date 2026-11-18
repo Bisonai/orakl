@@ -119,7 +119,8 @@ func runHelper(t *testing.T, ws *wss.WebsocketHelper) func() {
 
 // #2640: the bullet-API interval is applied to the connection it was fetched
 // for; 0 and a missing instance server fall back to the default (18s, so no
-// ping within the 1s connection) instead of panicking.
+// ping within the ~2s connection: 1s post-dial wait + 1s reconnect interval;
+// keepalive starts at dial) instead of panicking.
 func TestBulletPingIntervalPerConnection(t *testing.T) {
 	tokens := tokenServer(t, 50, 0, 400, -1)
 	ps := newPingServer(t)
@@ -134,8 +135,8 @@ func TestBulletPingIntervalPerConnection(t *testing.T) {
 	require.GreaterOrEqual(t, len(conns), 5)
 	assert.GreaterOrEqual(t, conns[0], 10, "50ms interval")
 	assert.Equal(t, 0, conns[1], "0 must fall back to the 18s default")
-	assert.GreaterOrEqual(t, conns[2], 1, "400ms interval")
-	assert.LessOrEqual(t, conns[2], 3, "400ms interval")
+	assert.GreaterOrEqual(t, conns[2], 3, "400ms interval")
+	assert.LessOrEqual(t, conns[2], 6, "400ms interval")
 	assert.Equal(t, 0, conns[3], "missing instance server must fall back to the default")
 }
 
