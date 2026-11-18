@@ -96,8 +96,8 @@ func TestReconnectTicker(t *testing.T) {
 	time.Sleep(500 * time.Millisecond)
 
 	// Test if the connection has been re-established
-	assert.NotNil(t, conn.Conn) // Assuming that `conn.Conn` should not be nil
-	assert.True(t, conn.IsRunning)
+	assert.NotNil(t, conn.conn.Load()) // Assuming that `conn.conn` should not be nil
+	assert.True(t, conn.IsRunning())
 
 	// Close the WebSocket helper
 	err = conn.Close()
@@ -131,8 +131,8 @@ func TestInactivityTimer(t *testing.T) {
 	time.Sleep(500 * time.Millisecond)
 
 	// Verify if the connection has been closed due to inactivity
-	assert.NotNil(t, conn.Conn) // Assuming that `conn.Conn` should be nil if closed
-	assert.True(t, conn.IsRunning)
+	assert.NotNil(t, conn.conn.Load()) // Assuming that `conn.conn` should be nil if closed
+	assert.True(t, conn.IsRunning())
 
 	// Close the WebSocket helper
 	err = conn.Close()
@@ -158,7 +158,7 @@ func assertRunReturnsAfterCancel(t *testing.T, ws *WebsocketHelper, cancelAfter 
 	case <-time.After(3 * time.Second):
 		t.Fatal("Run did not return after context cancel")
 	}
-	assert.False(t, ws.IsRunning)
+	assert.False(t, ws.IsRunning())
 }
 
 func TestRunReturnsOnCancelWhileDialFailing(t *testing.T) {
@@ -230,6 +230,7 @@ func TestRunReturnsOnCancelAfterServerGone(t *testing.T) {
 type connRecord struct {
 	accepted time.Time
 	closed   time.Time
+	msgs     []string
 }
 
 // recordingServer accepts websocket connections, runs onConn for each and
@@ -264,9 +265,13 @@ func newRecordingServer(t *testing.T, onConn func(ctx context.Context, conn *web
 
 		// drain until the client goes away; also answers control frames
 		for {
-			if _, _, err := conn.Read(ctx); err != nil {
+			_, data, err := conn.Read(ctx)
+			if err != nil {
 				break
 			}
+			rs.mu.Lock()
+			rec.msgs = append(rec.msgs, string(data))
+			rs.mu.Unlock()
 		}
 		rs.mu.Lock()
 		rec.closed = time.Now()

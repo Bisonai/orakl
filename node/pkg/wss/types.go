@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"sync/atomic"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -11,11 +12,15 @@ import (
 )
 
 type WebsocketHelper struct {
-	Conn              *websocket.Conn
+	// conn is the live connection, nil when not connected. Dial stores it and
+	// Close swaps it out, so writers on other goroutines never race a reconnect.
+	conn atomic.Pointer[websocket.Conn]
+	// running guards Run against concurrent invocations.
+	running atomic.Bool
+
 	Endpoint          string
 	Subscriptions     []any
 	Proxy             string
-	IsRunning         bool
 	Compression       bool
 	CustomDialFunc    *func(context.Context, string, *websocket.DialOptions) (*websocket.Conn, *http.Response, error)
 	CustomReadFunc    *func(context.Context, *websocket.Conn) (map[string]interface{}, error)

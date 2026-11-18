@@ -3,7 +3,6 @@ package wss
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net"
 	"net/http"
 	"net/url"
@@ -18,9 +17,12 @@ import (
 
 func (ws *WebsocketHelper) Dial(ctx context.Context) error {
 	dialOption := &websocket.DialOptions{}
+	// local copy: Endpoint is read by other goroutines (logs), so Dial must not
+	// rewrite the field on every reconnect
+	endpoint := ws.Endpoint
 	if ws.Proxy != "" {
-		if strings.HasPrefix(ws.Endpoint, "wss") {
-			ws.Endpoint = strings.Replace(ws.Endpoint, "wss", "ws", 1)
+		if strings.HasPrefix(endpoint, "wss") {
+			endpoint = strings.Replace(endpoint, "wss", "ws", 1)
 		}
 
 		proxyURL, err := url.Parse(ws.Proxy)
@@ -53,9 +55,9 @@ func (ws *WebsocketHelper) Dial(ctx context.Context) error {
 	if ws.CustomDialFunc != nil {
 		dialFunc = *ws.CustomDialFunc
 	}
-	conn, _, err := dialFunc(ctx, ws.Endpoint, dialOption)
+	conn, _, err := dialFunc(ctx, endpoint, dialOption)
 	if err != nil {
-		log.Warn().Err(err).Str("endpoint", ws.Endpoint).Msg("error opening websocket connection")
+		log.Warn().Err(err).Str("endpoint", endpoint).Msg("error opening websocket connection")
 		return err
 	}
 
@@ -63,24 +65,30 @@ func (ws *WebsocketHelper) Dial(ctx context.Context) error {
 		conn.SetReadLimit(ws.ReadLimit)
 	}
 
-	ws.Conn = conn
+	// drop a conn left over from a previous Dial instead of leaking it;
+	// CloseNow so Dial does not wait on a close handshake
+	if old := ws.conn.Swap(conn); old != nil {
+		_ = old.CloseNow()
+	}
 	return nil
 }
 
+// IsRunning reports whether Run is currently active.
+func (ws *WebsocketHelper) IsRunning() bool {
+	return ws.running.Load()
+}
+
 func (ws *WebsocketHelper) Run(ctx context.Context, router func(context.Context, map[string]any) error) {
+	if !ws.running.CompareAndSwap(false, true) {
+		log.Warn().Str("endpoint", ws.Endpoint).Msg("websocket is already running")
+		return
+	}
+	defer ws.running.Store(false)
+
 	readFunc := defaultReader
 	if ws.CustomReadFunc != nil {
 		readFunc = *ws.CustomReadFunc
 	}
-
-	if ws.IsRunning {
-		log.Warn().Msg("websocket is already running")
-		return
-	}
-	ws.IsRunning = true
-	defer func() {
-		ws.IsRunning = false
-	}()
 
 	for {
 		if ctx.Err() != nil {
@@ -103,7 +111,6 @@ func (ws *WebsocketHelper) Run(ctx context.Context, router func(context.Context,
 		}
 
 		ws.readUntilReconnect(ctx, readFunc, router)
-		ws.Close()
 
 		if ctx.Err() != nil {
 			log.Info().Str("endpoint", ws.Endpoint).Msg("context cancelled, stopping websocket")
@@ -115,9 +122,24 @@ func (ws *WebsocketHelper) Run(ctx context.Context, router func(context.Context,
 // readUntilReconnect reads from the current connection until it should be
 // replaced: read error, inactivity timeout or reconnect interval. Each read is
 // bounded by a deadline, so a connection that is open but silent cannot block
-// forever. nhooyr.io/websocket closes the conn when a read ctx expires; the
-// caller's Close afterwards returns nil without blocking.
+// forever. nhooyr.io/websocket closes the conn when a read ctx expires, so
+// closing it here afterwards does not block.
+//
+// Routers run with a per-connection ctx that is cancelled when this
+// connection ends and that carries a ConnWriter bound to it (see
+// WriterFromContext).
 func (ws *WebsocketHelper) readUntilReconnect(ctx context.Context, readFunc func(context.Context, *websocket.Conn) (map[string]interface{}, error), router func(context.Context, map[string]any) error) {
+	conn := ws.conn.Load()
+	if conn == nil {
+		log.Warn().Str("endpoint", ws.Endpoint).Msg("websocket closed before reading, reconnecting")
+		return
+	}
+	// close the conn this loop read from, not whatever is current by then
+	defer ws.closeConn(conn)
+	connCtx, cancelConn := context.WithCancel(ctx)
+	defer cancelConn()
+	connCtx = context.WithValue(connCtx, connWriterKey{}, &connWriter{conn: conn, done: connCtx.Done()})
+
 	// both windows start once dial + subscribe are done
 	reconnectAt := time.Now().Add(ws.ReconnectInterval)
 	lastMessageTime := time.Now()
@@ -130,8 +152,8 @@ func (ws *WebsocketHelper) readUntilReconnect(ctx context.Context, readFunc func
 			reason = "reconnect interval exceeded, closing websocket"
 		}
 
-		readCtx, cancel := context.WithDeadline(ctx, deadline)
-		data, err := readFunc(readCtx, ws.Conn)
+		readCtx, cancel := context.WithDeadline(connCtx, deadline)
+		data, err := readFunc(readCtx, conn)
 		cancel()
 		if err != nil {
 			switch {
@@ -159,12 +181,12 @@ func (ws *WebsocketHelper) readUntilReconnect(ctx context.Context, readFunc func
 		}
 		lastMessageTime = time.Now()
 
-		go func(context.Context, map[string]any) {
-			routerErr := router(ctx, data)
+		go func(connCtx context.Context, data map[string]any) {
+			routerErr := router(connCtx, data)
 			if routerErr != nil {
 				log.Warn().Err(routerErr).Str("endpoint", ws.Endpoint).Msg("error processing websocket message")
 			}
-		}(ctx, data)
+		}(connCtx, data)
 	}
 }
 
@@ -217,30 +239,37 @@ func (ws *WebsocketHelper) dialAndSubscribe(ctx context.Context) error {
 	return nil
 }
 
+// Write sends message as JSON on the current connection. It returns
+// ErrNotConnected when there is none (before the first dial, after Close or
+// between reconnects).
 func (ws *WebsocketHelper) Write(ctx context.Context, message interface{}) error {
-	if ws.Conn == nil {
-		return errors.New("websocket is not running")
+	conn := ws.conn.Load()
+	if conn == nil {
+		return ErrNotConnected
 	}
 
-	err := wsjson.Write(ctx, ws.Conn, message)
-	if err != nil {
-		return err
-	}
-	return nil
+	return writeJSON(ctx, conn, message)
 }
 
+// RawWrite sends message as a text frame on the current connection. It
+// returns ErrNotConnected when there is none.
 func (ws *WebsocketHelper) RawWrite(ctx context.Context, message string) error {
-	if ws.Conn == nil {
-		return errors.New("websocket is not running")
+	conn := ws.conn.Load()
+	if conn == nil {
+		return ErrNotConnected
 	}
 
-	return ws.Conn.Write(ctx, websocket.MessageText, []byte(message))
+	return writeText(ctx, conn, message)
 }
 
 func (ws *WebsocketHelper) Read(ctx context.Context, ch chan any) error {
+	conn := ws.conn.Load()
+	if conn == nil {
+		return ErrNotConnected
+	}
 	for {
 		var t any
-		err := wsjson.Read(ctx, ws.Conn, &t)
+		err := wsjson.Read(ctx, conn, &t)
 		if err != nil {
 			log.Warn().Err(err).Str("endpoint", ws.Endpoint).Msg("error reading from websocket")
 			return err
@@ -249,11 +278,24 @@ func (ws *WebsocketHelper) Read(ctx context.Context, ch chan any) error {
 	}
 }
 
+// Close detaches the current connection and closes it. It is idempotent and
+// safe to call concurrently with writers; later writes get ErrNotConnected.
 func (ws *WebsocketHelper) Close() error {
-	if ws.Conn == nil {
+	conn := ws.conn.Swap(nil)
+	if conn == nil {
 		return nil
 	}
-	err := ws.Conn.Close(websocket.StatusNormalClosure, "")
+	return ws.closeAndLog(conn)
+}
+
+// closeConn detaches conn if it is still current, then closes it.
+func (ws *WebsocketHelper) closeConn(conn *websocket.Conn) {
+	ws.conn.CompareAndSwap(conn, nil)
+	_ = ws.closeAndLog(conn)
+}
+
+func (ws *WebsocketHelper) closeAndLog(conn *websocket.Conn) error {
+	err := conn.Close(websocket.StatusNormalClosure, "")
 	if err != nil {
 		log.Warn().Err(err).Str("endpoint", ws.Endpoint).Msg("error closing websocket")
 		return err
@@ -262,12 +304,13 @@ func (ws *WebsocketHelper) Close() error {
 }
 
 func (ws *WebsocketHelper) IsAlive(ctx context.Context) error {
-	if ws.Conn == nil {
-		return fmt.Errorf("websocket is not running")
+	conn := ws.conn.Load()
+	if conn == nil {
+		return ErrNotConnected
 	}
-	ctx = ws.Conn.CloseRead(ctx)
+	ctx = conn.CloseRead(ctx)
 
-	err := ws.Conn.Ping(ctx)
+	err := conn.Ping(ctx)
 	if err != nil {
 		log.Error().Err(err).Str("endpoint", ws.Endpoint).Msg("error pinging websocket")
 		return err
