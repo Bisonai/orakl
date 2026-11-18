@@ -38,7 +38,8 @@ const PingTimeout = 10 * time.Second
 // WithPingKeepalive is WithKeepalive with a websocket protocol ping frame as
 // the keepalive, for servers that drop connections without client traffic
 // but have no app-level ping message. Each ping waits for its pong for
-// min(interval, PingTimeout); a missing pong counts as a keepalive failure.
+// min(interval, PingTimeout) (this interval, not one from
+// WithKeepaliveIntervalFunc); a missing pong counts as a keepalive failure.
 // Pongs are read by Run's read loop, so while subscribing (before that loop
 // starts on the connection) a missing pong is not a failure.
 func WithPingKeepalive(interval time.Duration) ConnectionOption {
