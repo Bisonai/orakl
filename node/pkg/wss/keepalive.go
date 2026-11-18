@@ -9,7 +9,8 @@ import (
 )
 
 // KeepaliveFunc sends one client keepalive (e.g. an exchange's ping message)
-// on w, the writer bound to the current connection.
+// on w, the writer bound to the current connection. It must return promptly
+// once ctx is done: ending a connection waits for it.
 type KeepaliveFunc func(ctx context.Context, w ConnWriter) error
 
 // MaxKeepaliveFailures is the number of consecutive keepalive failures after
@@ -19,7 +20,8 @@ const MaxKeepaliveFailures = 3
 var errKeepaliveFailed = errors.New("keepalive failed repeatedly")
 
 // WithKeepalive makes the helper call fn every interval on each connection,
-// from right after dial + subscribe until that connection ends. A failing fn
+// from right after dial (so also while subscribing) until that connection
+// ends. A failing fn
 // is logged and retried on the next tick; MaxKeepaliveFailures failures in a
 // row close the connection so Run reconnects. interval must be positive.
 func WithKeepalive(interval time.Duration, fn KeepaliveFunc) ConnectionOption {
