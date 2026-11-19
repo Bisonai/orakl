@@ -161,6 +161,9 @@ func (a *App) initializeLoadedAggregators(ctx context.Context, loadedConfigs []C
 		}
 		tmpNode.onSubmission = a.OnSubmission
 		tmpNode.Raft.CanLead = a.CanLead
+		if a.ConfigureAggregator != nil {
+			a.ConfigureAggregator(tmpNode)
+		}
 		a.Aggregators[config.ID] = tmpNode
 
 	}

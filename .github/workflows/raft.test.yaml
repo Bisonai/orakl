@@ -68,5 +68,6 @@ jobs:
         run: |
           cd ./node
           task local:test-raft
+          task local:test-cluster
         env:
           ENCRYPT_PASSWORD: "anything"

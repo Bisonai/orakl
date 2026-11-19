@@ -117,7 +117,14 @@ func (n *Aggregator) LeaderJob(ctx context.Context) error {
 	n.RoundID += 1
 	n.rounds.Advance(n.Name, n.RoundID)
 
-	return n.PublishTriggerMessage(ctx, n.RoundID, time.Now())
+	return n.PublishTriggerMessage(ctx, n.RoundID, n.now())
+}
+
+func (n *Aggregator) now() time.Time {
+	if n.Now != nil {
+		return n.Now()
+	}
+	return time.Now()
 }
 
 func (n *Aggregator) HandleCustomMessage(ctx context.Context, message raft.Message) error {

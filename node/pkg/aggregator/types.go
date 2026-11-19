@@ -62,6 +62,10 @@ type App struct {
 	// node's health (raft.Raft.CanLead).
 	CanLead func() bool
 
+	// ConfigureAggregator, if set before Run, is called with each aggregator
+	// after it is built and before it starts (tests: raft timers, clock).
+	ConfigureAggregator func(*Aggregator)
+
 	// rounds persists RoundID advances of all aggregators to State (nil
 	// without State).
 	rounds *roundPersister
@@ -170,6 +174,10 @@ type Aggregator struct {
 
 	RoundID int32
 	Signer  *helper.Signer
+
+	// Now, if set before Run, replaces time.Now for the timestamp of the
+	// rounds this node triggers as leader (tests: clock offset).
+	Now func() time.Time
 
 	// rounds persists every RoundID advance (nil: not persisted)
 	rounds *roundPersister
