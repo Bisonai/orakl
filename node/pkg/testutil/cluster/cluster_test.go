@@ -175,7 +175,8 @@ func TestRestartWithNewPeerIDRejoins(t *testing.T) {
 			assert.NotEqual(t, oldID.String(), r.GetLeader(), "node %d follows the old ID on %s", m.Index(), c.Feeds()[i])
 		}
 	}
-	assertRoundsNotReused(t, c)
+	// no assertRoundsNotReused: the restarted node starts on a fresh state and
+	// can reuse its peers' current round ID (#2927)
 }
 
 // Two partitioned nodes each lead their own copy of every feed; after the
