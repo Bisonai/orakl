@@ -106,7 +106,7 @@ type Raft struct {
 	// an unhealthy leader resigns at most once per this; 0 is
 	// DefaultHealthResignBackoff
 	HealthResignBackoff time.Duration
-	// last resign for health, ns since leaderClockEpoch; 0 none since healthy
+	// last resign for health, ns since leaderClockEpoch; 0 never
 	healthResignedAt atomic.Int64
 	// an unhealthy follower campaigns only from this on; zero until it first
 	// wants to after following a leader; under Mutex

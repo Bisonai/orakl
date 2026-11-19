@@ -87,7 +87,7 @@ var (
 	reporterUpOnce sync.Once
 	reporterUp     = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: metricnames.ReporterUp,
-		Help: "1 while the in-node reporter runs and its submissions neither all fail nor hang for 30 s, else 0; at 0 the node hands the feeds it leads to peers",
+		Help: "1 while the in-node reporter runs and no submit interval group's submissions all fail or hang for 30 s, else 0; at 0 the node hands the feeds it leads to peers",
 	})
 )
 

@@ -14,47 +14,78 @@ import (
 func TestHealthEvaluate(t *testing.T) {
 	t0 := time.UnixMilli(1_700_000_000_000)
 	past := func(d time.Duration) time.Time { return t0.Add(d) }
+	healthy := func(h *health, at time.Time) (bool, string) {
+		ok, reason, _ := h.evaluate(at)
+		return ok, reason
+	}
 
 	t.Run("not running", func(t *testing.T) {
 		h := newHealth(t0)
-		ok, _ := h.evaluate(past(unhealthyAfter))
+		ok, _, running := h.evaluate(past(unhealthyAfter))
 		assert.True(t, ok, "unhealthy within the start grace")
-		ok, reason := h.evaluate(past(unhealthyAfter + time.Second))
+		assert.False(t, running)
+		ok, reason := healthy(h, past(unhealthyAfter+time.Second))
 		assert.False(t, ok)
 		assert.Equal(t, "not running", reason)
 		h.setRunning()
-		ok, _ = h.evaluate(past(unhealthyAfter + time.Second))
+		ok, _ = healthy(h, past(unhealthyAfter+time.Second))
 		assert.True(t, ok)
 	})
 
 	t.Run("submissions failing", func(t *testing.T) {
 		h := newHealth(t0)
 		h.setRunning()
-		h.end(h.begin(t0), t0, false)
-		h.end(h.begin(past(time.Second)), past(time.Second), false)
-		ok, _ := h.evaluate(past(unhealthyAfter))
+		h.end("g", h.begin("g", t0), t0, false)
+		h.end("g", h.begin("g", past(time.Second)), past(time.Second), false)
+		ok, _ := healthy(h, past(unhealthyAfter))
 		assert.True(t, ok, "failing since the first failure, not the last")
-		ok, reason := h.evaluate(past(unhealthyAfter + time.Second))
+		ok, reason := healthy(h, past(unhealthyAfter+time.Second))
 		assert.False(t, ok)
 		assert.Equal(t, "submissions failing", reason)
 
 		// one that gets through clears it
-		h.end(h.begin(past(unhealthyAfter)), past(unhealthyAfter), true)
-		ok, _ = h.evaluate(past(2 * unhealthyAfter))
+		h.end("g", h.begin("g", past(unhealthyAfter)), past(unhealthyAfter), true)
+		ok, _ = healthy(h, past(2*unhealthyAfter))
+		assert.True(t, ok)
+	})
+
+	t.Run("one group failing", func(t *testing.T) {
+		h := newHealth(t0)
+		h.setRunning()
+		h.end("slow", h.begin("slow", t0), t0, false)
+		// another group delivering, or leading nothing, doesn't hide it
+		h.end("fast", h.begin("fast", past(time.Second)), past(time.Second), true)
+		h.prepared("idle", past(time.Second), 0, 0)
+		ok, _ := healthy(h, past(unhealthyAfter+time.Second))
+		assert.False(t, ok)
+
+		// a stopped group is forgotten
+		h.forget("slow")
+		ok, _ = healthy(h, past(unhealthyAfter+time.Second))
 		assert.True(t, ok)
 	})
 
 	t.Run("submission stuck", func(t *testing.T) {
 		h := newHealth(t0)
 		h.setRunning()
-		id := h.begin(t0)
-		h.end(h.begin(past(time.Second)), past(time.Second), true)
-		ok, reason := h.evaluate(past(unhealthyAfter + time.Second))
-		assert.False(t, ok, "a later delivered report must not hide a hung one")
+		id := h.begin("g", t0)
+		// another group's delivery doesn't end it
+		h.end("other", h.begin("other", past(time.Second)), past(time.Second), true)
+		ok, reason := healthy(h, past(unhealthyAfter+time.Second))
+		assert.False(t, ok)
 		assert.Equal(t, "submission stuck", reason)
-		h.end(id, past(unhealthyAfter+time.Second), true)
-		ok, _ = h.evaluate(past(unhealthyAfter + time.Second))
+		h.end("g", id, past(unhealthyAfter+time.Second), true)
+		ok, _ = healthy(h, past(unhealthyAfter+time.Second))
 		assert.True(t, ok)
+	})
+
+	t.Run("hung report superseded", func(t *testing.T) {
+		h := newHealth(t0)
+		h.setRunning()
+		h.begin("g", t0) // never returns
+		h.end("g", h.begin("g", past(time.Second)), past(2*time.Second), true)
+		ok, _ := healthy(h, past(unhealthyAfter+time.Second))
+		assert.True(t, ok, "a later delivery in the group must end a hung report")
 	})
 }
 
@@ -65,18 +96,18 @@ func TestHealthPrepared(t *testing.T) {
 	h := newHealth(t0)
 	h.setRunning()
 
-	h.prepared(t0, 3, 0)
-	h.prepared(t0.Add(time.Second), 3, 0)
-	ok, reason := h.evaluate(t0.Add(unhealthyAfter + time.Second))
+	h.prepared("g", t0, 3, 0)
+	h.prepared("g", t0.Add(time.Second), 3, 0)
+	ok, reason, _ := h.evaluate(t0.Add(unhealthyAfter + time.Second))
 	assert.False(t, ok)
 	assert.Equal(t, "submissions failing", reason)
 
-	h.prepared(t0.Add(unhealthyAfter), 3, 2)
-	ok, _ = h.evaluate(t0.Add(unhealthyAfter + time.Second))
+	h.prepared("g", t0.Add(unhealthyAfter), 3, 2)
+	ok, _, _ = h.evaluate(t0.Add(unhealthyAfter + time.Second))
 	assert.False(t, ok, "pairs left to submit don't prove delivery")
 
-	h.prepared(t0.Add(unhealthyAfter), 0, 0)
-	ok, _ = h.evaluate(t0.Add(2 * unhealthyAfter))
+	h.prepared("g", t0.Add(unhealthyAfter), 0, 0)
+	ok, _, _ = h.evaluate(t0.Add(2 * unhealthyAfter))
 	assert.True(t, ok, "still unhealthy after handing every feed over")
 }
 

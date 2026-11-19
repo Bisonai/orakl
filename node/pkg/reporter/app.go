@@ -81,6 +81,9 @@ func (a *App) setReporters(ctx context.Context) (_ []Config, err error) {
 	defer func() {
 		if err != nil {
 			chainHelper.Close()
+			if a.local != nil {
+				a.local.chainHelper = nil // closed; set again by the next try
+			}
 		}
 	}()
 

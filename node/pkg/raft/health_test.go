@@ -129,7 +129,29 @@ func TestAllUnhealthySettles(t *testing.T) {
 	assert.Equal(t, Leader, leader.GetRole(), "feed moved again within the backoff")
 	assert.Equal(t, term, leader.GetCurrentTerm())
 
-	// healthy again: the next unhealthy spell hands over at once
+	// health flipping back and forth doesn't reset the backoff: a node that
+	// leads nothing looks healthy, so that would hand the feed around
 	health[leader].Store(true)
-	require.Eventually(t, func() bool { return leader.healthResignedAt.Load() == 0 }, time.Second, 10*time.Millisecond)
+	time.Sleep(testLoopSettle)
+	health[leader].Store(false)
+	time.Sleep(leader.maxElectionDetection())
+	assert.Equal(t, Leader, leader.GetRole(), "feed moved again within the backoff")
+}
+
+// The backoff runs out: an unhealthy leader then hands over again.
+func TestHealthResignBackoffExpires(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	const backoff = 2 * time.Second
+	health := map[*Raft]*atomic.Bool{}
+	nodes := startCluster(ctx, t, 2, withHealth(health), func(r *Raft) { r.HealthResignBackoff = backoff })
+	leader := waitForSingleLeader(t, nodes, "no initial leader")
+	// as if it resigned for health just now
+	leader.healthResignedAt.Store(int64(time.Since(leaderClockEpoch)))
+	health[leader].Store(false)
+
+	time.Sleep(backoff / 2)
+	require.Equal(t, Leader, leader.GetRole(), "resigned within the backoff")
+	require.Eventually(t, func() bool { return leader.GetRole() != Leader }, 2*backoff, 10*time.Millisecond, "did not resign once the backoff ran out")
 }
