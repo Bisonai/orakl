@@ -11,6 +11,7 @@ import (
 
 	"github.com/libp2p/go-libp2p"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
+	"github.com/libp2p/go-libp2p/core/connmgr"
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/pnet"
@@ -23,6 +24,8 @@ type HostConfig struct {
 	SecretString string
 	HolePunch    bool
 	Quic         bool
+	// nil: no gating
+	ConnectionGater connmgr.ConnectionGater
 }
 
 type HostOption func(*HostConfig)
@@ -54,6 +57,14 @@ func WithHolePunch() HostOption {
 func WithQuic() HostOption {
 	return func(hc *HostConfig) {
 		hc.Quic = true
+	}
+}
+
+// WithConnectionGater lets gater refuse dials and connections (tests:
+// partitions, failing dials).
+func WithConnectionGater(gater connmgr.ConnectionGater) HostOption {
+	return func(hc *HostConfig) {
+		hc.ConnectionGater = gater
 	}
 }
 
@@ -95,6 +106,10 @@ func NewHost(ctx context.Context, opts ...HostOption) (host.Host, error) {
 
 	if config.HolePunch {
 		libp2pOpts = append(libp2pOpts, libp2p.EnableHolePunching())
+	}
+
+	if config.ConnectionGater != nil {
+		libp2pOpts = append(libp2pOpts, libp2p.ConnectionGater(config.ConnectionGater))
 	}
 
 	h, err := libp2p.New(libp2pOpts...)
