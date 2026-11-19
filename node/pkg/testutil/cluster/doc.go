@@ -29,6 +29,8 @@
 //     nodes (connections closed, dials and inbound connections refused).
 //   - Node.FailDials makes the node's own dials fail, also before its start.
 //   - Node.SetClockOffset shifts the clock the node's rounds are stamped with.
+//   - Node.SetCanLead(false) marks the node unfit to lead (e.g. its reporter
+//     can't submit): it resigns its feeds and holds off campaigning.
 //   - Options.ConfigureApp / Options.ConfigureAggregator reach the
 //     aggregator app and each aggregator (raft timers, new hooks) before they
 //     start; Options.OnSubmission sees every submission, e.g. to model a

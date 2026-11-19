@@ -19,6 +19,11 @@ const (
 	// leader: the leave grace (~0.6-0.85 s) and an election, with room for a
 	// loaded runner.
 	failoverBound = 3 * time.Second
+	// unhealthyBound is how soon an unhealthy leader's feeds have another
+	// leader: a resign on the next tick, then peers time out its heartbeats
+	// (up to 3 election timeouts, ~3 s) and elect, maybe after a split vote
+	// (seen up to ~6.4 s).
+	unhealthyBound = 12 * time.Second
 	// median of the default values 1000, 1001, 1002 of three nodes
 	threeNodeMedian = 1001
 )
@@ -198,6 +203,37 @@ func TestPartitionAndHeal(t *testing.T) {
 	c.Heal(0, 1)
 	c.WaitMesh(10 * time.Second)
 	c.WaitSingleLeader(10 * time.Second)
+}
+
+// A node that can't lead (its reporter is broken) loses every feed it leads
+// to a peer, and the peer's rounds are the ones submitted (#2914).
+func TestUnhealthyLeaderLosesFeeds(t *testing.T) {
+	t.Parallel()
+	c := cluster.Start(t, cluster.Options{Nodes: 3})
+	leaders := waitStable(c)
+	sick := leaders[c.Feeds()[0]]
+
+	start := time.Now()
+	sick.SetCanLead(false)
+	require.Eventually(t, func() bool {
+		ls := c.Leaders()
+		for _, l := range ls {
+			if l == nil || l == sick {
+				return false
+			}
+		}
+		return true
+	}, unhealthyBound, 10*time.Millisecond, "unhealthy node still leads:\n%s", c.Describe())
+	t.Logf("node %d led no feed %s after turning unhealthy", sick.Index(), time.Since(start))
+	movedOff := time.Now()
+
+	waitLed(t, c, movedOff, 2, 10*time.Second)
+	for _, feed := range c.Feeds() {
+		for _, s := range ledAfter(c, feed, movedOff) {
+			assert.NotEqual(t, sick.Index(), s.Node, "%s: round %d led by the unhealthy node", feed, s.Round)
+		}
+	}
+	assertRoundsNotReused(t, c)
 }
 
 // A clock offset shifts the timestamp of the rounds that node leads only.

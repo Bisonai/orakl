@@ -39,6 +39,7 @@ type Node struct {
 	signer *chainhelper.Signer
 
 	failDials   atomic.Bool
+	cantLead    atomic.Bool  // inverted, so the zero value is healthy
 	clockOffset atomic.Int64 // time.Duration
 
 	mu     sync.Mutex
@@ -142,6 +143,11 @@ func (n *Node) Running() bool {
 // FailDials makes every dial of this node fail (on) or work again (off). It
 // holds across restarts and may be set before a start.
 func (n *Node) FailDials(on bool) { n.failDials.Store(on) }
+
+// SetCanLead sets this node's health for leadership (aggregator.App.CanLead):
+// false makes it resign every feed to a live peer and hold off campaigning,
+// like a node whose reporter can't submit. It holds across restarts.
+func (n *Node) SetCanLead(ok bool) { n.cantLead.Store(!ok) }
 
 // SetClockOffset shifts the clock this node stamps the rounds it leads with.
 func (n *Node) SetClockOffset(d time.Duration) { n.clockOffset.Store(int64(d)) }
@@ -282,6 +288,10 @@ func (n *Node) start() error {
 	r.app = app
 	if n.c.opts.ConfigureApp != nil {
 		n.c.opts.ConfigureApp(n, app)
+	}
+	userCanLead := app.CanLead
+	app.CanLead = func() bool {
+		return !n.cantLead.Load() && (userCanLead == nil || userCanLead())
 	}
 	id := h.ID()
 	userSubmission := app.OnSubmission
