@@ -23,6 +23,7 @@ import (
 	"bisonai.com/miko/node/pkg/reporter"
 	"bisonai.com/miko/node/pkg/utils/loginit"
 	"bisonai.com/miko/node/pkg/utils/retrier"
+	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/rs/zerolog/log"
 )
 
@@ -93,8 +94,11 @@ func main() {
 		log.Error().Err(err).Msg("Failed to make pubsub")
 	}
 
+	var bootPeers []peer.ID // listed by the startup sync; unconnected ones are retried by the helper
 	err = retrier.Retry(func() error {
-		return libp2pSetup.ConnectThroughBootApi(ctx, host)
+		var syncErr error
+		bootPeers, syncErr = libp2pSetup.SyncThroughBootApi(ctx, host)
+		return syncErr
 	}, 5, 10*time.Second, 30*time.Second)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to setup libp2p")
@@ -169,6 +173,7 @@ func main() {
 	}()
 	log.Info().Msg("Aggregator started")
 
+	helperApp.SeedPending(bootPeers)
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
