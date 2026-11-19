@@ -149,16 +149,21 @@ func (n *Node) SetClockOffset(d time.Duration) { n.clockOffset.Store(int64(d)) }
 func (n *Node) now() time.Time { return time.Now().Add(time.Duration(n.clockOffset.Load())) }
 
 // SetValue sets this node's local aggregate of feed, now and for later starts.
+// It fails the test for a feed not in Options.Feeds.
 func (n *Node) SetValue(feed string, v int64) {
 	n.mu.Lock()
+	defer n.mu.Unlock()
+	if _, ok := n.values[feed]; !ok {
+		n.t.Fatalf("cluster: node %d has no feed %q", n.index, feed)
+	}
 	n.values[feed] = v
-	r := n.run
-	n.mu.Unlock()
-	if r != nil {
-		n.storeValue(r, feed, v)
+	if n.run != nil {
+		n.storeValue(n.run, feed, v)
 	}
 }
 
+// storeValue stores v into r; the caller holds n.mu, so a later SetValue
+// can't be overwritten by an older value.
 func (n *Node) storeValue(r *nodeRun, feed string, v int64) {
 	id := r.configs[feed]
 	r.app.LatestLocalAggregates.Store(id, &aggregator.LocalAggregate{ConfigID: id, Value: v, Timestamp: time.Now()})
@@ -244,8 +249,10 @@ func (n *Node) start() error {
 	var bootPeers []peer.ID
 	if n.c.boot != nil {
 		r.helper = helper.New(mb, h)
+		// a failed dial is no error here; a failure is the boot API or the
+		// host (no non-loopback address), on which nodebin exits too
 		if bootPeers, err = libp2psetup.SyncThroughBootApi(ctx, h); err != nil {
-			n.t.Logf("cluster: node %d boot sync: %v", n.index, err)
+			return fail(fmt.Errorf("boot sync: %w", err))
 		}
 	} else {
 		for _, m := range n.c.Running() {
@@ -294,15 +301,7 @@ func (n *Node) start() error {
 			n.c.opts.ConfigureAggregator(n, a)
 		}
 	}
-	n.mu.Lock()
-	values := make(map[string]int64, len(n.values))
-	for feed, v := range n.values {
-		values[feed] = v
-	}
-	n.mu.Unlock()
-	for feed, v := range values {
-		n.storeValue(r, feed, v)
-	}
+	n.storeValues(r) // before the first round
 
 	aggCtx, stopAggs := context.WithCancel(ctx)
 	r.stopAggs = stopAggs
@@ -325,7 +324,18 @@ func (n *Node) start() error {
 	n.mu.Lock()
 	n.run = r
 	n.mu.Unlock()
+	// again: a SetValue during the start stored into the previous run
+	n.storeValues(r)
 	return nil
+}
+
+// storeValues stores every value of the node into r.
+func (n *Node) storeValues(r *nodeRun) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	for feed, v := range n.values {
+		n.storeValue(r, feed, v)
+	}
 }
 
 func (n *Node) dial(m *Node) error { return n.dialFrom(n.mustRun().host, m) }

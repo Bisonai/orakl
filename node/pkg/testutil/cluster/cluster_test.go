@@ -28,7 +28,7 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-// led returns the submissions of feed led after since.
+// ledAfter returns the submissions of feed led after since.
 func ledAfter(c *cluster.Cluster, feed string, since time.Time) []cluster.Submission {
 	var led []cluster.Submission
 	for _, s := range c.Led(feed) {

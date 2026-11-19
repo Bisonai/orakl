@@ -64,8 +64,10 @@ type Submission struct {
 	Round     int32
 	Timestamp time.Time // the round's timestamp (signed in the proof)
 	Proof     []byte
-	// Leader is whether the node led the round: only then does the in-node
-	// reporter submit it on-chain.
+	// Leader is whether the node was the feed's leader when the round's
+	// proofs completed (what the in-node reporter goes by: it submits only
+	// these on-chain). Across a leader change that can be a node that did not
+	// trigger the round.
 	Leader bool
 	At     time.Time // when it was recorded
 }

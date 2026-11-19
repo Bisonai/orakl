@@ -39,7 +39,7 @@ func allRoles(nodes []*raft.Raft, role raft.RoleType) bool {
 func TestHandOverPeerLeadsEveryFeedAtOnce(t *testing.T) {
 	const feeds = 100
 	if testing.Short() {
-		t.Skip("two nodes, 200 aggregators, ~10 s")
+		t.Skip("two nodes, 200 Rafts, ~10 s")
 	}
 	const slowStop = 3 * time.Second // aggregators slow to stop, as on mainnet
 
@@ -52,6 +52,10 @@ func TestHandOverPeerLeadsEveryFeedAtOnce(t *testing.T) {
 		Feeds:             names,
 		AggregateInterval: time.Second,
 		ConfigureAggregator: func(n *cluster.Node, a *aggregator.Aggregator) {
+			// no rounds: leadership only, so the held subscriptions below
+			// stay empty and the bound measures the hand-over alone
+			a.Raft.LeaderJob = func(context.Context) error { return nil }
+			a.Raft.HandleCustomMessage = func(context.Context, raft.Message) error { return nil }
 			a.Raft.PeerSilenceTimeout = time.Hour // only the leave elects
 			if n.Index() == 0 {
 				// a second subscription keeps pubsub from announcing that
