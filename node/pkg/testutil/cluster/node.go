@@ -249,8 +249,8 @@ func (n *Node) start() error {
 	var bootPeers []peer.ID
 	if n.c.boot != nil {
 		r.helper = helper.New(mb, h)
-		// a failed dial is no error here; a failure is the boot API or the
-		// host (no non-loopback address), on which nodebin exits too
+		// a failed dial is no error here, only the boot API or the host (no
+		// non-loopback address); nodebin retries that, the harness fails
 		if bootPeers, err = libp2psetup.SyncThroughBootApi(ctx, h); err != nil {
 			return fail(fmt.Errorf("boot sync: %w", err))
 		}
@@ -317,6 +317,10 @@ func (n *Node) start() error {
 		r.helper.SeedPending(bootPeers) // as nodebin: retry listed peers not connected
 		if err := r.helper.Run(ctx); err != nil {
 			stopAggs()
+			// the aggregators run already: none may outlive the test
+			waitCtx, cancelWait := context.WithTimeout(context.Background(), stepTimeout)
+			_ = app.WaitStopped(waitCtx)
+			cancelWait()
 			return fail(err)
 		}
 	}

@@ -52,16 +52,19 @@ func waitLed(t *testing.T, c *cluster.Cluster, since time.Time, n int, timeout t
 	}, timeout, 10*time.Millisecond, "feeds without %d led submissions:\n%s", n, c.Describe())
 }
 
-// assertRoundsNotReused checks that no round of a feed was led twice.
+// assertRoundsNotReused checks that no round ID of a feed was used for two
+// rounds. Two nodes can record the same round as led across a leader change
+// (Submission.Leader); a reuse is a second round, with its own trigger
+// timestamp, under the same ID.
 func assertRoundsNotReused(t *testing.T, c *cluster.Cluster) {
 	t.Helper()
 	for _, feed := range c.Feeds() {
-		seen := map[int32]int{}
+		seen := map[int32]cluster.Submission{}
 		for _, s := range c.Led(feed) {
-			if prev, ok := seen[s.Round]; ok {
-				t.Errorf("%s: round %d led by node %d and node %d", feed, s.Round, prev, s.Node)
+			if prev, ok := seen[s.Round]; ok && !prev.Timestamp.Equal(s.Timestamp) {
+				t.Errorf("%s: round %d used twice (node %d at %s, node %d at %s)", feed, s.Round, prev.Node, prev.Timestamp, s.Node, s.Timestamp)
 			}
-			seen[s.Round] = s.Node
+			seen[s.Round] = s
 		}
 	}
 }
@@ -77,7 +80,7 @@ func waitStable(c *cluster.Cluster) map[string]*cluster.Node {
 func TestSteadyStateSingleLeaderPerFeed(t *testing.T) {
 	t.Parallel()
 	c := cluster.Start(t, cluster.Options{Nodes: 3})
-	leaders := c.WaitSingleLeader(settleTimeout)
+	leaders := waitStable(c)
 	settled := time.Now()
 
 	waitLed(t, c, settled, 3, 10*time.Second)
@@ -116,8 +119,10 @@ func TestLeaderStopFailsOver(t *testing.T) {
 	t.Logf("every feed had a single leader %s after node %d stopped", took, stopped.Index())
 	failedOver := time.Now()
 
-	for feed, l := range c.Leaders() {
-		assert.NotEqual(t, stopped, l, "%s still led by the stopped node", feed)
+	for _, n := range c.Running() {
+		for i, r := range n.Rafts() {
+			assert.NotEqual(t, stopped.ID().String(), r.GetLeader(), "node %d still follows the stopped node on %s", n.Index(), c.Feeds()[i])
+		}
 	}
 	for _, r := range stopped.Rafts() {
 		assert.NotEqual(t, raft.Leader, r.GetRole(), "stopped node still leads")
