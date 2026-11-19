@@ -213,9 +213,9 @@ func TestBootAPIDiscovery(t *testing.T) {
 	c.WaitSingleLeader(10 * time.Second)
 }
 
-// A node whose dials fail at startup is connected once they work again.
+// A node whose dials fail at startup is connected once they work again,
+// without any disconnect event (#2915).
 func TestStartupDialFailureRecovers(t *testing.T) {
-	t.Skip("#2915: a listed peer whose startup dial failed is never retried")
 	c := cluster.New(t, cluster.Options{Nodes: 2, Feeds: []string{"feed-0"}, BootAPI: true})
 	c.Node(0).Start()
 	c.Node(1).FailDials(true)

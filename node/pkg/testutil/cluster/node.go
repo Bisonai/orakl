@@ -241,9 +241,10 @@ func (n *Node) start() error {
 
 	// connect before the aggregators start, as nodebin does
 	mb := bus.New(100)
+	var bootPeers []peer.ID
 	if n.c.boot != nil {
 		r.helper = helper.New(mb, h)
-		if _, err := libp2psetup.SyncThroughBootApi(ctx, h); err != nil {
+		if bootPeers, err = libp2psetup.SyncThroughBootApi(ctx, h); err != nil {
 			n.t.Logf("cluster: node %d boot sync: %v", n.index, err)
 		}
 	} else {
@@ -314,6 +315,7 @@ func (n *Node) start() error {
 	}
 
 	if r.helper != nil {
+		r.helper.SeedPending(bootPeers) // as nodebin: retry listed peers not connected
 		if err := r.helper.Run(ctx); err != nil {
 			stopAggs()
 			return fail(err)
