@@ -207,39 +207,55 @@ func (a *App) handleDisconnectEvent(e interface{}) {
 	a.signal()
 }
 
-// SeedPending queues every peer in known (a boot API sync result) that is not
-// connected, so the reconnect worker retries it with backoff. A listed peer
-// whose dial failed never emits a disconnect event, so without this it is
+// SeedPending queues every peer in known (a boot API sync result) for the
+// reconnect worker, which retries the unconnected ones with backoff. A listed
+// peer whose dial failed never emits a disconnect event, so without this it is
 // never retried. Call it with the startup sync result; the worker seeds its
-// own syncs.
+// own syncs. Connected peers are queued too: one that drops before Run
+// subscribes to events is still retried; the worker drops connected ones.
 func (a *App) SeedPending(known []peer.ID) {
 	a.mu.Lock()
-	n := a.seedLocked(known)
-	if n > 0 {
+	queued := a.seedLocked(known, false)
+	if len(queued) > 0 {
 		a.newPeer = true
 	}
+	var unconnected []string
+	for _, p := range queued {
+		if !a.hasConn(p) {
+			unconnected = append(unconnected, p.String())
+		}
+	}
 	a.mu.Unlock()
-	if n > 0 {
-		log.Info().Str("Player", "Libp2pHelper").Int("peers", n).Msg("listed peers not connected, queued for reconnect")
+	if len(unconnected) > 0 {
+		log.Info().Str("Player", "Libp2pHelper").Strs("peers", unconnected).Msg("listed peers not connected, queued for reconnect")
+	}
+	if len(queued) > 0 {
 		a.signal()
 	}
 }
 
-// seedLocked queues listed peers that are neither self, connected nor
-// already pending, and returns how many it queued. a.mu must be held.
-func (a *App) seedLocked(known []peer.ID) int {
-	n := 0
+// seedLocked queues listed peers that are not self and not already pending
+// (with skipConnected, also not connected) and returns them. a.mu must be held.
+func (a *App) seedLocked(known []peer.ID, skipConnected bool) []peer.ID {
+	var queued []peer.ID
 	for _, p := range known {
-		if p == a.Host.ID() || a.Host.Network().Connectedness(p) == network.Connected {
+		if p == a.Host.ID() || (skipConnected && a.hasConn(p)) {
 			continue
 		}
 		if _, ok := a.pending[p]; ok {
 			continue
 		}
 		a.pending[p] = pendingPeer{seeded: true}
-		n++
+		queued = append(queued, p)
 	}
-	return n
+	return queued
+}
+
+// hasConn reports whether h has a connection to p, Limited (relayed) included:
+// the boot API sync does not dial a peer it already has a connection to.
+func (a *App) hasConn(p peer.ID) bool {
+	c := a.Host.Network().Connectedness(p)
+	return c == network.Connected || c == network.Limited
 }
 
 func (a *App) signal() {
@@ -270,7 +286,7 @@ func (a *App) reconnectUntilConnected(ctx context.Context, lastSync time.Time) t
 	attempt := 0
 	a.takeNewPeer()
 	for {
-		if a.prunePending(nil, false) == 0 {
+		if n, _ := a.prunePending(nil, false); n == 0 {
 			return lastSync
 		}
 		if wait := a.minSyncInterval - time.Since(lastSync); wait > 0 {
@@ -293,9 +309,13 @@ func (a *App) reconnectUntilConnected(ctx context.Context, lastSync time.Time) t
 			log.Error().Err(err).Str("Player", "Libp2pHelper").Int("attempt", attempt).Msg("Error occurred on boot API sync")
 		}
 
-		if a.prunePending(known, err == nil) == 0 {
+		n, seeded := a.prunePending(known, err == nil)
+		if n == 0 {
 			log.Info().Str("Player", "Libp2pHelper").Int("attempt", attempt).Msg("peers reconnected")
 			return lastSync
+		}
+		if seeded > 0 {
+			attempt = 0 // newly listed peer (e.g. new ID of a restarted node): short first retry
 		}
 
 		reset, ok := a.waitBackoff(ctx, a.backoffAfter(attempt))
@@ -331,8 +351,8 @@ func (a *App) waitBackoff(ctx context.Context, d time.Duration) (reset, ok bool)
 // unlistedSyncsToDrop successful syncs in a row did not list (e.g. the old ID
 // of a restarted node, or a non-oracle peer). After a successful sync it also
 // queues listed peers that are still not connected (e.g. a dial that failed).
-// It returns how many remain.
-func (a *App) prunePending(known []peer.ID, syncOK bool) int {
+// It returns how many remain and how many it queued.
+func (a *App) prunePending(known []peer.ID, syncOK bool) (remaining, seeded int) {
 	listed := make(map[peer.ID]struct{}, len(known))
 	for _, p := range known {
 		listed[p] = struct{}{}
@@ -341,7 +361,7 @@ func (a *App) prunePending(known []peer.ID, syncOK bool) int {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	for p, pp := range a.pending {
-		if a.Host.Network().Connectedness(p) == network.Connected {
+		if a.hasConn(p) {
 			delete(a.pending, p)
 			continue
 		}
@@ -359,9 +379,9 @@ func (a *App) prunePending(known []peer.ID, syncOK bool) int {
 		}
 	}
 	if syncOK {
-		a.seedLocked(known)
+		seeded = len(a.seedLocked(known, true))
 	}
-	return len(a.pending)
+	return len(a.pending), seeded
 }
 
 // backoffAfter returns the wait after the given (1-based) failed attempt.
