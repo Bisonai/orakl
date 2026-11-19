@@ -89,6 +89,43 @@ func TestHealthEvaluate(t *testing.T) {
 	})
 }
 
+func TestHealthGroupEdgeCases(t *testing.T) {
+	t0 := time.UnixMilli(1_700_000_000_000)
+	unhealthy := func(h *health, at time.Time) bool {
+		ok, _, _ := h.evaluate(at)
+		return !ok
+	}
+
+	t.Run("forgotten group stays gone", func(t *testing.T) {
+		h := newHealth(t0)
+		h.setRunning()
+		h.forget("g")
+		// a job of the stopped group still finishing
+		h.prepared("g", t0, 3, 0)
+		h.end("g", h.begin("g", t0), t0, false)
+		assert.False(t, unhealthy(h, t0.Add(unhealthyAfter+time.Second)))
+	})
+
+	t.Run("idle clears a hung report", func(t *testing.T) {
+		h := newHealth(t0)
+		h.setRunning()
+		id := h.begin("g", t0)
+		h.prepared("g", t0.Add(time.Second), 0, 0)
+		assert.False(t, unhealthy(h, t0.Add(unhealthyAfter+time.Second)))
+		h.end("g", id, t0.Add(2*unhealthyAfter), false) // returns late
+		assert.False(t, unhealthy(h, t0.Add(4*unhealthyAfter)))
+	})
+
+	t.Run("older report failing late", func(t *testing.T) {
+		h := newHealth(t0)
+		h.setRunning()
+		slow := h.begin("g", t0)
+		h.end("g", h.begin("g", t0.Add(time.Second)), t0.Add(2*time.Second), true)
+		h.end("g", slow, t0.Add(3*time.Second), false)
+		assert.False(t, unhealthy(h, t0.Add(unhealthyAfter+4*time.Second)))
+	})
+}
+
 // A leader whose every pair is dropped before submitting (e.g. all proofs
 // rejected) fails like one whose submissions fail; leading nothing clears it.
 func TestHealthPrepared(t *testing.T) {

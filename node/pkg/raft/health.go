@@ -35,7 +35,8 @@ func (r *Raft) healthResignBackoff() time.Duration {
 // within HealthResignBackoff. Like resignStuckLeader it holds off campaigning,
 // so a peer takes the term rather than this node winning it back. Reports
 // whether the loop must stop. Runs on every heartbeat tick: lock-free unless
-// it resigns.
+// it resigns or checks for a live peer, which it does at most once per
+// minimum election timeout.
 func (r *Raft) resignUnhealthyLeader(resign <-chan interface{}) bool {
 	if r.CanLead == nil {
 		return false
@@ -43,7 +44,12 @@ func (r *Raft) resignUnhealthyLeader(resign <-chan interface{}) bool {
 	if r.CanLead() {
 		return false
 	}
-	if at := r.healthResignedAt.Load(); at != 0 && time.Since(leaderClockEpoch)-time.Duration(at) < r.healthResignBackoff() {
+	now := int64(time.Since(leaderClockEpoch))
+	if at := r.healthResignedAt.Load(); at != 0 && time.Duration(now-at) < r.healthResignBackoff() {
+		return false
+	}
+	// a lone node would otherwise take Mutex every tick (#2749)
+	if now < r.healthPeerCheckAt.Load() {
 		return false
 	}
 
@@ -53,6 +59,7 @@ func (r *Raft) resignUnhealthyLeader(resign <-chan interface{}) bool {
 		return true
 	}
 	if _, live := r.voterCounts(); live == 0 {
+		r.healthPeerCheckAt.Store(now + int64(r.minElectionTimeout()))
 		return false
 	}
 	log.Warn().Str("Player", "Raft").Msg("node unhealthy, resigning")

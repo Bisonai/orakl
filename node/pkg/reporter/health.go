@@ -39,6 +39,9 @@ type health struct {
 	createdAt time.Time
 	running   bool
 	groups    map[any]*groupHealth
+	// stopped groups: a job still running when its group stopped must not
+	// bring its state back
+	forgotten map[any]bool
 	nextID    uint64
 
 	// last evaluate result; true until the first evaluation
@@ -48,12 +51,15 @@ type health struct {
 type groupHealth struct {
 	// first failed report since the last delivered one; zero: none
 	failingSince time.Time
+	// start of the last delivered report: an older one failing late doesn't
+	// count, jobs overlap
+	deliveredStart time.Time
 	// start of each report still in flight, by id
 	inflight map[uint64]time.Time
 }
 
 func newHealth(now time.Time) *health {
-	h := &health{after: unhealthyAfter, interval: healthCheckInterval, createdAt: now, groups: map[any]*groupHealth{}}
+	h := &health{after: unhealthyAfter, interval: healthCheckInterval, createdAt: now, groups: map[any]*groupHealth{}, forgotten: map[any]bool{}}
 	h.ok.Store(true)
 	return h
 }
@@ -64,8 +70,12 @@ func (h *health) setRunning() {
 	h.running = true
 }
 
-// group returns group's state, created on first use. Caller holds mu.
+// group returns group's state, created on first use; nil once forgotten.
+// Caller holds mu.
 func (h *health) group(group any) *groupHealth {
+	if h.forgotten[group] {
+		return nil
+	}
 	g, ok := h.groups[group]
 	if !ok {
 		g = &groupHealth{inflight: map[uint64]time.Time{}}
@@ -80,6 +90,7 @@ func (h *health) forget(group any) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	delete(h.groups, group)
+	h.forgotten[group] = true
 }
 
 // begin registers a report of group starting at now; end(id) must follow.
@@ -87,7 +98,9 @@ func (h *health) begin(group any, now time.Time) uint64 {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.nextID++
-	h.group(group).inflight[h.nextID] = now
+	if g := h.group(group); g != nil {
+		g.inflight[h.nextID] = now
+	}
 	return h.nextID
 }
 
@@ -102,19 +115,21 @@ func (h *health) end(group any, id uint64, now time.Time, delivered bool) {
 		return // forgotten
 	}
 	start, ok := g.inflight[id]
+	if !ok {
+		return // dropped: superseded by a delivered report, or the group went idle
+	}
 	delete(g.inflight, id)
 	if !delivered {
-		if g.failingSince.IsZero() {
+		if g.failingSince.IsZero() && start.After(g.deliveredStart) {
 			g.failingSince = now
 		}
 		return
 	}
 	g.failingSince = time.Time{}
-	if ok {
-		for other, at := range g.inflight {
-			if !at.After(start) {
-				delete(g.inflight, other)
-			}
+	g.deliveredStart = start
+	for other, at := range g.inflight {
+		if !at.After(start) {
+			delete(g.inflight, other)
 		}
 	}
 }
@@ -122,15 +137,19 @@ func (h *health) end(group any, id uint64, now time.Time, delivered bool) {
 // prepared records a regular job's prepare for group: led pairs this node led
 // with fresh data, ready of them left to submit. Led pairs with none left
 // (e.g. every proof rejected) count as a failed report. Leading none clears
-// the group's failure: it has nothing to submit, and must not stay unhealthy
-// until it leads again.
+// the group's failure and reports in flight: it has nothing to submit, and
+// must not stay unhealthy until it leads again.
 func (h *health) prepared(group any, now time.Time, led, ready int) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	g := h.group(group)
+	if g == nil {
+		return
+	}
 	switch {
 	case led == 0:
 		g.failingSince = time.Time{}
+		clear(g.inflight)
 	case ready == 0 && g.failingSince.IsZero():
 		g.failingSince = now
 	}

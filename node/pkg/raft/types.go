@@ -108,6 +108,8 @@ type Raft struct {
 	HealthResignBackoff time.Duration
 	// last resign for health, ns since leaderClockEpoch; 0 never
 	healthResignedAt atomic.Int64
+	// no live-peer check for a health resign before this, same unit
+	healthPeerCheckAt atomic.Int64
 	// an unhealthy follower campaigns only from this on; zero until it first
 	// wants to after following a leader; under Mutex
 	unhealthyCampaignAfter time.Time
