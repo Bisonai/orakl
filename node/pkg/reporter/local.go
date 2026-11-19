@@ -39,11 +39,14 @@ type localSource struct {
 
 	lastRefresh atomic.Int64 // UnixNano of the last on-demand refresh
 
+	// whether this reporter can submit; gates the node's leadership (Healthy)
+	health *health
+
 	now func() time.Time
 }
 
 func newLocalSource() *localSource {
-	return &localSource{now: time.Now}
+	return &localSource{now: time.Now, health: newHealth(time.Now())}
 }
 
 // NewNodeApp returns a reporter that runs inside the node: it gets data

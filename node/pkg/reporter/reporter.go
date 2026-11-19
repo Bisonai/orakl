@@ -167,6 +167,15 @@ func (r *Reporter) report(ctx context.Context, pairs map[string]SubmissionData) 
 	dataLen := len(feedHashes)
 	wg := sync.WaitGroup{}
 
+	// a report counts as delivered if any batch got through: one feed's bad
+	// batch must not make the whole reporter unhealthy
+	batches := (dataLen + MAX_REPORT_BATCH_SIZE - 1) / MAX_REPORT_BATCH_SIZE
+	failed := 0
+	if r.local != nil {
+		id := r.local.health.begin(r.local.now())
+		defer func() { r.local.health.end(id, r.local.now(), failed < batches || batches == 0) }()
+	}
+
 	errorsChan := make(chan error, 5)
 	for start := 0; start < dataLen; start += MAX_REPORT_BATCH_SIZE {
 		end := min(start+MAX_REPORT_BATCH_SIZE, dataLen)
@@ -191,6 +200,7 @@ func (r *Reporter) report(ctx context.Context, pairs map[string]SubmissionData) 
 
 	tmp := []error{}
 	for err := range errorsChan {
+		failed++
 		tmp = append(tmp, err)
 		if utils.IsNonceError(err) || errors.Is(err, context.DeadlineExceeded) {
 			log.Debug().Err(err).Str("Player", "Reporter").Msg("should refresh nonce")

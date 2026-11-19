@@ -82,3 +82,28 @@ func RecordDelegatorError(reason, purpose string) {
 	Register()
 	delegatorErrors.WithLabelValues(reason, purpose).Inc()
 }
+
+var (
+	reporterUpOnce sync.Once
+	reporterUp     = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: metricnames.ReporterUp,
+		Help: "1 while the in-node reporter runs and its submissions neither all fail nor hang for 30 s, else 0; at 0 the node hands the feeds it leads to peers",
+	})
+)
+
+// RegisterReporterUp adds the reporter up gauge to the default registry, at 0
+// until SetReporterUp. Only the in-node reporter calls it, so a node without
+// one exports no such series. Idempotent.
+func RegisterReporterUp() {
+	reporterUpOnce.Do(func() { prometheus.MustRegister(reporterUp) })
+}
+
+// SetReporterUp sets the in-node reporter up gauge.
+func SetReporterUp(up bool) {
+	RegisterReporterUp()
+	if up {
+		reporterUp.Set(1)
+	} else {
+		reporterUp.Set(0)
+	}
+}

@@ -37,6 +37,7 @@ func (a *App) Run(ctx context.Context) error {
 
 	a.startReporters(ctx)
 	if a.local != nil {
+		a.local.health.setRunning()
 		go a.local.runWhitelistRefresh(ctx)
 	}
 
@@ -47,7 +48,7 @@ func (a *App) Run(ctx context.Context) error {
 	return nil
 }
 
-func (a *App) setReporters(ctx context.Context) ([]Config, error) {
+func (a *App) setReporters(ctx context.Context) (_ []Config, err error) {
 	var dalApiKey, dalWsEndpoint, dalRestEndpoint string
 	if a.local == nil {
 		dalApiKey = secrets.GetSecret("API_KEY")
@@ -76,6 +77,12 @@ func (a *App) setReporters(ctx context.Context) ([]Config, error) {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to create chain helper")
 		return nil, err
 	}
+	// RunWithRetry calls this again after a failure: don't leak a client each time
+	defer func() {
+		if err != nil {
+			chainHelper.Close()
+		}
+	}()
 
 	cachedWhitelist, err := ReadOnchainWhitelist(ctx, chainHelper, contractAddress, GET_ONCHAIN_WHITELIST)
 	if err != nil {
