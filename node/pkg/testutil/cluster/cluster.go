@@ -46,7 +46,8 @@ type Options struct {
 
 	// ConfigureApp, if set, is called with each node's aggregator app before
 	// it runs, on every start. Submissions are recorded around a hook set
-	// here (OnSubmission).
+	// here (OnSubmission). It must not change app.Configs: the harness's
+	// feeds and values are Options.Feeds.
 	ConfigureApp func(n *Node, app *aggregator.App)
 	// ConfigureAggregator, if set, is called with each aggregator before it
 	// starts, on every start (e.g. raft timers).

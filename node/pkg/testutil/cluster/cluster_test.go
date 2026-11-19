@@ -155,11 +155,21 @@ func TestRestartWithNewPeerIDRejoins(t *testing.T) {
 	require.Eventually(t, func() bool {
 		for _, s := range n.Submissions() {
 			if s.At.After(restarted) {
-				return s.Peer == n.ID()
+				return true
 			}
 		}
 		return false
 	}, 10*time.Second, 10*time.Millisecond, "restarted node gets no rounds")
+	// peers have the new ID on every topic, and none follows the old one
+	for _, m := range c.Running() {
+		if m == n {
+			continue
+		}
+		for i, r := range m.Rafts() {
+			assert.Contains(t, m.Pubsub().ListPeers(r.Topic.String()), n.ID(), "node %d: %s", m.Index(), c.Feeds()[i])
+			assert.NotEqual(t, oldID.String(), r.GetLeader(), "node %d follows the old ID on %s", m.Index(), c.Feeds()[i])
+		}
+	}
 	assertRoundsNotReused(t, c)
 }
 
@@ -190,20 +200,24 @@ func TestPartitionAndHeal(t *testing.T) {
 	c.WaitSingleLeader(10 * time.Second)
 }
 
-// A clock offset shifts the timestamp of the rounds a node leads.
+// A clock offset shifts the timestamp of the rounds that node leads only.
 func TestClockOffset(t *testing.T) {
 	t.Parallel()
 	const offset = time.Hour
-	c := cluster.New(t, cluster.Options{Nodes: 2, Feeds: []string{"feed-0"}})
-	for _, n := range c.Nodes() {
-		n.SetClockOffset(offset)
-	}
-	c.StartAll()
-	c.WaitSingleLeader(settleTimeout)
+	c := cluster.Start(t, cluster.Options{Nodes: 2, Feeds: []string{"feed-0", "feed-1", "feed-2", "feed-3"}})
+	leaders := waitStable(c)
+	c.Node(0).SetClockOffset(offset)
 	settled := time.Now()
-	waitLed(t, c, settled, 1, 10*time.Second)
-	s := ledAfter(c, "feed-0", settled)[0]
-	assert.WithinDuration(t, s.At.Add(offset), s.Timestamp, 5*time.Second)
+	waitLed(t, c, settled, 2, 10*time.Second)
+	for feed, l := range leaders {
+		want := time.Duration(0)
+		if l.Index() == 0 {
+			want = offset
+		}
+		for _, s := range ledAfter(c, feed, settled)[1:] { // [0] may predate the offset
+			assert.WithinDuration(t, s.At.Add(want), s.Timestamp, 5*time.Second, "%s led by node %d", feed, l.Index())
+		}
+	}
 }
 
 // With the boot API, nodes find each other and a restarted node rejoins as in

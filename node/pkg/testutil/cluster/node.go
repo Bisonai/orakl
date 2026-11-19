@@ -307,6 +307,10 @@ func (n *Node) start() error {
 	r.stopAggs = stopAggs
 	if err := app.Run(aggCtx); err != nil {
 		stopAggs()
+		// some aggregators may run already: none may outlive the test
+		waitCtx, cancelWait := context.WithTimeout(context.Background(), stepTimeout)
+		_ = app.WaitStopped(waitCtx)
+		cancelWait()
 		return fail(err)
 	}
 	for _, a := range app.Aggregators {

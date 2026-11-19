@@ -52,8 +52,8 @@ func TestHandOverPeerLeadsEveryFeedAtOnce(t *testing.T) {
 		Feeds:             names,
 		AggregateInterval: time.Second,
 		ConfigureAggregator: func(n *cluster.Node, a *aggregator.Aggregator) {
-			// no rounds: leadership only, so the held subscriptions below
-			// stay empty and the bound measures the hand-over alone
+			// no rounds: leadership only (heartbeats, votes), as before the
+			// harness, so the bound measures the hand-over alone
 			a.Raft.LeaderJob = func(context.Context) error { return nil }
 			a.Raft.HandleCustomMessage = func(context.Context, raft.Message) error { return nil }
 			a.Raft.PeerSilenceTimeout = time.Hour // only the leave elects
