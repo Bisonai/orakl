@@ -58,6 +58,9 @@ type App struct {
 	// OnSubmission, if set before Run, gets every aggregator's submission
 	// data (in-node reporter).
 	OnSubmission SubmissionHook
+	// CanLead, if set before Run, gates every feed's leadership on this
+	// node's health (raft.Raft.CanLead).
+	CanLead func() bool
 
 	// rounds persists RoundID advances of all aggregators to State (nil
 	// without State).
