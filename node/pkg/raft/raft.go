@@ -559,6 +559,8 @@ func (r *Raft) ResignLeader() {
 // and restarts the silence clock from now only if it changed. The term can be
 // below this node's own (see handleHeartbeat). The caller holds Mutex.
 func (r *Raft) followLeader(leaderID string, term int) {
+	// a later election without a leader holds an unhealthy node off again
+	r.unhealthyCampaignAfter = time.Time{}
 	if r.LeaderID == leaderID {
 		if clock := r.leaderClock.Load(); clock != nil {
 			clock.term = term // re-elected
@@ -730,6 +732,9 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 					// no peer to take over: check again a watchdog from now
 					storeLater(jobDone, int64(time.Since(leaderClockEpoch)))
 				}
+				if r.resignUnhealthyLeader(resign) {
+					return
+				}
 				if r.skipHeartbeat(heartbeatAt) {
 					metrics.RecordRaftHeartbeatSkipped()
 					continue
@@ -893,6 +898,13 @@ func (r *Raft) campaign(ctx context.Context, reason string) {
 	}
 	if time.Now().Before(r.campaignAfter) {
 		log.Debug().Msg("resigned a stuck term, skipping election.")
+		r.MissedHeartbeats = MaxMissedHeartbeats
+		r.startElectionTimer()
+		return
+	}
+
+	if r.holdOffUnhealthyCampaign() {
+		log.Debug().Msg("unhealthy, leaving the election to a peer.")
 		r.MissedHeartbeats = MaxMissedHeartbeats
 		r.startElectionTimer()
 		return
