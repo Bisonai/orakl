@@ -78,6 +78,22 @@ func (h *health) end(id uint64, now time.Time, delivered bool) {
 	}
 }
 
+// prepared records a regular job's prepare: led pairs this node led with fresh
+// data, ready of them left to submit. Led pairs with none left (e.g. every
+// proof rejected) count as a failed report. Leading none clears a failure:
+// after handing its feeds over the node has nothing to prove, and must not
+// stay unhealthy until it leads again.
+func (h *health) prepared(now time.Time, led, ready int) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	switch {
+	case led == 0:
+		h.failingSince = time.Time{}
+	case ready == 0 && h.failingSince.IsZero():
+		h.failingSince = now
+	}
+}
+
 // evaluate reports whether the reporter is healthy at now, and if not why:
 // it is not running, every submission failed, or one is stuck, for longer
 // than unhealthyAfter.

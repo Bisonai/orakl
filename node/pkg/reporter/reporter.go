@@ -112,7 +112,9 @@ func (r *Reporter) regularReporterJob(ctx context.Context) error {
 	}
 	var pairsMap map[string]SubmissionData
 	if r.local != nil {
-		pairsMap = r.local.prepare(ctx, r.local.latest(r.LatestDataMap, pairs))
+		var led int
+		pairsMap, led = r.local.prepareLed(ctx, r.local.latest(r.LatestDataMap, pairs))
+		r.local.health.prepared(r.local.now(), led, len(pairsMap))
 		if len(pairsMap) == 0 {
 			return nil
 		}
@@ -176,7 +178,8 @@ func (r *Reporter) report(ctx context.Context, pairs map[string]SubmissionData) 
 		defer func() { r.local.health.end(id, r.local.now(), failed < batches || batches == 0) }()
 	}
 
-	errorsChan := make(chan error, 5)
+	// one slot per batch: wg.Wait runs before the channel is read
+	errorsChan := make(chan error, batches)
 	for start := 0; start < dataLen; start += MAX_REPORT_BATCH_SIZE {
 		end := min(start+MAX_REPORT_BATCH_SIZE, dataLen)
 

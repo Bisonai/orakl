@@ -58,6 +58,28 @@ func TestHealthEvaluate(t *testing.T) {
 	})
 }
 
+// A leader whose every pair is dropped before submitting (e.g. all proofs
+// rejected) fails like one whose submissions fail; leading nothing clears it.
+func TestHealthPrepared(t *testing.T) {
+	t0 := time.UnixMilli(1_700_000_000_000)
+	h := newHealth(t0)
+	h.setRunning()
+
+	h.prepared(t0, 3, 0)
+	h.prepared(t0.Add(time.Second), 3, 0)
+	ok, reason := h.evaluate(t0.Add(unhealthyAfter + time.Second))
+	assert.False(t, ok)
+	assert.Equal(t, "submissions failing", reason)
+
+	h.prepared(t0.Add(unhealthyAfter), 3, 2)
+	ok, _ = h.evaluate(t0.Add(unhealthyAfter + time.Second))
+	assert.False(t, ok, "pairs left to submit don't prove delivery")
+
+	h.prepared(t0.Add(unhealthyAfter), 0, 0)
+	ok, _ = h.evaluate(t0.Add(2 * unhealthyAfter))
+	assert.True(t, ok, "still unhealthy after handing every feed over")
+}
+
 func TestHealthyStandaloneAlwaysTrue(t *testing.T) {
 	assert.True(t, New().Healthy())
 }

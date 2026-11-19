@@ -61,6 +61,8 @@ func (r *Raft) resignUnhealthyLeader(resign <-chan interface{}) bool {
 	log.Warn().Str("Player", "Raft").Msg("node unhealthy, resigning")
 	r.healthResignedAt.Store(int64(time.Since(leaderClockEpoch)))
 	r.ResignLeader()
+	// this leaderless spell gets its own campaign hold-off
+	r.unhealthyCampaignAfter = time.Time{}
 	r.MissedHeartbeats = 0
 	r.campaignAfter = time.Now().Add(2 * r.maxElectionDetection())
 	return true
@@ -73,6 +75,8 @@ func (r *Raft) resignUnhealthyLeader(resign <-chan interface{}) bool {
 func (r *Raft) holdOffUnhealthyCampaign() bool {
 	if !r.unhealthy() {
 		r.unhealthyCampaignAfter = time.Time{}
+		// recovered as a follower: the next unhealthy spell may resign at once
+		r.healthResignedAt.Store(0)
 		return false
 	}
 	if _, live := r.voterCounts(); live == 0 {
