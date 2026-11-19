@@ -315,7 +315,7 @@ func (a *App) reconnectUntilConnected(ctx context.Context, lastSync time.Time) t
 			return lastSync
 		}
 		if seeded > 0 {
-			attempt = 0 // newly listed peer (e.g. new ID of a restarted node): short first retry
+			attempt = 1 // newly listed peer (e.g. new ID of a restarted node): restart backoff at its first step
 		}
 
 		reset, ok := a.waitBackoff(ctx, a.backoffAfter(attempt))
@@ -379,7 +379,15 @@ func (a *App) prunePending(known []peer.ID, syncOK bool) (remaining, seeded int)
 		}
 	}
 	if syncOK {
-		seeded = len(a.seedLocked(known, true))
+		queued := a.seedLocked(known, true)
+		if len(queued) > 0 {
+			ids := make([]string, len(queued))
+			for i, p := range queued {
+				ids[i] = p.String()
+			}
+			log.Info().Str("Player", "Libp2pHelper").Strs("peers", ids).Msg("listed peers not connected, queued for reconnect")
+		}
+		seeded = len(queued)
 	}
 	return len(a.pending), seeded
 }
