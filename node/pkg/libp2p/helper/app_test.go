@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -423,4 +424,123 @@ func TestCloseHostBeforeRun(t *testing.T) {
 	app.handleDisconnectEvent(evtNotConnected(newHost(t).ID()))
 	time.Sleep(100 * time.Millisecond)
 	require.Empty(t, rec.snapshot())
+}
+
+// reachableFake returns a reconnect fake listing ids; it dials each target
+// only once reachable is set, like a boot sync whose dials fail until then.
+func reachableFake(rec *callRecorder, reachable *atomic.Bool, ids []peer.ID, targets ...host.Host) reconnectFunc {
+	return func(ctx context.Context, h host.Host) ([]peer.ID, error) {
+		rec.add()
+		if reachable.Load() {
+			for _, t := range targets {
+				_ = dial(ctx, h, t)
+			}
+		}
+		return ids, nil
+	}
+}
+
+// A peer listed by the startup sync whose dial failed is retried until it is
+// reachable, without any disconnect event (#2915).
+func TestStartupDialFailureRetriedUntilConnected(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	h1, h2 := newHost(t), newHost(t)
+	listed := []peer.ID{h1.ID(), h2.ID()} // the boot list includes self once registered
+	var reachable atomic.Bool
+	rec := &callRecorder{}
+	app := New(bus.New(10), h1)
+	app.reconnect = reachableFake(rec, &reachable, listed, h2)
+	app.backoff = []time.Duration{10 * time.Millisecond}
+	app.minSyncInterval = 0
+
+	// startup: sync listed h2 but its dial failed
+	app.SeedPending(listed)
+	require.NoError(t, app.Run(ctx))
+
+	require.Eventually(t, func() bool { return len(rec.snapshot()) >= 3 }, 2*time.Second, time.Millisecond, "unconnected listed peer not retried")
+	require.NotEqual(t, network.Connected, h1.Network().Connectedness(h2.ID()))
+
+	reachable.Store(true)
+	require.Eventually(t, func() bool { return h1.Network().Connectedness(h2.ID()) == network.Connected },
+		2*time.Second, 5*time.Millisecond, "peer not connected once reachable")
+
+	// connected; self is never pending, so the worker goes idle
+	time.Sleep(50 * time.Millisecond)
+	n := len(rec.snapshot())
+	time.Sleep(50 * time.Millisecond)
+	require.Equal(t, n, len(rec.snapshot()), "worker must stop once connected")
+}
+
+// A sync started by a disconnect also queues other listed peers it failed to
+// dial (e.g. the new ID of a restarted node), not only the disconnected one.
+func TestWorkerSyncQueuesUnconnectedListedPeer(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	h1, h2, h3 := newHost(t), newHost(t), newHost(t)
+	var h3Reachable atomic.Bool
+	rec := &callRecorder{}
+	app := New(bus.New(10), h1)
+	app.reconnect = func(ctx context.Context, h host.Host) ([]peer.ID, error) {
+		rec.add()
+		_ = dial(ctx, h, h2)
+		if h3Reachable.Load() {
+			_ = dial(ctx, h, h3)
+		}
+		return []peer.ID{h2.ID(), h3.ID()}, nil
+	}
+	app.backoff = []time.Duration{10 * time.Millisecond}
+	app.minSyncInterval = 0
+	require.NoError(t, app.Run(ctx))
+	require.NoError(t, dial(ctx, h1, h2))
+
+	require.NoError(t, h1.Network().ClosePeer(h2.ID()))
+	require.Eventually(t, func() bool { return h1.Network().Connectedness(h2.ID()) == network.Connected },
+		2*time.Second, 5*time.Millisecond)
+	require.Eventually(t, func() bool { return len(rec.snapshot()) >= 3 }, 2*time.Second, time.Millisecond, "unconnected listed peer not retried")
+
+	h3Reachable.Store(true)
+	require.Eventually(t, func() bool { return h1.Network().Connectedness(h3.ID()) == network.Connected },
+		2*time.Second, 5*time.Millisecond, "listed peer not connected once reachable")
+}
+
+// A seeded peer that connects and then drops is retried right away, not
+// after the backoff it was seeded with.
+func TestSeededPeerDisconnectSkipsBackoff(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	a := newHost(t).ID()
+	rec := &callRecorder{}
+	app := New(bus.New(10), newHost(t))
+	app.reconnect = rec.knows(a)
+	app.backoff = []time.Duration{time.Hour}
+	app.minSyncInterval = 0
+	go app.reconnectWorker(ctx)
+
+	app.SeedPending([]peer.ID{a})
+	require.Eventually(t, func() bool { return len(rec.snapshot()) == 1 }, time.Second, time.Millisecond)
+
+	// a connected (e.g. dialed by the other side) and dropped during the 1h backoff
+	app.handleDisconnectEvent(evtNotConnected(a))
+	require.Eventually(t, func() bool { return len(rec.snapshot()) == 2 }, time.Second, time.Millisecond)
+
+	// further events for a keep the backoff
+	app.handleDisconnectEvent(evtNotConnected(a))
+	time.Sleep(50 * time.Millisecond)
+	require.Len(t, rec.snapshot(), 2)
+}
+
+func TestSeedPendingSkipsSelfAndConnected(t *testing.T) {
+	h1, h2, h3 := newHost(t), newHost(t), newHost(t)
+	app := New(bus.New(10), h1)
+	require.NoError(t, dial(context.Background(), h1, h2))
+
+	app.SeedPending([]peer.ID{h1.ID(), h2.ID(), h3.ID(), h3.ID()})
+	require.Equal(t, map[peer.ID]pendingPeer{h3.ID(): {seeded: true}}, app.pending)
+
+	app.SeedPending(nil)
+	require.Len(t, app.pending, 1)
 }

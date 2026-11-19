@@ -36,6 +36,12 @@ const (
 	unlistedSyncsToDrop = 3
 )
 
+// pendingPeer is a peer the reconnect worker retries until it is connected.
+type pendingPeer struct {
+	misses int  // consecutive successful syncs not listing it
+	seeded bool // queued from a boot API list, not from a disconnect event
+}
+
 type App struct {
 	Host host.Host
 	Bus  *bus.MessageBus
@@ -46,8 +52,8 @@ type App struct {
 	minSyncInterval time.Duration
 
 	mu      sync.Mutex
-	pending map[peer.ID]int // peer -> consecutive successful syncs not listing it
-	newPeer bool            // a not-yet-pending peer was queued since the worker last looked
+	pending map[peer.ID]pendingPeer
+	newPeer bool // a not-yet-pending peer was queued since the worker last looked
 	wake    chan struct{}
 
 	// set by CloseHost; stopEvents ends the event loop and reconnect worker
@@ -62,7 +68,7 @@ func New(bus *bus.MessageBus, h host.Host) *App {
 		reconnect:       setup.SyncThroughBootApi,
 		backoff:         defaultReconnectBackoff,
 		minSyncInterval: defaultMinSyncInterval,
-		pending:         make(map[peer.ID]int),
+		pending:         make(map[peer.ID]pendingPeer),
 		wake:            make(chan struct{}, 1),
 	}
 }
@@ -191,12 +197,52 @@ func (a *App) handleDisconnectEvent(e interface{}) {
 	log.Info().Str("Player", "Libp2pHelper").Str("peer", evt.Peer.String()).Msg("Disconnect event caught, triggering resync")
 
 	a.mu.Lock()
-	if _, ok := a.pending[evt.Peer]; !ok {
-		a.pending[evt.Peer] = 0
+	// a seeded peer was seen connected since it was queued: it dropped again,
+	// so retry it now like a new peer
+	if pp, ok := a.pending[evt.Peer]; !ok || pp.seeded {
+		a.pending[evt.Peer] = pendingPeer{}
 		a.newPeer = true
 	}
 	a.mu.Unlock()
+	a.signal()
+}
 
+// SeedPending queues every peer in known (a boot API sync result) that is not
+// connected, so the reconnect worker retries it with backoff. A listed peer
+// whose dial failed never emits a disconnect event, so without this it is
+// never retried. Call it with the startup sync result; the worker seeds its
+// own syncs.
+func (a *App) SeedPending(known []peer.ID) {
+	a.mu.Lock()
+	n := a.seedLocked(known)
+	if n > 0 {
+		a.newPeer = true
+	}
+	a.mu.Unlock()
+	if n > 0 {
+		log.Info().Str("Player", "Libp2pHelper").Int("peers", n).Msg("listed peers not connected, queued for reconnect")
+		a.signal()
+	}
+}
+
+// seedLocked queues listed peers that are neither self, connected nor
+// already pending, and returns how many it queued. a.mu must be held.
+func (a *App) seedLocked(known []peer.ID) int {
+	n := 0
+	for _, p := range known {
+		if p == a.Host.ID() || a.Host.Network().Connectedness(p) == network.Connected {
+			continue
+		}
+		if _, ok := a.pending[p]; ok {
+			continue
+		}
+		a.pending[p] = pendingPeer{seeded: true}
+		n++
+	}
+	return n
+}
+
+func (a *App) signal() {
 	select {
 	case a.wake <- struct{}{}:
 	default: // worker already signalled; event coalesced
@@ -283,7 +329,9 @@ func (a *App) waitBackoff(ctx context.Context, d time.Duration) (reset, ok bool)
 
 // prunePending drops pending peers that are connected again and peers that
 // unlistedSyncsToDrop successful syncs in a row did not list (e.g. the old ID
-// of a restarted node, or a non-oracle peer). It returns how many remain.
+// of a restarted node, or a non-oracle peer). After a successful sync it also
+// queues listed peers that are still not connected (e.g. a dial that failed).
+// It returns how many remain.
 func (a *App) prunePending(known []peer.ID, syncOK bool) int {
 	listed := make(map[peer.ID]struct{}, len(known))
 	for _, p := range known {
@@ -292,7 +340,7 @@ func (a *App) prunePending(known []peer.ID, syncOK bool) int {
 
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	for p, misses := range a.pending {
+	for p, pp := range a.pending {
 		if a.Host.Network().Connectedness(p) == network.Connected {
 			delete(a.pending, p)
 			continue
@@ -301,12 +349,17 @@ func (a *App) prunePending(known []peer.ID, syncOK bool) int {
 			continue
 		}
 		if _, ok := listed[p]; ok {
-			a.pending[p] = 0
-		} else if misses+1 >= unlistedSyncsToDrop {
+			pp.misses = 0
+			a.pending[p] = pp
+		} else if pp.misses+1 >= unlistedSyncsToDrop {
 			delete(a.pending, p)
 		} else {
-			a.pending[p] = misses + 1
+			pp.misses++
+			a.pending[p] = pp
 		}
+	}
+	if syncOK {
+		a.seedLocked(known)
 	}
 	return len(a.pending)
 }
