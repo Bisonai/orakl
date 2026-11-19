@@ -94,6 +94,7 @@ func NewChainHelper(ctx context.Context, opts ...ChainHelperOption) (*ChainHelpe
 	chainID, err := utils.GetChainID(ctx, primaryClient)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to get chain id based on:" + config.ProviderUrl)
+		primaryClient.Close()
 		return nil, err
 	}
 
@@ -101,6 +102,7 @@ func NewChainHelper(ctx context.Context, opts ...ChainHelperOption) (*ChainHelpe
 
 	nonceManager, err := noncemanagerv2.New(ctx, primaryClient, wallet)
 	if err != nil {
+		primaryClient.Close()
 		return nil, err
 	}
 

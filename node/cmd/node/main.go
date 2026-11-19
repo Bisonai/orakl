@@ -196,17 +196,19 @@ func nodeReporterEnabled() bool {
 }
 
 // startNodeReporter submits the feeds this node leads on-chain. It must run
-// before the aggregator starts, so every aggregator gets the hook. A reporter
-// that fails to start is logged; the node keeps aggregating.
+// before the aggregator starts, so every aggregator gets the hooks. A reporter
+// that fails to start is retried; the node keeps aggregating, but while the
+// reporter is unhealthy (not running, or its submissions failing) it hands
+// the feeds it leads to peers (#2914).
 func startNodeReporter(ctx context.Context, a *aggregator.App) {
 	r := reporter.NewNodeApp()
 	a.OnSubmission = func(data aggregator.SubmissionData, leader bool) {
 		r.Ingest(data.Symbol, data.GlobalAggregate.Value, data.GlobalAggregate.Timestamp, data.Proof.Proof, leader)
 	}
+	a.CanLead = r.Healthy
 	go func() {
-		if err := r.Run(ctx); err != nil {
-			log.Error().Err(err).Msg("Failed to start in-node reporter")
-			return
+		if err := r.RunWithRetry(ctx); err != nil {
+			return // ctx done
 		}
 		log.Info().Msg("In-node reporter started")
 	}()

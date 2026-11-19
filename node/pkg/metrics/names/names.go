@@ -27,6 +27,7 @@ const (
 
 	ReporterSubmissions     = "orakl_node_reporter_submissions_total"
 	ReporterDelegatorErrors = "orakl_node_reporter_delegator_errors_total"
+	ReporterUp              = "orakl_node_reporter_up"
 
 	NameLabel     = "name"
 	ConfigLabel   = "config"

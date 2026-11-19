@@ -32,6 +32,10 @@ const (
 	// 99.99% <2.5 s), so a stall doesn't count a live peer out
 	DefaultPeerSilenceTimeout = 10 * time.Second
 	DefaultLeaderJobWatchdog  = 10 * time.Second
+	// an unhealthy leader (CanLead) resigns a feed at most once per this, so
+	// a cluster whose nodes are all unhealthy settles instead of handing feeds
+	// around
+	DefaultHealthResignBackoff = 5 * time.Minute
 )
 
 type Message struct {
@@ -93,6 +97,22 @@ type Raft struct {
 
 	// no campaign before this, after resigning a stuck term; under Mutex
 	campaignAfter time.Time
+
+	// CanLead, if set before Run, gates leadership on this node's health (the
+	// in-node reporter, which submits only the feeds this node leads): while
+	// it returns false, a leader resigns to a live peer and a follower holds
+	// off campaigning (health.go). nil: always healthy.
+	CanLead func() bool
+	// an unhealthy leader resigns at most once per this; 0 is
+	// DefaultHealthResignBackoff
+	HealthResignBackoff time.Duration
+	// last resign for health, ns since leaderClockEpoch; 0 never
+	healthResignedAt atomic.Int64
+	// no live-peer check for a health resign before this, same unit
+	healthPeerCheckAt atomic.Int64
+	// an unhealthy follower campaigns only from this on; zero until it first
+	// wants to after following a leader; under Mutex
+	unhealthyCampaignAfter time.Time
 
 	// message types only a leader sends, besides heartbeats; one from the
 	// current leader holds off votes (hearsLeaderOtherThan) and, like a

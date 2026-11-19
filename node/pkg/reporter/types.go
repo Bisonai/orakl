@@ -169,6 +169,8 @@ type Reporter struct {
 	deviationThreshold float64
 
 	local *localSource // nil: data from DAL
+	// in-node regular reporter: its reports gate the node's health
+	trackHealth bool
 
 	LatestDataMap          *sync.Map
 	LatestSubmittedDataMap *sync.Map

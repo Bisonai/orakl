@@ -160,6 +160,7 @@ func (a *App) initializeLoadedAggregators(ctx context.Context, loadedConfigs []C
 			return err
 		}
 		tmpNode.onSubmission = a.OnSubmission
+		tmpNode.Raft.CanLead = a.CanLead
 		a.Aggregators[config.ID] = tmpNode
 
 	}

@@ -39,11 +39,14 @@ type localSource struct {
 
 	lastRefresh atomic.Int64 // UnixNano of the last on-demand refresh
 
+	// whether this reporter can submit; gates the node's leadership (Healthy)
+	health *health
+
 	now func() time.Time
 }
 
 func newLocalSource() *localSource {
-	return &localSource{now: time.Now}
+	return &localSource{now: time.Now, health: newHealth(time.Now())}
 }
 
 // NewNodeApp returns a reporter that runs inside the node: it gets data
@@ -140,7 +143,15 @@ func (l *localSource) latest(latestDataMap *sync.Map, pairs []string) map[string
 // prepare keeps the pairs this node led in their latest round with data
 // newer than LocalMaxAge, and orders their proofs for SubmissionProxy.
 func (l *localSource) prepare(ctx context.Context, pairs map[string]SubmissionData) map[string]SubmissionData {
+	result, _ := l.prepareLed(ctx, pairs)
+	return result
+}
+
+// prepareLed is prepare that also returns how many pairs this node led with
+// fresh data, including those whose proof could not be ordered.
+func (l *localSource) prepareLed(ctx context.Context, pairs map[string]SubmissionData) (map[string]SubmissionData, int) {
 	whitelist := l.getWhitelist()
+	led := 0
 	cutoff := l.now().Add(-LocalMaxAge).UnixMilli()
 
 	result := make(map[string]SubmissionData, len(pairs))
@@ -151,6 +162,7 @@ func (l *localSource) prepare(ctx context.Context, pairs map[string]SubmissionDa
 		if data.AggregateTime < cutoff {
 			continue
 		}
+		led++
 		ordered, err := proof.Order(data.Proof, data.Value, time.UnixMilli(data.AggregateTime), pair, whitelist)
 		if err != nil {
 			log.Error().Str("Player", "Reporter").Str("pair", pair).Err(err).Msg("failed to order proof")
@@ -162,5 +174,5 @@ func (l *localSource) prepare(ctx context.Context, pairs map[string]SubmissionDa
 		data.Proof = ordered
 		result[pair] = data
 	}
-	return result
+	return result, led
 }

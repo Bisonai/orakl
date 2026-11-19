@@ -49,6 +49,7 @@ func NewReporter(ctx context.Context, opts ...ReporterOption) (*Reporter, error)
 	reporter.Pairs = configNames(config.Configs)
 
 	if config.JobType == ReportJob {
+		reporter.trackHealth = true
 		reporter.Job = func() error {
 			return reporter.regularReporterJob(ctx)
 		}
@@ -89,6 +90,23 @@ func (r *Reporter) Run(ctx context.Context) {
 // submission is never cancelled mid-flight).
 func (r *Reporter) Stop() {
 	r.stopOnce.Do(func() { close(r.stop) })
+	if r.local != nil {
+		r.local.health.forget(r)
+	}
+}
+
+// tracksHealth reports whether this reporter's jobs feed the node's health:
+// an in-node regular reporter not stopped (Stop forgot its state).
+func (r *Reporter) tracksHealth() bool {
+	if r.local == nil || !r.trackHealth {
+		return false
+	}
+	select {
+	case <-r.stop:
+		return false
+	default:
+		return true
+	}
 }
 
 // GetPairs returns a snapshot of the pairs; a job reads it once at its start.
@@ -112,7 +130,11 @@ func (r *Reporter) regularReporterJob(ctx context.Context) error {
 	}
 	var pairsMap map[string]SubmissionData
 	if r.local != nil {
-		pairsMap = r.local.prepare(ctx, r.local.latest(r.LatestDataMap, pairs))
+		var led int
+		pairsMap, led = r.local.prepareLed(ctx, r.local.latest(r.LatestDataMap, pairs))
+		if r.tracksHealth() {
+			r.local.health.prepared(r, r.local.now(), led, len(pairsMap))
+		}
 		if len(pairsMap) == 0 {
 			return nil
 		}
@@ -167,7 +189,17 @@ func (r *Reporter) report(ctx context.Context, pairs map[string]SubmissionData) 
 	dataLen := len(feedHashes)
 	wg := sync.WaitGroup{}
 
-	errorsChan := make(chan error, 5)
+	// a report counts as delivered if any batch got through: one feed's bad
+	// batch must not make the whole reporter unhealthy
+	batches := (dataLen + MAX_REPORT_BATCH_SIZE - 1) / MAX_REPORT_BATCH_SIZE
+	failed := 0
+	if r.tracksHealth() {
+		id := r.local.health.begin(r, r.local.now())
+		defer func() { r.local.health.end(r, id, r.local.now(), failed < batches || batches == 0) }()
+	}
+
+	// one slot per batch: wg.Wait runs before the channel is read
+	errorsChan := make(chan error, batches)
 	for start := 0; start < dataLen; start += MAX_REPORT_BATCH_SIZE {
 		end := min(start+MAX_REPORT_BATCH_SIZE, dataLen)
 
@@ -191,6 +223,7 @@ func (r *Reporter) report(ctx context.Context, pairs map[string]SubmissionData) 
 
 	tmp := []error{}
 	for err := range errorsChan {
+		failed++
 		tmp = append(tmp, err)
 		if utils.IsNonceError(err) || errors.Is(err, context.DeadlineExceeded) {
 			log.Debug().Err(err).Str("Player", "Reporter").Msg("should refresh nonce")
