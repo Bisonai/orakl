@@ -498,11 +498,11 @@ func TestStartupPeerDroppedBeforeRunRetried(t *testing.T) {
 	require.NoError(t, dial(ctx, h1, h2))
 
 	app.SeedPending([]peer.ID{h2.ID()})
-	require.NoError(t, h1.Network().ClosePeer(h2.ID())) // no subscriber yet: event lost
+	// never subscribed to events: the disconnect is seen only through the seed
+	require.NoError(t, h1.Network().ClosePeer(h2.ID()))
 	require.Eventually(t, func() bool { return h1.Network().Connectedness(h2.ID()) == network.NotConnected },
 		time.Second, time.Millisecond)
-	time.Sleep(100 * time.Millisecond) // let the event bus deliver the disconnect before Run subscribes
-	require.NoError(t, app.Run(ctx))
+	go app.reconnectWorker(ctx)
 
 	require.Eventually(t, func() bool { return h1.Network().Connectedness(h2.ID()) == network.Connected },
 		2*time.Second, 5*time.Millisecond, "peer dropped before Run not retried")

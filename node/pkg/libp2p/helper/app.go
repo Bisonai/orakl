@@ -251,11 +251,11 @@ func (a *App) seedLocked(known []peer.ID, skipConnected bool) []peer.ID {
 	return queued
 }
 
-// hasConn reports whether h has a connection to p, Limited (relayed) included:
-// the boot API sync does not dial a peer it already has a connection to.
+// hasConn reports whether h is fully connected to p. A Limited (relayed)
+// connection does not count: pubsub does not use it, and the boot API sync
+// still dials such a peer directly.
 func (a *App) hasConn(p peer.ID) bool {
-	c := a.Host.Network().Connectedness(p)
-	return c == network.Connected || c == network.Limited
+	return a.Host.Network().Connectedness(p) == network.Connected
 }
 
 func (a *App) signal() {

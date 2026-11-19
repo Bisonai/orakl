@@ -10,6 +10,7 @@ import (
 	"bisonai.com/miko/node/pkg/utils/retrier"
 
 	"github.com/libp2p/go-libp2p/core/host"
+	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/rs/zerolog/log"
 )
@@ -66,14 +67,8 @@ func SyncThroughBootApi(ctx context.Context, h host.Host) ([]peer.ID, error) {
 		}
 		known = append(known, info.ID)
 
-		alreadyConnected := false
-		for _, p := range h.Network().Peers() {
-			if info.ID == p {
-				alreadyConnected = true
-				break
-			}
-		}
-		if alreadyConnected {
+		// a Limited (relayed) connection is dialed for a direct one
+		if h.Network().Connectedness(info.ID) == network.Connected {
 			continue
 		}
 
