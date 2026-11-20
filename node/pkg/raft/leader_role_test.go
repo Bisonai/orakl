@@ -284,3 +284,29 @@ func TestIsLeaderMirrorsRole(t *testing.T) {
 	node.ResignLeader()
 	assert.False(t, node.IsLeader())
 }
+
+// IsLeader matches GetRole after the messages that can change a leader's role:
+// a higher-term RequestVote leaves it leading (stickiness), a higher-term
+// heartbeat deposes it.
+func TestIsLeaderAfterHigherTermMessages(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	node, _ := newLeaderLoopNode(ctx, t)
+	node.Mutex.Lock()
+	node.becomeLeader(ctx)
+	term := node.Term
+	node.Mutex.Unlock()
+	mirrors := func(msg string) {
+		t.Helper()
+		assert.Equal(t, node.GetRole() == Leader, node.IsLeader(), msg)
+	}
+
+	require.NoError(t, node.handleMessage(ctx, requestVoteFrom(t, testPeerID(t), term+1)))
+	assert.Equal(t, Leader, node.GetRole(), "leader stepped down on a RequestVote")
+	mirrors("after higher-term RequestVote")
+
+	require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, testPeerID(t), term+2)))
+	assert.Equal(t, Follower, node.GetRole())
+	assert.False(t, node.IsLeader(), "after higher-term heartbeat")
+}
