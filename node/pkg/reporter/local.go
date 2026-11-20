@@ -27,9 +27,14 @@ const (
 
 // localSource feeds a reporter running inside the node: submission data comes
 // from the node's own aggregators (Ingest), and only pairs whose latest round
-// this node led are submitted.
+// this node led, and that it still leads (leads), are submitted.
 type localSource struct {
 	leaders sync.Map // map[symbol]bool, from the latest ingested round
+
+	// leads reports whether this node leads a pair now (nil: not checked).
+	// The leaders flag alone stays set after a resign or stop that no later
+	// round reaches Ingest for.
+	leads func(symbol string) bool
 
 	chainHelper     *helper.ChainHelper
 	contractAddress string
@@ -55,6 +60,16 @@ func NewNodeApp() *App {
 	a := New()
 	a.local = newLocalSource()
 	return a
+}
+
+// SetLeads makes the in-node reporter submit a pair only while leads reports
+// this node leads it, besides having led its latest round: one that stopped
+// leading must not submit next to the new leader. Call before Run. No-op for
+// a standalone reporter.
+func (a *App) SetLeads(leads func(symbol string) bool) {
+	if a.local != nil {
+		a.local.leads = leads
+	}
 }
 
 // Ingest stores a global aggregate produced by this node; leader is whether
@@ -140,8 +155,9 @@ func (l *localSource) latest(latestDataMap *sync.Map, pairs []string) map[string
 	return result
 }
 
-// prepare keeps the pairs this node led in their latest round with data
-// newer than LocalMaxAge, and orders their proofs for SubmissionProxy.
+// prepare keeps the pairs this node led in their latest round and still leads
+// with data newer than LocalMaxAge, and orders their proofs for
+// SubmissionProxy.
 func (l *localSource) prepare(ctx context.Context, pairs map[string]SubmissionData) map[string]SubmissionData {
 	result, _ := l.prepareLed(ctx, pairs)
 	return result
@@ -157,6 +173,9 @@ func (l *localSource) prepareLed(ctx context.Context, pairs map[string]Submissio
 	result := make(map[string]SubmissionData, len(pairs))
 	for pair, data := range pairs {
 		if leader, ok := l.leaders.Load(pair); !ok || !leader.(bool) {
+			continue
+		}
+		if l.leads != nil && !l.leads(pair) {
 			continue
 		}
 		if data.AggregateTime < cutoff {
