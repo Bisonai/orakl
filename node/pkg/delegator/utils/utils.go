@@ -180,7 +180,7 @@ func setFeePayer(pk string) error {
 }
 
 // startFeePayerRetry launches the retry loop and ties its lifetime to the app.
-// Setup runs once per test (27 call sites), so an uncancellable goroutine here
+// Setup runs once per test, so an uncancellable goroutine here
 // would leak one retry loop per invocation, all racing to write feePayer.
 // Returns the context so callers can observe cancellation.
 func startFeePayerRetry(app *fiber.App, interval time.Duration) context.Context {

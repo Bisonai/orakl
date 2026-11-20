@@ -8,7 +8,6 @@ import (
 	"time"
 )
 
-// int8 and bigint in postgresql
 // json return type: string
 type CustomInt64 int64
 
