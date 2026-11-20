@@ -159,15 +159,16 @@ func (l *localSource) latest(latestDataMap *sync.Map, pairs []string) map[string
 // with data newer than LocalMaxAge, and orders their proofs for
 // SubmissionProxy.
 func (l *localSource) prepare(ctx context.Context, pairs map[string]SubmissionData) map[string]SubmissionData {
-	result, _ := l.prepareLed(ctx, pairs)
+	result, _, _ := l.prepareLed(ctx, pairs)
 	return result
 }
 
 // prepareLed is prepare that also returns how many pairs this node led with
-// fresh data, including those whose proof could not be ordered.
-func (l *localSource) prepareLed(ctx context.Context, pairs map[string]SubmissionData) (map[string]SubmissionData, int) {
+// fresh data, including those whose proof could not be ordered, and how many
+// with fresh data from a round it led it no longer leads (lost).
+func (l *localSource) prepareLed(ctx context.Context, pairs map[string]SubmissionData) (map[string]SubmissionData, int, int) {
 	whitelist := l.getWhitelist()
-	led := 0
+	led, lost := 0, 0
 	cutoff := l.now().Add(-LocalMaxAge).UnixMilli()
 
 	result := make(map[string]SubmissionData, len(pairs))
@@ -175,10 +176,11 @@ func (l *localSource) prepareLed(ctx context.Context, pairs map[string]Submissio
 		if leader, ok := l.leaders.Load(pair); !ok || !leader.(bool) {
 			continue
 		}
-		if l.leads != nil && !l.leads(pair) {
+		if data.AggregateTime < cutoff {
 			continue
 		}
-		if data.AggregateTime < cutoff {
+		if l.leads != nil && !l.leads(pair) {
+			lost++
 			continue
 		}
 		led++
@@ -193,5 +195,5 @@ func (l *localSource) prepareLed(ctx context.Context, pairs map[string]Submissio
 		data.Proof = ordered
 		result[pair] = data
 	}
-	return result, led
+	return result, led, lost
 }

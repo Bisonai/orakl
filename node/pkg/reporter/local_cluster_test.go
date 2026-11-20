@@ -37,7 +37,7 @@ func TestLocalStopsSubmittingLostFeed(t *testing.T) {
 		mu.Lock()
 		r := reporters[n.Index()]
 		mu.Unlock()
-		_, count := r.local.prepareLed(context.Background(), r.local.latest(r.LatestDataMap, []string{feed}))
+		_, count, _ := r.local.prepareLed(context.Background(), r.local.latest(r.LatestDataMap, []string{feed}))
 		return count > 0
 	}
 	waitLeads := func() *cluster.Node {
