@@ -549,6 +549,7 @@ func (r *Raft) ResignLeader() {
 		close(r.Resign)
 		r.Resign = nil
 		r.Role = Follower
+		r.leading.Store(false)
 		r.LeaderID = ""
 		r.leaderClock.Store(nil)
 		r.startElectionTimer()
@@ -646,6 +647,7 @@ func (r *Raft) setLeaderState() {
 	r.ElectionTimer.Stop()
 	r.Term++
 	r.Role = Leader
+	r.leading.Store(true)
 	r.LeaderID = r.GetHostId()
 	r.recordLeaderChangeSilence(r.leaderClock.Swap(nil), r.Term)
 }

@@ -269,3 +269,18 @@ func TestLowerTermHeartbeatFromNewerLeaderTakesOver(t *testing.T) {
 	assert.Equal(t, live, node.GetLeader(), "back to the stale leader")
 	assert.Equal(t, 7, node.GetCurrentTerm())
 }
+
+// IsLeader follows the role without Mutex: it can be read while Mutex is held.
+func TestIsLeaderMirrorsRole(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	node, _ := newLeaderLoopNode(ctx, t)
+	node.Mutex.Lock()
+	defer node.Mutex.Unlock()
+	assert.False(t, node.IsLeader())
+	node.becomeLeader(ctx)
+	assert.True(t, node.IsLeader())
+	node.ResignLeader()
+	assert.False(t, node.IsLeader())
+}

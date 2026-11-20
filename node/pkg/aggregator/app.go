@@ -173,12 +173,12 @@ func (a *App) initializeLoadedAggregators(ctx context.Context, loadedConfigs []C
 }
 
 // Leads reports whether this node leads feed now: its Raft holds the leader
-// role. Feed names are unique (nodeconfig). A stopped aggregator leads nothing
-// once its Run has returned (it resigns on the way out). Safe to call
-// concurrently with Run.
+// role (lock-free, Raft.IsLeader). Feed names are unique (nodeconfig). A
+// stopped aggregator leads nothing once its Run has returned (it resigns on
+// the way out). Safe to call concurrently with Run.
 func (a *App) Leads(feed string) bool {
 	rf, ok := a.rafts.Load(feed)
-	return ok && rf.(*raft.Raft).GetRole() == raft.Leader
+	return ok && rf.(*raft.Raft).IsLeader()
 }
 
 func (a *App) getConfigs(ctx context.Context) ([]Config, error) {
