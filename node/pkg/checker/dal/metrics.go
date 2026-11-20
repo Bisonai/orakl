@@ -27,7 +27,7 @@ var (
 	})
 	restMissingFeedsGauge = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "orakl_dal_check_rest_missing_feeds",
-		Help: "Configured symbols missing from the last DAL REST response.",
+		Help: "Configured symbols missing from the last DAL REST response or with an unparseable aggregateTime.",
 	})
 	wsLastPushGauge = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "orakl_dal_check_ws_last_push_timestamp_seconds",

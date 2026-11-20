@@ -215,7 +215,7 @@ func checkDal(endpoint string, key string, expected map[string]struct{}, restSym
 	restMissingFeedsGauge.Set(float64(len(missing)))
 	if len(missing) > 0 {
 		slices.Sort(missing)
-		log.Warn().Str("Player", "DalChecker").Int("count", len(missing)).Str("symbols", strings.Join(missing, ",")).Msg("configured feeds missing from DAL REST response")
+		log.Warn().Str("Player", "DalChecker").Int("count", len(missing)).Str("symbols", strings.Join(missing, ",")).Msg("configured feeds missing from DAL REST response or with invalid aggregateTime")
 	}
 
 	for symbol := range restSymbols {
