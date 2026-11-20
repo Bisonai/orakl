@@ -128,6 +128,7 @@ func TestSlowCloseDoesNotStallBroadcast(t *testing.T) {
 			defer cancel()
 
 			stream := make(chan *dalcommon.OutgoingSubmissionData)
+			defer close(stream)
 			col := &collector.Collector{OutgoingStream: map[string]chan *dalcommon.OutgoingSubmissionData{"A-B": stream}}
 			h := NewHub(map[string]struct{}{"A-B": {}})
 			h.Start(ctx, col)

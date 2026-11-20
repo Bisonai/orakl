@@ -105,8 +105,17 @@ func TestReloadRemoveReAddKeepsWebsocketSubscription(t *testing.T) {
 	go conn.Read(ctx, ch)
 
 	assert.Equal(t, symbol, awaitWSSubmission(ctx, t, testItems, ch, symbol).Symbol)
+	// awaitWSSubmission may have published more than once: drain late deliveries.
+	for quiet := false; !quiet; {
+		select {
+		case <-ch:
+		case <-time.After(500 * time.Millisecond):
+			quiet = true
+		}
+	}
 
-	// reload removes the symbol: nothing is delivered for it
+	// reload removes the symbol: nothing is delivered for it (the collector
+	// drops its data; the hub's stale-stream guard is covered by hub tests)
 	require.NoError(t, dal.ApplyConfigs(ctx, testItems.Collector, testItems.Controller, []Config{other}))
 	assert.Equal(t, []string{other.Name}, symbolsFromApi(t, testItems))
 	data, err := generateSampleSubmissionData(testItems.TmpConfig.ID, 16, time.Now(), 2, symbol)
