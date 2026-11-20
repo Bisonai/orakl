@@ -102,12 +102,12 @@ func TestLocalPrepareSkipsLostLead(t *testing.T) {
 	a.Ingest("A-B", 10, fresh, s, true)
 
 	pairs := []string{"A-B"}
-	got, led, _ := a.local.prepareLed(context.Background(), a.local.latest(a.LatestDataMap, pairs))
+	got, led := a.local.prepareLed(context.Background(), a.local.latest(a.LatestDataMap, pairs))
 	assert.Len(t, got, 1, "submitted while leading")
 	assert.Equal(t, 1, led)
 
 	leads.Store(false) // resigned or stopped: no round follows
-	got, led, _ = a.local.prepareLed(context.Background(), a.local.latest(a.LatestDataMap, pairs))
+	got, led = a.local.prepareLed(context.Background(), a.local.latest(a.LatestDataMap, pairs))
 	assert.Empty(t, got, "submitted after losing the lead")
 	assert.Equal(t, 0, led, "a lost pair counts as not led (health)")
 }
@@ -116,21 +116,4 @@ func TestSetLeadsIgnoredWithoutLocal(t *testing.T) {
 	a := New()
 	a.SetLeads(func(string) bool { return false })
 	assert.Nil(t, a.local)
-}
-
-// A node that resigned for failing submissions stays unhealthy while it only
-// has pairs it lost: clearing would let it lead (and fail) again at once.
-func TestLostLeadKeepsHealth(t *testing.T) {
-	t0 := time.UnixMilli(1_700_000_000_000)
-	a := NewNodeApp()
-	a.local.now = func() time.Time { return t0 }
-	a.SetLeads(func(string) bool { return false })
-	a.Ingest("A-B", 10, t0.Add(-time.Second), []byte{1}, true)
-	r := &Reporter{Pairs: []string{"A-B"}, LatestDataMap: a.LatestDataMap, local: a.local, trackHealth: true, stop: make(chan struct{})}
-
-	a.local.health.prepared(r, t0, 1, 0) // its submissions failing
-	require.NoError(t, r.regularReporterJob(context.Background()))
-	ok, reason, _ := a.local.health.evaluate(t0.Add(unhealthyAfter + time.Second))
-	assert.False(t, ok, "failure cleared by losing the lead")
-	assert.Equal(t, "submissions failing", reason)
 }

@@ -130,12 +130,9 @@ func (r *Reporter) regularReporterJob(ctx context.Context) error {
 	}
 	var pairsMap map[string]SubmissionData
 	if r.local != nil {
-		var led, lost int
-		pairsMap, led, lost = r.local.prepareLed(ctx, r.local.latest(r.LatestDataMap, pairs))
-		// only lost pairs: health is left as it was, so a node that resigned
-		// for failing submissions doesn't turn healthy (and lead again) at
-		// once; it clears once a later round or LocalMaxAge drops them
-		if r.tracksHealth() && (led > 0 || lost == 0) {
+		var led int
+		pairsMap, led = r.local.prepareLed(ctx, r.local.latest(r.LatestDataMap, pairs))
+		if r.tracksHealth() {
 			r.local.health.prepared(r, r.local.now(), led, len(pairsMap))
 		}
 		if len(pairsMap) == 0 {
