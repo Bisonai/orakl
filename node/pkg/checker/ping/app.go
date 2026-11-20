@@ -202,29 +202,33 @@ func (app *App) Start(ctx context.Context) {
 }
 
 func (app *App) processResult(result PingResult) {
-	delayMs := result.Delay.Milliseconds()
-	thresholdMs := int64(app.ThresholdFactor * app.RTTAvg[result.Address] / float64(time.Millisecond))
-
-	if result.Success {
-		if _, exists := app.RTTAvg[result.Address]; !exists {
-			app.RTTAvg[result.Address] = float64(result.Delay)
-		} else {
-			app.RTTAvg[result.Address] = app.Alpha*float64(result.Delay) + (1-app.Alpha)*app.RTTAvg[result.Address]
-		}
-
-		if delayMs > thresholdMs {
-			log.Warn().
-				Str("endpoint", result.Address).
-				Int64("delay_ms", delayMs).
-				Int64("threshold_ms", thresholdMs).
-				Msg("ping success but above threshold")
-			app.FailCount[result.Address]++
-		} else {
-			log.Debug().Str("endpoint", result.Address).Int64("delay_ms", delayMs).Msg("ping OK")
-			app.FailCount[result.Address] = 0
-		}
-	} else {
+	if !result.Success {
 		log.Warn().Str("endpoint", result.Address).Msg("ping failed")
 		app.FailCount[result.Address]++
+		return
+	}
+
+	avg, seen := app.RTTAvg[result.Address]
+	if !seen {
+		// The first sample only initialises the average.
+		app.RTTAvg[result.Address] = float64(result.Delay)
+		app.FailCount[result.Address] = 0
+		log.Debug().Str("endpoint", result.Address).Dur("delay", result.Delay).Msg("ping OK")
+		return
+	}
+
+	threshold := time.Duration(app.ThresholdFactor * avg)
+	app.RTTAvg[result.Address] = app.Alpha*float64(result.Delay) + (1-app.Alpha)*avg
+
+	if result.Delay > threshold {
+		log.Warn().
+			Str("endpoint", result.Address).
+			Dur("delay", result.Delay).
+			Dur("threshold", threshold).
+			Msg("ping success but above threshold")
+		app.FailCount[result.Address]++
+	} else {
+		log.Debug().Str("endpoint", result.Address).Dur("delay", result.Delay).Msg("ping OK")
+		app.FailCount[result.Address] = 0
 	}
 }

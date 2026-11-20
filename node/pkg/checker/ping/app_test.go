@@ -9,6 +9,7 @@ import (
 	probing "github.com/prometheus-community/pro-bing"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 // MockPinger is a mock implementation of probing.Pinger
@@ -92,4 +93,31 @@ func TestApp_Start_ShutdownOnAllFailures(t *testing.T) {
 	for _, endpoint := range app.Endpoints {
 		assert.Equal(t, DefaultMaxFails, app.FailCount[endpoint.Address])
 	}
+}
+
+func TestApp_ProcessResult_FirstSampleNotFailure(t *testing.T) {
+	app, err := New(WithEndpoints([]string{"8.8.8.8"}))
+	require.NoError(t, err)
+
+	app.processResult(PingResult{Address: "8.8.8.8", Success: true, Delay: 20 * time.Millisecond})
+	assert.Equal(t, 0, app.FailCount["8.8.8.8"])
+	assert.Equal(t, float64(20*time.Millisecond), app.RTTAvg["8.8.8.8"])
+
+	// Within threshold: still OK.
+	app.processResult(PingResult{Address: "8.8.8.8", Success: true, Delay: 22 * time.Millisecond})
+	assert.Equal(t, 0, app.FailCount["8.8.8.8"])
+
+	// Well above threshold: counted.
+	app.processResult(PingResult{Address: "8.8.8.8", Success: true, Delay: 200 * time.Millisecond})
+	assert.Equal(t, 1, app.FailCount["8.8.8.8"])
+}
+
+// Sub-millisecond RTTs are compared as durations, not truncated to 0 ms.
+func TestApp_ProcessResult_SubMillisecond(t *testing.T) {
+	app, err := New(WithEndpoints([]string{"8.8.8.8"}))
+	require.NoError(t, err)
+
+	app.processResult(PingResult{Address: "8.8.8.8", Success: true, Delay: 200 * time.Microsecond})
+	app.processResult(PingResult{Address: "8.8.8.8", Success: true, Delay: 900 * time.Microsecond})
+	assert.Equal(t, 1, app.FailCount["8.8.8.8"])
 }
