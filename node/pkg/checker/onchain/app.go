@@ -33,8 +33,12 @@ const (
 	// MaxBlockRange bounds one eth_getLogs call. After a longer outage the reader
 	// skips ahead; every feed updates well within this window (~1000 s).
 	MaxBlockRange = 1000
-	// rpcConcurrency bounds parallel eth_calls when (re)loading feeds.
+	// rpcConcurrency bounds parallel eth_calls when (re)loading feeds and
+	// parallel header reads per poll.
 	rpcConcurrency = 8
+	// minPollTimeout is the smallest per-poll deadline, so a catch-up poll over
+	// MaxBlockRange blocks can finish even with a short interval.
+	minPollTimeout = 30 * time.Second
 )
 
 var (
@@ -114,22 +118,24 @@ func Start(ctx context.Context) error {
 	interval := pollInterval()
 	log.Info().Str("Player", "OnchainChecker").Int("feeds", len(configs)).Dur("interval", interval).Msg("on-chain reader started")
 
-	r.run(ctx, interval)
+	r.run(ctx, interval, pollTimeout(interval))
 	return nil
 }
 
 // pollTimeout bounds one Poll (all of its RPC calls) so a hung call cannot
-// stop the loop. It stays below the interval so the next tick is on time.
+// stop the loop: 4/5 of the interval, but at least minPollTimeout so a
+// catch-up poll is not cut off every time. A poll running past the interval
+// only delays the next tick.
 func pollTimeout(interval time.Duration) time.Duration {
-	return interval * 4 / 5
+	return max(interval*4/5, minPollTimeout)
 }
 
-// run polls every interval until ctx is done.
-func (r *Reader) run(ctx context.Context, interval time.Duration) {
+// run polls every interval, each poll bounded by timeout, until ctx is done.
+func (r *Reader) run(ctx context.Context, interval, timeout time.Duration) {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 	for {
-		pollCtx, cancel := context.WithTimeout(ctx, pollTimeout(interval))
+		pollCtx, cancel := context.WithTimeout(ctx, timeout)
 		err := r.Poll(pollCtx)
 		cancel()
 		if err != nil && ctx.Err() == nil {
@@ -359,16 +365,28 @@ func (r *Reader) Poll(ctx context.Context) error {
 }
 
 func (r *Reader) blockTimes(ctx context.Context, logs []types.Log) (map[uint64]int64, error) {
-	times := map[uint64]int64{}
+	blocks := map[uint64]struct{}{}
 	for _, l := range logs {
-		if _, ok := times[l.BlockNumber]; ok {
-			continue
-		}
-		h, err := r.client.HeaderByNumber(ctx, new(big.Int).SetUint64(l.BlockNumber))
-		if err != nil {
-			return nil, err
-		}
-		times[l.BlockNumber] = h.Time.Int64()
+		blocks[l.BlockNumber] = struct{}{}
+	}
+	var mu sync.Mutex
+	times := make(map[uint64]int64, len(blocks))
+	g, gctx := errgroup.WithContext(ctx)
+	g.SetLimit(rpcConcurrency)
+	for n := range blocks {
+		g.Go(func() error {
+			h, err := r.client.HeaderByNumber(gctx, new(big.Int).SetUint64(n))
+			if err != nil {
+				return err
+			}
+			mu.Lock()
+			times[n] = h.Time.Int64()
+			mu.Unlock()
+			return nil
+		})
+	}
+	if err := g.Wait(); err != nil {
+		return nil, err
 	}
 	return times, nil
 }

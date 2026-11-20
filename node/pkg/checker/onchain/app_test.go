@@ -230,7 +230,7 @@ func TestRunHungPollTimesOutAndNextTickRuns(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan struct{})
 	go func() {
-		r.run(ctx, 100*time.Millisecond)
+		r.run(ctx, 100*time.Millisecond, 80*time.Millisecond)
 		close(done)
 	}()
 	t.Cleanup(func() {
@@ -252,4 +252,22 @@ func TestRunHungPollTimesOutAndNextTickRuns(t *testing.T) {
 	case <-time.After(5 * time.Second):
 		t.Fatal("run did not stop on cancel")
 	}
+}
+
+func TestPollTimeout(t *testing.T) {
+	assert.Equal(t, minPollTimeout, pollTimeout(DefaultPollInterval))
+	assert.Equal(t, 48*time.Second, pollTimeout(time.Minute))
+}
+
+func TestPollReadsHeadersOfAllLogBlocks(t *testing.T) {
+	r, fc, btc, eth := setup(t)
+	require.NoError(t, r.ApplyConfigs(context.Background(), []Config{{Name: "TEST-BTC"}, {Name: "TEST-ETH"}}))
+	require.NoError(t, r.Poll(context.Background()))
+	for i := uint64(1); i <= 20; i++ {
+		fc.logs = append(fc.logs, updateLog(btc, 100+i, 0, big.NewInt(int64(i))), updateLog(eth, 100+i, 1, big.NewInt(int64(i))))
+	}
+	fc.head = 120
+	require.NoError(t, r.Poll(context.Background()))
+	assert.Equal(t, float64(1_700_000_120), testutil.ToFloat64(updatedGauge.WithLabelValues("TEST-BTC")))
+	assert.Equal(t, float64(20), testutil.ToFloat64(answerGauge.WithLabelValues("TEST-ETH")))
 }
