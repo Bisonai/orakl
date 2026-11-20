@@ -4,7 +4,11 @@ package health
 import (
 	"bytes"
 	"context"
+	"net"
+	"net/http"
+	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -48,19 +52,19 @@ func TestCheckUrl(t *testing.T) {
 func TestCheckHttp(t *testing.T) {
 	// Test case 1: Valid URL with HTTP 200 response
 	validUrl := "http://example.com"
-	if !checkHttp(validUrl) {
+	if !checkHttp(context.Background(), validUrl) {
 		t.Errorf("checkHttp(%s) = false, expected true", validUrl)
 	}
 
 	// Test case 2: Valid URL with non-200 response
 	non200Url := "http://example.com/nonexistent"
-	if checkHttp(non200Url) {
+	if checkHttp(context.Background(), non200Url) {
 		t.Errorf("checkHttp(%s) = true, expected false", non200Url)
 	}
 
 	// Test case 3: Invalid URL
 	invalidUrl := "invalid-url"
-	if checkHttp(invalidUrl) {
+	if checkHttp(context.Background(), invalidUrl) {
 		t.Errorf("checkHttp(%s) = true, expected false", invalidUrl)
 	}
 }
@@ -85,4 +89,73 @@ func TestRedactURL(t *testing.T) {
 			t.Errorf("redactURL(%q) = %q, want %q", in, got, want)
 		}
 	}
+}
+
+// silentListener accepts TCP connections and never answers.
+func silentListener(t *testing.T) string {
+	t.Helper()
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { ln.Close() })
+	go func() {
+		var conns []net.Conn
+		defer func() {
+			for _, c := range conns {
+				c.Close()
+			}
+		}()
+		for {
+			c, err := ln.Accept()
+			if err != nil {
+				return
+			}
+			conns = append(conns, c)
+		}
+	}()
+	return ln.Addr().String()
+}
+
+func withCheckTimeout(t *testing.T, d time.Duration) {
+	t.Helper()
+	prev := checkTimeout
+	checkTimeout = d
+	t.Cleanup(func() { checkTimeout = prev })
+}
+
+func assertTimesOut(t *testing.T, target HealthCheckUrl) {
+	t.Helper()
+	done := make(chan bool, 1)
+	go func() { done <- checkUrl(context.Background(), target) }()
+	select {
+	case alive := <-done:
+		assert.False(t, alive, "hung target must be reported down")
+	case <-time.After(5 * time.Second):
+		t.Fatalf("check of %s did not time out", target.Name)
+	}
+}
+
+func TestCheckUrlHungHttpTimesOut(t *testing.T) {
+	withCheckTimeout(t, 200*time.Millisecond)
+	release := make(chan struct{})
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		select {
+		case <-release:
+		case <-r.Context().Done():
+		}
+	}))
+	t.Cleanup(srv.Close)
+	t.Cleanup(func() { close(release) })
+	assertTimesOut(t, HealthCheckUrl{Name: "http", Url: srv.URL})
+}
+
+func TestCheckUrlHungPostgresTimesOut(t *testing.T) {
+	withCheckTimeout(t, 200*time.Millisecond)
+	assertTimesOut(t, HealthCheckUrl{Name: "pg", Url: "postgresql://u:p@" + silentListener(t) + "/db?sslmode=disable&connect_timeout=0"})
+}
+
+func TestCheckUrlHungRedisTimesOut(t *testing.T) {
+	withCheckTimeout(t, 200*time.Millisecond)
+	assertTimesOut(t, HealthCheckUrl{Name: "redis", Url: "redis://" + silentListener(t)})
 }

@@ -114,15 +114,30 @@ func Start(ctx context.Context) error {
 	interval := pollInterval()
 	log.Info().Str("Player", "OnchainChecker").Int("feeds", len(configs)).Dur("interval", interval).Msg("on-chain reader started")
 
+	r.run(ctx, interval)
+	return nil
+}
+
+// pollTimeout bounds one Poll (all of its RPC calls) so a hung call cannot
+// stop the loop. It stays below the interval so the next tick is on time.
+func pollTimeout(interval time.Duration) time.Duration {
+	return interval * 4 / 5
+}
+
+// run polls every interval until ctx is done.
+func (r *Reader) run(ctx context.Context, interval time.Duration) {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 	for {
-		if err := r.Poll(ctx); err != nil && ctx.Err() == nil {
+		pollCtx, cancel := context.WithTimeout(ctx, pollTimeout(interval))
+		err := r.Poll(pollCtx)
+		cancel()
+		if err != nil && ctx.Err() == nil {
 			log.Warn().Str("Player", "OnchainChecker").Err(err).Msg("poll failed, retrying next tick")
 		}
 		select {
 		case <-ctx.Done():
-			return nil
+			return
 		case <-ticker.C:
 		}
 	}
