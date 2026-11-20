@@ -31,8 +31,8 @@ var (
 )
 
 var (
-	// caller is the name of the API token (SQLite mode; operator-created, so
-	// bounded), "" when unauthenticated or in Postgres mode.
+	// caller is the name of the API token (operator-created, so bounded), ""
+	// when unauthenticated.
 	signRequests = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: "orakl_delegator_sign_requests_total",
 		Help: "POST /sign/v2 requests by result and caller (API token name).",
@@ -44,7 +44,7 @@ var (
 	})
 	storeErrors = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: "orakl_delegator_store_errors_total",
-		Help: "Store (SQLite or Postgres) read/write failures by operation.",
+		Help: "SQLite store read/write failures by operation.",
 	}, []string{"op"})
 	rpcErrors = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: "orakl_delegator_rpc_errors_total",

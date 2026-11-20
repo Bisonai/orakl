@@ -11,7 +11,7 @@ import (
 
 const allowUsage = `usage: delegatorbin allow <command>
 
-SQLite mode only. The allowlist is in $DELEGATOR_SQLITE_DIR/config.db
+The allowlist is in $DELEGATOR_SQLITE_DIR/config.db
 (add/import create it). <function> is a 0x-prefixed 4-byte selector or a
 signature such as "submit(bytes32[],int256[],uint256[],bytes[])".
 

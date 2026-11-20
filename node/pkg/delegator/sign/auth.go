@@ -10,7 +10,7 @@ import (
 )
 
 // RequireToken accepts only requests with a valid "Authorization: Bearer
-// <token>" (SQLite mode). With no tokens configured every request is refused.
+// <token>". With no tokens configured every request is refused.
 func RequireToken(c *fiber.Ctx) error {
 	s := utils.GetStore(c)
 	if s == nil {
