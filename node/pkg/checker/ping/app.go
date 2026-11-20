@@ -20,6 +20,9 @@ const (
 	// DefaultTimeout bounds a single ping attempt; a reply that does not arrive
 	// within it counts as a failure.
 	DefaultTimeout = 3 * time.Second
+	// DefaultMinThresholdMargin is the least an RTT must exceed the average by
+	// to count as slow, so sub-millisecond jitter is not a failure.
+	DefaultMinThresholdMargin = time.Millisecond
 )
 
 var GlobalEndpoints = []string{
@@ -259,7 +262,7 @@ func (app *App) processResult(result PingResult) {
 		return
 	}
 
-	threshold := time.Duration(app.ThresholdFactor * avg)
+	threshold := max(time.Duration(app.ThresholdFactor*avg), time.Duration(avg)+DefaultMinThresholdMargin)
 	app.RTTAvg[result.Address] = app.Alpha*float64(result.Delay) + (1-app.Alpha)*avg
 
 	if result.Delay > threshold {

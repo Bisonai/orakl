@@ -192,13 +192,17 @@ func TestApp_ProcessResult_FirstSampleNotFailure(t *testing.T) {
 	assert.Equal(t, 1, app.FailCount["8.8.8.8"])
 }
 
-// Sub-millisecond RTTs are compared as durations, not truncated to 0 ms.
+// Sub-millisecond jitter is tolerated, but RTTs are compared as durations,
+// not truncated to 0 ms.
 func TestApp_ProcessResult_SubMillisecond(t *testing.T) {
 	app, err := New(WithEndpoints([]string{"8.8.8.8"}))
 	require.NoError(t, err)
 
 	app.processResult(PingResult{Address: "8.8.8.8", Success: true, Delay: 200 * time.Microsecond})
 	app.processResult(PingResult{Address: "8.8.8.8", Success: true, Delay: 900 * time.Microsecond})
+	assert.Equal(t, 0, app.FailCount["8.8.8.8"])
+
+	app.processResult(PingResult{Address: "8.8.8.8", Success: true, Delay: 1900 * time.Microsecond})
 	assert.Equal(t, 1, app.FailCount["8.8.8.8"])
 }
 
