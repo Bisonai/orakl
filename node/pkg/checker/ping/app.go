@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"strconv"
+	"sync"
 	"time"
 
 	probing "github.com/prometheus-community/pro-bing"
@@ -16,6 +17,13 @@ const (
 	DefaultMaxFails          = 2
 	DefaultBufferSize        = 500
 	DefaultReconnectInterval = 2 * time.Second
+	// DefaultTimeout bounds a single ping attempt; a reply that does not arrive
+	// within it counts as a failure.
+	DefaultTimeout = 3 * time.Second
+	// DefaultMinThresholdMargin is the least an RTT must exceed the average by
+	// to count as slow, so normal jitter on sub-ms/low-ms endpoints is not a
+	// failure.
+	DefaultMinThresholdMargin = 5 * time.Millisecond
 )
 
 var GlobalEndpoints = []string{
@@ -25,9 +33,14 @@ var GlobalEndpoints = []string{
 }
 
 type PingerInterface interface {
-	Run() error
+	RunWithContext(ctx context.Context) error
 	Statistics() *probing.Statistics
 }
+
+// pingerFactory builds a fresh pinger for one attempt. probing.Pinger is
+// single-use: Stop closes its done channel and statistics accumulate, so it
+// must not be reused across attempts.
+type pingerFactory func(addr string, timeout time.Duration) (PingerInterface, error)
 
 type PingResult struct {
 	Address string
@@ -37,7 +50,6 @@ type PingResult struct {
 
 type PingEndpoint struct {
 	Address string
-	Pinger  PingerInterface
 }
 
 type AppConfig struct {
@@ -80,20 +92,57 @@ type App struct {
 	Endpoints       []PingEndpoint
 	ResultsBuffer   chan PingResult
 	FailCount       map[string]int
+
+	timeout   time.Duration
+	interval  time.Duration
+	newPinger pingerFactory
 }
 
-func (pe *PingEndpoint) runOnce() error {
-	// Type assert to actual *probing.Pinger to set Count=1
-	if p, ok := pe.Pinger.(*probing.Pinger); ok {
-		p.Count = 1
+func newProbingPinger(privileged bool) pingerFactory {
+	return func(addr string, timeout time.Duration) (PingerInterface, error) {
+		pinger, err := probing.NewPinger(addr)
+		if err != nil {
+			return nil, err
+		}
+		pinger.Count = 1
+		pinger.Timeout = timeout
+		pinger.SetPrivileged(privileged)
+		return pinger, nil
 	}
-	return pe.Pinger.Run()
+}
+
+// runOnce sends one ping and returns its result. ok is false when ctx was
+// canceled, in which case no result should be reported.
+func (app *App) runOnce(ctx context.Context, addr string) (result PingResult, ok bool) {
+	failure := PingResult{Address: addr, Success: false}
+
+	pinger, err := app.newPinger(addr, app.timeout)
+	if err != nil {
+		log.Warn().Err(err).Str("endpoint", addr).Msg("ping setup error")
+		return failure, ctx.Err() == nil
+	}
+
+	runCtx, cancel := context.WithTimeout(ctx, app.timeout)
+	defer cancel()
+	err = pinger.RunWithContext(runCtx)
+	if ctx.Err() != nil {
+		return PingResult{}, false
+	}
+
+	stats := pinger.Statistics()
+	if stats == nil || stats.PacketsRecv == 0 {
+		log.Warn().Err(err).Str("endpoint", addr).Dur("timeout", app.timeout).Msg("no ping reply")
+		return failure, true
+	}
+	return PingResult{Address: addr, Success: true, Delay: stats.AvgRtt}, true
 }
 
 func New(opts ...AppOption) (*App, error) {
 	app := &App{
 		RTTAvg:    make(map[string]float64),
 		FailCount: make(map[string]int),
+		timeout:   DefaultTimeout,
+		interval:  DefaultReconnectInterval,
 	}
 
 	c := AppConfig{
@@ -114,26 +163,14 @@ func New(opts ...AppOption) (*App, error) {
 		withoutPrivileged = false
 	}
 
+	app.newPinger = newProbingPinger(!withoutPrivileged)
+
 	for _, addr := range c.Endpoints {
-		endpoint := addr // capture loop variable
-		pinger, err := probing.NewPinger(endpoint)
-		if err != nil {
+		// Validate the address up front, as before.
+		if _, err := probing.NewPinger(addr); err != nil {
 			return nil, err
 		}
-
-		if !withoutPrivileged {
-			pinger.SetPrivileged(true)
-		}
-
-		pinger.OnRecv = func(pkt *probing.Packet) {
-			app.ResultsBuffer <- PingResult{
-				Address: endpoint,
-				Success: true,
-				Delay:   pkt.Rtt,
-			}
-		}
-
-		app.Endpoints = append(app.Endpoints, PingEndpoint{Address: endpoint, Pinger: pinger})
+		app.Endpoints = append(app.Endpoints, PingEndpoint{Address: addr})
 	}
 
 	app.Alpha = c.Alpha
@@ -151,26 +188,36 @@ func Run(ctx context.Context, opts ...AppOption) {
 }
 
 func (app *App) Start(ctx context.Context) {
+	ctx, cancel := context.WithCancel(ctx)
+	var wg sync.WaitGroup
+	// Stop the ping loops and wait for them on return, so nothing sends on
+	// ResultsBuffer afterwards. ResultsBuffer is never closed.
+	defer func() {
+		cancel()
+		wg.Wait()
+	}()
+
 	// Start each endpoint's ping loop
 	for _, e := range app.Endpoints {
-		endpoint := e // capture for goroutine
+		addr := e.Address
+		wg.Add(1)
 		go func() {
+			defer wg.Done()
 			for {
+				log.Debug().Str("endpoint", addr).Msg("sending ping")
+				result, ok := app.runOnce(ctx, addr)
+				if !ok {
+					return
+				}
 				select {
+				case app.ResultsBuffer <- result:
 				case <-ctx.Done():
 					return
-				default:
-					log.Debug().Str("endpoint", endpoint.Address).Msg("sending ping")
-					err := endpoint.runOnce()
-					if err != nil {
-						log.Warn().Err(err).Str("endpoint", endpoint.Address).Msg("ping error")
-						app.ResultsBuffer <- PingResult{
-							Address: endpoint.Address,
-							Success: false,
-							Delay:   0,
-						}
-					}
-					time.Sleep(DefaultReconnectInterval)
+				}
+				select {
+				case <-time.After(app.interval):
+				case <-ctx.Done():
+					return
 				}
 			}
 		}()
@@ -180,7 +227,6 @@ func (app *App) Start(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			close(app.ResultsBuffer)
 			return
 		case result := <-app.ResultsBuffer:
 			app.processResult(result)
@@ -202,29 +248,33 @@ func (app *App) Start(ctx context.Context) {
 }
 
 func (app *App) processResult(result PingResult) {
-	delayMs := result.Delay.Milliseconds()
-	thresholdMs := int64(app.ThresholdFactor * app.RTTAvg[result.Address] / float64(time.Millisecond))
-
-	if result.Success {
-		if _, exists := app.RTTAvg[result.Address]; !exists {
-			app.RTTAvg[result.Address] = float64(result.Delay)
-		} else {
-			app.RTTAvg[result.Address] = app.Alpha*float64(result.Delay) + (1-app.Alpha)*app.RTTAvg[result.Address]
-		}
-
-		if delayMs > thresholdMs {
-			log.Warn().
-				Str("endpoint", result.Address).
-				Int64("delay_ms", delayMs).
-				Int64("threshold_ms", thresholdMs).
-				Msg("ping success but above threshold")
-			app.FailCount[result.Address]++
-		} else {
-			log.Debug().Str("endpoint", result.Address).Int64("delay_ms", delayMs).Msg("ping OK")
-			app.FailCount[result.Address] = 0
-		}
-	} else {
+	if !result.Success {
 		log.Warn().Str("endpoint", result.Address).Msg("ping failed")
 		app.FailCount[result.Address]++
+		return
+	}
+
+	avg, seen := app.RTTAvg[result.Address]
+	if !seen {
+		// The first sample only initialises the average.
+		app.RTTAvg[result.Address] = float64(result.Delay)
+		app.FailCount[result.Address] = 0
+		log.Debug().Str("endpoint", result.Address).Dur("delay", result.Delay).Msg("ping OK")
+		return
+	}
+
+	threshold := max(time.Duration(app.ThresholdFactor*avg), time.Duration(avg)+DefaultMinThresholdMargin)
+	app.RTTAvg[result.Address] = app.Alpha*float64(result.Delay) + (1-app.Alpha)*avg
+
+	if result.Delay > threshold {
+		log.Warn().
+			Str("endpoint", result.Address).
+			Dur("delay", result.Delay).
+			Dur("threshold", threshold).
+			Msg("ping success but above threshold")
+		app.FailCount[result.Address]++
+	} else {
+		log.Debug().Str("endpoint", result.Address).Dur("delay", result.Delay).Msg("ping OK")
+		app.FailCount[result.Address] = 0
 	}
 }
