@@ -218,6 +218,8 @@ func TestSetupIgnoresDatabaseURL(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, appConfig.Store)
 	defer appConfig.Store.Close()
+	// no fee payer: Setup started the retry loop, which stops on shutdown
+	t.Cleanup(func() { _ = appConfig.App.Shutdown() })
 	SigningRoutes(appConfig.App.Group("/api/v1"))
 
 	// sign routes still require a token with DATABASE_URL set
@@ -229,6 +231,10 @@ func TestSetupIgnoresDatabaseURL(t *testing.T) {
 }
 
 func TestInitializeAndFeePayerSQLite(t *testing.T) {
+	// the fee payer is package-global: restore it for later tests
+	prev := utils.CurrentFeePayer()
+	t.Cleanup(func() { utils.UpdateFeePayer(prev) })
+
 	dir := t.TempDir()
 	s, err := store.Open(context.Background(), dir, 0, true)
 	require.NoError(t, err)
