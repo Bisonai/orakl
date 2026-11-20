@@ -15,19 +15,8 @@ FROM debian:bookworm-slim
 
 RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
-RUN curl -L https://github.com/golang-migrate/migrate/releases/download/v4.17.0/migrate.linux-amd64.tar.gz | tar xvz && \
-   mv ./migrate /usr/bin
-
 WORKDIR /app
-
-RUN mkdir /app/migrations
-
-COPY --from=builder /app/node/migrations/delegator /app/migrations
 
 COPY --from=builder /app/node/delegatorbin /usr/bin
 
-COPY dockerfiles/start-go.sh .
-
-RUN chmod +x start-go.sh
-
-CMD ["./start-go.sh", "delegatorbin"]
+CMD ["delegatorbin"]
