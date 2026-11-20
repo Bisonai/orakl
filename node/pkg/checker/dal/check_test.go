@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"bisonai.com/miko/node/pkg/checker"
 	"github.com/prometheus/client_golang/prometheus/testutil"
 )
 
@@ -82,7 +83,7 @@ func TestCheckDalEmptyResponseIsFailure(t *testing.T) {
 	data := []OutgoingSubmissionData{fullEntry("BTC-USDT", "1700000000000"), fullEntry("ETH-USDT", "1700000000000")}
 	srv := dalServer(t, &data)
 	restAggregateTimestampGauge.Reset()
-	expected := expectedOf("BTC-USDT", "ETH-USDT", "JOY-USDT") // JOY-USDT is delisted
+	expected := expectedOf("BTC-USDT", "ETH-USDT", checker.SymbolsToBeDelisted[0]) // delisted symbols are not expected
 	symbols := map[string]struct{}{}
 
 	if err := checkDal(srv.URL, "key", expected, symbols); err != nil {
@@ -92,6 +93,8 @@ func TestCheckDalEmptyResponseIsFailure(t *testing.T) {
 		t.Fatalf("missing feeds: got %v, want 0 (delisted not expected)", v)
 	}
 
+	symbols["GONE-USDT"] = struct{}{} // exported earlier, no longer configured
+	restAggregateTimestampGauge.WithLabelValues("GONE-USDT").Set(1)
 	restLastSuccessGauge.Set(42)
 	data = []OutgoingSubmissionData{}
 	if err := checkDal(srv.URL, "key", expected, symbols); err == nil {
@@ -103,8 +106,8 @@ func TestCheckDalEmptyResponseIsFailure(t *testing.T) {
 	if v := testutil.ToFloat64(restMissingFeedsGauge); v != 2 {
 		t.Fatalf("missing feeds: got %v, want 2", v)
 	}
-	if n := testutil.CollectAndCount(restAggregateTimestampGauge); n != 2 {
-		t.Fatalf("configured series must be kept, got %d", n)
+	if n := testutil.CollectAndCount(restAggregateTimestampGauge); n != 3 {
+		t.Fatalf("failed check must keep all series, got %d", n)
 	}
 	if v := testutil.ToFloat64(restAggregateTimestampGauge.WithLabelValues("BTC-USDT")); v != 1700000000 {
 		t.Fatalf("BTC timestamp: got %v", v)

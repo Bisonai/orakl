@@ -167,8 +167,8 @@ func (e *expectedSymbols) get() map[string]struct{} {
 // of expected (configured) symbols missing from the response. restSymbols
 // holds the symbols exported so far. A configured symbol that is not served
 // keeps its last series so staleness alerts fire; only symbols that are
-// neither served nor configured are dropped. A response without any feed is
-// a failed check.
+// neither served nor configured are dropped. A response without any valid
+// feed is a failed check and leaves the series untouched.
 func checkDal(endpoint string, key string, expected map[string]struct{}, restSymbols map[string]struct{}) error {
 	now := time.Now()
 	resp, err := request.Request[[]OutgoingSubmissionData](
@@ -218,6 +218,12 @@ func checkDal(endpoint string, key string, expected map[string]struct{}, restSym
 		log.Warn().Str("Player", "DalChecker").Int("count", len(missing)).Str("symbols", strings.Join(missing, ",")).Msg("configured feeds missing from DAL REST response or with invalid aggregateTime")
 	}
 
+	restEmptyFeedsGauge.Set(float64(empty))
+	if len(seen) == 0 {
+		// Failed check: keep all series as they are.
+		return fmt.Errorf("DAL REST response has no valid feeds (%d entries)", len(resp))
+	}
+
 	for symbol := range restSymbols {
 		if _, ok := seen[symbol]; ok {
 			continue
@@ -232,10 +238,6 @@ func checkDal(endpoint string, key string, expected map[string]struct{}, restSym
 		restSymbols[symbol] = struct{}{}
 	}
 
-	restEmptyFeedsGauge.Set(float64(empty))
-	if len(seen) == 0 {
-		return errors.New("DAL REST response has no feeds")
-	}
 	restLastSuccessGauge.Set(float64(time.Now().Unix()))
 	return nil
 }
