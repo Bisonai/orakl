@@ -194,34 +194,55 @@ func TestApp_ProcessResult_FirstSampleNotFailure(t *testing.T) {
 	assert.Equal(t, 1, app.FailCount["8.8.8.8"])
 }
 
-// Sub-millisecond jitter is tolerated, but RTTs are compared as durations,
-// not truncated to 0 ms.
-func TestApp_ProcessResult_SubMillisecond(t *testing.T) {
-	app, err := New(WithEndpoints([]string{"8.8.8.8"}))
+// Jitter on sub-ms/low-ms endpoints stays under the absolute floor, while
+// RTTs are still compared as durations (no ms truncation).
+func TestApp_ProcessResult_LowRTTFloor(t *testing.T) {
+	app, err := New(WithEndpoints([]string{"8.8.8.8", "1.1.1.1"}))
 	require.NoError(t, err)
 
-	app.processResult(PingResult{Address: "8.8.8.8", Success: true, Delay: 200 * time.Microsecond})
-	app.processResult(PingResult{Address: "8.8.8.8", Success: true, Delay: 900 * time.Microsecond})
-	assert.Equal(t, 0, app.FailCount["8.8.8.8"])
+	// GKE-like sub-ms RTT: ~0.4 ms with jitter.
+	for _, d := range []time.Duration{400, 380, 490, 900, 2000} {
+		app.processResult(PingResult{Address: "8.8.8.8", Success: true, Delay: d * time.Microsecond})
+		assert.Equal(t, 0, app.FailCount["8.8.8.8"], "delay %dus", d)
+	}
+	// Low-ms RTT: ~2 ms with a jitter to 6 ms.
+	for _, d := range []time.Duration{2, 2, 6, 2} {
+		app.processResult(PingResult{Address: "1.1.1.1", Success: true, Delay: d * time.Millisecond})
+		assert.Equal(t, 0, app.FailCount["1.1.1.1"], "delay %dms", d)
+	}
 
-	app.processResult(PingResult{Address: "8.8.8.8", Success: true, Delay: 1900 * time.Microsecond})
+	// Beyond EWMA + floor: counted as slow.
+	app.processResult(PingResult{Address: "8.8.8.8", Success: true, Delay: 10 * time.Millisecond})
 	assert.Equal(t, 1, app.FailCount["8.8.8.8"])
 }
 
-// ctx cancel: no panic, Start returns and all ping goroutines end.
+// ctx cancel: no panic, and Start returns only after all ping goroutines end.
 func TestApp_Start_CancelNoPanic(t *testing.T) {
 	endpoints := []string{"8.8.8.8", "1.1.1.1", "208.67.222.222"}
-	app, _ := newTestApp(t, endpoints, func() *fakePinger {
-		return &fakePinger{rtt: time.Millisecond}
-	})
-	app.interval = time.Millisecond
+	app, _ := newTestApp(t, endpoints, nil)
+	app.timeout = time.Hour
+	live := &atomic.Int64{}
+	app.newPinger = func(string, time.Duration) (PingerInterface, error) {
+		return &slowStopPinger{live: live}, nil
+	}
 
 	ctx, cancel := context.WithCancel(context.Background())
-	time.AfterFunc(50*time.Millisecond, cancel)
+	time.AfterFunc(20*time.Millisecond, cancel)
 	startWithDeadline(t, app, ctx, 2*time.Second)
 
-	// Start waits for its goroutines, so nothing is sent afterwards.
-	n := len(app.ResultsBuffer)
-	time.Sleep(20 * time.Millisecond)
-	assert.Equal(t, n, len(app.ResultsBuffer))
+	assert.Zero(t, live.Load(), "pinger still running after Start returned")
+	assert.Zero(t, len(app.ResultsBuffer))
 }
+
+// slowStopPinger blocks until ctx is done, then takes a moment to stop.
+type slowStopPinger struct{ live *atomic.Int64 }
+
+func (p *slowStopPinger) RunWithContext(ctx context.Context) error {
+	p.live.Add(1)
+	defer p.live.Add(-1)
+	<-ctx.Done()
+	time.Sleep(30 * time.Millisecond)
+	return ctx.Err()
+}
+
+func (p *slowStopPinger) Statistics() *probing.Statistics { return &probing.Statistics{} }

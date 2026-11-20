@@ -21,8 +21,9 @@ const (
 	// within it counts as a failure.
 	DefaultTimeout = 3 * time.Second
 	// DefaultMinThresholdMargin is the least an RTT must exceed the average by
-	// to count as slow, so sub-millisecond jitter is not a failure.
-	DefaultMinThresholdMargin = time.Millisecond
+	// to count as slow, so normal jitter on sub-ms/low-ms endpoints is not a
+	// failure.
+	DefaultMinThresholdMargin = 5 * time.Millisecond
 )
 
 var GlobalEndpoints = []string{
