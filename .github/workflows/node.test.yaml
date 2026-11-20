@@ -11,7 +11,6 @@ on:
       - "!node/pkg/boot/**"
       - "!node/pkg/checker/**"
       - "!node/pkg/delegator/**"
-      - "!node/migrations/delegator/**"
       - "!node/pkg/api/**"
       - "!node/migrations/api/**"
       - "!node/cmd/dal/**"

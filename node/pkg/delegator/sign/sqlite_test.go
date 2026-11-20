@@ -90,7 +90,6 @@ func TestSignV2SQLite(t *testing.T) {
 
 	appConfig, err := utils.Setup("test")
 	require.NoError(t, err)
-	require.Nil(t, appConfig.Postgres)
 	require.NotNil(t, appConfig.Store)
 	defer appConfig.Store.Close()
 	SigningRoutes(appConfig.App.Group("/api/v1"))
@@ -187,6 +186,39 @@ func TestSignV2SQLite(t *testing.T) {
 		code, _ := signRequest(t, appConfig.App, tx, token)
 		assert.Equal(t, http.StatusForbidden, code)
 	})
+
+	post := func(t *testing.T, path string, payload map[string]string) int {
+		t.Helper()
+		body, err := json.Marshal(payload)
+		require.NoError(t, err)
+		req, err := http.NewRequest(http.MethodPost, path, bytes.NewReader(body))
+		require.NoError(t, err)
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token)
+		resp, err := appConfig.App.Test(req, -1)
+		require.NoError(t, err)
+		resp.Body.Close()
+		return resp.StatusCode
+	}
+
+	t.Run("request to field naming an allowed contract does not matter", func(t *testing.T) {
+		// RawTx is what gets signed; its target is not allowlisted
+		tx, _ := signedSenderTx(t, common.HexToAddress("0x1234"), append(selector, 0x01), chainID)
+		code := post(t, "/api/v1/sign/v2", map[string]string{
+			"from": "0x1", "to": strings.ToLower(contract.Hex()), "input": "0x" + hex.EncodeToString(append(selector, 0x01)),
+			"gas": "1", "value": "0", "chainId": "1", "gasPrice": "1", "nonce": "1", "v": "1", "r": "1", "s": "1",
+			"rawTx": "0x" + TxToHash(tx),
+		})
+		assert.Equal(t, http.StatusForbidden, code)
+	})
+
+	t.Run("legacy signing endpoints are not served", func(t *testing.T) {
+		tx, _ := signedSenderTx(t, contract, append(selector, 0x05), chainID)
+		payload := map[string]string{"rawTx": "0x" + TxToHash(tx)}
+		for _, path := range []string{"/api/v1/sign", "/api/v1/sign/volatile"} {
+			assert.NotEqual(t, http.StatusOK, post(t, path, payload), path)
+		}
+	})
 }
 
 func TestSetupSQLiteRequiresAllowlist(t *testing.T) {
@@ -195,4 +227,88 @@ func TestSetupSQLiteRequiresAllowlist(t *testing.T) {
 	t.Setenv("DELEGATOR_FEEPAYER_PK", "")
 	_, err := utils.Setup("test")
 	assert.ErrorContains(t, err, "config.db")
+}
+
+func TestSetupRequiresSQLiteDir(t *testing.T) {
+	t.Setenv(store.EnvDir, "")
+	t.Setenv("DATABASE_URL", "postgres://unused")
+	_, err := utils.Setup("test")
+	assert.ErrorContains(t, err, store.EnvDir+" is required")
+}
+
+func TestSetupIgnoresDatabaseURL(t *testing.T) {
+	dir := t.TempDir()
+	s, err := store.Open(context.Background(), dir, 0, true)
+	require.NoError(t, err)
+	token, err := s.AddToken(context.Background(), "node-a")
+	require.NoError(t, err)
+	require.NoError(t, s.Close())
+
+	t.Setenv("DATABASE_URL", "postgres://unused")
+	t.Setenv(store.EnvDir, dir)
+	t.Setenv("DELEGATOR_FEEPAYER_PK", "")
+	appConfig, err := utils.Setup("test")
+	require.NoError(t, err)
+	require.NotNil(t, appConfig.Store)
+	defer appConfig.Store.Close()
+	// no fee payer: Setup started the retry loop, which stops on shutdown
+	t.Cleanup(func() { _ = appConfig.App.Shutdown() })
+	SigningRoutes(appConfig.App.Group("/api/v1"))
+
+	// sign routes still require a token with DATABASE_URL set
+	tx, _ := signedSenderTx(t, common.HexToAddress("0x1234"), []byte{1, 2, 3, 4}, big.NewInt(1001))
+	code, _ := signRequest(t, appConfig.App, tx, "")
+	assert.Equal(t, http.StatusUnauthorized, code)
+	code, _ = signRequest(t, appConfig.App, tx, token)
+	assert.Equal(t, http.StatusForbidden, code)
+}
+
+func TestInitializeAndFeePayerSQLite(t *testing.T) {
+	// the fee payer is package-global: restore it for later tests
+	prev := utils.CurrentFeePayer()
+	t.Cleanup(func() { utils.UpdateFeePayer(prev) })
+
+	dir := t.TempDir()
+	s, err := store.Open(context.Background(), dir, 0, true)
+	require.NoError(t, err)
+	token, err := s.AddToken(context.Background(), "node-a")
+	require.NoError(t, err)
+	require.NoError(t, s.Close())
+
+	const sourceKey = "6014d3aa8be8980fd90146d10176e7ef632bdba96279e8bbe55421e79a979a2e"
+	t.Setenv(store.EnvDir, dir)
+	t.Setenv("DELEGATOR_FEEPAYER_PK", sourceKey)
+	appConfig, err := utils.Setup("test")
+	require.NoError(t, err)
+	defer appConfig.Store.Close()
+	SigningRoutes(appConfig.App.Group("/api/v1"))
+
+	get := func(path string) (int, string) {
+		req, err := http.NewRequest(http.MethodGet, path, nil)
+		require.NoError(t, err)
+		req.Header.Set("Authorization", "Bearer "+token)
+		resp, err := appConfig.App.Test(req, -1)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+		raw, err := io.ReadAll(resp.Body)
+		require.NoError(t, err)
+		return resp.StatusCode, string(raw)
+	}
+
+	code, body := get("/api/v1/sign/feePayer")
+	require.Equal(t, http.StatusOK, code, body)
+	assert.Equal(t, `"0xda2E0E7089a479ef4A75a8c6Cc78426B9270EC08"`, body)
+
+	const overrideKey = "4c0883a69102937d6231471b5dbb6204fe5129617082792ae468d01a3f362318"
+	utils.UpdateFeePayer(overrideKey)
+
+	// a key in the request is refused and the current key stays in place
+	code, _ = get("/api/v1/sign/initialize?feePayerPrivateKey=0x" + sourceKey)
+	assert.Equal(t, http.StatusBadRequest, code)
+	assert.Equal(t, overrideKey, utils.CurrentFeePayer())
+
+	// without a key it reloads from the configured source
+	code, body = get("/api/v1/sign/initialize")
+	require.Equal(t, http.StatusOK, code, body)
+	assert.Equal(t, sourceKey, utils.CurrentFeePayer())
 }

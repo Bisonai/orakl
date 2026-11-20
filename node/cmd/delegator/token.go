@@ -10,7 +10,7 @@ import (
 
 const tokenUsage = `usage: delegatorbin token <command>
 
-SQLite mode only. Tokens are in $DELEGATOR_SQLITE_DIR/config.db (add creates
+Tokens are in $DELEGATOR_SQLITE_DIR/config.db (add creates
 it); only their SHA-256 is stored. Every /sign request needs
 "Authorization: Bearer <token>"; with no tokens all are refused.
 
