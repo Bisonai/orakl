@@ -186,6 +186,39 @@ func TestSignV2SQLite(t *testing.T) {
 		code, _ := signRequest(t, appConfig.App, tx, token)
 		assert.Equal(t, http.StatusForbidden, code)
 	})
+
+	post := func(t *testing.T, path string, payload map[string]string) int {
+		t.Helper()
+		body, err := json.Marshal(payload)
+		require.NoError(t, err)
+		req, err := http.NewRequest(http.MethodPost, path, bytes.NewReader(body))
+		require.NoError(t, err)
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token)
+		resp, err := appConfig.App.Test(req, -1)
+		require.NoError(t, err)
+		resp.Body.Close()
+		return resp.StatusCode
+	}
+
+	t.Run("request to field naming an allowed contract does not matter", func(t *testing.T) {
+		// RawTx is what gets signed; its target is not allowlisted
+		tx, _ := signedSenderTx(t, common.HexToAddress("0x1234"), append(selector, 0x01), chainID)
+		code := post(t, "/api/v1/sign/v2", map[string]string{
+			"from": "0x1", "to": strings.ToLower(contract.Hex()), "input": "0x" + hex.EncodeToString(append(selector, 0x01)),
+			"gas": "1", "value": "0", "chainId": "1", "gasPrice": "1", "nonce": "1", "v": "1", "r": "1", "s": "1",
+			"rawTx": "0x" + TxToHash(tx),
+		})
+		assert.Equal(t, http.StatusForbidden, code)
+	})
+
+	t.Run("legacy signing endpoints are not served", func(t *testing.T) {
+		tx, _ := signedSenderTx(t, contract, append(selector, 0x05), chainID)
+		payload := map[string]string{"rawTx": "0x" + TxToHash(tx)}
+		for _, path := range []string{"/api/v1/sign", "/api/v1/sign/volatile"} {
+			assert.NotEqual(t, http.StatusOK, post(t, path, payload), path)
+		}
+	})
 }
 
 func TestSetupSQLiteRequiresAllowlist(t *testing.T) {
