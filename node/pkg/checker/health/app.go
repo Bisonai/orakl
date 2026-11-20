@@ -137,12 +137,12 @@ func checkUrl(ctx context.Context, healthCheckUrl HealthCheckUrl) bool {
 func checkHttp(ctx context.Context, url string) bool {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
-		log.Info().Err(err).Msgf("Failed to check URL: %s", url)
+		log.Info().Err(err).Msgf("Failed to check URL: %s", redactURL(url))
 		return false
 	}
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		log.Info().Err(err).Msgf("Failed to check URL: %s", url)
+		log.Info().Err(err).Msgf("Failed to check URL: %s", redactURL(url))
 		return false
 	}
 	defer resp.Body.Close()
