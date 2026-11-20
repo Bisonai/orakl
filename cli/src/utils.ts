@@ -1,7 +1,7 @@
 import axios from 'axios'
 import { number as cmdnumber, option, optional, string as cmdstring } from 'cmd-ts'
 import { open as openFile, readFile } from 'node:fs/promises'
-import { ORAKL_NETWORK_API_URL, ORAKL_NETWORK_DELEGATOR_URL } from './settings.js'
+import { ORAKL_NETWORK_API_URL } from './settings.js'
 
 export const chainOptionalOption = option({
   type: optional(cmdstring),
@@ -60,15 +60,6 @@ export async function isOraklNetworkApiHealthy() {
     return 200 === (await axios.get(ORAKL_NETWORK_API_URL))?.status
   } catch (e) {
     console.error(`Orakl Network API [${ORAKL_NETWORK_API_URL}] is down`)
-    return false
-  }
-}
-
-export async function isOraklDelegatorHealthy() {
-  try {
-    return 200 === (await axios.get(ORAKL_NETWORK_DELEGATOR_URL))?.status
-  } catch (e) {
-    console.error(`Orakl Network Delegator [${ORAKL_NETWORK_DELEGATOR_URL}] is down`)
     return false
   }
 }

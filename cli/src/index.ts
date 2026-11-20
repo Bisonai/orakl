@@ -2,7 +2,6 @@
 
 import { binary, command, run, subcommands } from 'cmd-ts'
 import { chainSub } from './chain.js'
-import { delegatorSub } from './delegator.js'
 import { listenerSub } from './listener.js'
 import { proxySub } from './proxy.js'
 import { reporterSub } from './reporter.js'
@@ -15,7 +14,6 @@ async function main() {
   const listener = listenerSub()
   const vrf = vrfSub()
   const reporter = reporterSub()
-  const delegator = delegatorSub()
   const proxy = proxySub()
 
   const version = command({
@@ -35,7 +33,6 @@ async function main() {
       vrf,
       reporter,
       version,
-      delegator,
       proxy,
     },
   })
