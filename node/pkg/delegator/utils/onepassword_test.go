@@ -73,6 +73,6 @@ func TestInitFeePayerPKFromOnePassword(t *testing.T) {
 
 	prev := CurrentFeePayer()
 	t.Cleanup(func() { UpdateFeePayer(prev) })
-	require.NoError(t, InitFeePayerPK(context.Background(), nil))
+	require.NoError(t, InitFeePayerPK(context.Background()))
 	assert.Equal(t, pk, CurrentFeePayer())
 }

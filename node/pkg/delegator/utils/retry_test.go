@@ -32,7 +32,7 @@ func TestReloadFeePayerRecoversPanic(t *testing.T) {
 		panic("vault client blew up")
 	}
 
-	err := reloadFeePayer(context.Background(), nil)
+	err := reloadFeePayer(context.Background())
 	if err == nil {
 		t.Fatal("reloadFeePayer() = nil, want error when the loader panics")
 	}
@@ -56,7 +56,7 @@ func TestReloadFeePayerPassesThroughError(t *testing.T) {
 	t.Cleanup(func() { loadFeePayerFromVault = orig; UpdateFeePayer("") })
 	loadFeePayerFromVault = func(context.Context) (string, error) { return "", sentinel }
 
-	err := reloadFeePayer(context.Background(), nil)
+	err := reloadFeePayer(context.Background())
 	if !errors.Is(err, sentinel) {
 		t.Fatalf("reloadFeePayer() = %v, want %v", err, sentinel)
 	}
@@ -67,7 +67,7 @@ func TestReloadFeePayerSucceedsFromEnv(t *testing.T) {
 	t.Cleanup(func() { UpdateFeePayer("") })
 	t.Setenv("DELEGATOR_FEEPAYER_PK", validKey)
 
-	if err := reloadFeePayer(context.Background(), nil); err != nil {
+	if err := reloadFeePayer(context.Background()); err != nil {
 		t.Fatalf("reloadFeePayer() = %v, want nil", err)
 	}
 	if got := CurrentFeePayer(); got != validKey {
@@ -82,7 +82,7 @@ func TestFeePayerRetryStopsOnAppShutdown(t *testing.T) {
 	t.Cleanup(func() { UpdateFeePayer("") })
 
 	app := fiber.New()
-	ctx := startFeePayerRetry(app, nil, FeePayerRetryInterval)
+	ctx := startFeePayerRetry(app, FeePayerRetryInterval)
 
 	select {
 	case <-ctx.Done():
@@ -110,7 +110,7 @@ func TestRetryFeePayerInitStopsOnContextCancel(t *testing.T) {
 
 	go func() {
 		defer close(done)
-		retryFeePayerInit(ctx, nil, FeePayerRetryInterval)
+		retryFeePayerInit(ctx, FeePayerRetryInterval)
 	}()
 
 	cancel()

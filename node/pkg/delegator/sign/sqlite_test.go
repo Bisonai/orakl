@@ -90,7 +90,6 @@ func TestSignV2SQLite(t *testing.T) {
 
 	appConfig, err := utils.Setup("test")
 	require.NoError(t, err)
-	require.Nil(t, appConfig.Postgres)
 	require.NotNil(t, appConfig.Store)
 	defer appConfig.Store.Close()
 	SigningRoutes(appConfig.App.Group("/api/v1"))
@@ -195,4 +194,82 @@ func TestSetupSQLiteRequiresAllowlist(t *testing.T) {
 	t.Setenv("DELEGATOR_FEEPAYER_PK", "")
 	_, err := utils.Setup("test")
 	assert.ErrorContains(t, err, "config.db")
+}
+
+func TestSetupRequiresSQLiteDir(t *testing.T) {
+	t.Setenv(store.EnvDir, "")
+	t.Setenv("DATABASE_URL", "postgres://unused")
+	_, err := utils.Setup("test")
+	assert.ErrorContains(t, err, store.EnvDir+" is required")
+}
+
+func TestSetupIgnoresDatabaseURL(t *testing.T) {
+	dir := t.TempDir()
+	s, err := store.Open(context.Background(), dir, 0, true)
+	require.NoError(t, err)
+	token, err := s.AddToken(context.Background(), "node-a")
+	require.NoError(t, err)
+	require.NoError(t, s.Close())
+
+	t.Setenv("DATABASE_URL", "postgres://unused")
+	t.Setenv(store.EnvDir, dir)
+	t.Setenv("DELEGATOR_FEEPAYER_PK", "")
+	appConfig, err := utils.Setup("test")
+	require.NoError(t, err)
+	require.NotNil(t, appConfig.Store)
+	defer appConfig.Store.Close()
+	SigningRoutes(appConfig.App.Group("/api/v1"))
+
+	// sign routes still require a token with DATABASE_URL set
+	tx, _ := signedSenderTx(t, common.HexToAddress("0x1234"), []byte{1, 2, 3, 4}, big.NewInt(1001))
+	code, _ := signRequest(t, appConfig.App, tx, "")
+	assert.Equal(t, http.StatusUnauthorized, code)
+	code, _ = signRequest(t, appConfig.App, tx, token)
+	assert.Equal(t, http.StatusForbidden, code)
+}
+
+func TestInitializeAndFeePayerSQLite(t *testing.T) {
+	dir := t.TempDir()
+	s, err := store.Open(context.Background(), dir, 0, true)
+	require.NoError(t, err)
+	token, err := s.AddToken(context.Background(), "node-a")
+	require.NoError(t, err)
+	require.NoError(t, s.Close())
+
+	const sourceKey = "6014d3aa8be8980fd90146d10176e7ef632bdba96279e8bbe55421e79a979a2e"
+	t.Setenv(store.EnvDir, dir)
+	t.Setenv("DELEGATOR_FEEPAYER_PK", sourceKey)
+	appConfig, err := utils.Setup("test")
+	require.NoError(t, err)
+	defer appConfig.Store.Close()
+	SigningRoutes(appConfig.App.Group("/api/v1"))
+
+	get := func(path string) (int, string) {
+		req, err := http.NewRequest(http.MethodGet, path, nil)
+		require.NoError(t, err)
+		req.Header.Set("Authorization", "Bearer "+token)
+		resp, err := appConfig.App.Test(req, -1)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+		raw, err := io.ReadAll(resp.Body)
+		require.NoError(t, err)
+		return resp.StatusCode, string(raw)
+	}
+
+	code, body := get("/api/v1/sign/feePayer")
+	require.Equal(t, http.StatusOK, code, body)
+	assert.Equal(t, `"0xda2E0E7089a479ef4A75a8c6Cc78426B9270EC08"`, body)
+
+	const overrideKey = "4c0883a69102937d6231471b5dbb6204fe5129617082792ae468d01a3f362318"
+	utils.UpdateFeePayer(overrideKey)
+
+	// a key in the request is refused and the current key stays in place
+	code, _ = get("/api/v1/sign/initialize?feePayerPrivateKey=0x" + sourceKey)
+	assert.Equal(t, http.StatusBadRequest, code)
+	assert.Equal(t, overrideKey, utils.CurrentFeePayer())
+
+	// without a key it reloads from the configured source
+	code, body = get("/api/v1/sign/initialize")
+	require.Equal(t, http.StatusOK, code, body)
+	assert.Equal(t, sourceKey, utils.CurrentFeePayer())
 }

@@ -22,21 +22,12 @@ import (
 	// aliased: the package name "recover" shadows the builtin, which
 	// reloadFeePayer needs
 	fiberrecover "github.com/gofiber/fiber/v2/middleware/recover"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/kaiachain/kaia/crypto"
 	"github.com/rs/zerolog/log"
 )
 
-type FeePayer struct {
-	PrivateKey string `json:"privateKey" db:"privateKey"`
-}
-
 type AppConfig struct {
-	// Postgres is nil in SQLite mode (Store set).
-	Postgres *pgxpool.Pool
-	// Store is the SQLite state, used when DATABASE_URL is unset and
-	// DELEGATOR_SQLITE_DIR is set; nil in Postgres mode.
+	// Store is the SQLite state in DELEGATOR_SQLITE_DIR.
 	Store *store.Store
 	App   *fiber.App
 }
@@ -70,31 +61,28 @@ func Setup(options ...string) (AppConfig, error) {
 		version = "test"
 	}
 
-	var (
-		pgxPool *pgxpool.Pool
-		sqlite  *store.Store
-	)
-	if databaseURL := os.Getenv("DATABASE_URL"); databaseURL != "" || store.DirFromEnv() == "" {
-		var pgxError error
-		pgxPool, pgxError = pgxpool.New(context.Background(), databaseURL)
-		if pgxError != nil {
-			return appConfig, pgxError
-		}
-	} else {
-		retention, err := store.RetentionFromEnv()
-		if err != nil {
-			return appConfig, err
-		}
-		// must exist: a wrong path or unmounted volume must not start with an
-		// empty allowlist
-		sqlite, err = store.Open(context.Background(), store.DirFromEnv(), retention, false)
-		if err != nil {
-			return appConfig, err
-		}
-		log.Info().Str("dir", store.DirFromEnv()).Int("retentionDays", retention).Msg("delegator running on SQLite")
+	// Postgres mode was removed (#2928); a leftover DATABASE_URL must not
+	// look like it still selects a backend
+	if os.Getenv("DATABASE_URL") != "" {
+		log.Warn().Msg("DATABASE_URL is ignored: the delegator runs on SQLite only (" + store.EnvDir + ")")
 	}
+	dir := store.DirFromEnv()
+	if dir == "" {
+		return appConfig, errors.New(store.EnvDir + " is required")
+	}
+	retention, err := store.RetentionFromEnv()
+	if err != nil {
+		return appConfig, err
+	}
+	// must exist: a wrong path or unmounted volume must not start with an
+	// empty allowlist
+	sqlite, err := store.Open(context.Background(), dir, retention, false)
+	if err != nil {
+		return appConfig, err
+	}
+	log.Info().Str("dir", dir).Int("retentionDays", retention).Msg("delegator running on SQLite")
 
-	feePayerErr := InitFeePayerPK(context.Background(), pgxPool)
+	feePayerErr := InitFeePayerPK(context.Background())
 
 	app := fiber.New(fiber.Config{
 		AppName:           "delegator " + version,
@@ -116,7 +104,6 @@ func Setup(options ...string) (AppConfig, error) {
 	validFunctions := new(sync.Map)
 	app.Use(func(c *fiber.Ctx) error {
 		c.Locals("feePayer", CurrentFeePayer())
-		c.Locals("pgxConn", pgxPool)
 		// wrapped: fasthttp closes io.Closer locals at the end of each request
 		c.Locals("store", storeRef{sqlite})
 		c.Locals("validContracts", validContracts)
@@ -129,18 +116,17 @@ func Setup(options ...string) (AppConfig, error) {
 		// request will fail until the retry loop lands a usable key
 		log.Error().Err(feePayerErr).Dur("retry_in", FeePayerRetryInterval).
 			Msg("fee payer not initialized, signing is broken; retrying in background. To load one immediately: /api/v1/sign/initialize")
-		startFeePayerRetry(app, pgxPool, FeePayerRetryInterval)
+		startFeePayerRetry(app, FeePayerRetryInterval)
 	}
 
 	appConfig = AppConfig{
-		Postgres: pgxPool,
-		Store:    sqlite,
-		App:      app,
+		Store: sqlite,
+		App:   app,
 	}
 	return appConfig, nil
 }
 
-func InitFeePayerPK(ctx context.Context, pgxPool *pgxpool.Pool) error {
+func InitFeePayerPK(ctx context.Context) error {
 	// resolved into a local first: assigning the package var up front wiped a
 	// usable key whenever a later reload failed
 	if pk := os.Getenv("DELEGATOR_FEEPAYER_PK"); pk != "" {
@@ -197,33 +183,33 @@ func setFeePayer(pk string) error {
 // Setup runs once per test (27 call sites), so an uncancellable goroutine here
 // would leak one retry loop per invocation, all racing to write feePayer.
 // Returns the context so callers can observe cancellation.
-func startFeePayerRetry(app *fiber.App, pgxPool *pgxpool.Pool, interval time.Duration) context.Context {
+func startFeePayerRetry(app *fiber.App, interval time.Duration) context.Context {
 	ctx, cancel := context.WithCancel(context.Background())
 	app.Hooks().OnShutdown(func() error {
 		cancel()
 		return nil
 	})
 
-	go retryFeePayerInit(ctx, pgxPool, interval)
+	go retryFeePayerInit(ctx, interval)
 	return ctx
 }
 
 // reloadFeePayer wraps InitFeePayerPK so a panic in a secret-store client ends
 // only this attempt. On the retry goroutine there is no fiber recover
 // middleware, so an unhandled panic would take the whole process down.
-func reloadFeePayer(ctx context.Context, pgxPool *pgxpool.Pool) (err error) {
+func reloadFeePayer(ctx context.Context) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("panic while loading fee payer: %v", r)
 		}
 	}()
-	return InitFeePayerPK(ctx, pgxPool)
+	return InitFeePayerPK(ctx)
 }
 
 // retryFeePayerInit reloads the key until one validates. Started only when the
 // initial load failed, so the process recovers from a transient secret-store
 // outage on its own instead of serving 500s until someone notices.
-func retryFeePayerInit(ctx context.Context, pgxPool *pgxpool.Pool, interval time.Duration) {
+func retryFeePayerInit(ctx context.Context, interval time.Duration) {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
@@ -233,7 +219,7 @@ func retryFeePayerInit(ctx context.Context, pgxPool *pgxpool.Pool, interval time
 			log.Error().Err(ctx.Err()).Msg("fee payer retry stopped before a usable key was loaded")
 			return
 		case <-ticker.C:
-			if err := reloadFeePayer(ctx, pgxPool); err != nil {
+			if err := reloadFeePayer(ctx); err != nil {
 				log.Error().Err(err).Dur("retry_in", interval).Msg("fee payer reload failed, retrying")
 				continue
 			}
@@ -305,103 +291,10 @@ func CurrentFeePayer() string {
 // fasthttp would call after every request.
 type storeRef struct{ s *store.Store }
 
-// GetStore returns the SQLite store, or nil in Postgres mode.
+// GetStore returns the SQLite store, or nil when none is set in locals.
 func GetStore(c *fiber.Ctx) *store.Store {
 	ref, _ := c.Locals("store").(storeRef)
 	return ref.s
-}
-
-func GetPgx(c *fiber.Ctx) (*pgxpool.Pool, error) {
-	con, ok := c.Locals("pgxConn").(*pgxpool.Pool)
-	if !ok {
-		return con, errors.New("failed to get pgxConn")
-	} else {
-		return con, nil
-	}
-}
-
-func RawQueryWithoutReturn(c *fiber.Ctx, query string, args map[string]any) error {
-	pgxPool, err := GetPgx(c)
-	if err != nil {
-		return err
-	}
-
-	rows, err := pgxPool.Query(c.Context(), query, pgx.NamedArgs(args))
-	if err != nil {
-		return err
-	}
-	defer rows.Close()
-
-	return nil
-}
-
-func QueryRow[T any](c *fiber.Ctx, query string, args map[string]any) (T, error) {
-	var result T
-	pgxPool, err := GetPgx(c)
-	if err != nil {
-		return result, err
-	}
-
-	rows, err := pgxPool.Query(c.Context(), query, pgx.NamedArgs(args))
-	if err != nil {
-		return result, err
-	}
-
-	result, err = pgx.CollectOneRow(rows, pgx.RowToStructByName[T])
-	if errors.Is(err, pgx.ErrNoRows) {
-		return result, nil
-	}
-	return result, err
-}
-
-func QueryRows[T any](c *fiber.Ctx, query string, args map[string]any) ([]T, error) {
-	results := []T{}
-	pgxPool, err := GetPgx(c)
-	if err != nil {
-		return results, err
-	}
-
-	rows, err := pgxPool.Query(c.Context(), query, pgx.NamedArgs(args))
-	if err != nil {
-		return results, err
-	}
-
-	results, err = pgx.CollectRows(rows, pgx.RowToStructByName[T])
-	if errors.Is(err, pgx.ErrNoRows) {
-		return results, nil
-	}
-	return results, err
-}
-
-func QueryRowWithoutFiberCtx[T any](postgres *pgxpool.Pool, query string, args map[string]any) (T, error) {
-	var result T
-
-	rows, err := postgres.Query(context.Background(), query, pgx.NamedArgs(args))
-	if err != nil {
-		return result, err
-	}
-
-	result, err = pgx.CollectOneRow(rows, pgx.RowToStructByName[T])
-	if errors.Is(err, pgx.ErrNoRows) {
-		return result, nil
-	}
-
-	return result, err
-}
-
-func QueryRowsWithoutFiberCtx[T any](postgres *pgxpool.Pool, query string, args map[string]any) ([]T, error) {
-	results := []T{}
-
-	rows, err := postgres.Query(context.Background(), query, pgx.NamedArgs(args))
-	if err != nil {
-		return results, err
-	}
-
-	results, err = pgx.CollectRows(rows, pgx.RowToStructByName[T])
-	if errors.Is(err, pgx.ErrNoRows) {
-		return results, nil
-	}
-	return results, err
 }
 
 func LoadFeePayerFromGSM(ctx context.Context) (string, error) {

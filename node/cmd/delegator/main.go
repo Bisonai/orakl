@@ -6,11 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	"bisonai.com/miko/node/pkg/delegator/contract"
-	"bisonai.com/miko/node/pkg/delegator/function"
 	"bisonai.com/miko/node/pkg/delegator/metrics"
-	"bisonai.com/miko/node/pkg/delegator/organization"
-	"bisonai.com/miko/node/pkg/delegator/reporter"
 	"bisonai.com/miko/node/pkg/delegator/sign"
 	"bisonai.com/miko/node/pkg/delegator/utils"
 	"bisonai.com/miko/node/pkg/utils/loginit"
@@ -51,14 +47,8 @@ func main() {
 	}
 
 	app := appConfig.App
-	v1 := app.Group("/api/v1")
-	if appConfig.Store != nil {
-		defer appConfig.Store.Close()
-		SetSigningRouter(v1)
-	} else {
-		defer appConfig.Postgres.Close()
-		SetRouter(v1)
-	}
+	defer appConfig.Store.Close()
+	SetSigningRouter(app.Group("/api/v1"))
 
 	if err := startMetrics(context.Background(), appConfig); err != nil {
 		panic(err)
@@ -77,7 +67,7 @@ func main() {
 
 }
 
-// SetSigningRouter registers the SQLite-mode routes: no allowlist or
+// SetSigningRouter registers the delegator routes: no allowlist or
 // transaction management API (use 'allow' on the CLI).
 func SetSigningRouter(router fiber.Router) {
 	router.Get("", func(c *fiber.Ctx) error {
@@ -94,7 +84,7 @@ func startMetrics(ctx context.Context, appConfig utils.AppConfig) error {
 		return err
 	}
 	metrics.StartBalancePoller(ctx, os.Getenv("PROVIDER_URL"), feePayerAddress, metrics.PollInterval)
-	metrics.StartAllowlistPoller(ctx, allowlistCounter(appConfig), metrics.PollInterval)
+	metrics.StartAllowlistPoller(ctx, appConfig.Store.Count, metrics.PollInterval)
 	return nil
 }
 
@@ -109,30 +99,4 @@ func feePayerAddress() (common.Address, bool) {
 		return common.Address{}, false
 	}
 	return common.HexToAddress(addr), true
-}
-
-func allowlistCounter(appConfig utils.AppConfig) func(context.Context) (int, error) {
-	if appConfig.Store != nil {
-		return appConfig.Store.Count
-	}
-	// functions.contract_id is a NOT NULL foreign key, and an existing
-	// contract row is its approval, so every function row is signable
-	return func(ctx context.Context) (int, error) {
-		var n int
-		err := appConfig.Postgres.QueryRow(ctx, "SELECT COUNT(*) FROM functions").Scan(&n)
-		return n, err
-	}
-}
-
-func SetRouter(router fiber.Router) {
-	router.Get("", func(c *fiber.Ctx) error {
-		return c.SendString("Orakl Network Delegator")
-	})
-
-	contract.Routes(router)
-	sign.Routes(router)
-	function.Routes(router)
-	organization.Routes(router)
-	reporter.Routes(router)
-
 }

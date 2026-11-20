@@ -4,8 +4,8 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-// SigningRoutes registers only the routes that work without Postgres
-// (SQLite mode): signing, key reload and fee payer address.
+// SigningRoutes registers the delegator's routes: signing, key reload and fee
+// payer address, all behind the bearer token check.
 func SigningRoutes(router fiber.Router) {
 	// registered before the group so it wraps the group-wide token check
 	// (c.Next runs the following matching routes) and counts auth rejections
@@ -16,15 +16,4 @@ func SigningRoutes(router fiber.Router) {
 	sign.Post("/v2", insertV2)
 	sign.Get("/initialize", initialize)
 	sign.Get("/feePayer", getFeePayerAddress)
-}
-
-func Routes(router fiber.Router) {
-	sign := router.Group("/sign")
-
-	sign.Post("/v2", observeSign, insertV2)
-
-	sign.Get("/initialize", initialize)
-	sign.Get("/feePayer", getFeePayerAddress)
-	sign.Get("", get)
-	sign.Get("/:id", getById)
 }

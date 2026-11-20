@@ -22,15 +22,6 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-const (
-	defaultTransactionLimit = 100
-	maxTransactionLimit     = 1000
-)
-
-type FeePayer struct {
-	PrivateKey string `json:"privateKey" db:"privateKey"`
-}
-
 type SignInsertPayload struct {
 	Timestamp   *utils.CustomDateTime `json:"timestamp" db:"timestamp"`
 	From        string                `json:"from" validate:"required"`
@@ -74,18 +65,6 @@ type SignModel struct {
 	ReporterId  *utils.CustomInt64    `json:"reporterId" db:"reporterId"`
 }
 
-type FunctionModel struct {
-	FunctionId  *utils.CustomInt64 `json:"id" db:"id"`
-	Name        string             `json:"name" db:"name"`
-	EncodedName string             `json:"encodedName" db:"encodedName"`
-	ContractId  *utils.CustomInt64 `json:"contractId" db:"contractId"`
-}
-
-type ContractModel struct {
-	Address    string             `json:"address" db:"address"`
-	ContractId *utils.CustomInt64 `json:"id" db:"contract_id"`
-}
-
 // initialize reloads the fee payer key from the configured source (env, Vault
 // or GSM). A key passed in the request is refused: keys must not travel in
 // URLs (access logs, proxies) and the key source is the only place to set one.
@@ -94,11 +73,7 @@ func initialize(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "feePayerPrivateKey is not accepted; the key is loaded from the configured source")
 	}
 
-	pgx, err := utils.GetPgx(c)
-	if err != nil {
-		return err
-	}
-	if err := utils.InitFeePayerPK(c.Context(), pgx); err != nil {
+	if err := utils.InitFeePayerPK(c.Context()); err != nil {
 		return err
 	}
 	return c.SendString("Initialized")
@@ -184,53 +159,9 @@ func insertV2(c *fiber.Ctx) error {
 			metrics.StoreError(metrics.StoreOpRecordTx)
 			log.Error().Err(err).Msg("failed to record transaction")
 		}
-		return c.JSON(SignModel{SignedRawTx: &signedRawTxHash})
 	}
-
-	defer func() {
-		succeed := true
-		payload.Timestamp = &utils.CustomDateTime{Time: time.Now()}
-		payload.From = strings.ToLower(payload.From)
-		payload.To = strings.ToLower(payload.To)
-		payload.Succeed = &succeed
-		payload.SignedRawTx = &signedRawTxHash
-
-		_, err := insertTransaction(c, payload)
-		if err != nil {
-			metrics.StoreError(metrics.StoreOpRecordTx)
-			log.Error().Err(err).Msg("failed to insert transaction")
-		}
-	}()
 
 	return c.JSON(SignModel{SignedRawTx: &signedRawTxHash})
-}
-
-func get(c *fiber.Ctx) error {
-	// unbounded select loads the whole table into memory and can oom the process
-	limit := c.QueryInt("limit", defaultTransactionLimit)
-	if limit < 1 || limit > maxTransactionLimit {
-		limit = defaultTransactionLimit
-	}
-	offset := c.QueryInt("offset", 0)
-	if offset < 0 {
-		offset = 0
-	}
-
-	transactions, err := utils.QueryRows[SignModel](c, GetTransactions, map[string]any{"limit": limit, "offset": offset})
-	if err != nil {
-		return err
-	}
-
-	return c.JSON(transactions)
-}
-
-func getById(c *fiber.Ctx) error {
-	id := c.Params("id")
-	transaction, err := utils.QueryRow[SignModel](c, GetTransactionById, map[string]any{"id": id})
-	if err != nil {
-		return err
-	}
-	return c.JSON(transaction)
 }
 
 // txTarget returns the lowercase contract address and 4-byte function selector
@@ -271,22 +202,15 @@ func validateFunction(c *fiber.Ctx, address, selector string) error {
 	if _, ok := validFunctions.Load(key); ok {
 		return nil
 	}
-	if s := utils.GetStore(c); s != nil {
-		allowed, err := s.FunctionAllowed(c.Context(), address, selector)
-		if err != nil {
-			return err
-		}
-		if !allowed {
-			return notAllowlistedError(fmt.Sprintf("not approved function %s for contract %s", selector, address))
-		}
-		validFunctions.Store(key, struct{}{})
-		return nil
+	s := utils.GetStore(c)
+	if s == nil {
+		return errors.New("store not configured")
 	}
-	functions, err := utils.QueryRows[FunctionModel](c, GetFunctionByToAndEncodedName, map[string]any{"to": address, "encodedName": selector})
+	allowed, err := s.FunctionAllowed(c.Context(), address, selector)
 	if err != nil {
 		return err
 	}
-	if len(functions) == 0 {
+	if !allowed {
 		return notAllowlistedError(fmt.Sprintf("not approved function %s for contract %s", selector, address))
 	}
 	validFunctions.Store(key, struct{}{})
@@ -298,27 +222,20 @@ func validateContractAddress(c *fiber.Ctx, address string) error {
 	if _, ok := validContracts.Load(address); ok {
 		log.Info().Str("address", address).Msg("contract approved through cache")
 		return nil
-	} else if s := utils.GetStore(c); s != nil {
-		allowed, err := s.ContractAllowed(c.Context(), address)
-		if err != nil {
-			return err
-		}
-		if !allowed {
-			return notAllowlistedError("not approved contract address")
-		}
-		validContracts.Store(address, struct{}{})
-		return nil
-	} else {
-		contract, err := utils.QueryRow[ContractModel](c, GetContractByAddress, map[string]any{"address": address})
-		if err != nil {
-			return err
-		}
-		if contract.ContractId == nil {
-			return notAllowlistedError("not approved contract address")
-		}
-		validContracts.Store(address, struct{}{})
-		return nil
 	}
+	s := utils.GetStore(c)
+	if s == nil {
+		return errors.New("store not configured")
+	}
+	allowed, err := s.ContractAllowed(c.Context(), address)
+	if err != nil {
+		return err
+	}
+	if !allowed {
+		return notAllowlistedError("not approved contract address")
+	}
+	validContracts.Store(address, struct{}{})
+	return nil
 }
 
 func signTxByFeePayerV2(c *fiber.Ctx, tx *types.Transaction) (*types.Transaction, error) {
@@ -399,28 +316,4 @@ func HashToTx(hash string) (*types.Transaction, error) {
 		return nil, err
 	}
 	return tx, nil
-}
-
-func insertTransaction(c *fiber.Ctx, payload *SignInsertPayload) (*SignModel, error) {
-	transaction, err := utils.QueryRow[SignModel](c, InsertTransaction, map[string]any{
-		"timestamp":   payload.Timestamp.String(),
-		"from":        payload.From,
-		"to":          payload.To,
-		"input":       payload.Input,
-		"gas":         payload.Gas,
-		"value":       payload.Value,
-		"chainId":     payload.ChainId,
-		"gasPrice":    payload.GasPrice,
-		"nonce":       payload.Nonce,
-		"v":           payload.V,
-		"r":           payload.R,
-		"s":           payload.S,
-		"rawTx":       payload.RawTx,
-		"signedRawTx": payload.SignedRawTx,
-		"succeed":     payload.Succeed,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return &transaction, nil
 }
