@@ -206,6 +206,8 @@ func startNodeReporter(ctx context.Context, a *aggregator.App) {
 		r.Ingest(data.Symbol, data.GlobalAggregate.Value, data.GlobalAggregate.Timestamp, data.Proof.Proof, leader)
 	}
 	a.CanLead = r.Healthy
+	// a node that stopped leading a feed stops submitting it at once (#2938)
+	r.SetLeads(a.Leads)
 	go func() {
 		if err := r.RunWithRetry(ctx); err != nil {
 			return // ctx done

@@ -222,7 +222,7 @@ func (r *Raft) handleHeartbeat(msg Message, authentic bool) error {
 
 	// ends a candidacy, or a late granted vote would still make this node leader
 	if r.Role == Candidate && (heartbeatMessage.Term >= currentTerm || followLower) {
-		r.Role = Follower
+		r.setRole(Follower)
 	}
 
 	if r.Role == Follower {
@@ -286,12 +286,12 @@ func (r *Raft) handleRequestVote(ctx context.Context, msg Message) error {
 
 	if requestVoteMessage.Term > r.Term {
 		r.Term = requestVoteMessage.Term
-		r.Role = Follower
+		r.setRole(Follower)
 		r.VotedFor = ""
 	}
 
 	if r.Role == Candidate && requestVoteMessage.Term == r.Term && msg.SentFrom != r.GetHostId() {
-		r.Role = Follower
+		r.setRole(Follower)
 		return r.sendReplyVote(ctx, msg.SentFrom, false)
 	}
 
@@ -548,7 +548,7 @@ func (r *Raft) ResignLeader() {
 	if r.Resign != nil {
 		close(r.Resign)
 		r.Resign = nil
-		r.Role = Follower
+		r.setRole(Follower)
 		r.LeaderID = ""
 		r.leaderClock.Store(nil)
 		r.startElectionTimer()
@@ -645,7 +645,7 @@ func (r *Raft) setLeaderState() {
 	r.Resign = make(chan interface{})
 	r.ElectionTimer.Stop()
 	r.Term++
-	r.Role = Leader
+	r.setRole(Leader)
 	r.LeaderID = r.GetHostId()
 	r.recordLeaderChangeSilence(r.leaderClock.Swap(nil), r.Term)
 }
@@ -921,7 +921,7 @@ func (r *Raft) campaign(ctx context.Context, reason string) {
 	metrics.RecordRaftElectionStarted(reason)
 	r.Term++
 	r.VotesReceived = 0
-	r.Role = Candidate
+	r.setRole(Candidate)
 	r.VotedFor = r.GetHostId()
 	r.MissedHeartbeats = 0
 

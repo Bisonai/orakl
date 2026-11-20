@@ -10,6 +10,7 @@ import (
 	"bisonai.com/miko/node/pkg/chain/helper"
 	"bisonai.com/miko/node/pkg/nodeconfig"
 	"bisonai.com/miko/node/pkg/nodestate"
+	"bisonai.com/miko/node/pkg/raft"
 
 	errorSentinel "bisonai.com/miko/node/pkg/error"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
@@ -110,6 +111,7 @@ func (a *App) clearAggregators() error {
 		}
 	}
 	a.Aggregators = make(map[int32]*Aggregator)
+	a.rafts.Clear()
 	return nil
 }
 
@@ -165,9 +167,18 @@ func (a *App) initializeLoadedAggregators(ctx context.Context, loadedConfigs []C
 			a.ConfigureAggregator(tmpNode)
 		}
 		a.Aggregators[config.ID] = tmpNode
-
+		a.rafts.Store(config.Name, tmpNode.Raft)
 	}
 	return nil
+}
+
+// Leads reports whether this node leads feed now: its Raft holds the leader
+// role (lock-free, Raft.IsLeader). Feed names are unique (nodeconfig). A
+// stopped aggregator leads nothing once its Run has returned (it resigns on
+// the way out). Safe to call concurrently with Run.
+func (a *App) Leads(feed string) bool {
+	rf, ok := a.rafts.Load(feed)
+	return ok && rf.(*raft.Raft).IsLeader()
 }
 
 func (a *App) getConfigs(ctx context.Context) ([]Config, error) {

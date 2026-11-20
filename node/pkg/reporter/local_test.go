@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/ecdsa"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -80,4 +81,39 @@ func TestLocalPrepare(t *testing.T) {
 
 	stored, _ := GetLatestData(a.LatestDataMap, "LED")
 	assert.Equal(t, bytes.Join([][]byte{sig(pkA, 10, fresh, "LED"), sig(pkB, 10, fresh, "LED")}, nil), stored.Proof, "stored proof untouched")
+}
+
+// A pair whose latest round this node led is no longer submitted once the node
+// stops leading it, though no later round reached Ingest (#2938).
+func TestLocalPrepareSkipsLostLead(t *testing.T) {
+	now := time.UnixMilli(1_700_000_000_000)
+	pk, err := crypto.GenerateKey()
+	require.NoError(t, err)
+	fresh := now.Add(-time.Second)
+	s, err := chainutils.MakeValueSignature(10, fresh.UnixMilli(), "A-B", pk)
+	require.NoError(t, err)
+
+	a := NewNodeApp()
+	a.local.now = func() time.Time { return now }
+	a.local.setWhitelist([]kaiacommon.Address{crypto.PubkeyToAddress(pk.PublicKey)})
+	var leads atomic.Bool
+	leads.Store(true)
+	a.SetLeads(func(symbol string) bool { return symbol == "A-B" && leads.Load() })
+	a.Ingest("A-B", 10, fresh, s, true)
+
+	pairs := []string{"A-B"}
+	got, led := a.local.prepareLed(context.Background(), a.local.latest(a.LatestDataMap, pairs))
+	assert.Len(t, got, 1, "submitted while leading")
+	assert.Equal(t, 1, led)
+
+	leads.Store(false) // resigned or stopped: no round follows
+	got, led = a.local.prepareLed(context.Background(), a.local.latest(a.LatestDataMap, pairs))
+	assert.Empty(t, got, "submitted after losing the lead")
+	assert.Equal(t, 0, led, "a lost pair counts as not led (health)")
+}
+
+func TestSetLeadsIgnoredWithoutLocal(t *testing.T) {
+	a := New()
+	a.SetLeads(func(string) bool { return false })
+	assert.Nil(t, a.local)
 }

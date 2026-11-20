@@ -64,6 +64,7 @@ type Raft struct {
 	Ps    *pubsub.PubSub
 	Topic *pubsub.Topic
 
+	// set through setRole, which keeps IsLeader in sync (under Mutex)
 	Role          RoleType
 	VotedFor      string
 	LeaderID      string
@@ -145,6 +146,9 @@ type Raft struct {
 	// atomic mirror of LeaderID for the message path, which must not take Mutex
 	// for metrics; nil when this node is the leader or there is none
 	leaderClock atomic.Pointer[leaderClock]
+
+	// atomic mirror of Role == Leader, for IsLeader (setRole)
+	leading atomic.Bool
 }
 
 // leaderClock tracks when a leader's last message arrived. It lives as long as
