@@ -64,6 +64,8 @@ type Raft struct {
 	Ps    *pubsub.PubSub
 	Topic *pubsub.Topic
 
+	// Role becomes Leader only in setLeaderState and leaves it only in
+	// ResignLeader, which keep IsLeader in sync; don't assign Leader directly
 	Role          RoleType
 	VotedFor      string
 	LeaderID      string
