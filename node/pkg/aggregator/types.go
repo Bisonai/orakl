@@ -70,6 +70,9 @@ type App struct {
 	// without State).
 	rounds *roundPersister
 
+	// rafts maps each feed name to its current aggregator's Raft (Leads)
+	rafts sync.Map // map[string]*raft.Raft
+
 	// running aggregator Run goroutines (WaitStopped)
 	runs runTracker
 }
