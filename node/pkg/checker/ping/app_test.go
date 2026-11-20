@@ -75,7 +75,7 @@ func startWithDeadline(t *testing.T, app *App, ctx context.Context, deadline tim
 }
 
 func TestApp_Start_SuccessfulPing(t *testing.T) {
-	app, _ := newTestApp(t, []string{"8.8.8.8"}, func() *fakePinger {
+	app, runs := newTestApp(t, []string{"8.8.8.8"}, func() *fakePinger {
 		return &fakePinger{rtt: 100 * time.Millisecond}
 	})
 
@@ -83,6 +83,8 @@ func TestApp_Start_SuccessfulPing(t *testing.T) {
 	defer cancel()
 	startWithDeadline(t, app, ctx, 2*time.Second)
 
+	assert.Positive(t, runs.Load())
+	assert.Equal(t, float64(100*time.Millisecond), app.RTTAvg["8.8.8.8"])
 	assert.Equal(t, 0, app.FailCount["8.8.8.8"])
 }
 
