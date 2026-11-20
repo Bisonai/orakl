@@ -22,7 +22,11 @@ type Subscription struct {
 }
 
 type Hub struct {
-	Symbols    map[string]struct{}
+	Symbols map[string]struct{}
+	// streams is the stream currently broadcast for each served symbol. Data
+	// from any other stream (removed symbol, or a re-added symbol's old stream
+	// still draining) is not delivered.
+	streams    map[string]chan *dalcommon.OutgoingSubmissionData
 	Clients    map[*websocket.Conn]map[string]struct{}
 	Register   chan *websocket.Conn
 	Unregister chan *websocket.Conn
@@ -50,6 +54,7 @@ func HubSetup(ctx context.Context, configs []types.Config) *Hub {
 func NewHub(symbols map[string]struct{}) *Hub {
 	return &Hub{
 		Symbols:    symbols,
+		streams:    make(map[string]chan *dalcommon.OutgoingSubmissionData),
 		Clients:    make(map[*websocket.Conn]map[string]struct{}),
 		Register:   make(chan *websocket.Conn),
 		Unregister: make(chan *websocket.Conn),
@@ -65,6 +70,7 @@ func (h *Hub) Start(ctx context.Context, collector *collector.Collector) {
 	streams := collector.Streams()
 	for symbol := range h.Symbols {
 		if stream, ok := streams[symbol]; ok {
+			h.streams[symbol] = stream
 			go h.broadcastDataForSymbol(ctx, symbol, stream)
 		}
 	}
@@ -94,6 +100,7 @@ func (h *Hub) AddSymbols(streams map[string]chan *dalcommon.OutgoingSubmissionDa
 			continue
 		}
 		h.Symbols[symbol] = struct{}{}
+		h.streams[symbol] = stream
 		if h.ctx != nil {
 			go h.broadcastDataForSymbol(h.ctx, symbol, stream)
 		}
@@ -101,17 +108,16 @@ func (h *Hub) AddSymbols(streams map[string]chan *dalcommon.OutgoingSubmissionDa
 }
 
 // RemoveSymbols stops serving symbols (a config reload removed them): they are
-// no longer subscribable and are dropped from client subscriptions. Clients
-// are not notified; they just stop receiving the symbol. The broadcaster ends
-// when the collector closes the stream.
+// no longer subscribable or delivered. Client subscriptions are kept, so a
+// client subscribed to a symbol receives it again once a later reload re-adds
+// it, without resubscribing. The broadcaster ends when the collector closes
+// the stream.
 func (h *Hub) RemoveSymbols(symbols []string) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	for _, symbol := range symbols {
 		delete(h.Symbols, symbol)
-		for _, subscriptions := range h.Clients {
-			delete(subscriptions, symbol)
-		}
+		delete(h.streams, symbol)
 	}
 }
 
@@ -198,16 +204,22 @@ func closeAsync(clients []*websocket.Conn, code websocket.StatusCode, reason str
 
 func (h *Hub) broadcastDataForSymbol(ctx context.Context, symbol string, stream chan *dalcommon.OutgoingSubmissionData) {
 	for data := range stream {
-		h.castSubmissionData(ctx, data, symbol)
+		h.castSubmissionData(ctx, data, symbol, stream)
 	}
 }
 
-func (h *Hub) castSubmissionData(ctx context.Context, data *dalcommon.OutgoingSubmissionData, symbol string) {
+// castSubmissionData sends data to the clients subscribed to symbol, if stream
+// is the symbol's current stream.
+func (h *Hub) castSubmissionData(ctx context.Context, data *dalcommon.OutgoingSubmissionData, symbol string, stream chan *dalcommon.OutgoingSubmissionData) {
 	var wg sync.WaitGroup
 	var failedMu sync.Mutex
 	var failedClients []*websocket.Conn
 
 	h.mu.RLock()
+	if current, ok := h.streams[symbol]; !ok || current != stream {
+		h.mu.RUnlock()
+		return
+	}
 	for client, subscriptions := range h.Clients {
 		if _, ok := subscriptions[symbol]; ok {
 			wg.Add(1)
