@@ -8,11 +8,14 @@ import (
 	"os"
 	"slices"
 	"strconv"
+	"strings"
+	"sync"
 	"time"
 
 	"bisonai.com/miko/node/pkg/checker"
 	"bisonai.com/miko/node/pkg/secrets"
 	"bisonai.com/miko/node/pkg/utils/configfetch"
+	"bisonai.com/miko/node/pkg/utils/configreload"
 	"bisonai.com/miko/node/pkg/utils/request"
 	"bisonai.com/miko/node/pkg/wss"
 	"github.com/rs/zerolog/log"
@@ -81,6 +84,16 @@ func Start(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	expected := &expectedSymbols{}
+	expected.set(configs)
+	// Follow config reloads (the DAL reloads the same bundle) so a feed
+	// removed from config is not reported missing until a restart.
+	reloader := configreload.New(configfetch.FeedsPath(configChain()), len(configs), func(c Config) string { return c.Name },
+		func(_ context.Context, c []Config) error {
+			expected.set(c)
+			return nil
+		})
+	go reloader.Run(ctx, configreload.Interval(), nil)
 
 	subscription := Subscription{
 		Method: "SUBSCRIBE",
@@ -105,7 +118,7 @@ func Start(ctx context.Context) error {
 	// Alerts: Prometheus rules on the exported orakl_dal_check_* metrics.
 	restSymbols := map[string]struct{}{}
 	for range ticker.C {
-		err := checkDal(endpoint, key, restSymbols)
+		err := checkDal(endpoint, key, expected.get(), restSymbols)
 		if err != nil {
 			restErrorsCounter.Inc()
 			log.Error().Str("Player", "DalChecker").Err(err).Msg("error in checkDal")
@@ -123,10 +136,40 @@ func buildSubscriptionParams(configs []Config) []string {
 	return params
 }
 
-// checkDal exports the aggregate time of every DAL REST entry. restSymbols
-// holds the symbols exported last round; symbols no longer served are dropped
-// so they don't look stale forever.
-func checkDal(endpoint string, key string, restSymbols map[string]struct{}) error {
+// expectedSymbols is the configured (non-delisted) symbol set, replaced on
+// config reload.
+type expectedSymbols struct {
+	mu      sync.RWMutex
+	symbols map[string]struct{}
+}
+
+func (e *expectedSymbols) set(configs []Config) {
+	symbols := make(map[string]struct{}, len(configs))
+	for _, c := range configs {
+		if slices.Contains(checker.SymbolsToBeDelisted, c.Name) {
+			continue
+		}
+		symbols[c.Name] = struct{}{}
+	}
+	e.mu.Lock()
+	e.symbols = symbols
+	e.mu.Unlock()
+}
+
+// get returns the current set; callers must not modify it.
+func (e *expectedSymbols) get() map[string]struct{} {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+	return e.symbols
+}
+
+// checkDal exports the aggregate time of every DAL REST entry and the number
+// of expected (configured) symbols missing from the response. restSymbols
+// holds the symbols exported so far. A configured symbol that is not served
+// keeps its last series so staleness alerts fire; only symbols that are
+// neither served nor configured are dropped. A response without any valid
+// feed is a failed check and leaves the series untouched.
+func checkDal(endpoint string, key string, expected map[string]struct{}, restSymbols map[string]struct{}) error {
 	now := time.Now()
 	resp, err := request.Request[[]OutgoingSubmissionData](
 		request.WithEndpoint(endpoint+"/latest-data-feeds/all"),
@@ -163,17 +206,38 @@ func checkDal(endpoint string, key string, restSymbols map[string]struct{}) erro
 		seen[data.Symbol] = struct{}{}
 	}
 
-	for symbol := range restSymbols {
+	var missing []string
+	for symbol := range expected {
 		if _, ok := seen[symbol]; !ok {
-			restAggregateTimestampGauge.DeleteLabelValues(symbol)
-			delete(restSymbols, symbol)
+			missing = append(missing, symbol)
 		}
+	}
+	restMissingFeedsGauge.Set(float64(len(missing)))
+	if len(missing) > 0 {
+		slices.Sort(missing)
+		log.Warn().Str("Player", "DalChecker").Int("count", len(missing)).Str("symbols", strings.Join(missing, ",")).Msg("configured feeds missing from DAL REST response or with invalid aggregateTime")
+	}
+
+	restEmptyFeedsGauge.Set(float64(empty))
+	if len(seen) == 0 {
+		// Failed check: keep all series as they are.
+		return fmt.Errorf("DAL REST response has no valid feeds (%d entries)", len(resp))
+	}
+
+	for symbol := range restSymbols {
+		if _, ok := seen[symbol]; ok {
+			continue
+		}
+		if _, ok := expected[symbol]; ok {
+			continue
+		}
+		restAggregateTimestampGauge.DeleteLabelValues(symbol)
+		delete(restSymbols, symbol)
 	}
 	for symbol := range seen {
 		restSymbols[symbol] = struct{}{}
 	}
 
-	restEmptyFeedsGauge.Set(float64(empty))
 	restLastSuccessGauge.Set(float64(time.Now().Unix()))
 	return nil
 }
@@ -183,12 +247,16 @@ func isDataEmpty(data *OutgoingSubmissionData) bool {
 }
 
 func fetchConfigs() ([]Config, error) {
+	return configfetch.Get[[]Config](context.Background(), configfetch.FeedsPath(configChain()))
+}
+
+func configChain() string {
 	chain := os.Getenv("CHAIN")
 	if chain == "" {
 		log.Info().Str("Player", "Reporter").Msg("CHAIN env not set, defaulting to kairos")
 		chain = "kairos"
 	}
-	return configfetch.Get[[]Config](context.Background(), configfetch.FeedsPath(chain))
+	return chain
 }
 
 func handleWsMessage(ctx context.Context, data map[string]interface{}) error {

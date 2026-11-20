@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 	"math/big"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	kaia "github.com/kaiachain/kaia"
 	"github.com/kaiachain/kaia/blockchain/types"
@@ -202,4 +204,70 @@ func TestApplyConfigsDropsRemovedFeeds(t *testing.T) {
 
 	assert.Len(t, r.byAddress, 1)
 	assert.Equal(t, 1, testutil.CollectAndCount(answerGauge, "orakl_onchain_answer"), "only TEST-BTC left, TEST-ETH series removed")
+}
+
+// hangingClient blocks its first BlockNumber call until ctx is done.
+type hangingClient struct {
+	*fakeClient
+	calls    atomic.Int32
+	firstErr chan error
+}
+
+func (h *hangingClient) BlockNumber(ctx context.Context) (*big.Int, error) {
+	if h.calls.Add(1) == 1 {
+		<-ctx.Done()
+		h.firstErr <- ctx.Err()
+		return nil, ctx.Err()
+	}
+	return h.fakeClient.BlockNumber(ctx)
+}
+
+func TestRunHungPollTimesOutAndNextTickRuns(t *testing.T) {
+	r, fc, _, _ := setup(t)
+	hc := &hangingClient{fakeClient: fc, firstErr: make(chan error, 1)}
+	r.client = hc
+
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
+	go func() {
+		r.run(ctx, 100*time.Millisecond, 80*time.Millisecond)
+		close(done)
+	}()
+	t.Cleanup(func() {
+		cancel()
+		<-done
+	})
+
+	select {
+	case err := <-hc.firstErr:
+		assert.ErrorIs(t, err, context.DeadlineExceeded)
+	case <-time.After(5 * time.Second):
+		t.Fatal("hung poll was not cancelled")
+	}
+	require.Eventually(t, func() bool { return hc.calls.Load() >= 2 }, 5*time.Second, 10*time.Millisecond, "next tick did not poll")
+
+	cancel()
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		t.Fatal("run did not stop on cancel")
+	}
+}
+
+func TestPollTimeout(t *testing.T) {
+	assert.Equal(t, minPollTimeout, pollTimeout(DefaultPollInterval))
+	assert.Equal(t, 48*time.Second, pollTimeout(time.Minute))
+}
+
+func TestPollReadsHeadersOfAllLogBlocks(t *testing.T) {
+	r, fc, btc, eth := setup(t)
+	require.NoError(t, r.ApplyConfigs(context.Background(), []Config{{Name: "TEST-BTC"}, {Name: "TEST-ETH"}}))
+	require.NoError(t, r.Poll(context.Background()))
+	for i := uint64(1); i <= 20; i++ {
+		fc.logs = append(fc.logs, updateLog(btc, 100+i, 0, big.NewInt(int64(i))), updateLog(eth, 100+i, 1, big.NewInt(int64(i))))
+	}
+	fc.head = 120
+	require.NoError(t, r.Poll(context.Background()))
+	assert.Equal(t, float64(1_700_000_120), testutil.ToFloat64(updatedGauge.WithLabelValues("TEST-BTC")))
+	assert.Equal(t, float64(20), testutil.ToFloat64(answerGauge.WithLabelValues("TEST-ETH")))
 }
