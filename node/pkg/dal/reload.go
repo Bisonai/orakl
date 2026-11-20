@@ -20,7 +20,7 @@ func startConfigReload(ctx context.Context, chain string, count int, c *collecto
 }
 
 // ApplyConfigs applies a reloaded bundle: added symbols become subscribable; removed ones stop being
-// broadcast and are dropped from client subscriptions, then from the collector.
+// broadcast (client subscriptions are kept for a later re-add), then are dropped from the collector.
 func ApplyConfigs(ctx context.Context, c *collector.Collector, h *hub.Hub, configs []Config) error {
 	added, removed, err := c.UpdateConfigs(ctx, configs)
 	if err != nil {

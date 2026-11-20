@@ -78,10 +78,10 @@ func TestAddRemoveSymbols(t *testing.T) {
 	require.NoError(t, wsjson.Read(readCtx, conn, &got))
 	assert.Equal(t, "C-D", got.Symbol)
 
-	// removed symbol: unsubscribable, dropped from client subscriptions
+	// removed symbol: unsubscribable, client subscriptions kept for a re-add
 	h.RemoveSymbols([]string{"A-B"})
 	assert.Equal(t, []string{"C-D"}, h.SymbolList())
-	assert.Equal(t, 0, subscriptionsOf(h, "A-B"))
+	assert.Equal(t, 1, subscriptionsOf(h, "A-B"))
 	assert.Equal(t, 1, subscriptionsOf(h, "C-D"))
 	h.mu.RLock()
 	var client *websocket.Conn
@@ -127,7 +127,9 @@ func TestSlowCloseDoesNotStallBroadcast(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
-			col := &collector.Collector{OutgoingStream: map[string]chan *dalcommon.OutgoingSubmissionData{}}
+			stream := make(chan *dalcommon.OutgoingSubmissionData)
+			defer close(stream)
+			col := &collector.Collector{OutgoingStream: map[string]chan *dalcommon.OutgoingSubmissionData{"A-B": stream}}
 			h := NewHub(map[string]struct{}{"A-B": {}})
 			h.Start(ctx, col)
 			srv := wsServer(t, h)
@@ -183,7 +185,7 @@ func TestSlowCloseDoesNotStallBroadcast(t *testing.T) {
 			broadcastDone := make(chan struct{})
 			go func() {
 				defer close(broadcastDone)
-				h.castSubmissionData(ctx, &dalcommon.OutgoingSubmissionData{Symbol: "A-B", Value: "1"}, "A-B")
+				h.castSubmissionData(ctx, &dalcommon.OutgoingSubmissionData{Symbol: "A-B", Value: "1"}, "A-B", stream)
 			}()
 
 			readCtx, readCancel := context.WithTimeout(ctx, bound)
@@ -200,4 +202,71 @@ func TestSlowCloseDoesNotStallBroadcast(t *testing.T) {
 			assert.Less(t, time.Since(start), bound)
 		})
 	}
+}
+
+// A client subscribed to a symbol gets nothing for it while a reload has
+// removed it, and receives it again once a later reload re-adds it, without
+// resubscribing.
+func TestRemovedThenReAddedSymbolKeepsSubscription(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	oldStream := make(chan *dalcommon.OutgoingSubmissionData, 10)
+	col := &collector.Collector{OutgoingStream: map[string]chan *dalcommon.OutgoingSubmissionData{"A-B": oldStream}}
+	h := NewHub(map[string]struct{}{"A-B": {}})
+	h.Start(ctx, col)
+
+	srv := wsServer(t, h)
+	conn, _, err := websocket.Dial(ctx, "ws"+srv.URL[len("http"):], nil)
+	require.NoError(t, err)
+	defer conn.CloseNow()
+	require.NoError(t, wsjson.Write(ctx, conn, Subscription{Method: "SUBSCRIBE", Params: []string{"submission@A-B"}}))
+	require.Eventually(t, func() bool { return subscriptionsOf(h, "A-B") == 1 }, 2*time.Second, 10*time.Millisecond)
+
+	// Reads run in one goroutine: a websocket read must not be abandoned midway.
+	msgs := make(chan dalcommon.OutgoingSubmissionData, 10)
+	go func() {
+		for {
+			var got dalcommon.OutgoingSubmissionData
+			if err := wsjson.Read(ctx, conn, &got); err != nil {
+				return
+			}
+			msgs <- got
+		}
+	}()
+	receive := func(timeout time.Duration) (dalcommon.OutgoingSubmissionData, bool) {
+		select {
+		case got := <-msgs:
+			return got, true
+		case <-time.After(timeout):
+			return dalcommon.OutgoingSubmissionData{}, false
+		}
+	}
+
+	oldStream <- &dalcommon.OutgoingSubmissionData{Symbol: "A-B", Value: "1"}
+	got, ok := receive(2 * time.Second)
+	require.True(t, ok)
+	assert.Equal(t, "1", got.Value)
+
+	// reload removes A-B (hub, then collector closes the stream)
+	h.RemoveSymbols([]string{"A-B"})
+	oldStream <- &dalcommon.OutgoingSubmissionData{Symbol: "A-B", Value: "2"}
+	close(oldStream)
+	got, ok = receive(300 * time.Millisecond)
+	assert.False(t, ok, "removed symbol delivered: %+v", got)
+
+	// reload re-adds A-B with a new stream
+	newStream := make(chan *dalcommon.OutgoingSubmissionData, 10)
+	h.AddSymbols(map[string]chan *dalcommon.OutgoingSubmissionData{"A-B": newStream})
+	newStream <- &dalcommon.OutgoingSubmissionData{Symbol: "A-B", Value: "3"}
+	got, ok = receive(2 * time.Second)
+	require.True(t, ok, "re-added symbol not delivered to existing subscriber")
+	assert.Equal(t, "3", got.Value)
+
+	// data from the old stream (still draining after a quick re-add) is not delivered
+	h.castSubmissionData(ctx, &dalcommon.OutgoingSubmissionData{Symbol: "A-B", Value: "stale"}, "A-B", oldStream)
+	newStream <- &dalcommon.OutgoingSubmissionData{Symbol: "A-B", Value: "4"}
+	got, ok = receive(2 * time.Second)
+	require.True(t, ok)
+	assert.Equal(t, "4", got.Value)
 }

@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"bisonai.com/miko/node/pkg/dal"
+	"bisonai.com/miko/node/pkg/dal/hub"
+	"bisonai.com/miko/node/pkg/wss"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -75,4 +77,58 @@ func TestReloadAddRemoveSymbol(t *testing.T) {
 	time.Sleep(200 * time.Millisecond)
 	_, err = testItems.Collector.GetLatestData("test-aggregate")
 	assert.Error(t, err)
+}
+
+// A websocket client subscribed to a symbol gets nothing for it while a reload
+// has removed it, and receives it again after a reload re-adds it, without
+// resubscribing.
+func TestReloadRemoveReAddKeepsWebsocketSubscription(t *testing.T) {
+	ctx := context.Background()
+	clean, testItems, err := setup(ctx)
+	require.NoError(t, err)
+	defer func() {
+		if cleanupErr := clean(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
+		}
+	}()
+
+	const symbol = "test-aggregate"
+	other := Config{ID: 14, Name: "test-aggregate-2"}
+
+	headers := map[string]string{"X-API-Key": testItems.ApiKey}
+	conn, err := wss.NewWebsocketHelper(ctx, wss.WithEndpoint(testItems.MockDal.URL+"/ws"), wss.WithRequestHeaders(headers))
+	require.NoError(t, err)
+	require.NoError(t, conn.Dial(ctx))
+	defer conn.Close()
+	require.NoError(t, conn.Write(ctx, hub.Subscription{Method: "SUBSCRIBE", Params: []string{"submission@" + symbol}}))
+	ch := make(chan any, 16)
+	go conn.Read(ctx, ch)
+
+	assert.Equal(t, symbol, awaitWSSubmission(ctx, t, testItems, ch, symbol).Symbol)
+	// awaitWSSubmission may have published more than once: drain late deliveries.
+	for quiet := false; !quiet; {
+		select {
+		case <-ch:
+		case <-time.After(500 * time.Millisecond):
+			quiet = true
+		}
+	}
+
+	// reload removes the symbol: nothing is delivered for it (the collector
+	// drops its data; the hub's stale-stream guard is covered by hub tests)
+	require.NoError(t, dal.ApplyConfigs(ctx, testItems.Collector, testItems.Controller, []Config{other}))
+	assert.Equal(t, []string{other.Name}, symbolsFromApi(t, testItems))
+	data, err := generateSampleSubmissionData(testItems.TmpConfig.ID, 16, time.Now(), 2, symbol)
+	require.NoError(t, err)
+	require.NoError(t, testPublishData(ctx, symbol, *data))
+	select {
+	case msg := <-ch:
+		t.Fatalf("removed symbol delivered: %v", msg)
+	case <-time.After(500 * time.Millisecond):
+	}
+
+	// reload re-adds the symbol: the existing subscription receives it again
+	require.NoError(t, dal.ApplyConfigs(ctx, testItems.Collector, testItems.Controller, []Config{testItems.TmpConfig, other}))
+	assert.ElementsMatch(t, []string{symbol, other.Name}, symbolsFromApi(t, testItems))
+	assert.Equal(t, symbol, awaitWSSubmission(ctx, t, testItems, ch, symbol).Symbol)
 }
