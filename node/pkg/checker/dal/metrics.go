@@ -25,6 +25,10 @@ var (
 		Name: "orakl_dal_check_rest_empty_feeds",
 		Help: "Entries with an empty field in the last DAL REST response.",
 	})
+	restMissingFeedsGauge = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "orakl_dal_check_rest_missing_feeds",
+		Help: "Configured symbols missing from the last DAL REST response.",
+	})
 	wsLastPushGauge = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "orakl_dal_check_ws_last_push_timestamp_seconds",
 		Help: "Unix time the sentinel last received a DAL WebSocket push per symbol.",
@@ -38,6 +42,7 @@ func init() {
 		restLastSuccessGauge,
 		restErrorsCounter,
 		restEmptyFeedsGauge,
+		restMissingFeedsGauge,
 		wsLastPushGauge,
 	)
 }

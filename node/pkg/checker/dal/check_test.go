@@ -32,7 +32,7 @@ func TestCheckDalExportsAndDropsSymbols(t *testing.T) {
 	restAggregateTimestampGauge.Reset()
 	symbols := map[string]struct{}{}
 
-	if err := checkDal(srv.URL, "key", symbols); err != nil {
+	if err := checkDal(srv.URL, "key", nil, symbols); err != nil {
 		t.Fatal(err)
 	}
 	if v := testutil.ToFloat64(restAggregateTimestampGauge.WithLabelValues("ETH-USDT")); v != 1700000001.5 {
@@ -46,7 +46,7 @@ func TestCheckDalExportsAndDropsSymbols(t *testing.T) {
 	}
 
 	data = data[:1]
-	if err := checkDal(srv.URL, "key", symbols); err != nil {
+	if err := checkDal(srv.URL, "key", nil, symbols); err != nil {
 		t.Fatal(err)
 	}
 	if n := testutil.CollectAndCount(restAggregateTimestampGauge); n != 1 {
@@ -56,10 +56,98 @@ func TestCheckDalExportsAndDropsSymbols(t *testing.T) {
 
 func TestCheckDalErrorKeepsLastSuccess(t *testing.T) {
 	restLastSuccessGauge.Set(42)
-	if err := checkDal("http://127.0.0.1:0", "key", map[string]struct{}{}); err == nil {
+	if err := checkDal("http://127.0.0.1:0", "key", nil, map[string]struct{}{}); err == nil {
 		t.Fatal("expected error")
 	}
 	if v := testutil.ToFloat64(restLastSuccessGauge); v != 42 {
 		t.Fatalf("last success changed on error: %v", v)
+	}
+}
+
+func fullEntry(symbol, ts string) OutgoingSubmissionData {
+	return OutgoingSubmissionData{Symbol: symbol, Value: "1", AggregateTime: ts, Proof: "p", FeedHash: "h", Decimals: "8"}
+}
+
+func expectedOf(names ...string) map[string]struct{} {
+	e := &expectedSymbols{}
+	configs := make([]Config, len(names))
+	for i, n := range names {
+		configs[i] = Config{Name: n}
+	}
+	e.set(configs)
+	return e.get()
+}
+
+func TestCheckDalEmptyResponseIsFailure(t *testing.T) {
+	data := []OutgoingSubmissionData{fullEntry("BTC-USDT", "1700000000000"), fullEntry("ETH-USDT", "1700000000000")}
+	srv := dalServer(t, &data)
+	restAggregateTimestampGauge.Reset()
+	expected := expectedOf("BTC-USDT", "ETH-USDT", "JOY-USDT") // JOY-USDT is delisted
+	symbols := map[string]struct{}{}
+
+	if err := checkDal(srv.URL, "key", expected, symbols); err != nil {
+		t.Fatal(err)
+	}
+	if v := testutil.ToFloat64(restMissingFeedsGauge); v != 0 {
+		t.Fatalf("missing feeds: got %v, want 0 (delisted not expected)", v)
+	}
+
+	restLastSuccessGauge.Set(42)
+	data = []OutgoingSubmissionData{}
+	if err := checkDal(srv.URL, "key", expected, symbols); err == nil {
+		t.Fatal("expected error for empty response")
+	}
+	if v := testutil.ToFloat64(restLastSuccessGauge); v != 42 {
+		t.Fatalf("last success changed on empty response: %v", v)
+	}
+	if v := testutil.ToFloat64(restMissingFeedsGauge); v != 2 {
+		t.Fatalf("missing feeds: got %v, want 2", v)
+	}
+	if n := testutil.CollectAndCount(restAggregateTimestampGauge); n != 2 {
+		t.Fatalf("configured series must be kept, got %d", n)
+	}
+	if v := testutil.ToFloat64(restAggregateTimestampGauge.WithLabelValues("BTC-USDT")); v != 1700000000 {
+		t.Fatalf("BTC timestamp: got %v", v)
+	}
+}
+
+func TestCheckDalMissingConfiguredSymbol(t *testing.T) {
+	data := []OutgoingSubmissionData{
+		fullEntry("BTC-USDT", "1700000000000"),
+		fullEntry("ETH-USDT", "1700000000000"),
+		fullEntry("OLD-USDT", "1700000000000"),
+	}
+	srv := dalServer(t, &data)
+	restAggregateTimestampGauge.Reset()
+	symbols := map[string]struct{}{}
+
+	if err := checkDal(srv.URL, "key", expectedOf("BTC-USDT", "ETH-USDT", "OLD-USDT", "NEW-USDT"), symbols); err != nil {
+		t.Fatal(err)
+	}
+	if v := testutil.ToFloat64(restMissingFeedsGauge); v != 1 {
+		t.Fatalf("missing feeds: got %v, want 1 (NEW-USDT)", v)
+	}
+
+	// ETH-USDT stops being served while still configured; OLD-USDT is removed
+	// from config and no longer served.
+	restLastSuccessGauge.Set(42)
+	data = data[:1]
+	if err := checkDal(srv.URL, "key", expectedOf("BTC-USDT", "ETH-USDT", "NEW-USDT"), symbols); err != nil {
+		t.Fatal(err)
+	}
+	if v := testutil.ToFloat64(restMissingFeedsGauge); v != 2 {
+		t.Fatalf("missing feeds: got %v, want 2", v)
+	}
+	if v := testutil.ToFloat64(restLastSuccessGauge); v == 42 {
+		t.Fatal("partial response should still update last success")
+	}
+	if n := testutil.CollectAndCount(restAggregateTimestampGauge); n != 2 {
+		t.Fatalf("expected BTC + stale ETH series, got %d", n)
+	}
+	if _, ok := symbols["OLD-USDT"]; ok {
+		t.Fatal("removed-from-config symbol should be dropped")
+	}
+	if _, ok := symbols["ETH-USDT"]; !ok {
+		t.Fatal("configured symbol should be kept")
 	}
 }
