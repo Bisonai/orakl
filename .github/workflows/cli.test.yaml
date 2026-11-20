@@ -64,26 +64,9 @@ jobs:
         working-directory: ./node
         run: go mod download
 
-      - name: Create delegator database
-        run: PGPASSWORD=$POSTGRES_PASSWORD psql -h localhost -U postgres -c "CREATE DATABASE delegator"
-        env:
-          POSTGRES_PASSWORD: postgres
-
-      - name: Delegator db migrate
-        working-directory: ./node
-        run: migrate -database "postgresql://postgres:postgres@localhost:5432/delegator?search_path=public&sslmode=disable" -verbose -path ./migrations/delegator up
-
       - name: Api db migrate
         working-directory: ./node
         run: migrate -database "postgresql://postgres:postgres@localhost:5432/miko-test?search_path=public&sslmode=disable" -verbose -path ./migrations/api up
-
-      - name: Run delegator
-        working-directory: ./node
-        run: go run ./cmd/delegator &
-        env:
-          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/delegator?search_path=public"
-          PROVIDER_URL: "https://public-en-kairos.node.kaia.io"
-          APP_PORT: "3002"
 
       - name: Run api
         working-directory: ./node
@@ -94,13 +77,6 @@ jobs:
           APP_PORT: "3000"
           REDIS_HOST: "localhost"
           REDIS_PORT: "6379"
-
-      - name: Check Delegator Service Health
-        run: |
-          until $(curl --output /dev/null --silent --head --fail http://127.0.0.1:3002/api/v1); do
-            echo "Waiting for delegator service to be ready..."
-            sleep 5
-          done
 
       - name: Check API Service Health
         run: |
@@ -113,4 +89,3 @@ jobs:
         run: yarn cli build && yarn cli test
         env:
           ORAKL_NETWORK_API_URL: "http://127.0.0.1:3000/api/v1"
-          ORAKL_NETWORK_DELEGATOR_URL: "http://127.0.0.1:3002/api/v1"
