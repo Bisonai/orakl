@@ -170,7 +170,7 @@ func (n *Aggregator) HandleTriggerMessage(ctx context.Context, msg raft.Message)
 		n.mu.Unlock()
 	}
 	// prune only for accepted triggers: unvalidated input must not drop round state (#2853)
-	defer n.pruneRounds(triggerMessage.RoundID, currentRoundID)
+	defer func() { n.pruneRounds(triggerMessage.RoundID, currentRoundID) }()
 
 	n.roundTriggers.mu.Lock()
 	defer n.roundTriggers.mu.Unlock()
@@ -187,13 +187,14 @@ func (n *Aggregator) HandleTriggerMessage(ctx context.Context, msg raft.Message)
 			// or lost round state) reuses a used round ID. Move past it and
 			// report that, so the leader catches up past it too (#2927); a
 			// duplicate delivery of the same trigger stays unanswered.
+			// Lock order: roundTriggers.mu, then n.mu.
 			n.mu.Lock()
 			n.RoundID = max(n.RoundID, triggerMessage.RoundID+1)
 			n.rounds.Advance(n.Name, n.RoundID)
-			latestRoundID := n.RoundID
+			currentRoundID = n.RoundID
 			n.mu.Unlock()
-			log.Warn().Str("Player", "Aggregator").Str("Name", n.Name).Str("Sender", msg.SentFrom).Int32("RoundID", triggerMessage.RoundID).Int32("LatestRoundID", latestRoundID).Msg("leader reuses a used round ID")
-			return n.PublishPriceDataMessage(ctx, triggerMessage.RoundID, -1, triggerMessage.Timestamp, latestRoundID)
+			log.Warn().Str("Player", "Aggregator").Str("Name", n.Name).Str("Sender", msg.SentFrom).Int32("RoundID", triggerMessage.RoundID).Int32("LatestRoundID", currentRoundID).Msg("leader reuses a used round ID")
+			return n.PublishPriceDataMessage(ctx, triggerMessage.RoundID, -1, triggerMessage.Timestamp, currentRoundID)
 		}
 		return nil
 	}

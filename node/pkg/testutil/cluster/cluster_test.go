@@ -192,6 +192,8 @@ func TestFreshLeaderSkipsPeersCurrentRound(t *testing.T) {
 	c := cluster.New(t, cluster.Options{
 		Nodes: 3,
 		Feeds: []string{feed},
+		// room to restart node 0 before it triggers round 3
+		AggregateInterval: 2 * time.Second,
 		// the restarted node's first campaign (term 1) loses to its old ID's
 		// votes: no cooldown before the next, so it leads before its peers'
 		// unhealthy hold-off ends and they lead round 3 themselves
@@ -218,6 +220,10 @@ func TestFreshLeaderSkipsPeersCurrentRound(t *testing.T) {
 	case <-round2:
 	case <-time.After(settleTimeout):
 		t.Fatalf("no round 2:\n%s", c.Describe())
+	}
+	n.StopAggregators()
+	for _, s := range c.Submissions() {
+		require.LessOrEqual(t, s.Round, int32(2), "node 0 triggered round %d before its restart: peers are past round 2", s.Round)
 	}
 	n.Restart()
 	restarted := time.Now()
