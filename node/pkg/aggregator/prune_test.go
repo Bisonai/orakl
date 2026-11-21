@@ -16,7 +16,7 @@ import (
 // seedRounds fills every per-round map for each given round.
 func seedRounds(agg *Aggregator, rounds ...int32) {
 	for _, r := range rounds {
-		agg.roundTriggers.locked[r] = true
+		agg.roundTriggers.locked[r] = roundTrigger{sender: "peer"}
 		agg.roundPrices.locked[r] = true
 		agg.roundPrices.prices[r] = []int64{int64(r)}
 		agg.roundPrices.senders[r] = []string{"peer"}

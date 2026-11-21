@@ -215,3 +215,105 @@ func TestCollectionTimeoutSkipsRoundStaleSinceStart(t *testing.T) {
 	_, ok := next(fixes, 200*time.Millisecond)
 	assert.False(t, ok, "price fix for a round a peer already used")
 }
+
+// triggerMsg builds a trigger as the leader publishes it.
+func triggerMsg(t *testing.T, from string, round int32, ts time.Time) raft.Message {
+	t.Helper()
+	data, err := encodeInner(TriggerMessage{LeaderID: from, RoundID: round, Timestamp: ts})
+	require.NoError(t, err)
+	return raft.Message{Type: Trigger, SentFrom: from, Data: data}
+}
+
+// messageLatestRound decodes a price data message's LatestRoundID.
+func messageLatestRound(t *testing.T, msg raft.Message) int32 {
+	t.Helper()
+	var m PriceDataMessage
+	require.NoError(t, decodeInner(msg.Data, &m))
+	return m.LatestRoundID
+}
+
+// A leader on a fresh or lost round state that triggers the round its
+// follower is at (used with another trigger) gets no price for it but moves
+// past it, and its next round is a new one (#2927).
+func TestLeaderReusingFollowersCurrentRoundCatchesUp(t *testing.T) {
+	const followerRound = 51
+	t.Setenv("P2P_ENCODING", "json")
+	ctx := context.Background()
+
+	leader := newRoundTestAggregator(t, ctx, "REUSE-LEADER", nil)
+	follower := newRoundTestAggregator(t, ctx, "REUSE-FOLLOWER", nil)
+	leaderID := leader.Raft.GetHostId()
+	leader.Raft.Role = raft.Leader
+	leader.Raft.LeaderID = leaderID
+	leader.RoundID = followerRound - 1
+	follower.Raft.LeaderID = leaderID
+	follower.RoundID = followerRound
+	seedRounds(follower, roundRange(42, followerRound)...) // used with the previous leader
+	follower.LatestLocalAggregates.Store(follower.ID, &LocalAggregate{ConfigID: follower.ID, Value: 100})
+
+	followerPrices := published(t, ctx, follower, PriceData)
+	leaderFixes := published(t, ctx, leader, PriceFix)
+
+	leaderRound := func() int32 {
+		leader.mu.RLock()
+		defer leader.mu.RUnlock()
+		return leader.RoundID
+	}
+
+	require.NoError(t, leader.LeaderJob(ctx))
+	require.Equal(t, int32(followerRound), leaderRound())
+	require.NoError(t, sendTrigger(t, ctx, follower, leaderID, followerRound))
+
+	msg, ok := next(followerPrices, 500*time.Millisecond)
+	require.True(t, ok, "follower ignored a reused trigger for its current round")
+	assert.Equal(t, int32(followerRound), messageRound(t, msg))
+	assert.Equal(t, int64(-1), messagePrice(t, msg), "follower priced a round it already used")
+	assert.Equal(t, int32(followerRound+1), messageLatestRound(t, msg))
+	require.NoError(t, leader.HandlePriceDataMessage(ctx, msg))
+
+	// the next trigger is a round neither node used
+	require.NoError(t, leader.LeaderJob(ctx))
+	newRound := leaderRound()
+	require.Greater(t, newRound, int32(followerRound+1))
+	require.NoError(t, sendTrigger(t, ctx, follower, leaderID, newRound))
+	msg, ok = next(followerPrices, 500*time.Millisecond)
+	require.True(t, ok, "no price for the new round")
+	assert.Equal(t, newRound, messageRound(t, msg))
+	assert.Equal(t, int64(100), messagePrice(t, msg))
+	require.NoError(t, leader.HandlePriceDataMessage(ctx, msg))
+
+	fix, ok := next(leaderFixes, time.Second)
+	require.True(t, ok, "no price fix for the new round")
+	assert.Equal(t, newRound, messageRound(t, fix))
+	_, ok = next(leaderFixes, 200*time.Millisecond)
+	assert.False(t, ok, "price fix for the reused round")
+}
+
+// A duplicate delivery of the trigger for the round in progress is not a
+// reused round: no second answer, and the round and the follower's RoundID
+// stay as they are.
+func TestDuplicateTriggerForCurrentRoundIgnored(t *testing.T) {
+	t.Setenv("P2P_ENCODING", "json")
+	ctx := context.Background()
+
+	follower := newRoundTestAggregator(t, ctx, "REUSE-DUPLICATE", nil)
+	follower.Raft.LeaderID = "leader-peer"
+	follower.RoundID = 50
+	follower.LatestLocalAggregates.Store(follower.ID, &LocalAggregate{ConfigID: follower.ID, Value: 100})
+	followerPrices := published(t, ctx, follower, PriceData)
+
+	trigger := triggerMsg(t, "leader-peer", 51, time.Now())
+	require.NoError(t, follower.HandleTriggerMessage(ctx, trigger))
+	msg, ok := next(followerPrices, 500*time.Millisecond)
+	require.True(t, ok, "no price for the round")
+	assert.Equal(t, int32(51), messageRound(t, msg))
+	assert.Equal(t, int64(100), messagePrice(t, msg))
+	assert.Equal(t, int32(51), messageLatestRound(t, msg))
+
+	require.NoError(t, follower.HandleTriggerMessage(ctx, trigger))
+	_, ok = next(followerPrices, 200*time.Millisecond)
+	assert.False(t, ok, "answer to a duplicate trigger")
+	follower.mu.RLock()
+	assert.Equal(t, int32(51), follower.RoundID)
+	follower.mu.RUnlock()
+}

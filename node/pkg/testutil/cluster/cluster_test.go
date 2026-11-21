@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"bisonai.com/miko/node/pkg/aggregator"
 	"bisonai.com/miko/node/pkg/raft"
 	"bisonai.com/miko/node/pkg/testutil/cluster"
 	"github.com/rs/zerolog"
@@ -175,8 +176,65 @@ func TestRestartWithNewPeerIDRejoins(t *testing.T) {
 			assert.NotEqual(t, oldID.String(), r.GetLeader(), "node %d follows the old ID on %s", m.Index(), c.Feeds()[i])
 		}
 	}
-	// no assertRoundsNotReused: the restarted node starts on a fresh state and
-	// can reuse its peers' current round ID (#2927)
+	// fresh state (no PersistRounds): peers keep the restarted node off
+	// round IDs they already used (#2927)
+	assertRoundsNotReused(t, c)
+}
+
+// A leader restarted on a fresh state (no PersistRounds) triggers round 2
+// again, the round its peers are at: they make it move past that round
+// instead of letting it reuse the ID with only its own proof (#2927). Only
+// node 0 can lead, and it stops right after round 2, so the peers are at it.
+func TestFreshLeaderSkipsPeersCurrentRound(t *testing.T) {
+	t.Parallel()
+	const feed = "feed-0"
+	round2 := make(chan struct{}, 1)
+	c := cluster.New(t, cluster.Options{
+		Nodes: 3,
+		Feeds: []string{feed},
+		// room to restart node 0 before it triggers round 3
+		AggregateInterval: 2 * time.Second,
+		// the restarted node's first campaign (term 1) loses to its old ID's
+		// votes: no cooldown before the next, so it leads before its peers'
+		// unhealthy hold-off ends and they lead round 3 themselves
+		ConfigureAggregator: func(n *cluster.Node, a *aggregator.Aggregator) {
+			if n.Index() == 0 {
+				a.Raft.CooldownPeriod = 0
+			}
+		},
+		OnSubmission: func(s cluster.Submission) {
+			if s.Leader && s.Round == 2 {
+				select {
+				case round2 <- struct{}{}:
+				default:
+				}
+			}
+		},
+	})
+	c.Node(1).SetCanLead(false)
+	c.Node(2).SetCanLead(false)
+	c.StartAll()
+	n := c.Node(0)
+
+	select {
+	case <-round2:
+	case <-time.After(settleTimeout):
+		t.Fatalf("no round 2:\n%s", c.Describe())
+	}
+	n.StopAggregators()
+	for _, s := range c.Submissions() {
+		require.LessOrEqual(t, s.Round, int32(2), "node 0 triggered round %d before its restart: peers are past round 2", s.Round)
+	}
+	n.Restart()
+	restarted := time.Now()
+
+	c.WaitSingleLeader(settleTimeout)
+	waitLed(t, c, restarted, 2, 10*time.Second)
+	for _, s := range ledAfter(c, feed, restarted) {
+		assert.Equal(t, n.Index(), s.Node, "round %d led by another node", s.Round)
+		assert.Greater(t, s.Round, int32(2), "restarted leader reused a round")
+	}
+	assertRoundsNotReused(t, c)
 }
 
 // Two partitioned nodes each lead their own copy of every feed; after the

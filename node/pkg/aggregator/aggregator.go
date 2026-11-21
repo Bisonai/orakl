@@ -49,7 +49,7 @@ func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string, config Co
 		Raft:   raft.NewRaftNode(h, ps, topic, 1000, aggregateInterval),
 
 		roundTriggers: &RoundTriggers{
-			locked: map[int32]bool{},
+			locked: map[int32]roundTrigger{},
 		},
 		roundPrices: &RoundPrices{
 			prices:  map[int32][]int64{},
@@ -170,21 +170,35 @@ func (n *Aggregator) HandleTriggerMessage(ctx context.Context, msg raft.Message)
 		n.mu.Unlock()
 	}
 	// prune only for accepted triggers: unvalidated input must not drop round state (#2853)
-	defer n.pruneRounds(triggerMessage.RoundID, currentRoundID)
+	defer func() { n.pruneRounds(triggerMessage.RoundID, currentRoundID) }()
 
 	n.roundTriggers.mu.Lock()
 	defer n.roundTriggers.mu.Unlock()
 
-	if n.roundTriggers.locked[triggerMessage.RoundID] {
+	if prev, ok := n.roundTriggers.locked[triggerMessage.RoundID]; ok {
 		log.Debug().Str("Player", "Aggregator").Str("Sender", msg.SentFrom).Str("CurrentLeader", currentLeader).Str("Me", n.Raft.GetHostId()).Int32("RoundID", triggerMessage.RoundID).Msg("trigger message already processed")
 		if triggerMessage.RoundID < currentRoundID {
 			// the leader is behind this node: report this node's round (no
 			// price) so it catches up instead of retrying used rounds (#2867)
 			return n.PublishPriceDataMessage(ctx, triggerMessage.RoundID, -1, triggerMessage.Timestamp, currentRoundID)
 		}
+		if msg.SentFrom != n.Raft.GetHostId() && !prev.same(msg.SentFrom, triggerMessage.Timestamp) {
+			// another trigger for this node's current round: the leader (fresh
+			// or lost round state) reuses a used round ID. Move past it and
+			// report that, so the leader catches up past it too (#2927); a
+			// duplicate delivery of the same trigger stays unanswered.
+			// Lock order: roundTriggers.mu, then n.mu.
+			n.mu.Lock()
+			n.RoundID = max(n.RoundID, triggerMessage.RoundID+1)
+			n.rounds.Advance(n.Name, n.RoundID)
+			currentRoundID = n.RoundID
+			n.mu.Unlock()
+			log.Warn().Str("Player", "Aggregator").Str("Name", n.Name).Str("Sender", msg.SentFrom).Int32("RoundID", triggerMessage.RoundID).Int32("LatestRoundID", currentRoundID).Msg("leader reuses a used round ID")
+			return n.PublishPriceDataMessage(ctx, triggerMessage.RoundID, -1, triggerMessage.Timestamp, currentRoundID)
+		}
 		return nil
 	}
-	n.roundTriggers.locked[triggerMessage.RoundID] = true
+	n.roundTriggers.locked[triggerMessage.RoundID] = roundTrigger{sender: msg.SentFrom, timestamp: triggerMessage.Timestamp}
 
 	var value int64
 	localAggregate, ok := n.LatestLocalAggregates.Load(n.ID)
