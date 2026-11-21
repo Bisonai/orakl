@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"bisonai.com/miko/node/pkg/checker"
 	"github.com/prometheus/client_golang/prometheus/testutil"
@@ -111,6 +112,34 @@ func TestCheckDalEmptyResponseIsFailure(t *testing.T) {
 	}
 	if v := testutil.ToFloat64(restAggregateTimestampGauge.WithLabelValues("BTC-USDT")); v != 1700000000 {
 		t.Fatalf("BTC timestamp: got %v", v)
+	}
+}
+
+func TestExportLastUpdatesDropsUnexpectedSymbols(t *testing.T) {
+	wsLastPushGauge.Reset()
+	u := &UpdateTimes{lastUpdates: map[string]time.Time{}}
+	u.Store("BTC-USDT", time.UnixMilli(1700000000000))
+	u.Store("BTT-KRW", time.UnixMilli(1700000001500))
+	u.Store(checker.SymbolsToBeDelisted[0], time.UnixMilli(1700000000000))
+
+	u.exportLastUpdates(expectedOf("BTC-USDT", "BTT-KRW", checker.SymbolsToBeDelisted[0]))
+	if n := testutil.CollectAndCount(wsLastPushGauge); n != 2 {
+		t.Fatalf("expected BTC + BTT series (delisted skipped), got %d", n)
+	}
+	if v := testutil.ToFloat64(wsLastPushGauge.WithLabelValues("BTT-KRW")); v != 1700000001.5 {
+		t.Fatalf("BTT push time: got %v", v)
+	}
+
+	// BTT-KRW removed from config on reload: its series and entry are dropped.
+	u.exportLastUpdates(expectedOf("BTC-USDT"))
+	if n := testutil.CollectAndCount(wsLastPushGauge); n != 1 {
+		t.Fatalf("expected only BTC series after reload, got %d", n)
+	}
+	if _, ok := u.lastUpdates["BTT-KRW"]; ok {
+		t.Fatal("removed symbol should be dropped from lastUpdates")
+	}
+	if v := testutil.ToFloat64(wsLastPushGauge.WithLabelValues("BTC-USDT")); v != 1700000000 {
+		t.Fatalf("BTC push time: got %v", v)
 	}
 }
 
