@@ -80,8 +80,21 @@ type App struct {
 type Config = nodeconfig.Config
 
 type RoundTriggers struct {
-	locked map[int32]bool
+	// locked holds, per round, the trigger the round was answered for
+	locked map[int32]roundTrigger
 	mu     sync.Mutex
+}
+
+// roundTrigger identifies a trigger: a duplicate delivery of it has the same
+// sender and timestamp, a leader reusing the round ID (fresh or lost round
+// state) has another sender or timestamp (#2927).
+type roundTrigger struct {
+	sender    string
+	timestamp time.Time
+}
+
+func (t roundTrigger) same(sender string, timestamp time.Time) bool {
+	return t.sender == sender && t.timestamp.Equal(timestamp)
 }
 
 // pruneOutside keeps only rounds in [low, high].
