@@ -27,13 +27,18 @@ func (u *UpdateTimes) Store(symbol string, time time.Time) {
 	u.lastUpdates[symbol] = time
 }
 
-// exportLastUpdates publishes the last WebSocket push time per symbol.
-func (u *UpdateTimes) exportLastUpdates() {
-	u.mu.RLock()
-	defer u.mu.RUnlock()
+// exportLastUpdates publishes the last WebSocket push time per expected
+// symbol. A symbol that is no longer expected (removed from config on reload,
+// or delisted) is dropped together with its series, so its frozen push time
+// does not keep the WS staleness alert firing.
+func (u *UpdateTimes) exportLastUpdates(expected map[string]struct{}) {
+	u.mu.Lock()
+	defer u.mu.Unlock()
 
 	for symbol, updateTime := range u.lastUpdates {
-		if slices.Contains(checker.SymbolsToBeDelisted, symbol) {
+		if _, ok := expected[symbol]; !ok {
+			wsLastPushGauge.DeleteLabelValues(symbol)
+			delete(u.lastUpdates, symbol)
 			continue
 		}
 		wsLastPushGauge.WithLabelValues(symbol).Set(float64(updateTime.UnixMilli()) / 1e3)
@@ -118,12 +123,13 @@ func Start(ctx context.Context) error {
 	// Alerts: Prometheus rules on the exported orakl_dal_check_* metrics.
 	restSymbols := map[string]struct{}{}
 	for range ticker.C {
-		err := checkDal(endpoint, key, expected.get(), restSymbols)
+		current := expected.get()
+		err := checkDal(endpoint, key, current, restSymbols)
 		if err != nil {
 			restErrorsCounter.Inc()
 			log.Error().Str("Player", "DalChecker").Err(err).Msg("error in checkDal")
 		}
-		updateTimes.exportLastUpdates()
+		updateTimes.exportLastUpdates(current)
 	}
 	return nil
 }
