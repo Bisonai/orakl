@@ -85,13 +85,14 @@ func main() {
 	host, err := libp2pSetup.NewHost(ctx, libp2pSetup.WithHolePunch())
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to make host")
-	} else {
-		libp2pSetup.RegisterPeerMetrics(host)
+		os.Exit(1)
 	}
+	libp2pSetup.RegisterPeerMetrics(host)
 
 	ps, err := libp2pSetup.MakePubsub(ctx, host)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to make pubsub")
+		os.Exit(1)
 	}
 
 	var bootPeers []peer.ID // listed by the startup sync; unconnected ones are retried by the helper
@@ -102,7 +103,7 @@ func main() {
 	}, 5, 10*time.Second, 30*time.Second)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to setup libp2p")
-		return
+		os.Exit(1)
 	}
 
 	go func() {
@@ -130,7 +131,7 @@ func main() {
 	err = admin.SyncMikoConfig(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to sync orakl config")
-		return
+		os.Exit(1)
 	}
 	log.Info().Msg("Orakl config synced")
 
