@@ -351,17 +351,6 @@
       "feed": "0xe008fdf6d2f5f87bc2fc9887ea8a9e51546a50bc"
     }
   },
-  "BLUR-KRW": {
-    "tag": "basic",
-    "mainnet": {
-      "proxy": "0xe3c5ede98461e69b79c847f14b0ccce44a739d70",
-      "feed": "0xc6758f117df3368d614fe6e2af6b74efbf8fd564"
-    },
-    "kairos": {
-      "proxy": "0x72337627266b1b4c54d8319c4693cc1b8dd66ddc",
-      "feed": "0x4baad42af1aea73d1c39c8402c9040192774dfa4"
-    }
-  },
   "BNB-USDT": {
     "tag": "premium",
     "mainnet": {
@@ -813,17 +802,6 @@
       "feed": "0x5c46bd008e70217f4f86bf55d3cfcde3c106b4c9"
     }
   },
-  "FET-KRW": {
-    "tag": "basic",
-    "mainnet": {
-      "proxy": "0x878810fcc981626ed09d32103d80018079bf47f4",
-      "feed": "0x1efdfa4707d892003a88278764fb6dabc23435b1"
-    },
-    "kairos": {
-      "proxy": "0x74d108d0976a4fc8a9a4d0cdd0907aec152504ee",
-      "feed": "0x04ad16c7fb13589c949c5abdcd96157b927a3917"
-    }
-  },
   "FIL-USDT": {
     "tag": "premium",
     "mainnet": {
@@ -844,17 +822,6 @@
     "kairos": {
       "proxy": "0xa6c84c5c9f5bf25fb718c199a19c720847762871",
       "feed": "0xcfcffe5e687b12617e56fa2df57ffafc91148464"
-    }
-  },
-  "FLOW-KRW": {
-    "tag": "single",
-    "mainnet": {
-      "proxy": "0x51c52b32341c03d47044d478d0178c3d69ff26de",
-      "feed": "0x761bdd5c7416da498ee86b7d20f11a0079be4c11"
-    },
-    "kairos": {
-      "proxy": "0xb9250b7b24197a57cd523e99560e265a7155c5af",
-      "feed": "0x60b8263b7ceea8e673433d69fade822375a615a8"
     }
   },
   "FLR-USDT": {
@@ -957,7 +924,7 @@
     }
   },
   "GRASS-USDT": {
-    "tag": "standard",
+    "tag": "premium",
     "mainnet": {
       "proxy": "0x25aa4fe43e991ea878668af4d56559927fd753e7",
       "feed": "0x08d9b229131445cbeebf30870724ee3f6fec2c3a"
@@ -1386,7 +1353,7 @@
     }
   },
   "MBX-KRW": {
-    "tag": "basic",
+    "tag": "single",
     "mainnet": {
       "proxy": "0x4d700eab8d99614370108886fe38f5f875b036c9",
       "feed": "0xdcc8cee678733758c3f65fe630cb9bfb4291b6cb"
@@ -2090,7 +2057,7 @@
     }
   },
   "STRK-KRW": {
-    "tag": "basic",
+    "tag": "single",
     "mainnet": {
       "proxy": "0x9f343a3522c3ce5ac05d5e053c1c1a508bcded6f",
       "feed": "0xb5156660169dd476aced441194510f2ddfab062f"
@@ -2145,7 +2112,7 @@
     }
   },
   "TAO-USDT": {
-    "tag": "standard",
+    "tag": "premium",
     "mainnet": {
       "proxy": "0x148e8d7ee436f9094d099fc2d387d8ee9ec2697d",
       "feed": "0x2b0d4771effee40a432cc817d4f5896f0ef7b43d"
@@ -2299,7 +2266,7 @@
     }
   },
   "USDT-USD": {
-    "tag": "standard",
+    "tag": "premium",
     "mainnet": {
       "proxy": "0xa7c4c292ed720b1318f415b106a443dc1f052994",
       "feed": "0x08e940022fb70b49e33f27660987b6e12cbeb4fb"
@@ -2442,7 +2409,7 @@
     }
   },
   "XCN-USDT": {
-    "tag": "basic",
+    "tag": "standard",
     "mainnet": {
       "proxy": "0x5b1a49a773780c202c734ccac894a13c9d544992",
       "feed": "0xc84ff47fdc649a17beccd98e130529c83ed5d727"
