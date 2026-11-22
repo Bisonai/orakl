@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -15,11 +16,65 @@ import (
 
 func TestRunStateUsage(t *testing.T) {
 	ctx := context.Background()
-	for _, args := range [][]string{{}, {"bogus"}, {"list", "x"}, {"import", "x"}, {"import", "-nope"}, {"import", "-round-margin", "-1"}, {"import", "-round-margin", "1000001"}, {"init", "x"}} {
+	for _, args := range [][]string{{}, {"bogus"}, {"list", "x"}, {"init", "x"}} {
 		var out bytes.Buffer
 		err := runState(ctx, args, &out)
 		assert.ErrorContains(t, err, "usage: nodebin state", args)
 	}
+}
+
+var importArgs = [][]string{{"import"}, {"import", "-force"}, {"import", "-force", "-round-margin", "1000"}, {"import", "x"}}
+
+func TestRunStateImportDeprecatedKeepsStore(t *testing.T) {
+	ctx := context.Background()
+	path := filepath.Join(t.TempDir(), "node.db")
+	t.Setenv(nodestate.EnvPath, path)
+	// a reachable-looking DSN must not matter: import never connects
+	t.Setenv("DATABASE_URL", "postgres://user:pass@127.0.0.1:1/node")
+
+	s, err := nodestate.Open(ctx, path)
+	require.NoError(t, err)
+	addr := "0xabc"
+	now := time.Now()
+	require.NoError(t, s.Replace(ctx, nodestate.Snapshot{
+		Keys:   []utils.SignerKey{{Address: &addr, PK: "ENCRYPTED-PK", State: "active", CreatedAt: now, UpdatedAt: now}},
+		Rounds: []nodestate.Round{{ConfigName: "BTC-USDT", Round: 9}},
+	}))
+	require.NoError(t, s.Close())
+	before := readDir(t, filepath.Dir(path))
+
+	for _, args := range importArgs {
+		var out bytes.Buffer
+		err := runState(ctx, args, &out)
+		assert.ErrorIs(t, err, errStateImportDeprecated, args)
+		assert.ErrorContains(t, err, "deprecated", args)
+		assert.Empty(t, out.String(), args)
+		assert.Equal(t, before, readDir(t, filepath.Dir(path)), args)
+	}
+}
+
+func TestRunStateImportDeprecatedNoFile(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv(nodestate.EnvPath, filepath.Join(dir, "node.db"))
+	for _, args := range importArgs {
+		var out bytes.Buffer
+		assert.ErrorIs(t, runState(context.Background(), args, &out), errStateImportDeprecated, args)
+		assert.Empty(t, readDir(t, dir), args)
+	}
+}
+
+// readDir returns name -> content of every file in dir (incl. SQLite WAL/SHM).
+func readDir(t *testing.T, dir string) map[string][]byte {
+	t.Helper()
+	entries, err := os.ReadDir(dir)
+	require.NoError(t, err)
+	files := map[string][]byte{}
+	for _, e := range entries {
+		b, err := os.ReadFile(filepath.Join(dir, e.Name()))
+		require.NoError(t, err)
+		files[e.Name()] = b
+	}
+	return files
 }
 
 func TestRunStateListMissingFile(t *testing.T) {

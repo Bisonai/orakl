@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"errors"
-	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -25,17 +24,8 @@ commands:
   init              create an empty store for a fresh node (refused if the
                     file exists); the signer keyring is then seeded from
                     SIGNER_PK on first start
-  import [-force] [-round-margin N]
-                    copy signer keys + MAX(round) per config from Postgres
-                    ($DATABASE_URL) into SQLite (import creates the file).
-                    Encrypted pks are copied as-is; ENCRYPT_PASSWORD is only
-                    used to match the legacy signer row against the keyring.
-                    A store with the same keyring only gets its rounds
-                    advanced; a different keyring, or stored rounds newer
-                    than or missing from Postgres, is refused unless -force,
-                    which replaces the whole store. -round-margin adds N
-                    to every imported round, to skip rounds a still-running
-                    node uses after the import (Postgres rounds also lag).
+  import            deprecated: refused (PostgreSQL is retired, the SQLite
+                    store is the source of truth; fresh nodes use init)
   list              print signer key addresses + states and latest rounds
                     (never prints private keys)
 `
@@ -47,14 +37,9 @@ func runState(ctx context.Context, args []string, stdout io.Writer) error {
 
 	switch args[0] {
 	case "import":
-		fs := flag.NewFlagSet("import", flag.ContinueOnError)
-		fs.SetOutput(io.Discard)
-		force := fs.Bool("force", false, "replace a store with a different keyring or newer rounds")
-		roundMargin := fs.Int("round-margin", 0, "add N to every imported round")
-		if err := fs.Parse(args[1:]); err != nil || fs.NArg() != 0 || *roundMargin < 0 || *roundMargin > maxRoundMargin {
-			return fmt.Errorf("%s", stateUsage)
-		}
-		return runStateImport(ctx, *force, int32(*roundMargin), stdout)
+		// refused with any flags, before reading env, Postgres or the SQLite file:
+		// -force would replace the store and delete the signer keyring (#2953)
+		return errStateImportDeprecated
 	case "init":
 		if len(args) != 1 {
 			return fmt.Errorf("%s", stateUsage)
@@ -70,9 +55,12 @@ func runState(ctx context.Context, args []string, stdout io.Writer) error {
 	}
 }
 
+var errStateImportDeprecated = errors.New("nodebin state import is deprecated and disabled: PostgreSQL is retired and the SQLite store ($NODE_SQLITE_PATH) is the source of truth; use `nodebin state init` for a fresh node")
+
 // maxRoundMargin caps -round-margin (1M rounds = ~5 days at 400ms).
 const maxRoundMargin = 1_000_000
 
+// runStateImport is no longer reachable from runState (deprecated, #2953).
 func runStateImport(ctx context.Context, force bool, roundMargin int32, stdout io.Writer) error {
 	// fail on a missing env before touching Postgres; create the file only
 	// after Postgres was read, so a failed read leaves no empty store behind

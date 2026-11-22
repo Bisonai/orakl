@@ -118,8 +118,8 @@ func NewSigner(ctx context.Context, opts ...SignerOption) (*Signer, error) {
 		return nil, errorSentinel.ErrChainSubmissionProxyContractNotFound
 	}
 
-	// Seed the keyring from a bootstrap key if it is empty (fresh node). Existing nodes already
-	// have their keyring imported from Postgres (`nodebin state import`).
+	// Seed the keyring from a bootstrap key if it is empty (fresh node). Existing nodes keep their
+	// keyring in the SQLite store.
 	initialPkHex, err := ensureKeyring(ctx, store, config)
 	if err != nil {
 		return nil, err
