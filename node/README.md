@@ -274,10 +274,9 @@ The node does not use PostgreSQL (#2695). Its only state, the signer keyring (in
 
 | Env                | Description |
 | ------------------ | ----------- |
-| `NODE_SQLITE_PATH` | Required. Path of the SQLite state file, e.g. `/app/data/node.db`. Put it on a persistent volume. `nodebin` refuses to start if it is unset or the file is missing (create it with `state init` or `state import`). The directory must be writable (SQLite WAL files). |
+| `NODE_SQLITE_PATH` | Required. Path of the SQLite state file, e.g. `/app/data/node.db`. Put it on a persistent volume. `nodebin` refuses to start if it is unset or the file is missing (create it with `state init`). The directory must be writable (SQLite WAL files). |
 | `FETCHER_PROXIES`  | Optional. HTTP fetcher proxies, comma separated `[location=]protocol://host:port`, e.g. `http://172.0.200.20:4000,kr=http://3.39.22.82:80`. A feed with a `location` uses only proxies of that location, others use any proxy. Replaces the `proxies` table. |
-| `DATABASE_URL`     | PostgreSQL to import from (`state import` only). |
-| `ENCRYPT_PASSWORD` | Same value as the node. Keyring private keys are encrypted with it. `state import` uses it only to derive key addresses, to tell whether the legacy `signer` row is already in the keyring. |
+| `ENCRYPT_PASSWORD` | Same value as the node. Keyring private keys are encrypted with it. |
 
 Rounds are persisted on every round advance (leader and follower) by an async writer, and flushed on SIGTERM/SIGINT; a restarted node continues after the stored round.
 
@@ -285,17 +284,10 @@ Use the `state` subcommand of the node binary (`nodebin` in the image, `go run .
 
 ```sh
 nodebin state init            # empty store for a fresh node (keyring seeded from SIGNER_PK on first start)
-nodebin state import          # signer_key rows + legacy signer row (if not in keyring) + MAX(round) per config name
-nodebin state import -force   # replace a store whose keyring (or newer rounds) differs from PostgreSQL
-nodebin state import -force -round-margin 1000   # cutover: also skip rounds the still-running node uses after the import
 nodebin state list            # address<TAB>state<TAB>tx_hash<TAB>updated_at, then config<TAB>round; never prints keys
 ```
 
-- Encrypted private keys are copied as-is (no re-encryption). Rounds are keyed by config **name**.
-- PostgreSQL rounds (`MAX(global_aggregates.round)`) lag the running node, which keeps advancing until it stops. At cutover use `-round-margin` (rounds per config advance every aggregate interval, 400ms → 1000 ≈ 7 min); a gap in round IDs is harmless, a reused one is not.
-- A legacy `signer` row whose key is not in `signer_key` is added as `active` if the keyring is empty, else as `pending`. If it cannot be decrypted (wrong `ENCRYPT_PASSWORD`), `import` fails.
-- PostgreSQL is read in one read-only `REPEATABLE READ` transaction; the SQLite file is created only after that read succeeds.
-- Re-running against a store with the same keyring only advances rounds (prints `unchanged` if none advanced). If the keyring differs, or a stored round is newer than in PostgreSQL (or its config is missing there), `import` refuses unless `-force`, which replaces the whole store in one transaction.
+`nodebin state import` is deprecated and refused; the SQLite file is the source of truth. Use `state init` for a fresh node.
 
 ## Admin CLI
 
