@@ -23,6 +23,9 @@ type ChainHelper struct {
 	// delegatorToken is sent as a bearer token when set
 	delegatorToken string
 	noncemanager   *noncemanagerv2.NonceManagerV2
+	// beforeSend, when set, is called right before submitDelegatedFallbackDirect
+	// sends the signed tx (signer rotation uses it to tell "not sent" errors apart)
+	beforeSend func()
 }
 
 type ChainHelperConfig struct {
@@ -78,6 +81,15 @@ type Signer struct {
 	confirmationTTL    time.Duration // refuse to sign if activeAddr has not been confirmed whitelisted within this window
 	verifyPollInterval time.Duration // rotation on-chain confirmation poll cadence
 	verifyPollMax      int           // rotation on-chain confirmation poll attempts
+
+	// Failed-rotation retry backoff (issue #2965). rotationFailures/nextRotationAt/rotationForced are guarded by mu.
+	rotationFailures    int              // consecutive failed rotation attempts
+	nextRotationAt      time.Time        // no rotation attempt before this time
+	rotationForced      bool             // operator asked to retry now; cleared when an attempt starts
+	rotationForceSeq    uint64           // bumped per operator force, so one call never clears another's
+	rotationBackoffBase time.Duration    // retry delay after the first failure; doubles per failure
+	rotationBackoffMax  time.Duration    // retry delay cap
+	now                 func() time.Time // clock for the rotation backoff (nil = time.Now)
 }
 
 type signedTx struct {
@@ -130,4 +142,8 @@ const (
 	DefaultSignerSkewMargin       = 90 * time.Second // refuse to sign this long before the cached expiration
 	signerVerifyPollInterval      = 3 * time.Second  // poll cadence when confirming a rotation on-chain
 	signerVerifyPollMax           = 20               // ~60s budget to observe the updateOracle result
+
+	// Retry backoff after a failed rotation (issue #2965): 5m, 10m, 20m, 40m, then every 1h.
+	DefaultSignerRotationBackoffBase = 5 * time.Minute
+	DefaultSignerRotationBackoffMax  = time.Hour
 )

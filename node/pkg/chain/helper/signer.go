@@ -2,12 +2,15 @@ package helper
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"os"
 	"strings"
 	"time"
 
 	"bisonai.com/miko/node/pkg/chain/utils"
 	errorSentinel "bisonai.com/miko/node/pkg/error"
+	signermetrics "bisonai.com/miko/node/pkg/metrics/signer"
 	"bisonai.com/miko/node/pkg/metrics/submission"
 	"bisonai.com/miko/node/pkg/nodestate"
 	"bisonai.com/miko/node/pkg/secrets"
@@ -106,6 +109,8 @@ func NewSigner(ctx context.Context, opts ...SignerOption) (*Signer, error) {
 		return newStaticSigner(config)
 	}
 
+	signermetrics.Register() // managed mode only: a static key never rotates
+
 	if config.state == nil {
 		log.Error().Str("Player", "Signer").Msg("signer state store not set, signer initialization failed")
 		return nil, errorSentinel.ErrChainSignerStoreNotSet
@@ -166,6 +171,9 @@ func NewSigner(ctx context.Context, opts ...SignerOption) (*Signer, error) {
 		confirmationTTL:    3 * livenessInterval,
 		verifyPollInterval: signerVerifyPollInterval,
 		verifyPollMax:      signerVerifyPollMax,
+
+		rotationBackoffBase: DefaultSignerRotationBackoffBase,
+		rotationBackoffMax:  DefaultSignerRotationBackoffMax,
 	}
 
 	// Establish the truth (which held key is on-chain-whitelisted) BEFORE we start signing or
@@ -275,9 +283,32 @@ func (s *Signer) reconcileLoop(ctx context.Context) {
 }
 
 // CheckAndUpdateSignerPK is the public entry point (bus RENEW_SIGNER / admin). It simply drives
-// a reconcile, which both self-heals the active key and rotates when near expiry.
+// a reconcile, which both self-heals the active key and rotates when near expiry. An operator
+// trigger skips the wait of a failed-rotation backoff (the failure count is kept); if a reconcile
+// is already running, the next one honours it.
 func (s *Signer) CheckAndUpdateSignerPK(ctx context.Context) error {
-	return s.reconcile(ctx, true)
+	if s.staticMode {
+		return nil
+	}
+	s.mu.Lock()
+	s.rotationForced = true
+	s.rotationForceSeq++
+	seq := s.rotationForceSeq
+	s.mu.Unlock()
+	if !s.rotateMu.TryLock() {
+		return nil // the running reconcile, or the next tick, honours rotationForced
+	}
+	defer s.rotateMu.Unlock()
+	defer func() {
+		// one-shot: do not let it bypass a later backoff if this pass never reached rotation, but
+		// keep a force a concurrent operator call set meanwhile
+		s.mu.Lock()
+		if s.rotationForceSeq == seq {
+			s.rotationForced = false
+		}
+		s.mu.Unlock()
+	}()
+	return s.reconcileLocked(ctx, true)
 }
 
 func (s *Signer) reconcile(ctx context.Context, allowRotate bool) error {
@@ -332,9 +363,21 @@ func (s *Signer) reconcileLocked(ctx context.Context, allowRotate bool) error {
 		}
 		// Renew only FROM a currently-whitelisted key, and only when near expiry. Rotation is
 		// skipped on the startup pass (allowRotate=false) so it never blocks boot.
-		if allowRotate && s.renewalRequired(chosen.exp) {
+		if !s.renewalRequired(chosen.exp) {
+			s.resetRotationBackoff()
+		} else if allowRotate && s.rotationDue() {
 			reuse := pickReusablePending(cands, chosen.addr)
-			if rErr := s.rotateLocked(ctx, chosen, reuse); rErr != nil {
+			rErr := s.rotateLocked(ctx, chosen, reuse)
+			switch {
+			case rErr == nil:
+				s.resetRotationBackoff()
+			case ctx.Err() != nil:
+				log.Warn().Str("Player", "Signer").Err(rErr).Msg("rotation attempt interrupted")
+			case errors.Is(rErr, errRotationNotSent):
+				s.recordRotationFailure(signermetrics.ReasonNotSent, rErr)
+			case errors.Is(rErr, errorSentinel.ErrChainTransactionFail):
+				s.recordRotationFailure(signermetrics.ReasonNotLanded, rErr)
+			default:
 				log.Warn().Str("Player", "Signer").Err(rErr).Msg("rotation attempt did not complete; will retry")
 			}
 		}
@@ -507,10 +550,111 @@ func (s *Signer) renewalRequired(exp time.Time) bool {
 	return time.Until(exp) < s.renewThreshold
 }
 
+// errRotationNotSent marks a rotation whose updateOracle was not broadcast or was refused by the node.
+var errRotationNotSent = errors.New("rotation not sent")
+
+// txpoolRejections are kaia txpool errors (blockchain/error.go) returned by sendRawTransaction
+// for a tx the node did not accept, so it cannot mine. Other send errors stay ambiguous (e.g. a
+// timeout after the node accepted it; "nonce too low" / "replacement transaction underpriced" /
+// same-nonce errors may mean our own earlier updateOracle is mined or still pending).
+var txpoolRejections = []string{
+	"insufficient funds", // sender, fee payer, or gas * price + value
+	"intrinsic gas too low",
+	"exceeds block gas limit",
+	"invalid unit price",
+	"invalid sender",
+	"invalid chain id",
+}
+
+func txpoolRejected(err error) bool {
+	msg := strings.ToLower(err.Error())
+	for _, r := range txpoolRejections {
+		if strings.Contains(msg, r) {
+			return true
+		}
+	}
+	return false
+}
+
+// clock drives only the rotation backoff schedule (injectable in tests); expirations and the
+// renewal threshold use wall time.
+func (s *Signer) clock() time.Time {
+	if s.now != nil {
+		return s.now()
+	}
+	return time.Now()
+}
+
+// rotationDue reports whether a rotation may be attempted now: the failed-rotation backoff (if
+// any) has elapsed, or an operator forced a retry. Caller holds rotateMu and attempts at once.
+func (s *Signer) rotationDue() bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.rotationForced {
+		s.rotationForced = false
+		return true
+	}
+	return !s.clock().Before(s.nextRotationAt)
+}
+
+// recordRotationFailure counts a failed rotation attempt and schedules the next one with
+// exponential backoff (base, 2*base, ... capped at max), so a rotation that cannot land does
+// not retry every liveness tick (issue #2965). The retry is never scheduled past the last moment
+// the active key can still send it: once that key expires, rotation can no longer run.
+func (s *Signer) recordRotationFailure(reason string, err error) {
+	s.mu.Lock()
+	s.rotationFailures++
+	failures := s.rotationFailures
+	base, maxDelay := s.rotationBackoffBase, s.rotationBackoffMax
+	if base <= 0 {
+		base = DefaultSignerRotationBackoffBase
+	}
+	if maxDelay <= 0 {
+		maxDelay = DefaultSignerRotationBackoffMax
+	}
+	delay := base
+	for i := 1; i < failures && delay < maxDelay; i++ {
+		delay *= 2
+	}
+	if delay > maxDelay {
+		delay = maxDelay
+	}
+	now := s.clock()
+	next := now.Add(delay)
+	// last attempt must start early enough to be sent and verified before the sign gate closes
+	lastChance := s.cachedExpiration.Add(-s.skewMargin - time.Duration(s.verifyPollMax)*s.verifyPollInterval)
+	if next.After(lastChance) {
+		next = lastChance
+		if next.Before(now) {
+			next = now
+		}
+		delay = next.Sub(now)
+	}
+	s.nextRotationAt = next
+	activeAddr, exp := s.activeAddr, s.cachedExpiration
+	s.mu.Unlock()
+
+	signermetrics.RecordRotationFailure(reason)
+	log.Warn().Str("Player", "Signer").Err(err).Str("reason", reason).Int("failures", failures).
+		Str("activeSigner", activeAddr.Hex()).Time("activeExpiresAt", exp).
+		Dur("retryIn", delay).Time("nextRetryAt", next).
+		Msg("signer rotation failed; retrying with backoff")
+}
+
+func (s *Signer) resetRotationBackoff() {
+	s.mu.Lock()
+	s.rotationFailures = 0
+	s.nextRotationAt = time.Time{}
+	s.rotationForced = false
+	s.mu.Unlock()
+}
+
 // rotateLocked rotates the signer key. Caller holds rotateMu and `from` is currently whitelisted.
 // Ordering is crash-safe: the new key is durably persisted BEFORE the on-chain updateOracle, the
 // signer refuses to sign for the in-flight window (bias to no-proof over stale-key), success is
 // judged by on-chain state (not the RPC ack), and the in-memory swap happens before the DB promote.
+// A failure before updateOracle is broadcast returns errRotationNotSent without ever refusing to
+// sign: `from` stays whitelisted.
 func (s *Signer) rotateLocked(ctx context.Context, from *signerCandidate, reuse *signerCandidate) error {
 	var newHex string
 	var newAddr common.Address
@@ -521,31 +665,53 @@ func (s *Signer) rotateLocked(ctx context.Context, from *signerCandidate, reuse 
 	} else {
 		_, freshHex, err := utils.NewPk(ctx)
 		if err != nil {
-			return err
+			return fmt.Errorf("%w: %w", errRotationNotSent, err)
 		}
 		addrHex, err := utils.StringPkToAddressHex(freshHex)
 		if err != nil {
-			return err
+			return fmt.Errorf("%w: %w", errRotationNotSent, err)
 		}
 		newHex = strings.TrimPrefix(freshHex, "0x")
 		newAddr = common.HexToAddress(addrHex)
 		// PERSIST-FIRST: the new key is durable before any chain call, so it can never be lost.
 		newID, err := s.store.InsertPending(ctx, newAddr.Hex(), newHex)
 		if err != nil {
-			return err
+			return fmt.Errorf("%w: %w", errRotationNotSent, err)
 		}
 		id = newID
 	}
 
 	// Stop signing for the in-flight window: updateOracle deactivates `from` the moment it mines,
-	// so from here we must not sign with `from`.
-	s.mu.Lock()
-	s.rotating = true
-	s.mu.Unlock()
+	// so from the broadcast on we must not sign with `from`. Before it (tx build, delegator sign)
+	// `from` stays whitelisted and keeps signing.
+	stopSigning := func() {
+		s.mu.Lock()
+		s.rotating = true
+		s.mu.Unlock()
+	}
+	broadcast := false
 
 	// updateOracle(newAddr) is submitted with `from`'s (whitelisted) key. The RPC ack is UNTRUSTED
 	// (WaitMined routinely errors on txs that actually mined — the original incident).
-	if err := s.chain.UpdateOracle(ctx, from.pkHex, newAddr); err != nil {
+	err := s.chain.UpdateOracle(ctx, from.pkHex, newAddr, func() {
+		broadcast = true
+		stopSigning()
+	})
+	if !broadcast {
+		if err != nil {
+			// Definitively not sent: nothing can deactivate `from`, so do not poll for ~60s.
+			return fmt.Errorf("%w: updateOracle: %w", errRotationNotSent, err)
+		}
+		stopSigning() // no error but no broadcast signal: assume it was sent
+	}
+	if err != nil && txpoolRejected(err) {
+		// The node refused the tx (not in its txpool), so it cannot mine: sign on with `from`.
+		s.mu.Lock()
+		s.rotating = false
+		s.mu.Unlock()
+		return fmt.Errorf("%w: updateOracle rejected: %w", errRotationNotSent, err)
+	}
+	if err != nil {
 		log.Warn().Str("Player", "Signer").Err(err).Msg("updateOracle ack error (ignored; verifying by chain state)")
 	}
 
