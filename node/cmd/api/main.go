@@ -12,6 +12,7 @@ import (
 	"bisonai.com/miko/node/pkg/api/service"
 	"bisonai.com/miko/node/pkg/api/utils"
 	"bisonai.com/miko/node/pkg/api/vrf"
+	"bisonai.com/miko/node/pkg/utils/buildinfo"
 	"bisonai.com/miko/node/pkg/utils/loginit"
 
 	"github.com/gofiber/fiber/v2"
@@ -26,6 +27,7 @@ func main() {
 	}
 
 	loginit.InitZeroLog()
+	buildinfo.Register("api")
 
 	config, err := utils.LoadEnvVars()
 	if err != nil {
@@ -60,8 +62,9 @@ func main() {
 
 func SetRouter(_router fiber.Router) {
 	(_router).Get("", func(c *fiber.Ctx) error {
-		return c.SendString("Orakl Network API")
+		return c.SendString(buildinfo.Root("Orakl Network API"))
 	})
+	(_router).Get("/version", buildinfo.FiberHandler)
 
 	apierr.Routes(_router)
 	chain.Routes(_router)

@@ -9,6 +9,7 @@ import (
 	"bisonai.com/miko/node/pkg/delegator/metrics"
 	"bisonai.com/miko/node/pkg/delegator/sign"
 	"bisonai.com/miko/node/pkg/delegator/utils"
+	"bisonai.com/miko/node/pkg/utils/buildinfo"
 	"bisonai.com/miko/node/pkg/utils/loginit"
 
 	"github.com/gofiber/fiber/v2"
@@ -40,6 +41,7 @@ func main() {
 	}
 
 	loginit.InitZeroLog()
+	buildinfo.Register("delegator")
 
 	appConfig, err := utils.Setup("0.0.1")
 	if err != nil {
@@ -71,8 +73,9 @@ func main() {
 // transaction management API (use 'allow' on the CLI).
 func SetSigningRouter(router fiber.Router) {
 	router.Get("", func(c *fiber.Ctx) error {
-		return c.SendString("Orakl Network Delegator")
+		return c.SendString(buildinfo.Root("Orakl Network Delegator"))
 	})
+	router.Get("/version", buildinfo.FiberHandler)
 	sign.SigningRoutes(router)
 }
 

@@ -16,6 +16,7 @@ import (
 	"bisonai.com/miko/node/pkg/dal/utils/keycache"
 	"bisonai.com/miko/node/pkg/dal/utils/keystore"
 	errorsentinel "bisonai.com/miko/node/pkg/error"
+	"bisonai.com/miko/node/pkg/utils/buildinfo"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog/log"
 	"nhooyr.io/websocket"
@@ -112,6 +113,7 @@ func NewServer(collector *collector.Collector, keyCache *keycache.KeyCache, keyS
 	serveMux.HandleFunc("GET /history/{symbols}", s.HistoryHandler)
 
 	serveMux.Handle("GET /metrics", promhttp.Handler())
+	serveMux.HandleFunc("GET /version", buildinfo.HTTPHandler)
 	serveMux.HandleFunc("/", s.HealthCheckHandler)
 
 	s.mux = serveMux
@@ -125,7 +127,8 @@ func (s *ServerV2) SetHistory(h *history.Store) {
 }
 
 func (s *ServerV2) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path == "/" || r.URL.Path == "/metrics" {
+	// unauthenticated: health check, metrics, build info
+	if r.URL.Path == "/" || r.URL.Path == "/metrics" || r.URL.Path == "/version" {
 		s.mux.ServeHTTP(w, r)
 		return
 	}
@@ -228,7 +231,7 @@ func (s *ServerV2) HealthCheckHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	_, err := w.Write([]byte("Miko Node DAL API"))
+	_, err := w.Write([]byte(buildinfo.Root("Miko Node DAL API")))
 	if err != nil {
 		log.Error().Err(err).Msg("failed to write response")
 	}

@@ -21,6 +21,7 @@ import (
 	libp2pSetup "bisonai.com/miko/node/pkg/libp2p/setup"
 	"bisonai.com/miko/node/pkg/nodestate"
 	"bisonai.com/miko/node/pkg/reporter"
+	"bisonai.com/miko/node/pkg/utils/buildinfo"
 	"bisonai.com/miko/node/pkg/utils/loginit"
 	"bisonai.com/miko/node/pkg/utils/retrier"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -47,6 +48,7 @@ func main() {
 	}
 
 	loginit.InitZeroLog()
+	buildinfo.Register("node")
 
 	// fail before joining the network if ADMIN_AUTH_REQUIRED can't be met;
 	// admin.Run checks again for the other binaries

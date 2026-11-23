@@ -1,12 +1,14 @@
 package admin
 
 import (
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
 	"bisonai.com/miko/node/pkg/admin/utils"
+	"bisonai.com/miko/node/pkg/utils/buildinfo"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -15,6 +17,7 @@ import (
 var openRoutes = map[string]bool{
 	"/api/v1/":                  true, // liveness/readiness probes
 	"/api/v1/metrics":           true, // Prometheus, sentinel offset checker
+	"/api/v1/version":           true, // build info, no secrets
 	"/api/v1/host/peercount":    true, // sentinel peers checker
 	"/api/v1/aggregator/signer": true, // public signer address + status
 	"/api/v1/config":            true, // config list, no secrets
@@ -64,5 +67,21 @@ func TestRegisteredRoutesAuth(t *testing.T) {
 	}
 	if protected == 0 {
 		t.Fatal("no protected routes registered")
+	}
+}
+
+// Health checks match the root text by substring: "Miko Node Admin API" must
+// stay an exact prefix; the version is appended.
+func TestRootTextKeepsPrefix(t *testing.T) {
+	app := fiber.New()
+	registerRoutes(app)
+	resp, err := app.Test(httptest.NewRequest(fiber.MethodGet, "/api/v1/", nil), -1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+	body, _ := io.ReadAll(resp.Body)
+	if got, want := string(body), buildinfo.Root("Miko Node Admin API"); got != want || !strings.HasPrefix(got, "Miko Node Admin API ") {
+		t.Fatalf("root = %q, want %q", got, want)
 	}
 }

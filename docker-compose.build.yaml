@@ -3,4 +3,9 @@ services:
     build:
       context: .
       dockerfile: dockerfiles/${SERVICE_NAME}.Dockerfile
+      # build info stamped into Go binaries; empty falls back to dev/unknown
+      args:
+        VERSION: ${VERSION:-}
+        COMMIT: ${COMMIT:-}
+        BUILD_TIME: ${BUILD_TIME:-}
     image: ${SERVICE_NAME}

@@ -20,6 +20,7 @@ import (
 	"bisonai.com/miko/node/pkg/checker/price"
 	"bisonai.com/miko/node/pkg/checker/signer"
 	"bisonai.com/miko/node/pkg/secrets"
+	"bisonai.com/miko/node/pkg/utils/buildinfo"
 	"bisonai.com/miko/node/pkg/utils/loginit"
 )
 
@@ -27,6 +28,7 @@ func main() {
 	ctx := context.Background()
 
 	loginit.InitZeroLog()
+	buildinfo.Register("sentinel")
 
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -39,12 +41,13 @@ func main() {
 
 		http.HandleFunc("/api/v1", func(w http.ResponseWriter, r *http.Request) {
 			// Respond with a simple string
-			_, err := w.Write([]byte("Orakl Sentinel"))
+			_, err := w.Write([]byte(buildinfo.Root("Orakl Sentinel")))
 			if err != nil {
 				log.Error().Err(err).Msg("failed to write response")
 			}
 		})
 
+		http.HandleFunc("GET /api/v1/version", buildinfo.HTTPHandler)
 		http.Handle("/metrics", promhttp.Handler())
 
 		if err := http.ListenAndServe(":"+port, nil); err != nil {

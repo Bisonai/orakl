@@ -8,7 +8,12 @@ COPY node node
 
 WORKDIR /app/node
 
-RUN CGO_ENABLED=1 CGO_CFLAGS="-O -D__BLST_PORTABLE__" CGO_CFLAGS_ALLOW="-O -D__BLST_PORTABLE__" CC=x86_64-linux-gnu-gcc GOOS=linux GOARCH=amd64 go build -o sentinelbin -ldflags="-w -s" ./cmd/sentinel/main.go
+# build info (see pkg/utils/buildinfo); empty or unset falls back to dev/unknown
+ARG VERSION
+ARG COMMIT
+ARG BUILD_TIME
+
+RUN CGO_ENABLED=1 CGO_CFLAGS="-O -D__BLST_PORTABLE__" CGO_CFLAGS_ALLOW="-O -D__BLST_PORTABLE__" CC=x86_64-linux-gnu-gcc GOOS=linux GOARCH=amd64 go build -o sentinelbin -ldflags="-w -s -X bisonai.com/miko/node/pkg/utils/buildinfo.Version=${VERSION:-dev} -X bisonai.com/miko/node/pkg/utils/buildinfo.Commit=${COMMIT:-unknown} -X bisonai.com/miko/node/pkg/utils/buildinfo.BuildTime=${BUILD_TIME:-unknown}" ./cmd/sentinel/main.go
 
 # debian:bookworm-slim
 FROM debian:bookworm-slim

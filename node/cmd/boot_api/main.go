@@ -9,6 +9,7 @@ import (
 	"bisonai.com/miko/node/pkg/boot"
 	"bisonai.com/miko/node/pkg/boot/utils/peerstore"
 	libp2pUtils "bisonai.com/miko/node/pkg/libp2p/utils"
+	"bisonai.com/miko/node/pkg/utils/buildinfo"
 	"bisonai.com/miko/node/pkg/utils/loginit"
 	"github.com/rs/zerolog/log"
 )
@@ -41,6 +42,7 @@ func main() {
 	}
 
 	loginit.InitZeroLog()
+	buildinfo.Register("boot-api")
 
 	err := boot.Run(ctx)
 	if err != nil {
