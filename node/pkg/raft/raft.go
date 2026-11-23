@@ -145,10 +145,6 @@ func (r *Raft) subscribe(ctx context.Context) {
 					return
 				}
 				log.Error().Err(err).Msg("failed to get message from topic")
-				if errors.Is(err, pubsub.ErrSubscriptionCancelled) {
-					// a cancelled subscription fails every Next at once; don't spin
-					return
-				}
 				continue
 			}
 			select {

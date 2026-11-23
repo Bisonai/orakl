@@ -7,7 +7,6 @@ import (
 	"sync"
 	"testing"
 	"time"
-
 )
 
 // logs captures everything the package logs; TestMain points log.Logger at it.
