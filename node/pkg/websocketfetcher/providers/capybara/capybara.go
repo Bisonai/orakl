@@ -85,7 +85,13 @@ func (f *CapybaraFetcher) run(ctx context.Context, feed common.Feed) {
 
 	// WSS Swap subscription — background, best effort.
 	go func() {
-		if err := f.subscribeEvent(ctx, feed); err != nil {
+		err := f.subscribeEvent(ctx, feed)
+		switch {
+		case err == nil:
+		case ctx.Err() != nil:
+			// stop or refresh, not a subscription failure (#2985)
+			log.Debug().Str("Player", "Capybara").Err(err).Msg("capybara.run, subscribe event stopped")
+		default:
 			log.Error().Str("Player", "Capybara").Err(err).Msg("error in capybara.run, subscribe event ended")
 		}
 	}()

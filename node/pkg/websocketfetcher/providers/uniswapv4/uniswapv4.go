@@ -110,7 +110,15 @@ func (f *V4Fetcher) run(ctx context.Context, feed common.Feed) {
 	// subscription fails or returns, the foreground heartbeat poll keeps
 	// supplying fresh data — same lifecycle pattern as V3 providers.
 	go func() {
-		if err := f.subscribeEvent(ctx, feed); err != nil {
+		err := f.subscribeEvent(ctx, feed)
+		switch {
+		case err == nil:
+		case ctx.Err() != nil:
+			// stop or refresh, not a subscription failure (#2985)
+			log.Debug().Str("Player", "UniswapV4").Err(err).
+				Int32("feedID", feed.ID).Str("name", feed.Name).
+				Msg("uniswapv4.run, subscribe event stopped")
+		default:
 			log.Error().Str("Player", "UniswapV4").Err(err).
 				Int32("feedID", feed.ID).Str("name", feed.Name).
 				Msg("error in uniswapv4.run, subscribe event ended")

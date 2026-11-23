@@ -81,7 +81,13 @@ func (f *UniswapFetcher) run(ctx context.Context, feed common.Feed) {
 	// Swap events give sub-poll-interval freshness when the pool is
 	// active.  If the subscription drops or returns we keep polling.
 	go func() {
-		if err := f.subscribeEvent(ctx, feed); err != nil {
+		err := f.subscribeEvent(ctx, feed)
+		switch {
+		case err == nil:
+		case ctx.Err() != nil:
+			// stop or refresh, not a subscription failure (#2985)
+			log.Debug().Str("Player", "Uniswap").Err(err).Msg("uniswap.run, subscribe event stopped")
+		default:
 			log.Error().Str("Player", "Uniswap").Err(err).Msg("error in uniswap.run, subscribe event ended")
 		}
 	}()

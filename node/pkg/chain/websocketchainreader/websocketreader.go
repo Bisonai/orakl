@@ -204,6 +204,9 @@ func (c *ChainReader) handleSubscription(ctx context.Context, config *SubscribeC
 	for {
 		blockNumber, err := c.getBlockNumber(ctx, config, initialTrigger)
 		if err != nil {
+			if ctx.Err() != nil {
+				return // stop or refresh (#2985)
+			}
 			log.Error().Err(err).Msg("Failed to get block number, retrying")
 			if !retryWithContext(ctx, c.RetryPeriod) {
 				return
@@ -221,6 +224,9 @@ func (c *ChainReader) handleSubscription(ctx context.Context, config *SubscribeC
 		logs := make(chan types.Log)
 		sub, err := c.client(config.ChainType).SubscribeFilterLogs(ctx, query, logs)
 		if err != nil {
+			if ctx.Err() != nil {
+				return // stop or refresh (#2985)
+			}
 			log.Error().Err(err).Msg("Failed to subscribe, retrying")
 			if !retryWithContext(ctx, c.RetryPeriod) {
 				return
@@ -296,6 +302,9 @@ func processLogs(ctx context.Context, sub kaia.Subscription, logs <-chan types.L
 		case <-ctx.Done():
 			return
 		case err := <-sub.Err():
+			if ctx.Err() != nil {
+				return // stop or refresh (#2985)
+			}
 			log.Warn().Err(err).Msg("Error in subscription")
 			return
 		case vLog := <-logs:
