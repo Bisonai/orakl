@@ -283,10 +283,11 @@ func (s *Signer) reconcileLoop(ctx context.Context) {
 
 // CheckAndUpdateSignerPK is the public entry point (bus RENEW_SIGNER / admin). It simply drives
 // a reconcile, which both self-heals the active key and rotates when near expiry. An operator
-// trigger skips the wait of a failed-rotation backoff (the failure count is kept).
+// trigger skips the wait of a failed-rotation backoff (the failure count is kept); if a reconcile
+// is already running, the next one honours it.
 func (s *Signer) CheckAndUpdateSignerPK(ctx context.Context) error {
 	s.mu.Lock()
-	s.nextRotationAt = time.Time{}
+	s.rotationForced = true
 	s.mu.Unlock()
 	return s.reconcile(ctx, true)
 }
@@ -540,29 +541,51 @@ func (s *Signer) clock() time.Time {
 	return time.Now()
 }
 
-// rotationDue reports whether the failed-rotation backoff (if any) has elapsed.
+// rotationDue reports whether a rotation may be attempted now: the failed-rotation backoff (if
+// any) has elapsed, or an operator forced a retry. Caller holds rotateMu and attempts at once.
 func (s *Signer) rotationDue() bool {
-	s.mu.RLock()
-	next := s.nextRotationAt
-	s.mu.RUnlock()
-	return !s.clock().Before(next)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.rotationForced {
+		s.rotationForced = false
+		return true
+	}
+	return !s.clock().Before(s.nextRotationAt)
 }
 
 // recordRotationFailure counts a failed rotation attempt and schedules the next one with
 // exponential backoff (base, 2*base, ... capped at max), so a rotation that cannot land does
-// not retry every liveness tick (issue #2965).
+// not retry every liveness tick (issue #2965). The retry is never scheduled past the last moment
+// the active key can still send it: once that key expires, rotation can no longer run.
 func (s *Signer) recordRotationFailure(reason string, err error) {
 	s.mu.Lock()
 	s.rotationFailures++
 	failures := s.rotationFailures
-	delay := s.rotationBackoffBase
-	for i := 1; i < failures && delay < s.rotationBackoffMax; i++ {
+	base, maxDelay := s.rotationBackoffBase, s.rotationBackoffMax
+	if base <= 0 {
+		base = DefaultSignerRotationBackoffBase
+	}
+	if maxDelay <= 0 {
+		maxDelay = DefaultSignerRotationBackoffMax
+	}
+	delay := base
+	for i := 1; i < failures && delay < maxDelay; i++ {
 		delay *= 2
 	}
-	if delay > s.rotationBackoffMax {
-		delay = s.rotationBackoffMax
+	if delay > maxDelay {
+		delay = maxDelay
 	}
-	next := s.clock().Add(delay)
+	now := s.clock()
+	next := now.Add(delay)
+	// last attempt must start early enough to be sent and verified before the sign gate closes
+	lastChance := s.cachedExpiration.Add(-s.skewMargin - time.Duration(s.verifyPollMax)*s.verifyPollInterval)
+	if next.After(lastChance) {
+		next = lastChance
+		if next.Before(now) {
+			next = now
+		}
+		delay = next.Sub(now)
+	}
 	s.nextRotationAt = next
 	activeAddr, exp := s.activeAddr, s.cachedExpiration
 	s.mu.Unlock()
@@ -578,6 +601,7 @@ func (s *Signer) resetRotationBackoff() {
 	s.mu.Lock()
 	s.rotationFailures = 0
 	s.nextRotationAt = time.Time{}
+	s.rotationForced = false
 	s.mu.Unlock()
 }
 

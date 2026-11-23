@@ -205,6 +205,55 @@ func TestCheckAndUpdateSignerPKSkipsBackoffWait(t *testing.T) {
 	assert.Equal(t, 2, s.rotationFailures, "failure count kept")
 }
 
+// An operator trigger that arrives while a reconcile holds the lock is not lost: the running
+// attempt's failure schedules a backoff, but the next reconcile still retries at once.
+func TestCheckAndUpdateSignerPKDuringRunningReconcile(t *testing.T) {
+	ctx := context.Background()
+	fc := newFakeChain()
+	fc.notSentErr = errors.New("delegator down")
+	hc := &hookChain{fakeChain: fc}
+	s, _, _, _ := nearExpirySigner(t, hc, fc)
+	hc.onUpdate = func() {
+		if fc.calls() == 0 { // inside the first attempt, rotateMu held
+			require.NoError(t, s.CheckAndUpdateSignerPK(ctx))
+		}
+	}
+
+	require.NoError(t, s.reconcile(ctx, true))
+	require.Equal(t, 1, fc.calls())
+	require.NoError(t, s.reconcile(ctx, true))
+	assert.Equal(t, 2, fc.calls(), "forced retry lost")
+	require.NoError(t, s.reconcile(ctx, true))
+	assert.Equal(t, 2, fc.calls(), "force is one-shot")
+}
+
+// The backoff never schedules the retry past the last moment the active key can send it.
+func TestRotationBackoffCappedByExpiry(t *testing.T) {
+	ctx := context.Background()
+	fc := newFakeChain()
+	fc.notSentErr = errors.New("delegator down")
+	s, _, aAddr, clk := nearExpirySigner(t, fc, fc)
+	fc.setExp(aAddr, 20*time.Minute)
+	s.rotationFailures = 5 // next delay would be 1h
+
+	require.NoError(t, s.reconcile(ctx, true))
+	lastChance := s.cachedExpiration.Add(-s.skewMargin - time.Duration(s.verifyPollMax)*s.verifyPollInterval)
+	assert.Equal(t, lastChance, s.nextRotationAt)
+	assert.True(t, s.nextRotationAt.Before(clk.Add(20*time.Minute)))
+}
+
+// A Signer built without backoff config still backs off (defaults).
+func TestRotationBackoffZeroConfigUsesDefaults(t *testing.T) {
+	ctx := context.Background()
+	fc := newFakeChain()
+	fc.notSentErr = errors.New("delegator down")
+	s, _, _, clk := nearExpirySigner(t, fc, fc)
+	s.rotationBackoffBase, s.rotationBackoffMax = 0, 0
+
+	require.NoError(t, s.reconcile(ctx, true))
+	assert.Equal(t, clk.Add(DefaultSignerRotationBackoffBase), s.nextRotationAt)
+}
+
 // beforeSend runs once right before the tx is sent, and not when building it fails.
 func TestSubmitDelegatedBeforeSend(t *testing.T) {
 	ctx := context.Background()
