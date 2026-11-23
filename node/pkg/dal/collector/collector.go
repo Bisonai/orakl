@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"sort"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -47,6 +48,12 @@ var ResubscribeGrace = 30 * time.Second
 
 type Config = types.Config
 
+// HistoryRecorder receives every value that replaces LatestData. Record is
+// called under the collector lock, so it must be cheap and never call back.
+type HistoryRecorder interface {
+	Record(symbol string, value int64, decimals string, ts time.Time)
+}
+
 type Collector struct {
 	OutgoingStream map[string]chan *dalcommon.OutgoingSubmissionData
 
@@ -78,6 +85,8 @@ type Collector struct {
 	toOutgoing func(ctx context.Context, data *aggregator.SubmissionData) (*dalcommon.OutgoingSubmissionData, error)
 	// inFlight holds messages being verified (see claim), guarded by mu; lazily created.
 	inFlight map[inFlightKey]struct{}
+	// history, if set, records every delivered value (see SetHistory).
+	history HistoryRecorder
 
 	IsRunning  bool
 	CancelFunc context.CancelFunc
@@ -207,6 +216,41 @@ func (c *Collector) Start(ctx context.Context) {
 	c.processPool.Run(ctxWithCancel)
 	c.receive(redisCtx)
 	go c.refreshOracles(ctxWithCancel)
+}
+
+// SetHistory sets the recorder of delivered values; call before Start.
+func (c *Collector) SetHistory(h HistoryRecorder) {
+	c.history = h
+}
+
+// Symbols returns the configured symbols, sorted.
+func (c *Collector) Symbols() []string {
+	c.mu.RLock()
+	out := make([]string, 0, len(c.FeedHashes))
+	for symbol := range c.FeedHashes {
+		out = append(out, symbol)
+	}
+	c.mu.RUnlock()
+	sort.Strings(out)
+	return out
+}
+
+// Decimals returns the decimals served for a configured symbol, and whether it is configured.
+func (c *Collector) Decimals(symbol string) (string, bool) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	if _, ok := c.FeedHashes[symbol]; !ok {
+		return "", false
+	}
+	config, hasConfig := c.Configs[symbol]
+	return configDecimals(config, hasConfig), true
+}
+
+func configDecimals(config Config, hasConfig bool) string {
+	if hasConfig && config.Decimals != nil && *config.Decimals != 0 {
+		return strconv.Itoa(*config.Decimals)
+	}
+	return DefaultDecimals
 }
 
 func (c *Collector) GetLatestData(symbol string) (*dalcommon.OutgoingSubmissionData, error) {
@@ -377,6 +421,9 @@ func (c *Collector) processIncomingData(ctx context.Context, data *aggregator.Su
 		}
 		c.LatestTimestamps[data.Symbol] = data.GlobalAggregate.Timestamp
 		c.LatestData[result.Symbol] = result
+		if c.history != nil {
+			c.history.Record(result.Symbol, data.GlobalAggregate.Value, result.Decimals, data.GlobalAggregate.Timestamp)
+		}
 
 		select {
 		case stream <- result:
@@ -412,10 +459,7 @@ func (c *Collector) IncomingDataToOutgoingData(ctx context.Context, data *aggreg
 		return nil, err
 	}
 
-	decimals := DefaultDecimals
-	if hasConfig && config.Decimals != nil && *config.Decimals != 0 {
-		decimals = strconv.Itoa(*config.Decimals)
-	}
+	decimals := configDecimals(config, hasConfig)
 
 	return &dalcommon.OutgoingSubmissionData{
 		Symbol:        data.Symbol,
