@@ -9,6 +9,7 @@ import (
 	"bisonai.com/miko/node/pkg/common/types"
 	"bisonai.com/miko/node/pkg/dal/apiv2"
 	"bisonai.com/miko/node/pkg/dal/collector"
+	"bisonai.com/miko/node/pkg/dal/history"
 	"bisonai.com/miko/node/pkg/dal/hub"
 	"bisonai.com/miko/node/pkg/dal/utils/keycache"
 	"bisonai.com/miko/node/pkg/dal/utils/keystore"
@@ -53,10 +54,30 @@ func Run(ctx context.Context) error {
 		return err
 	}
 
+	historyStore, err := openHistory(ctx)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to set up history store")
+		return err
+	}
+	if historyStore != nil {
+		// deferred first, so it runs last: after the collector stopped, flush what is buffered
+		defer func() {
+			if err := historyStore.Close(); err != nil {
+				log.Error().Err(err).Msg("Failed to close history store")
+			}
+		}()
+	}
+
 	collector, err := collector.NewCollector(ctx, configs)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to setup collector")
 		return err
+	}
+	if historyStore != nil {
+		collector.SetHistory(historyStore)
+		historyStore.Start(ctx)
+		// after the server returned, stop delivering before the history is closed
+		defer collector.Stop()
 	}
 	collector.Start(ctx)
 
@@ -65,13 +86,38 @@ func Run(ctx context.Context) error {
 
 	startConfigReload(ctx, chain, len(configs), collector, hub)
 
-	err = apiv2.Start(ctx, apiv2.WithCollector(collector), apiv2.WithHub(hub), apiv2.WithKeyCache(keyCache), apiv2.WithKeyStore(keyStore))
+	err = apiv2.Start(ctx, apiv2.WithCollector(collector), apiv2.WithHub(hub), apiv2.WithKeyCache(keyCache), apiv2.WithKeyStore(keyStore), apiv2.WithHistory(historyStore))
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to start DAL WS server")
 		return err
 	}
 
 	return nil
+}
+
+// openHistory opens the price history store, or returns nil when history is
+// disabled or, unless DAL_HISTORY_ENABLED is set, cannot be opened (DAL then
+// runs without it). Invalid settings are an error.
+func openHistory(ctx context.Context) (*history.Store, error) {
+	cfg, enabled, err := history.ConfigFromEnv()
+	if err != nil {
+		return nil, err
+	}
+	if !enabled {
+		log.Info().Msg("Price history disabled")
+		return nil, nil
+	}
+	store, err := history.Open(ctx, cfg)
+	if err != nil {
+		// explicitly enabled: fail loudly instead of serving 503 forever
+		if os.Getenv(history.EnvEnabled) != "" {
+			return nil, err
+		}
+		log.Error().Err(err).Msg("Failed to open history store; running without price history")
+		return nil, nil
+	}
+	log.Info().Str("path", cfg.Path).Dur("interval", cfg.Interval).Dur("retention", cfg.Retention).Msg("Opened history store")
+	return store, nil
 }
 
 // fetchConfigs fetches the chain's config bundle (retries and fallback source:

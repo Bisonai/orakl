@@ -189,3 +189,38 @@ func TestFailedVerifyDoesNotBlockValidDuplicate(t *testing.T) {
 		})
 	}
 }
+
+type recorded struct {
+	symbol string
+	value  int64
+	ts     int64
+}
+
+type fakeHistory struct {
+	mu   sync.Mutex
+	rows []recorded
+}
+
+func (h *fakeHistory) Record(symbol string, value int64, _ string, ts time.Time) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.rows = append(h.rows, recorded{symbol, value, ts.UnixMilli()})
+}
+
+// Only values that replace LatestData reach history; old or duplicate ones do not.
+func TestDeliveredDataRecordedInHistory(t *testing.T) {
+	c, _ := newTestCollector(t, "A-B")
+	f := &fakeOutgoing{entered: make(chan int64, 3)}
+	c.toOutgoing = f.convert
+	h := &fakeHistory{}
+	c.SetHistory(h)
+	ctx := context.Background()
+	t1 := time.UnixMilli(1_700_000_000_000)
+
+	c.processIncomingData(ctx, submission("A-B", t1, nil))
+	c.processIncomingData(ctx, submission("A-B", t1, nil))                   // duplicate
+	c.processIncomingData(ctx, submission("A-B", t1.Add(-time.Second), nil)) // older
+	c.processIncomingData(ctx, submission("A-B", t1.Add(time.Second), nil))
+
+	assert.Equal(t, []recorded{{"A-B", 100, t1.UnixMilli()}, {"A-B", 100, t1.Add(time.Second).UnixMilli()}}, h.rows)
+}

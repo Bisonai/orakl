@@ -7,9 +7,11 @@ import (
 	"net"
 	"net/http"
 	"strings"
+	"time"
 
 	"bisonai.com/miko/node/pkg/dal/collector"
 	dalcommon "bisonai.com/miko/node/pkg/dal/common"
+	"bisonai.com/miko/node/pkg/dal/history"
 	"bisonai.com/miko/node/pkg/dal/hub"
 	"bisonai.com/miko/node/pkg/dal/utils/keycache"
 	"bisonai.com/miko/node/pkg/dal/utils/keystore"
@@ -19,6 +21,8 @@ import (
 	"nhooyr.io/websocket"
 	"nhooyr.io/websocket/wsjson"
 )
+
+const shutdownTimeout = 3 * time.Second
 
 func Start(ctx context.Context, opts ...ServerV2Option) error {
 	config := &ServerV2Config{
@@ -55,17 +59,32 @@ func Start(ctx context.Context, opts ...ServerV2Option) error {
 	}
 
 	wsServer := NewServer(config.Collector, config.KeyCache, config.KeyStore, config.Hub)
+	wsServer.SetHistory(config.History)
 	httpServer := &http.Server{
 		Handler: wsServer,
+		// not cancelled by ctx, so Shutdown lets in-flight requests finish
 		BaseContext: func(_ net.Listener) context.Context {
-			return ctx
+			return context.WithoutCancel(ctx)
 		},
 	}
+	// return on ctx done, so the caller can flush state (history) before exiting
+	shutdownDone := make(chan struct{})
+	stop := context.AfterFunc(ctx, func() {
+		defer close(shutdownDone)
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+		defer cancel()
+		if err := httpServer.Shutdown(shutdownCtx); err != nil {
+			log.Warn().Err(err).Msg("DAL server shutdown")
+		}
+	})
+	defer stop()
 
 	err = httpServer.Serve(l)
 	if err != nil && err != http.ErrServerClosed {
 		return err
 	}
+	// Serve returns once Shutdown starts; wait for in-flight requests to drain
+	<-shutdownDone
 
 	return nil
 }
@@ -76,6 +95,8 @@ func NewServer(collector *collector.Collector, keyCache *keycache.KeyCache, keyS
 		keyCache:  keyCache,
 		keyStore:  keyStore,
 		hub:       hub,
+
+		historyCache: newHistoryCache(),
 	}
 	serveMux := http.NewServeMux()
 
@@ -87,6 +108,8 @@ func NewServer(collector *collector.Collector, keyCache *keycache.KeyCache, keyS
 	serveMux.HandleFunc("GET /latest-data-feeds/transpose/{symbols}", s.TransposedLatestFeedsHandler)
 	serveMux.HandleFunc("GET /latest-data-feeds/{symbols}", s.LatestFeedsHandler)
 	serveMux.HandleFunc("GET /latest-data-feeds-unstrict/{symbols}", s.LatestFeedsHandlerUnstrict)
+	serveMux.HandleFunc("GET /history/all", s.AllHistoryHandler)
+	serveMux.HandleFunc("GET /history/{symbols}", s.HistoryHandler)
 
 	serveMux.Handle("GET /metrics", promhttp.Handler())
 	serveMux.HandleFunc("/", s.HealthCheckHandler)
@@ -94,6 +117,11 @@ func NewServer(collector *collector.Collector, keyCache *keycache.KeyCache, keyS
 	s.mux = serveMux
 
 	return s
+}
+
+// SetHistory sets the history store served by /history; call before serving.
+func (s *ServerV2) SetHistory(h *history.Store) {
+	s.history = h
 }
 
 func (s *ServerV2) ServeHTTP(w http.ResponseWriter, r *http.Request) {

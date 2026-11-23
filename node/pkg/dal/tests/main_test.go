@@ -16,6 +16,7 @@ import (
 	"bisonai.com/miko/node/pkg/common/types"
 	"bisonai.com/miko/node/pkg/dal/apiv2"
 	"bisonai.com/miko/node/pkg/dal/collector"
+	"bisonai.com/miko/node/pkg/dal/history"
 	"bisonai.com/miko/node/pkg/dal/hub"
 	"bisonai.com/miko/node/pkg/dal/utils/keycache"
 	"bisonai.com/miko/node/pkg/dal/utils/keystore"
@@ -36,6 +37,7 @@ type TestItems struct {
 	ApiKey     string
 	KeyStore   *keystore.Store
 	KeyDir     string
+	History    *history.Store
 }
 
 func testPublishData(ctx context.Context, name string, submissionData aggregator.SubmissionData) error {
@@ -142,12 +144,19 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 		log.Error().Err(err).Msg("Failed to setup DAL API server")
 		return nil, nil, err
 	}
+	historyStore, err := history.Open(ctx, history.Config{Path: filepath.Join(keyDir, history.FileName), Interval: history.DefaultInterval, Retention: history.DefaultRetention})
+	if err != nil {
+		return nil, nil, err
+	}
+	testItems.History = historyStore
+	collector.SetHistory(historyStore)
 	collector.Start(ctx)
 
 	hub := hub.HubSetup(ctx, []types.Config{testItems.TmpConfig})
 	go hub.Start(ctx, collector)
 
 	server := apiv2.NewServer(collector, keyCache, keyStore, hub)
+	server.SetHistory(historyStore)
 
 	mockDal := httptest.NewServer(server)
 
@@ -169,6 +178,7 @@ func cleanup(ctx context.Context, testItems *TestItems) func() error {
 
 		testItems.MockAdmin.Close()
 		_ = testItems.KeyStore.Close()
+		_ = testItems.History.Close()
 		return os.RemoveAll(testItems.KeyDir)
 	}
 }

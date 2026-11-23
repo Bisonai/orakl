@@ -9,6 +9,7 @@ import (
 
 	"bisonai.com/miko/node/pkg/dal/apiv2"
 	"bisonai.com/miko/node/pkg/dal/common"
+	"bisonai.com/miko/node/pkg/dal/history"
 	"bisonai.com/miko/node/pkg/dal/hub"
 	"bisonai.com/miko/node/pkg/utils/request"
 	wsfcommon "bisonai.com/miko/node/pkg/websocketfetcher/common"
@@ -480,4 +481,43 @@ func TestApiWebsocket(t *testing.T) {
 		}
 	})
 
+}
+
+func TestApiGetHistory(t *testing.T) {
+	ctx := context.Background()
+	clean, testItems, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer func() {
+		if cleanupErr := clean(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
+		}
+	}()
+
+	now := time.Now()
+	sampleSubmissionData, err := generateSampleSubmissionData(testItems.TmpConfig.ID, int64(15), now, 1, "test-aggregate")
+	if err != nil {
+		t.Fatalf("error generating sample submission data: %v", err)
+	}
+	publishAndAwait(ctx, t, testItems, "test-aggregate", *sampleSubmissionData)
+	if err := testItems.History.Flush(ctx); err != nil {
+		t.Fatalf("error flushing history: %v", err)
+	}
+
+	headers := map[string]string{"X-API-Key": testItems.ApiKey}
+	for _, path := range []string{"/history/test-aggregate", "/history/all?range=24h&step=1h"} {
+		result, err := request.Request[map[string]history.Series](request.WithEndpoint(testItems.MockDal.URL+path), request.WithHeaders(headers))
+		if err != nil {
+			t.Fatalf("error getting history %s: %v", path, err)
+		}
+		step := history.DefaultInterval
+		if path != "/history/test-aggregate" {
+			step = time.Hour
+		}
+		assert.Equal(t, history.Series{
+			Decimals: "8",
+			Points:   []history.Point{{Time: now.Truncate(step).UnixMilli(), Value: "15"}},
+		}, result["test-aggregate"], path)
+	}
 }
