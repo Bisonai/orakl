@@ -67,7 +67,9 @@ func Start(ctx context.Context, opts ...ServerV2Option) error {
 		},
 	}
 	// return on ctx done, so the caller can flush state (history) before exiting
+	shutdownDone := make(chan struct{})
 	stop := context.AfterFunc(ctx, func() {
+		defer close(shutdownDone)
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 		defer cancel()
 		if err := httpServer.Shutdown(shutdownCtx); err != nil {
@@ -80,6 +82,8 @@ func Start(ctx context.Context, opts ...ServerV2Option) error {
 	if err != nil && err != http.ErrServerClosed {
 		return err
 	}
+	// Serve returns once Shutdown starts; wait for in-flight requests to drain
+	<-shutdownDone
 
 	return nil
 }

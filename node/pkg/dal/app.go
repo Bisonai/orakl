@@ -56,7 +56,7 @@ func Run(ctx context.Context) error {
 
 	historyStore, err := openHistory(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("Invalid history settings")
+		log.Error().Err(err).Msg("Failed to set up history store")
 		return err
 	}
 	if historyStore != nil {
@@ -96,8 +96,8 @@ func Run(ctx context.Context) error {
 }
 
 // openHistory opens the price history store, or returns nil when history is
-// disabled or cannot be opened (DAL then runs without it). Invalid settings
-// are an error.
+// disabled or, unless DAL_HISTORY_ENABLED is set, cannot be opened (DAL then
+// runs without it). Invalid settings are an error.
 func openHistory(ctx context.Context) (*history.Store, error) {
 	cfg, enabled, err := history.ConfigFromEnv()
 	if err != nil {
@@ -109,6 +109,10 @@ func openHistory(ctx context.Context) (*history.Store, error) {
 	}
 	store, err := history.Open(ctx, cfg)
 	if err != nil {
+		// explicitly enabled: fail loudly instead of serving 503 forever
+		if os.Getenv(history.EnvEnabled) != "" {
+			return nil, err
+		}
 		log.Error().Err(err).Msg("Failed to open history store; running without price history")
 		return nil, nil
 	}

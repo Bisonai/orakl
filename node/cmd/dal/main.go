@@ -71,6 +71,10 @@ func main() {
 	context.AfterFunc(ctx, stop)
 
 	err := dal.Run(ctx)
+	if err != nil && ctx.Err() != nil {
+		log.Info().Err(err).Msg("DAL stopped during startup")
+		return
+	}
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to start DAL")
 	}

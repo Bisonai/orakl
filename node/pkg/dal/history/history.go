@@ -7,17 +7,15 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
 	"bisonai.com/miko/node/pkg/dal/utils/keystore"
+	"bisonai.com/miko/node/pkg/utils/sqlitedb"
 	"github.com/rs/zerolog/log"
-	_ "modernc.org/sqlite" // pure-Go SQLite driver, registers "sqlite"
 )
 
 const (
@@ -28,6 +26,7 @@ const (
 
 	DefaultInterval  = 5 * time.Minute
 	DefaultRetention = 168 * time.Hour
+	MinRetention     = 24 * time.Hour
 	// FileName is the history file created next to DAL_SQLITE_PATH.
 	FileName = "history.db"
 
@@ -108,6 +107,9 @@ func (c Config) validate() error {
 	if c.Interval < time.Second || c.Interval%time.Millisecond != 0 {
 		return fmt.Errorf("%s must be a whole number of ms and at least 1s, got %s", EnvInterval, c.Interval)
 	}
+	if c.Retention < MinRetention {
+		return fmt.Errorf("%s must be at least %s (the shortest served range), got %s", EnvRetention, MinRetention, c.Retention)
+	}
 	if c.Retention < c.Interval {
 		return fmt.Errorf("%s (%s) must not be shorter than %s (%s)", EnvRetention, c.Retention, EnvInterval, c.Interval)
 	}
@@ -155,24 +157,9 @@ func Open(ctx context.Context, cfg Config) (*Store, error) {
 	if err := cfg.validate(); err != nil {
 		return nil, err
 	}
-	// SQLite decodes '%HH' in file: URIs, so '%' would open a different file.
-	if strings.ContainsAny(cfg.Path, "?#%") {
-		return nil, fmt.Errorf("history path %q must not contain '?', '#' or '%%'", cfg.Path)
-	}
-	q := url.Values{}
-	q.Add("_pragma", "busy_timeout(5000)")
-	q.Add("_pragma", "journal_mode(WAL)")
-	// take the write lock at BEGIN, so a concurrent writer waits (busy_timeout) instead of failing
-	q.Add("_txlock", "immediate")
-	dsn := "file:" + cfg.Path + "?" + q.Encode()
-
-	db, err := sql.Open("sqlite", dsn)
+	db, err := sqlitedb.Open(ctx, cfg.Path, schema)
 	if err != nil {
-		return nil, fmt.Errorf("open sqlite %s: %w", cfg.Path, err)
-	}
-	if _, err = db.ExecContext(ctx, schema); err != nil {
-		_ = db.Close()
-		return nil, fmt.Errorf("init sqlite schema %s: %w", cfg.Path, err)
+		return nil, err
 	}
 	return &Store{db: db, cfg: cfg, pending: make(map[bucketKey]sample)}, nil
 }

@@ -83,11 +83,11 @@ func TestUpsertIdempotentAcrossWriters(t *testing.T) {
 func TestPrunePastRetention(t *testing.T) {
 	ctx := context.Background()
 	cfg := testConfig(t)
-	cfg.Retention = time.Hour
+	cfg.Retention = 24 * time.Hour
 	s := openStore(t, cfg)
 
-	s.Record("BTC-USDT", 1, "8", t0.Add(-2*time.Hour))
-	s.Record("BTC-USDT", 2, "8", t0.Add(-30*time.Minute))
+	s.Record("BTC-USDT", 1, "8", t0.Add(-25*time.Hour))
+	s.Record("BTC-USDT", 2, "8", t0.Add(-23*time.Hour))
 	s.Record("BTC-USDT", 3, "8", t0)
 	require.NoError(t, s.Flush(ctx))
 
@@ -155,7 +155,7 @@ func TestConfigFromEnv(t *testing.T) {
 	assert.True(t, on)
 	assert.Equal(t, Config{Path: "/data/h.db", Interval: time.Minute, Retention: 48 * time.Hour}, cfg)
 
-	t.Setenv(EnvRetention, "30s")
+	t.Setenv(EnvRetention, "12h")
 	_, _, err = ConfigFromEnv()
 	assert.Error(t, err)
 	t.Setenv(EnvRetention, "")

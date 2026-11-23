@@ -354,10 +354,10 @@ DAL does not use PostgreSQL. API keys are stored in a SQLite file and usage is e
 | `DAL_SQLITE_PATH` | Required. Path of the SQLite key file, e.g. `/app/data/dal.db`. Put it on a persistent volume. DAL refuses to start if the file does not exist; `keys add`/`keys import` create it. The directory must be writable (SQLite WAL files). |
 | `CHAIN`           | Required. `kairos`, `mainnet` or `test`.                                                          |
 | `REDIS_HOST`, `REDIS_PORT` | Redis used by the collector.                                                            |
-| `DAL_HISTORY_ENABLED` | Price history for `GET /history/...`; on by default, `false` turns it off. Also off when neither `DAL_HISTORY_PATH` nor `DAL_SQLITE_PATH` is set. |
+| `DAL_HISTORY_ENABLED` | Price history for `GET /history/...`; on by default, `false` turns it off. Also off when neither `DAL_HISTORY_PATH` nor `DAL_SQLITE_PATH` is set. If the file cannot be opened DAL runs without history, unless this is set to `true` (then it fails to start). |
 | `DAL_HISTORY_PATH` | SQLite file of the price history. Default `history.db` in the directory of `DAL_SQLITE_PATH`. |
 | `DAL_HISTORY_INTERVAL` | Sampling window; the last value per symbol per window is kept. Default `5m`. |
-| `DAL_HISTORY_RETENTION` | History older than this is deleted hourly. Default `168h`. |
+| `DAL_HISTORY_RETENTION` | History older than this is deleted hourly. Default `168h`, at least `24h`; `range=7d` needs `168h`. |
 
 ### Price history
 
