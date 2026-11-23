@@ -209,9 +209,11 @@ type Aggregator struct {
 	// onSubmission gets each round's submission data (nil: none)
 	onSubmission SubmissionHook
 
-	// noLocalAggregate: the last trigger found no fresh local aggregate (logs
-	// only the transitions)
+	// noLocalAggregate: the last trigger found no fresh local aggregate;
+	// noPrices: the last round as leader collected no price (both log only
+	// the transitions)
 	noLocalAggregate atomic.Bool
+	noPrices         atomic.Bool
 
 	nodeCtx    context.Context
 	nodeCancel context.CancelFunc
@@ -256,11 +258,13 @@ type TriggerMessage struct {
 // LOCAL_AGGREGATE_INTERVAL (200ms) while its feeds are fresh (each feed within
 // the config's feedDataFreshness) and stops publishing once they are not, so
 // an older aggregate means the fetcher stopped; voting it would re-submit a
-// frozen price under fresh round timestamps (#2964). 10s is 50 publish
-// intervals (jitter, GC, fetcher refresh) and the slowest fetch interval.
-// LOCAL_AGGREGATE_MAX_AGE overrides it; without it, a LOCAL_AGGREGATE_INTERVAL
-// above 2s raises it to localAggregateMaxAgeIntervals publish intervals.
-const DefaultLocalAggregateMaxAge = 10 * time.Second
+// frozen price under fresh round timestamps (#2964). 60s is the fetcher's own
+// staleness window (feedDataFreshness of every config) and spans a fetcher
+// REFRESH, which restarts the local aggregators one by one 50-150ms apart
+// (~25s for 235 configs). LOCAL_AGGREGATE_MAX_AGE overrides it; without it, a
+// LOCAL_AGGREGATE_INTERVAL above 12s raises it to
+// localAggregateMaxAgeIntervals publish intervals.
+const DefaultLocalAggregateMaxAge = 60 * time.Second
 
 // localAggregateMaxAgeIntervals is the least number of publish intervals the
 // default max age spans.
@@ -282,7 +286,8 @@ func NewLatestLocalAggregates() *LatestLocalAggregates {
 }
 
 func localAggregateMaxAge() time.Duration {
-	// the fetcher's publish interval (its env and default, fetcher.Run)
+	// the fetcher's publish interval (its env and default
+	// fetcher.DefaultLocalAggregateInterval, fetcher.LocalAggregator.Run)
 	interval, err := time.ParseDuration(os.Getenv("LOCAL_AGGREGATE_INTERVAL"))
 	if err != nil || interval <= 0 {
 		interval = 200 * time.Millisecond
@@ -318,7 +323,11 @@ func (a *LatestLocalAggregates) LoadFresh(id int32, now time.Time) (*LocalAggreg
 	if !ok {
 		return nil, false
 	}
-	if age := now.Sub(result.Timestamp); age > a.MaxAge || age < -a.MaxAge {
+	maxAge := a.MaxAge
+	if maxAge <= 0 { // not built by NewLatestLocalAggregates
+		maxAge = DefaultLocalAggregateMaxAge
+	}
+	if age := now.Sub(result.Timestamp); age > maxAge || age < -maxAge {
 		return nil, false
 	}
 	return result, true

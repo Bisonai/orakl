@@ -39,12 +39,13 @@ func TestTriggerVotesFreshLocalAggregate(t *testing.T) {
 // The fetcher stops publishing a config whose sources are stale; its last
 // local aggregate must not be voted on (#2964).
 func TestTriggerVotesNoPriceForStaleLocalAggregate(t *testing.T) {
-	// e.g. AUCTION-KRW: the last local aggregate is a minute old
-	assert.Equal(t, int64(-1), triggerPrice(t, "", &LocalAggregate{Value: 100, Timestamp: time.Now().Add(-time.Minute)}))
+	// e.g. AUCTION-KRW: the last local aggregate is 29 minutes old
+	assert.Equal(t, int64(-1), triggerPrice(t, "", &LocalAggregate{Value: 100, Timestamp: time.Now().Add(-29 * time.Minute)}))
+	assert.Equal(t, int64(-1), triggerPrice(t, "1s", &LocalAggregate{Value: 100, Timestamp: time.Now().Add(-2 * time.Second)}))
 }
 
 func TestTriggerVotesLocalAggregateWithinMaxAge(t *testing.T) {
-	assert.Equal(t, int64(100), triggerPrice(t, "2m", &LocalAggregate{Value: 100, Timestamp: time.Now().Add(-time.Minute)}))
+	assert.Equal(t, int64(100), triggerPrice(t, "45m", &LocalAggregate{Value: 100, Timestamp: time.Now().Add(-29 * time.Minute)}))
 }
 
 func TestTriggerVotesNoPriceWithoutLocalAggregate(t *testing.T) {

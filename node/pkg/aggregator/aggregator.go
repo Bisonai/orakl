@@ -348,8 +348,15 @@ func (n *Aggregator) processCollectedPrices(ctx context.Context, roundID int32, 
 
 	filteredCollectedPrices := FilterNegative(prices)
 	if len(filteredCollectedPrices) == 0 {
-		log.Warn().Str("Player", "Aggregator").Str("Name", n.Name).Int32("roundId", roundID).Msg("no prices collected")
+		if !n.noPrices.Swap(true) {
+			log.Warn().Str("Player", "Aggregator").Str("Name", n.Name).Int32("roundId", roundID).Msg("no prices collected")
+		} else {
+			log.Debug().Str("Player", "Aggregator").Str("Name", n.Name).Int32("roundId", roundID).Msg("no prices collected")
+		}
 		return nil
+	}
+	if n.noPrices.Swap(false) {
+		log.Info().Str("Player", "Aggregator").Str("Name", n.Name).Int32("roundId", roundID).Msg("prices collected again")
 	}
 
 	median, err := calculator.GetInt64Med(filteredCollectedPrices)
