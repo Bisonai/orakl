@@ -59,6 +59,14 @@ func Run(ctx context.Context) error {
 		log.Error().Err(err).Msg("Invalid history settings")
 		return err
 	}
+	if historyStore != nil {
+		// deferred first, so it runs last: after the collector stopped, flush what is buffered
+		defer func() {
+			if err := historyStore.Close(); err != nil {
+				log.Error().Err(err).Msg("Failed to close history store")
+			}
+		}()
+	}
 
 	collector, err := collector.NewCollector(ctx, configs)
 	if err != nil {
@@ -68,13 +76,8 @@ func Run(ctx context.Context) error {
 	if historyStore != nil {
 		collector.SetHistory(historyStore)
 		historyStore.Start(ctx)
-		// after the server returned: stop delivering, then flush what is buffered
-		defer func() {
-			collector.Stop()
-			if err := historyStore.Close(); err != nil {
-				log.Error().Err(err).Msg("Failed to close history store")
-			}
-		}()
+		// after the server returned, stop delivering before the history is closed
+		defer collector.Stop()
 	}
 	collector.Start(ctx)
 

@@ -22,7 +22,7 @@ import (
 	"nhooyr.io/websocket/wsjson"
 )
 
-const shutdownTimeout = 5 * time.Second
+const shutdownTimeout = 3 * time.Second
 
 func Start(ctx context.Context, opts ...ServerV2Option) error {
 	config := &ServerV2Config{

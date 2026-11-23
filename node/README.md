@@ -367,7 +367,7 @@ DAL does not use PostgreSQL. API keys are stored in a SQLite file and usage is e
 {"BTC-USDT": {"decimals": "8", "points": [{"time": 1700000000000, "value": "9876543210000"}]}}
 ```
 
-`time` is the window (or step) start in unix ms, `value` the raw value. A window without updates has no point.
+`time` is the window (or step) start in unix ms, `value` the raw value. A window without updates has no point. After a decimals change only points at the current decimals are returned. A request may cover at most 100k points (symbols x range/step), so `/history/all?range=7d` needs `step=1h`.
 
 ### API keys
 

@@ -185,3 +185,29 @@ func values(points []Point) []string {
 	}
 	return out
 }
+
+func TestDecimalsChangeKeepsLatestScaleOnly(t *testing.T) {
+	ctx := context.Background()
+	s := openStore(t, testConfig(t))
+	s.Record("BTC-USDT", 100000000, "8", t0)
+	s.Record("BTC-USDT", 10000, "4", t0.Add(5*time.Minute))
+	s.Record("BTC-USDT", 20000, "4", t0.Add(10*time.Minute))
+	require.NoError(t, s.Flush(ctx))
+
+	got := query(t, s, 5*time.Minute, "BTC-USDT")["BTC-USDT"]
+	assert.Equal(t, "4", got.Decimals)
+	assert.Equal(t, []string{"10000", "20000"}, values(got.Points))
+}
+
+func TestQueryStartsAtStepBoundary(t *testing.T) {
+	ctx := context.Background()
+	s := openStore(t, testConfig(t))
+	hour := floorTo(t0.UnixMilli(), time.Hour.Milliseconds())
+	s.Record("BTC-USDT", 1, "8", time.UnixMilli(hour+10*60_000)) // partial first step
+	s.Record("BTC-USDT", 2, "8", time.UnixMilli(hour+70*60_000))
+	require.NoError(t, s.Flush(ctx))
+
+	got, err := s.Query(ctx, []string{"BTC-USDT"}, time.UnixMilli(hour+5*60_000), time.Hour)
+	require.NoError(t, err)
+	assert.Equal(t, []Point{{Time: hour + time.Hour.Milliseconds(), Value: "2"}}, got["BTC-USDT"].Points)
+}

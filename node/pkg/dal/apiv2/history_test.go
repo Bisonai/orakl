@@ -168,3 +168,17 @@ func TestParseHistoryParams(t *testing.T) {
 	_, _, err := parseHistoryParams(url.Values{"range": {"7d"}}, interval, 48*time.Hour)
 	assert.Error(t, err)
 }
+
+func TestHistoryPointLimit(t *testing.T) {
+	old := maxHistoryPoints
+	maxHistoryPoints = 2 * 288 // two symbols, 24h at 5m
+	t.Cleanup(func() { maxHistoryPoints = old })
+	srv, _ := newHistoryServer(t, true)
+
+	status, _ := getHistory(t, srv.URL+"/history/all", namedKey)
+	assert.Equal(t, http.StatusOK, status)
+	status, _ = getHistory(t, srv.URL+"/history/all?range=7d", namedKey)
+	assert.Equal(t, http.StatusBadRequest, status)
+	status, _ = getHistory(t, srv.URL+"/history/all?range=7d&step=1h", namedKey)
+	assert.Equal(t, http.StatusOK, status)
+}

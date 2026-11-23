@@ -19,6 +19,10 @@ var historyRanges = map[string]time.Duration{
 
 const defaultHistoryRange = "24h"
 
+// maxHistoryPoints bounds the points one request may ask for (symbols x range/step),
+// e.g. /history/all?range=7d needs step=1h. A var so tests can lower it.
+var maxHistoryPoints int64 = 100_000
+
 func (s *ServerV2) AllHistoryHandler(w http.ResponseWriter, r *http.Request) {
 	s.serveHistory(w, r, s.collector.Symbols())
 }
@@ -40,6 +44,11 @@ func (s *ServerV2) serveHistory(w http.ResponseWriter, r *http.Request, symbols 
 	window, step, err := parseHistoryParams(r.URL.Query(), s.history.Interval(), s.history.Retention())
 	if err != nil {
 		writeText(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if points := int64(len(symbols)) * int64(window/step); points > maxHistoryPoints {
+		writeText(w, http.StatusBadRequest, fmt.Sprintf("too many points (%d symbols x %d steps), use a larger step or fewer symbols", len(symbols), window/step))
 		return
 	}
 

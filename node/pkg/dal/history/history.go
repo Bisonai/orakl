@@ -217,8 +217,13 @@ func (s *Store) Flush(ctx context.Context) error {
 	}
 
 	if err := s.write(ctx, batch); err != nil {
+		// keep for retry, but never past retention, so a persistent failure does not grow the buffer forever
+		expired := s.bucketStart(time.Now().Add(-s.cfg.Retention).UnixMilli())
 		s.mu.Lock()
 		for key, smp := range batch {
+			if key.bucket < expired {
+				continue
+			}
 			if cur, ok := s.pending[key]; !ok || cur.aggregateTime < smp.aggregateTime {
 				s.pending[key] = smp
 			}
@@ -311,7 +316,7 @@ func (s *Store) Close() error {
 }
 
 // Query returns the history of symbols from windows starting at or after
-// since, downsampled to step (a multiple of the interval) by keeping the last
+// since (rounded up to a step boundary), downsampled to step (a multiple of the interval) by keeping the last
 // sample of each step; points are labelled with the step start. Every
 // requested symbol is in the result, with no points if it has no history.
 func (s *Store) Query(ctx context.Context, symbols []string, since time.Time, step time.Duration) (map[string]Series, error) {
@@ -325,9 +330,11 @@ func (s *Store) Query(ctx context.Context, symbols []string, since time.Time, st
 	}
 	defer stmt.Close()
 
+	// start at a step boundary, so the first point covers a whole step
+	sinceMs := floorTo(since.UnixMilli()+stepMs-1, stepMs)
 	out := make(map[string]Series, len(symbols))
 	for _, symbol := range symbols {
-		series, err := querySymbol(ctx, stmt, symbol, since.UnixMilli(), stepMs)
+		series, err := querySymbol(ctx, stmt, symbol, sinceMs, stepMs)
 		if err != nil {
 			return nil, err
 		}
@@ -349,6 +356,10 @@ func querySymbol(ctx context.Context, stmt *sql.Stmt, symbol string, sinceMs, st
 		var decimals string
 		if err := rows.Scan(&bucket, &value, &decimals); err != nil {
 			return Series{}, err
+		}
+		// a decimals change (config reload) rescales values: keep only points at the latest decimals
+		if decimals != series.Decimals {
+			series.Points = series.Points[:0]
 		}
 		p := Point{Time: floorTo(bucket, stepMs), Value: strconv.FormatInt(value, 10)}
 		if n := len(series.Points); n > 0 && series.Points[n-1].Time == p.Time {
