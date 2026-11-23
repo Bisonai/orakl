@@ -42,7 +42,7 @@ func newLocalAggregatorForMultiplyOp(t *testing.T, multiplyBy *string, freshness
 	return &LocalAggregator{
 		Config: Config{
 			ID:                   42,
-			Name:                 "KAIA-KRW",
+			Name:                 "KAIA-KRW", // prices below are synthetic test inputs
 			FetchInterval:        2000,
 			Decimals:             intPtr(8),
 			FeedDataFreshness:    freshnessMs,
@@ -81,7 +81,7 @@ func TestStreamLocalAggregate_MultiplyBy_AppliesMultiplier(t *testing.T) {
 	select {
 	case agg := <-ch:
 		// 0.218 * 1474.4 = 321.4192, * 10^8 = 32_141_920_000
-		assert.InDelta(t, int64(32_141_920_000), agg.Value, 100, "KAIA-USDT * KRW-USD should equal KAIA-KRW")
+		assert.InDelta(t, int64(32_141_920_000), agg.Value, 100, "aggregate * multiplier source (synthetic values)")
 	case <-time.After(time.Second):
 		t.Fatal("expected aggregate on channel")
 	}

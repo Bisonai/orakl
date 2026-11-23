@@ -40,7 +40,8 @@ type Config = nodeconfig.Config
 //
 // It exists to support synthetic configs whose value is derived by
 // multiplying their own aggregated feed value by another config's
-// aggregate (e.g. KAIA-KRW = KAIA-USDT * KRW-USD).  The value is the
+// aggregate, or dividing by it with MultiplyByReciprocal (e.g. KAIA-KRW =
+// KAIA-USDT / KRW-USD, since KRW-USD is USD per KRW).  The value is the
 // floating-point aggregate emitted by LocalAggregator, before
 // applyDecimals is applied, so consumers can multiply directly without
 // having to reverse the decimal scaling.
