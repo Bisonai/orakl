@@ -27,6 +27,10 @@ import (
 // stepTimeout bounds each wait of Node.Stop, like the production hand-over.
 const stepTimeout = 5 * time.Second
 
+// valueInterval is how often a node republishes its local aggregates, like
+// the fetcher (LOCAL_AGGREGATE_INTERVAL).
+const valueInterval = 200 * time.Millisecond
+
 // Node is one node of a cluster. Its rounds (with PersistRounds), signer,
 // values and controls persist across restarts; host, pubsub and aggregators
 // are new on every start.
@@ -42,10 +46,11 @@ type Node struct {
 	cantLead    atomic.Bool  // inverted, so the zero value is healthy
 	clockOffset atomic.Int64 // time.Duration
 
-	mu     sync.Mutex
-	values map[string]int64
-	run    *nodeRun // the latest start; nil before the first
-	subs   []Submission
+	mu      sync.Mutex
+	values  map[string]int64
+	stopped map[string]bool // feeds whose value is no longer published
+	run     *nodeRun        // the latest start; nil before the first
+	subs    []Submission
 }
 
 // nodeRun is one start of a node.
@@ -82,7 +87,7 @@ func newNode(t testing.TB, c *Cluster, i int) *Node {
 	if err != nil {
 		t.Fatalf("cluster: node %d signer: %v", i, err)
 	}
-	n := &Node{c: c, t: t, index: i, state: state, signer: signer, values: map[string]int64{}}
+	n := &Node{c: c, t: t, index: i, state: state, signer: signer, values: map[string]int64{}, stopped: map[string]bool{}}
 	for _, feed := range c.opts.Feeds {
 		n.values[feed] = c.opts.Value(i, feed)
 	}
@@ -154,8 +159,10 @@ func (n *Node) SetClockOffset(d time.Duration) { n.clockOffset.Store(int64(d)) }
 
 func (n *Node) now() time.Time { return time.Now().Add(time.Duration(n.clockOffset.Load())) }
 
-// SetValue sets this node's local aggregate of feed, now and for later starts.
-// It fails the test for a feed not in Options.Feeds.
+// SetValue sets this node's local aggregate of feed, now and for later starts,
+// and publishes it again after StopValue. Like the fetcher, the node
+// republishes it (freshly stamped) every 200 ms. It fails the test for a feed
+// not in Options.Feeds.
 func (n *Node) SetValue(feed string, v int64) {
 	n.mu.Lock()
 	defer n.mu.Unlock()
@@ -163,9 +170,23 @@ func (n *Node) SetValue(feed string, v int64) {
 		n.t.Fatalf("cluster: node %d has no feed %q", n.index, feed)
 	}
 	n.values[feed] = v
+	delete(n.stopped, feed)
 	if n.run != nil {
 		n.storeValue(n.run, feed, v)
 	}
+}
+
+// StopValue stops publishing this node's local aggregate of feed, like the
+// fetcher when the feed's sources are stale: the last one stored ages out
+// (aggregator.LatestLocalAggregates.MaxAge), and a later start has none.
+// SetValue publishes again.
+func (n *Node) StopValue(feed string) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	if _, ok := n.values[feed]; !ok {
+		n.t.Fatalf("cluster: node %d has no feed %q", n.index, feed)
+	}
+	n.stopped[feed] = true
 }
 
 // storeValue stores v into r; the caller holds n.mu, so a later SetValue
@@ -173,6 +194,21 @@ func (n *Node) SetValue(feed string, v int64) {
 func (n *Node) storeValue(r *nodeRun, feed string, v int64) {
 	id := r.configs[feed]
 	r.app.LatestLocalAggregates.Store(id, &aggregator.LocalAggregate{ConfigID: id, Value: v, Timestamp: time.Now()})
+}
+
+// publishValues republishes the node's values into r every valueInterval
+// until ctx is done.
+func (n *Node) publishValues(ctx context.Context, r *nodeRun) {
+	ticker := time.NewTicker(valueInterval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			n.storeValues(r)
+		}
+	}
 }
 
 // Submissions returns this node's submissions in recording order.
@@ -312,6 +348,7 @@ func (n *Node) start() error {
 		}
 	}
 	n.storeValues(r) // before the first round
+	go n.publishValues(ctx, r)
 
 	aggCtx, stopAggs := context.WithCancel(ctx)
 	r.stopAggs = stopAggs
@@ -347,12 +384,14 @@ func (n *Node) start() error {
 	return nil
 }
 
-// storeValues stores every value of the node into r.
+// storeValues stores every published value of the node into r.
 func (n *Node) storeValues(r *nodeRun) {
 	n.mu.Lock()
 	defer n.mu.Unlock()
 	for feed, v := range n.values {
-		n.storeValue(r, feed, v)
+		if !n.stopped[feed] {
+			n.storeValue(r, feed, v)
+		}
 	}
 }
 
