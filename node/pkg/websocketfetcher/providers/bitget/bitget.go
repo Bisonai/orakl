@@ -3,6 +3,7 @@ package bitget
 import (
 	"context"
 	"encoding/json"
+	"strconv"
 	"time"
 
 	"bisonai.com/miko/node/pkg/websocketfetcher/common"
@@ -11,7 +12,10 @@ import (
 	"nhooyr.io/websocket"
 )
 
-type BitgetFetcher common.Fetcher
+type BitgetFetcher struct {
+	common.Fetcher
+	quotes *common.QuoteCache
+}
 
 // PingInterval: bitget expects a "ping" every 30 seconds
 // https://www.bitget.com/api-doc/common/websocket-intro
@@ -23,18 +27,15 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 		opt(config)
 	}
 
-	fetcher := &BitgetFetcher{}
+	fetcher := &BitgetFetcher{quotes: common.NewQuoteCache()}
 	fetcher.FeedMap = config.FeedMaps.Combined
 	fetcher.FeedDataBuffer = config.FeedDataBuffer
 
 	args := []Arg{}
 	for feed := range fetcher.FeedMap {
-		arg := Arg{
-			InstType: "SPOT",
-			Channel:  "ticker",
-			InstId:   feed,
-		}
-		args = append(args, arg)
+		args = append(args,
+			Arg{InstType: "SPOT", Channel: "ticker", InstId: feed},
+			Arg{InstType: "SPOT", Channel: BooksChannel, InstId: feed})
 	}
 	subscription := Subscription{
 		Op:   "subscribe",
@@ -57,6 +58,9 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 }
 
 func (f *BitgetFetcher) handleMessage(ctx context.Context, message map[string]any) error {
+	if arg, ok := message["arg"].(map[string]any); ok && arg["channel"] == BooksChannel {
+		return f.handleBooks(message)
+	}
 
 	response, err := common.MessageToStruct[Response](message)
 	if err != nil {
@@ -74,9 +78,42 @@ func (f *BitgetFetcher) handleMessage(ctx context.Context, message map[string]an
 		return err
 	}
 	for _, feedData := range feedDataList {
-		f.FeedDataBuffer <- feedData
+		f.FeedDataBuffer <- f.quotes.ApplyTrade(feedData)
 	}
 
+	return nil
+}
+
+func (f *BitgetFetcher) handleBooks(message map[string]any) error {
+	book, err := common.MessageToStruct[BooksResponse](message)
+	if err != nil {
+		log.Error().Str("Player", "Bitget").Err(err).Msg("error in bitget.handleBooks")
+		return err
+	}
+	if book.Action == nil || *book.Action != "snapshot" {
+		return nil
+	}
+	ids, exists := f.FeedMap[book.Arg.InstId]
+	if !exists {
+		return nil
+	}
+	for _, d := range book.Data {
+		bid, err := common.TopPrice(d.Bids)
+		if err != nil {
+			continue
+		}
+		ask, err := common.TopPrice(d.Asks)
+		if err != nil {
+			continue
+		}
+		ms, err := strconv.ParseInt(d.Timestamp, 10, 64)
+		if err != nil {
+			continue
+		}
+		for _, feedData := range f.quotes.ApplyBook(ids, bid, ask, time.UnixMilli(ms)) {
+			f.FeedDataBuffer <- feedData
+		}
+	}
 	return nil
 }
 

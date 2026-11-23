@@ -15,7 +15,10 @@ import (
 	"nhooyr.io/websocket"
 )
 
-type KucoinFetcher common.Fetcher
+type KucoinFetcher struct {
+	common.Fetcher
+	quotes *common.QuoteCache
+}
 
 func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInterface, error) {
 	config := &common.FetcherConfig{}
@@ -23,7 +26,7 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 		opt(config)
 	}
 
-	fetcher := &KucoinFetcher{}
+	fetcher := &KucoinFetcher{quotes: common.NewQuoteCache()}
 	fetcher.FeedMap = config.FeedMaps.Separated
 	fetcher.FeedDataBuffer = config.FeedDataBuffer
 
@@ -39,14 +42,16 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 	// not just the overflow. Split the symbols across several subscribe frames; the
 	// wss helper sends them sequentially on (re)connect.
 	subscriptions := []any{}
-	for i := 0; i < len(symbols); i += MaxSymbolsPerSubscription {
-		end := min(i+MaxSymbolsPerSubscription, len(symbols))
-		subscriptions = append(subscriptions, Subscription{
-			ID:       i/MaxSymbolsPerSubscription + 1,
-			Type:     "subscribe",
-			Topic:    "/market/snapshot:" + strings.Join(symbols[i:end], ","),
-			Response: true,
-		})
+	for _, topic := range []string{"/market/snapshot:", Level1Topic} {
+		for i := 0; i < len(symbols); i += MaxSymbolsPerSubscription {
+			end := min(i+MaxSymbolsPerSubscription, len(symbols))
+			subscriptions = append(subscriptions, Subscription{
+				ID:       len(subscriptions) + 1,
+				Type:     "subscribe",
+				Topic:    topic + strings.Join(symbols[i:end], ","),
+				Response: true,
+			})
+		}
 	}
 
 	ws, err := newWebsocketHelper(ctx, TokenUrl,
@@ -80,6 +85,10 @@ func (f *KucoinFetcher) handleMessage(ctx context.Context, message map[string]an
 		return nil
 	}
 
+	if message["subject"] == "level1" {
+		return f.handleLevel1(message)
+	}
+
 	raw, err := common.MessageToStruct[SymbolSnapshotRaw](message)
 	if err != nil {
 		log.Error().Str("Player", "Kucoin").Err(err).Msg("error in kucoin.handleMessage")
@@ -97,9 +106,37 @@ func (f *KucoinFetcher) handleMessage(ctx context.Context, message map[string]an
 	}
 
 	for _, feedData := range feedDataList {
-		f.FeedDataBuffer <- feedData
+		f.FeedDataBuffer <- f.quotes.ApplyTrade(feedData)
 	}
 
+	return nil
+}
+
+func (f *KucoinFetcher) handleLevel1(message map[string]any) error {
+	raw, err := common.MessageToStruct[Level1Raw](message)
+	if err != nil {
+		log.Error().Str("Player", "Kucoin").Err(err).Msg("error in kucoin.handleLevel1")
+		return err
+	}
+	symbol, ok := strings.CutPrefix(raw.Topic, Level1Topic)
+	if !ok {
+		return nil
+	}
+	ids, exists := f.FeedMap[symbol]
+	if !exists || len(raw.Data.Bids) == 0 || len(raw.Data.Asks) == 0 {
+		return nil
+	}
+	bid, err := common.PriceStringToFloat64(raw.Data.Bids[0])
+	if err != nil {
+		return nil
+	}
+	ask, err := common.PriceStringToFloat64(raw.Data.Asks[0])
+	if err != nil {
+		return nil
+	}
+	for _, feedData := range f.quotes.ApplyBook(ids, bid, ask, time.UnixMilli(raw.Data.Timestamp)) {
+		f.FeedDataBuffer <- feedData
+	}
 	return nil
 }
 

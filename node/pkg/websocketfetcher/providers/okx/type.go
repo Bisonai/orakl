@@ -23,3 +23,16 @@ type Response struct {
 		Timestamp string `json:"ts"`
 	} `json:"data"`
 }
+
+// BboChannel is the tick-by-tick best bid/ask channel.
+const BboChannel = "bbo-tbt"
+
+// BboResponse is a bbo-tbt push: one level per side, ts in ms.
+type BboResponse struct {
+	Arg  Arg `json:"arg"`
+	Data []struct {
+		Asks      [][]string `json:"asks"`
+		Bids      [][]string `json:"bids"`
+		Timestamp string     `json:"ts"`
+	} `json:"data"`
+}

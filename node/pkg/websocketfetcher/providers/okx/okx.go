@@ -2,13 +2,18 @@ package okx
 
 import (
 	"context"
+	"strconv"
+	"time"
 
 	"bisonai.com/miko/node/pkg/websocketfetcher/common"
 	"bisonai.com/miko/node/pkg/wss"
 	"github.com/rs/zerolog/log"
 )
 
-type OkxFetcher common.Fetcher
+type OkxFetcher struct {
+	common.Fetcher
+	quotes *common.QuoteCache
+}
 
 func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInterface, error) {
 	config := &common.FetcherConfig{}
@@ -16,17 +21,13 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 		opt(config)
 	}
 
-	fetcher := &OkxFetcher{}
+	fetcher := &OkxFetcher{quotes: common.NewQuoteCache()}
 	fetcher.FeedMap = config.FeedMaps.Separated
 	fetcher.FeedDataBuffer = config.FeedDataBuffer
 
 	args := []Arg{}
 	for feed := range fetcher.FeedMap {
-		arg := Arg{
-			Channel: "tickers",
-			InstId:  feed,
-		}
-		args = append(args, arg)
+		args = append(args, Arg{Channel: "tickers", InstId: feed}, Arg{Channel: BboChannel, InstId: feed})
 	}
 
 	subscription := Subscription{
@@ -48,6 +49,10 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 }
 
 func (f *OkxFetcher) handleMessage(ctx context.Context, message map[string]any) error {
+	if arg, ok := message["arg"].(map[string]any); ok && arg["channel"] == BboChannel {
+		return f.handleBbo(message)
+	}
+
 	raw, err := common.MessageToStruct[Response](message)
 	if err != nil {
 		log.Error().Str("Player", "Okx").Err(err).Msg("error in okx.handleMessage")
@@ -61,9 +66,39 @@ func (f *OkxFetcher) handleMessage(ctx context.Context, message map[string]any) 
 	feedDataList := ResponseToFeedData(raw, f.FeedMap)
 
 	for _, feedData := range feedDataList {
-		f.FeedDataBuffer <- feedData
+		f.FeedDataBuffer <- f.quotes.ApplyTrade(feedData)
 	}
 
+	return nil
+}
+
+func (f *OkxFetcher) handleBbo(message map[string]any) error {
+	raw, err := common.MessageToStruct[BboResponse](message)
+	if err != nil {
+		log.Error().Str("Player", "Okx").Err(err).Msg("error in okx.handleBbo")
+		return err
+	}
+	ids, exists := f.FeedMap[raw.Arg.InstId]
+	if !exists {
+		return nil
+	}
+	for _, d := range raw.Data {
+		bid, err := common.TopPrice(d.Bids)
+		if err != nil {
+			continue
+		}
+		ask, err := common.TopPrice(d.Asks)
+		if err != nil {
+			continue
+		}
+		ms, err := strconv.ParseInt(d.Timestamp, 10, 64)
+		if err != nil {
+			continue
+		}
+		for _, feedData := range f.quotes.ApplyBook(ids, bid, ask, time.UnixMilli(ms)) {
+			f.FeedDataBuffer <- feedData
+		}
+	}
 	return nil
 }
 

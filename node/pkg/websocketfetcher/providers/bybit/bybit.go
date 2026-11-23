@@ -10,7 +10,10 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-type BybitFetcher common.Fetcher
+type BybitFetcher struct {
+	common.Fetcher
+	quotes *common.QuoteCache
+}
 
 // PingInterval: bybit expects a ping every 20 seconds for a stable subscription
 // https://bybit-exchange.github.io/docs/v5/ws/connect#how-to-send-the-heartbeat-packet
@@ -22,14 +25,14 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 		opt(config)
 	}
 
-	fetcher := &BybitFetcher{}
+	fetcher := &BybitFetcher{quotes: common.NewQuoteCache()}
 	fetcher.FeedMap = config.FeedMaps.Combined
 	fetcher.FeedDataBuffer = config.FeedDataBuffer
 
 	pairList := []string{}
 
 	for feed := range fetcher.FeedMap {
-		pairList = append(pairList, "tickers."+feed)
+		pairList = append(pairList, "tickers."+feed, OrderbookTopic+feed)
 	}
 
 	subscriptions := []any{}
@@ -63,7 +66,13 @@ func (f *BybitFetcher) handleMessage(ctx context.Context, message map[string]any
 		return err
 	}
 
-	if response.Topic == nil || !strings.HasPrefix(*response.Topic, "tickers.") {
+	if response.Topic == nil {
+		return nil
+	}
+	if strings.HasPrefix(*response.Topic, OrderbookTopic) {
+		return f.handleOrderbook(message)
+	}
+	if !strings.HasPrefix(*response.Topic, "tickers.") {
 		return nil
 	}
 
@@ -74,9 +83,33 @@ func (f *BybitFetcher) handleMessage(ctx context.Context, message map[string]any
 	}
 
 	for _, feedData := range feedDataList {
-		f.FeedDataBuffer <- feedData
+		f.FeedDataBuffer <- f.quotes.ApplyTrade(feedData)
 	}
 
+	return nil
+}
+
+func (f *BybitFetcher) handleOrderbook(message map[string]any) error {
+	book, err := common.MessageToStruct[OrderbookResponse](message)
+	if err != nil {
+		log.Error().Str("Player", "Bybit").Err(err).Msg("error in bybit.handleOrderbook")
+		return err
+	}
+	ids, exists := f.FeedMap[book.Data.Symbol]
+	if !exists {
+		return nil
+	}
+	bid, err := common.TopPrice(book.Data.Bids)
+	if err != nil {
+		return nil
+	}
+	ask, err := common.TopPrice(book.Data.Asks)
+	if err != nil {
+		return nil
+	}
+	for _, feedData := range f.quotes.ApplyBook(ids, bid, ask, time.UnixMilli(book.Timestamp)) {
+		f.FeedDataBuffer <- feedData
+	}
 	return nil
 }
 
