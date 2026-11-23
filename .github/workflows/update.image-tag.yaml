@@ -21,6 +21,15 @@ on:
       tag_git_hash:
         required: false
         type: string
+      skip-missing:
+        description: "Skip (instead of fail) when <project>/values.<network>.yaml does not exist"
+        required: false
+        type: boolean
+        default: false
+    outputs:
+      updated:
+        description: "'true' when the values file exists (bumped now, or already at this tag)"
+        value: ${{ jobs.update-image-tag.outputs.updated }}
     secrets:
       GH_ORAKL_BOT_APP_ID:
         required: true
@@ -35,6 +44,9 @@ jobs:
     permissions:
       id-token: write
       contents: read
+
+    outputs:
+      updated: ${{ steps.values.outputs.exists }}
 
     steps:
       - name: Generate GitHub App Token
@@ -61,7 +73,25 @@ jobs:
           git checkout main
           git reset --hard origin/main
 
+      - name: Check values file
+        id: values
+        env:
+          VALUES: ${{ inputs.project-name }}/values.${{ inputs.network }}.yaml
+          SKIP_MISSING: ${{ inputs.skip-missing }}
+        run: |
+          if [ -f "./gitops_tmp/${VALUES}" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          elif [ "$SKIP_MISSING" = "true" ]; then
+            echo "::notice::No ${VALUES} in orakl-helm-charts; image tag not bumped"
+            echo "exists=false" >> $GITHUB_OUTPUT
+          else
+            echo "::error::No ${VALUES} in orakl-helm-charts"
+            exit 1
+          fi
+        shell: bash
+
       - name: Update image tag in values.${{ inputs.network }}.yaml files
+        if: steps.values.outputs.exists == 'true'
         run: |
           cd ./gitops_tmp/${{ inputs.project-name }}/
           echo "Updating image tag in values.${{ inputs.network }}.yaml files"
@@ -74,6 +104,7 @@ jobs:
 
       - name: Check for Changes
         id: check_changes
+        if: steps.values.outputs.exists == 'true'
         run: |
           cd ./gitops_tmp/
           git config --global user.name 'github-actions'

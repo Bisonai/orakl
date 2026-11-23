@@ -1,0 +1,56 @@
+name: "miko dal-stream test"
+
+on:
+  push:
+    branches-ignore:
+      - "master"
+    paths:
+      - "node/pkg/dalstream/**"
+      - "node/cmd/dal_stream/**"
+      - "node/pkg/dal/common/**"
+      - "node/pkg/utils/**"
+      - "node/go.mod"
+      - "node/go.sum"
+      - "dockerfiles/miko-dal-stream.Dockerfile"
+      - ".github/workflows/dal-stream.test.yaml"
+  workflow_dispatch:
+
+jobs:
+  core-build:
+    strategy:
+      fail-fast: false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v7
+      - name: Setup Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: node/go.mod
+          check-latest: true
+          cache-dependency-path: |
+            ./node/go.sum
+
+      - name: Install dependencies
+        run: |
+          cd ./node
+          go mod tidy
+
+      - name: Install Task
+        uses: arduino/setup-task@v3
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Vet
+        run: |
+          cd ./node
+          go vet ./pkg/dalstream/... ./cmd/dal_stream/...
+
+      - name: Run test
+        run: |
+          cd ./node
+          task local:test-dal-stream
+
+      - name: Build image
+        run: docker build -f dockerfiles/miko-dal-stream.Dockerfile .

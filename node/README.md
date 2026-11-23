@@ -21,6 +21,7 @@
   - [API keys](#api-keys)
   - [Metrics](#metrics)
   - [Migrating keys from PostgreSQL](#migrating-keys-from-postgresql)
+  - [DAL stream (SSE)](#dal-stream-sse)
 - [Other Task Commands](#other-task-commands)
   - [Unit Test](#unit-test)
   - [Commands](#commands)
@@ -425,6 +426,42 @@ One-time export of the old `keys` table and import into a **new, empty** SQLite 
 The CSV holds live API keys, hence the private directory under `umask 077`, removed on exit. The subshell stops at the first failure (failed export, empty CSV, failed import), so it never finishes "successfully" with an empty key store.
 
 Because `import` never deletes, re-running it against an existing file keeps keys that were revoked in PostgreSQL since the last run. To repeat the migration, delete the SQLite file first, or remove the revoked keys with `dalbin keys remove` and check `dalbin keys list` against PostgreSQL before cutover.
+
+### DAL stream (SSE)
+
+`dal-stream` (`cmd/dal_stream`, image `orakl-dal-stream`) pushes DAL prices to browsers over Server-Sent Events without exposing a DAL API key. It runs as its own process, keeps one WebSocket to DAL subscribed to every symbol from `GET /symbols` (re-fetched periodically), and once per tick sends each client only the requested symbols whose **value** changed. A new `aggregateTime` alone is not a change.
+
+`GET /stream?symbols=BTC-USDT,ETH-USDT` (`symbols` optional, default all; unknown symbols are 400) answers `text/event-stream`:
+
+```
+retry: 3000
+
+event: snapshot
+data: {"t":1763856000000,"d":{"BTC-USDT":["61410.18",1763855999600],"ETH-USDT":["2500",1763855999700]}}
+
+event: update
+data: {"t":1763856001000,"d":{"BTC-USDT":["61411.02",1763856000800]}}
+
+: ping
+```
+
+`t` is the tick (or connect) time in unix ms. `d` maps symbol to `[price, aggregateTime ms]`; the price is a decimal string already scaled by `decimals` (no trailing zeros). `snapshot` comes once on connect with the value of every requested symbol as of the last tick (symbols without data yet are left out); `update` comes at most once per tick and only when a requested symbol changed. `: ping` comments keep idle streams open. Slow clients are dropped (bounded queue), not buffered. Only `GET` and `OPTIONS` are allowed. A request with an `Origin` not in `DAL_STREAM_ALLOWED_ORIGINS` is 403; listed origins get `Access-Control-Allow-Origin`. The connection limits answer 503 (total) and 429 (per client IP; IPv6 clients are counted per /64). A browser `EventSource` does not reconnect after a non-200 answer (400, 403, 429, 503, e.g. while dal-stream starts), so clients should recreate it on `error` when `readyState` is `CLOSED`, with backoff.
+
+`GET /health` is 200 only while the upstream is connected and sent data within `DAL_STREAM_STALE_AFTER`, else 503. Metrics (`GET /metrics`) and `GET /version` are on a separate listener: `dal_stream_active_connections`, `dal_stream_connections_total`, `dal_stream_rejected_connections_total{reason}`, `dal_stream_slow_client_drops_total`, `dal_stream_bytes_sent_total`, `dal_stream_upstream_connected`, `dal_stream_upstream_reconnects_total`, `dal_stream_upstream_last_message_age_seconds`, `dal_stream_changed_symbols_per_tick`.
+
+| Env | Description |
+| --- | --- |
+| `DAL_URL` | Required. DAL base URL, `http(s)://host:port`; the WebSocket is `<DAL_URL>/ws`. |
+| `DAL_API_KEY` | Required. DAL API key (`X-API-Key`). |
+| `DAL_STREAM_ADDR` | Public listen address (`/stream`, `/health`). Default `:8080`. |
+| `DAL_STREAM_METRICS_ADDR` | Listen address of `/metrics` and `/version`. Default `:8081`; do not expose publicly. |
+| `DAL_STREAM_TICK` | Update interval. Default `1s`. |
+| `DAL_STREAM_MAX_CONNECTIONS` | Max open streams. Default `1000`. |
+| `DAL_STREAM_MAX_CONNECTIONS_PER_IP` | Max open streams per client IP. Default `10`. |
+| `DAL_STREAM_TRUSTED_PROXIES` | Comma-separated IPs/CIDRs of reverse proxies. `X-Forwarded-For` is used for the client IP only when the direct peer is listed (rightmost untrusted hop wins). Default none. |
+| `DAL_STREAM_ALLOWED_ORIGINS` | Comma-separated exact browser origins, e.g. `https://orakl.network`. Default none (browser requests with an `Origin` are rejected). |
+| `DAL_STREAM_SYMBOLS_REFRESH` | How often `GET /symbols` is re-fetched to pick up DAL config reloads. Default `5m`. |
+| `DAL_STREAM_STALE_AFTER` | No DAL message for this long fails `/health` and reconnects the upstream. Default `10s`. |
 
 ## Other Task Commands
 

@@ -134,6 +134,9 @@ tasks:
     dotenv: [".env"]
     cmds:
       - go test ./pkg/dal ./pkg/dal/collector ./pkg/dal/hub ./pkg/dal/tests ./pkg/dal/apiv2/... ./pkg/dal/utils/... -v
+  test-dal-stream:
+    cmds:
+      - go test -race ./pkg/dalstream/... ./cmd/dal_stream/... -v
 
   test-raft:
     dotenv: [".env"]
