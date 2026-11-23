@@ -92,7 +92,6 @@ func getSignerPk(config SignerConfig) (string, error) {
 func NewSigner(ctx context.Context, opts ...SignerOption) (*Signer, error) {
 	// rotation sends via the delegator: export its counters from startup
 	submission.Register()
-	signermetrics.Register()
 	config := SignerConfig{
 		renewInterval:  DefaultSignerRenewInterval,
 		renewThreshold: DefaultSignerRenewThreshold,
@@ -109,6 +108,8 @@ func NewSigner(ctx context.Context, opts ...SignerOption) (*Signer, error) {
 	if config.pk != "" {
 		return newStaticSigner(config)
 	}
+
+	signermetrics.Register() // managed mode only: a static key never rotates
 
 	if config.state == nil {
 		log.Error().Str("Player", "Signer").Msg("signer state store not set, signer initialization failed")
@@ -286,10 +287,23 @@ func (s *Signer) reconcileLoop(ctx context.Context) {
 // trigger skips the wait of a failed-rotation backoff (the failure count is kept); if a reconcile
 // is already running, the next one honours it.
 func (s *Signer) CheckAndUpdateSignerPK(ctx context.Context) error {
+	if s.staticMode {
+		return nil
+	}
 	s.mu.Lock()
 	s.rotationForced = true
 	s.mu.Unlock()
-	return s.reconcile(ctx, true)
+	if !s.rotateMu.TryLock() {
+		return nil // the running reconcile, or the next tick, honours rotationForced
+	}
+	defer s.rotateMu.Unlock()
+	defer func() {
+		// one-shot: do not let it bypass a later backoff if this pass never reached rotation
+		s.mu.Lock()
+		s.rotationForced = false
+		s.mu.Unlock()
+	}()
+	return s.reconcileLocked(ctx, true)
 }
 
 func (s *Signer) reconcile(ctx context.Context, allowRotate bool) error {
@@ -531,9 +545,26 @@ func (s *Signer) renewalRequired(exp time.Time) bool {
 	return time.Until(exp) < s.renewThreshold
 }
 
-// errRotationNotSent marks a rotation that failed before updateOracle was broadcast.
+// errRotationNotSent marks a rotation whose updateOracle was not broadcast or was refused by the node.
 var errRotationNotSent = errors.New("rotation not sent")
 
+// txpoolRejections are kaia txpool errors (blockchain/error.go) returned by sendRawTransaction
+// for a tx the node did not accept, so it cannot mine. Other send errors stay ambiguous (e.g. a
+// timeout after the node accepted it; "nonce too low" may be our own earlier updateOracle).
+var txpoolRejections = []string{"insufficient funds", "intrinsic gas too low"}
+
+func txpoolRejected(err error) bool {
+	msg := strings.ToLower(err.Error())
+	for _, r := range txpoolRejections {
+		if strings.Contains(msg, r) {
+			return true
+		}
+	}
+	return false
+}
+
+// clock drives only the rotation backoff schedule (injectable in tests); expirations and the
+// renewal threshold use wall time.
 func (s *Signer) clock() time.Time {
 	if s.now != nil {
 		return s.now()
@@ -659,6 +690,13 @@ func (s *Signer) rotateLocked(ctx context.Context, from *signerCandidate, reuse 
 			return fmt.Errorf("%w: updateOracle: %w", errRotationNotSent, err)
 		}
 		stopSigning() // no error but no broadcast signal: assume it was sent
+	}
+	if err != nil && txpoolRejected(err) {
+		// The node refused the tx (not in its txpool), so it cannot mine: sign on with `from`.
+		s.mu.Lock()
+		s.rotating = false
+		s.mu.Unlock()
+		return fmt.Errorf("%w: updateOracle rejected: %w", errRotationNotSent, err)
 	}
 	if err != nil {
 		log.Warn().Str("Player", "Signer").Err(err).Msg("updateOracle ack error (ignored; verifying by chain state)")

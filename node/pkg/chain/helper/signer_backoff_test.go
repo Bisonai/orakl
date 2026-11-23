@@ -80,7 +80,7 @@ func sign(s *Signer) error {
 func TestRotationNotSentKeepsSigningAndBacksOff(t *testing.T) {
 	ctx := context.Background()
 	fc := newFakeChain()
-	fc.notSentErr = errors.New("delegator 403, direct fallback: insufficient funds")
+	fc.notSentErr = errors.New("delegator 403, direct fallback: suggest gas price failed")
 	var duringErrs []error
 	hc := &hookChain{fakeChain: fc}
 	s, store, aAddr, clk := nearExpirySigner(t, hc, fc)
@@ -137,6 +137,32 @@ func TestRotationNotSentDutyCycle(t *testing.T) {
 	// attempts at 0, 5m, 15m, 35m, 75m, then hourly: 15 within 12h
 	assert.LessOrEqual(t, fc.calls(), 15)
 	assert.GreaterOrEqual(t, fc.calls(), 13)
+}
+
+// The node refuses the sent tx (delegator down, old key unfunded): treated as not sent, no
+// verify poll, signing resumes at once, and the attempt backs off.
+func TestRotationTxpoolRejectIsNotSent(t *testing.T) {
+	ctx := context.Background()
+	fc := newFakeChain()
+	s, store, aAddr, clk := nearExpirySigner(t, fc, fc)
+	fc.updateOracle = func(*fakeChain, string, common.Address) error {
+		return errors.New("insufficient funds of the sender for value ")
+	}
+	before := rotationFailureCount(t, signermetrics.ReasonNotSent)
+	start := time.Now()
+	s.verifyPollInterval = time.Second // a poll would take >= 3s
+
+	require.NoError(t, s.reconcile(ctx, true))
+	assert.Less(t, time.Since(start), time.Second, "must not poll for a rejected tx")
+	require.NoError(t, sign(s))
+	assert.False(t, s.Status().Rotating)
+	assert.Equal(t, aAddr, s.activeAddr)
+	assert.NotNil(t, store.findState("pending"))
+	assert.Equal(t, before+1, rotationFailureCount(t, signermetrics.ReasonNotSent))
+
+	*clk = clk.Add(5*time.Minute - time.Second)
+	require.NoError(t, s.reconcile(ctx, true))
+	assert.Equal(t, 1, fc.calls(), "backs off")
 }
 
 // Broadcast then not observed on-chain: unchanged behaviour (refuse during the in-flight window,
