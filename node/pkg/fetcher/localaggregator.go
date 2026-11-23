@@ -311,8 +311,55 @@ func (c *LocalAggregator) collect(ctx context.Context) ([]*FeedData, error) {
 		return nil, err
 	}
 
+	feeds = c.selectMidPrices(feeds)
 	feeds = c.applyPerFeedMultipliers(feeds)
 	return c.filterStaleFeeds(feeds), nil
+}
+
+// selectMidPrices, for configs with priceSource "mid", replaces each feed's
+// last trade with its order book mid when the book is usable (see midPrice).
+// Feeds without a usable book (no book data, e.g. DEX/FX or providers that
+// don't stream one; stale book; one-sided or crossed book; spread above
+// MidMaxSpreadRatio) keep their last trade and its freshness check.
+//
+// The source feed lives in latestFeedDataMap and is shared with other
+// aggregators, so a copy is emitted.
+func (c *LocalAggregator) selectMidPrices(feeds []*FeedData) []*FeedData {
+	if c.Config.PriceSource != PriceSourceMid {
+		return feeds
+	}
+	now := time.Now()
+	out := make([]*FeedData, 0, len(feeds))
+	for _, fd := range feeds {
+		mid, ok := midPrice(fd, now)
+		if !ok {
+			out = append(out, fd)
+			continue
+		}
+		fdCopy := *fd
+		fdCopy.Value = mid
+		fdCopy.Timestamp = fd.BookTimestamp
+		fdCopy.FromBook = true
+		out = append(out, &fdCopy)
+	}
+	return out
+}
+
+// midPrice returns the mid of the feed's best bid/ask if both sides are
+// present and not crossed, the book is at most MidBookMaxAge old and the
+// spread is at most MidMaxSpreadRatio of the mid.
+func midPrice(fd *FeedData, now time.Time) (float64, bool) {
+	if fd.Bid <= 0 || fd.Ask <= 0 || fd.Ask < fd.Bid || fd.BookTimestamp == nil {
+		return 0, false
+	}
+	if now.Sub(*fd.BookTimestamp) > MidBookMaxAge {
+		return 0, false
+	}
+	mid := (fd.Bid + fd.Ask) / 2
+	if (fd.Ask-fd.Bid)/mid > MidMaxSpreadRatio {
+		return 0, false
+	}
+	return mid, true
 }
 
 // applyPerFeedMultipliers walks each FeedData against its source Feed
@@ -413,13 +460,20 @@ func (c *LocalAggregator) filterStaleFeeds(feeds []*FeedData) []*FeedData {
 			continue
 		}
 
+		// A book mid is a current price while the book is unchanged, so it
+		// gets the book age limit (selectMidPrices already enforced it).
+		limit := freshness
+		if feed.FromBook {
+			limit = max(freshness, MidBookMaxAge)
+		}
+
 		age := now.Sub(*feed.Timestamp)
-		if age > freshness {
+		if age > limit {
 			log.Warn().Str("Player", "LocalAggregator").
 				Str("config", c.Name).
 				Int32("feedID", feed.FeedID).
 				Dur("age", age).
-				Dur("freshness", freshness).
+				Dur("freshness", limit).
 				Float64("value", feed.Value).
 				Msg("excluding stale feed from aggregation")
 			continue

@@ -32,6 +32,19 @@ type FeedData struct {
 	Value     float64    `db:"value"`
 	Volume    float64    `db:"volume"`
 	Timestamp *time.Time `db:"timestamp"`
+
+	// Best bid/ask of the source's order book, for providers that stream it
+	// (zero when the provider has no book data). BookTimestamp is the time
+	// of the last book update. With priceSource "mid" the local aggregator
+	// uses the mid of a valid book instead of Value (the last trade).
+	Bid           float64    `db:"-"`
+	Ask           float64    `db:"-"`
+	BookTimestamp *time.Time `db:"-"`
+
+	// FromBook is set on the aggregator's copy when Value is the book mid;
+	// the stale filter then applies the book age limit instead of the
+	// config's feedDataFreshness.
+	FromBook bool `db:"-"`
 }
 
 type LocalAggregate struct {

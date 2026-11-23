@@ -12,6 +12,10 @@ const (
 	FeedValue     = "orakl_node_feed_value"
 	FeedTimestamp = "orakl_node_feed_timestamp_seconds"
 	FeedVolume    = "orakl_node_feed_volume"
+	// Best bid/ask and book time per feed, for providers that stream a book.
+	FeedBid           = "orakl_node_feed_bid"
+	FeedAsk           = "orakl_node_feed_ask"
+	FeedBookTimestamp = "orakl_node_feed_book_timestamp_seconds"
 
 	P2PPublishedMessages = "orakl_node_p2p_published_messages_total"
 	P2PPublishedBytes    = "orakl_node_p2p_published_bytes_total"

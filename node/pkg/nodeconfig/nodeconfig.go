@@ -39,7 +39,14 @@ type Config struct {
 	FeedDataFreshness    *int    `json:"feedDataFreshness"`
 	MultiplyBy           *string `json:"multiplyBy"`
 	MultiplyByReciprocal bool    `json:"multiplyByReciprocal"`
+	// PriceSource selects the per-feed price for CEX sources: PriceSourceMid
+	// uses the order book mid when the source streams a valid book, falling
+	// back to the last trade; empty (default) uses the last trade.
+	PriceSource string `json:"priceSource"`
 }
+
+// PriceSourceMid is the Config.PriceSource value for order book mid prices.
+const PriceSourceMid = "mid"
 
 // Entry is one config of the orakl-config bundle.
 type Entry struct {
@@ -51,6 +58,7 @@ type Entry struct {
 	FeedDataFreshness    *int        `json:"feedDataFreshness"`
 	MultiplyBy           *string     `json:"multiplyBy"`
 	MultiplyByReciprocal bool        `json:"multiplyByReciprocal"`
+	PriceSource          string      `json:"priceSource"`
 	Feeds                []FeedEntry `json:"feeds"`
 }
 
@@ -178,6 +186,7 @@ func (s *Store) Set(entries []Entry) error {
 			FeedDataFreshness:    e.FeedDataFreshness,
 			MultiplyBy:           e.MultiplyBy,
 			MultiplyByReciprocal: e.MultiplyByReciprocal,
+			PriceSource:          e.PriceSource,
 		})
 		for _, f := range e.Feeds {
 			key := feedKey{config: e.Name, feed: f.Name}

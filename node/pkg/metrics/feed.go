@@ -26,6 +26,12 @@ var (
 		"Unix timestamp of the latest value per feed (time the feed was loaded if none)", []string{metricnames.ConfigLabel, metricnames.FeedLabel}, nil)
 	feedVolumeDesc = prometheus.NewDesc(metricnames.FeedVolume,
 		"Latest volume per feed (0 if the source reports none)", []string{metricnames.ConfigLabel, metricnames.FeedLabel}, nil)
+	feedBidDesc = prometheus.NewDesc(metricnames.FeedBid,
+		"Latest best bid per feed (feeds with order book data only)", []string{metricnames.ConfigLabel, metricnames.FeedLabel}, nil)
+	feedAskDesc = prometheus.NewDesc(metricnames.FeedAsk,
+		"Latest best ask per feed (feeds with order book data only)", []string{metricnames.ConfigLabel, metricnames.FeedLabel}, nil)
+	feedBookTimestampDesc = prometheus.NewDesc(metricnames.FeedBookTimestamp,
+		"Unix timestamp of the latest order book update per feed (feeds with order book data only)", []string{metricnames.ConfigLabel, metricnames.FeedLabel}, nil)
 
 	feedMetrics = &feedCollector{}
 )
@@ -61,6 +67,9 @@ type feedSample struct {
 	volume    float64
 	timestamp float64
 	hasData   bool
+
+	bid, ask, bookTimestamp float64
+	hasBook                 bool
 }
 
 // setFeeds swaps in the loaded set; feeds already loaded keep their load time.
@@ -101,6 +110,9 @@ func (c *feedCollector) snapshot() []feedSample {
 			if fd.Timestamp != nil {
 				s.timestamp = unixSeconds(*fd.Timestamp)
 			}
+			if fd.BookTimestamp != nil {
+				s.bid, s.ask, s.bookTimestamp, s.hasBook = fd.Bid, fd.Ask, unixSeconds(*fd.BookTimestamp), true
+			}
 		}
 		samples = append(samples, s)
 	}
@@ -111,6 +123,9 @@ func (c *feedCollector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- feedValueDesc
 	ch <- feedTimestampDesc
 	ch <- feedVolumeDesc
+	ch <- feedBidDesc
+	ch <- feedAskDesc
+	ch <- feedBookTimestampDesc
 }
 
 func (c *feedCollector) Collect(ch chan<- prometheus.Metric) {
@@ -119,6 +134,11 @@ func (c *feedCollector) Collect(ch chan<- prometheus.Metric) {
 		if s.hasData {
 			emitFeedMetric(ch, feedValueDesc, s.value, s.labels)
 			emitFeedMetric(ch, feedVolumeDesc, s.volume, s.labels)
+		}
+		if s.hasBook {
+			emitFeedMetric(ch, feedBidDesc, s.bid, s.labels)
+			emitFeedMetric(ch, feedAskDesc, s.ask, s.labels)
+			emitFeedMetric(ch, feedBookTimestampDesc, s.bookTimestamp, s.labels)
 		}
 	}
 }
