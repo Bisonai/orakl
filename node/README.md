@@ -354,6 +354,20 @@ DAL does not use PostgreSQL. API keys are stored in a SQLite file and usage is e
 | `DAL_SQLITE_PATH` | Required. Path of the SQLite key file, e.g. `/app/data/dal.db`. Put it on a persistent volume. DAL refuses to start if the file does not exist; `keys add`/`keys import` create it. The directory must be writable (SQLite WAL files). |
 | `CHAIN`           | Required. `kairos`, `mainnet` or `test`.                                                          |
 | `REDIS_HOST`, `REDIS_PORT` | Redis used by the collector.                                                            |
+| `DAL_HISTORY_ENABLED` | Price history for `GET /history/...`; on by default, `false` turns it off. Also off when neither `DAL_HISTORY_PATH` nor `DAL_SQLITE_PATH` is set. |
+| `DAL_HISTORY_PATH` | SQLite file of the price history. Default `history.db` in the directory of `DAL_SQLITE_PATH`. |
+| `DAL_HISTORY_INTERVAL` | Sampling window; the last value per symbol per window is kept. Default `5m`. |
+| `DAL_HISTORY_RETENTION` | History older than this is deleted hourly. Default `168h`. |
+
+### Price history
+
+`GET /history/{symbols}` (comma-separated) and `GET /history/all` return the stored history, with the same `X-API-Key` auth as the other routes. `range` is `24h` (default) or `7d`; `step` (default `DAL_HISTORY_INTERVAL`) is a multiple of the interval and keeps the last value per step. Unknown symbols and invalid parameters are 400; with history off, 503.
+
+```json
+{"BTC-USDT": {"decimals": "8", "points": [{"time": 1700000000000, "value": "9876543210000"}]}}
+```
+
+`time` is the window (or step) start in unix ms, `value` the raw value. A window without updates has no point.
 
 ### API keys
 
