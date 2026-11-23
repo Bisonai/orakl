@@ -190,7 +190,7 @@ jobs:
     if: ${{ success() }}
     with:
       status: "Success"
-      slack-message: "*${{ needs.prepare.outputs.app_name }}* : *${{ needs.prepare.outputs.service }}* new image tag ${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }} is updated"
+      slack-message: "*${{ needs.prepare.outputs.app_name }}* : *${{ needs.prepare.outputs.service }}* new image tag ${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }} ${{ needs.image-update.outputs.updated == 'true' && 'is updated' || 'is not deployed to kairos (no kairos chart)' }}"
       channel: "miko-notification"
     secrets:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}

@@ -247,10 +247,15 @@ func TestCORSAllowlist(t *testing.T) {
 		}
 	}
 
-	// no Origin (curl, server-side): allowed, no CORS header
+	// no Origin (curl, server-side): allowed, no CORS header, still Vary
 	resp, _ = status(t, http.MethodGet, srv.URL+"/health", nil)
-	if resp.Header.Get("Access-Control-Allow-Origin") != "" {
-		t.Fatal("ACAO without Origin")
+	if resp.Header.Get("Access-Control-Allow-Origin") != "" || resp.Header.Get("Vary") != "Origin" {
+		t.Fatalf("without Origin: %v", resp.Header)
+	}
+
+	resp, _ = status(t, http.MethodOptions, srv.URL+"/nope", http.Header{"Origin": {"https://orakl.network"}})
+	if resp.StatusCode != http.StatusNotFound {
+		t.Fatalf("OPTIONS unknown path: %d", resp.StatusCode)
 	}
 }
 

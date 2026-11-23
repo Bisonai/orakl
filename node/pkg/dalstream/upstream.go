@@ -118,7 +118,9 @@ func (u *Upstream) runOnce(ctx context.Context) (received bool, err error) {
 	}
 }
 
-// refreshSymbols re-fetches /symbols and subscribes to added ones. A failed
+// refreshSymbols re-fetches /symbols and re-subscribes to all of them: DAL
+// drops subscriptions of a removed symbol, so one removed and re-added between
+// two refreshes would otherwise stay silent (DAL ignores duplicates). A failed
 // subscribe closes the connection, so it is rebuilt.
 func (u *Upstream) refreshSymbols(ctx context.Context, cancel context.CancelFunc, conn *websocket.Conn) {
 	t := time.NewTicker(u.cfg.SymbolsRefresh)
@@ -134,13 +136,14 @@ func (u *Upstream) refreshSymbols(ctx context.Context, cancel context.CancelFunc
 			log.Warn().Err(err).Msg("failed to refresh DAL symbols")
 			continue
 		}
-		added := u.hub.SetSymbols(symbols)
-		if len(added) == 0 {
+		if len(symbols) == 0 {
 			continue
 		}
-		log.Info().Strs("added", added).Msg("new DAL symbols")
-		if err := u.subscribe(ctx, conn, added); err != nil {
-			log.Warn().Err(err).Msg("failed to subscribe to new DAL symbols")
+		if added := u.hub.SetSymbols(symbols); len(added) > 0 {
+			log.Info().Strs("added", added).Msg("new DAL symbols")
+		}
+		if err := u.subscribe(ctx, conn, symbols); err != nil {
+			log.Warn().Err(err).Msg("failed to subscribe to DAL symbols")
 			cancel()
 			return
 		}

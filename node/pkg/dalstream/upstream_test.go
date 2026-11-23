@@ -105,6 +105,12 @@ func TestUpstreamRefreshSubscribesNewSymbols(t *testing.T) {
 	if _, _, err := h.ParseFilter("KAIA-USDT"); err != nil {
 		t.Fatal(err)
 	}
+	// DAL drops a removed symbol's subscriptions; a re-add before the next
+	// refresh must still be subscribed again
+	dal.mu.Lock()
+	delete(dal.subscribed, "BTC-USDT")
+	dal.mu.Unlock()
+	waitFor(t, 2*time.Second, "re-subscribed", func() bool { return dal.isSubscribed("BTC-USDT") })
 	send(t, c, msg("KAIA-USDT", "12345678", 1))
 	waitFor(t, time.Second, "new symbol applied", func() bool {
 		h.mu.Lock()

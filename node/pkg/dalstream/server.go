@@ -31,14 +31,18 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+	if r.URL.Path != "/stream" && r.URL.Path != "/health" {
+		http.NotFound(w, r)
+		return
+	}
+	// responses differ by Origin; keep caches from mixing them
+	w.Header().Add("Vary", "Origin")
 	if origin := r.Header.Get("Origin"); origin != "" {
 		if _, ok := s.cfg.AllowedOrigins[origin]; !ok {
 			http.Error(w, "origin not allowed", http.StatusForbidden)
 			return
 		}
-		h := w.Header()
-		h.Set("Access-Control-Allow-Origin", origin)
-		h.Add("Vary", "Origin")
+		w.Header().Set("Access-Control-Allow-Origin", origin)
 	}
 	if r.Method == http.MethodOptions {
 		h := w.Header()
