@@ -85,7 +85,13 @@ func (f *CapybaraFetcher) run(ctx context.Context, feed common.Feed) {
 
 	// WSS Swap subscription — background, best effort.
 	go func() {
-		if err := f.subscribeEvent(ctx, feed); err != nil {
+		err := f.subscribeEvent(ctx, feed)
+		switch {
+		case err == nil:
+		case ctx.Err() != nil:
+			// stop or refresh, not a subscription failure (#2985)
+			log.Debug().Str("Player", "Capybara").Err(err).Msg("capybara.run, subscribe event stopped")
+		default:
 			log.Error().Str("Player", "Capybara").Err(err).Msg("error in capybara.run, subscribe event ended")
 		}
 	}()
@@ -135,6 +141,9 @@ func (f *CapybaraFetcher) getPriceThroughQuotePotentialSwap(ctx context.Context,
 	defaultAmount := new(big.Int).Mul(decimals, big.NewInt(initAmount))
 	rawResult, err := f.WebsocketChainReader.ReadContractOnce(ctx, chainType, definition.Address, quotePotentialSwap, kaiacommon.HexToAddress(definition.Token0Address), kaiacommon.HexToAddress(definition.Token1Address), defaultAmount)
 	if err != nil {
+		if ctx.Err() != nil {
+			return nil, err // stop or refresh (#2985)
+		}
 		log.Error().Str("Player", "Capybara").Err(err).Msg("error in capybara.getPriceThroughQuotePotentialSwap, failed to read contract")
 		return nil, err
 	}

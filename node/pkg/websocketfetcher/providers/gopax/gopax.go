@@ -10,6 +10,7 @@ import (
 	errorSentinel "bisonai.com/miko/node/pkg/error"
 	"bisonai.com/miko/node/pkg/websocketfetcher/common"
 	"bisonai.com/miko/node/pkg/wss"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"nhooyr.io/websocket"
 )
@@ -101,7 +102,7 @@ func (f *GopaxFetcher) customReadFunc(ctx context.Context, conn *websocket.Conn)
 	var result map[string]interface{}
 	_, data, err := conn.Read(ctx)
 	if err != nil {
-		log.Error().Str("Player", "Gopax").Err(err).Msg("error in gopax.customReadFunc, failed to read from websocket")
+		log.WithLevel(wss.ReadErrorLevel(ctx, zerolog.ErrorLevel)).Str("Player", "Gopax").Err(err).Msg("error in gopax.customReadFunc, failed to read from websocket")
 		return nil, err
 	}
 

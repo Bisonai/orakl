@@ -9,6 +9,7 @@ import (
 
 	"bisonai.com/miko/node/pkg/websocketfetcher/common"
 	"bisonai.com/miko/node/pkg/wss"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"nhooyr.io/websocket"
 )
@@ -90,7 +91,7 @@ func (f *BitmartFetcher) customReadFunc(ctx context.Context, conn *websocket.Con
 	var result map[string]interface{}
 	_, data, err := conn.Read(ctx)
 	if err != nil {
-		log.Error().Str("Player", "Bitmart").Err(err).Msg("error in Bitmart.customReadFunc, failed to read from websocket")
+		log.WithLevel(wss.ReadErrorLevel(ctx, zerolog.ErrorLevel)).Str("Player", "Bitmart").Err(err).Msg("error in Bitmart.customReadFunc, failed to read from websocket")
 		return nil, err
 	}
 	if string(data) == "pong" {

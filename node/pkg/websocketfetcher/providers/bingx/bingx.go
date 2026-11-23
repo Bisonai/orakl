@@ -8,6 +8,7 @@ import (
 	"bisonai.com/miko/node/pkg/websocketfetcher/common"
 	"bisonai.com/miko/node/pkg/wss"
 	"github.com/google/uuid"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"nhooyr.io/websocket"
 )
@@ -97,7 +98,7 @@ func (f *BingxFetcher) customReadFunc(ctx context.Context, conn *websocket.Conn)
 	var result map[string]interface{}
 	_, data, err := conn.Read(ctx)
 	if err != nil {
-		log.Warn().Str("Player", "Bingx").Err(err).Msg("error in bingx.customReadFunc, failed to read from websocket")
+		log.WithLevel(wss.ReadErrorLevel(ctx, zerolog.WarnLevel)).Str("Player", "Bingx").Err(err).Msg("error in bingx.customReadFunc, failed to read from websocket")
 		return nil, err
 	}
 

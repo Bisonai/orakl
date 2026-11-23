@@ -3,6 +3,7 @@ package raft
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"slices"
 	"sync"
@@ -10,6 +11,7 @@ import (
 	"time"
 
 	metricnames "bisonai.com/miko/node/pkg/metrics/names"
+	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -18,6 +20,8 @@ import (
 // build nodes with NewRaftNode and expect a heartbeat every tick.
 func TestMain(m *testing.M) {
 	_ = os.Unsetenv(SparseHeartbeatEnvVar)
+	// set before any test goroutine logs
+	log.Logger = log.Output(io.MultiWriter(os.Stderr, &logs))
 	os.Exit(m.Run())
 }
 

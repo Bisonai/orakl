@@ -33,6 +33,9 @@ func HeartbeatPoll(
 		case <-t.C:
 			price, err := fetchPrice(ctx)
 			if err != nil {
+				if ctx.Err() != nil {
+					return // stop or refresh (#2985)
+				}
 				log.Error().Str("Player", player).Err(err).Msg("failed to poll slot0()")
 				continue
 			}

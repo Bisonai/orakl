@@ -10,6 +10,7 @@ import (
 	"bisonai.com/miko/node/pkg/websocketfetcher/common"
 	"bisonai.com/miko/node/pkg/wss"
 	"github.com/google/uuid"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"nhooyr.io/websocket"
 )
@@ -97,7 +98,7 @@ func (f *XtFetcher) customReadFunc(ctx context.Context, conn *websocket.Conn) (m
 	var result map[string]interface{}
 	_, data, err := conn.Read(ctx)
 	if err != nil {
-		log.Error().Str("Player", "Xt").Err(err).Msg("error in xt.customReadFunc, failed to read from websocket")
+		log.WithLevel(wss.ReadErrorLevel(ctx, zerolog.ErrorLevel)).Str("Player", "Xt").Err(err).Msg("error in xt.customReadFunc, failed to read from websocket")
 		return nil, err
 	}
 	if string(data) == "pong" {

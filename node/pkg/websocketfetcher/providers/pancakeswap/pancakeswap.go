@@ -88,7 +88,13 @@ func (f *PancakeswapFetcher) run(ctx context.Context, feed common.Feed) {
 
 	// WSS Swap subscription — background, best effort.
 	go func() {
-		if err := f.subscribeEvent(ctx, feed); err != nil {
+		err := f.subscribeEvent(ctx, feed)
+		switch {
+		case err == nil:
+		case ctx.Err() != nil:
+			// stop or refresh, not a subscription failure (#2985)
+			log.Debug().Str("Player", "Pancakeswap").Err(err).Msg("pancakeswap.run, subscribe event stopped")
+		default:
 			log.Error().Str("Player", "Pancakeswap").Err(err).Msg("error in pancakeswap.run, subscribe event ended")
 		}
 	}()
@@ -131,6 +137,9 @@ func (f *PancakeswapFetcher) getPriceThroughSlotCall(ctx context.Context, defini
 
 	rawResult, err := f.WebsocketChainReader.ReadContractOnce(ctx, chainType, definition.Address, SLOT0)
 	if err != nil {
+		if ctx.Err() != nil {
+			return nil, err // stop or refresh (#2985)
+		}
 		log.Error().Str("Player", "Pancakeswap").Err(err).Msg("error in pancakeswap.getPriceThroughSlotCall, failed to read contract")
 		return nil, err
 	}
