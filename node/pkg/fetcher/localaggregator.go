@@ -225,7 +225,7 @@ func (c *LocalAggregator) streamLocalAggregate(ctx context.Context, aggregated f
 		return nil
 	}
 
-	// Synthetic configs (e.g. STG-KRW = STG-USDT * KRW-USD) source their
+	// Synthetic configs (e.g. KAIA-KRW = KAIA-USDT * KRW-USD) source their
 	// multiplier from another config's most recent raw aggregate.  If the
 	// source isn't available yet we skip emitting this round rather than
 	// publishing a zeroed-out value.
