@@ -20,7 +20,9 @@ func resolveLevel(raw string) (level zerolog.Level, invalid bool) {
 		return defaultLogLevel, false
 	}
 	level, err := zerolog.ParseLevel(raw)
-	if err != nil || level == zerolog.NoLevel {
+	// ParseLevel accepts any int8; levels outside trace..disabled (and NoLevel)
+	// would silently drop every line
+	if err != nil || level == zerolog.NoLevel || level < zerolog.TraceLevel || level > zerolog.Disabled {
 		return defaultLogLevel, true
 	}
 	return level, false

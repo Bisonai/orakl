@@ -33,6 +33,9 @@ func TestResolveLevel(t *testing.T) {
 		{"trace", zerolog.TraceLevel, false},
 		{"disabled", zerolog.Disabled, false},
 		{"verbose", zerolog.InfoLevel, true},
+		{"1", zerolog.InfoLevel, false},
+		{"10", zerolog.InfoLevel, true},
+		{"-5", zerolog.InfoLevel, true},
 	}
 	for _, tc := range cases {
 		got, invalid := resolveLevel(tc.raw)
