@@ -25,30 +25,40 @@ func TestStaleLocalAggregateNotVoted(t *testing.T) {
 	})
 	waitStable(c)
 
-	// past an aggregate the node may still vote: max age, plus a round
-	settle := maxAge + 2*c.Options().AggregateInterval
+	// rounds triggered after since: a round's prices are collected right
+	// after its trigger, unlike its submission (At), which can lag
+	triggeredAfter := func(since time.Time) []cluster.Submission {
+		var led []cluster.Submission
+		for _, s := range c.Led(feed) {
+			if s.Timestamp.After(since) {
+				led = append(led, s)
+			}
+		}
+		return led
+	}
 	waitValue := func(since time.Time, want int64) {
 		t.Helper()
 		require.Eventually(t, func() bool {
-			led := ledAfter(c, feed, since)
+			led := triggeredAfter(since)
 			return len(led) > 0 && led[len(led)-1].Value == want
 		}, settleTimeout, 10*time.Millisecond, "no led submission of %d:\n%s", want, c.Describe())
 	}
 	waitValue(time.Now(), 2000) // median of 1000 and 3000
 
+	// past the max age, with a margin for the last store racing StopValue
+	settle := func(stop time.Time) time.Time { return stop.Add(maxAge + c.Options().AggregateInterval) }
+
 	c.Node(1).StopValue(feed)
-	time.Sleep(settle)
-	since := time.Now()
-	waitLed(t, c, since, 3, settleTimeout)
-	for _, s := range ledAfter(c, feed, since) {
+	since := settle(time.Now())
+	require.Eventually(t, func() bool { return len(triggeredAfter(since)) >= 3 }, settleTimeout, 10*time.Millisecond, "no rounds after node 1 stopped:\n%s", c.Describe())
+	for _, s := range triggeredAfter(since) {
 		assert.Equal(t, int64(1000), s.Value, "round %d voted node 1's frozen value", s.Round)
 	}
 
 	c.Node(0).StopValue(feed)
-	time.Sleep(settle)
-	since = time.Now()
-	time.Sleep(5 * c.Options().AggregateInterval)
-	assert.Zero(t, len(ledAfter(c, feed, since)), "frozen values submitted with no fresh local aggregate")
+	since = settle(time.Now())
+	time.Sleep(time.Until(since) + 5*c.Options().AggregateInterval)
+	assert.Zero(t, len(triggeredAfter(since)), "frozen values submitted with no fresh local aggregate")
 
 	c.Node(1).SetValue(feed, 3000)
 	waitValue(time.Now(), 3000)

@@ -258,8 +258,13 @@ type TriggerMessage struct {
 // an older aggregate means the fetcher stopped; voting it would re-submit a
 // frozen price under fresh round timestamps (#2964). 10s is 50 publish
 // intervals (jitter, GC, fetcher refresh) and the slowest fetch interval.
-// LOCAL_AGGREGATE_MAX_AGE overrides it.
+// LOCAL_AGGREGATE_MAX_AGE overrides it; without it, a LOCAL_AGGREGATE_INTERVAL
+// above 2s raises it to localAggregateMaxAgeIntervals publish intervals.
 const DefaultLocalAggregateMaxAge = 10 * time.Second
+
+// localAggregateMaxAgeIntervals is the least number of publish intervals the
+// default max age spans.
+const localAggregateMaxAgeIntervals = 5
 
 type LatestLocalAggregates struct {
 	LocalAggregateMap map[int32]*LocalAggregate
@@ -277,14 +282,24 @@ func NewLatestLocalAggregates() *LatestLocalAggregates {
 }
 
 func localAggregateMaxAge() time.Duration {
+	// the fetcher's publish interval (its env and default, fetcher.Run)
+	interval, err := time.ParseDuration(os.Getenv("LOCAL_AGGREGATE_INTERVAL"))
+	if err != nil || interval <= 0 {
+		interval = 200 * time.Millisecond
+	}
+	def := max(DefaultLocalAggregateMaxAge, localAggregateMaxAgeIntervals*interval)
+
 	raw := os.Getenv("LOCAL_AGGREGATE_MAX_AGE")
 	if raw == "" {
-		return DefaultLocalAggregateMaxAge
+		return def
 	}
 	d, err := time.ParseDuration(raw)
 	if err != nil || d <= 0 {
-		log.Warn().Str("Player", "Aggregator").Str("LOCAL_AGGREGATE_MAX_AGE", raw).Dur("default", DefaultLocalAggregateMaxAge).Msg("invalid local aggregate max age, using default")
-		return DefaultLocalAggregateMaxAge
+		log.Warn().Str("Player", "Aggregator").Str("LOCAL_AGGREGATE_MAX_AGE", raw).Dur("default", def).Msg("invalid local aggregate max age, using default")
+		return def
+	}
+	if d < 2*interval {
+		log.Warn().Str("Player", "Aggregator").Dur("LOCAL_AGGREGATE_MAX_AGE", d).Dur("LOCAL_AGGREGATE_INTERVAL", interval).Msg("local aggregate max age below two publish intervals: local aggregates will often be voted as no price")
 	}
 	return d
 }
@@ -296,24 +311,29 @@ func (a *LatestLocalAggregates) Load(id int32) (*LocalAggregate, bool) {
 	return result, ok
 }
 
-// LoadFresh is Load, but an aggregate older than MaxAge at now is missing.
+// LoadFresh is Load, but an aggregate more than MaxAge older (or newer: a
+// skewed stamp) than now is missing.
 func (a *LatestLocalAggregates) LoadFresh(id int32, now time.Time) (*LocalAggregate, bool) {
 	result, ok := a.Load(id)
-	if !ok || now.Sub(result.Timestamp) > a.MaxAge {
+	if !ok {
+		return nil, false
+	}
+	if age := now.Sub(result.Timestamp); age > a.MaxAge || age < -a.MaxAge {
 		return nil, false
 	}
 	return result, true
 }
 
 // Store keeps the newest aggregate per config: every bus message is handled
-// on its own goroutine, so an older one may arrive last.
+// on its own goroutine, so an older one may arrive last. A cached aggregate
+// stamped in the future is replaced, so it can't pin the value.
 func (a *LatestLocalAggregates) Store(id int32, aggregate *LocalAggregate) {
 	if aggregate == nil {
 		return
 	}
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	if prev, ok := a.LocalAggregateMap[id]; ok && prev.Timestamp.After(aggregate.Timestamp) {
+	if prev, ok := a.LocalAggregateMap[id]; ok && prev.Timestamp.After(aggregate.Timestamp) && !prev.Timestamp.After(time.Now()) {
 		return
 	}
 	a.LocalAggregateMap[id] = aggregate

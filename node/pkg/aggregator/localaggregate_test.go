@@ -10,9 +10,11 @@ import (
 )
 
 // triggerPrice sends this node a trigger as if from its leader and returns
-// the price it answers with.
-func triggerPrice(t *testing.T, aggregate *LocalAggregate) int64 {
+// the price it answers with; maxAge is LOCAL_AGGREGATE_MAX_AGE ("": default).
+func triggerPrice(t *testing.T, maxAge string, aggregate *LocalAggregate) int64 {
 	t.Helper()
+	t.Setenv("LOCAL_AGGREGATE_MAX_AGE", maxAge) // read by NewLatestLocalAggregates
+	t.Setenv("LOCAL_AGGREGATE_INTERVAL", "")
 	// published and messageRound decode JSON
 	t.Setenv("P2P_ENCODING", "json")
 	ctx := context.Background()
@@ -31,23 +33,22 @@ func triggerPrice(t *testing.T, aggregate *LocalAggregate) int64 {
 }
 
 func TestTriggerVotesFreshLocalAggregate(t *testing.T) {
-	assert.Equal(t, int64(100), triggerPrice(t, &LocalAggregate{Value: 100, Timestamp: time.Now()}))
+	assert.Equal(t, int64(100), triggerPrice(t, "", &LocalAggregate{Value: 100, Timestamp: time.Now()}))
 }
 
 // The fetcher stops publishing a config whose sources are stale; its last
 // local aggregate must not be voted on (#2964).
 func TestTriggerVotesNoPriceForStaleLocalAggregate(t *testing.T) {
 	// e.g. AUCTION-KRW: the last local aggregate is a minute old
-	assert.Equal(t, int64(-1), triggerPrice(t, &LocalAggregate{Value: 100, Timestamp: time.Now().Add(-time.Minute)}))
+	assert.Equal(t, int64(-1), triggerPrice(t, "", &LocalAggregate{Value: 100, Timestamp: time.Now().Add(-time.Minute)}))
 }
 
 func TestTriggerVotesLocalAggregateWithinMaxAge(t *testing.T) {
-	t.Setenv("LOCAL_AGGREGATE_MAX_AGE", "2m") // read by NewLatestLocalAggregates
-	assert.Equal(t, int64(100), triggerPrice(t, &LocalAggregate{Value: 100, Timestamp: time.Now().Add(-time.Minute)}))
+	assert.Equal(t, int64(100), triggerPrice(t, "2m", &LocalAggregate{Value: 100, Timestamp: time.Now().Add(-time.Minute)}))
 }
 
 func TestTriggerVotesNoPriceWithoutLocalAggregate(t *testing.T) {
-	assert.Equal(t, int64(-1), triggerPrice(t, nil))
+	assert.Equal(t, int64(-1), triggerPrice(t, "", nil))
 }
 
 // Each bus message is stored on its own goroutine, so an older local
@@ -79,4 +80,33 @@ func TestRetainDropsRemovedConfigs(t *testing.T) {
 	assert.False(t, ok)
 	_, ok = aggregates.Load(2)
 	assert.True(t, ok)
+}
+
+// A cached aggregate stamped in the future doesn't pin the value.
+func TestStoreReplacesFutureLocalAggregate(t *testing.T) {
+	aggregates := NewLatestLocalAggregates()
+	now := time.Now()
+	aggregates.Store(1, &LocalAggregate{ConfigID: 1, Value: 100, Timestamp: now.Add(time.Hour)})
+	_, ok := aggregates.LoadFresh(1, now)
+	assert.False(t, ok, "far-future aggregate voted")
+
+	aggregates.Store(1, &LocalAggregate{ConfigID: 1, Value: 200, Timestamp: now})
+	got, ok := aggregates.LoadFresh(1, now)
+	require.True(t, ok)
+	assert.Equal(t, int64(200), got.Value)
+}
+
+func TestLocalAggregateMaxAgeFollowsPublishInterval(t *testing.T) {
+	t.Setenv("LOCAL_AGGREGATE_MAX_AGE", "")
+	t.Setenv("LOCAL_AGGREGATE_INTERVAL", "")
+	assert.Equal(t, DefaultLocalAggregateMaxAge, localAggregateMaxAge())
+
+	t.Setenv("LOCAL_AGGREGATE_INTERVAL", "15s")
+	assert.Equal(t, 75*time.Second, localAggregateMaxAge())
+
+	t.Setenv("LOCAL_AGGREGATE_MAX_AGE", "30s")
+	assert.Equal(t, 30*time.Second, localAggregateMaxAge())
+
+	t.Setenv("LOCAL_AGGREGATE_MAX_AGE", "bogus")
+	assert.Equal(t, 75*time.Second, localAggregateMaxAge())
 }
