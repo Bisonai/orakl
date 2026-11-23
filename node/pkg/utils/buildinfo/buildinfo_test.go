@@ -24,7 +24,7 @@ func TestDefaults(t *testing.T) {
 
 func TestRegisterMetricAndHandlers(t *testing.T) {
 	Register("dal")
-	Register("dal") // idempotent
+	Register("other") // ignored: first call wins
 
 	want := `
 # HELP orakl_build_info Build information of the running binary; always 1.

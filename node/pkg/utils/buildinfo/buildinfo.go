@@ -43,15 +43,15 @@ var (
 )
 
 // Register records the binary name, exports orakl_build_info{binary,version,commit} 1
-// on the default Prometheus registry and logs the build info once. Call it
-// early in main, after the logger is initialised. Later calls only update the
-// binary name reported by Get.
+// on the default Prometheus registry and logs the build info. Call it once,
+// early in main, after the logger is initialised; later calls are ignored, so
+// the metric, log line and Get always report the same binary.
 func Register(name string) {
-	mu.Lock()
-	binary = name
-	mu.Unlock()
-
 	register.Do(func() {
+		mu.Lock()
+		binary = name
+		mu.Unlock()
+
 		g := prometheus.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "orakl_build_info",
 			Help: "Build information of the running binary; always 1.",
@@ -60,7 +60,7 @@ func Register(name string) {
 		if err := prometheus.Register(g); err != nil {
 			log.Warn().Err(err).Msg("failed to register orakl_build_info")
 		}
-		// no level: printed whatever LOG_LEVEL is (default warn)
+		// no level: printed at any LOG_LEVEL (default warn) except disabled
 		log.Log().
 			Str("binary", name).
 			Str("version", Version).
