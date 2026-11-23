@@ -60,7 +60,8 @@ func Register(name string) {
 		if err := prometheus.Register(g); err != nil {
 			log.Warn().Err(err).Msg("failed to register orakl_build_info")
 		}
-		log.Info().
+		// no level: printed whatever LOG_LEVEL is (default warn)
+		log.Log().
 			Str("binary", name).
 			Str("version", Version).
 			Str("commit", Commit).
