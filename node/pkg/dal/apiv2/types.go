@@ -25,7 +25,9 @@ type ServerV2 struct {
 	keyCache  *keycache.KeyCache
 	keyStore  *keystore.Store
 	history   *history.Store
-	mux       *http.ServeMux
+	// historyCache serves repeated /history requests from memory
+	historyCache *historyCache
+	mux          *http.ServeMux
 }
 
 type ServerV2Config struct {

@@ -1,6 +1,7 @@
 package apiv2
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -25,7 +26,7 @@ const defaultHistoryRange = "24h"
 var maxHistoryPoints int64 = 100_000
 
 func (s *ServerV2) AllHistoryHandler(w http.ResponseWriter, r *http.Request) {
-	s.serveHistory(w, r, s.collector.Symbols())
+	s.serveHistory(w, r, s.collector.Symbols(), true)
 }
 
 func (s *ServerV2) HistoryHandler(w http.ResponseWriter, r *http.Request) {
@@ -34,10 +35,10 @@ func (s *ServerV2) HistoryHandler(w http.ResponseWriter, r *http.Request) {
 		writeText(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	s.serveHistory(w, r, symbols)
+	s.serveHistory(w, r, symbols, false)
 }
 
-func (s *ServerV2) serveHistory(w http.ResponseWriter, r *http.Request, symbols []string) {
+func (s *ServerV2) serveHistory(w http.ResponseWriter, r *http.Request, symbols []string, all bool) {
 	if s.history == nil {
 		writeText(w, http.StatusServiceUnavailable, "history disabled")
 		return
@@ -53,11 +54,30 @@ func (s *ServerV2) serveHistory(w http.ResponseWriter, r *http.Request, symbols 
 		return
 	}
 
-	result, err := s.history.Query(r.Context(), symbols, time.Now().Add(-window), step)
+	key := historyCacheKey(all, symbols, window, step)
+	body, err := s.historyCache.get(r.Context(), key, func(ctx context.Context) ([]byte, error) {
+		return s.buildHistory(ctx, symbols, window, step)
+	})
 	if err != nil {
-		log.Error().Err(err).Msg("failed to query history")
+		if r.Context().Err() == nil {
+			log.Error().Err(err).Msg("failed to query history")
+		}
 		writeText(w, http.StatusInternalServerError, "failed to query history")
 		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if _, err := w.Write(body); err != nil {
+		log.Error().Err(err).Msg("failed to write response")
+	}
+}
+
+// buildHistory queries the store and encodes the /history response.
+func (s *ServerV2) buildHistory(ctx context.Context, symbols []string, window, step time.Duration) ([]byte, error) {
+	result, err := s.history.Query(ctx, symbols, time.Now().Add(-window), step)
+	if err != nil {
+		return nil, err
 	}
 	for symbol, series := range result {
 		// decimals as the latest-data endpoints serve them, for symbols without history in range
@@ -70,12 +90,7 @@ func (s *ServerV2) serveHistory(w http.ResponseWriter, r *http.Request, symbols 
 			result[symbol] = series
 		}
 	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(result); err != nil {
-		log.Error().Err(err).Msg("failed to encode response")
-	}
+	return json.Marshal(result)
 }
 
 // parseHistorySymbols parses a comma-separated symbol list like

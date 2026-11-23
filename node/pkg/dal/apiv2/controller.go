@@ -95,6 +95,8 @@ func NewServer(collector *collector.Collector, keyCache *keycache.KeyCache, keyS
 		keyCache:  keyCache,
 		keyStore:  keyStore,
 		hub:       hub,
+
+		historyCache: newHistoryCache(),
 	}
 	serveMux := http.NewServeMux()
 
