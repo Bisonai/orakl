@@ -86,6 +86,7 @@ type Signer struct {
 	rotationFailures    int              // consecutive failed rotation attempts
 	nextRotationAt      time.Time        // no rotation attempt before this time
 	rotationForced      bool             // operator asked to retry now; cleared when an attempt starts
+	rotationForceSeq    uint64           // bumped per operator force, so one call never clears another's
 	rotationBackoffBase time.Duration    // retry delay after the first failure; doubles per failure
 	rotationBackoffMax  time.Duration    // retry delay cap
 	now                 func() time.Time // clock for the rotation backoff (nil = time.Now)

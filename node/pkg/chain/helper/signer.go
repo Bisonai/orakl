@@ -292,15 +292,20 @@ func (s *Signer) CheckAndUpdateSignerPK(ctx context.Context) error {
 	}
 	s.mu.Lock()
 	s.rotationForced = true
+	s.rotationForceSeq++
+	seq := s.rotationForceSeq
 	s.mu.Unlock()
 	if !s.rotateMu.TryLock() {
 		return nil // the running reconcile, or the next tick, honours rotationForced
 	}
 	defer s.rotateMu.Unlock()
 	defer func() {
-		// one-shot: do not let it bypass a later backoff if this pass never reached rotation
+		// one-shot: do not let it bypass a later backoff if this pass never reached rotation, but
+		// keep a force a concurrent operator call set meanwhile
 		s.mu.Lock()
-		s.rotationForced = false
+		if s.rotationForceSeq == seq {
+			s.rotationForced = false
+		}
 		s.mu.Unlock()
 	}()
 	return s.reconcileLocked(ctx, true)
@@ -550,8 +555,16 @@ var errRotationNotSent = errors.New("rotation not sent")
 
 // txpoolRejections are kaia txpool errors (blockchain/error.go) returned by sendRawTransaction
 // for a tx the node did not accept, so it cannot mine. Other send errors stay ambiguous (e.g. a
-// timeout after the node accepted it; "nonce too low" may be our own earlier updateOracle).
-var txpoolRejections = []string{"insufficient funds", "intrinsic gas too low"}
+// timeout after the node accepted it; "nonce too low" / "replacement transaction underpriced" /
+// same-nonce errors may mean our own earlier updateOracle is mined or still pending).
+var txpoolRejections = []string{
+	"insufficient funds", // sender, fee payer, or gas * price + value
+	"intrinsic gas too low",
+	"exceeds block gas limit",
+	"invalid unit price",
+	"invalid sender",
+	"invalid chain id",
+}
 
 func txpoolRejected(err error) bool {
 	msg := strings.ToLower(err.Error())

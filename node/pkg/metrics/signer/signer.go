@@ -16,7 +16,8 @@ import (
 // Rotation failure reasons.
 const (
 	// updateOracle was not broadcast (key setup, tx build, or delegator and
-	// direct fallback failed before send): the old key keeps signing
+	// direct fallback failed before send) or the node refused it (e.g.
+	// insufficient funds: old key unfunded): the old key keeps signing
 	ReasonNotSent = "not_sent"
 	// updateOracle was (or may have been) sent, but the new key was not seen
 	// whitelisted on-chain within the verify budget
@@ -27,7 +28,7 @@ var (
 	registerOnce     sync.Once
 	rotationFailures = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: metricnames.SignerRotationFailures,
-		Help: "Signer key rotation attempts that failed, by reason (not_sent, not_landed); retried with exponential backoff",
+		Help: "Signer key rotation attempts that failed, by reason (not_sent: not broadcast or refused by the node; not_landed: not seen on-chain); retried with exponential backoff",
 	}, []string{metricnames.ReasonLabel})
 )
 
