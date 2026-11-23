@@ -137,6 +137,9 @@ func (f *PancakeswapFetcher) getPriceThroughSlotCall(ctx context.Context, defini
 
 	rawResult, err := f.WebsocketChainReader.ReadContractOnce(ctx, chainType, definition.Address, SLOT0)
 	if err != nil {
+		if ctx.Err() != nil {
+			return nil, err // stop or refresh (#2985)
+		}
 		log.Error().Str("Player", "Pancakeswap").Err(err).Msg("error in pancakeswap.getPriceThroughSlotCall, failed to read contract")
 		return nil, err
 	}

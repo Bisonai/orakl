@@ -176,6 +176,9 @@ func (f *V4Fetcher) getPriceThroughSlot0(ctx context.Context, definition *common
 
 	rawResult, err := f.WebsocketChainReader.ReadContractOnce(ctx, chainType, chainCfg.StateView, GET_SLOT0, poolID)
 	if err != nil {
+		if ctx.Err() != nil {
+			return nil, err // stop or refresh (#2985)
+		}
 		log.Error().Str("Player", "UniswapV4").Err(err).Msg("error in uniswapv4.getPriceThroughSlot0, failed to read contract")
 		return nil, err
 	}

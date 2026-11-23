@@ -144,6 +144,9 @@ func (f *UniswapFetcher) getPriceThroughSlotCall(ctx context.Context, definition
 
 	rawResult, err := f.WebsocketChainReader.ReadContractOnce(ctx, chainType, definition.Address, SLOT0)
 	if err != nil {
+		if ctx.Err() != nil {
+			return nil, err // stop or refresh (#2985)
+		}
 		log.Error().Str("Player", "Uniswap").Err(err).Msg("error in uniswap.getInitialPrice, failed to read contract")
 		return nil, err
 	}
