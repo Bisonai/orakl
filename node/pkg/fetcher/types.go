@@ -20,6 +20,14 @@ const (
 	DefaultLocalAggregateInterval = 200 * time.Millisecond
 	MaxOutlierRemovalRatio        = 0.25
 
+	// MidMaxSpreadRatio is the widest (ask-bid)/mid at which a book mid is
+	// used (priceSource "mid"); wider books fall back to the last trade.
+	MidMaxSpreadRatio = 0.02
+	// MidBookMaxAge is how long an unchanged book still gives a usable mid.
+	MidBookMaxAge = 5 * time.Minute
+	// PriceSourceMid selects book mid prices in Config.PriceSource.
+	PriceSourceMid = nodeconfig.PriceSourceMid
+
 	// EnvProxies lists the HTTP fetcher proxies, comma separated, each
 	// [location=]protocol://host:port, e.g.
 	// "http://10.0.0.1:4000,kr=http://10.0.0.2:80". A feed with a "location"
