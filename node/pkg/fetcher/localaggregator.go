@@ -437,6 +437,9 @@ func (c *LocalAggregator) applyPerFeedMultipliers(feeds []*FeedData) []*FeedData
 }
 
 func (c *LocalAggregator) filterStaleFeeds(feeds []*FeedData) []*FeedData {
+	stalePass := c.beginStaleFeedPass()
+	defer stalePass.end()
+
 	if c.Config.FeedDataFreshness == nil || *c.Config.FeedDataFreshness <= 0 {
 		return feeds
 	}
@@ -470,10 +473,9 @@ func (c *LocalAggregator) filterStaleFeeds(feeds []*FeedData) []*FeedData {
 
 		age := now.Sub(*feed.Timestamp)
 		if age > limit {
-			c.noteFeedStale(feed, age, limit)
+			stalePass.noteFeedStale(feed, age, limit)
 			continue
 		}
-		c.noteFeedFresh(feed)
 		fresh = append(fresh, feed)
 	}
 

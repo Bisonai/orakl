@@ -42,7 +42,7 @@ func TestFilterStaleFeeds_LogsOnlyOnTransition(t *testing.T) {
 		assert.Len(t, result, 1)
 	}
 	assert.Equal(t, 1, strings.Count(buf.String(), "excluding stale feed from aggregation"))
-	assert.Equal(t, 0, strings.Count(buf.String(), "fresh again"))
+	assert.Equal(t, 0, strings.Count(buf.String(), "no longer excluded"))
 
 	recovered := []*FeedData{
 		{FeedID: 1, Value: 100.0, Volume: 1, Timestamp: &now},
@@ -51,7 +51,7 @@ func TestFilterStaleFeeds_LogsOnlyOnTransition(t *testing.T) {
 	for i := 0; i < 3; i++ {
 		assert.Len(t, la.filterStaleFeeds(recovered), 2)
 	}
-	assert.Equal(t, 1, strings.Count(buf.String(), "stale feed fresh again"))
+	assert.Equal(t, 1, strings.Count(buf.String(), "feed no longer excluded as stale"))
 
 	// stale again after recovery logs again
 	la.filterStaleFeeds(staleFeeds)
@@ -77,25 +77,44 @@ func TestFilterStaleFeeds_TransitionPerFeed(t *testing.T) {
 	assert.Contains(t, out, `"feedID":3`)
 }
 
-func TestStaleFeedLog_Concurrent(t *testing.T) {
-	var s staleFeedLog
+// A stale-marked feed that passes through unfiltered (here: early return on
+// a single feed) must be cleared, so a later stale spell warns again.
+func TestFilterStaleFeeds_ClearsMarkOnUnfilteredPass(t *testing.T) {
+	buf := captureLogs(t)
+	la := newLocalAggregatorWithFreshness(intPtr(5000))
+
+	now := time.Now()
+	old := now.Add(-time.Minute)
+	stale := []*FeedData{
+		{FeedID: 1, Value: 100.0, Volume: 1, Timestamp: &now},
+		{FeedID: 2, Value: 101.0, Volume: 1, Timestamp: &old},
+	}
+	la.filterStaleFeeds(stale)
+	la.filterStaleFeeds([]*FeedData{{FeedID: 2, Value: 101.0, Volume: 1, Timestamp: &old}})
+	assert.Equal(t, 1, strings.Count(buf.String(), "feed no longer excluded as stale"))
+	la.filterStaleFeeds(stale)
+	assert.Equal(t, 2, strings.Count(buf.String(), "excluding stale feed from aggregation"))
+}
+
+func TestFilterStaleFeeds_ConcurrentPasses(t *testing.T) {
+	buf := captureLogs(t)
+	la := newLocalAggregatorWithFreshness(intPtr(5000))
+
+	now := time.Now()
+	old := now.Add(-time.Minute)
+	feeds := []*FeedData{
+		{FeedID: 1, Value: 100.0, Volume: 1, Timestamp: &now},
+		{FeedID: 2, Value: 101.0, Volume: 1, Timestamp: &old},
+	}
 	var wg sync.WaitGroup
-	var mu sync.Mutex
-	transitions := 0
 	for i := 0; i < 50; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			if s.markStale(7) {
-				mu.Lock()
-				transitions++
-				mu.Unlock()
-			}
+			la.filterStaleFeeds(feeds)
 		}()
 	}
 	wg.Wait()
-	assert.Equal(t, 1, transitions)
-	assert.True(t, s.markFresh(7))
-	assert.False(t, s.markFresh(7))
-	assert.Empty(t, s.stale)
+	assert.Equal(t, 1, strings.Count(buf.String(), "excluding stale feed from aggregation"))
+	assert.Len(t, la.staleFeeds.stale, 1)
 }
