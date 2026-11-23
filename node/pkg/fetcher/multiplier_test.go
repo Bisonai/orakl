@@ -42,7 +42,7 @@ func newLocalAggregatorForMultiplyOp(t *testing.T, multiplyBy *string, freshness
 	return &LocalAggregator{
 		Config: Config{
 			ID:                   42,
-			Name:                 "STG-KRW",
+			Name:                 "KAIA-KRW", // prices below are synthetic test inputs
 			FetchInterval:        2000,
 			Decimals:             intPtr(8),
 			FeedDataFreshness:    freshnessMs,
@@ -81,7 +81,7 @@ func TestStreamLocalAggregate_MultiplyBy_AppliesMultiplier(t *testing.T) {
 	select {
 	case agg := <-ch:
 		// 0.218 * 1474.4 = 321.4192, * 10^8 = 32_141_920_000
-		assert.InDelta(t, int64(32_141_920_000), agg.Value, 100, "STG-USDT * KRW-USD should equal STG-KRW")
+		assert.InDelta(t, int64(32_141_920_000), agg.Value, 100, "aggregate * multiplier source (synthetic values)")
 	case <-time.After(time.Second):
 		t.Fatal("expected aggregate on channel")
 	}
@@ -131,7 +131,7 @@ func TestStreamLocalAggregate_CachesOwnRawValue(t *testing.T) {
 	err := la.streamLocalAggregate(context.Background(), 0.218)
 	assert.NoError(t, err)
 
-	entry, ok := la.localAggregateValueMap.Get("STG-KRW")
+	entry, ok := la.localAggregateValueMap.Get("KAIA-KRW")
 	assert.True(t, ok, "config should cache its own raw value for downstream synthetic configs")
 	assert.Equal(t, 0.218, entry.Value)
 }
@@ -302,6 +302,6 @@ func TestStreamLocalAggregate_ZeroAggregate_NoOp(t *testing.T) {
 	case <-time.After(50 * time.Millisecond):
 	}
 
-	_, ok := la.localAggregateValueMap.Get("STG-KRW")
+	_, ok := la.localAggregateValueMap.Get("KAIA-KRW")
 	assert.False(t, ok, "zero aggregate should not be cached")
 }
