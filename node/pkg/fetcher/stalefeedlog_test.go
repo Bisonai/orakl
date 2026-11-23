@@ -118,3 +118,41 @@ func TestFilterStaleFeeds_ConcurrentPasses(t *testing.T) {
 	assert.Equal(t, 1, strings.Count(buf.String(), "excluding stale feed from aggregation"))
 	assert.Len(t, la.staleFeeds.stale, 1)
 }
+
+// A stale feed dropped before filtering (no data, stale multiplier) is not a
+// recovery: no info line, and no re-warn when it comes back still stale.
+func TestFilterStaleFeeds_AbsentFeedKeepsMark(t *testing.T) {
+	buf := captureLogs(t)
+	la := newLocalAggregatorWithFreshness(intPtr(5000))
+
+	now := time.Now()
+	old := now.Add(-time.Minute)
+	stale := []*FeedData{
+		{FeedID: 1, Value: 100.0, Volume: 1, Timestamp: &now},
+		{FeedID: 2, Value: 101.0, Volume: 1, Timestamp: &old},
+		{FeedID: 3, Value: 102.0, Volume: 1, Timestamp: &now},
+	}
+	la.filterStaleFeeds(stale)
+	la.filterStaleFeeds([]*FeedData{stale[0], stale[2]})
+	la.filterStaleFeeds(stale)
+	assert.Equal(t, 0, strings.Count(buf.String(), "feed no longer excluded as stale"))
+	assert.Equal(t, 1, strings.Count(buf.String(), "excluding stale feed from aggregation"))
+}
+
+// A pass that started before the last reconciled one must not replay its
+// older snapshot.
+func TestStaleFeedPass_SkipsOlderPass(t *testing.T) {
+	buf := captureLogs(t)
+	la := newLocalAggregatorWithFreshness(intPtr(5000))
+	feed := &FeedData{FeedID: 2, Value: 101.0, Volume: 1}
+
+	older := la.beginStaleFeedPass([]*FeedData{feed})
+	older.noteFeedStale(feed, time.Minute, 5*time.Second)
+	newer := la.beginStaleFeedPass([]*FeedData{feed})
+	newer.start = older.start.Add(time.Millisecond)
+	newer.end()
+	older.end()
+
+	assert.Equal(t, 0, strings.Count(buf.String(), "excluding stale feed from aggregation"))
+	assert.Empty(t, la.staleFeeds.stale)
+}

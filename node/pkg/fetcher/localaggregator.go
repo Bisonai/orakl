@@ -437,7 +437,7 @@ func (c *LocalAggregator) applyPerFeedMultipliers(feeds []*FeedData) []*FeedData
 }
 
 func (c *LocalAggregator) filterStaleFeeds(feeds []*FeedData) []*FeedData {
-	stalePass := c.beginStaleFeedPass()
+	stalePass := c.beginStaleFeedPass(feeds)
 	defer stalePass.end()
 
 	if c.Config.FeedDataFreshness == nil || *c.Config.FeedDataFreshness <= 0 {
