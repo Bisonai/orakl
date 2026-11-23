@@ -25,7 +25,9 @@ type oracleChain interface {
 	// whitelisted). Errors are treated as "unknown" by the caller — never as "not whitelisted".
 	ReadExpiration(ctx context.Context, addr common.Address) (time.Time, error)
 	// UpdateOracle submits updateOracle(newAddr) signed by signWithPkHex (the current oracle key).
-	UpdateOracle(ctx context.Context, signWithPkHex string, newAddr common.Address) error
+	// onBroadcast is called synchronously right before the signed tx is sent; an error returned
+	// without that call means nothing was broadcast (the old key stays whitelisted).
+	UpdateOracle(ctx context.Context, signWithPkHex string, newAddr common.Address, onBroadcast func()) error
 }
 
 type signerStore interface {
@@ -68,12 +70,13 @@ func (c *realOracleChain) ReadExpiration(ctx context.Context, addr common.Addres
 	return time.Unix(rawTimestamp.Int64(), 0), nil
 }
 
-func (c *realOracleChain) UpdateOracle(ctx context.Context, signWithPkHex string, newAddr common.Address) error {
+func (c *realOracleChain) UpdateOracle(ctx context.Context, signWithPkHex string, newAddr common.Address, onBroadcast func()) error {
 	ch, err := NewChainHelper(ctx, WithReporterPk(signWithPkHex))
 	if err != nil {
 		return err
 	}
 	defer ch.Close()
+	ch.beforeSend = onBroadcast
 	return ch.submitDelegatedFallbackDirect(ctx, submission.PurposeRotate, c.contractAddr, UpdateSignerFuncSignature, newAddr)
 }
 

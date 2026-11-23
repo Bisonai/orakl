@@ -281,6 +281,9 @@ func (t *ChainHelper) submitDelegatedFallbackDirect(ctx context.Context, purpose
 		}
 	}
 
+	if t.beforeSend != nil {
+		t.beforeSend()
+	}
 	return utils.SubmitRawTx(ctx, t.client, signed)
 }
 

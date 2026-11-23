@@ -28,6 +28,8 @@ type fakeChain struct {
 	readErr      error
 	updateOracle func(f *fakeChain, from string, newAddr common.Address) error
 	updateCalls  int
+	// notSentErr makes UpdateOracle fail before broadcast (onBroadcast is not called).
+	notSentErr error
 }
 
 func newFakeChain() *fakeChain { return &fakeChain{exp: map[common.Address]time.Time{}} }
@@ -44,11 +46,15 @@ func (f *fakeChain) ReadExpiration(_ context.Context, addr common.Address) (time
 	return time.Unix(0, 0), nil // never whitelisted == on-chain expirationTime 0 (matches the real contract)
 }
 
-func (f *fakeChain) UpdateOracle(_ context.Context, from string, newAddr common.Address) error {
+func (f *fakeChain) UpdateOracle(_ context.Context, from string, newAddr common.Address, onBroadcast func()) error {
 	f.mu.Lock()
 	f.updateCalls++
-	fn := f.updateOracle
+	fn, notSentErr := f.updateOracle, f.notSentErr
 	f.mu.Unlock()
+	if notSentErr != nil {
+		return notSentErr
+	}
+	onBroadcast()
 	if fn != nil {
 		return fn(f, from, newAddr)
 	}
@@ -182,6 +188,9 @@ func newScenarioSigner(chain oracleChain, store signerStore) *Signer {
 		confirmationTTL:    90 * time.Second,
 		verifyPollInterval: time.Millisecond,
 		verifyPollMax:      3,
+
+		rotationBackoffBase: DefaultSignerRotationBackoffBase,
+		rotationBackoffMax:  DefaultSignerRotationBackoffMax,
 	}
 }
 
