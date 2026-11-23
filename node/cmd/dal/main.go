@@ -12,6 +12,7 @@ import (
 
 	"bisonai.com/miko/node/pkg/dal"
 	"bisonai.com/miko/node/pkg/dal/utils/keystore"
+	"bisonai.com/miko/node/pkg/utils/buildinfo"
 	"bisonai.com/miko/node/pkg/utils/loginit"
 	"github.com/joho/godotenv"
 	"github.com/rs/zerolog/log"
@@ -64,6 +65,7 @@ func main() {
 	}
 
 	loginit.InitZeroLog()
+	buildinfo.Register("dal")
 
 	// SIGTERM/SIGINT stop the server so Run can flush the price history; a
 	// second signal exits at once

@@ -7,10 +7,12 @@ import (
 	"bisonai.com/miko/node/pkg/admin"
 	"bisonai.com/miko/node/pkg/bus"
 	"bisonai.com/miko/node/pkg/fetcher"
+	"bisonai.com/miko/node/pkg/utils/buildinfo"
 	"github.com/rs/zerolog/log"
 )
 
 func main() {
+	buildinfo.Register("fetcher")
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 

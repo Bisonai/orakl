@@ -20,6 +20,7 @@ import (
 	"bisonai.com/miko/node/pkg/checker/price"
 	"bisonai.com/miko/node/pkg/checker/signer"
 	"bisonai.com/miko/node/pkg/secrets"
+	"bisonai.com/miko/node/pkg/utils/buildinfo"
 	"bisonai.com/miko/node/pkg/utils/loginit"
 )
 
@@ -27,6 +28,7 @@ func main() {
 	ctx := context.Background()
 
 	loginit.InitZeroLog()
+	buildinfo.Register("sentinel")
 
 	var wg sync.WaitGroup
 	wg.Add(1)
