@@ -139,6 +139,11 @@ func (r *Raft) subscribe(ctx context.Context) {
 		default:
 			rawMsg, err := sub.Next(ctx)
 			if err != nil {
+				if ctx.Err() != nil {
+					// stop or refresh, not a topic failure (#2985)
+					log.Debug().Err(err).Msg("topic subscription stopped")
+					return
+				}
 				log.Error().Err(err).Msg("failed to get message from topic")
 				continue
 			}
