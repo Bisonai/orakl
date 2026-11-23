@@ -5,7 +5,8 @@
 // raft-driven aggregator per feed) with a static signer generated in the test;
 // with Options.PersistRounds also a SQLite node state, so rounds persist across
 // restarts as in production. There are no fetchers or exchanges: every node's local
-// aggregates are injected (Options.Value, Node.SetValue). There is no reporter
+// aggregates are injected (Options.Value, Node.SetValue) and republished every
+// 200 ms like the fetcher does, until Node.StopValue. There is no reporter
 // either: every submission an aggregator hands to the in-node reporter is
 // recorded per node, with whether that node led the round (Node.Submissions,
 // Node.Led). Postgres is not used; the aggregators still publish each round

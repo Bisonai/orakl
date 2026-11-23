@@ -87,6 +87,7 @@ func (a *App) setAggregators(ctx context.Context, h host.Host, ps *pubsub.PubSub
 	}
 
 	syncGlobalAggregateMetrics(configs)
+	a.LatestLocalAggregates.Retain(configs)
 	return a.initializeLoadedAggregators(ctx, configs, h, ps)
 }
 

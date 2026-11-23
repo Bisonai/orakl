@@ -2,7 +2,9 @@ package aggregator
 
 import (
 	"context"
+	"os"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"bisonai.com/miko/node/pkg/bus"
@@ -13,6 +15,7 @@ import (
 	"bisonai.com/miko/node/pkg/raft"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/host"
+	"github.com/rs/zerolog/log"
 )
 
 const (
@@ -206,6 +209,12 @@ type Aggregator struct {
 	// onSubmission gets each round's submission data (nil: none)
 	onSubmission SubmissionHook
 
+	// noLocalAggregate: the last trigger found no fresh local aggregate;
+	// noPrices: the last round as leader collected no price (both log only
+	// the transitions)
+	noLocalAggregate atomic.Bool
+	noPrices         atomic.Bool
+
 	nodeCtx    context.Context
 	nodeCancel context.CancelFunc
 	isRunning  bool
@@ -244,15 +253,60 @@ type TriggerMessage struct {
 	Timestamp time.Time `json:"timestamp"`
 }
 
+// DefaultLocalAggregateMaxAge is how old this node's local aggregate may be
+// and still be voted. The fetcher republishes every config every
+// LOCAL_AGGREGATE_INTERVAL (200ms) while its feeds are fresh (each feed within
+// the config's feedDataFreshness) and stops publishing once they are not, so
+// an older aggregate means the fetcher stopped; voting it would re-submit a
+// frozen price under fresh round timestamps (#2964). 60s is the fetcher's own
+// staleness window (feedDataFreshness of every config) and spans a fetcher
+// REFRESH, which restarts the local aggregators one by one 50-150ms apart
+// (~25s for 235 configs). LOCAL_AGGREGATE_MAX_AGE overrides it; without it, a
+// LOCAL_AGGREGATE_INTERVAL above 12s raises it to
+// localAggregateMaxAgeIntervals publish intervals.
+const DefaultLocalAggregateMaxAge = 60 * time.Second
+
+// localAggregateMaxAgeIntervals is the least number of publish intervals the
+// default max age spans.
+const localAggregateMaxAgeIntervals = 5
+
 type LatestLocalAggregates struct {
 	LocalAggregateMap map[int32]*LocalAggregate
-	mu                sync.RWMutex
+	// MaxAge: LoadFresh treats an older aggregate as missing. Set it before
+	// the aggregators run.
+	MaxAge time.Duration
+	mu     sync.RWMutex
 }
 
 func NewLatestLocalAggregates() *LatestLocalAggregates {
 	return &LatestLocalAggregates{
 		LocalAggregateMap: map[int32]*LocalAggregate{},
+		MaxAge:            localAggregateMaxAge(),
 	}
+}
+
+func localAggregateMaxAge() time.Duration {
+	// the fetcher's publish interval (its env and default
+	// fetcher.DefaultLocalAggregateInterval, fetcher.LocalAggregator.Run)
+	interval, err := time.ParseDuration(os.Getenv("LOCAL_AGGREGATE_INTERVAL"))
+	if err != nil || interval <= 0 {
+		interval = 200 * time.Millisecond
+	}
+	def := max(DefaultLocalAggregateMaxAge, localAggregateMaxAgeIntervals*interval)
+
+	raw := os.Getenv("LOCAL_AGGREGATE_MAX_AGE")
+	if raw == "" {
+		return def
+	}
+	d, err := time.ParseDuration(raw)
+	if err != nil || d <= 0 {
+		log.Warn().Str("Player", "Aggregator").Str("LOCAL_AGGREGATE_MAX_AGE", raw).Dur("default", def).Msg("invalid local aggregate max age, using default")
+		return def
+	}
+	if d < 2*interval {
+		log.Warn().Str("Player", "Aggregator").Dur("LOCAL_AGGREGATE_MAX_AGE", d).Dur("LOCAL_AGGREGATE_INTERVAL", interval).Msg("local aggregate max age below two publish intervals: local aggregates will often be voted as no price")
+	}
+	return d
 }
 
 func (a *LatestLocalAggregates) Load(id int32) (*LocalAggregate, bool) {
@@ -262,8 +316,55 @@ func (a *LatestLocalAggregates) Load(id int32) (*LocalAggregate, bool) {
 	return result, ok
 }
 
+// LoadFresh is Load, but an aggregate more than MaxAge older (or newer: a
+// skewed stamp) than now is missing.
+func (a *LatestLocalAggregates) LoadFresh(id int32, now time.Time) (*LocalAggregate, bool) {
+	result, ok := a.Load(id)
+	if !ok {
+		return nil, false
+	}
+	maxAge := a.maxAge()
+	if age := now.Sub(result.Timestamp); age > maxAge || age < -maxAge {
+		return nil, false
+	}
+	return result, true
+}
+
+// maxAge is MaxAge, or the default when unset (not built by
+// NewLatestLocalAggregates).
+func (a *LatestLocalAggregates) maxAge() time.Duration {
+	if a.MaxAge <= 0 {
+		return DefaultLocalAggregateMaxAge
+	}
+	return a.MaxAge
+}
+
+// Store keeps the newest aggregate per config: every bus message is handled
+// on its own goroutine, so an older one may arrive last. A cached aggregate
+// stamped in the future is replaced, so it can't pin the value.
 func (a *LatestLocalAggregates) Store(id int32, aggregate *LocalAggregate) {
+	if aggregate == nil {
+		return
+	}
 	a.mu.Lock()
 	defer a.mu.Unlock()
+	if prev, ok := a.LocalAggregateMap[id]; ok && prev.Timestamp.After(aggregate.Timestamp) && !prev.Timestamp.After(time.Now()) {
+		return
+	}
 	a.LocalAggregateMap[id] = aggregate
+}
+
+// Retain drops the aggregates of configs not in configs (removed by a sync).
+func (a *LatestLocalAggregates) Retain(configs []Config) {
+	keep := make(map[int32]bool, len(configs))
+	for _, c := range configs {
+		keep[c.ID] = true
+	}
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	for id := range a.LocalAggregateMap {
+		if !keep[id] {
+			delete(a.LocalAggregateMap, id)
+		}
+	}
 }

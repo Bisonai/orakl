@@ -86,7 +86,7 @@ func TestStartAggregator(t *testing.T) {
 		t.Fatal("error initializing app")
 	}
 
-	testItems.app.LatestLocalAggregates.Store(testItems.tmpData.config.ID, &LocalAggregate{})
+	testItems.app.LatestLocalAggregates.Store(testItems.tmpData.config.ID, &LocalAggregate{Timestamp: time.Now()})
 
 	err = testItems.app.startAggregator(ctx, testItems.app.Aggregators[testItems.tmpData.config.ID])
 	if err != nil {
@@ -122,7 +122,7 @@ func TestStartAggregatorById(t *testing.T) {
 		t.Fatal("Aggregator should not be running before test")
 	}
 
-	testItems.app.LatestLocalAggregates.Store(testItems.tmpData.config.ID, &LocalAggregate{})
+	testItems.app.LatestLocalAggregates.Store(testItems.tmpData.config.ID, &LocalAggregate{Timestamp: time.Now()})
 
 	err = testItems.app.startAggregatorById(ctx, testItems.app.Aggregators[testItems.tmpData.config.ID].Config.ID)
 	if err != nil {
@@ -153,7 +153,7 @@ func TestStopAggregator(t *testing.T) {
 		t.Fatal("error initializing app")
 	}
 
-	testItems.app.LatestLocalAggregates.Store(testItems.tmpData.config.ID, &LocalAggregate{})
+	testItems.app.LatestLocalAggregates.Store(testItems.tmpData.config.ID, &LocalAggregate{Timestamp: time.Now()})
 
 	err = testItems.app.startAggregator(ctx, testItems.app.Aggregators[testItems.tmpData.config.ID])
 	if err != nil {
@@ -337,7 +337,7 @@ func TestStopAggregatorById(t *testing.T) {
 		t.Fatal("error initializing app")
 	}
 
-	testItems.app.LatestLocalAggregates.Store(testItems.tmpData.config.ID, &LocalAggregate{})
+	testItems.app.LatestLocalAggregates.Store(testItems.tmpData.config.ID, &LocalAggregate{Timestamp: time.Now()})
 
 	err = testItems.app.startAggregator(ctx, testItems.app.Aggregators[testItems.tmpData.config.ID])
 	if err != nil {
@@ -375,7 +375,7 @@ func TestActivateAggregatorByAdmin(t *testing.T) {
 		t.Fatal("error initializing app")
 	}
 
-	testItems.app.LatestLocalAggregates.Store(testItems.tmpData.config.ID, &LocalAggregate{})
+	testItems.app.LatestLocalAggregates.Store(testItems.tmpData.config.ID, &LocalAggregate{Timestamp: time.Now()})
 
 	_, err = tests.RawPostRequest(testItems.admin, "/api/v1/aggregator/activate/"+strconv.Itoa(int(testItems.tmpData.config.ID)), nil)
 	if err != nil {
@@ -412,7 +412,7 @@ func TestDeactivateAggregatorByAdmin(t *testing.T) {
 		t.Fatal("error initializing app")
 	}
 
-	testItems.app.LatestLocalAggregates.Store(testItems.tmpData.config.ID, &LocalAggregate{})
+	testItems.app.LatestLocalAggregates.Store(testItems.tmpData.config.ID, &LocalAggregate{Timestamp: time.Now()})
 
 	err = testItems.app.startAggregatorById(ctx, testItems.app.Aggregators[testItems.tmpData.config.ID].Config.ID)
 	if err != nil {
@@ -453,7 +453,7 @@ func TestStartAppByAdmin(t *testing.T) {
 		t.Fatal("error initializing app")
 	}
 
-	testItems.app.LatestLocalAggregates.Store(testItems.tmpData.config.ID, &LocalAggregate{})
+	testItems.app.LatestLocalAggregates.Store(testItems.tmpData.config.ID, &LocalAggregate{Timestamp: time.Now()})
 
 	_, err = tests.RawPostRequest(testItems.admin, "/api/v1/aggregator/start", nil)
 	if err != nil {
@@ -486,7 +486,7 @@ func TestStopAppByAdmin(t *testing.T) {
 		t.Fatal("error initializing app")
 	}
 
-	testItems.app.LatestLocalAggregates.Store(testItems.tmpData.config.ID, &LocalAggregate{})
+	testItems.app.LatestLocalAggregates.Store(testItems.tmpData.config.ID, &LocalAggregate{Timestamp: time.Now()})
 
 	_, err = tests.RawPostRequest(testItems.admin, "/api/v1/aggregator/start", nil)
 	if err != nil {
@@ -527,7 +527,7 @@ func TestRefreshAppByAdmin(t *testing.T) {
 
 	lengthBefore := len(testItems.app.Aggregators)
 
-	testItems.app.LatestLocalAggregates.Store(testItems.tmpData.config.ID, &LocalAggregate{})
+	testItems.app.LatestLocalAggregates.Store(testItems.tmpData.config.ID, &LocalAggregate{Timestamp: time.Now()})
 
 	_, err = tests.RawPostRequest(testItems.admin, "/api/v1/aggregator/start", nil)
 	if err != nil {
@@ -541,7 +541,7 @@ func TestRefreshAppByAdmin(t *testing.T) {
 		t.Fatalf("error adding config: %v", err)
 	}
 	for _, config := range testItems.app.Configs.Configs() {
-		testItems.app.LatestLocalAggregates.Store(config.ID, &LocalAggregate{})
+		testItems.app.LatestLocalAggregates.Store(config.ID, &LocalAggregate{Timestamp: time.Now()})
 	}
 
 	_, err = tests.RawPostRequest(testItems.admin, "/api/v1/aggregator/refresh", nil)
