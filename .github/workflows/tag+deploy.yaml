@@ -131,6 +131,8 @@ jobs:
       image-tag: ${{ needs.build.outputs.img_tag }}
       tag_date: ${{ needs.prepare.outputs.tag_date }}
       tag_git_hash: ${{ needs.prepare.outputs.tag_git_hash }}
+      # services without a kairos chart (mainnet only) still get the image and pre-release
+      skip-missing: true
     secrets:
       GH_ORAKL_BOT_APP_ID: ${{ secrets.GH_ORAKL_BOT_APP_ID }}
       GH_ORAKL_BOT_PRIVATE_KEY: ${{ secrets.GH_ORAKL_BOT_PRIVATE_KEY }}
@@ -156,6 +158,7 @@ jobs:
           APP_NAME: ${{ needs.prepare.outputs.app_name }}
           VERSION: ${{ needs.prepare.outputs.version }}
           IMAGE: ${{ needs.prepare.outputs.ecr_url }}:${{ needs.build.outputs.img_tag }}
+          KAIROS_UPDATED: ${{ needs.image-update.outputs.updated }}
         run: |
           # previous release tag of the same service, for notes range
           prev=$(git tag -l "${APP_NAME}/v*" --sort=-v:refname | grep -vxF "$TAG" | head -n1)
@@ -168,7 +171,11 @@ jobs:
           {
             echo "**Image:** \`${IMAGE}\`"
             echo
-            echo "Deployed to kairos. Promote to mainnet with the \`Promote\` workflow (image tag only; merge any required mainnet chart/values changes first)."
+            if [ "$KAIROS_UPDATED" = "true" ]; then
+              echo "Deployed to kairos. Promote to mainnet with the \`Promote\` workflow (image tag only; merge any required mainnet chart/values changes first)."
+            else
+              echo "Not deployed to kairos (no kairos chart). Promote to mainnet with the \`Promote\` workflow (image tag only; merge any required mainnet chart/values changes first)."
+            fi
             echo
             echo "$notes"
           } > notes.md
