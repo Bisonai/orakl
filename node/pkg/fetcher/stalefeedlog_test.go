@@ -158,3 +158,42 @@ func TestStaleFeedPass_SkipsOlderPass(t *testing.T) {
 	assert.Equal(t, 0, strings.Count(buf.String(), "excluding stale feed from aggregation"))
 	assert.Empty(t, la.staleFeeds.stale)
 }
+
+// Book-mid feeds (FromBook) go through the same transitions, judged against
+// the book age limit: switching between a usable book and a stale last trade
+// logs one warn per stale spell and one info per recovery.
+func TestFilterStaleFeeds_FromBookTransitions(t *testing.T) {
+	buf := captureLogs(t)
+	la := newLocalAggregatorWithFreshness(intPtr(5000))
+
+	now := time.Now()
+	bookTs := now.Add(-time.Minute) // past freshness, within MidBookMaxAge
+	tooOldBook := now.Add(-MidBookMaxAge - time.Minute)
+	oldTrade := now.Add(-time.Minute)
+	anchor := &FeedData{FeedID: 1, Value: 100.0, Volume: 1, Timestamp: &now}
+	mid := &FeedData{FeedID: 2, Value: 101.0, Volume: 1, Timestamp: &bookTs, FromBook: true}
+	trade := &FeedData{FeedID: 2, Value: 101.0, Volume: 1, Timestamp: &oldTrade}
+	oldMid := &FeedData{FeedID: 2, Value: 101.0, Volume: 1, Timestamp: &tooOldBook, FromBook: true}
+
+	warns := func() int { return strings.Count(buf.String(), "excluding stale feed from aggregation") }
+	infos := func() int { return strings.Count(buf.String(), "feed no longer excluded as stale") }
+
+	assert.Len(t, la.filterStaleFeeds([]*FeedData{anchor, mid}), 2)
+	assert.Equal(t, 0, warns())
+
+	for i := 0; i < 3; i++ {
+		assert.Len(t, la.filterStaleFeeds([]*FeedData{anchor, trade}), 1)
+	}
+	assert.Equal(t, 1, warns())
+
+	for i := 0; i < 3; i++ {
+		assert.Len(t, la.filterStaleFeeds([]*FeedData{anchor, mid}), 2)
+	}
+	assert.Equal(t, 1, infos())
+
+	for i := 0; i < 3; i++ {
+		assert.Len(t, la.filterStaleFeeds([]*FeedData{anchor, oldMid}), 1)
+	}
+	assert.Equal(t, 2, warns())
+	assert.Contains(t, buf.String(), `"freshness":300000`)
+}
