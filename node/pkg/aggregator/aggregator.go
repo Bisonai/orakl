@@ -201,14 +201,20 @@ func (n *Aggregator) HandleTriggerMessage(ctx context.Context, msg raft.Message)
 	n.roundTriggers.locked[triggerMessage.RoundID] = roundTrigger{sender: msg.SentFrom, timestamp: triggerMessage.Timestamp}
 
 	var value int64
-	localAggregate, ok := n.LatestLocalAggregates.Load(n.ID)
+	// wall clock, as the fetcher stamps local aggregates (n.now may be shifted)
+	localAggregate, ok := n.LatestLocalAggregates.LoadFresh(n.ID, time.Now())
 	if !ok {
-		log.Warn().Str("Player", "Aggregator").Msg("failed to get latest local aggregate")
+		if !n.noLocalAggregate.Swap(true) {
+			log.Warn().Str("Player", "Aggregator").Str("name", n.Name).Dur("maxAge", n.LatestLocalAggregates.MaxAge).Msg("no fresh local aggregate, voting no price")
+		}
 		// set value to -1 rather than returning error
 		// it is to proceed further steps even if current node fails to get latest local aggregate
 		// if not enough messages collected from HandleSyncReplyMessage, it will hang in certain round
 		value = -1
 	} else {
+		if n.noLocalAggregate.Swap(false) {
+			log.Info().Str("Player", "Aggregator").Str("name", n.Name).Msg("fresh local aggregate again")
+		}
 		value = localAggregate.Value
 	}
 

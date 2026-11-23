@@ -100,7 +100,7 @@ func TestLaggingLeaderCatchesUpToFollower(t *testing.T) {
 			follower.Raft.LeaderID = leaderID
 			follower.RoundID = followerRound
 			seedRounds(follower, roundRange(42, followerRound)...)
-			follower.LatestLocalAggregates.Store(follower.ID, &LocalAggregate{ConfigID: follower.ID, Value: 100})
+			follower.LatestLocalAggregates.Store(follower.ID, &LocalAggregate{ConfigID: follower.ID, Value: 100, Timestamp: time.Now()})
 
 			// Subscribe registers synchronously: no publish below is missed
 			followerPrices := published(t, ctx, follower, PriceData)
@@ -249,7 +249,7 @@ func TestLeaderReusingFollowersCurrentRoundCatchesUp(t *testing.T) {
 	follower.Raft.LeaderID = leaderID
 	follower.RoundID = followerRound
 	seedRounds(follower, roundRange(42, followerRound)...) // used with the previous leader
-	follower.LatestLocalAggregates.Store(follower.ID, &LocalAggregate{ConfigID: follower.ID, Value: 100})
+	follower.LatestLocalAggregates.Store(follower.ID, &LocalAggregate{ConfigID: follower.ID, Value: 100, Timestamp: time.Now()})
 
 	followerPrices := published(t, ctx, follower, PriceData)
 	leaderFixes := published(t, ctx, leader, PriceFix)
@@ -299,7 +299,7 @@ func TestDuplicateTriggerForCurrentRoundIgnored(t *testing.T) {
 	follower := newRoundTestAggregator(t, ctx, "REUSE-DUPLICATE", nil)
 	follower.Raft.LeaderID = "leader-peer"
 	follower.RoundID = 50
-	follower.LatestLocalAggregates.Store(follower.ID, &LocalAggregate{ConfigID: follower.ID, Value: 100})
+	follower.LatestLocalAggregates.Store(follower.ID, &LocalAggregate{ConfigID: follower.ID, Value: 100, Timestamp: time.Now()})
 	followerPrices := published(t, ctx, follower, PriceData)
 
 	trigger := triggerMsg(t, "leader-peer", 51, time.Now())
