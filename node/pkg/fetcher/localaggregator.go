@@ -437,9 +437,6 @@ func (c *LocalAggregator) applyPerFeedMultipliers(feeds []*FeedData) []*FeedData
 }
 
 func (c *LocalAggregator) filterStaleFeeds(feeds []*FeedData) []*FeedData {
-	stalePass := c.beginStaleFeedPass(feeds)
-	defer stalePass.end()
-
 	if c.Config.FeedDataFreshness == nil || *c.Config.FeedDataFreshness <= 0 {
 		return feeds
 	}
@@ -447,6 +444,10 @@ func (c *LocalAggregator) filterStaleFeeds(feeds []*FeedData) []*FeedData {
 	if len(feeds) <= 1 {
 		return feeds
 	}
+
+	// early returns above skip the age check, so they don't touch stale marks
+	stalePass := c.beginStaleFeedPass(feeds)
+	defer stalePass.end()
 
 	freshness := time.Duration(*c.Config.FeedDataFreshness) * time.Millisecond
 	now := time.Now()

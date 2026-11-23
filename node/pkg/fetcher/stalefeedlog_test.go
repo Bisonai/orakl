@@ -77,9 +77,9 @@ func TestFilterStaleFeeds_TransitionPerFeed(t *testing.T) {
 	assert.Contains(t, out, `"feedID":3`)
 }
 
-// A stale-marked feed that passes through unfiltered (here: early return on
-// a single feed) must be cleared, so a later stale spell warns again.
-func TestFilterStaleFeeds_ClearsMarkOnUnfilteredPass(t *testing.T) {
+// Early-return passes (single feed) skip the age check and leave marks alone:
+// a feed count flipping 2 <-> 1 must not produce a warn/info pair per tick.
+func TestFilterStaleFeeds_EarlyReturnKeepsMark(t *testing.T) {
 	buf := captureLogs(t)
 	la := newLocalAggregatorWithFreshness(intPtr(5000))
 
@@ -90,10 +90,12 @@ func TestFilterStaleFeeds_ClearsMarkOnUnfilteredPass(t *testing.T) {
 		{FeedID: 2, Value: 101.0, Volume: 1, Timestamp: &old},
 	}
 	la.filterStaleFeeds(stale)
-	la.filterStaleFeeds([]*FeedData{{FeedID: 2, Value: 101.0, Volume: 1, Timestamp: &old}})
-	assert.Equal(t, 1, strings.Count(buf.String(), "feed no longer excluded as stale"))
-	la.filterStaleFeeds(stale)
-	assert.Equal(t, 2, strings.Count(buf.String(), "excluding stale feed from aggregation"))
+	for i := 0; i < 3; i++ {
+		la.filterStaleFeeds([]*FeedData{{FeedID: 2, Value: 101.0, Volume: 1, Timestamp: &old}})
+		la.filterStaleFeeds(stale)
+	}
+	assert.Equal(t, 0, strings.Count(buf.String(), "feed no longer excluded as stale"))
+	assert.Equal(t, 1, strings.Count(buf.String(), "excluding stale feed from aggregation"))
 }
 
 func TestFilterStaleFeeds_ConcurrentPasses(t *testing.T) {
