@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -71,7 +72,7 @@ func main() {
 	context.AfterFunc(ctx, stop)
 
 	err := dal.Run(ctx)
-	if err != nil && ctx.Err() != nil {
+	if errors.Is(err, context.Canceled) && ctx.Err() != nil {
 		log.Info().Err(err).Msg("DAL stopped during startup")
 		return
 	}

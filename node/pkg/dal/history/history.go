@@ -64,6 +64,7 @@ type Config struct {
 // enabled: on by default, off with DAL_HISTORY_ENABLED=false or when neither
 // DAL_HISTORY_PATH nor DAL_SQLITE_PATH is set.
 func ConfigFromEnv() (Config, bool, error) {
+	explicit := false
 	if v := os.Getenv(EnvEnabled); v != "" {
 		on, err := strconv.ParseBool(v)
 		if err != nil {
@@ -72,12 +73,16 @@ func ConfigFromEnv() (Config, bool, error) {
 		if !on {
 			return Config{}, false, nil
 		}
+		explicit = true
 	}
 
 	cfg := Config{Path: os.Getenv(EnvPath), Interval: DefaultInterval, Retention: DefaultRetention}
 	if cfg.Path == "" {
 		keysPath := os.Getenv(keystore.EnvPath)
 		if keysPath == "" {
+			if explicit {
+				return Config{}, false, fmt.Errorf("%s is true but neither %s nor %s is set", EnvEnabled, EnvPath, keystore.EnvPath)
+			}
 			return Config{}, false, nil
 		}
 		cfg.Path = filepath.Join(filepath.Dir(keysPath), FileName)
@@ -104,8 +109,9 @@ func ConfigFromEnv() (Config, bool, error) {
 }
 
 func (c Config) validate() error {
-	if c.Interval < time.Second || c.Interval%time.Millisecond != 0 {
-		return fmt.Errorf("%s must be a whole number of ms and at least 1s, got %s", EnvInterval, c.Interval)
+	// dividing 1h keeps windows aligned to the hour, so step=1h always works
+	if c.Interval < time.Second || c.Interval%time.Millisecond != 0 || time.Hour%c.Interval != 0 {
+		return fmt.Errorf("%s must be a whole number of ms between 1s and 1h that divides 1h, got %s", EnvInterval, c.Interval)
 	}
 	if c.Retention < MinRetention {
 		return fmt.Errorf("%s must be at least %s (the shortest served range), got %s", EnvRetention, MinRetention, c.Retention)

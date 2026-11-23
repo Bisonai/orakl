@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"bisonai.com/miko/node/pkg/dal/collector"
 	"github.com/rs/zerolog/log"
 )
 
@@ -61,7 +62,11 @@ func (s *ServerV2) serveHistory(w http.ResponseWriter, r *http.Request, symbols 
 	for symbol, series := range result {
 		// decimals as the latest-data endpoints serve them, for symbols without history in range
 		if series.Decimals == "" {
-			series.Decimals, _ = s.collector.Decimals(symbol)
+			decimals, ok := s.collector.Decimals(symbol)
+			if !ok { // removed by a reload during the request
+				decimals = collector.DefaultDecimals
+			}
+			series.Decimals = decimals
 			result[symbol] = series
 		}
 	}

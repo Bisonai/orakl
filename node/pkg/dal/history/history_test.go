@@ -160,6 +160,10 @@ func TestConfigFromEnv(t *testing.T) {
 	assert.Error(t, err)
 	t.Setenv(EnvRetention, "")
 
+	t.Setenv(EnvInterval, "7m")
+	_, _, err = ConfigFromEnv()
+	assert.Error(t, err)
+
 	t.Setenv(EnvInterval, "bogus")
 	_, _, err = ConfigFromEnv()
 	assert.Error(t, err)
@@ -176,6 +180,10 @@ func TestConfigFromEnv(t *testing.T) {
 	_, on, err = ConfigFromEnv()
 	require.NoError(t, err)
 	assert.False(t, on)
+
+	t.Setenv(EnvEnabled, "true") // explicit, but no path
+	_, _, err = ConfigFromEnv()
+	assert.Error(t, err)
 }
 
 func values(points []Point) []string {

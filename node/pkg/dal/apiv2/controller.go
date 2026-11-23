@@ -62,8 +62,9 @@ func Start(ctx context.Context, opts ...ServerV2Option) error {
 	wsServer.SetHistory(config.History)
 	httpServer := &http.Server{
 		Handler: wsServer,
+		// not cancelled by ctx, so Shutdown lets in-flight requests finish
 		BaseContext: func(_ net.Listener) context.Context {
-			return ctx
+			return context.WithoutCancel(ctx)
 		},
 	}
 	// return on ctx done, so the caller can flush state (history) before exiting
