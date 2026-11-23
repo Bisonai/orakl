@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"bisonai.com/miko/node/pkg/dal/collector"
+	"bisonai.com/miko/node/pkg/dal/history"
 	"bisonai.com/miko/node/pkg/dal/hub"
 	"bisonai.com/miko/node/pkg/dal/utils/keycache"
 	"bisonai.com/miko/node/pkg/dal/utils/keystore"
@@ -23,6 +24,7 @@ type ServerV2 struct {
 	hub       *hub.Hub
 	keyCache  *keycache.KeyCache
 	keyStore  *keystore.Store
+	history   *history.Store
 	mux       *http.ServeMux
 }
 
@@ -32,6 +34,7 @@ type ServerV2Config struct {
 	Hub       *hub.Hub
 	KeyCache  *keycache.KeyCache
 	KeyStore  *keystore.Store
+	History   *history.Store
 }
 
 type ServerV2Option func(*ServerV2Config)
@@ -63,5 +66,12 @@ func WithKeyStore(k *keystore.Store) ServerV2Option {
 func WithKeyCache(k *keycache.KeyCache) ServerV2Option {
 	return func(config *ServerV2Config) {
 		config.KeyCache = k
+	}
+}
+
+// WithHistory serves /history from h; without it the routes answer 503.
+func WithHistory(h *history.Store) ServerV2Option {
+	return func(config *ServerV2Config) {
+		config.History = h
 	}
 }

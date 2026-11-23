@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"bisonai.com/miko/node/pkg/dal"
 	"bisonai.com/miko/node/pkg/dal/utils/keystore"
@@ -61,6 +63,12 @@ func main() {
 	}
 
 	loginit.InitZeroLog()
+
+	// SIGTERM/SIGINT stop the server so Run can flush the price history; a
+	// second signal exits at once
+	ctx, stop := signal.NotifyContext(ctx, syscall.SIGTERM, syscall.SIGINT)
+	defer stop()
+	context.AfterFunc(ctx, stop)
 
 	err := dal.Run(ctx)
 	if err != nil {
