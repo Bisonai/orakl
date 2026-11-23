@@ -9,7 +9,12 @@ COPY node node
 
 WORKDIR /app/node
 
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o apibin -ldflags="-w -s" ./cmd/api/main.go
+# build info (see pkg/utils/buildinfo); empty or unset falls back to dev/unknown
+ARG VERSION
+ARG COMMIT
+ARG BUILD_TIME
+
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o apibin -ldflags="-w -s -X bisonai.com/miko/node/pkg/utils/buildinfo.Version=${VERSION:-dev} -X bisonai.com/miko/node/pkg/utils/buildinfo.Commit=${COMMIT:-unknown} -X bisonai.com/miko/node/pkg/utils/buildinfo.BuildTime=${BUILD_TIME:-unknown}" ./cmd/api/main.go
 
 # debian:bookworm-slim
 FROM debian:bookworm-slim
