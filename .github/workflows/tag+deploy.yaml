@@ -131,8 +131,9 @@ jobs:
       image-tag: ${{ needs.build.outputs.img_tag }}
       tag_date: ${{ needs.prepare.outputs.tag_date }}
       tag_git_hash: ${{ needs.prepare.outputs.tag_git_hash }}
-      # services without a kairos chart (mainnet only) still get the image and pre-release
-      skip-missing: true
+      # mainnet-only services (no kairos chart) still get the image and pre-release;
+      # any other service still fails on a missing kairos values file
+      skip-missing: ${{ contains(fromJSON('["dal-stream"]'), needs.prepare.outputs.app_name) }}
     secrets:
       GH_ORAKL_BOT_APP_ID: ${{ secrets.GH_ORAKL_BOT_APP_ID }}
       GH_ORAKL_BOT_PRIVATE_KEY: ${{ secrets.GH_ORAKL_BOT_PRIVATE_KEY }}

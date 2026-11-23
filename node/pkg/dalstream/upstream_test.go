@@ -143,10 +143,15 @@ func TestEndToEnd(t *testing.T) {
 	waitFor(t, time.Second, "subscription", func() bool { return dal.isSubscribed("ETH-USDT") })
 	send(t, c, msg("BTC-USDT", "6141018000000", 1000))
 	send(t, c, msg("ETH-USDT", "250000000000", 1000))
-	waitFor(t, time.Second, "data", func() bool { ok, _ := h.Healthy(time.Second); return ok })
+	waitFor(t, time.Second, "data", func() bool {
+		h.mu.Lock()
+		defer h.mu.Unlock()
+		return len(h.latest) == 2
+	})
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+	h.Tick() // publish, so the snapshot has both
 	go h.Run(ctx, cfg.Tick)
 	srv := httptest.NewServer(NewServer(h, cfg))
 	t.Cleanup(srv.Close) // after the stream body is closed (cleanups run LIFO)

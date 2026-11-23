@@ -140,6 +140,9 @@ func TestSnapshotOnRegister(t *testing.T) {
 	h := newTestHub(t, testConfig(), "BTC-USDT", "ETH-USDT", "KAIA-USDT")
 	_ = h.Apply(msg("BTC-USDT", "6141018000000", 1000))
 	_ = h.Apply(msg("ETH-USDT", "250000000000", 1100))
+	h.Tick()
+	// not yet published: the next update carries it
+	_ = h.Apply(msg("BTC-USDT", "6141100000000", 1400))
 
 	c, _ := register(t, h, "1.1.1.1", "BTC-USDT,KAIA-USDT")
 	evs := drain(t, c)
@@ -156,6 +159,33 @@ func TestSnapshotOnRegister(t *testing.T) {
 	want := `event: snapshot` + "\n" + `data: {"t":`
 	if evs[0].Raw[:len(want)] != want {
 		t.Fatalf("raw = %q", evs[0].Raw)
+	}
+	h.Tick()
+	evs = drain(t, c)
+	if len(evs) != 1 || evs[0].Event != "update" {
+		t.Fatalf("want update, got %+v", evs)
+	}
+	if p, _ := evs[0].Data.price(t, "BTC-USDT"); p != "61411" {
+		t.Fatalf("BTC = %s", p)
+	}
+}
+
+// A client that connects between ticks must not keep a value that reverted
+// before the next tick.
+func TestSnapshotConsistentWithTicks(t *testing.T) {
+	h := newTestHub(t, testConfig(), "BTC-USDT")
+	_ = h.Apply(msg("BTC-USDT", "100", 1))
+	h.Tick()
+	_ = h.Apply(msg("BTC-USDT", "200", 2))
+	c, _ := register(t, h, "1.1.1.1", "")
+	evs := drain(t, c)
+	if p, _ := evs[0].Data.price(t, "BTC-USDT"); p != "0.000001" {
+		t.Fatalf("snapshot = %s, want the published value", p)
+	}
+	_ = h.Apply(msg("BTC-USDT", "100", 3))
+	h.Tick()
+	if evs := drain(t, c); len(evs) != 0 {
+		t.Fatalf("reverted value sent: %+v", evs)
 	}
 }
 
@@ -273,6 +303,13 @@ func TestHealthStale(t *testing.T) {
 	if ok, reason := h.Healthy(time.Second); !ok {
 		t.Fatalf("unhealthy: %s", reason)
 	}
+	// a new connection is unhealthy until it delivers data
+	h.SetConnected(false)
+	h.SetConnected(true)
+	if ok, reason := h.Healthy(time.Second); ok || reason != "no upstream data yet" {
+		t.Fatalf("reconnected without data: ok=%v %s", ok, reason)
+	}
+	_ = h.Apply(msg("BTC-USDT", "1", 2))
 	now = now.Add(2 * time.Second)
 	if ok, reason := h.Healthy(time.Second); ok || reason != "upstream stale" {
 		t.Fatalf("stalled upstream: ok=%v %s", ok, reason)

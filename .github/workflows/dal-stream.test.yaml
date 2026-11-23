@@ -8,6 +8,7 @@ on:
       - "node/pkg/dalstream/**"
       - "node/cmd/dal_stream/**"
       - "node/pkg/dal/common/**"
+      - "node/pkg/utils/**"
       - "node/go.mod"
       - "node/go.sum"
       - "dockerfiles/miko-dal-stream.Dockerfile"

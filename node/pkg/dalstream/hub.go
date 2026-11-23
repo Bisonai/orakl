@@ -46,9 +46,11 @@ type client struct {
 type Hub struct {
 	mu sync.Mutex
 
-	known     map[string]struct{} // symbols served by DAL (GET /symbols)
-	latest    map[string]*entry
-	published map[string]string // price sent in the previous tick
+	known  map[string]struct{} // symbols served by DAL (GET /symbols)
+	latest map[string]*entry
+	// published is the state as of the last tick; snapshots come from it, so
+	// a new client and the following updates agree with older clients
+	published map[string]entry
 	dirty     map[string]struct{}
 
 	groups map[string]*group
@@ -56,6 +58,7 @@ type Hub struct {
 	perIP  map[string]int
 
 	connected bool
+	connData  bool // data received on the current connection
 	lastMsg   time.Time
 
 	maxConns    int
@@ -68,7 +71,7 @@ func NewHub(cfg Config) *Hub {
 	return &Hub{
 		known:       map[string]struct{}{},
 		latest:      map[string]*entry{},
-		published:   map[string]string{},
+		published:   map[string]entry{},
 		dirty:       map[string]struct{}{},
 		groups:      map[string]*group{},
 		perIP:       map[string]int{},
@@ -127,6 +130,7 @@ func (h *Hub) Apply(msg dalcommon.OutgoingSubmissionData) error {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.lastMsg = h.now()
+	h.connData = true
 	if _, ok := h.known[msg.Symbol]; !ok {
 		return nil
 	}
@@ -149,6 +153,7 @@ func (h *Hub) Apply(msg dalcommon.OutgoingSubmissionData) error {
 func (h *Hub) SetConnected(connected bool) {
 	h.mu.Lock()
 	h.connected = connected
+	h.connData = false
 	h.mu.Unlock()
 	if connected {
 		upstreamConnected.Set(1)
@@ -165,7 +170,7 @@ func (h *Hub) Healthy(staleAfter time.Duration) (bool, string) {
 	switch {
 	case !h.connected:
 		return false, "upstream disconnected"
-	case h.lastMsg.IsZero():
+	case !h.connData:
 		return false, "no upstream data yet"
 	case h.now().Sub(h.lastMsg) > staleAfter:
 		return false, "upstream stale"
@@ -242,14 +247,14 @@ func (h *Hub) Register(ip, key string, symbols []string, cancel context.CancelFu
 	activeConnections.Inc()
 	connectionsTotal.Inc()
 
-	snap := map[string]*entry{}
+	snap := map[string]entry{}
 	if symbols == nil {
-		for s, e := range h.latest {
+		for s, e := range h.published {
 			snap[s] = e
 		}
 	} else {
 		for _, s := range symbols {
-			if e, ok := h.latest[s]; ok {
+			if e, ok := h.published[s]; ok {
 				snap[s] = e
 			}
 		}
@@ -287,12 +292,12 @@ func (h *Hub) removeLocked(c *client) {
 func (h *Hub) Tick() {
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	changes := map[string]*entry{}
+	changes := map[string]entry{}
 	for s := range h.dirty {
 		e := h.latest[s]
-		if e != nil && h.published[s] != e.price {
-			changes[s] = e
-			h.published[s] = e.price
+		if e != nil && h.published[s].price != e.price {
+			changes[s] = *e
+			h.published[s] = *e
 		}
 	}
 	clear(h.dirty)
@@ -311,7 +316,7 @@ func (h *Hub) Tick() {
 			}
 			payload = all
 		} else {
-			sub := map[string]*entry{}
+			sub := map[string]entry{}
 			for _, s := range g.symbols {
 				if e, ok := changes[s]; ok {
 					sub[s] = e
@@ -351,7 +356,7 @@ func (h *Hub) Run(ctx context.Context, interval time.Duration) {
 //
 //	event: <name>
 //	data: {"t":<unix ms>,"d":{"BTC-USDT":["61410.18",<aggregateTime ms>]}}
-func encodeEvent(name string, t int64, items map[string]*entry) []byte {
+func encodeEvent(name string, t int64, items map[string]entry) []byte {
 	d := make(map[string][2]any, len(items))
 	for s, e := range items {
 		d[s] = [2]any{e.price, e.aggTime}

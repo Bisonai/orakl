@@ -47,10 +47,15 @@ var (
 	})
 )
 
-// registerUpstreamAge exports seconds since the last upstream message of h.
-func registerUpstreamAge(reg prometheus.Registerer, h *Hub) error {
-	return reg.Register(prometheus.NewGaugeFunc(prometheus.GaugeOpts{
+// registerUpstreamAge exports seconds since the last upstream message of h;
+// call the returned func to unregister.
+func registerUpstreamAge(reg prometheus.Registerer, h *Hub) (func(), error) {
+	g := prometheus.NewGaugeFunc(prometheus.GaugeOpts{
 		Name: "dal_stream_upstream_last_message_age_seconds",
 		Help: "Seconds since the last DAL message; -1 before the first one",
-	}, h.lastMessageAge))
+	}, h.lastMessageAge)
+	if err := reg.Register(g); err != nil {
+		return nil, err
+	}
+	return func() { reg.Unregister(g) }, nil
 }

@@ -26,9 +26,11 @@ func Run(ctx context.Context, cfg Config) error {
 	defer stop()
 
 	hub := NewHub(cfg)
-	if err := registerUpstreamAge(prometheus.DefaultRegisterer, hub); err != nil {
+	unregister, err := registerUpstreamAge(prometheus.DefaultRegisterer, hub)
+	if err != nil {
 		return err
 	}
+	defer unregister()
 
 	publicLn, err := net.Listen("tcp", cfg.Addr)
 	if err != nil {

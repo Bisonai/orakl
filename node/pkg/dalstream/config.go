@@ -166,6 +166,13 @@ func ParseTrustedProxies(s string) ([]netip.Prefix, error) {
 			if err != nil {
 				return nil, fmt.Errorf("%s: %w", EnvTrustedProxies, err)
 			}
+			// peers are compared unmapped, so ::ffff:a.b.c.d/n becomes a.b.c.d/(n-96)
+			if p.Addr().Is4In6() {
+				if p.Bits() < 96 {
+					return nil, fmt.Errorf("%s: %s: IPv4-mapped prefix shorter than /96", EnvTrustedProxies, part)
+				}
+				p = netip.PrefixFrom(p.Addr().Unmap(), p.Bits()-96)
+			}
 			out = append(out, p.Masked())
 			continue
 		}
@@ -201,6 +208,16 @@ func wsURL(base string) string {
 		return "ws://" + strings.TrimPrefix(base, "http://") + "/ws"
 	}
 	return base + "/ws"
+}
+
+// limitKey is the per-IP limit bucket: the IPv4 address, or the /64 of an
+// IPv6 address (one host usually owns a whole /64).
+func limitKey(ip string) string {
+	a, err := netip.ParseAddr(ip)
+	if err != nil || !a.Is6() {
+		return ip
+	}
+	return netip.PrefixFrom(a, 64).Masked().String()
 }
 
 func isTrusted(addr netip.Addr, proxies []netip.Prefix) bool {

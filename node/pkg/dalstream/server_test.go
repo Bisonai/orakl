@@ -36,6 +36,7 @@ func status(t *testing.T, method, url string, header http.Header) (*http.Respons
 func TestStreamSnapshotAndUpdates(t *testing.T) {
 	h, srv := newTestServer(t, testConfig(), "BTC-USDT", "ETH-USDT")
 	_ = h.Apply(msg("BTC-USDT", "6141018000000", 1000))
+	h.Tick()
 
 	r, resp := openStream(t, srv.URL+"/stream?symbols=BTC-USDT", nil)
 	if r == nil {
@@ -188,6 +189,24 @@ func TestClientIP(t *testing.T) {
 	}
 	if _, err := ParseTrustedProxies("not-an-ip"); err == nil {
 		t.Fatal("bad proxy accepted")
+	}
+
+	mapped, err := ParseTrustedProxies("::ffff:10.0.0.0/104")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := clientIP("10.0.0.5:1", []string{"5.5.5.5"}, mapped); got != "5.5.5.5" {
+		t.Fatalf("IPv4-mapped proxy prefix: got %q", got)
+	}
+
+	for in, want := range map[string]string{
+		"1.2.3.4":            "1.2.3.4",
+		"2001:db8:1:2:3::9":  "2001:db8:1:2::/64",
+		"2001:db8:1:2:ff::1": "2001:db8:1:2::/64",
+	} {
+		if got := limitKey(in); got != want {
+			t.Errorf("limitKey(%q) = %q, want %q", in, got, want)
+		}
 	}
 }
 

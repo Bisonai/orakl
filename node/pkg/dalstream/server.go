@@ -76,7 +76,7 @@ func (s *Server) handleStream(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ip := clientIP(r.RemoteAddr, r.Header.Values("X-Forwarded-For"), s.cfg.TrustedProxies)
+	ip := limitKey(clientIP(r.RemoteAddr, r.Header.Values("X-Forwarded-For"), s.cfg.TrustedProxies))
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()
 	c, err := s.hub.Register(ip, key, symbols, cancel)
