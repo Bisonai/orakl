@@ -28,7 +28,7 @@ on:
         default: false
     outputs:
       updated:
-        description: "'true' when the values file exists and was bumped"
+        description: "'true' when the values file exists (bumped now, or already at this tag)"
         value: ${{ jobs.update-image-tag.outputs.updated }}
     secrets:
       GH_ORAKL_BOT_APP_ID:

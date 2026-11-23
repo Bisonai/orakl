@@ -9,6 +9,7 @@ import (
 	"math/rand/v2"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	dalcommon "bisonai.com/miko/node/pkg/dal/common"
@@ -94,7 +95,11 @@ func (u *Upstream) runOnce(ctx context.Context) (received bool, err error) {
 	u.hub.SetConnected(true)
 	log.Info().Int("symbols", len(symbols)).Msg("DAL upstream connected")
 
-	go u.refreshSymbols(connCtx, cancel, conn)
+	// waited for, so a stale refresh cannot overwrite the next connection's symbols
+	var refresh sync.WaitGroup
+	refresh.Add(1)
+	go func() { defer refresh.Done(); u.refreshSymbols(connCtx, cancel, conn) }()
+	defer func() { cancel(); refresh.Wait() }()
 
 	for {
 		readCtx, readCancel := context.WithTimeout(connCtx, u.cfg.StaleAfter)
@@ -118,10 +123,11 @@ func (u *Upstream) runOnce(ctx context.Context) (received bool, err error) {
 	}
 }
 
-// refreshSymbols re-fetches /symbols and re-subscribes to all of them: DAL
-// drops subscriptions of a removed symbol, so one removed and re-added between
-// two refreshes would otherwise stay silent (DAL ignores duplicates). A failed
-// subscribe closes the connection, so it is rebuilt.
+// refreshSymbols re-fetches /symbols and subscribes to all of them. Only
+// symbols DAL did not serve at connect time need it (DAL keeps subscriptions
+// of removed symbols and ignores duplicates); re-sending all is cheap and does
+// not depend on that. A failed subscribe closes the connection, so it is
+// rebuilt.
 func (u *Upstream) refreshSymbols(ctx context.Context, cancel context.CancelFunc, conn *websocket.Conn) {
 	t := time.NewTicker(u.cfg.SymbolsRefresh)
 	defer t.Stop()

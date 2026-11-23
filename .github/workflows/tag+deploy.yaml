@@ -175,7 +175,7 @@ jobs:
             if [ "$KAIROS_UPDATED" = "true" ]; then
               echo "Deployed to kairos. Promote to mainnet with the \`Promote\` workflow (image tag only; merge any required mainnet chart/values changes first)."
             else
-              echo "Not deployed to kairos (no kairos chart). Promote to mainnet with the \`Promote\` workflow (image tag only; merge any required mainnet chart/values changes first)."
+              echo "Not deployed to kairos (no kairos chart). \`Promote\` bumps the mainnet values only once a mainnet chart for ${APP_NAME} exists; until then deploy the image above by hand."
             fi
             echo
             echo "$notes"

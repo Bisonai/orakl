@@ -220,6 +220,18 @@ func limitKey(ip string) string {
 	return netip.PrefixFrom(a, 64).Masked().String()
 }
 
+// parseHop parses an X-Forwarded-For hop: an address, optionally with a port
+// (1.2.3.4:5, [::1]:5) or in brackets.
+func parseHop(hop string) (netip.Addr, error) {
+	if a, err := netip.ParseAddr(hop); err == nil {
+		return a, nil
+	}
+	if host, _, err := net.SplitHostPort(hop); err == nil {
+		hop = host
+	}
+	return netip.ParseAddr(strings.TrimSuffix(strings.TrimPrefix(hop, "["), "]"))
+}
+
 func isTrusted(addr netip.Addr, proxies []netip.Prefix) bool {
 	for _, p := range proxies {
 		if p.Contains(addr) {
@@ -254,7 +266,7 @@ func clientIP(remoteAddr string, xff []string, proxies []netip.Prefix) string {
 		}
 	}
 	for i := len(hops) - 1; i >= 0; i-- {
-		a, err := netip.ParseAddr(hops[i])
+		a, err := parseHop(hops[i])
 		if err != nil {
 			// garbage in the chain: stop at the last address we could trust
 			break

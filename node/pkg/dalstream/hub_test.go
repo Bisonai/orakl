@@ -187,6 +187,13 @@ func TestSnapshotConsistentWithTicks(t *testing.T) {
 	if evs := drain(t, c); len(evs) != 0 {
 		t.Fatalf("reverted value sent: %+v", evs)
 	}
+
+	// unchanged price: the snapshot carries the newest aggregateTime
+	_ = h.Apply(msg("BTC-USDT", "100", 9))
+	c2, _ := register(t, h, "2.2.2.2", "")
+	if p, at := drain(t, c2)[0].Data.price(t, "BTC-USDT"); p != "0.000001" || at != 9 {
+		t.Fatalf("snapshot = %s @ %d", p, at)
+	}
 }
 
 func TestSymbolFilter(t *testing.T) {

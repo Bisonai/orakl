@@ -250,17 +250,26 @@ func (h *Hub) Register(ip, key string, symbols []string, cancel context.CancelFu
 	snap := map[string]entry{}
 	if symbols == nil {
 		for s, e := range h.published {
-			snap[s] = e
+			snap[s] = h.snapshotEntry(s, e)
 		}
 	} else {
 		for _, s := range symbols {
 			if e, ok := h.published[s]; ok {
-				snap[s] = e
+				snap[s] = h.snapshotEntry(s, e)
 			}
 		}
 	}
 	c.queue <- encodeEvent("snapshot", h.now().UnixMilli(), snap)
 	return c, nil
+}
+
+// snapshotEntry is the published price with the newest aggregateTime seen for
+// it: a price that has not moved keeps a fresh aggregateTime.
+func (h *Hub) snapshotEntry(symbol string, pub entry) entry {
+	if e := h.latest[symbol]; e != nil && e.price == pub.price {
+		return *e
+	}
+	return pub
 }
 
 // Unregister removes a client; safe to call more than once.
