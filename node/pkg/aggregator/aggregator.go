@@ -205,7 +205,7 @@ func (n *Aggregator) HandleTriggerMessage(ctx context.Context, msg raft.Message)
 	localAggregate, ok := n.LatestLocalAggregates.LoadFresh(n.ID, time.Now())
 	if !ok {
 		if !n.noLocalAggregate.Swap(true) {
-			log.Warn().Str("Player", "Aggregator").Str("name", n.Name).Dur("maxAge", n.LatestLocalAggregates.MaxAge).Msg("no fresh local aggregate, voting no price")
+			log.Warn().Str("Player", "Aggregator").Str("name", n.Name).Dur("maxAge", n.LatestLocalAggregates.maxAge()).Msg("no fresh local aggregate, voting no price")
 		}
 		// set value to -1 rather than returning error
 		// it is to proceed further steps even if current node fails to get latest local aggregate
@@ -340,6 +340,7 @@ func (n *Aggregator) startPriceCollectionTimeout(ctx context.Context, roundID in
 func (n *Aggregator) processCollectedPrices(ctx context.Context, roundID int32, timestamp time.Time) error {
 	n.roundPrices.locked[roundID] = true
 	if n.Raft.GetRole() != raft.Leader {
+		n.noPrices.Store(false) // a later term warns again
 		return nil
 	}
 

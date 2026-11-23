@@ -323,14 +323,20 @@ func (a *LatestLocalAggregates) LoadFresh(id int32, now time.Time) (*LocalAggreg
 	if !ok {
 		return nil, false
 	}
-	maxAge := a.MaxAge
-	if maxAge <= 0 { // not built by NewLatestLocalAggregates
-		maxAge = DefaultLocalAggregateMaxAge
-	}
+	maxAge := a.maxAge()
 	if age := now.Sub(result.Timestamp); age > maxAge || age < -maxAge {
 		return nil, false
 	}
 	return result, true
+}
+
+// maxAge is MaxAge, or the default when unset (not built by
+// NewLatestLocalAggregates).
+func (a *LatestLocalAggregates) maxAge() time.Duration {
+	if a.MaxAge <= 0 {
+		return DefaultLocalAggregateMaxAge
+	}
+	return a.MaxAge
 }
 
 // Store keeps the newest aggregate per config: every bus message is handled
