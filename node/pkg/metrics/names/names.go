@@ -29,6 +29,8 @@ const (
 	ReporterDelegatorErrors = "orakl_node_reporter_delegator_errors_total"
 	ReporterUp              = "orakl_node_reporter_up"
 
+	SignerRotationFailures = "orakl_node_signer_rotation_failures_total"
+
 	NameLabel     = "name"
 	ConfigLabel   = "config"
 	FeedLabel     = "feed"
