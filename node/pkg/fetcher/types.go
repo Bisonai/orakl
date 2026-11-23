@@ -102,6 +102,8 @@ type LocalAggregator struct {
 
 	latestFeedDataMap      *LatestFeedDataMap
 	localAggregateValueMap *LocalAggregateValueMap
+
+	staleFeeds staleFeedLog
 }
 
 type App struct {

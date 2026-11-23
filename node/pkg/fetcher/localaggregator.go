@@ -171,7 +171,7 @@ func filterOutliers(feeds []*FeedData) ([]*FeedData, error) {
 			return slices.Contains(extremes, feed.Value)
 		})
 
-		log.Info().Int32("feed", feeds[0].FeedID).Any("extremes", extremes).Msg("extremes")
+		log.Debug().Int32("feed", feeds[0].FeedID).Any("extremes", extremes).Msg("extremes")
 	}
 
 	if extremes.Len() < maxOutliersToRemove && outliers.Mild.Len() > 0 {
@@ -190,7 +190,7 @@ func filterOutliers(feeds []*FeedData) ([]*FeedData, error) {
 			return slices.Contains(milds, feed.Value)
 		})
 
-		log.Info().Int32("feed", feeds[0].FeedID).Any("milds", milds).Msg("milds")
+		log.Debug().Int32("feed", feeds[0].FeedID).Any("milds", milds).Msg("milds")
 	}
 
 	return filtered, nil
@@ -445,6 +445,10 @@ func (c *LocalAggregator) filterStaleFeeds(feeds []*FeedData) []*FeedData {
 		return feeds
 	}
 
+	// early returns above skip the age check, so they don't touch stale marks
+	stalePass := c.beginStaleFeedPass(feeds)
+	defer stalePass.end()
+
 	freshness := time.Duration(*c.Config.FeedDataFreshness) * time.Millisecond
 	now := time.Now()
 	fresh := make([]*FeedData, 0, len(feeds))
@@ -470,13 +474,7 @@ func (c *LocalAggregator) filterStaleFeeds(feeds []*FeedData) []*FeedData {
 
 		age := now.Sub(*feed.Timestamp)
 		if age > limit {
-			log.Warn().Str("Player", "LocalAggregator").
-				Str("config", c.Name).
-				Int32("feedID", feed.FeedID).
-				Dur("age", age).
-				Dur("freshness", limit).
-				Float64("value", feed.Value).
-				Msg("excluding stale feed from aggregation")
+			stalePass.noteFeedStale(feed, age, limit)
 			continue
 		}
 		fresh = append(fresh, feed)
