@@ -123,8 +123,8 @@ func TestRefresh(t *testing.T) {
 		t.Fatalf("error getting peers after: %v", err)
 	}
 
-	assert.Less(t, len(readResultAfter), len(readResultBefore), "expected to have less peers after refresh")
 	// the unreachable sample peer is removed, the live host h is kept
+	require.Len(t, readResultBefore, 2, "expected sample peer and h before refresh")
 	require.Len(t, readResultAfter, 1, "expected only the live peer to remain")
 	assert.Equal(t, url, readResultAfter[0].Url, "expected the live peer to be kept")
 
@@ -146,5 +146,5 @@ func TestRefresh(t *testing.T) {
 		t.Fatalf("error getting peers final: %v", err)
 	}
 
-	assert.Less(t, len(readResultFinal), len(readResultAfter), "expected to have less peers after refresh")
+	assert.Empty(t, readResultFinal, "expected the closed peer to be removed")
 }
