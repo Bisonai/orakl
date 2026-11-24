@@ -28,7 +28,9 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 		opt(config)
 	}
 
-	fetcher := &BtseFetcher{quotes: common.NewQuoteCache()}
+	fetcher := &BtseFetcher{}
+	// REST 24h volumes let the book emit before the first trade (sparse trades)
+	fetcher.quotes = common.NewQuoteCacheWithVolumes(&fetcher.VolumeCacheMap)
 	fetcher.FeedMap = config.FeedMaps.Separated
 	fetcher.FeedDataBuffer = config.FeedDataBuffer
 	fetcher.VolumeCacheMap = common.VolumeCacheMap{
