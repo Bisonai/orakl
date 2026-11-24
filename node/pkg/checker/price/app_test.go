@@ -36,3 +36,19 @@ func TestRecordPricesExportsDiffAndDropsOldPairs(t *testing.T) {
 		t.Fatalf("last success: got %v", v)
 	}
 }
+
+func TestBinanceMid(t *testing.T) {
+	got, err := binanceMid(binanceResponse{Symbol: "KAIAUSDT", BidPrice: "0.02750000", AskPrice: "0.02760000"})
+	if err != nil || got < 0.027549 || got > 0.027551 {
+		t.Fatalf("mid: got %v, %v; want 0.02755", got, err)
+	}
+	for _, r := range []binanceResponse{
+		{BidPrice: "0.00000000", AskPrice: "1"},
+		{BidPrice: "1", AskPrice: "0"},
+		{BidPrice: "x", AskPrice: "1"},
+	} {
+		if _, err := binanceMid(r); err == nil {
+			t.Fatalf("expected error for %+v", r)
+		}
+	}
+}

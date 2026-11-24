@@ -14,10 +14,12 @@ import (
 	"bisonai.com/miko/node/pkg/utils/request"
 )
 
+// binanceEndpoint = best bid/ask, not last trade: DAL is order-book mid, and last
+// trade on coarse-tick pairs (KAIA tick ~0.36%) sits a tick or more off mid.
 const (
 	defaultTimeout            = 5 * time.Second
 	dalEndpoint               = "https://dal.mainnet.orakl.network"
-	binanceEndpoint           = "https://api.binance.com/api/v3/ticker/price"
+	binanceEndpoint           = "https://api.binance.com/api/v3/ticker/bookTicker"
 	defaultPriceDiffThreshold = 0.01 // 1%
 	checkInterval             = 15 * time.Second
 )
@@ -189,9 +191,9 @@ func (a *App) collectBinancePrices() (map[baseAndQuote]float64, error) {
 			continue
 		}
 
-		price, err := strconv.ParseFloat(t.Price, 64)
+		price, err := binanceMid(t)
 		if err != nil {
-			log.Error().Err(err).Str("symbol", t.Symbol).Msg("failed to parse price")
+			log.Error().Err(err).Str("symbol", t.Symbol).Msg("failed to parse book ticker")
 			continue
 		}
 
@@ -199,6 +201,22 @@ func (a *App) collectBinancePrices() (map[baseAndQuote]float64, error) {
 	}
 
 	return prices, nil
+}
+
+// binanceMid returns (bid+ask)/2; errors on unparsable or empty sides.
+func binanceMid(t binanceResponse) (float64, error) {
+	bid, err := strconv.ParseFloat(t.BidPrice, 64)
+	if err != nil {
+		return 0, err
+	}
+	ask, err := strconv.ParseFloat(t.AskPrice, 64)
+	if err != nil {
+		return 0, err
+	}
+	if bid <= 0 || ask <= 0 {
+		return 0, errors.New("empty book side")
+	}
+	return (bid + ask) / 2, nil
 }
 
 func (a *App) getBinanceTickers() ([]binanceResponse, error) {
