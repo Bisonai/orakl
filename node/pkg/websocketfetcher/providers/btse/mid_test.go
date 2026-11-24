@@ -51,7 +51,6 @@ func TestHandleMessage_BookOnlyBeforeFirstTrade(t *testing.T) {
 	assert.Len(t, buf, 0, "24h volume not known yet")
 
 	f.VolumeCacheMap.Set(1, common.VolumeCache{UpdatedAt: time.Now(), Volume: 9})
-	time.Sleep(common.BookEmitInterval)
 	handleRaw(t, f, book)
 	require.Len(t, buf, 1)
 	fd := <-buf

@@ -65,7 +65,6 @@ func TestHandleMessage_BookOnlyBeforeFirstTrade(t *testing.T) {
 	assert.Len(t, buf, 0, "24h volume not known yet")
 
 	f.VolumeCacheMap.Set(1, common.VolumeCache{UpdatedAt: time.Now(), Volume: 123})
-	time.Sleep(common.BookEmitInterval)
 	ask := `{"eventId":1794982199920300,"events":[{"delta":"-0.01","price":"60480.00","reason":"cancel","remaining":"0.1","side":"ask","symbol":"BTCUSD","type":"change"}],"socket_sequence":2,"timestampms":1795501921000,"type":"update"}`
 	require.NoError(t, f.handleMessage(ctx, toMsg(t, ask)))
 	require.Len(t, buf, 1)

@@ -61,7 +61,6 @@ func TestHandleMessage_BookOnlyBeforeFirstTrade(t *testing.T) {
 	assert.Len(t, buf, 0, "24h volume not known yet")
 
 	f.VolumeCacheMap.Set(1, common.VolumeCache{UpdatedAt: time.Now(), Volume: 7})
-	time.Sleep(common.BookEmitInterval)
 	require.NoError(t, f.handleMessage(ctx, toMsg(t, book)))
 	require.Len(t, buf, 1)
 	fd := <-buf
