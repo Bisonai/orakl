@@ -7,11 +7,21 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 
+	"bisonai.com/miko/node/pkg/testutil/testenv"
 	"github.com/stretchr/testify/assert"
 )
+
+// redisURL returns a redis:// URL for REDIS_HOST/REDIS_PORT, falling back to
+// the in-process miniredis server when REDIS_HOST is unset.
+func redisURL(t *testing.T) string {
+	t.Helper()
+	testenv.Redis(t)
+	return "redis://" + net.JoinHostPort(os.Getenv("REDIS_HOST"), os.Getenv("REDIS_PORT"))
+}
 
 func TestSelectHealthCheckJSON(t *testing.T) {
 	// mainnet picks the cypress bundle; kairos picks the baobab bundle
@@ -37,7 +47,7 @@ func TestCheckUrl(t *testing.T) {
 	}
 
 	// Test case 2: URL with "redis" prefix
-	redisUrl := HealthCheckUrl{Url: "redis://localhost:6379"}
+	redisUrl := HealthCheckUrl{Url: redisURL(t)}
 	if !checkUrl(ctx, redisUrl) {
 		t.Errorf("checkUrl(%s) = false, expected true", redisUrl.Url)
 	}
@@ -71,7 +81,7 @@ func TestCheckHttp(t *testing.T) {
 
 func TestCheckRedis(t *testing.T) {
 	ctx := context.Background()
-	url := "redis://localhost:6379"
+	url := redisURL(t)
 
 	result := checkRedis(ctx, url)
 

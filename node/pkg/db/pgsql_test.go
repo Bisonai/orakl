@@ -4,9 +4,12 @@ import (
 	"context"
 	"reflect"
 	"testing"
+
+	"bisonai.com/miko/node/pkg/testutil/testenv"
 )
 
 func TestPGSGetPoolSingleton(t *testing.T) {
+	testenv.Postgres(t)
 	ctx := context.Background()
 
 	// Call GetPool multiple times
@@ -27,6 +30,7 @@ func TestPGSGetPoolSingleton(t *testing.T) {
 }
 
 func TestQueryWithoutResult(t *testing.T) {
+	testenv.Postgres(t)
 	ctx := context.Background()
 	pool, err := GetPool(ctx)
 	if err != nil {
@@ -72,6 +76,7 @@ func TestQueryWithoutResult(t *testing.T) {
 }
 
 func TestQueryRow(t *testing.T) {
+	testenv.Postgres(t)
 	ctx := context.Background()
 	pool, err := GetPool(ctx)
 	if err != nil {
@@ -112,6 +117,7 @@ func TestQueryRow(t *testing.T) {
 }
 
 func TestQueryRows(t *testing.T) {
+	testenv.Postgres(t)
 	ctx := context.Background()
 	pool, err := GetPool(ctx)
 	if err != nil {
@@ -154,6 +160,7 @@ func TestQueryRows(t *testing.T) {
 }
 
 func TestBulkCopy(t *testing.T) {
+	testenv.Postgres(t)
 	ctx := context.Background()
 	pool, err := GetPool(ctx)
 	if err != nil {
@@ -184,6 +191,7 @@ func TestBulkCopy(t *testing.T) {
 }
 
 func TestBulkInsert(t *testing.T) {
+	testenv.Postgres(t)
 	ctx := context.Background()
 	pool, err := GetPool(ctx)
 	if err != nil {
@@ -236,6 +244,7 @@ func TestBulkInsert(t *testing.T) {
 }
 
 func TestBulkUpsert(t *testing.T) {
+	testenv.Postgres(t)
 	ctx := context.Background()
 	pool, err := GetPool(ctx)
 	if err != nil {
@@ -298,6 +307,7 @@ func TestBulkUpsert(t *testing.T) {
 
 }
 func TestBulkUpdate(t *testing.T) {
+	testenv.Postgres(t)
 	ctx := context.Background()
 	pool, err := GetPool(ctx)
 	if err != nil {
@@ -360,6 +370,7 @@ func TestBulkUpdate(t *testing.T) {
 
 }
 func TestBulkSelect(t *testing.T) {
+	testenv.Postgres(t)
 	ctx := context.Background()
 	pool, err := GetPool(ctx)
 	if err != nil {

@@ -481,6 +481,9 @@ func TestPopAllObject(t *testing.T) {
 	}
 }
 func TestMSetObjectWithExp(t *testing.T) {
+	if !externalRedis {
+		t.Skip("needs a real Redis (REDIS_HOST): miniredis does not expire keys on wall-clock time")
+	}
 	ctx := context.Background()
 
 	values := map[string]any{
