@@ -42,3 +42,16 @@ func ResponseToFeedData(data Response, feedMap map[string][]int32) ([]*common.Fe
 
 	return result, nil
 }
+
+// ParseTS parses lbank's "TS" (Asia/Shanghai local time) to UTC.
+func ParseTS(ts string) (time.Time, error) {
+	loc, err := time.LoadLocation("Asia/Shanghai")
+	if err != nil {
+		return time.Time{}, err
+	}
+	t, err := time.ParseInLocation(layout, ts, loc)
+	if err != nil {
+		return time.Time{}, err
+	}
+	return t.UTC(), nil
+}

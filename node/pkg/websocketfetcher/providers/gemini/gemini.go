@@ -11,7 +11,15 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-type GeminiFetcher common.Fetcher
+type GeminiFetcher struct {
+	common.Fetcher
+	quotes *common.QuoteCache
+
+	bookMu sync.Mutex
+	books  map[string]*topOfBook // symbol -> best bid/ask so far
+}
+
+type topOfBook struct{ bid, ask float64 }
 
 func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInterface, error) {
 	config := &common.FetcherConfig{}
@@ -19,7 +27,7 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 		opt(config)
 	}
 
-	fetcher := &GeminiFetcher{}
+	fetcher := &GeminiFetcher{quotes: common.NewQuoteCache(), books: make(map[string]*topOfBook)}
 	fetcher.FeedMap = config.FeedMaps.Combined
 	fetcher.FeedDataBuffer = config.FeedDataBuffer
 	fetcher.VolumeCacheMap = common.VolumeCacheMap{
@@ -55,15 +63,66 @@ func (f *GeminiFetcher) handleMessage(ctx context.Context, message map[string]an
 	if response.Type != "update" || len(response.Events) == 0 {
 		return nil
 	}
+	f.handleBookChanges(response.Events)
+
 	feedDataList, err := TradeResponseToFeedDataList(response, f.FeedMap, &f.VolumeCacheMap)
 	if err != nil {
 		log.Error().Str("Player", "Gemini").Err(err).Msg("error in TradeResponseToFeedDataList")
 		return err
 	}
 	for _, feedData := range feedDataList {
-		f.FeedDataBuffer <- feedData
+		f.FeedDataBuffer <- f.quotes.ApplyTrade(feedData)
 	}
 	return nil
+}
+
+// handleBookChanges applies top-of-book "change" events (one side each) and
+// records the book of symbols whose both sides are known. The events carry
+// no timestamp of their own, so the receive time is the book time.
+func (f *GeminiFetcher) handleBookChanges(events []Event) {
+	now := time.Now()
+	changed := map[string]bool{}
+	f.bookMu.Lock()
+	for _, event := range events {
+		if event.Type != "change" || event.Side == nil {
+			continue
+		}
+		price, err := common.PriceStringToFloat64(event.Price)
+		if err != nil {
+			continue
+		}
+		book, ok := f.books[event.Symbol]
+		if !ok {
+			book = &topOfBook{}
+			f.books[event.Symbol] = book
+		}
+		switch *event.Side {
+		case "bid":
+			book.bid = price
+		case "ask":
+			book.ask = price
+		default:
+			continue
+		}
+		changed[event.Symbol] = true
+	}
+	updates := map[string]topOfBook{}
+	for symbol := range changed {
+		if b := f.books[symbol]; b.bid > 0 && b.ask > 0 {
+			updates[symbol] = *b
+		}
+	}
+	f.bookMu.Unlock()
+
+	for symbol, b := range updates {
+		ids, exists := f.FeedMap[symbol]
+		if !exists {
+			continue
+		}
+		for _, feedData := range f.quotes.ApplyBook(ids, b.bid, b.ask, now) {
+			f.FeedDataBuffer <- feedData
+		}
+	}
 }
 
 func (f *GeminiFetcher) Run(ctx context.Context) {

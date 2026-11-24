@@ -1,6 +1,8 @@
 package gemini
 
-const URL = "wss://api.gemini.com/v1/multimarketdata?bids=false&heartbeat=true&offers=false&top_of_book=true&symbols="
+// top_of_book with bids/offers: "change" events carry the best bid/ask (one
+// side per event), "trade" events the trades.
+const URL = "wss://api.gemini.com/v1/multimarketdata?bids=true&heartbeat=true&offers=true&top_of_book=true&symbols="
 
 // rate limit of http request: 120/min.
 // recommended: 1/sec

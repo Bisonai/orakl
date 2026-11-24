@@ -36,3 +36,17 @@ type VolumeEntry struct {
 	Volume    string `json:"volume"`
 	Pair      string `json:"pair"`
 }
+
+// OrderBookChannel + pair is the top-100 order book channel; each push is a
+// full snapshot.
+const OrderBookChannel = "order_book_"
+
+type OrderBookEvent struct {
+	Channel string `json:"channel"`
+	Event   string `json:"event"`
+	Data    struct {
+		Microtimestamp string     `json:"microtimestamp"`
+		Bids           [][]string `json:"bids"`
+		Asks           [][]string `json:"asks"`
+	} `json:"data"`
+}

@@ -2,6 +2,7 @@ package bitstamp
 
 import (
 	"context"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -11,7 +12,10 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-type BitstampFetcher common.Fetcher
+type BitstampFetcher struct {
+	common.Fetcher
+	quotes *common.QuoteCache
+}
 
 func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInterface, error) {
 	config := &common.FetcherConfig{}
@@ -19,7 +23,7 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 		opt(config)
 	}
 
-	fetcher := &BitstampFetcher{}
+	fetcher := &BitstampFetcher{quotes: common.NewQuoteCache()}
 	fetcher.FeedMap = config.FeedMaps.Combined
 	fetcher.FeedDataBuffer = config.FeedDataBuffer
 	fetcher.VolumeCacheMap = common.VolumeCacheMap{
@@ -29,14 +33,16 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 
 	subscriptions := []any{}
 	for feed := range fetcher.FeedMap {
-		subscriptions = append(subscriptions, Subscription{
-			Event: "bts:subscribe",
-			Data: struct {
-				Channel string `json:"channel"`
-			}{
-				Channel: "live_trades_" + strings.ToLower(feed),
-			},
-		})
+		for _, channel := range []string{"live_trades_", OrderBookChannel} {
+			subscriptions = append(subscriptions, Subscription{
+				Event: "bts:subscribe",
+				Data: struct {
+					Channel string `json:"channel"`
+				}{
+					Channel: channel + strings.ToLower(feed),
+				},
+			})
+		}
 	}
 
 	ws, err := wss.NewWebsocketHelper(ctx,
@@ -53,6 +59,9 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 }
 
 func (f *BitstampFetcher) handleMessage(ctx context.Context, message map[string]any) error {
+	if channel, _ := message["channel"].(string); strings.HasPrefix(channel, OrderBookChannel) {
+		return f.handleOrderBook(message)
+	}
 	response, err := common.MessageToStruct[TradeEvent](message)
 	if err != nil {
 		log.Error().Str("Player", "Bitstamp").Err(err).Msg("error in MessageToTradeEvent")
@@ -70,9 +79,40 @@ func (f *BitstampFetcher) handleMessage(ctx context.Context, message map[string]
 	}
 
 	for _, feedData := range feedDataList {
-		f.FeedDataBuffer <- feedData
+		f.FeedDataBuffer <- f.quotes.ApplyTrade(feedData)
 	}
 
+	return nil
+}
+
+func (f *BitstampFetcher) handleOrderBook(message map[string]any) error {
+	book, err := common.MessageToStruct[OrderBookEvent](message)
+	if err != nil {
+		log.Error().Str("Player", "Bitstamp").Err(err).Msg("error in bitstamp.handleOrderBook")
+		return err
+	}
+	if book.Event != "data" {
+		return nil
+	}
+	ids, exists := f.FeedMap[strings.ToUpper(strings.TrimPrefix(book.Channel, OrderBookChannel))]
+	if !exists {
+		return nil
+	}
+	bid, err := common.TopPrice(book.Data.Bids)
+	if err != nil {
+		return nil
+	}
+	ask, err := common.TopPrice(book.Data.Asks)
+	if err != nil {
+		return nil
+	}
+	ts := time.Now()
+	if us, err := strconv.ParseInt(book.Data.Microtimestamp, 10, 64); err == nil {
+		ts = time.UnixMicro(us)
+	}
+	for _, feedData := range f.quotes.ApplyBook(ids, bid, ask, ts) {
+		f.FeedDataBuffer <- feedData
+	}
 	return nil
 }
 

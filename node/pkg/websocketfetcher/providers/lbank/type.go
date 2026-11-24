@@ -1,11 +1,30 @@
 package lbank
 
+import "time"
+
 const URL = "wss://www.lbkex.net/ws/V2/"
+
+// SubscribeDelay paces the per-symbol subscriptions; lbank accepted 230 at
+// 100 ms (and bursts of 30) in live tests.
+const SubscribeDelay = 100 * time.Millisecond
 
 type Subscription struct {
 	Action    string `json:"action"`
 	Subscribe string `json:"subscribe"`
 	Pair      string `json:"pair"`
+	// Depth is the number of levels of a "depth" subscription.
+	Depth string `json:"depth,omitempty"`
+}
+
+// DepthResponse is a "depth" push (top levels); TS as in ticks.
+type DepthResponse struct {
+	Type  string `json:"type"`
+	Pair  string `json:"pair"`
+	TS    string `json:"TS"`
+	Depth struct {
+		Asks [][]string `json:"asks"`
+		Bids [][]string `json:"bids"`
+	} `json:"depth"`
 }
 
 type Response struct {

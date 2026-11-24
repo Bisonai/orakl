@@ -28,8 +28,9 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 	}
 
 	params := Params{
-		Channel: "ticker",
-		Symbol:  symbols,
+		Channel:      "ticker",
+		Symbol:       symbols,
+		EventTrigger: "bbo",
 	}
 
 	subscription := Subscription{
