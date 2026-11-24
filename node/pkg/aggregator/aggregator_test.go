@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"testing"
+	"time"
 
 	"bisonai.com/miko/node/pkg/common/keys"
 	"bisonai.com/miko/node/pkg/db"
@@ -106,7 +107,12 @@ func TestPublishSubmissionData(t *testing.T) {
 		t.Fatal("error publishing global aggregate and proof")
 	}
 
-	data := <-ch
+	var data SubmissionData
+	select {
+	case data = <-ch:
+	case <-time.After(10 * time.Second):
+		t.Fatal("timed out waiting for published submission data")
+	}
 	assert.EqualValues(t, proof, data.Proof)
 	assert.Equal(t, testItems.tmpData.globalAggregate.Round, data.GlobalAggregate.Round)
 	assert.Equal(t, testItems.tmpData.globalAggregate.Value, data.GlobalAggregate.Value)

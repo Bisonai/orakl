@@ -152,20 +152,34 @@ func Subscribe[T any](ctx context.Context, channel string, ch chan T) error {
 	var sub *redis.PubSub
 	operation := func(client *redis.Client) error {
 		sub = client.Subscribe(ctx, channel)
+		// SUBSCRIBE runs on a separate pubsub connection; wait for its
+		// confirmation so a Publish issued after Subscribe returns is not
+		// processed before the subscription exists (and silently dropped).
+		if _, err := sub.Receive(ctx); err != nil {
+			_ = sub.Close()
+			return err
+		}
 		rawCh := sub.Channel()
 		go func() {
+			defer sub.Close()
 			for {
 				select {
 				case <-ctx.Done():
-					sub.Close()
 					return
-				case msg := <-rawCh:
+				case msg, ok := <-rawCh:
+					if !ok {
+						return
+					}
 					var data T
 					err := json.Unmarshal([]byte(msg.Payload), &data)
 					if err != nil {
 						log.Error().Err(err).Msg("Error unmarshalling message")
 					}
-					ch <- data
+					select {
+					case ch <- data:
+					case <-ctx.Done():
+						return
+					}
 				}
 			}
 		}()
