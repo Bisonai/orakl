@@ -86,6 +86,8 @@ jobs:
           cd ./node
           task local:test
         env:
+          # Fail (not skip) tests whose env is missing: see pkg/testutil/testenv.
+          REQUIRE_TEST_ENV: "1"
           DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/miko-test?search_path=public"
           REDIS_HOST: "localhost"
           REDIS_PORT: "6379"

@@ -52,6 +52,8 @@ jobs:
           cd ./node
           task local:test-dal
         env:
+          # Fail (not skip) tests whose env is missing: see pkg/testutil/testenv.
+          REQUIRE_TEST_ENV: "1"
           REDIS_HOST: "localhost"
           REDIS_PORT: "6379"
           KAIA_PROVIDER_URL: "https://public-en-kairos.node.kaia.io"

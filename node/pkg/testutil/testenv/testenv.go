@@ -18,7 +18,18 @@
 // should not rely on the miniredis fallback (gate them with Env on REDIS_HOST).
 //
 // Postgres and other env-dependent resources: Postgres and Env skip the test
-// with a clear reason when the required variables are missing.
+// with a clear reason when the required variables are missing. Env checks only
+// the process environment (os.Getenv): values the code under test would read
+// from Vault via secrets.GetSecret must still be exported as env vars, or the
+// test is treated as unconfigured.
+//
+// REQUIRE_TEST_ENV: set REQUIRE_TEST_ENV=1 where the environment is supposed
+// to be complete (CI workflows that provide the secrets and services). Postgres
+// and Env then fail the test, naming the missing variables, instead of skipping it, so a
+// renamed or missing secret turns the run red instead of silently green. Any
+// value other than empty, "0" or "false" (any case) enables it. It is an explicit opt-in:
+// it is not derived from CI=true, because no-secrets workflows on GitHub must
+// keep skipping.
 //
 // Build tag convention: tests that need public networks (RPC endpoints, CEX
 // websockets) or funded keys belong behind the `integration` build tag
@@ -41,6 +52,8 @@ const (
 	redisPortEnv = "REDIS_PORT"
 	// DatabaseURLEnv is the Postgres connection string read by pkg/db.
 	DatabaseURLEnv = "DATABASE_URL"
+	// RequireEnv turns the skips in Postgres and Env into failures.
+	RequireEnv = "REQUIRE_TEST_ENV"
 )
 
 var (
@@ -147,13 +160,14 @@ func Redis(t testing.TB) {
 	t.Setenv(redisPortEnv, port)
 }
 
-// Postgres skips t unless DATABASE_URL is set.
+// Postgres skips t unless DATABASE_URL is set (fails it under REQUIRE_TEST_ENV).
 func Postgres(t testing.TB) {
 	t.Helper()
 	Env(t, DatabaseURLEnv)
 }
 
 // Env skips t unless every named environment variable is set and non-empty.
+// Under REQUIRE_TEST_ENV it fails t, naming the same variables, instead.
 func Env(t testing.TB, names ...string) {
 	t.Helper()
 	var missing []string
@@ -163,6 +177,21 @@ func Env(t testing.TB, names ...string) {
 		}
 	}
 	if len(missing) > 0 {
-		t.Skipf("testenv: skipping, required env not set: %s", strings.Join(missing, ", "))
+		skipOrFail(t, "required env not set: "+strings.Join(missing, ", "))
 	}
+}
+
+// required reports whether REQUIRE_TEST_ENV is enabled.
+func required() bool {
+	v := strings.TrimSpace(os.Getenv(RequireEnv))
+	return v != "" && v != "0" && !strings.EqualFold(v, "false")
+}
+
+// skipOrFail skips t with reason, or fails it when REQUIRE_TEST_ENV is enabled.
+func skipOrFail(t testing.TB, reason string) {
+	t.Helper()
+	if required() {
+		t.Fatalf("testenv: %s (%s is set, so this fails instead of skipping)", reason, RequireEnv)
+	}
+	t.Skipf("testenv: skipping, %s", reason)
 }

@@ -63,6 +63,8 @@ jobs:
           cd ./node
           go test ./pkg/api/tests -v
         env:
+          # Fail (not skip) tests whose env is missing: see pkg/testutil/testenv.
+          REQUIRE_TEST_ENV: "1"
           DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/miko-test?search_path=public"
           ENCRYPT_PASSWORD: "abc123"
           REDIS_HOST: "localhost"

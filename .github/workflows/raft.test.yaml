@@ -70,4 +70,6 @@ jobs:
           task local:test-raft
           task local:test-cluster
         env:
+          # Fail (not skip) tests whose env is missing: see pkg/testutil/testenv.
+          REQUIRE_TEST_ENV: "1"
           ENCRYPT_PASSWORD: "anything"

@@ -496,6 +496,14 @@ go test ./...
 
 `SIGNER_PK` must be whitelisted on `SUBMISSION_PROXY_CONTRACT`, and `KAIA_REPORTER_PK` must hold funds for the submission tests. Chain helper tests need a reporter key (`KAIA_REPORTER_PK` / `ETH_REPORTER_PK`) even for read-only calls. CI sets these per workflow (`.github/workflows/*.test.yaml`).
 
+The skip check reads only the process environment: values the code would otherwise load from Vault (`secrets.GetSecret`) must be exported as env vars too.
+
+Set `REQUIRE_TEST_ENV=1` when the environment is supposed to be complete: missing variables then fail the test (same message, naming the variables) instead of skipping it, so a renamed or missing CI secret turns the run red. The push workflows that provide their tests' env set it (`node`, `reporter`, `dal`, `api`, `sentinel`, `raft`, `delegator` `.test.yaml`); leave it unset for runs without secrets. It is not derived from `CI=true`.
+
+```sh
+REQUIRE_TEST_ENV=1 go test ./pkg/dal/tests/   # fails: required env not set: KAIA_PROVIDER_URL, ...
+```
+
 miniredis does not expire keys with a TTL on wall-clock time, so TTL-dependent tests (e.g. `TestMSetObjectWithExp` in `pkg/db`) run only against a real Redis (`REDIS_HOST` set).
 
 ## Other Task Commands
