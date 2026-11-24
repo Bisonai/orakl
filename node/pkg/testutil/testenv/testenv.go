@@ -9,7 +9,9 @@
 // address for its lifetime, so the lazy client in pkg/db stays valid across
 // tests. This package does not import pkg/db: pkg/db's internal tests must be
 // able to use it without an import cycle. Callers close the shared client
-// themselves (db.CloseRedis) before calling the StartRedis cleanup.
+// themselves (db.CloseRedis) before calling the StartRedis cleanup. pkg/db
+// caches its client, so a test that later points REDIS_HOST elsewhere must call
+// db.CloseRedis first or it keeps talking to the previous server.
 //
 // miniredis limitation: keys with a TTL do not expire on wall-clock time; they
 // only expire when the server clock is advanced. Tests that depend on expiry
@@ -78,6 +80,9 @@ func stopShared() {
 // set it does nothing and cleanup is a no-op.
 func StartRedis() (cleanup func(), err error) {
 	if os.Getenv(redisHostEnv) != "" {
+		if err := checkRedisPort(); err != nil {
+			return nil, err
+		}
 		return func() {}, nil
 	}
 
@@ -105,6 +110,15 @@ func StartRedis() (cleanup func(), err error) {
 	return cleanup, nil
 }
 
+// checkRedisPort reports a half-configured external Redis (REDIS_HOST set,
+// REDIS_PORT missing) instead of letting pkg/db fail later.
+func checkRedisPort() error {
+	if os.Getenv(redisPortEnv) == "" {
+		return fmt.Errorf("testenv: %s is set but %s is not; set both or unset %s to use miniredis", redisHostEnv, redisPortEnv, redisHostEnv)
+	}
+	return nil
+}
+
 func restoreEnv(name, value string, had bool) {
 	if had {
 		_ = os.Setenv(name, value)
@@ -120,6 +134,9 @@ func restoreEnv(name, value string, had bool) {
 func Redis(t testing.TB) {
 	t.Helper()
 	if os.Getenv(redisHostEnv) != "" {
+		if err := checkRedisPort(); err != nil {
+			t.Fatal(err)
+		}
 		return
 	}
 	host, port, _, err := startShared()

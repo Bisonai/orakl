@@ -120,3 +120,11 @@ func TestEnvSkipsWhenMissing(t *testing.T) {
 		Env(t, "TESTENV_PRESENT")
 	})
 }
+
+func TestStartRedisRejectsHostWithoutPort(t *testing.T) {
+	t.Setenv(redisHostEnv, "redis.example")
+	t.Setenv(redisPortEnv, "")
+	if _, err := StartRedis(); err == nil {
+		t.Fatal("expected error for REDIS_HOST without REDIS_PORT")
+	}
+}
