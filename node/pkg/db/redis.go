@@ -162,6 +162,9 @@ func Subscribe[T any](ctx context.Context, channel string, ch chan T) error {
 		reply, err := sub.ReceiveTimeout(ctx, subscribeConfirmTimeout)
 		if err != nil {
 			_ = sub.Close()
+			if ctxErr := ctx.Err(); ctxErr != nil {
+				return ctxErr
+			}
 			var netErr net.Error
 			if errors.As(err, &netErr) && netErr.Timeout() {
 				// A slow reply is not a broken connection: return an error
