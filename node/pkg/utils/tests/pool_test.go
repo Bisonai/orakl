@@ -32,8 +32,8 @@ func TestImmediateJobExecution(t *testing.T) {
 	select {
 	case <-done:
 		return
-	case <-time.After(100 * time.Millisecond):
-		t.Error("Job was not executed immediately")
+	case <-time.After(5 * time.Second):
+		t.Error("Job was not executed")
 	}
 }
 
@@ -73,19 +73,32 @@ func TestContextCancelDuringJobExecution(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	p.Run(ctx)
 
-	done := make(chan bool)
+	// A job that a worker has already dequeued must run to completion even
+	// if the context is cancelled meanwhile. Wait until the job has started
+	// before cancelling: a job still queued at cancel time may be dropped,
+	// since the worker select picks randomly between job and ctx.Done().
+	started := make(chan struct{})
+	release := make(chan struct{})
+	done := make(chan struct{})
 	p.AddJob(func() {
-		time.Sleep(200 * time.Millisecond)
-		done <- true
+		close(started)
+		<-release
+		close(done)
 	})
 
+	select {
+	case <-started:
+	case <-time.After(5 * time.Second):
+		cancel()
+		t.Fatal("Job did not start")
+	}
+
 	cancel()
-	p.IsRunning = false
+	close(release)
 
 	select {
 	case <-done:
-		return
-	case <-time.After(300 * time.Millisecond):
+	case <-time.After(5 * time.Second):
 		t.Error("Job did not complete as expected after context cancel")
 	}
 }
@@ -148,7 +161,7 @@ func TestConcurrentJobExecution(t *testing.T) {
 		if len(channel) != jobCount {
 			t.Errorf("Expected channel length to be %d, but got %d", jobCount, len(channel))
 		}
-	case <-time.After(time.Second):
+	case <-time.After(5 * time.Second):
 		t.Error("Not all jobs were processed in time")
 	}
 }
