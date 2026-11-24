@@ -72,3 +72,15 @@ func (c *QuoteCache) ApplyBook(ids []int32, bid, ask float64, timestamp time.Tim
 	}
 	return result
 }
+
+// SetTickerBook sets a ticker's own best bid/ask on its FeedData, for
+// providers whose ticker stream carries the book and also pushes on book
+// changes (no separate book stream to merge). A missing or one-sided book is
+// left unset.
+func SetTickerBook(data *FeedData, bid, ask float64, timestamp time.Time) {
+	if bid <= 0 || ask <= 0 {
+		return
+	}
+	ts := timestamp
+	data.Bid, data.Ask, data.BookTimestamp = bid, ask, &ts
+}

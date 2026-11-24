@@ -279,6 +279,9 @@ func TickerResponseToFeedData(data TickerResponse, feedMap map[string][]int32) (
 		feedData.Value = value
 		feedData.Timestamp = &timestamp
 		feedData.Volume = volume
+		// The raw ticker carries the best bid/ask and is pushed on book
+		// changes too.
+		common.SetTickerBook(feedData, data.Params.Data.BestBidPrice, data.Params.Data.BestAskPrice, timestamp)
 		result = append(result, feedData)
 	}
 

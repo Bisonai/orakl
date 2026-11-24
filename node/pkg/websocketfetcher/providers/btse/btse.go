@@ -11,7 +11,11 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-type BtseFetcher common.Fetcher
+type BtseFetcher struct {
+	common.Fetcher
+	bookWs *wss.WebsocketHelper
+	quotes *common.QuoteCache
+}
 
 const (
 	IncreasedReadLimit    = 327690
@@ -24,7 +28,7 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 		opt(config)
 	}
 
-	fetcher := &BtseFetcher{}
+	fetcher := &BtseFetcher{quotes: common.NewQuoteCache()}
 	fetcher.FeedMap = config.FeedMaps.Separated
 	fetcher.FeedDataBuffer = config.FeedDataBuffer
 	fetcher.VolumeCacheMap = common.VolumeCacheMap{
@@ -65,10 +69,41 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 	}
 
 	fetcher.Ws = ws
+
+	bookSubscriptions := []any{}
+	bookArgs := []string{}
+	for feed := range fetcher.FeedMap {
+		bookArgs = append(bookArgs, SnapshotL1Topic+feed+"_0")
+		if len(bookArgs) == maxArgPerSubscription {
+			bookSubscriptions = append(bookSubscriptions, Subscription{Op: "subscribe", Args: bookArgs})
+			bookArgs = []string{}
+		}
+	}
+	if len(bookArgs) > 0 {
+		bookSubscriptions = append(bookSubscriptions, Subscription{Op: "subscribe", Args: bookArgs})
+	}
+	bookWs, err := wss.NewWebsocketHelper(ctx,
+		wss.WithEndpoint(OrderbookURL),
+		wss.WithSubscriptions(bookSubscriptions),
+		wss.WithProxyUrl(config.Proxy),
+		wss.WithReadLimit(IncreasedReadLimit),
+	)
+	if err != nil {
+		log.Error().Str("Player", "Btse").Err(err).Msg("error in btse.New, order book connection")
+		return nil, err
+	}
+	fetcher.bookWs = bookWs
+
 	return fetcher, nil
 }
 
 func (f *BtseFetcher) handleMessage(ctx context.Context, message map[string]any) error {
+	// snapshotL1 data is an object, trade history data an array: route on the
+	// topic before decoding.
+	if topic, _ := message["topic"].(string); strings.HasPrefix(topic, SnapshotL1Topic) {
+		return f.handleSnapshotL1(message)
+	}
+
 	response, err := common.MessageToStruct[Response](message)
 	if err != nil {
 		log.Error().Str("Player", "Btse").Err(err).Msg("error in btse.handleMessage")
@@ -86,6 +121,30 @@ func (f *BtseFetcher) handleMessage(ctx context.Context, message map[string]any)
 	}
 
 	for _, feedData := range feedDataList {
+		f.FeedDataBuffer <- f.quotes.ApplyTrade(feedData)
+	}
+	return nil
+}
+
+func (f *BtseFetcher) handleSnapshotL1(message map[string]any) error {
+	book, err := common.MessageToStruct[SnapshotL1Response](message)
+	if err != nil {
+		log.Error().Str("Player", "Btse").Err(err).Msg("error in btse.handleSnapshotL1")
+		return err
+	}
+	ids, exists := f.FeedMap[book.Data.Symbol]
+	if !exists {
+		return nil
+	}
+	bid, err := common.TopPrice(book.Data.Bids)
+	if err != nil {
+		return nil
+	}
+	ask, err := common.TopPrice(book.Data.Asks)
+	if err != nil {
+		return nil
+	}
+	for _, feedData := range f.quotes.ApplyBook(ids, bid, ask, time.UnixMilli(book.Data.Timestamp)) {
 		f.FeedDataBuffer <- feedData
 	}
 	return nil
@@ -93,6 +152,7 @@ func (f *BtseFetcher) handleMessage(ctx context.Context, message map[string]any)
 
 func (f *BtseFetcher) Run(ctx context.Context) {
 	go f.CacheVolumes(ctx)
+	go f.bookWs.Run(ctx, f.handleMessage)
 	f.Ws.Run(ctx, f.handleMessage)
 }
 
