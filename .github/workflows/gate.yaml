@@ -123,8 +123,9 @@ jobs:
 
   gate:
     needs: [node, node-services]
-    # Not always(): a superseded (cancelled) run stays cancelled, not failed.
-    if: ${{ !cancelled() }}
+    # always(), not !cancelled(): a skipped required check counts as passing, so
+    # gate must run and fail on cancelled/skipped upstream jobs too.
+    if: always()
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
