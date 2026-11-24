@@ -1,0 +1,139 @@
+name: "gate"
+
+# One required check for every PR and master push: builds, vets and tests the
+# Go node module without secrets, so fork and Dependabot PRs run it too.
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+  merge_group:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  # PR runs share a group per ref and supersede each other; every other run
+  # (master push, merge queue, dispatch) gets its own group so none is dropped.
+  group: gate-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  node:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: node
+    steps:
+      - uses: actions/checkout@v7
+      - name: Setup Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: node/go.mod
+          cache-dependency-path: node/go.sum
+      - name: Build
+        run: go build ./...
+      - name: Vet
+        run: go vet ./...
+      - name: Check go.mod/go.sum are tidy
+        run: go mod tidy -diff
+      # REDIS_HOST unset: tests use the in-process miniredis (pkg/testutil/testenv).
+      - name: Test
+        run: go test -count=1 ./...
+
+  node-services:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: node
+    services:
+      # Node schema (migrations/node).
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: miko-test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      # API schema (migrations/api); it overlaps the node schema's table names,
+      # so it gets its own server.
+      postgres-api:
+        image: postgres
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: miko-test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5433:5432
+      redis:
+        image: redis
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+    env:
+      NODE_DB: "postgresql://postgres:postgres@localhost:5432/miko-test?search_path=public"
+      API_DB: "postgresql://postgres:postgres@localhost:5433/miko-test?search_path=public"
+      REDIS_HOST: "localhost"
+      REDIS_PORT: "6379"
+      # Not a secret: test-only key-encryption password, as in node.test.yaml.
+      ENCRYPT_PASSWORD: "anything"
+    steps:
+      - uses: actions/checkout@v7
+      - name: Setup Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: node/go.mod
+          cache-dependency-path: node/go.sum
+      - name: Install golang-migrate
+        run: |
+          curl -fsSL -o migrate.tar.gz https://github.com/golang-migrate/migrate/releases/download/v4.17.0/migrate.linux-amd64.tar.gz
+          echo "26c53c9162c9c4aaa84c47cd12455d4a9ac725befbe82850a5937b5ec1e7b8e6  migrate.tar.gz" | sha256sum -c -
+          tar xzf migrate.tar.gz migrate
+          sudo mv ./migrate /usr/local/bin/migrate
+      - name: Migrate up
+        run: |
+          migrate -database "${NODE_DB}&sslmode=disable" -path ./migrations/node up
+          migrate -database "${API_DB}&sslmode=disable" -path ./migrations/api up
+      # Key/RPC/websocket-gated tests still skip: no secrets here.
+      - name: Test (node schema)
+        env:
+          DATABASE_URL: ${{ env.NODE_DB }}
+        run: go test -count=1 $(go list ./... | grep -v '/pkg/api/tests$')
+      - name: Test (api schema)
+        env:
+          DATABASE_URL: ${{ env.API_DB }}
+          TEST_MODE: "true"
+        run: go test -count=1 ./pkg/api/tests
+
+  gate:
+    needs: [node, node-services]
+    # always(), not !cancelled(): a skipped required check counts as passing, so
+    # gate must run and fail on cancelled/skipped upstream jobs too.
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Require all jobs to succeed
+        env:
+          NODE: ${{ needs.node.result }}
+          NODE_SERVICES: ${{ needs.node-services.result }}
+        run: |
+          echo "node=${NODE} node-services=${NODE_SERVICES}"
+          test "${NODE}" = success
+          test "${NODE_SERVICES}" = success
