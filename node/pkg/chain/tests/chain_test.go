@@ -211,7 +211,7 @@ func TestTxToHashToTx(t *testing.T) {
 
 	rawTx, err := kaiaHelper.MakeFeeDelegatedTx(ctx, "0x93120927379723583c7a0dd2236fcb255e96949f", "increment()", 0)
 	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
+		t.Fatalf("Unexpected error: %v", err)
 	}
 
 	hash := utils.TxToHash(rawTx)

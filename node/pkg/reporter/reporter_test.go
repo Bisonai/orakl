@@ -65,9 +65,7 @@ func TestNewReporter(t *testing.T) {
 		WithLatestSubmittedDataMap(app.LatestSubmittedDataMap),
 	)
 	if errNewDeviationReporter != nil {
-		if err != nil {
-			t.Fatalf("error creating new deviation reporter: %v", err)
-		}
+		t.Fatalf("error creating new deviation reporter: %v", errNewDeviationReporter)
 	}
 	app.Reporters = append(app.Reporters, deviationReporter)
 }
