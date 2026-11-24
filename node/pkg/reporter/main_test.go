@@ -157,7 +157,10 @@ func newMockDal(t *testing.T, ctx context.Context, config types.Config, whitelis
 
 	// Only the fields used by Streams and IncomingDataToOutgoingData are set:
 	// NewCollector would need a chain RPC for the whitelist and live redis
-	// subscriptions, neither of which this test is about.
+	// subscriptions, neither of which this test is about (the redis ingest
+	// path is covered in pkg/dal/tests). With no chain reader, callers must
+	// only convert proofs signed by whitelist: a rejected signer would start
+	// an on-demand whitelist refresh against the nil reader.
 	c := &collector.Collector{
 		OutgoingStream: map[string]chan *dalcommon.OutgoingSubmissionData{
 			config.Name: make(chan *dalcommon.OutgoingSubmissionData, collector.OutgoingStreamSize),
@@ -169,6 +172,8 @@ func newMockDal(t *testing.T, ctx context.Context, config types.Config, whitelis
 
 	h := hub.HubSetup(ctx, []types.Config{config})
 	h.Start(ctx, c)
+	// Closing the stream ends the hub's broadcaster for it.
+	t.Cleanup(func() { c.RemoveSymbols([]string{config.Name}) })
 
 	server := httptest.NewServer(apiv2.NewServer(c, keyCache, keyStore, h))
 	t.Cleanup(server.Close)

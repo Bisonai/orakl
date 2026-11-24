@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"bisonai.com/miko/node/pkg/chain/proof"
 	"bisonai.com/miko/node/pkg/common/types"
 	"bisonai.com/miko/node/pkg/testutil/testenv"
 	kaiacommon "github.com/kaiachain/kaia/common"
@@ -65,6 +66,11 @@ func TestWsDataHandling(t *testing.T) {
 	sample, err := generateSampleSubmissionData(signerPK, config.ID, int64(15), timestamp, 1, config.Name)
 	if err != nil {
 		t.Fatalf("error generating sample submission data: %v", err)
+	}
+	// Check the proof first: the mock collector cannot refresh its whitelist
+	// on a rejected signer (see newMockDal).
+	if _, err = proof.Order(sample.Proof.Proof, sample.GlobalAggregate.Value, timestamp, config.Name, whitelist); err != nil {
+		t.Fatalf("sample proof not accepted for whitelist: %v", err)
 	}
 	// What the DAL collector delivers for a verified submission.
 	outgoing, err := dal.collector.IncomingDataToOutgoingData(ctx, sample)
