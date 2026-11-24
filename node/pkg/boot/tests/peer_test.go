@@ -87,6 +87,8 @@ func TestRefresh(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error making host: %v", err)
 	}
+	// closed explicitly below; cleanup covers FailNow paths (Close is idempotent)
+	t.Cleanup(func() { _ = h.Close() })
 
 	url, err := libp2pUtils.ExtractConnectionUrl(h)
 	if err != nil {
