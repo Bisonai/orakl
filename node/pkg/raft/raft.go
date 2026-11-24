@@ -578,6 +578,41 @@ func (r *Raft) followLeader(leaderID string, term int) {
 	clock.lastSeen.Store(now)
 	clock.activeAt.Store(now)
 	r.recordLeaderChangeSilence(r.leaderClock.Swap(clock), term)
+	if r.leaderFollowed != nil {
+		close(r.leaderFollowed)
+		r.leaderFollowed = nil
+	}
+}
+
+// AwaitLeader reports whether this node follows leaderID, waiting up to the
+// minimum election timeout for it to (or until ctx is done). A new leader
+// publishes its first heartbeat and then its first leader job's message (a
+// round trigger) right away, but a follower handles messages concurrently and
+// pubsub validates them out of order, so the trigger can be handled before
+// the heartbeat that makes its sender the leader (#2999).
+func (r *Raft) AwaitLeader(ctx context.Context, leaderID string) bool {
+	timer := time.NewTimer(r.minElectionTimeout())
+	defer timer.Stop()
+	for {
+		r.Mutex.Lock()
+		if r.LeaderID == leaderID {
+			r.Mutex.Unlock()
+			return true
+		}
+		if r.leaderFollowed == nil {
+			r.leaderFollowed = make(chan struct{})
+		}
+		followed := r.leaderFollowed
+		r.Mutex.Unlock()
+
+		select {
+		case <-followed:
+		case <-timer.C:
+			return false
+		case <-ctx.Done():
+			return false
+		}
+	}
 }
 
 // recordLeaderChangeSilence observes how long the outgoing leader had been silent
