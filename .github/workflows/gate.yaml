@@ -14,8 +14,9 @@ permissions:
   contents: read
 
 concurrency:
-  group: gate-${{ github.ref }}
-  # Supersede stale PR runs; every master push keeps its own run.
+  # PR runs share a group per ref and supersede each other; every other run
+  # (master push, merge queue, dispatch) gets its own group so none is dropped.
+  group: gate-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
@@ -101,7 +102,9 @@ jobs:
           cache-dependency-path: node/go.sum
       - name: Install golang-migrate
         run: |
-          curl -fsSL https://github.com/golang-migrate/migrate/releases/download/v4.17.0/migrate.linux-amd64.tar.gz | tar xz migrate
+          curl -fsSL -o migrate.tar.gz https://github.com/golang-migrate/migrate/releases/download/v4.17.0/migrate.linux-amd64.tar.gz
+          echo "26c53c9162c9c4aaa84c47cd12455d4a9ac725befbe82850a5937b5ec1e7b8e6  migrate.tar.gz" | sha256sum -c -
+          tar xzf migrate.tar.gz migrate
           sudo mv ./migrate /usr/local/bin/migrate
       - name: Migrate up
         run: |
@@ -120,7 +123,8 @@ jobs:
 
   gate:
     needs: [node, node-services]
-    if: always()
+    # Not always(): a superseded (cancelled) run stays cancelled, not failed.
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
