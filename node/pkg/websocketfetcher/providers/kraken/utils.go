@@ -26,6 +26,7 @@ func ResponseToFeedData(response Response, feedMap map[string][]int32) []*common
 			feedData.Value = value
 			feedData.Timestamp = &timestamp
 			feedData.Volume = volume
+			common.SetTickerBook(feedData, data.Bid, data.Ask, timestamp)
 			feedDataList = append(feedDataList, feedData)
 		}
 	}

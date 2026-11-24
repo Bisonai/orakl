@@ -23,7 +23,7 @@ type WebsocketHelper struct {
 	keepaliveFallback   time.Duration
 	keepaliveIntervalFn func() time.Duration
 	// subscribeDelay overrides the 1s pause after dial and after each
-	// subscription (tests only)
+	// subscription (see WithSubscribeDelay)
 	subscribeDelay time.Duration
 
 	Endpoint          string
@@ -54,6 +54,8 @@ type ConnectionConfig struct {
 	KeepaliveFunc         KeepaliveFunc
 	KeepaliveIntervalFunc func() time.Duration
 	keepaliveSet          bool
+
+	SubscribeDelay time.Duration
 }
 
 type ConnectionOption func(*ConnectionConfig)
@@ -124,6 +126,16 @@ func WithInactivityTimeout(duration time.Duration) ConnectionOption {
 	}
 }
 
+// WithSubscribeDelay sets the pause after dialing and after each
+// subscription message (default 1s). Messages are read only after all
+// subscriptions are sent, so providers with one message per symbol need a
+// short delay.
+func WithSubscribeDelay(duration time.Duration) ConnectionOption {
+	return func(c *ConnectionConfig) {
+		c.SubscribeDelay = duration
+	}
+}
+
 func NewWebsocketHelper(ctx context.Context, opts ...ConnectionOption) (*WebsocketHelper, error) {
 	config := &ConnectionConfig{
 		ReconnectInterval: DefaultReconnectInterval,
@@ -169,6 +181,7 @@ func NewWebsocketHelper(ctx context.Context, opts ...ConnectionOption) (*Websock
 		keepaliveFn:         config.KeepaliveFunc,
 		keepaliveFallback:   config.KeepaliveInterval,
 		keepaliveIntervalFn: config.KeepaliveIntervalFunc,
+		subscribeDelay:      config.SubscribeDelay,
 	}
 
 	if config.DialFunc != nil {

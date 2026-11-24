@@ -38,6 +38,13 @@ func TickerToFeedData(ticker Ticker, feedMap map[string][]int32) ([]*common.Feed
 		feedData.Value = value
 		feedData.Timestamp = &timestamp
 		feedData.Volume = volume
+		// The ticker carries the best bid/ask; it is pushed on matches only,
+		// so on quiet markets the book ages like the last trade.
+		bid, bidErr := common.PriceStringToFloat64(ticker.BestBid)
+		ask, askErr := common.PriceStringToFloat64(ticker.BestAsk)
+		if bidErr == nil && askErr == nil {
+			common.SetTickerBook(feedData, bid, ask, timestamp)
+		}
 		result = append(result, feedData)
 	}
 

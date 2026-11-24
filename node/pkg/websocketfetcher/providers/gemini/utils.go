@@ -12,9 +12,15 @@ import (
 
 func TradeResponseToFeedDataList(data Response, feedMap map[string][]int32, volumeCacheMap *common.VolumeCacheMap) ([]*common.FeedData, error) {
 	feedDataList := []*common.FeedData{}
+	if data.TimestampMs == nil {
+		return feedDataList, nil // book-only update
+	}
 
 	timestamp := time.UnixMilli(*data.TimestampMs)
 	for _, event := range data.Events {
+		if event.Type != "trade" {
+			continue
+		}
 
 		ids, exists := feedMap[event.Symbol]
 		if !exists {

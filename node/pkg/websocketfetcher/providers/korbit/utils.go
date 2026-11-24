@@ -39,6 +39,12 @@ func RawToFeedData(raw Raw, feedMap map[string][]int32) ([]*common.FeedData, err
 		feedData.Value = value
 		feedData.Timestamp = &timestamp
 		feedData.Volume = volume
+		// The ticker carries the best bid/ask and is re-sent regularly.
+		if bid, err := common.PriceStringToFloat64(raw.Data.BestBidPrice); err == nil {
+			if ask, err := common.PriceStringToFloat64(raw.Data.BestAskPrice); err == nil {
+				common.SetTickerBook(feedData, bid, ask, timestamp)
+			}
+		}
 
 		result = append(result, feedData)
 	}
