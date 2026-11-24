@@ -22,6 +22,7 @@
   - [Metrics](#metrics)
   - [Migrating keys from PostgreSQL](#migrating-keys-from-postgresql)
   - [DAL stream (SSE)](#dal-stream-sse)
+- [Running tests](#running-tests)
 - [Other Task Commands](#other-task-commands)
   - [Unit Test](#unit-test)
   - [Commands](#commands)
@@ -462,6 +463,40 @@ data: {"t":1763856001000,"d":{"BTC-USDT":["61411.02",1763856000800]}}
 | `DAL_STREAM_ALLOWED_ORIGINS` | Comma-separated exact browser origins, e.g. `https://orakl.network`. Default none (browser requests with an `Origin` are rejected). |
 | `DAL_STREAM_SYMBOLS_REFRESH` | How often `GET /symbols` is re-fetched to pick up DAL config reloads. Default `5m`. |
 | `DAL_STREAM_STALE_AFTER` | No DAL message for this long fails `/health` and reconnects the upstream. Default `10s`. |
+
+## Running tests
+
+`go test ./...` passes with no services and no secrets (a few `pkg/checker/health` HTTP checks still need outbound internet to `example.com`):
+
+```sh
+go test ./...
+```
+
+- Redis: when `REDIS_HOST` is unset, tests start an in-process [miniredis](https://github.com/alicebob/miniredis) server and point `REDIS_HOST`/`REDIS_PORT` at it (`pkg/testutil/testenv`). With `REDIS_HOST` set they use that Redis (`REDIS_PORT` is then required).
+- Everything else is skipped with the missing variables named in the skip message (`go test -v` shows them): Postgres tests need `DATABASE_URL`; chain, DAL and reporter tests need RPC URLs, contract addresses and keys; fetcher tests need the DEX chain websocket URLs.
+
+To run the full set, set the variables the skips name, for example:
+
+```sh
+REDIS_HOST=localhost REDIS_PORT=6379 \
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/miko-test?search_path=public" \
+ENCRYPT_PASSWORD=anything CHAIN=test \
+KAIA_PROVIDER_URL=https://public-en-kairos.node.kaia.io \
+ETH_PROVIDER_URL=wss://ethereum-sepolia-rpc.publicnode.com \
+KAIA_WEBSOCKET_URL=wss://public-en.node.kaia.io/ws \
+ETH_WEBSOCKET_URL=wss://ethereum-rpc.publicnode.com \
+BSC_WEBSOCKET_URL=wss://bsc-rpc.publicnode.com \
+POLYGON_WEBSOCKET_URL=wss://polygon-bor-rpc.publicnode.com \
+JSON_RPC_URL=https://public-en-kairos.node.kaia.io \
+SUBMISSION_PROXY_CONTRACT=<proxy address> \
+SIGNER_PK=<whitelisted signer key> KAIA_REPORTER_PK=<funded key> ETH_REPORTER_PK=<funded key> \
+API_KEY=<DAL API key> DAL_REST_URL=<DAL URL> DAL_WS_URL=<DAL ws URL> \
+go test ./...
+```
+
+`SIGNER_PK` must be whitelisted on `SUBMISSION_PROXY_CONTRACT`, and `KAIA_REPORTER_PK` must hold funds for the submission tests. Chain helper tests need a reporter key (`KAIA_REPORTER_PK` / `ETH_REPORTER_PK`) even for read-only calls. CI sets these per workflow (`.github/workflows/*.test.yaml`).
+
+miniredis does not expire keys with a TTL on wall-clock time, so TTL-dependent tests (e.g. `TestMSetObjectWithExp` in `pkg/db`) run only against a real Redis (`REDIS_HOST` set).
 
 ## Other Task Commands
 

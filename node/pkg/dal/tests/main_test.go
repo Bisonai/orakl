@@ -3,6 +3,7 @@ package test
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -21,6 +22,7 @@ import (
 	"bisonai.com/miko/node/pkg/dal/utils/keycache"
 	"bisonai.com/miko/node/pkg/dal/utils/keystore"
 	"bisonai.com/miko/node/pkg/db"
+	"bisonai.com/miko/node/pkg/testutil/testenv"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
@@ -101,7 +103,13 @@ func generateSampleSubmissionData(configId int32, value int64, timestamp time.Ti
 	}, nil
 }
 
-func setup(ctx context.Context) (func() error, *TestItems, error) {
+// setup skips t unless the live-chain env is set: the collector reads the
+// signer whitelist from SUBMISSION_PROXY_CONTRACT on KAIA_PROVIDER_URL, and
+// samples are signed with SIGNER_PK, which must be on that whitelist.
+func setup(t *testing.T, ctx context.Context) (func() error, *TestItems, error) {
+	t.Helper()
+	testenv.Env(t, "KAIA_PROVIDER_URL", "SUBMISSION_PROXY_CONTRACT", "SIGNER_PK")
+
 	var testItems = new(TestItems)
 
 	testItems.ApiKey = "testApiKey"
@@ -185,11 +193,14 @@ func cleanup(ctx context.Context, testItems *TestItems) func() error {
 
 func TestMain(m *testing.M) {
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
-	// setup
+	stopRedis, err := testenv.StartRedis()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
 	code := m.Run()
 
 	db.CloseRedis()
-
-	// teardown
+	stopRedis()
 	os.Exit(code)
 }

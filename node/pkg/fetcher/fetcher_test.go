@@ -15,7 +15,7 @@ import (
 
 func TestFetcherRun(t *testing.T) {
 	ctx := context.Background()
-	clean, testItems, err := setup(ctx)
+	clean, testItems, err := setup(t, ctx)
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
@@ -47,7 +47,7 @@ func TestFetcherRun(t *testing.T) {
 
 func TestFetcherFetcherJob(t *testing.T) {
 	ctx := context.Background()
-	clean, testItems, err := setup(ctx)
+	clean, testItems, err := setup(t, ctx)
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
@@ -84,7 +84,7 @@ func TestFetcherFetcherJob(t *testing.T) {
 
 func TestFetcherFetch(t *testing.T) {
 	ctx := context.Background()
-	clean, testItems, err := setup(ctx)
+	clean, testItems, err := setup(t, ctx)
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
@@ -112,7 +112,7 @@ func TestFetcherFetch(t *testing.T) {
 
 func TestFetcherFetchProxy(t *testing.T) {
 	ctx := context.Background()
-	clean, testItems, err := setup(ctx)
+	clean, testItems, err := setup(t, ctx)
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
@@ -159,7 +159,7 @@ func TestFetcherFetchProxy(t *testing.T) {
 
 func TestFetcherCex(t *testing.T) {
 	ctx := context.Background()
-	clean, testItems, err := setup(ctx)
+	clean, testItems, err := setup(t, ctx)
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
@@ -199,7 +199,7 @@ func TestFetcherCex(t *testing.T) {
 
 func TestRequestFeed(t *testing.T) {
 	ctx := context.Background()
-	clean, testItems, err := setup(ctx)
+	clean, testItems, err := setup(t, ctx)
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}

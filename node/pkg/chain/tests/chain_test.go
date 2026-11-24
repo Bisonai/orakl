@@ -17,6 +17,7 @@ import (
 	"bisonai.com/miko/node/pkg/db"
 	errorSentinel "bisonai.com/miko/node/pkg/error"
 	"bisonai.com/miko/node/pkg/nodestate"
+	"bisonai.com/miko/node/pkg/testutil/testenv"
 	"github.com/kaiachain/kaia/blockchain/types"
 	"github.com/kaiachain/kaia/common"
 	"github.com/kaiachain/kaia/crypto"
@@ -40,6 +41,7 @@ func openState(t *testing.T) *nodestate.Store {
 }
 
 func TestNewKaiaHelper(t *testing.T) {
+	testenv.Env(t, "DATABASE_URL", "KAIA_PROVIDER_URL", "KAIA_REPORTER_PK")
 	ctx := context.Background()
 	err := db.QueryWithoutResult(ctx, InsertProviderUrlQuery, map[string]any{
 		"chain_id": 1001,
@@ -52,7 +54,7 @@ func TestNewKaiaHelper(t *testing.T) {
 
 	kaiaHelper, err := helper.NewChainHelper(ctx)
 	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
+		t.Fatalf("Unexpected error: %v", err)
 	}
 
 	kaiaHelper.Close()
@@ -63,6 +65,7 @@ func TestNewKaiaHelper(t *testing.T) {
 }
 
 func TestNewSigner(t *testing.T) {
+	testenv.Env(t, "SUBMISSION_PROXY_CONTRACT", "SIGNER_PK", "KAIA_PROVIDER_URL")
 	ctx := context.Background()
 
 	_, err := helper.NewSigner(ctx, helper.WithSignerStore(openState(t)))
@@ -72,6 +75,7 @@ func TestNewSigner(t *testing.T) {
 }
 
 func TestNewEthHelper(t *testing.T) {
+	testenv.Env(t, "DATABASE_URL", "ETH_PROVIDER_URL", "ETH_REPORTER_PK")
 	ctx := context.Background()
 
 	err := db.QueryWithoutResult(ctx, InsertProviderUrlQuery, map[string]any{
@@ -85,7 +89,7 @@ func TestNewEthHelper(t *testing.T) {
 
 	ethHelper, err := helper.NewChainHelper(ctx, helper.WithBlockchainType(helper.Ethereum))
 	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
+		t.Fatalf("Unexpected error: %v", err)
 	}
 	ethHelper.Close()
 	err = db.QueryWithoutResult(ctx, "DELETE FROM provider_urls;", nil)
@@ -95,11 +99,12 @@ func TestNewEthHelper(t *testing.T) {
 }
 
 func TestMakeDirectTx(t *testing.T) {
+	testenv.Env(t, "KAIA_PROVIDER_URL", "KAIA_REPORTER_PK")
 	ctx := context.Background()
 
 	kaiaHelper, err := helper.NewChainHelper(ctx)
 	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
+		t.Fatalf("Unexpected error: %v", err)
 	}
 	defer kaiaHelper.Close()
 
@@ -147,10 +152,11 @@ func TestMakeDirectTx(t *testing.T) {
 }
 
 func TestMakeFeeDelegatedTx(t *testing.T) {
+	testenv.Env(t, "KAIA_PROVIDER_URL", "KAIA_REPORTER_PK")
 	ctx := context.Background()
 	kaiaHelper, err := helper.NewChainHelper(ctx)
 	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
+		t.Fatalf("Unexpected error: %v", err)
 	}
 	defer kaiaHelper.Close()
 
@@ -194,17 +200,18 @@ func TestMakeFeeDelegatedTx(t *testing.T) {
 }
 
 func TestTxToHashToTx(t *testing.T) {
+	testenv.Env(t, "KAIA_PROVIDER_URL", "KAIA_REPORTER_PK")
 	ctx := context.Background()
 
 	kaiaHelper, err := helper.NewChainHelper(ctx)
 	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
+		t.Fatalf("Unexpected error: %v", err)
 	}
 	defer kaiaHelper.Close()
 
 	rawTx, err := kaiaHelper.MakeFeeDelegatedTx(ctx, "0x93120927379723583c7a0dd2236fcb255e96949f", "increment()", 0)
 	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
+		t.Fatalf("Unexpected error: %v", err)
 	}
 
 	hash := utils.TxToHash(rawTx)
@@ -251,11 +258,12 @@ func TestGenerateViewABI(t *testing.T) {
 }
 
 func TestSubmitDelegeted(t *testing.T) {
+	testenv.Env(t, "KAIA_PROVIDER_URL", "KAIA_REPORTER_PK")
 	ctx := context.Background()
 
 	kaiaHelper, err := helper.NewChainHelper(ctx)
 	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
+		t.Fatalf("Unexpected error: %v", err)
 	}
 	defer kaiaHelper.Close()
 
@@ -266,6 +274,7 @@ func TestSubmitDelegeted(t *testing.T) {
 }
 
 func TestSubmitDelegetedFallbackDirectConcurrent(t *testing.T) {
+	testenv.Env(t, "KAIA_PROVIDER_URL", "KAIA_REPORTER_PK")
 	ctx := context.Background()
 	noncemanager.ResetInstance()
 	kaiaHelper, err := helper.NewChainHelper(ctx)
@@ -302,11 +311,12 @@ func TestSubmitDelegetedFallbackDirectConcurrent(t *testing.T) {
 }
 
 func TestReadContract(t *testing.T) {
+	testenv.Env(t, "KAIA_PROVIDER_URL", "KAIA_REPORTER_PK")
 	// testing based on baobab testnet
 	ctx := context.Background()
 	kaiaHelper, err := helper.NewChainHelper(ctx)
 	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
+		t.Fatalf("Unexpected error: %v", err)
 	}
 	defer kaiaHelper.Close()
 
@@ -331,11 +341,12 @@ func TestReadContract(t *testing.T) {
 }
 
 func TestReadContractWithEthHelper(t *testing.T) {
+	testenv.Env(t, "ETH_PROVIDER_URL", "ETH_REPORTER_PK")
 	// testing based on sepolia eth testnet
 	ctx := context.Background()
 	ethHelper, err := helper.NewChainHelper(ctx, helper.WithBlockchainType(helper.Ethereum))
 	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
+		t.Fatalf("Unexpected error: %v", err)
 	}
 
 	result, err := ethHelper.ReadContract(ctx, "0x72C8f1933A0C0a9ad53D6CdDAF2e1Ce2F6075D2b", "count() returns (uint256)")
@@ -491,6 +502,7 @@ func TestMakeAbiFuncAttribute(t *testing.T) {
 }
 
 func TestMakeGlobalAggregateProof(t *testing.T) {
+	testenv.Env(t, "SIGNER_PK")
 	ctx := context.Background()
 	// Static mode (WithSignerPk): this test verifies proof FORMAT, independent of on-chain
 	// whitelist state, so use the fixed SIGNER_PK directly (the managed gate is covered elsewhere).
@@ -575,6 +587,7 @@ func TestMakeMultiGlobalAggregateProof(t *testing.T) {
 }
 
 func TestGlobalAggregateProofMergeAndSplit(t *testing.T) {
+	testenv.Env(t, "SIGNER_PK")
 	ctx := context.Background()
 	// Static mode: verifies proof merge/split format independent of on-chain whitelist state.
 	s, err := helper.NewSigner(ctx, helper.WithSignerPk(os.Getenv("SIGNER_PK")))
@@ -652,9 +665,7 @@ func TestNewPk(t *testing.T) {
 func TestSignerRenew(t *testing.T) {
 	ctx := context.Background()
 
-	if os.Getenv("SUBMISSION_PROXY_CONTRACT") == "" {
-		t.Skip("Skipping test because SUBMISSION_PROXY_CONTRACT is not set")
-	}
+	testenv.Env(t, "SUBMISSION_PROXY_CONTRACT", "SIGNER_PK", "KAIA_PROVIDER_URL")
 
 	s, err := helper.NewSigner(ctx, helper.WithSignerStore(openState(t)))
 	if err != nil {

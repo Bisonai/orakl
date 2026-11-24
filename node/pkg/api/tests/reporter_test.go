@@ -8,6 +8,7 @@ import (
 	"bisonai.com/miko/node/pkg/api/reporter"
 	"bisonai.com/miko/node/pkg/api/service"
 	"bisonai.com/miko/node/pkg/api/utils"
+	"bisonai.com/miko/node/pkg/testutil/testenv"
 
 	"github.com/joho/godotenv"
 	"github.com/stretchr/testify/assert"
@@ -18,6 +19,8 @@ func TestReporter(t *testing.T) {
 	if err != nil {
 		fmt.Print("env file is not found, continueing without .env file")
 	}
+	// utils.Setup needs both; its error is not checked by these tests.
+	testenv.Env(t, testenv.DatabaseURLEnv, "ENCRYPT_PASSWORD")
 
 	var insertChain = chain.ChainInsertModel{Name: "reporter-test-chain"}
 	var insertService = service.ServiceInsertModel{Name: "reporter-test-service"}

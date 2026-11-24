@@ -9,6 +9,7 @@ import (
 	"bisonai.com/miko/node/pkg/common/keys"
 	"bisonai.com/miko/node/pkg/dal/hub"
 	"bisonai.com/miko/node/pkg/db"
+	"bisonai.com/miko/node/pkg/testutil/testenv"
 )
 
 func TestFetchConfigs(t *testing.T) {
@@ -19,6 +20,7 @@ func TestFetchConfigs(t *testing.T) {
 }
 
 func TestRunApp(t *testing.T) {
+	testenv.Env(t, dalAppEnv...)
 	ctx := context.Background()
 
 	app := New()
@@ -29,6 +31,9 @@ func TestRunApp(t *testing.T) {
 }
 
 func TestWsDataHandling(t *testing.T) {
+	// mockDalWsServer starts a real DAL collector (on-chain whitelist), and
+	// the sample is signed with SIGNER_PK, which must be on that whitelist.
+	testenv.Env(t, "KAIA_PROVIDER_URL", "SUBMISSION_PROXY_CONTRACT", "SIGNER_PK")
 	ctx := context.Background()
 
 	app := New()

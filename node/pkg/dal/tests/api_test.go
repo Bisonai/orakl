@@ -19,7 +19,7 @@ import (
 
 func TestApiControllerRun(t *testing.T) {
 	ctx := context.Background()
-	clean, testItems, err := setup(ctx)
+	clean, testItems, err := setup(t, ctx)
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
@@ -35,7 +35,7 @@ func TestApiControllerRun(t *testing.T) {
 
 func TestApiGetHealthCheck(t *testing.T) {
 	ctx := context.Background()
-	clean, testItems, err := setup(ctx)
+	clean, testItems, err := setup(t, ctx)
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
@@ -55,7 +55,7 @@ func TestApiGetHealthCheck(t *testing.T) {
 
 func TestApiGetSymbols(t *testing.T) {
 	ctx := context.Background()
-	clean, testItems, err := setup(ctx)
+	clean, testItems, err := setup(t, ctx)
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
@@ -76,7 +76,7 @@ func TestApiGetSymbols(t *testing.T) {
 
 func TestApiGetLatestAll(t *testing.T) {
 	ctx := context.Background()
-	clean, testItems, err := setup(ctx)
+	clean, testItems, err := setup(t, ctx)
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
@@ -116,7 +116,7 @@ func TestApiGetLatestAll(t *testing.T) {
 
 func TestShouldFailWithoutApiKey(t *testing.T) {
 	ctx := context.Background()
-	clean, testItems, err := setup(ctx)
+	clean, testItems, err := setup(t, ctx)
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
@@ -144,7 +144,7 @@ func TestShouldFailWithoutApiKey(t *testing.T) {
 
 func TestApiGetLatest(t *testing.T) {
 	ctx := context.Background()
-	clean, testItems, err := setup(ctx)
+	clean, testItems, err := setup(t, ctx)
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
@@ -180,7 +180,7 @@ func TestApiGetLatest(t *testing.T) {
 
 func TestApiGetLatestTransposeAll(t *testing.T) {
 	ctx := context.Background()
-	clean, testItems, err := setup(ctx)
+	clean, testItems, err := setup(t, ctx)
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
@@ -223,7 +223,7 @@ func TestApiGetLatestTransposeAll(t *testing.T) {
 
 func TestApiGetLatestTranspose(t *testing.T) {
 	ctx := context.Background()
-	clean, testItems, err := setup(ctx)
+	clean, testItems, err := setup(t, ctx)
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
@@ -297,7 +297,7 @@ func awaitWSSubmission(ctx context.Context, t *testing.T, testItems *TestItems, 
 
 func TestApiWebsocket(t *testing.T) {
 	ctx := context.Background()
-	clean, testItems, err := setup(ctx)
+	clean, testItems, err := setup(t, ctx)
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
@@ -485,7 +485,7 @@ func TestApiWebsocket(t *testing.T) {
 
 func TestApiGetHistory(t *testing.T) {
 	ctx := context.Background()
-	clean, testItems, err := setup(ctx)
+	clean, testItems, err := setup(t, ctx)
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}

@@ -6,6 +6,7 @@ import (
 
 	"bisonai.com/miko/node/pkg/api/service"
 	"bisonai.com/miko/node/pkg/api/utils"
+	"bisonai.com/miko/node/pkg/testutil/testenv"
 
 	"github.com/joho/godotenv"
 	"github.com/stretchr/testify/assert"
@@ -16,6 +17,8 @@ func TestService(t *testing.T) {
 	if err != nil {
 		fmt.Print("env file is not found, continueing without .env file")
 	}
+	// utils.Setup needs both; its error is not checked by these tests.
+	testenv.Env(t, testenv.DatabaseURLEnv, "ENCRYPT_PASSWORD")
 
 	var insertData = service.ServiceInsertModel{Name: "SERVICE_TEST"}
 	var updateData = service.ServiceInsertModel{Name: "SERVICE_TEST_2"}

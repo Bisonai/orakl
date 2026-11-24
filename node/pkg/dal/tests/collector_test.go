@@ -13,7 +13,7 @@ import (
 
 func TestCollectorStartAndStop(t *testing.T) {
 	ctx := context.Background()
-	clean, testItems, err := setup(ctx)
+	clean, testItems, err := setup(t, ctx)
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
@@ -35,7 +35,7 @@ func TestCollectorStartAndStop(t *testing.T) {
 
 func TestCollectorStream(t *testing.T) {
 	ctx := context.Background()
-	clean, testItems, err := setup(ctx)
+	clean, testItems, err := setup(t, ctx)
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}

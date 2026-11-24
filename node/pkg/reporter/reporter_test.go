@@ -7,10 +7,12 @@ import (
 	"testing"
 
 	"bisonai.com/miko/node/pkg/chain/helper"
+	"bisonai.com/miko/node/pkg/testutil/testenv"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNewReporter(t *testing.T) {
+	testenv.Env(t, "SUBMISSION_PROXY_CONTRACT", "KAIA_PROVIDER_URL", "KAIA_REPORTER_PK")
 	ctx := context.Background()
 
 	app := New()
@@ -22,9 +24,6 @@ func TestNewReporter(t *testing.T) {
 	groupedConfigs := groupConfigsBySubmitIntervals(configs)
 
 	contractAddress := os.Getenv("SUBMISSION_PROXY_CONTRACT")
-	if contractAddress == "" {
-		t.Fatal("SUBMISSION_PROXY_CONTRACT not set")
-	}
 
 	tmpHelper, err := helper.NewChainHelper(ctx)
 	if err != nil {
@@ -66,23 +65,12 @@ func TestNewReporter(t *testing.T) {
 		WithLatestSubmittedDataMap(app.LatestSubmittedDataMap),
 	)
 	if errNewDeviationReporter != nil {
-		if err != nil {
-			t.Fatalf("error creating new deviation reporter: %v", err)
-		}
+		t.Fatalf("error creating new deviation reporter: %v", errNewDeviationReporter)
 	}
 	app.Reporters = append(app.Reporters, deviationReporter)
 }
 
 func TestShouldReportDeviation(t *testing.T) {
-	ctx := context.Background()
-
-	app := New()
-
-	_, err := app.setReporters(ctx)
-	if err != nil {
-		t.Fatalf("error setting reporters: %v", err)
-	}
-
 	assert.False(t, ShouldReportDeviation(0, 0, 0.05))
 	assert.True(t, ShouldReportDeviation(0, 100000000, 0.05))
 	assert.False(t, ShouldReportDeviation(100000000000, 100100000000, 0.05))
@@ -91,6 +79,7 @@ func TestShouldReportDeviation(t *testing.T) {
 }
 
 func TestGetDeviatingAggregates(t *testing.T) {
+	testenv.Env(t, "SUBMISSION_PROXY_CONTRACT", "KAIA_PROVIDER_URL", "KAIA_REPORTER_PK")
 	ctx := context.Background()
 
 	app := New()
@@ -101,9 +90,6 @@ func TestGetDeviatingAggregates(t *testing.T) {
 	}
 
 	contractAddress := os.Getenv("SUBMISSION_PROXY_CONTRACT")
-	if contractAddress == "" {
-		t.Fatal("SUBMISSION_PROXY_CONTRACT not set")
-	}
 
 	tmpHelper, err := helper.NewChainHelper(ctx)
 	if err != nil {

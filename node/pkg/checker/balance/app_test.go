@@ -6,6 +6,7 @@ import (
 	"os"
 	"testing"
 
+	"bisonai.com/miko/node/pkg/testutil/testenv"
 	"github.com/kaiachain/kaia/common"
 	"github.com/stretchr/testify/assert"
 )
@@ -15,6 +16,8 @@ const (
 )
 
 func TestGetBalance(t *testing.T) {
+	// Reads a fixed-balance account on a live Kaia RPC endpoint.
+	testenv.Env(t, "JSON_RPC_URL")
 	ctx := context.Background()
 	err := setClient(os.Getenv("JSON_RPC_URL"))
 	if err != nil {
