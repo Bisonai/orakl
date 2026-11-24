@@ -79,6 +79,7 @@ require (
 	github.com/tetratelabs/wazero v1.9.0 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/wlynxg/anet v0.0.5 // indirect
+	github.com/yuin/gopher-lua v1.1.1 // indirect
 	go.opentelemetry.io/proto/otlp v1.3.1 // indirect
 	go.yaml.in/yaml/v2 v2.4.3 // indirect
 	golang.org/x/telemetry v0.0.0-20250908211612-aef8a434d053 // indirect
@@ -87,7 +88,10 @@ require (
 	modernc.org/memory v1.11.0 // indirect
 )
 
-require github.com/prometheus-community/pro-bing v0.4.1
+require (
+	github.com/alicebob/miniredis/v2 v2.40.0
+	github.com/prometheus-community/pro-bing v0.4.1
+)
 
 require (
 	cloud.google.com/go/compute/metadata v0.3.0 // indirect

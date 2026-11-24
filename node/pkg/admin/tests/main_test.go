@@ -2,6 +2,7 @@ package tests
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"testing"
 
@@ -12,6 +13,7 @@ import (
 	"bisonai.com/miko/node/pkg/admin/utils"
 	"bisonai.com/miko/node/pkg/bus"
 	"bisonai.com/miko/node/pkg/db"
+	"bisonai.com/miko/node/pkg/testutil/testenv"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -52,8 +54,14 @@ func adminCleanup(testItems *TestItems) func() error {
 }
 
 func TestMain(m *testing.M) {
+	stopRedis, err := testenv.StartRedis()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
 	code := m.Run()
 	db.CloseRedis()
+	stopRedis()
 
 	os.Exit(code)
 }

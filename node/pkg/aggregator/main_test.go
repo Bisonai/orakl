@@ -2,6 +2,7 @@ package aggregator
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -14,6 +15,7 @@ import (
 	"bisonai.com/miko/node/pkg/db"
 	libp2pSetup "bisonai.com/miko/node/pkg/libp2p/setup"
 	"bisonai.com/miko/node/pkg/nodeconfig"
+	"bisonai.com/miko/node/pkg/testutil/testenv"
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog"
 )
@@ -141,8 +143,14 @@ func aggregatorCleanup(ctx context.Context, admin *fiber.App, app *App) func() e
 
 func TestMain(m *testing.M) {
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	stopRedis, err := testenv.StartRedis()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
 	code := m.Run()
 	db.ClosePool()
 	db.CloseRedis()
+	stopRedis()
 	os.Exit(code)
 }
