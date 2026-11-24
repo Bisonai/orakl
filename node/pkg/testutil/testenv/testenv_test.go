@@ -2,7 +2,10 @@ package testenv
 
 import (
 	"context"
+	"fmt"
 	"os"
+	"runtime"
+	"strings"
 	"testing"
 	"time"
 
@@ -112,6 +115,7 @@ func TestStartRedisKeepsServerStartedByRedis(t *testing.T) {
 }
 
 func TestEnvSkipsWhenMissing(t *testing.T) {
+	t.Setenv(RequireEnv, "") // CI may set it for the whole run
 	t.Setenv("TESTENV_PRESENT", "1")
 	t.Setenv("TESTENV_MISSING", "")
 
@@ -139,4 +143,85 @@ func TestStartRedisRejectsHostWithoutPort(t *testing.T) {
 	if _, err := StartRedis(); err == nil {
 		t.Fatal("expected error for REDIS_HOST without REDIS_PORT")
 	}
+}
+
+// recordTB observes Skip vs Fatal without failing the real test. Like
+// testing.T, Skipf and Fatalf stop the calling goroutine.
+type recordTB struct {
+	testing.TB
+	skipped, failed bool
+	msg             string
+}
+
+func (r *recordTB) Helper() {}
+
+func (r *recordTB) Skipf(format string, args ...any) {
+	r.skipped, r.msg = true, fmt.Sprintf(format, args...)
+	runtime.Goexit()
+}
+
+func (r *recordTB) Fatalf(format string, args ...any) {
+	r.failed, r.msg = true, fmt.Sprintf(format, args...)
+	runtime.Goexit()
+}
+
+// observe runs fn against a recordTB on its own goroutine (Goexit-safe).
+func observe(t *testing.T, fn func(testing.TB)) *recordTB {
+	r := &recordTB{TB: t}
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		fn(r)
+	}()
+	<-done
+	return r
+}
+
+func TestRequireTestEnv(t *testing.T) {
+	t.Setenv("TESTENV_PRESENT", "1")
+	t.Setenv("TESTENV_MISSING", "")
+	t.Setenv(DatabaseURLEnv, "")
+
+	helpers := map[string]func(testing.TB){
+		"Env":      func(tb testing.TB) { Env(tb, "TESTENV_PRESENT", "TESTENV_MISSING") },
+		"Postgres": func(tb testing.TB) { Postgres(tb) },
+	}
+	wantVar := map[string]string{"Env": "TESTENV_MISSING", "Postgres": DatabaseURLEnv}
+
+	for _, tc := range []struct {
+		value    string
+		wantFail bool
+	}{
+		{"", false},
+		{"0", false},
+		{"false", false},
+		{"FALSE", false},
+		{"1", true},
+		{"true", true},
+		{"yes", true},
+	} {
+		for name, fn := range helpers {
+			t.Run(fmt.Sprintf("%s/REQUIRE_TEST_ENV=%q", name, tc.value), func(t *testing.T) {
+				t.Setenv(RequireEnv, tc.value)
+				r := observe(t, fn)
+				if r.failed != tc.wantFail || r.skipped == tc.wantFail {
+					t.Fatalf("failed=%v skipped=%v, want fail=%v", r.failed, r.skipped, tc.wantFail)
+				}
+				if !strings.Contains(r.msg, wantVar[name]) {
+					t.Fatalf("message %q does not name %s", r.msg, wantVar[name])
+				}
+				if tc.wantFail && !strings.Contains(r.msg, RequireEnv) {
+					t.Fatalf("failure message %q does not mention %s", r.msg, RequireEnv)
+				}
+			})
+		}
+	}
+
+	t.Run("present vars pass under REQUIRE_TEST_ENV", func(t *testing.T) {
+		t.Setenv(RequireEnv, "1")
+		r := observe(t, func(tb testing.TB) { Env(tb, "TESTENV_PRESENT") })
+		if r.failed || r.skipped {
+			t.Fatalf("failed=%v skipped=%v with every variable set: %s", r.failed, r.skipped, r.msg)
+		}
+	})
 }

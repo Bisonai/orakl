@@ -30,3 +30,6 @@ jobs:
         run: |
           cd ./node/pkg/delegator
           go test ./... -v
+        env:
+          # Fail (not skip) tests whose env is missing: see pkg/testutil/testenv.
+          REQUIRE_TEST_ENV: "1"
