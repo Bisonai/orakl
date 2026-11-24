@@ -159,8 +159,8 @@ func newMockDal(t *testing.T, ctx context.Context, config types.Config, whitelis
 	// NewCollector would need a chain RPC for the whitelist and live redis
 	// subscriptions, neither of which this test is about (the redis ingest
 	// path is covered in pkg/dal/tests). With no chain reader, callers must
-	// only convert proofs signed by whitelist: a rejected signer would start
-	// an on-demand whitelist refresh against the nil reader.
+	// only convert proofs signed by whitelist: a rejected signer starts an
+	// on-demand whitelist refresh against the nil reader, which panics.
 	c := &collector.Collector{
 		OutgoingStream: map[string]chan *dalcommon.OutgoingSubmissionData{
 			config.Name: make(chan *dalcommon.OutgoingSubmissionData, collector.OutgoingStreamSize),

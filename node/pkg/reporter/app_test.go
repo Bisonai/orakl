@@ -67,8 +67,9 @@ func TestWsDataHandling(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error generating sample submission data: %v", err)
 	}
-	// Check the proof first: the mock collector cannot refresh its whitelist
-	// on a rejected signer (see newMockDal).
+	// Required pre-check: a proof the mock collector rejects would start a
+	// whitelist refresh against its nil chain reader, panicking the whole test
+	// binary instead of failing this test (see newMockDal).
 	if _, err = proof.Order(sample.Proof.Proof, sample.GlobalAggregate.Value, timestamp, config.Name, whitelist); err != nil {
 		t.Fatalf("sample proof not accepted for whitelist: %v", err)
 	}
