@@ -18,13 +18,13 @@ func TestNewPool(t *testing.T) {
 	}
 }
 
-func TestImmediateJobExecution(t *testing.T) {
+func TestJobExecution(t *testing.T) {
 	p := pool.NewPool(POOL_WORKER_COUNT)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	p.Run(ctx)
 
-	done := make(chan bool)
+	done := make(chan bool, 1)
 	p.AddJob(func() {
 		done <- true
 	})
@@ -71,6 +71,7 @@ func TestLargeNumberOfJobs(t *testing.T) {
 func TestContextCancelDuringJobExecution(t *testing.T) {
 	p := pool.NewPool(POOL_WORKER_COUNT)
 	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	p.Run(ctx)
 
 	// A job that a worker has already dequeued must run to completion even
@@ -89,7 +90,7 @@ func TestContextCancelDuringJobExecution(t *testing.T) {
 	select {
 	case <-started:
 	case <-time.After(5 * time.Second):
-		cancel()
+		close(release) // unblock the job if it starts late
 		t.Fatal("Job did not start")
 	}
 
