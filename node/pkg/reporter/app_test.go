@@ -2,14 +2,17 @@
 package reporter
 
 import (
+	"bytes"
 	"context"
+	"encoding/hex"
 	"testing"
 	"time"
 
-	"bisonai.com/miko/node/pkg/common/keys"
-	"bisonai.com/miko/node/pkg/dal/hub"
-	"bisonai.com/miko/node/pkg/db"
+	"bisonai.com/miko/node/pkg/chain/proof"
+	"bisonai.com/miko/node/pkg/common/types"
 	"bisonai.com/miko/node/pkg/testutil/testenv"
+	kaiacommon "github.com/kaiachain/kaia/common"
+	"github.com/kaiachain/kaia/crypto"
 )
 
 func TestFetchConfigs(t *testing.T) {
@@ -30,70 +33,81 @@ func TestRunApp(t *testing.T) {
 	}
 }
 
+// TestWsDataHandling checks that a signed submission delivered by the DAL
+// websocket ends up, intact, in the reporter's LatestDataMap. It runs against
+// an in-process DAL (see newMockDal) and a throwaway signer key, so it needs
+// no chain, secrets or live DAL.
 func TestWsDataHandling(t *testing.T) {
-	// mockDalWsServer starts a real DAL collector (on-chain whitelist), and
-	// the sample is signed with SIGNER_PK, which must be on that whitelist.
-	testenv.Env(t, "KAIA_PROVIDER_URL", "SUBMISSION_PROXY_CONTRACT", "SIGNER_PK")
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-	app := New()
+	signerKey, err := crypto.GenerateKey()
+	if err != nil {
+		t.Fatalf("error generating signer key: %v", err)
+	}
+	signerPK := hex.EncodeToString(crypto.FromECDSA(signerKey))
+	whitelist := []kaiacommon.Address{crypto.PubkeyToAddress(signerKey.PublicKey)}
 
-	conn, tmpConfig, symbols, err := mockDalWsServer(ctx)
+	config := types.Config{ID: 13, Name: "test-aggregate"}
+	dal, err := newMockDal(t, ctx, config, whitelist)
 	if err != nil {
 		t.Fatalf("error mocking dal ws server: %v", err)
 	}
 
-	app.WsHelper = conn
-	go app.WsHelper.Run(ctx, app.HandleWsMessage)
-	time.Sleep(100 * time.Millisecond)
-
-	err = conn.Write(ctx, hub.Subscription{
-		Method: "SUBSCRIBE",
-		Params: []string{"submission@test-aggregate"},
-	})
+	app := New()
+	// The production helper: it subscribes to every config on (re)connect.
+	app.WsHelper, err = SetupDalWsHelper(ctx, []Config{{Name: config.Name}}, dal.wsURL, dal.apiKey)
 	if err != nil {
-		t.Fatalf("error subscribing to websocket: %v", err)
+		t.Fatalf("error setting up dal ws helper: %v", err)
 	}
+	go app.WsHelper.Run(ctx, app.HandleWsMessage)
 
-	sampleSubmissionData, err := generateSampleSubmissionData(
-		tmpConfig.ID,
-		int64(15),
-		time.Now(),
-		1,
-		"test-aggregate",
-	)
+	timestamp := time.Now()
+	sample, err := generateSampleSubmissionData(signerPK, config.ID, int64(15), timestamp, 1, config.Name)
 	if err != nil {
 		t.Fatalf("error generating sample submission data: %v", err)
 	}
-
-	err = db.Publish(ctx, keys.SubmissionDataStreamKey("test-aggregate"), sampleSubmissionData)
-	if err != nil {
-		t.Fatalf("error publishing sample submission data: %v", err)
+	// Required pre-check: a proof the mock collector rejects would start a
+	// whitelist refresh against its nil chain reader, panicking the whole test
+	// binary instead of failing this test (see newMockDal).
+	if _, err = proof.Order(sample.Proof.Proof, sample.GlobalAggregate.Value, timestamp, config.Name, whitelist); err != nil {
+		t.Fatalf("sample proof not accepted for whitelist: %v", err)
 	}
+	// What the DAL collector delivers for a verified submission.
+	outgoing, err := dal.collector.IncomingDataToOutgoingData(ctx, sample)
+	if err != nil {
+		t.Fatalf("error converting sample submission data: %v", err)
+	}
+	stream := dal.collector.OutgoingStream[config.Name]
 
-	ticker := time.NewTicker(1 * time.Second)
+	// The hub delivers only to clients already subscribed, and the reporter
+	// subscribes asynchronously (about a second after dialing). Resend until
+	// the data arrives instead of guessing how long that takes; the cap only
+	// bounds a real failure.
+	ticker := time.NewTicker(100 * time.Millisecond)
 	defer ticker.Stop()
-	timeout := time.After(10 * time.Second)
-	submissionDataCount := 0
-
+	timeout := time.After(30 * time.Second)
 	for {
+		if got, ok := GetLatestData(app.LatestDataMap, config.Name); ok {
+			if got.Symbol != config.Name || got.Value != 15 || got.AggregateTime != timestamp.UnixMilli() {
+				t.Fatalf("unexpected submission data: %+v", got)
+			}
+			if !bytes.Equal(got.Proof, sample.Proof.Proof) {
+				t.Fatalf("proof mismatch: got %x, want %x", got.Proof, sample.Proof.Proof)
+			}
+			if !bytes.Equal(got.FeedHash[:], crypto.Keccak256([]byte(config.Name))) {
+				t.Fatalf("feed hash mismatch: got %x", got.FeedHash)
+			}
+			return
+		}
 		select {
 		case <-ticker.C:
-			if app.WsHelper != nil && app.WsHelper.IsRunning() {
-				submissionDataCount = 0
-				for _, symbol := range symbols {
-					if _, ok := app.LatestDataMap.Load(symbol); ok {
-						submissionDataCount++
-					}
-				}
-				if submissionDataCount == len(symbols) {
-					return
-				}
+			select {
+			case stream <- outgoing:
+			default:
 			}
 		case <-timeout:
-			if submissionDataCount != len(symbols) {
-				t.Fatal("not all submission data received from websocket")
-			}
+			t.Fatal("submission data not received from websocket")
 		}
 	}
 }

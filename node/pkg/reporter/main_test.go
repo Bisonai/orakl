@@ -17,12 +17,14 @@ import (
 	"bisonai.com/miko/node/pkg/common/types"
 	"bisonai.com/miko/node/pkg/dal/apiv2"
 	"bisonai.com/miko/node/pkg/dal/collector"
+	dalcommon "bisonai.com/miko/node/pkg/dal/common"
 	"bisonai.com/miko/node/pkg/dal/hub"
 	"bisonai.com/miko/node/pkg/dal/utils/keycache"
 	"bisonai.com/miko/node/pkg/dal/utils/keystore"
 	"bisonai.com/miko/node/pkg/db"
 	"bisonai.com/miko/node/pkg/testutil/testenv"
-	"bisonai.com/miko/node/pkg/wss"
+	kaiacommon "github.com/kaiachain/kaia/common"
+	"github.com/kaiachain/kaia/crypto"
 	"github.com/rs/zerolog"
 )
 
@@ -96,9 +98,7 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-func generateSampleSubmissionData(configId int32, value int64, timestamp time.Time, round int32, symbol string) (*aggregator.SubmissionData, error) {
-	tmpSignerPK := os.Getenv("SIGNER_PK")
-
+func generateSampleSubmissionData(signerPK string, configId int32, value int64, timestamp time.Time, round int32, symbol string) (*aggregator.SubmissionData, error) {
 	ctx := context.Background()
 	sampleGlobalAggregate := aggregator.GlobalAggregate{
 		ConfigID:  configId,
@@ -107,7 +107,7 @@ func generateSampleSubmissionData(configId int32, value int64, timestamp time.Ti
 		Round:     round,
 	}
 
-	signHelper, err := helper.NewSigner(ctx, helper.WithSignerPk(tmpSignerPK))
+	signHelper, err := helper.NewSigner(ctx, helper.WithSignerPk(signerPK))
 	if err != nil {
 		return nil, err
 	}
@@ -130,43 +130,57 @@ func generateSampleSubmissionData(configId int32, value int64, timestamp time.Ti
 	}, nil
 }
 
-func mockDalWsServer(ctx context.Context) (*wss.WebsocketHelper, *types.Config, []string, error) {
+// mockDal is an in-process DAL: the real hub and apiv2 websocket server, fed
+// by a collector that trusts a fixed whitelist instead of reading it on-chain
+// and has no redis subscriptions (tests push to its OutgoingStream).
+type mockDal struct {
+	collector *collector.Collector
+	wsURL     string
+	apiKey    string
+}
+
+// newMockDal starts a mockDal serving config, whose collector accepts proofs
+// signed by whitelist. It stops when ctx is done or the test ends.
+func newMockDal(t *testing.T, ctx context.Context, config types.Config, whitelist []kaiacommon.Address) (*mockDal, error) {
 	apiKey := "testApiKey"
 	keyStore, err := keystore.Open(ctx, filepath.Join(dalKeyDir, "dal.db"))
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
+	t.Cleanup(func() { _ = keyStore.Close() })
 	if err = keyStore.Upsert(ctx, apiKey, "test"); err != nil {
-		return nil, nil, nil, err
-	}
-
-	tmpConfig := types.Config{
-		ID:   13,
-		Name: "test-aggregate",
+		return nil, err
 	}
 
 	keyCache := keycache.NewAPIKeyCache(1 * time.Hour)
-	keyCache.CleanupLoop(ctx, 10 * time.Minute)
+	keyCache.CleanupLoop(ctx, 10*time.Minute)
 
-	collector, err := collector.NewCollector(ctx, []types.Config{tmpConfig})
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	collector.Start(ctx)
-
-	h := hub.HubSetup(ctx, []types.Config{tmpConfig})
-	go h.Start(ctx, collector)
-
-	server := apiv2.NewServer(collector, keyCache, keyStore, h)
-
-	mockDal := httptest.NewServer(server)
-
-	headers := map[string]string{"X-API-Key": apiKey}
-
-	conn, err := wss.NewWebsocketHelper(ctx, wss.WithEndpoint(mockDal.URL+"/ws"), wss.WithRequestHeaders(headers))
-	if err != nil {
-		return nil, nil, nil, err
+	// Only the fields used by Streams and IncomingDataToOutgoingData are set:
+	// NewCollector would need a chain RPC for the whitelist and live redis
+	// subscriptions, neither of which this test is about (the redis ingest
+	// path is covered in pkg/dal/tests). With no chain reader, callers must
+	// only convert proofs signed by whitelist: a rejected signer starts an
+	// on-demand whitelist refresh against the nil reader, which panics.
+	c := &collector.Collector{
+		OutgoingStream: map[string]chan *dalcommon.OutgoingSubmissionData{
+			config.Name: make(chan *dalcommon.OutgoingSubmissionData, collector.OutgoingStreamSize),
+		},
+		FeedHashes:      map[string][]byte{config.Name: crypto.Keccak256([]byte(config.Name))},
+		Configs:         map[string]types.Config{config.Name: config},
+		CachedWhitelist: whitelist,
 	}
 
-	return conn, &tmpConfig, []string{tmpConfig.Name}, nil
+	h := hub.HubSetup(ctx, []types.Config{config})
+	h.Start(ctx, c)
+	// Closing the stream ends the hub's broadcaster for it.
+	t.Cleanup(func() { c.RemoveSymbols([]string{config.Name}) })
+
+	server := httptest.NewServer(apiv2.NewServer(c, keyCache, keyStore, h))
+	t.Cleanup(server.Close)
+
+	return &mockDal{
+		collector: c,
+		wsURL:     server.URL + "/ws",
+		apiKey:    apiKey,
+	}, nil
 }
