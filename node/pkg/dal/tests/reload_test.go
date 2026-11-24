@@ -32,7 +32,7 @@ func symbolsFromApi(t *testing.T, testItems *TestItems) []string {
 // removed one is dropped from the API.
 func TestReloadAddRemoveSymbol(t *testing.T) {
 	ctx := context.Background()
-	clean, testItems, err := setup(ctx)
+	clean, testItems, err := setup(t, ctx)
 	require.NoError(t, err)
 	defer func() {
 		if cleanupErr := clean(); cleanupErr != nil {
@@ -84,7 +84,7 @@ func TestReloadAddRemoveSymbol(t *testing.T) {
 // resubscribing.
 func TestReloadRemoveReAddKeepsWebsocketSubscription(t *testing.T) {
 	ctx := context.Background()
-	clean, testItems, err := setup(ctx)
+	clean, testItems, err := setup(t, ctx)
 	require.NoError(t, err)
 	defer func() {
 		if cleanupErr := clean(); cleanupErr != nil {

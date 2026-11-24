@@ -3,6 +3,7 @@ package reporter
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -19,6 +20,8 @@ import (
 	"bisonai.com/miko/node/pkg/dal/hub"
 	"bisonai.com/miko/node/pkg/dal/utils/keycache"
 	"bisonai.com/miko/node/pkg/dal/utils/keystore"
+	"bisonai.com/miko/node/pkg/db"
+	"bisonai.com/miko/node/pkg/testutil/testenv"
 	"bisonai.com/miko/node/pkg/wss"
 	"github.com/rs/zerolog"
 )
@@ -50,6 +53,11 @@ const testConfigsFixture = `[
 	}
 ]`
 
+// dalAppEnv is what App.Run needs outside local mode: the DAL API key and
+// endpoints it subscribes to, and the chain (plus reporter key) it reads the
+// whitelist with.
+var dalAppEnv = []string{"API_KEY", "DAL_REST_URL", "DAL_WS_URL", "SUBMISSION_PROXY_CONTRACT", "KAIA_PROVIDER_URL", "KAIA_REPORTER_PK"}
+
 // dalKeyDir holds the mock DAL's SQLite key file; removed after the tests.
 var dalKeyDir string
 
@@ -67,7 +75,12 @@ func TestMain(m *testing.M) {
 	os.Setenv("CONFIG_BASE_URL", configServer.URL)
 	os.Setenv("CONFIG_FALLBACK_URL", "")
 
-	var err error
+	stopRedis, err := testenv.StartRedis()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
 	dalKeyDir, err = os.MkdirTemp("", "dal-keys-")
 	if err != nil {
 		panic(err)
@@ -75,6 +88,8 @@ func TestMain(m *testing.M) {
 
 	code := m.Run()
 
+	db.CloseRedis()
+	stopRedis()
 	configServer.Close()
 	_ = os.RemoveAll(dalKeyDir)
 	os.Exit(code)

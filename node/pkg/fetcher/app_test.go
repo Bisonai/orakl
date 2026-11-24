@@ -23,7 +23,7 @@ const DUMMY_FEED_VALUE = 1.0
 
 func TestFetcherInitialize(t *testing.T) {
 	ctx := context.Background()
-	clean, testItems, err := setup(ctx)
+	clean, testItems, err := setup(t, ctx)
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
@@ -48,7 +48,7 @@ func TestFetcherInitialize(t *testing.T) {
 
 func TestAppRun(t *testing.T) {
 	ctx := context.Background()
-	clean, testItems, err := setup(ctx)
+	clean, testItems, err := setup(t, ctx)
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}

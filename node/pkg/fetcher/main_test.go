@@ -12,6 +12,7 @@ import (
 	"bisonai.com/miko/node/pkg/bus"
 	"bisonai.com/miko/node/pkg/db"
 	"bisonai.com/miko/node/pkg/nodeconfig"
+	"bisonai.com/miko/node/pkg/testutil/testenv"
 	"github.com/rs/zerolog"
 )
 
@@ -70,7 +71,12 @@ type TestItems struct {
 	aggChan         <-chan bus.Message
 }
 
-func setup(ctx context.Context) (func() error, *TestItems, error) {
+// setup skips t unless the DEX chain websocket URLs are set: every caller
+// runs app.initialize, which dials them through the websocket fetcher.
+func setup(t *testing.T, ctx context.Context) (func() error, *TestItems, error) {
+	t.Helper()
+	testenv.Env(t, "KAIA_WEBSOCKET_URL", "ETH_WEBSOCKET_URL", "BSC_WEBSOCKET_URL", "POLYGON_WEBSOCKET_URL")
+
 	var testItems = new(TestItems)
 	mb := bus.New(100)
 
