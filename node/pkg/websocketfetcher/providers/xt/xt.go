@@ -15,7 +15,10 @@ import (
 	"nhooyr.io/websocket"
 )
 
-type XtFetcher common.Fetcher
+type XtFetcher struct {
+	common.Fetcher
+	quotes *common.QuoteCache
+}
 
 const pingInterval = 10 * time.Second
 
@@ -25,7 +28,7 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 		opt(config)
 	}
 
-	fetcher := &XtFetcher{}
+	fetcher := &XtFetcher{quotes: common.NewQuoteCache()}
 	fetcher.FeedMap = config.FeedMaps.Separated
 	fetcher.FeedDataBuffer = config.FeedDataBuffer
 
@@ -33,8 +36,11 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 	for feed := range fetcher.FeedMap {
 		symbol := strings.ReplaceAll(feed, "-", "_")
 		symbol = strings.ToLower(symbol)
+		// The ticker is pushed on trades only; depth (top 5) also on book
+		// changes.
 		params := []string{
-			fmt.Sprintf("ticker@%s", symbol)}
+			fmt.Sprintf("ticker@%s", symbol),
+			fmt.Sprintf("depth@%s,5", symbol)}
 
 		subscriptions = append(subscriptions, Subscription{
 			Method: "subscribe",
@@ -68,6 +74,9 @@ func (f *XtFetcher) handleMessage(ctx context.Context, message map[string]any) e
 		log.Error().Str("Player", "Xt").Err(err).Msg("error in xt.handleMessage, failed to parse response")
 		return err
 	}
+	if raw.Topic == "depth" {
+		return f.handleDepth(message)
+	}
 	if raw.Topic != "ticker" {
 		return nil
 	}
@@ -79,9 +88,33 @@ func (f *XtFetcher) handleMessage(ctx context.Context, message map[string]any) e
 	}
 
 	for _, feedData := range feedDataList {
-		f.FeedDataBuffer <- feedData
+		f.FeedDataBuffer <- f.quotes.ApplyTrade(feedData)
 	}
 
+	return nil
+}
+
+func (f *XtFetcher) handleDepth(message map[string]any) error {
+	depth, err := common.MessageToStruct[DepthResponse](message)
+	if err != nil {
+		log.Error().Str("Player", "Xt").Err(err).Msg("error in xt.handleDepth")
+		return err
+	}
+	ids, exists := f.FeedMap[strings.ToUpper(strings.ReplaceAll(depth.Data.Symbol, "_", "-"))]
+	if !exists {
+		return nil
+	}
+	bid, err := common.TopPrice(depth.Data.Bids)
+	if err != nil {
+		return nil
+	}
+	ask, err := common.TopPrice(depth.Data.Asks)
+	if err != nil {
+		return nil
+	}
+	for _, feedData := range f.quotes.ApplyBook(ids, bid, ask, time.Now()) {
+		f.FeedDataBuffer <- feedData
+	}
 	return nil
 }
 

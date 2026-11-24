@@ -24,6 +24,8 @@ func ResponseToFeedData(response Response, feedMap map[string][]int32) ([]*commo
 		feedData.Value = value
 		feedData.Timestamp = &timestamp
 		feedData.Volume = volume
+		// The ticker carries the best bid/ask (pushed about every second).
+		common.SetTickerBook(feedData, response.Data.BidPrice, response.Data.AskPrice, timestamp)
 		result = append(result, feedData)
 	}
 

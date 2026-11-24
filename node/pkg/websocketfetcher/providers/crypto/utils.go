@@ -42,13 +42,22 @@ func ResponseToFeedDataList(data Response, feedMap map[string][]int32) ([]*commo
 			continue
 		}
 
+		// The ticker carries the best bid/ask and pushes on book changes too.
+		var bid, ask float64
+		if tick.CurrentBestBidPrice != nil && tick.CurrentBestAskPrice != nil {
+			bid, _ = common.PriceStringToFloat64(*tick.CurrentBestBidPrice)
+			ask, _ = common.PriceStringToFloat64(*tick.CurrentBestAskPrice)
+		}
+
 		for _, id := range ids {
-			feedData = append(feedData, &common.FeedData{
+			fd := &common.FeedData{
 				FeedID:    id,
 				Value:     value,
 				Timestamp: &timestamp,
 				Volume:    volume,
-			})
+			}
+			common.SetTickerBook(fd, bid, ask, timestamp)
+			feedData = append(feedData, fd)
 		}
 	}
 
