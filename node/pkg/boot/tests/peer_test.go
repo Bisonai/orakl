@@ -4,6 +4,7 @@ package tests
 import (
 	"context"
 	"testing"
+	"time"
 
 	adminTests "bisonai.com/miko/node/pkg/admin/tests"
 	"bisonai.com/miko/node/pkg/boot"
@@ -11,7 +12,9 @@ import (
 	libp2pSetup "bisonai.com/miko/node/pkg/libp2p/setup"
 	libp2pUtils "bisonai.com/miko/node/pkg/libp2p/utils"
 
+	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSync(t *testing.T) {
@@ -80,10 +83,12 @@ func TestRefresh(t *testing.T) {
 	}
 	defer cleanup()
 
-	h, err := libp2pSetup.NewHost(ctx, libp2pSetup.WithHolePunch(), libp2pSetup.WithPort(10010))
+	h, err := libp2pSetup.NewHost(ctx, libp2pSetup.WithHolePunch()) // ephemeral port: a fixed one can collide with concurrent test runs
 	if err != nil {
 		t.Fatalf("error making host: %v", err)
 	}
+	// closed explicitly below; cleanup covers FailNow paths (Close is idempotent)
+	t.Cleanup(func() { _ = h.Close() })
 
 	url, err := libp2pUtils.ExtractConnectionUrl(h)
 	if err != nil {
@@ -118,9 +123,18 @@ func TestRefresh(t *testing.T) {
 		t.Fatalf("error getting peers after: %v", err)
 	}
 
-	assert.Less(t, len(readResultAfter), len(readResultBefore), "expected to have less peers after refresh")
+	// the unreachable sample peer is removed, the live host h is kept
+	require.Len(t, readResultBefore, 2, "expected sample peer and h before refresh")
+	require.Len(t, readResultAfter, 1, "expected only the live peer to remain")
+	assert.Equal(t, url, readResultAfter[0].Url, "expected the live peer to be kept")
 
 	h.Close()
+
+	// the first refresh left bootHost connected to h; Connect is a no-op on an existing
+	// connection, so wait until bootHost observes the close before probing h again (#3006)
+	require.Eventually(t, func() bool {
+		return bootHost.Network().Connectedness(h.ID()) != network.Connected
+	}, 10*time.Second, 10*time.Millisecond, "bootHost still connected to closed host")
 
 	err = boot.RefreshJob(ctx, bootHost, testItems.store)
 	if err != nil {
@@ -132,5 +146,5 @@ func TestRefresh(t *testing.T) {
 		t.Fatalf("error getting peers final: %v", err)
 	}
 
-	assert.Less(t, len(readResultFinal), len(readResultAfter), "expected to have less peers after refresh")
+	assert.Empty(t, readResultFinal, "expected the closed peer to be removed")
 }
