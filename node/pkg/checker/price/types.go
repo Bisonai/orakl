@@ -14,8 +14,11 @@ type dalResponse struct {
 	Symbol, Value, Decimals string
 }
 
+// /api/v3/ticker/bookTicker element
 type binanceResponse struct {
-	Symbol, Price string
+	Symbol   string `json:"symbol"`
+	BidPrice string `json:"bidPrice"`
+	AskPrice string `json:"askPrice"`
 }
 
 type App struct {

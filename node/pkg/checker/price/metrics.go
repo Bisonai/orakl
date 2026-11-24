@@ -13,7 +13,7 @@ var (
 	}, []string{"pair"})
 	binancePriceGauge = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "orakl_price_check_binance_price",
-		Help: "Latest Binance price of a tracked pair.",
+		Help: "Latest Binance best bid/ask mid of a tracked pair.",
 	}, []string{"pair"})
 	diffRatioGauge = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "orakl_price_check_diff_ratio",
