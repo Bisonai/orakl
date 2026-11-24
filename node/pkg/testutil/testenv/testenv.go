@@ -11,6 +11,10 @@
 // able to use it without an import cycle. Callers close the shared client
 // themselves (db.CloseRedis) before calling the StartRedis cleanup.
 //
+// miniredis limitation: keys with a TTL do not expire on wall-clock time; they
+// only expire when the server clock is advanced. Tests that depend on expiry
+// should not rely on the miniredis fallback (gate them with Env on REDIS_HOST).
+//
 // Postgres and other env-dependent resources: Postgres and Env skip the test
 // with a clear reason when the required variables are missing.
 //
@@ -43,18 +47,19 @@ var (
 )
 
 // startShared starts the shared miniredis server if it is not running and
-// returns its host and port.
-func startShared() (string, string, error) {
+// returns its host and port; created reports whether this call started it.
+func startShared() (host, port string, created bool, err error) {
 	redisMu.Lock()
 	defer redisMu.Unlock()
 	if redisServer == nil {
 		s, err := miniredis.Run()
 		if err != nil {
-			return "", "", fmt.Errorf("testenv: start miniredis: %w", err)
+			return "", "", false, fmt.Errorf("testenv: start miniredis: %w", err)
 		}
 		redisServer = s
+		created = true
 	}
-	return redisServer.Host(), redisServer.Port(), nil
+	return redisServer.Host(), redisServer.Port(), created, nil
 }
 
 func stopShared() {
@@ -68,37 +73,44 @@ func stopShared() {
 
 // StartRedis is the TestMain variant of Redis. If REDIS_HOST is unset it
 // starts the shared miniredis server and sets REDIS_HOST/REDIS_PORT; the
-// returned cleanup stops the server and restores both variables. If REDIS_HOST
-// is set it does nothing and cleanup is a no-op.
+// returned cleanup restores both variables and stops the server if this call
+// started it (a server started earlier by Redis(t) stays up). If REDIS_HOST is
+// set it does nothing and cleanup is a no-op.
 func StartRedis() (cleanup func(), err error) {
 	if os.Getenv(redisHostEnv) != "" {
 		return func() {}, nil
 	}
 
+	prevHost, hadHost := os.LookupEnv(redisHostEnv)
 	prevPort, hadPort := os.LookupEnv(redisPortEnv)
-	host, port, err := startShared()
+	host, port, created, err := startShared()
 	if err != nil {
 		return nil, err
 	}
+	cleanup = func() {
+		if created {
+			stopShared()
+		}
+		restoreEnv(redisHostEnv, prevHost, hadHost)
+		restoreEnv(redisPortEnv, prevPort, hadPort)
+	}
 	if err := os.Setenv(redisHostEnv, host); err != nil {
-		stopShared()
+		cleanup()
 		return nil, err
 	}
 	if err := os.Setenv(redisPortEnv, port); err != nil {
-		_ = os.Unsetenv(redisHostEnv)
-		stopShared()
+		cleanup()
 		return nil, err
 	}
+	return cleanup, nil
+}
 
-	return func() {
-		stopShared()
-		_ = os.Unsetenv(redisHostEnv)
-		if hadPort {
-			_ = os.Setenv(redisPortEnv, prevPort)
-		} else {
-			_ = os.Unsetenv(redisPortEnv)
-		}
-	}, nil
+func restoreEnv(name, value string, had bool) {
+	if had {
+		_ = os.Setenv(name, value)
+	} else {
+		_ = os.Unsetenv(name)
+	}
 }
 
 // Redis makes Redis available to t. If REDIS_HOST is unset it starts (or
@@ -110,7 +122,7 @@ func Redis(t testing.TB) {
 	if os.Getenv(redisHostEnv) != "" {
 		return
 	}
-	host, port, err := startShared()
+	host, port, _, err := startShared()
 	if err != nil {
 		t.Fatal(err)
 	}

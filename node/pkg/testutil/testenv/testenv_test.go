@@ -73,11 +73,34 @@ func TestStartRedisCleanupRestoresEnv(t *testing.T) {
 		t.Fatal("StartRedis did not set REDIS_HOST/REDIS_PORT")
 	}
 	cleanup()
-	if os.Getenv(redisHostEnv) != "" {
-		t.Fatal("REDIS_HOST not cleared")
+	if host, ok := os.LookupEnv(redisHostEnv); !ok || host != "" {
+		t.Fatalf("REDIS_HOST not restored to empty: %q %v", host, ok)
 	}
 	if _, ok := os.LookupEnv(redisPortEnv); ok {
 		t.Fatal("REDIS_PORT not unset")
+	}
+}
+
+func TestStartRedisKeepsServerStartedByRedis(t *testing.T) {
+	t.Setenv(redisHostEnv, "")
+	t.Run("redis", func(t *testing.T) { Redis(t) })
+
+	host, port, _, err := startShared()
+	if err != nil {
+		t.Fatal(err)
+	}
+	cleanup, err := StartRedis()
+	if err != nil {
+		t.Fatal(err)
+	}
+	cleanup()
+
+	h, p, created, err := startShared()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if created || h != host || p != port {
+		t.Fatalf("shared server was stopped by StartRedis cleanup: created=%v %s:%s vs %s:%s", created, h, p, host, port)
 	}
 }
 
