@@ -8,9 +8,8 @@ import (
 )
 
 // URLV2 is bithumb's upbit-compatible websocket: same SIMPLE format for
-// ticker (last trade, 24h volume, trade time) and orderbook messages. Unlike
-// the old pubwss endpoint (URL) it streams top-of-book snapshots, which mid
-// prices need.
+// ticker (last trade, 24h volume, trade time) and orderbook messages,
+// incl. the top-of-book snapshots mid prices need.
 const URLV2 = "wss://ws-api.bithumb.com/websocket/v1"
 
 func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInterface, error) {
