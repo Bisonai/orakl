@@ -466,7 +466,7 @@ data: {"t":1763856001000,"d":{"BTC-USDT":["61411.02",1763856000800]}}
 
 ## Running tests
 
-`go test ./...` passes on any machine with no services and no secrets:
+`go test ./...` passes with no services and no secrets (a few `pkg/checker/health` HTTP checks still need outbound internet to `example.com`):
 
 ```sh
 go test ./...

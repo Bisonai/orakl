@@ -54,7 +54,7 @@ func TestNewKaiaHelper(t *testing.T) {
 
 	kaiaHelper, err := helper.NewChainHelper(ctx)
 	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
+		t.Fatalf("Unexpected error: %v", err)
 	}
 
 	kaiaHelper.Close()
@@ -89,7 +89,7 @@ func TestNewEthHelper(t *testing.T) {
 
 	ethHelper, err := helper.NewChainHelper(ctx, helper.WithBlockchainType(helper.Ethereum))
 	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
+		t.Fatalf("Unexpected error: %v", err)
 	}
 	ethHelper.Close()
 	err = db.QueryWithoutResult(ctx, "DELETE FROM provider_urls;", nil)
@@ -104,7 +104,7 @@ func TestMakeDirectTx(t *testing.T) {
 
 	kaiaHelper, err := helper.NewChainHelper(ctx)
 	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
+		t.Fatalf("Unexpected error: %v", err)
 	}
 	defer kaiaHelper.Close()
 
@@ -156,7 +156,7 @@ func TestMakeFeeDelegatedTx(t *testing.T) {
 	ctx := context.Background()
 	kaiaHelper, err := helper.NewChainHelper(ctx)
 	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
+		t.Fatalf("Unexpected error: %v", err)
 	}
 	defer kaiaHelper.Close()
 
@@ -205,7 +205,7 @@ func TestTxToHashToTx(t *testing.T) {
 
 	kaiaHelper, err := helper.NewChainHelper(ctx)
 	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
+		t.Fatalf("Unexpected error: %v", err)
 	}
 	defer kaiaHelper.Close()
 
@@ -263,7 +263,7 @@ func TestSubmitDelegeted(t *testing.T) {
 
 	kaiaHelper, err := helper.NewChainHelper(ctx)
 	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
+		t.Fatalf("Unexpected error: %v", err)
 	}
 	defer kaiaHelper.Close()
 
@@ -316,7 +316,7 @@ func TestReadContract(t *testing.T) {
 	ctx := context.Background()
 	kaiaHelper, err := helper.NewChainHelper(ctx)
 	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
+		t.Fatalf("Unexpected error: %v", err)
 	}
 	defer kaiaHelper.Close()
 
@@ -346,7 +346,7 @@ func TestReadContractWithEthHelper(t *testing.T) {
 	ctx := context.Background()
 	ethHelper, err := helper.NewChainHelper(ctx, helper.WithBlockchainType(helper.Ethereum))
 	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
+		t.Fatalf("Unexpected error: %v", err)
 	}
 
 	result, err := ethHelper.ReadContract(ctx, "0x72C8f1933A0C0a9ad53D6CdDAF2e1Ce2F6075D2b", "count() returns (uint256)")
