@@ -8,6 +8,7 @@ import (
 	"bisonai.com/miko/node/pkg/api/listener"
 	"bisonai.com/miko/node/pkg/api/service"
 	"bisonai.com/miko/node/pkg/api/utils"
+	"bisonai.com/miko/node/pkg/testutil/testenv"
 
 	"github.com/joho/godotenv"
 	"github.com/stretchr/testify/assert"
@@ -18,6 +19,7 @@ func TestListener(t *testing.T) {
 	if err != nil {
 		fmt.Print("env file is not found, continueing without .env file")
 	}
+	testenv.Postgres(t)
 
 	var insertChain = chain.ChainInsertModel{Name: "listener-test-chain"}
 	var InsertService = service.ServiceInsertModel{Name: "listener-test-service"}

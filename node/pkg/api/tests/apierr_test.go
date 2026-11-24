@@ -8,6 +8,7 @@ import (
 
 	"bisonai.com/miko/node/pkg/api/apierr"
 	"bisonai.com/miko/node/pkg/api/utils"
+	"bisonai.com/miko/node/pkg/testutil/testenv"
 
 	"github.com/joho/godotenv"
 	"github.com/stretchr/testify/assert"
@@ -18,6 +19,7 @@ func TestApiErr(t *testing.T) {
 	if err != nil {
 		fmt.Print("env file is not found, continueing without .env file")
 	}
+	testenv.Postgres(t)
 
 	now := utils.CustomDateTime{Time: time.Now()}
 	insertData := apierr.ErrorInsertModel{

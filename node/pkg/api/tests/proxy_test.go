@@ -6,6 +6,7 @@ import (
 
 	"bisonai.com/miko/node/pkg/api/proxy"
 	"bisonai.com/miko/node/pkg/api/utils"
+	"bisonai.com/miko/node/pkg/testutil/testenv"
 
 	"github.com/joho/godotenv"
 	"github.com/stretchr/testify/assert"
@@ -16,6 +17,7 @@ func TestProxy(t *testing.T) {
 	if err != nil {
 		fmt.Print("env file is not found, continueing without .env file")
 	}
+	testenv.Postgres(t)
 	var location = "kr"
 	var portNumber = utils.CustomInt32(5000)
 	var insertData = proxy.ProxyInsertModel{

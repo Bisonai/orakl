@@ -17,6 +17,7 @@ import (
 	"bisonai.com/miko/node/pkg/db"
 	errorSentinel "bisonai.com/miko/node/pkg/error"
 	"bisonai.com/miko/node/pkg/nodestate"
+	"bisonai.com/miko/node/pkg/testutil/testenv"
 	"github.com/kaiachain/kaia/blockchain/types"
 	"github.com/kaiachain/kaia/common"
 	"github.com/kaiachain/kaia/crypto"
@@ -40,6 +41,7 @@ func openState(t *testing.T) *nodestate.Store {
 }
 
 func TestNewKaiaHelper(t *testing.T) {
+	testenv.Env(t, "DATABASE_URL", "KAIA_PROVIDER_URL", "KAIA_REPORTER_PK")
 	ctx := context.Background()
 	err := db.QueryWithoutResult(ctx, InsertProviderUrlQuery, map[string]any{
 		"chain_id": 1001,
@@ -63,6 +65,7 @@ func TestNewKaiaHelper(t *testing.T) {
 }
 
 func TestNewSigner(t *testing.T) {
+	testenv.Env(t, "SUBMISSION_PROXY_CONTRACT", "SIGNER_PK", "KAIA_PROVIDER_URL")
 	ctx := context.Background()
 
 	_, err := helper.NewSigner(ctx, helper.WithSignerStore(openState(t)))
@@ -72,6 +75,7 @@ func TestNewSigner(t *testing.T) {
 }
 
 func TestNewEthHelper(t *testing.T) {
+	testenv.Env(t, "DATABASE_URL", "ETH_PROVIDER_URL", "ETH_REPORTER_PK")
 	ctx := context.Background()
 
 	err := db.QueryWithoutResult(ctx, InsertProviderUrlQuery, map[string]any{
@@ -95,6 +99,7 @@ func TestNewEthHelper(t *testing.T) {
 }
 
 func TestMakeDirectTx(t *testing.T) {
+	testenv.Env(t, "KAIA_PROVIDER_URL", "KAIA_REPORTER_PK")
 	ctx := context.Background()
 
 	kaiaHelper, err := helper.NewChainHelper(ctx)
@@ -147,6 +152,7 @@ func TestMakeDirectTx(t *testing.T) {
 }
 
 func TestMakeFeeDelegatedTx(t *testing.T) {
+	testenv.Env(t, "KAIA_PROVIDER_URL", "KAIA_REPORTER_PK")
 	ctx := context.Background()
 	kaiaHelper, err := helper.NewChainHelper(ctx)
 	if err != nil {
@@ -194,6 +200,7 @@ func TestMakeFeeDelegatedTx(t *testing.T) {
 }
 
 func TestTxToHashToTx(t *testing.T) {
+	testenv.Env(t, "KAIA_PROVIDER_URL", "KAIA_REPORTER_PK")
 	ctx := context.Background()
 
 	kaiaHelper, err := helper.NewChainHelper(ctx)
@@ -251,6 +258,7 @@ func TestGenerateViewABI(t *testing.T) {
 }
 
 func TestSubmitDelegeted(t *testing.T) {
+	testenv.Env(t, "KAIA_PROVIDER_URL", "KAIA_REPORTER_PK")
 	ctx := context.Background()
 
 	kaiaHelper, err := helper.NewChainHelper(ctx)
@@ -266,6 +274,7 @@ func TestSubmitDelegeted(t *testing.T) {
 }
 
 func TestSubmitDelegetedFallbackDirectConcurrent(t *testing.T) {
+	testenv.Env(t, "KAIA_PROVIDER_URL", "KAIA_REPORTER_PK")
 	ctx := context.Background()
 	noncemanager.ResetInstance()
 	kaiaHelper, err := helper.NewChainHelper(ctx)
@@ -302,6 +311,7 @@ func TestSubmitDelegetedFallbackDirectConcurrent(t *testing.T) {
 }
 
 func TestReadContract(t *testing.T) {
+	testenv.Env(t, "KAIA_PROVIDER_URL", "KAIA_REPORTER_PK")
 	// testing based on baobab testnet
 	ctx := context.Background()
 	kaiaHelper, err := helper.NewChainHelper(ctx)
@@ -331,6 +341,7 @@ func TestReadContract(t *testing.T) {
 }
 
 func TestReadContractWithEthHelper(t *testing.T) {
+	testenv.Env(t, "ETH_PROVIDER_URL", "ETH_REPORTER_PK")
 	// testing based on sepolia eth testnet
 	ctx := context.Background()
 	ethHelper, err := helper.NewChainHelper(ctx, helper.WithBlockchainType(helper.Ethereum))
@@ -491,6 +502,7 @@ func TestMakeAbiFuncAttribute(t *testing.T) {
 }
 
 func TestMakeGlobalAggregateProof(t *testing.T) {
+	testenv.Env(t, "SIGNER_PK")
 	ctx := context.Background()
 	// Static mode (WithSignerPk): this test verifies proof FORMAT, independent of on-chain
 	// whitelist state, so use the fixed SIGNER_PK directly (the managed gate is covered elsewhere).
@@ -575,6 +587,7 @@ func TestMakeMultiGlobalAggregateProof(t *testing.T) {
 }
 
 func TestGlobalAggregateProofMergeAndSplit(t *testing.T) {
+	testenv.Env(t, "SIGNER_PK")
 	ctx := context.Background()
 	// Static mode: verifies proof merge/split format independent of on-chain whitelist state.
 	s, err := helper.NewSigner(ctx, helper.WithSignerPk(os.Getenv("SIGNER_PK")))
@@ -652,9 +665,7 @@ func TestNewPk(t *testing.T) {
 func TestSignerRenew(t *testing.T) {
 	ctx := context.Background()
 
-	if os.Getenv("SUBMISSION_PROXY_CONTRACT") == "" {
-		t.Skip("Skipping test because SUBMISSION_PROXY_CONTRACT is not set")
-	}
+	testenv.Env(t, "SUBMISSION_PROXY_CONTRACT", "SIGNER_PK", "KAIA_PROVIDER_URL")
 
 	s, err := helper.NewSigner(ctx, helper.WithSignerStore(openState(t)))
 	if err != nil {
