@@ -155,6 +155,14 @@ func (n *Aggregator) HandleTriggerMessage(ctx context.Context, msg raft.Message)
 	}
 
 	currentLeader := n.Raft.GetLeader()
+	// a new leader's first trigger can be handled before its first heartbeat:
+	// dropping it left the round without this node's lock and catch-up report
+	// (and price), so the leader could reuse a round ID this node or a peer
+	// already used (#2999)
+	if msg.SentFrom != currentLeader && msg.SentFrom != n.Raft.GetHostId() {
+		n.Raft.AwaitLeader(ctx, msg.SentFrom)
+		currentLeader = n.Raft.GetLeader()
+	}
 	if msg.SentFrom != currentLeader {
 		log.Debug().Str("Player", "Aggregator").Str("Sender", msg.SentFrom).Str("CurrentLeader", currentLeader).Str("Me", n.Raft.GetHostId()).Msg("trigger message sent from non-leader")
 		return errorSentinel.ErrAggregatorNonLeaderRaftMessage

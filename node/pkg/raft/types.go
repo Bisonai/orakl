@@ -149,6 +149,10 @@ type Raft struct {
 
 	// atomic mirror of Role == Leader, for IsLeader (setRole)
 	leading atomic.Bool
+
+	// closed when this node starts following another leader (followLeader),
+	// for AwaitLeader; nil while nobody waits; under Mutex
+	leaderFollowed chan struct{}
 }
 
 // leaderClock tracks when a leader's last message arrived. It lives as long as
