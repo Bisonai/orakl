@@ -61,6 +61,8 @@ func TestRedisKeepsExistingHost(t *testing.T) {
 }
 
 func TestStartRedisCleanupRestoresEnv(t *testing.T) {
+	stopShared() // start from no server so StartRedis owns the one it starts
+	t.Cleanup(stopShared)
 	t.Setenv(redisHostEnv, "")
 	t.Setenv(redisPortEnv, "")
 	_ = os.Unsetenv(redisPortEnv)
@@ -79,9 +81,14 @@ func TestStartRedisCleanupRestoresEnv(t *testing.T) {
 	if _, ok := os.LookupEnv(redisPortEnv); ok {
 		t.Fatal("REDIS_PORT not unset")
 	}
+	if _, _, created, err := startShared(); err != nil || !created {
+		t.Fatalf("StartRedis cleanup did not stop the server it started: created=%v err=%v", created, err)
+	}
 }
 
 func TestStartRedisKeepsServerStartedByRedis(t *testing.T) {
+	stopShared() // start from no server so Redis(t) owns the one it starts
+	t.Cleanup(stopShared)
 	t.Setenv(redisHostEnv, "")
 	t.Run("redis", func(t *testing.T) { Redis(t) })
 
@@ -116,9 +123,14 @@ func TestEnvSkipsWhenMissing(t *testing.T) {
 		t.Fatal("subtest failed instead of skipping")
 	}
 
+	ran := false
 	t.Run("present", func(t *testing.T) {
 		Env(t, "TESTENV_PRESENT")
+		ran = true
 	})
+	if !ran {
+		t.Fatal("Env skipped although every variable was set")
+	}
 }
 
 func TestStartRedisRejectsHostWithoutPort(t *testing.T) {
