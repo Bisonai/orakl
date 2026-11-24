@@ -578,6 +578,11 @@ func (r *Raft) followLeader(leaderID string, term int) {
 	clock.lastSeen.Store(now)
 	clock.activeAt.Store(now)
 	r.recordLeaderChangeSilence(r.leaderClock.Swap(clock), term)
+	r.notifyLeaderChange()
+}
+
+// notifyLeaderChange wakes AwaitLeader. The caller holds Mutex.
+func (r *Raft) notifyLeaderChange() {
 	if r.leaderFollowed != nil {
 		close(r.leaderFollowed)
 		r.leaderFollowed = nil
@@ -589,7 +594,10 @@ func (r *Raft) followLeader(leaderID string, term int) {
 // publishes its first heartbeat and then its first leader job's message (a
 // round trigger) right away, but a follower handles messages concurrently and
 // pubsub validates them out of order, so the trigger can be handled before
-// the heartbeat that makes its sender the leader (#2999).
+// the heartbeat that makes its sender the leader (#2999). It doesn't wait
+// while this node leads or still hears another leader: a new leader got its
+// votes from nodes that hear none (leader stickiness), and a deposed or
+// split-brain leader's message stays rejected at once, as before.
 func (r *Raft) AwaitLeader(ctx context.Context, leaderID string) bool {
 	timer := time.NewTimer(r.minElectionTimeout())
 	defer timer.Stop()
@@ -598,6 +606,10 @@ func (r *Raft) AwaitLeader(ctx context.Context, leaderID string) bool {
 		if r.LeaderID == leaderID {
 			r.Mutex.Unlock()
 			return true
+		}
+		if r.Role == Leader || r.hearsLeaderOtherThan(leaderID) {
+			r.Mutex.Unlock()
+			return false
 		}
 		if r.leaderFollowed == nil {
 			r.leaderFollowed = make(chan struct{})
@@ -688,6 +700,7 @@ func (r *Raft) setLeaderState() {
 	r.setRole(Leader)
 	r.LeaderID = r.GetHostId()
 	r.recordLeaderChangeSilence(r.leaderClock.Swap(nil), r.Term)
+	r.notifyLeaderChange()
 }
 
 // becomeLeader takes the role and starts the leader loop, unless ctx is done:

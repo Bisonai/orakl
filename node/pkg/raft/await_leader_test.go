@@ -27,9 +27,7 @@ func TestAwaitLeader(t *testing.T) {
 			return node.leaderFollowed != nil
 		}, time.Second, time.Millisecond, "AwaitLeader not waiting")
 
-		// another leader first: the waiter keeps waiting for its own
-		require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, testPeerID(t), 1)))
-		require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, leader, 2)))
+		require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, leader, 1)))
 		select {
 		case ok := <-done:
 			assert.True(t, ok)
@@ -50,6 +48,34 @@ func TestAwaitLeader(t *testing.T) {
 		start := time.Now()
 		assert.False(t, node.AwaitLeader(ctx, testPeerID(t)))
 		assert.GreaterOrEqual(t, time.Since(start), node.minElectionTimeout())
+	})
+
+	t.Run("another leader heard", func(t *testing.T) {
+		node := newSilenceTestNode(ctx, t)
+		require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, testPeerID(t), 1)))
+		start := time.Now()
+		assert.False(t, node.AwaitLeader(ctx, testPeerID(t)))
+		assert.Less(t, time.Since(start), node.minElectionTimeout(), "waited although another leader is heard")
+	})
+
+	t.Run("becomes leader itself", func(t *testing.T) {
+		node := newSilenceTestNode(ctx, t)
+		done := make(chan bool, 1)
+		go func() { done <- node.AwaitLeader(ctx, testPeerID(t)) }()
+		require.Eventually(t, func() bool {
+			node.Mutex.Lock()
+			defer node.Mutex.Unlock()
+			return node.leaderFollowed != nil
+		}, time.Second, time.Millisecond, "AwaitLeader not waiting")
+		node.Mutex.Lock()
+		node.setLeaderState()
+		node.Mutex.Unlock()
+		select {
+		case ok := <-done:
+			assert.False(t, ok)
+		case <-time.After(node.minElectionTimeout() / 2):
+			t.Fatal("AwaitLeader still waiting after this node took the lead")
+		}
 	})
 
 	t.Run("ctx done", func(t *testing.T) {
