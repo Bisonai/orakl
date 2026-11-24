@@ -41,8 +41,31 @@ func TestQuoteCache_MergesBothStreams(t *testing.T) {
 
 	// emitted values are copies
 	out[0].Bid = 0
+	c.now = func() time.Time { return time.Now().Add(time.Second) }
 	again := c.ApplyBook([]int32{1}, 100, 102, bookTs2)
 	assert.Equal(t, 100.0, again[0].Bid)
+}
+
+func TestQuoteCache_ThrottlesBookEmits(t *testing.T) {
+	c := NewQuoteCache()
+	now := time.Unix(1_700_000_000, 0)
+	c.now = func() time.Time { return now }
+	tradeTs := now
+	c.ApplyTrade(&FeedData{FeedID: 1, Value: 100, Volume: 1, Timestamp: &tradeTs})
+
+	require.Len(t, c.ApplyBook([]int32{1}, 99, 101, now), 1)
+	now = now.Add(100 * time.Millisecond)
+	assert.Empty(t, c.ApplyBook([]int32{1}, 98, 102, now), "within BookEmitInterval")
+
+	// the throttled update is not lost: the next ticker carries it
+	merged := c.ApplyTrade(&FeedData{FeedID: 1, Value: 100.5, Volume: 1, Timestamp: &tradeTs})
+	assert.Equal(t, 98.0, merged.Bid)
+	assert.Equal(t, 102.0, merged.Ask)
+
+	now = now.Add(BookEmitInterval)
+	out := c.ApplyBook([]int32{1}, 97, 103, now)
+	require.Len(t, out, 1)
+	assert.Equal(t, 97.0, out[0].Bid)
 }
 
 func TestSimpleOrderbook_TopOfBook(t *testing.T) {

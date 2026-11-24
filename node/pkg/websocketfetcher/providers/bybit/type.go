@@ -20,3 +20,17 @@ type Response struct {
 type Heartbeat struct {
 	Op string `json:"op"`
 }
+
+// OrderbookTopic prefixes level-1 book topics ("orderbook.1.BTCUSDT"); every
+// push is a snapshot of the best bid/ask.
+const OrderbookTopic = "orderbook.1."
+
+type OrderbookResponse struct {
+	Topic     string `json:"topic"`
+	Timestamp int64  `json:"ts"`
+	Data      struct {
+		Symbol string     `json:"s"`
+		Bids   [][]string `json:"b"`
+		Asks   [][]string `json:"a"`
+	} `json:"data"`
+}

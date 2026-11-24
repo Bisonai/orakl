@@ -51,3 +51,18 @@ type SymbolSnapshotRaw struct {
 	Subject string             `json:"subject"`
 	Data    SymbolSnapshotData `json:"data"`
 }
+
+// Level1Topic prefixes the best bid/ask topic ("/spotMarket/level1:BTC-USDT,...");
+// pushes carry the symbol only in the topic.
+const Level1Topic = "/spotMarket/level1:"
+
+type Level1Raw struct {
+	Type    string `json:"type"`
+	Topic   string `json:"topic"`
+	Subject string `json:"subject"`
+	Data    struct {
+		Asks      []string `json:"asks"`
+		Bids      []string `json:"bids"`
+		Timestamp int64    `json:"timestamp"`
+	} `json:"data"`
+}

@@ -25,3 +25,17 @@ type Data struct {
 	Volume    string `json:"baseVolume"`
 	Timestamp string `json:"ts"`
 }
+
+// BooksChannel is the best bid/ask (1 level) channel; every push is a
+// snapshot.
+const BooksChannel = "books1"
+
+type BooksResponse struct {
+	Action *string `json:"action"`
+	Arg    Arg     `json:"arg"`
+	Data   []struct {
+		Asks      [][]string `json:"asks"`
+		Bids      [][]string `json:"bids"`
+		Timestamp string     `json:"ts"`
+	} `json:"data"`
+}

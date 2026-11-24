@@ -61,3 +61,12 @@ func unixEpoch(v int64) time.Time {
 		return time.UnixMilli(v)
 	}
 }
+
+// TopPrice returns the price of the best level of a book side given as
+// [["price", "size", ...], ...] (the layout of binance, okx, bybit, bitget).
+func TopPrice(levels [][]string) (float64, error) {
+	if len(levels) == 0 || len(levels[0]) == 0 {
+		return 0, fmt.Errorf("empty book side")
+	}
+	return PriceStringToFloat64(levels[0][0])
+}

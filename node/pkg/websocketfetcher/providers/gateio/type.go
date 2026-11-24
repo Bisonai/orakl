@@ -26,3 +26,17 @@ type Response struct {
 		Low24h           string `json:"low_24h"`
 	} `json:"result"`
 }
+
+// BookTickerChannel pushes the best bid/ask on every change; t is in ms.
+const BookTickerChannel = "spot.book_ticker"
+
+type BookTickerResponse struct {
+	Channel string `json:"channel"`
+	Event   string `json:"event"`
+	Result  struct {
+		Timestamp    int64  `json:"t"`
+		CurrencyPair string `json:"s"`
+		Bid          string `json:"b"`
+		Ask          string `json:"a"`
+	} `json:"result"`
+}

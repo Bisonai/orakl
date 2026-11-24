@@ -3,6 +3,7 @@ package mexc
 import (
 	"context"
 	"encoding/json"
+	"time"
 
 	"bisonai.com/miko/node/pkg/websocketfetcher/common"
 	"bisonai.com/miko/node/pkg/websocketfetcher/providers/mexc/pb"
@@ -12,7 +13,14 @@ import (
 	"nhooyr.io/websocket"
 )
 
-type MexcFetcher common.Fetcher
+// MexcFetcher reads miniTickers (whole market, one connection) and the best
+// bid/ask of its symbols on book ticker connections of at most
+// MaxTopicsPerConnection topics each.
+type MexcFetcher struct {
+	common.Fetcher
+	bookWs []*wss.WebsocketHelper
+	quotes *common.QuoteCache
+}
 
 // payloadKey hands the decoded protobuf wrapper from readFrame to handleMessage.
 // The wss helper fixes the router signature at map[string]any, so the alternative
@@ -25,7 +33,7 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 		opt(config)
 	}
 
-	fetcher := &MexcFetcher{}
+	fetcher := &MexcFetcher{quotes: common.NewQuoteCache()}
 	fetcher.FeedMap = config.FeedMaps.Combined
 	fetcher.FeedDataBuffer = config.FeedDataBuffer
 
@@ -45,6 +53,24 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 		return nil, err
 	}
 	fetcher.Ws = ws
+
+	topics := make([]string, 0, len(fetcher.FeedMap))
+	for symbol := range fetcher.FeedMap {
+		topics = append(topics, BookTickerTopicPrefix+symbol)
+	}
+	for i := 0; i < len(topics); i += MaxTopicsPerConnection {
+		end := min(i+MaxTopicsPerConnection, len(topics))
+		bookWs, err := wss.NewWebsocketHelper(ctx,
+			wss.WithEndpoint(URL),
+			wss.WithSubscriptions([]any{Subscription{Method: "SUBSCRIPTION", Params: topics[i:end]}}),
+			wss.WithCustomReadFunc(readBookFrame),
+			wss.WithProxyUrl(config.Proxy))
+		if err != nil {
+			log.Error().Str("Player", "Mexc").Err(err).Msg("error in mexc.New, book ticker connection")
+			return nil, err
+		}
+		fetcher.bookWs = append(fetcher.bookWs, bookWs)
+	}
 	return fetcher, nil
 }
 
@@ -90,6 +116,10 @@ func readFrame(ctx context.Context, conn *websocket.Conn) (map[string]any, error
 }
 
 func (f *MexcFetcher) handleMessage(ctx context.Context, message map[string]any) error {
+	if ticker, ok := message[bookPayloadKey].(BookTicker); ok {
+		return f.handleBookTicker(ticker)
+	}
+
 	wrapper, ok := message[payloadKey].(*pb.PushDataV3ApiWrapper)
 	if !ok {
 		return nil
@@ -102,12 +132,38 @@ func (f *MexcFetcher) handleMessage(ctx context.Context, message map[string]any)
 	}
 
 	for _, feedData := range feedDataList {
-		f.FeedDataBuffer <- feedData
+		f.FeedDataBuffer <- f.quotes.ApplyTrade(feedData)
 	}
 
 	return nil
 }
 
+func (f *MexcFetcher) handleBookTicker(ticker BookTicker) error {
+	ids, exists := f.FeedMap[ticker.Symbol]
+	if !exists {
+		return nil
+	}
+	bid, err := common.PriceStringToFloat64(ticker.BidPrice)
+	if err != nil {
+		return nil
+	}
+	ask, err := common.PriceStringToFloat64(ticker.AskPrice)
+	if err != nil {
+		return nil
+	}
+	ts := time.Now()
+	if ticker.SendTime > 0 {
+		ts = time.UnixMilli(ticker.SendTime)
+	}
+	for _, feedData := range f.quotes.ApplyBook(ids, bid, ask, ts) {
+		f.FeedDataBuffer <- feedData
+	}
+	return nil
+}
+
 func (f *MexcFetcher) Run(ctx context.Context) {
+	for _, bookWs := range f.bookWs {
+		go bookWs.Run(ctx, f.handleMessage)
+	}
 	f.Ws.Run(ctx, f.handleMessage)
 }
