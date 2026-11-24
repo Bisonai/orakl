@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"net"
 	"os"
 	"strings"
 	"sync"
@@ -145,27 +147,59 @@ func Publish(ctx context.Context, channel string, value any) error {
 	return executeWithRetry(ctx, operation)
 }
 
+// subscribeConfirmTimeout bounds the wait for the SUBSCRIBE reply in Subscribe.
+const subscribeConfirmTimeout = 5 * time.Second
+
 func Subscribe[T any](ctx context.Context, channel string, ch chan T) error {
 	if channel == "" {
 		return errors.New("channel cannot be empty")
 	}
-	var sub *redis.PubSub
 	operation := func(client *redis.Client) error {
-		sub = client.Subscribe(ctx, channel)
+		sub := client.Subscribe(ctx, channel)
+		// SUBSCRIBE runs on a separate pubsub connection; wait for its
+		// confirmation so a Publish issued after Subscribe returns is not
+		// processed before the subscription exists (and silently dropped).
+		reply, err := sub.ReceiveTimeout(ctx, subscribeConfirmTimeout)
+		if err != nil {
+			_ = sub.Close()
+			if ctxErr := ctx.Err(); ctxErr != nil {
+				return ctxErr
+			}
+			var netErr net.Error
+			if errors.As(err, &netErr) && netErr.Timeout() {
+				// A slow reply is not a broken connection: return an error
+				// isConnectionError does not match, so executeWithRetry neither
+				// replaces the shared client nor retries.
+				return fmt.Errorf("SUBSCRIBE %q not confirmed within %s", channel, subscribeConfirmTimeout)
+			}
+			return err
+		}
+		if s, ok := reply.(*redis.Subscription); !ok || s.Kind != "subscribe" || s.Channel != channel {
+			_ = sub.Close()
+			return fmt.Errorf("unexpected reply to SUBSCRIBE %q: %v", channel, reply)
+		}
 		rawCh := sub.Channel()
 		go func() {
+			defer sub.Close()
 			for {
 				select {
 				case <-ctx.Done():
-					sub.Close()
 					return
-				case msg := <-rawCh:
+				case msg, ok := <-rawCh:
+					if !ok {
+						return
+					}
 					var data T
 					err := json.Unmarshal([]byte(msg.Payload), &data)
 					if err != nil {
 						log.Error().Err(err).Msg("Error unmarshalling message")
+						continue
 					}
-					ch <- data
+					select {
+					case ch <- data:
+					case <-ctx.Done():
+						return
+					}
 				}
 			}
 		}()

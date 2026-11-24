@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"sort"
 	"strings"
@@ -542,17 +543,48 @@ func TestRedisPublish(t *testing.T) {
 	ch := make(chan map[string]string)
 	err := Subscribe(ctx, channel, ch)
 	if err != nil {
-		t.Errorf("Error subscribing to channel: %v", err)
+		t.Fatalf("Error subscribing to channel: %v", err)
 	}
 
 	// Test Publish
 	err = Publish(ctx, channel, value)
 	if err != nil {
-		t.Errorf("Error publishing message: %v", err)
+		t.Fatalf("Error publishing message: %v", err)
 	}
 
-	gotValue := <-ch
-	assert.Equal(t, value, gotValue)
+	select {
+	case gotValue := <-ch:
+		assert.Equal(t, value, gotValue)
+	case <-time.After(10 * time.Second):
+		t.Fatal("timed out waiting for published message")
+	}
+}
+
+// TestRedisSubscribePublishImmediately publishes right after Subscribe returns;
+// each message must arrive, i.e. Subscribe must not return before the
+// subscription is confirmed (#2990).
+func TestRedisSubscribePublishImmediately(t *testing.T) {
+	for i := 0; i < 100; i++ {
+		func() {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			channel := fmt.Sprintf("testSubscribeImmediate:%d", i)
+			ch := make(chan int, 1)
+			if err := Subscribe(ctx, channel, ch); err != nil {
+				t.Fatalf("iteration %d: subscribe: %v", i, err)
+			}
+			if err := Publish(ctx, channel, i); err != nil {
+				t.Fatalf("iteration %d: publish: %v", i, err)
+			}
+			select {
+			case got := <-ch:
+				assert.Equal(t, i, got)
+			case <-time.After(10 * time.Second):
+				t.Fatalf("iteration %d: message published right after Subscribe was lost", i)
+			}
+		}()
+	}
 }
 
 func TestRedisPublishEmptyValue(t *testing.T) {
