@@ -480,6 +480,7 @@ To run the full set, set the variables the skips name, for example:
 ```sh
 REDIS_HOST=localhost REDIS_PORT=6379 \
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/miko-test?search_path=public" \
+ENCRYPT_PASSWORD=anything CHAIN=test \
 KAIA_PROVIDER_URL=https://public-en-kairos.node.kaia.io \
 ETH_PROVIDER_URL=wss://ethereum-sepolia-rpc.publicnode.com \
 KAIA_WEBSOCKET_URL=wss://public-en.node.kaia.io/ws \
@@ -488,12 +489,12 @@ BSC_WEBSOCKET_URL=wss://bsc-rpc.publicnode.com \
 POLYGON_WEBSOCKET_URL=wss://polygon-bor-rpc.publicnode.com \
 JSON_RPC_URL=https://public-en-kairos.node.kaia.io \
 SUBMISSION_PROXY_CONTRACT=<proxy address> \
-SIGNER_PK=<whitelisted signer key> KAIA_REPORTER_PK=<funded key> \
+SIGNER_PK=<whitelisted signer key> KAIA_REPORTER_PK=<funded key> ETH_REPORTER_PK=<funded key> \
 API_KEY=<DAL API key> DAL_REST_URL=<DAL URL> DAL_WS_URL=<DAL ws URL> \
 go test ./...
 ```
 
-`SIGNER_PK` must be whitelisted on `SUBMISSION_PROXY_CONTRACT`, and `KAIA_REPORTER_PK` must hold funds for the submission tests. CI sets these per workflow (`.github/workflows/*.test.yaml`).
+`SIGNER_PK` must be whitelisted on `SUBMISSION_PROXY_CONTRACT`, and `KAIA_REPORTER_PK` must hold funds for the submission tests. Chain helper tests need a reporter key (`KAIA_REPORTER_PK` / `ETH_REPORTER_PK`) even for read-only calls. CI sets these per workflow (`.github/workflows/*.test.yaml`).
 
 miniredis does not expire keys with a TTL on wall-clock time, so TTL-dependent tests (e.g. `TestMSetObjectWithExp` in `pkg/db`) run only against a real Redis (`REDIS_HOST` set).
 

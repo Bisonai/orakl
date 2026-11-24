@@ -75,15 +75,16 @@ func TestMain(m *testing.M) {
 	os.Setenv("CONFIG_BASE_URL", configServer.URL)
 	os.Setenv("CONFIG_FALLBACK_URL", "")
 
+	var err error
+	dalKeyDir, err = os.MkdirTemp("", "dal-keys-")
+	if err != nil {
+		panic(err)
+	}
+
 	stopRedis, err := testenv.StartRedis()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
-	}
-
-	dalKeyDir, err = os.MkdirTemp("", "dal-keys-")
-	if err != nil {
-		panic(err)
 	}
 
 	code := m.Run()

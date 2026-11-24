@@ -73,16 +73,6 @@ func TestNewReporter(t *testing.T) {
 }
 
 func TestShouldReportDeviation(t *testing.T) {
-	testenv.Env(t, dalAppEnv...)
-	ctx := context.Background()
-
-	app := New()
-
-	_, err := app.setReporters(ctx)
-	if err != nil {
-		t.Fatalf("error setting reporters: %v", err)
-	}
-
 	assert.False(t, ShouldReportDeviation(0, 0, 0.05))
 	assert.True(t, ShouldReportDeviation(0, 100000000, 0.05))
 	assert.False(t, ShouldReportDeviation(100000000000, 100100000000, 0.05))

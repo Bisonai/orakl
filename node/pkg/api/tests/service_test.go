@@ -17,7 +17,8 @@ func TestService(t *testing.T) {
 	if err != nil {
 		fmt.Print("env file is not found, continueing without .env file")
 	}
-	testenv.Postgres(t)
+	// utils.Setup needs both; its error is not checked by these tests.
+	testenv.Env(t, testenv.DatabaseURLEnv, "ENCRYPT_PASSWORD")
 
 	var insertData = service.ServiceInsertModel{Name: "SERVICE_TEST"}
 	var updateData = service.ServiceInsertModel{Name: "SERVICE_TEST_2"}

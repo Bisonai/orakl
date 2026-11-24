@@ -18,7 +18,8 @@ func TestVrf(t *testing.T) {
 	if err != nil {
 		fmt.Print("env file is not found, continueing without .env file")
 	}
-	testenv.Postgres(t)
+	// utils.Setup needs both; its error is not checked by these tests.
+	testenv.Env(t, testenv.DatabaseURLEnv, "ENCRYPT_PASSWORD")
 
 	var insertChain = chain.ChainInsertModel{Name: "vrf-test-chain"}
 
