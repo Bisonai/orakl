@@ -186,6 +186,16 @@ func (vc *VolumeCacheMap) Set(key int32, value VolumeCache) {
 	vc.Map[key] = value
 }
 
+// FreshVolume returns the cached volume of key if it was updated within
+// VolumeCacheLifespan.
+func (vc *VolumeCacheMap) FreshVolume(key int32) (float64, bool) {
+	cache, ok := vc.Get(key)
+	if !ok || cache.UpdatedAt.Before(time.Now().Add(-VolumeCacheLifespan)) {
+		return 0, false
+	}
+	return cache.Volume, true
+}
+
 func capitalizeFirstLetter(s string) string {
 	if len(s) == 0 {
 		return s
