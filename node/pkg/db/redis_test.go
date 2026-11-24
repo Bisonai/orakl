@@ -543,13 +543,13 @@ func TestRedisPublish(t *testing.T) {
 	ch := make(chan map[string]string)
 	err := Subscribe(ctx, channel, ch)
 	if err != nil {
-		t.Errorf("Error subscribing to channel: %v", err)
+		t.Fatalf("Error subscribing to channel: %v", err)
 	}
 
 	// Test Publish
 	err = Publish(ctx, channel, value)
 	if err != nil {
-		t.Errorf("Error publishing message: %v", err)
+		t.Fatalf("Error publishing message: %v", err)
 	}
 
 	select {

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
 	"os"
 	"strings"
 	"sync"
@@ -161,6 +162,13 @@ func Subscribe[T any](ctx context.Context, channel string, ch chan T) error {
 		reply, err := sub.ReceiveTimeout(ctx, subscribeConfirmTimeout)
 		if err != nil {
 			_ = sub.Close()
+			var netErr net.Error
+			if errors.As(err, &netErr) && netErr.Timeout() {
+				// A slow reply is not a broken connection: return an error
+				// isConnectionError does not match, so executeWithRetry neither
+				// replaces the shared client nor retries.
+				return fmt.Errorf("SUBSCRIBE %q not confirmed within %s", channel, subscribeConfirmTimeout)
+			}
 			return err
 		}
 		if s, ok := reply.(*redis.Subscription); !ok || s.Kind != "subscribe" || s.Channel != channel {
