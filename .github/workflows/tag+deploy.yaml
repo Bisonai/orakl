@@ -108,18 +108,6 @@ jobs:
         id: img-tag
         run: echo "img_tag=v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}" >> $GITHUB_OUTPUT
 
-  post-slack-image-upload:
-    name: Slack message for image upload
-    needs: [prepare, build]
-    uses: ./.github/workflows/post.slack.yaml
-    with:
-      status: "Success"
-      slack-message: "*${{ needs.prepare.outputs.app_name }}* : *${{ needs.prepare.outputs.service }}* ${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }} is uploaded"
-      channel: "miko-notification"
-    secrets:
-      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-    if: ${{ success() }}
-
   image-update:
     name: Update image tag
     needs: [prepare, build]
@@ -183,26 +171,14 @@ jobs:
 
           gh release create "$TAG" --title "${APP_NAME} v${VERSION}" --notes-file notes.md --prerelease
 
-  post-slack-tag-update-success:
-    name: Post slack message for tag update success
-    needs: [prepare, build, image-update]
-    uses: ./.github/workflows/post.slack.yaml
-    if: ${{ success() }}
-    with:
-      status: "Success"
-      slack-message: "*${{ needs.prepare.outputs.app_name }}* : *${{ needs.prepare.outputs.service }}* new image tag ${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }} ${{ needs.image-update.outputs.updated == 'true' && 'is updated' || 'is not deployed to kairos (no kairos chart)' }}"
-      channel: "miko-notification"
-    secrets:
-      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-
   post-slack-tag-update-failure:
     name: Post to a slack message for tag update failure
-    needs: [prepare, build, image-update]
+    needs: [prepare, build, image-update, release]
     if: ${{ failure() }}
     uses: ./.github/workflows/post.slack.yaml
     with:
       status: "Failed"
-      slack-message: "*${{ needs.prepare.outputs.app_name }}* git action failed"
+      slack-message: "*${{ github.ref_name }}* build/deploy failed: <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|run>"
       channel: "miko-notification"
     secrets:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
