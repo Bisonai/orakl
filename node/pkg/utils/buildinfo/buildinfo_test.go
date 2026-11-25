@@ -17,7 +17,7 @@ func TestDefaults(t *testing.T) {
 	if Version != "dev" || Commit != "unknown" || BuildTime != "unknown" {
 		t.Fatalf("unexpected defaults: %q %q %q", Version, Commit, BuildTime)
 	}
-	if got, want := Root("Miko Node DAL API"), "Miko Node DAL API dev (unknown)"; got != want {
+	if got, want := Root("Orakl Node DAL API"), "Orakl Node DAL API dev (unknown)"; got != want {
 		t.Fatalf("Root = %q, want %q", got, want)
 	}
 }

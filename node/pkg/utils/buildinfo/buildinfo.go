@@ -79,7 +79,7 @@ func Get() Info {
 
 // Root appends the version and commit to an HTTP root text, keeping text as
 // an exact prefix (health checks match on it), e.g.
-// "Miko Node DAL API v0.0.29.20261120.0227.846179b (846179b)".
+// "Orakl Node DAL API v0.0.29.20261120.0227.846179b (846179b)".
 func Root(text string) string {
 	return text + " " + Version + " (" + Commit + ")"
 }

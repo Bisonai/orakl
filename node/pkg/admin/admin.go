@@ -48,7 +48,7 @@ func Run(ctx context.Context, bus *bus.MessageBus) error {
 func registerRoutes(app *fiber.App) {
 	v1 := app.Group("/api/v1")
 	v1.Get("/", func(c *fiber.Ctx) error {
-		return c.SendString(buildinfo.Root("Miko Node Admin API"))
+		return c.SendString(buildinfo.Root("Orakl Node Admin API"))
 	})
 	v1.Get("/version", buildinfo.FiberHandler)
 
