@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"bisonai.com/miko/node/pkg/chain/utils"
-	errorsentinel "bisonai.com/miko/node/pkg/error"
+	"bisonai.com/orakl/node/pkg/chain/utils"
+	errorsentinel "bisonai.com/orakl/node/pkg/error"
 	"github.com/kaiachain/kaia/accounts/abi"
 	"github.com/stretchr/testify/assert"
 )

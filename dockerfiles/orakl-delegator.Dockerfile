@@ -14,7 +14,7 @@ ARG COMMIT
 ARG BUILD_TIME
 
 # https://github.com/klaytn/klaytn/issues/197#issuecomment-612597933
-RUN CGO_ENABLED=1 CGO_CFLAGS="-O -D__BLST_PORTABLE__" CGO_CFLAGS_ALLOW="-O -D__BLST_PORTABLE__" CC=x86_64-linux-gnu-gcc GOOS=linux GOARCH=amd64 go build -o delegatorbin -ldflags="-w -s -X bisonai.com/miko/node/pkg/utils/buildinfo.Version=${VERSION:-dev} -X bisonai.com/miko/node/pkg/utils/buildinfo.Commit=${COMMIT:-unknown} -X bisonai.com/miko/node/pkg/utils/buildinfo.BuildTime=${BUILD_TIME:-unknown}" ./cmd/delegator
+RUN CGO_ENABLED=1 CGO_CFLAGS="-O -D__BLST_PORTABLE__" CGO_CFLAGS_ALLOW="-O -D__BLST_PORTABLE__" CC=x86_64-linux-gnu-gcc GOOS=linux GOARCH=amd64 go build -o delegatorbin -ldflags="-w -s -X bisonai.com/orakl/node/pkg/utils/buildinfo.Version=${VERSION:-dev} -X bisonai.com/orakl/node/pkg/utils/buildinfo.Commit=${COMMIT:-unknown} -X bisonai.com/orakl/node/pkg/utils/buildinfo.BuildTime=${BUILD_TIME:-unknown}" ./cmd/delegator
 # debian:bookworm-slim
 FROM debian:bookworm-slim
 

@@ -1,4 +1,4 @@
-name: "miko dal-stream test"
+name: "orakl dal-stream test"
 
 on:
   push:
@@ -11,7 +11,7 @@ on:
       - "node/pkg/utils/**"
       - "node/go.mod"
       - "node/go.sum"
-      - "dockerfiles/miko-dal-stream.Dockerfile"
+      - "dockerfiles/orakl-dal-stream.Dockerfile"
       - ".github/workflows/dal-stream.test.yaml"
   workflow_dispatch:
 
@@ -53,4 +53,4 @@ jobs:
           task local:test-dal-stream
 
       - name: Build image
-        run: docker build -f dockerfiles/miko-dal-stream.Dockerfile .
+        run: docker build -f dockerfiles/orakl-dal-stream.Dockerfile .

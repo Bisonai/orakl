@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"bisonai.com/miko/node/pkg/admin/utils"
+	"bisonai.com/orakl/node/pkg/admin/utils"
 )
 
 const adminUsage = `usage: nodebin admin [-timeout 2m] <command> [args]

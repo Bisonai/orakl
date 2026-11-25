@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"bisonai.com/miko/node/pkg/common/keys"
-	"bisonai.com/miko/node/pkg/db"
+	"bisonai.com/orakl/node/pkg/common/keys"
+	"bisonai.com/orakl/node/pkg/db"
 	"github.com/stretchr/testify/assert"
 )
 

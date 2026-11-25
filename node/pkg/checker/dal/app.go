@@ -12,12 +12,12 @@ import (
 	"sync"
 	"time"
 
-	"bisonai.com/miko/node/pkg/checker"
-	"bisonai.com/miko/node/pkg/secrets"
-	"bisonai.com/miko/node/pkg/utils/configfetch"
-	"bisonai.com/miko/node/pkg/utils/configreload"
-	"bisonai.com/miko/node/pkg/utils/request"
-	"bisonai.com/miko/node/pkg/wss"
+	"bisonai.com/orakl/node/pkg/checker"
+	"bisonai.com/orakl/node/pkg/secrets"
+	"bisonai.com/orakl/node/pkg/utils/configfetch"
+	"bisonai.com/orakl/node/pkg/utils/configreload"
+	"bisonai.com/orakl/node/pkg/utils/request"
+	"bisonai.com/orakl/node/pkg/wss"
 	"github.com/rs/zerolog/log"
 )
 

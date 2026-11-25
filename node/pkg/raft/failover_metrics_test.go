@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	errorSentinel "bisonai.com/miko/node/pkg/error"
-	"bisonai.com/miko/node/pkg/metrics"
-	metricnames "bisonai.com/miko/node/pkg/metrics/names"
+	errorSentinel "bisonai.com/orakl/node/pkg/error"
+	"bisonai.com/orakl/node/pkg/metrics"
+	metricnames "bisonai.com/orakl/node/pkg/metrics/names"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

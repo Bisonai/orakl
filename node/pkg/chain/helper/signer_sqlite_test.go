@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"bisonai.com/miko/node/pkg/nodestate"
+	"bisonai.com/orakl/node/pkg/nodestate"
 	"github.com/kaiachain/kaia/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

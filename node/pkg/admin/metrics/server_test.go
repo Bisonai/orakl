@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	nodemetrics "bisonai.com/miko/node/pkg/metrics"
+	nodemetrics "bisonai.com/orakl/node/pkg/metrics"
 	"github.com/gofiber/fiber/v2"
 	"github.com/prometheus/common/expfmt"
 	"github.com/prometheus/common/model"

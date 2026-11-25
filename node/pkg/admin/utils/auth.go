@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"bisonai.com/miko/node/pkg/secrets"
+	"bisonai.com/orakl/node/pkg/secrets"
 	"github.com/gofiber/fiber/v2"
 )
 

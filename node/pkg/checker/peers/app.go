@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	"bisonai.com/miko/node/pkg/utils/request"
+	"bisonai.com/orakl/node/pkg/utils/request"
 	"github.com/rs/zerolog/log"
 )
 
@@ -66,15 +66,15 @@ func check() {
 }
 
 func checkPeerCounts() (int, error) {
-	mikoNodeAdminUrl := os.Getenv("ORAKL_NODE_ADMIN_URL")
-	if mikoNodeAdminUrl == "" {
+	oraklNodeAdminUrl := os.Getenv("ORAKL_NODE_ADMIN_URL")
+	if oraklNodeAdminUrl == "" {
 		return 0, errors.New("ORAKL_NODE_ADMIN_URL not found")
 	}
 
 	maxCount := 0
 	succeeded := false
 	for i := 0; i < SAMPLE_COUNT; i++ {
-		resp, err := request.Request[peerCountResponse](request.WithEndpoint(mikoNodeAdminUrl+peerCountEndpoint), request.WithTimeout(10*time.Second))
+		resp, err := request.Request[peerCountResponse](request.WithEndpoint(oraklNodeAdminUrl+peerCountEndpoint), request.WithTimeout(10*time.Second))
 		if err != nil {
 			log.Warn().Err(err).Int("sample", i).Msg("failed to get peer count sample")
 			continue

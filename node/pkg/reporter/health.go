@@ -6,7 +6,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"bisonai.com/miko/node/pkg/metrics/submission"
+	"bisonai.com/orakl/node/pkg/metrics/submission"
 	"github.com/rs/zerolog/log"
 )
 

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"bisonai.com/miko/node/pkg/websocketfetcher/common"
+	"bisonai.com/orakl/node/pkg/websocketfetcher/common"
 )
 
 func RawToFeedData(raw Raw, feedMap map[string][]int32) ([]*common.FeedData, error) {

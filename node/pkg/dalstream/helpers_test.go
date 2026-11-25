@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	dalcommon "bisonai.com/miko/node/pkg/dal/common"
+	dalcommon "bisonai.com/orakl/node/pkg/dal/common"
 	"nhooyr.io/websocket"
 )
 

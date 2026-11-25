@@ -5,7 +5,7 @@ syntax = "proto3";
 
 package mexc;
 
-option go_package = "bisonai.com/miko/node/pkg/websocketfetcher/providers/mexc/pb";
+option go_package = "bisonai.com/orakl/node/pkg/websocketfetcher/providers/mexc/pb";
 
 message PublicMiniTickerV3Api {
   string symbol = 1;

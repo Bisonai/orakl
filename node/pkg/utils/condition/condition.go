@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	errorsentinel "bisonai.com/miko/node/pkg/error"
+	errorsentinel "bisonai.com/orakl/node/pkg/error"
 )
 
 // can be blocking infinitely if condition is not met, use with caution

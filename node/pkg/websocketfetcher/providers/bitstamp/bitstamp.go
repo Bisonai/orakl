@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"bisonai.com/miko/node/pkg/websocketfetcher/common"
-	"bisonai.com/miko/node/pkg/wss"
+	"bisonai.com/orakl/node/pkg/websocketfetcher/common"
+	"bisonai.com/orakl/node/pkg/wss"
 	"github.com/rs/zerolog/log"
 )
 

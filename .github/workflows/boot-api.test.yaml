@@ -1,4 +1,4 @@
-name: "miko boot api test"
+name: "orakl boot api test"
 
 on:
   push:

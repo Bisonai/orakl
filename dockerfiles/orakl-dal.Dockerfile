@@ -13,7 +13,7 @@ ARG VERSION
 ARG COMMIT
 ARG BUILD_TIME
 
-RUN CGO_ENABLED=1 CGO_CFLAGS="-O -D__BLST_PORTABLE__" CGO_CFLAGS_ALLOW="-O -D__BLST_PORTABLE__" CC=x86_64-linux-gnu-gcc GOOS=linux GOARCH=amd64 go build -o sentinelbin -ldflags="-w -s -X bisonai.com/miko/node/pkg/utils/buildinfo.Version=${VERSION:-dev} -X bisonai.com/miko/node/pkg/utils/buildinfo.Commit=${COMMIT:-unknown} -X bisonai.com/miko/node/pkg/utils/buildinfo.BuildTime=${BUILD_TIME:-unknown}" ./cmd/sentinel/main.go
+RUN CGO_ENABLED=1 CGO_CFLAGS="-O -D__BLST_PORTABLE__" CGO_CFLAGS_ALLOW="-O -D__BLST_PORTABLE__" CC=x86_64-linux-gnu-gcc GOOS=linux GOARCH=amd64 go build -o dalbin -ldflags="-w -s -X bisonai.com/orakl/node/pkg/utils/buildinfo.Version=${VERSION:-dev} -X bisonai.com/orakl/node/pkg/utils/buildinfo.Commit=${COMMIT:-unknown} -X bisonai.com/orakl/node/pkg/utils/buildinfo.BuildTime=${BUILD_TIME:-unknown}" ./cmd/dal/main.go
 
 # debian:bookworm-slim
 FROM debian:bookworm-slim
@@ -28,6 +28,7 @@ COPY --from=builder /app/node/taskfile.yml /app/taskfile.yml
 
 COPY --from=builder /app/node/taskfiles /app/taskfiles
 
-COPY --from=builder /app/node/sentinelbin /usr/bin
+COPY --from=builder /app/node/dalbin /usr/bin
 
-CMD ["sentinelbin"]
+# API keys live in the SQLite file at $DAL_SQLITE_PATH (mount a volume)
+CMD ["dalbin"]

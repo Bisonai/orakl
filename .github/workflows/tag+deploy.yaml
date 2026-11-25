@@ -79,7 +79,7 @@ jobs:
 
       - name: docker build ${{ needs.prepare.outputs.service }}
         env:
-          SERVICE_NAME: miko-${{ needs.prepare.outputs.service }}
+          SERVICE_NAME: orakl-${{ needs.prepare.outputs.service }}
           # build info for Go binaries (pkg/utils/buildinfo): version = the image tag
           VERSION: v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
           COMMIT: ${{ needs.prepare.outputs.tag_git_hash }}
@@ -99,7 +99,7 @@ jobs:
 
       - name: publish image to ecr
         run: |
-          docker tag miko-${{ needs.prepare.outputs.service }} ${{ needs.prepare.outputs.ecr_url }}:latest
+          docker tag orakl-${{ needs.prepare.outputs.service }} ${{ needs.prepare.outputs.ecr_url }}:latest
           docker push ${{ needs.prepare.outputs.ecr_url }}:latest
           docker tag ${{ needs.prepare.outputs.ecr_url }}:latest ${{ needs.prepare.outputs.ecr_url }}:v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
           docker push ${{ needs.prepare.outputs.ecr_url }}:v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}

@@ -8,10 +8,10 @@ import (
 	"math/rand"
 	"time"
 
-	errorSentinel "bisonai.com/miko/node/pkg/error"
-	"bisonai.com/miko/node/pkg/utils/reducer"
-	"bisonai.com/miko/node/pkg/utils/request"
-	"bisonai.com/miko/node/pkg/utils/retrier"
+	errorSentinel "bisonai.com/orakl/node/pkg/error"
+	"bisonai.com/orakl/node/pkg/utils/reducer"
+	"bisonai.com/orakl/node/pkg/utils/request"
+	"bisonai.com/orakl/node/pkg/utils/retrier"
 	"github.com/rs/zerolog/log"
 )
 

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"bisonai.com/miko/node/pkg/raft"
+	"bisonai.com/orakl/node/pkg/raft"
 	"github.com/vmihailenco/msgpack/v5"
 )
 

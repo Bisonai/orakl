@@ -3,7 +3,7 @@ package config
 import (
 	"context"
 
-	"bisonai.com/miko/node/pkg/nodeconfig"
+	"bisonai.com/orakl/node/pkg/nodeconfig"
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog/log"
 )

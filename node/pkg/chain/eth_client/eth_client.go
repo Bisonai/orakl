@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"bisonai.com/miko/node/pkg/chain/rpcdial"
+	"bisonai.com/orakl/node/pkg/chain/rpcdial"
 	"github.com/kaiachain/kaia"
 	"github.com/kaiachain/kaia/api"
 	"github.com/kaiachain/kaia/blockchain/types"

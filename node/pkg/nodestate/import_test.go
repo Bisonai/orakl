@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"bisonai.com/miko/node/pkg/chain/utils"
-	"bisonai.com/miko/node/pkg/utils/encryptor"
+	"bisonai.com/orakl/node/pkg/chain/utils"
+	"bisonai.com/orakl/node/pkg/utils/encryptor"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

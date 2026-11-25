@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	errorSentinel "bisonai.com/miko/node/pkg/error"
-	metricnames "bisonai.com/miko/node/pkg/metrics/names"
-	signermetrics "bisonai.com/miko/node/pkg/metrics/signer"
+	errorSentinel "bisonai.com/orakl/node/pkg/error"
+	metricnames "bisonai.com/orakl/node/pkg/metrics/names"
+	signermetrics "bisonai.com/orakl/node/pkg/metrics/signer"
 	"github.com/kaiachain/kaia/common"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"

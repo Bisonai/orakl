@@ -1,4 +1,4 @@
-module bisonai.com/miko/node
+module bisonai.com/orakl/node
 
 go 1.24.0
 

@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"time"
 
-	"bisonai.com/miko/node/pkg/websocketfetcher/common"
-	"bisonai.com/miko/node/pkg/websocketfetcher/providers/mexc/pb"
-	"bisonai.com/miko/node/pkg/wss"
+	"bisonai.com/orakl/node/pkg/websocketfetcher/common"
+	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/mexc/pb"
+	"bisonai.com/orakl/node/pkg/wss"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/protobuf/proto"
 	"nhooyr.io/websocket"

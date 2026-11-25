@@ -11,7 +11,7 @@ import (
 	"regexp"
 	"strings"
 
-	errorSentinel "bisonai.com/miko/node/pkg/error"
+	errorSentinel "bisonai.com/orakl/node/pkg/error"
 
 	"github.com/kaiachain/kaia"
 	"github.com/kaiachain/kaia/accounts/abi"

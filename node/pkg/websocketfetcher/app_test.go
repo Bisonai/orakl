@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"bisonai.com/miko/node/pkg/chain/utils"
-	"bisonai.com/miko/node/pkg/chain/websocketchainreader"
-	"bisonai.com/miko/node/pkg/websocketfetcher/common"
+	"bisonai.com/orakl/node/pkg/chain/utils"
+	"bisonai.com/orakl/node/pkg/chain/websocketchainreader"
+	"bisonai.com/orakl/node/pkg/websocketfetcher/common"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"

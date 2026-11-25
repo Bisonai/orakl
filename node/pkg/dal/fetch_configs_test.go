@@ -8,7 +8,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	errorsentinel "bisonai.com/miko/node/pkg/error"
+	errorsentinel "bisonai.com/orakl/node/pkg/error"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

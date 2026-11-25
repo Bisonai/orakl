@@ -16,8 +16,8 @@ import (
 	"sort"
 	"sync"
 
-	"bisonai.com/miko/node/pkg/common/types"
-	"bisonai.com/miko/node/pkg/utils/configfetch"
+	"bisonai.com/orakl/node/pkg/common/types"
+	"bisonai.com/orakl/node/pkg/utils/configfetch"
 )
 
 // defaults for intervals missing from the bundle (former Postgres column defaults)

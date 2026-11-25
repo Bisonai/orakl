@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"bisonai.com/miko/node/pkg/chain/eth_client"
-	"bisonai.com/miko/node/pkg/chain/utils"
+	"bisonai.com/orakl/node/pkg/chain/eth_client"
+	"bisonai.com/orakl/node/pkg/chain/utils"
 	kaiaSdk "github.com/kaiachain/kaia"
 	"github.com/kaiachain/kaia/blockchain/types"
 	"github.com/kaiachain/kaia/client"

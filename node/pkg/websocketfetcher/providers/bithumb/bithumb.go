@@ -3,8 +3,8 @@ package bithumb
 import (
 	"context"
 
-	"bisonai.com/miko/node/pkg/websocketfetcher/common"
-	"bisonai.com/miko/node/pkg/websocketfetcher/providers/upbit"
+	"bisonai.com/orakl/node/pkg/websocketfetcher/common"
+	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/upbit"
 )
 
 // URLV2 is bithumb's upbit-compatible websocket: same SIMPLE format for

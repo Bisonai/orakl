@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"bisonai.com/miko/node/pkg/websocketfetcher/common"
+	"bisonai.com/orakl/node/pkg/websocketfetcher/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

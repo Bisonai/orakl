@@ -19,7 +19,7 @@ package mexc;
 
 import "PublicMiniTickersV3Api.proto";
 
-option go_package = "bisonai.com/miko/node/pkg/websocketfetcher/providers/mexc/pb";
+option go_package = "bisonai.com/orakl/node/pkg/websocketfetcher/providers/mexc/pb";
 
 message PushDataV3ApiWrapper {
   string channel = 1;

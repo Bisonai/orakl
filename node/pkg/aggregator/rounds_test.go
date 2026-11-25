@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	libp2pSetup "bisonai.com/miko/node/pkg/libp2p/setup"
-	"bisonai.com/miko/node/pkg/nodestate"
-	"bisonai.com/miko/node/pkg/raft"
+	libp2pSetup "bisonai.com/orakl/node/pkg/libp2p/setup"
+	"bisonai.com/orakl/node/pkg/nodestate"
+	"bisonai.com/orakl/node/pkg/raft"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

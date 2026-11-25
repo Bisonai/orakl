@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"bisonai.com/miko/node/pkg/aggregator"
-	"bisonai.com/miko/node/pkg/raft"
+	"bisonai.com/orakl/node/pkg/aggregator"
+	"bisonai.com/orakl/node/pkg/raft"
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
 )

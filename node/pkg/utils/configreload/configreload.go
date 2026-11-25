@@ -23,7 +23,7 @@ import (
 	"syscall"
 	"time"
 
-	"bisonai.com/miko/node/pkg/utils/configfetch"
+	"bisonai.com/orakl/node/pkg/utils/configfetch"
 	"github.com/rs/zerolog/log"
 )
 

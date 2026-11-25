@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	chainutils "bisonai.com/miko/node/pkg/chain/utils"
-	errorsentinel "bisonai.com/miko/node/pkg/error"
+	chainutils "bisonai.com/orakl/node/pkg/chain/utils"
+	errorsentinel "bisonai.com/orakl/node/pkg/error"
 	kaiacommon "github.com/kaiachain/kaia/common"
 	"github.com/rs/zerolog/log"
 )

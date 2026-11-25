@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"bisonai.com/miko/node/pkg/metrics"
-	metricnames "bisonai.com/miko/node/pkg/metrics/names"
+	"bisonai.com/orakl/node/pkg/metrics"
+	metricnames "bisonai.com/orakl/node/pkg/metrics/names"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"

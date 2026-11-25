@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"bisonai.com/miko/node/pkg/chain/proof"
-	"bisonai.com/miko/node/pkg/common/types"
-	"bisonai.com/miko/node/pkg/testutil/testenv"
+	"bisonai.com/orakl/node/pkg/chain/proof"
+	"bisonai.com/orakl/node/pkg/common/types"
+	"bisonai.com/orakl/node/pkg/testutil/testenv"
 	kaiacommon "github.com/kaiachain/kaia/common"
 	"github.com/kaiachain/kaia/crypto"
 )

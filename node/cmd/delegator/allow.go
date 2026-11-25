@@ -6,7 +6,7 @@ import (
 	"io"
 	"os"
 
-	"bisonai.com/miko/node/pkg/delegator/store"
+	"bisonai.com/orakl/node/pkg/delegator/store"
 )
 
 const allowUsage = `usage: delegatorbin allow <command>

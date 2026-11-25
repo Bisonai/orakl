@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"time"
 
-	"bisonai.com/miko/node/pkg/websocketfetcher/common"
+	"bisonai.com/orakl/node/pkg/websocketfetcher/common"
 	"github.com/rs/zerolog/log"
 )
 

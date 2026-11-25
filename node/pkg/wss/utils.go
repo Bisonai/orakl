@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"bisonai.com/miko/node/pkg/utils/retrier"
+	"bisonai.com/orakl/node/pkg/utils/retrier"
 	"github.com/rs/zerolog/log"
 	"nhooyr.io/websocket"
 	"nhooyr.io/websocket/wsjson"

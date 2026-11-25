@@ -13,8 +13,8 @@ import (
 	"strconv"
 	"strings"
 
-	"bisonai.com/miko/node/pkg/api/secrets"
-	"bisonai.com/miko/node/pkg/utils/crossorigin"
+	"bisonai.com/orakl/node/pkg/api/secrets"
+	"bisonai.com/orakl/node/pkg/utils/crossorigin"
 	"golang.org/x/crypto/scrypt"
 
 	"github.com/gofiber/fiber/v2"

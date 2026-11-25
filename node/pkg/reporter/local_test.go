@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	chainutils "bisonai.com/miko/node/pkg/chain/utils"
+	chainutils "bisonai.com/orakl/node/pkg/chain/utils"
 	kaiacommon "github.com/kaiachain/kaia/common"
 	"github.com/kaiachain/kaia/crypto"
 	"github.com/stretchr/testify/assert"

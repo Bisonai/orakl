@@ -6,8 +6,8 @@ import (
 	"math/big"
 	"time"
 
-	"bisonai.com/miko/node/pkg/chain/helper"
-	"bisonai.com/miko/node/pkg/nodestate"
+	"bisonai.com/orakl/node/pkg/chain/helper"
+	"bisonai.com/orakl/node/pkg/nodestate"
 	"github.com/rs/zerolog/log"
 )
 

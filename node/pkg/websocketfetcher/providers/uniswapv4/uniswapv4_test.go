@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"bisonai.com/miko/node/pkg/chain/websocketchainreader"
-	"bisonai.com/miko/node/pkg/websocketfetcher/common"
+	"bisonai.com/orakl/node/pkg/chain/websocketchainreader"
+	"bisonai.com/orakl/node/pkg/websocketfetcher/common"
 	kaiacommon "github.com/kaiachain/kaia/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

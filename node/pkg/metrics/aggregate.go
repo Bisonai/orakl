@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	metricnames "bisonai.com/miko/node/pkg/metrics/names"
+	metricnames "bisonai.com/orakl/node/pkg/metrics/names"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )

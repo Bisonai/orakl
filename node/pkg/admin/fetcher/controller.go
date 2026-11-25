@@ -3,9 +3,9 @@ package fetcher
 import (
 	"strconv"
 
-	"bisonai.com/miko/node/pkg/admin/utils"
-	"bisonai.com/miko/node/pkg/bus"
-	errorSentinel "bisonai.com/miko/node/pkg/error"
+	"bisonai.com/orakl/node/pkg/admin/utils"
+	"bisonai.com/orakl/node/pkg/bus"
+	errorSentinel "bisonai.com/orakl/node/pkg/error"
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog/log"
 )
