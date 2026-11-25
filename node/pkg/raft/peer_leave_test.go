@@ -181,6 +181,7 @@ func TestLateReconnectHandsOverOnce(t *testing.T) {
 	follower.Host.Peerstore().ClearAddrs(leader.Host.ID())
 	require.NoError(t, follower.Host.Network().ClosePeer(leader.Host.ID()))
 	require.Empty(t, leader.Host.Peerstore().Addrs(follower.Host.ID()), "leader can still redial")
+	require.Empty(t, follower.Host.Peerstore().Addrs(leader.Host.ID()), "follower can still redial")
 	require.Eventually(t, func() bool { return follower.GetRole() == Leader }, failoverBound, 10*time.Millisecond,
 		"follower did not take over")
 	dialCtx, dialCancel := context.WithTimeout(ctx, testElectionWait) // slow under load
