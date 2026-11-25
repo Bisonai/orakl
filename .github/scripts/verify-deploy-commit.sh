@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
 # Verify a commit may be tagged and deployed:
 #   1. it is on master (ancestor of, or equal to, MASTER_REF)
-#   2. its latest `gate` check run (GitHub Actions) concluded `success`.
-#      While a gate workflow run for the commit is still queued/in progress it is
-#      polled until done or TIMEOUT expires (the `gate` job's check run only appears
-#      once node/node-services finish).
+#   2. the `gate` job of its latest gate.yaml run (master push run preferred over
+#      PR/dispatch runs) concluded `success`. A queued/in-progress run is polled
+#      until done or TIMEOUT expires.
 #
 # Usage: verify-deploy-commit.sh <sha>
 # Env:   REPO (owner/name, default $GITHUB_REPOSITORY), MASTER_REF (default origin/master),
@@ -20,6 +19,20 @@ interval=${POLL_INTERVAL:-30}
 timeout=${TIMEOUT:-1800}
 grace=${MISSING_GRACE:-120}
 
+# gh api with 3 tries, so one transient API error doesn't abort a deploy.
+api() {
+  local i out
+  for i in 1 2 3; do
+    if out=$(gh api "$@"); then
+      printf '%s\n' "$out"
+      return 0
+    fi
+    echo "gh api failed (try $i/3)" >&2
+    sleep 10
+  done
+  return 1
+}
+
 if ! git merge-base --is-ancestor "$sha" "$master_ref"; then
   echo "::error::$sha is not on master ($master_ref); only master commits may be tagged for deploy"
   exit 1
@@ -29,36 +42,42 @@ echo "ok: $sha is on master ($master_ref)"
 start=$(date +%s)
 while true; do
   elapsed=$(( $(date +%s) - start ))
-  # gate workflow runs for this commit: "<total> <not yet completed>"
-  runs=$(gh api "repos/$repo/actions/runs?head_sha=$sha&per_page=100" \
-    --jq '[.workflow_runs[] | select(.path == ".github/workflows/gate.yaml")]
-          | "\(length) \(map(select(.status != "completed")) | length)"')
-  read -r total pending <<<"$runs"
+  # Latest gate.yaml run for this sha ("<id> <status>"); reruns keep the run id.
+  run=$(api "repos/$repo/actions/runs?head_sha=$sha&per_page=100" \
+    --jq '[.workflow_runs[] | select(.path == ".github/workflows/gate.yaml")] as $all
+          | ([$all[] | select(.event == "push")] | if length > 0 then . else $all end)
+          | sort_by(.id) | last
+          | if . == null then "" else "\(.id) \(.status)" end')
 
-  if [ "$total" -eq 0 ] && [ "$elapsed" -lt "$grace" ]; then
+  if [ -z "$run" ]; then
+    if [ "$elapsed" -ge "$grace" ]; then
+      echo "::error::no gate run found for $sha after ${elapsed}s (commit predates gate.yaml, or gate never ran for it); push a new master commit to deploy"
+      exit 1
+    fi
     echo "no gate run for $sha yet (${elapsed}s), waiting"
-  elif [ "$pending" -gt 0 ]; then
-    if [ "$elapsed" -ge "$timeout" ]; then
-      echo "::error::gate for $sha still not completed after ${elapsed}s"
-      exit 1
-    fi
-    echo "gate for $sha still running (${elapsed}s), waiting"
   else
-    # Latest `gate` check run from GitHub Actions (reruns create new ones; highest id wins).
-    run=$(gh api "repos/$repo/commits/$sha/check-runs?check_name=gate&filter=all&per_page=100" \
-      --jq '[.check_runs[] | select(.app.slug == "github-actions")] | sort_by(.id) | last
-            | if . == null then "" else "\(.conclusion // "none") \(.details_url)" end')
-    if [ -z "$run" ]; then
-      echo "::error::no 'gate' check run found for $sha ($total gate workflow run(s)); commits before gate.yaml cannot be deployed"
+    read -r run_id status <<<"$run"
+    if [ "$status" = completed ]; then
+      job=$(api "repos/$repo/actions/runs/$run_id/jobs" \
+        --jq '[.jobs[] | select(.name == "gate")] | last
+              | if . == null then "" else "\(.conclusion // "none") \(.html_url)" end')
+      if [ -z "$job" ]; then
+        echo "::error::gate run $run_id for $sha has no 'gate' job"
+        exit 1
+      fi
+      read -r conclusion url <<<"$job"
+      if [ "$conclusion" = success ]; then
+        echo "ok: gate succeeded for $sha ($url)"
+        exit 0
+      fi
+      echo "::error::gate for $sha concluded '$conclusion' ($url); fix master or rerun gate before tagging"
       exit 1
     fi
-    read -r conclusion url <<<"$run"
-    if [ "$conclusion" = success ]; then
-      echo "ok: gate succeeded for $sha ($url)"
-      exit 0
+    if [ "$elapsed" -ge "$timeout" ]; then
+      echo "::error::gate run $run_id for $sha still '$status' after ${elapsed}s"
+      exit 1
     fi
-    echo "::error::gate for $sha concluded '$conclusion' ($url); fix master or rerun gate before tagging"
-    exit 1
+    echo "gate run $run_id for $sha is '$status' (${elapsed}s), waiting"
   fi
   sleep "$interval"
 done
