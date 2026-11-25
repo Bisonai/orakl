@@ -231,7 +231,7 @@ func (s *ServerV2) HealthCheckHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	_, err := w.Write([]byte(buildinfo.Root("Miko Node DAL API")))
+	_, err := w.Write([]byte(buildinfo.Root("Orakl Node DAL API")))
 	if err != nil {
 		log.Error().Err(err).Msg("failed to write response")
 	}

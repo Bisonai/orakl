@@ -70,7 +70,7 @@ func TestRegisteredRoutesAuth(t *testing.T) {
 	}
 }
 
-// Health checks match the root text by substring: "Miko Node Admin API" must
+// Health checks match the root text by substring: "Orakl Node Admin API" must
 // stay an exact prefix; the version is appended.
 func TestRootTextKeepsPrefix(t *testing.T) {
 	app := fiber.New()
@@ -81,7 +81,7 @@ func TestRootTextKeepsPrefix(t *testing.T) {
 	}
 	defer func() { _ = resp.Body.Close() }()
 	body, _ := io.ReadAll(resp.Body)
-	if got, want := string(body), buildinfo.Root("Miko Node Admin API"); got != want || !strings.HasPrefix(got, "Miko Node Admin API ") {
+	if got, want := string(body), buildinfo.Root("Orakl Node Admin API"); got != want || !strings.HasPrefix(got, "Orakl Node Admin API ") {
 		t.Fatalf("root = %q, want %q", got, want)
 	}
 }

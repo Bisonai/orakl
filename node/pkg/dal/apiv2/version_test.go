@@ -24,15 +24,15 @@ func getBody(t *testing.T, url string) (int, string) {
 }
 
 // The root text is matched by substring in health checks (KakaoCloud
-// deploy.sh, Zabbix): it must keep "Miko Node DAL API" as an exact prefix.
+// deploy.sh, Zabbix): it must keep "Orakl Node DAL API" as an exact prefix.
 func TestRootAndVersionWithoutAPIKey(t *testing.T) {
 	srv := newTestServer(t)
 	before := testutil.CollectAndCount(restRequestsTotal)
 
 	status, body := getBody(t, srv.URL+"/")
 	assert.Equal(t, http.StatusOK, status)
-	assert.True(t, strings.HasPrefix(body, "Miko Node DAL API"), body)
-	assert.Equal(t, buildinfo.Root("Miko Node DAL API"), body)
+	assert.True(t, strings.HasPrefix(body, "Orakl Node DAL API"), body)
+	assert.Equal(t, buildinfo.Root("Orakl Node DAL API"), body)
 
 	status, body = getBody(t, srv.URL+"/version")
 	assert.Equal(t, http.StatusOK, status)
