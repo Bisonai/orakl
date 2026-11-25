@@ -123,14 +123,15 @@ func leaveElections(t *testing.T) float64 {
 	return electionsStarted(t, "disconnect") + electionsStarted(t, "shutdown")
 }
 
-// A connection restored within the grace, as the reconnect worker does, elects
-// nothing, however often it flaps.
+// A connection restored within the grace, as the reconnect worker does, starts
+// no leave election, however often it flaps.
 //
 // A reconnected peer is back on the topic within ms but out of the gossipsub
 // mesh until a gossipsub heartbeat (1 s) grafts it again, so each flap loses up
-// to about 1 s of leader heartbeats (1.8 s seen across two flaps). At the
-// default 100 ms heartbeat that is past the 1.5 s minimum to a timeout
-// election; 200 ms makes it 3 s. The grace and the flap spacing scale with it.
+// to about 1 s of leader heartbeats. Gaps chain only when a gossipsub heartbeat
+// lands in a flap's ~40 ms off-topic window (1.8 s seen). At the default 100 ms
+// heartbeat that can pass the 1.5 s minimum to a timeout election; 200 ms makes
+// it 3 s. The grace and the flap spacing scale with it.
 func TestQuickReconnectDoesNotElect(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -150,11 +151,11 @@ func TestQuickReconnectDoesNotElect(t *testing.T) {
 
 	assert.Equal(t, before, leaveElections(t), "a quick reconnect started an election (disconnect %v, shutdown %v)",
 		electionsStarted(t, "disconnect"), electionsStarted(t, "shutdown"))
+	timeoutElections := electionsStarted(t, "timeout") - timeouts
 	got, ok := singleLeader(nodes)
-	require.True(t, ok, "no single leader")
-	assert.Equal(t, leader.GetHostId(), got.GetHostId(), "leader changed")
-	assert.Equal(t, term, follower.GetCurrentTerm(), "term moved (timeout elections %v)",
-		electionsStarted(t, "timeout")-timeouts)
+	require.True(t, ok, "no single leader (timeout elections %v)", timeoutElections)
+	assert.Equal(t, leader.GetHostId(), got.GetHostId(), "leader changed (timeout elections %v)", timeoutElections)
+	assert.Equal(t, term, follower.GetCurrentTerm(), "term moved (timeout elections %v)", timeoutElections)
 }
 
 // A connection back only after the grace hands over once: the old leader finds
