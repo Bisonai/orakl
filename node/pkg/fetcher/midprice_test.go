@@ -117,3 +117,39 @@ func TestCollect_MidThenStaleFilter(t *testing.T) {
 	}
 	assert.Equal(t, map[int32]float64{1: 212.5, 3: 213, 4: 212.7}, got)
 }
+
+func bookOnlyFeed(id int32, bid, ask float64, bookAge time.Duration) *FeedData {
+	ts := timePtr(time.Now().Add(-bookAge))
+	return &FeedData{
+		FeedID: id, Value: (bid + ask) / 2, Volume: 10, Timestamp: ts,
+		Bid: bid, Ask: ask, BookTimestamp: ts, BookOnly: true,
+	}
+}
+
+func TestSelectMidPrices_BookOnly(t *testing.T) {
+	la := newMidAggregator(PriceSourceMid)
+	fd := bookOnlyFeed(1, 220, 221, 5*time.Second)
+	out := la.selectMidPrices([]*FeedData{fd})
+	require.Len(t, out, 1)
+	assert.InDelta(t, 220.5, out[0].Value, 1e-9)
+	assert.True(t, out[0].FromBook)
+	assert.Equal(t, 10.0, out[0].Volume)
+
+	// no last trade to fall back on: dropped when the mid is unusable
+	for name, fd := range map[string]*FeedData{
+		"spread above 2%": bookOnlyFeed(2, 98, 101, 0),
+		"stale book":      bookOnlyFeed(3, 99.9, 100.1, 6*time.Minute),
+	} {
+		t.Run(name, func(t *testing.T) {
+			assert.Empty(t, la.selectMidPrices([]*FeedData{fd}))
+		})
+	}
+}
+
+func TestSelectMidPrices_BookOnlyIgnoredWithoutPriceSourceMid(t *testing.T) {
+	la := newMidAggregator("")
+	trade := bookFeed(1, 222, 220, 221, 0, 0)
+	out := la.selectMidPrices([]*FeedData{trade, bookOnlyFeed(2, 220, 221, 0)})
+	require.Len(t, out, 1, "book-only feed is absent until its first trade")
+	assert.Same(t, trade, out[0])
+}

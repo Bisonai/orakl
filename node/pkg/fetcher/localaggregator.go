@@ -323,18 +323,25 @@ func (c *LocalAggregator) collect(ctx context.Context) ([]*FeedData, error) {
 // don't stream one; stale book; one-sided or crossed book; spread above
 // MidMaxSpreadRatio) keep their last trade and its freshness check.
 //
+// Book-only feeds (no trade yet, see FeedData.BookOnly) have no last trade
+// to fall back on: they are used only through a usable mid and are dropped
+// otherwise, and always for other configs.
+//
 // The source feed lives in latestFeedDataMap and is shared with other
 // aggregators, so a copy is emitted.
 func (c *LocalAggregator) selectMidPrices(feeds []*FeedData) []*FeedData {
-	if c.Config.PriceSource != PriceSourceMid {
-		return feeds
-	}
+	useMid := c.Config.PriceSource == PriceSourceMid
 	now := time.Now()
 	out := make([]*FeedData, 0, len(feeds))
 	for _, fd := range feeds {
-		mid, ok := midPrice(fd, now)
+		mid, ok := 0.0, false
+		if useMid {
+			mid, ok = midPrice(fd, now)
+		}
 		if !ok {
-			out = append(out, fd)
+			if !fd.BookOnly {
+				out = append(out, fd)
+			}
 			continue
 		}
 		fdCopy := *fd

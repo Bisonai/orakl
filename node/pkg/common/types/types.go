@@ -45,6 +45,13 @@ type FeedData struct {
 	// the stale filter then applies the book age limit instead of the
 	// config's feedDataFreshness.
 	FromBook bool `db:"-"`
+
+	// BookOnly marks a book-driven emit of a feed that has no trade yet
+	// (sparse-trade venues, after a (re)start): Value is the book mid,
+	// Timestamp the book time and Volume the provider's REST 24h volume.
+	// Only priceSource "mid" aggregators use it, and only while its mid is
+	// valid; others treat the feed as absent until its first trade.
+	BookOnly bool `db:"-"`
 }
 
 type LocalAggregate struct {
@@ -107,7 +114,20 @@ func (m *LatestFeedDataMap) SetLatestFeedData(feedData []*FeedData) error {
 		}
 
 		prev, ok := m.FeedDataMap[data.FeedID]
-		if ok && prev.Timestamp.After(*data.Timestamp) {
+		switch {
+		case ok && data.BookOnly && !prev.BookOnly:
+			// The feed already has a trade (e.g. from before a fetcher
+			// refresh): keep it and take only the newer book.
+			if data.BookTimestamp != nil && (prev.BookTimestamp == nil || data.BookTimestamp.After(*prev.BookTimestamp)) {
+				merged := *prev
+				merged.Bid, merged.Ask, merged.BookTimestamp = data.Bid, data.Ask, data.BookTimestamp
+				m.FeedDataMap[data.FeedID] = &merged
+			}
+			continue
+		case ok && prev.BookOnly && !data.BookOnly:
+			// A trade supersedes a book-only entry even if the trade time
+			// is before the last book time.
+		case ok && prev.Timestamp.After(*data.Timestamp):
 			continue
 		}
 		m.FeedDataMap[data.FeedID] = data

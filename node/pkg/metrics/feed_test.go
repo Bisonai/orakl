@@ -107,6 +107,20 @@ func TestFeedCollectorMissingTimestampUsesLoadTime(t *testing.T) {
 	assert.Equal(t, float64(100), testutil.ToFloat64(timestampOnly{c}))
 }
 
+// a book-only entry (no trade yet) reports the book but not a trade value or
+// time, so feed delay keeps growing until the first trade
+func TestFeedCollectorBookOnlyReportsBookOnly(t *testing.T) {
+	c := &feedCollector{}
+	data := newFeedDataMap(&types.FeedData{FeedID: 1, Value: 100, Volume: 5, Timestamp: ptrTime(time.Unix(500, 0)),
+		Bid: 99, Ask: 101, BookTimestamp: ptrTime(time.Unix(500, 0)), BookOnly: true})
+	c.setFeeds(data, map[int32]FeedLabels{1: {Config: "A", Feed: "F"}}, time.Unix(100, 0))
+	assert.Equal(t, float64(100), testutil.ToFloat64(timestampOnly{c}))
+	assert.Equal(t, 0, testutil.CollectAndCount(c, metricnames.FeedValue))
+	assert.Equal(t, 0, testutil.CollectAndCount(c, metricnames.FeedVolume))
+	assert.Equal(t, 1, testutil.CollectAndCount(c, metricnames.FeedBid))
+	assert.Equal(t, 1, testutil.CollectAndCount(c, metricnames.FeedBookTimestamp))
+}
+
 // names come from the remote bundle; an invalid one must not panic the scrape
 func TestFeedCollectorSkipsInvalidLabels(t *testing.T) {
 	c := &feedCollector{}

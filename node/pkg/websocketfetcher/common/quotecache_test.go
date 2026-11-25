@@ -15,6 +15,72 @@ func TestQuoteCache_BookBeforeTradeEmitsNothing(t *testing.T) {
 	assert.Empty(t, out, "no 24h volume yet, nothing to weight")
 }
 
+func TestQuoteCache_BookOnlyBeforeTradeWithKnownVolume(t *testing.T) {
+	volumes := &VolumeCacheMap{}
+	c := NewQuoteCacheWithVolumes(volumes)
+	now := time.Unix(1_700_000_000, 0)
+	c.now = func() time.Time { return now }
+	bookTs := now.Add(-time.Second)
+
+	assert.Empty(t, c.ApplyBook([]int32{1}, 99, 101, bookTs), "volume not fetched yet")
+
+	volumes.Set(1, VolumeCache{UpdatedAt: time.Now(), Volume: 42})
+	out := c.ApplyBook([]int32{1}, 99, 101, bookTs)
+	require.Len(t, out, 1)
+	fd := out[0]
+	assert.True(t, fd.BookOnly)
+	assert.Equal(t, 100.0, fd.Value, "mid")
+	assert.Equal(t, 42.0, fd.Volume)
+	require.NotNil(t, fd.Timestamp)
+	assert.True(t, fd.Timestamp.Equal(bookTs), "book time")
+	assert.True(t, fd.BookTimestamp.Equal(bookTs))
+	assert.Equal(t, 99.0, fd.Bid)
+	assert.Equal(t, 101.0, fd.Ask)
+
+	now = now.Add(100 * time.Millisecond)
+	assert.Empty(t, c.ApplyBook([]int32{1}, 98, 102, bookTs), "book-only emits are throttled too")
+
+	// first trade: merged as before, no longer book-only
+	tradeTs := bookTs.Add(-time.Millisecond)
+	merged := c.ApplyTrade(&FeedData{FeedID: 1, Value: 100.5, Volume: 42, Timestamp: &tradeTs})
+	assert.False(t, merged.BookOnly)
+	assert.Equal(t, 100.5, merged.Value)
+	assert.True(t, merged.Timestamp.Equal(tradeTs))
+	assert.Equal(t, 98.0, merged.Bid)
+
+	now = now.Add(BookEmitInterval)
+	out = c.ApplyBook([]int32{1}, 97, 103, bookTs.Add(time.Second))
+	require.Len(t, out, 1)
+	assert.False(t, out[0].BookOnly)
+	assert.Equal(t, 100.5, out[0].Value, "trade price kept")
+	assert.True(t, out[0].Timestamp.Equal(tradeTs), "trade time kept")
+}
+
+func TestQuoteCache_NoBookOnlyWithoutUsableVolumeOrBook(t *testing.T) {
+	volumes := &VolumeCacheMap{}
+	volumes.Set(1, VolumeCache{UpdatedAt: time.Now(), Volume: 42})
+	volumes.Set(2, VolumeCache{UpdatedAt: time.Now(), Volume: 0})
+	volumes.Set(3, VolumeCache{UpdatedAt: time.Now().Add(-VolumeCacheLifespan - time.Second), Volume: 42})
+	now := time.Now()
+
+	cases := map[string]struct {
+		id       int32
+		bid, ask float64
+	}{
+		"unknown volume": {4, 99, 101},
+		"zero volume":    {2, 99, 101},
+		"stale volume":   {3, 99, 101},
+		"one-sided book": {1, 0, 101},
+		"crossed book":   {1, 102, 101},
+	}
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			c := NewQuoteCacheWithVolumes(volumes)
+			assert.Empty(t, c.ApplyBook([]int32{tc.id}, tc.bid, tc.ask, now))
+		})
+	}
+}
+
 func TestQuoteCache_MergesBothStreams(t *testing.T) {
 	c := NewQuoteCache()
 	bookTs := time.UnixMilli(1_700_000_000_000)

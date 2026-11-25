@@ -106,9 +106,13 @@ func (c *feedCollector) snapshot() []feedSample {
 	for id, feed := range set.feeds {
 		s := feedSample{labels: feed.FeedLabels, timestamp: unixSeconds(feed.loadedAt)}
 		if fd, ok := set.data.FeedDataMap[id]; ok && fd != nil {
-			s.value, s.volume, s.hasData = fd.Value, fd.Volume, true
-			if fd.Timestamp != nil {
-				s.timestamp = unixSeconds(*fd.Timestamp)
+			// a book-only entry has no trade yet: value/volume/timestamp
+			// stay as for a feed without data, only the book is emitted
+			if !fd.BookOnly {
+				s.value, s.volume, s.hasData = fd.Value, fd.Volume, true
+				if fd.Timestamp != nil {
+					s.timestamp = unixSeconds(*fd.Timestamp)
+				}
 			}
 			if fd.BookTimestamp != nil {
 				s.bid, s.ask, s.bookTimestamp, s.hasBook = fd.Bid, fd.Ask, unixSeconds(*fd.BookTimestamp), true

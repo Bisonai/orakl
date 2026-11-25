@@ -27,7 +27,9 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 		opt(config)
 	}
 
-	fetcher := &GeminiFetcher{quotes: common.NewQuoteCache(), books: make(map[string]*topOfBook)}
+	fetcher := &GeminiFetcher{books: make(map[string]*topOfBook)}
+	// REST 24h volumes let the book emit before the first trade (sparse trades)
+	fetcher.quotes = common.NewQuoteCacheWithVolumes(&fetcher.VolumeCacheMap)
 	fetcher.FeedMap = config.FeedMaps.Combined
 	fetcher.FeedDataBuffer = config.FeedDataBuffer
 	fetcher.VolumeCacheMap = common.VolumeCacheMap{
