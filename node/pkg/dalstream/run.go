@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"bisonai.com/miko/node/pkg/utils/buildinfo"
+	"bisonai.com/orakl/node/pkg/utils/buildinfo"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog/log"

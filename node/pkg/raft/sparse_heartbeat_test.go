@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	metricnames "bisonai.com/miko/node/pkg/metrics/names"
+	metricnames "bisonai.com/orakl/node/pkg/metrics/names"
 	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

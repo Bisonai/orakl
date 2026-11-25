@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"bisonai.com/miko/node/pkg/websocketfetcher/common"
+	"bisonai.com/orakl/node/pkg/websocketfetcher/common"
 )
 
 func TestCacheVolumesExitsOnCancel(t *testing.T) {

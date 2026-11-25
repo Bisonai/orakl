@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"bisonai.com/miko/node/pkg/boot/utils/peerstore"
+	"bisonai.com/orakl/node/pkg/boot/utils/peerstore"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

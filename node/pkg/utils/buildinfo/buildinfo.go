@@ -4,9 +4,9 @@
 //
 // Set the values with the linker, e.g.
 //
-//	go build -ldflags "-X bisonai.com/miko/node/pkg/utils/buildinfo.Version=v0.0.29.20261120.0227.846179b \
-//	  -X bisonai.com/miko/node/pkg/utils/buildinfo.Commit=846179b \
-//	  -X bisonai.com/miko/node/pkg/utils/buildinfo.BuildTime=2026-11-20T02:27:00Z"
+//	go build -ldflags "-X bisonai.com/orakl/node/pkg/utils/buildinfo.Version=v0.0.29.20261120.0227.846179b \
+//	  -X bisonai.com/orakl/node/pkg/utils/buildinfo.Commit=846179b \
+//	  -X bisonai.com/orakl/node/pkg/utils/buildinfo.BuildTime=2026-11-20T02:27:00Z"
 //
 // Without them a binary reports "dev" / "unknown".
 package buildinfo

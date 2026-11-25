@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"bisonai.com/miko/node/pkg/bus"
-	"bisonai.com/miko/node/pkg/libp2p/setup"
+	"bisonai.com/orakl/node/pkg/bus"
+	"bisonai.com/orakl/node/pkg/libp2p/setup"
 	"github.com/libp2p/go-libp2p/core/event"
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/network"

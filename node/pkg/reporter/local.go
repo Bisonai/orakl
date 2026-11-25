@@ -7,9 +7,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"bisonai.com/miko/node/pkg/chain/helper"
-	"bisonai.com/miko/node/pkg/chain/proof"
-	errorSentinel "bisonai.com/miko/node/pkg/error"
+	"bisonai.com/orakl/node/pkg/chain/helper"
+	"bisonai.com/orakl/node/pkg/chain/proof"
+	errorSentinel "bisonai.com/orakl/node/pkg/error"
 	"github.com/kaiachain/kaia/common"
 	"github.com/kaiachain/kaia/crypto"
 	"github.com/rs/zerolog/log"

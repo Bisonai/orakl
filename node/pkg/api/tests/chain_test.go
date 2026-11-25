@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"testing"
 
-	"bisonai.com/miko/node/pkg/api/chain"
-	"bisonai.com/miko/node/pkg/api/utils"
-	"bisonai.com/miko/node/pkg/testutil/testenv"
+	"bisonai.com/orakl/node/pkg/api/chain"
+	"bisonai.com/orakl/node/pkg/api/utils"
+	"bisonai.com/orakl/node/pkg/testutil/testenv"
 
 	"github.com/joho/godotenv"
 	"github.com/stretchr/testify/assert"

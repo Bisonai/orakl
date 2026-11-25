@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"bisonai.com/miko/node/pkg/raft"
+	"bisonai.com/orakl/node/pkg/raft"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

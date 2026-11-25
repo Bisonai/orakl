@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"bisonai.com/miko/node/pkg/checker"
+	"bisonai.com/orakl/node/pkg/checker"
 	"github.com/prometheus/client_golang/prometheus/testutil"
 )
 

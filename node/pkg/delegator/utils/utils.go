@@ -13,9 +13,9 @@ import (
 	"sync"
 	"time"
 
-	"bisonai.com/miko/node/pkg/delegator/secrets"
-	"bisonai.com/miko/node/pkg/delegator/store"
-	"bisonai.com/miko/node/pkg/utils/crossorigin"
+	"bisonai.com/orakl/node/pkg/delegator/secrets"
+	"bisonai.com/orakl/node/pkg/delegator/store"
+	"bisonai.com/orakl/node/pkg/utils/crossorigin"
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
 	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
 	"github.com/gofiber/fiber/v2"

@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"bisonai.com/miko/node/pkg/nodeconfig"
+	"bisonai.com/orakl/node/pkg/nodeconfig"
 	"github.com/stretchr/testify/assert"
 )
 

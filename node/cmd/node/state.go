@@ -8,9 +8,9 @@ import (
 	"os"
 	"time"
 
-	"bisonai.com/miko/node/pkg/nodestate"
-	"bisonai.com/miko/node/pkg/secrets"
-	"bisonai.com/miko/node/pkg/utils/sqlitedb"
+	"bisonai.com/orakl/node/pkg/nodestate"
+	"bisonai.com/orakl/node/pkg/secrets"
+	"bisonai.com/orakl/node/pkg/utils/sqlitedb"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )

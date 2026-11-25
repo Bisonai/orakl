@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"bisonai.com/miko/node/pkg/aggregator"
-	chainutils "bisonai.com/miko/node/pkg/chain/utils"
-	dalcommon "bisonai.com/miko/node/pkg/dal/common"
+	"bisonai.com/orakl/node/pkg/aggregator"
+	chainutils "bisonai.com/orakl/node/pkg/chain/utils"
+	dalcommon "bisonai.com/orakl/node/pkg/dal/common"
 	kaiacommon "github.com/kaiachain/kaia/common"
 	"github.com/kaiachain/kaia/crypto"
 	"github.com/stretchr/testify/assert"

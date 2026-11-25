@@ -5,10 +5,10 @@ import (
 	"strings"
 	"time"
 
-	errorSentinel "bisonai.com/miko/node/pkg/error"
-	"bisonai.com/miko/node/pkg/utils/calculator"
-	"bisonai.com/miko/node/pkg/utils/reducer"
-	"bisonai.com/miko/node/pkg/utils/request"
+	errorSentinel "bisonai.com/orakl/node/pkg/error"
+	"bisonai.com/orakl/node/pkg/utils/calculator"
+	"bisonai.com/orakl/node/pkg/utils/reducer"
+	"bisonai.com/orakl/node/pkg/utils/request"
 	"github.com/rs/zerolog/log"
 )
 

@@ -10,7 +10,7 @@ import (
 	"sync"
 	"testing"
 
-	"bisonai.com/miko/node/pkg/admin/utils"
+	"bisonai.com/orakl/node/pkg/admin/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

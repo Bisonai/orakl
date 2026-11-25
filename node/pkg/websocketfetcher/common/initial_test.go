@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	errorSentinel "bisonai.com/miko/node/pkg/error"
+	errorSentinel "bisonai.com/orakl/node/pkg/error"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

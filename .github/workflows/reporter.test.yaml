@@ -1,4 +1,4 @@
-name: "miko reporter test"
+name: "orakl reporter test"
 
 on:
   push:

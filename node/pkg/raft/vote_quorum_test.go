@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	libp2psetup "bisonai.com/miko/node/pkg/libp2p/setup"
-	"bisonai.com/miko/node/pkg/metrics"
+	libp2psetup "bisonai.com/orakl/node/pkg/libp2p/setup"
+	"bisonai.com/orakl/node/pkg/metrics"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

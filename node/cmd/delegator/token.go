@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 
-	"bisonai.com/miko/node/pkg/delegator/store"
+	"bisonai.com/orakl/node/pkg/delegator/store"
 )
 
 const tokenUsage = `usage: delegatorbin token <command>

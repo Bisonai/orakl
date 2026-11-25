@@ -8,10 +8,10 @@ import (
 	"runtime/debug"
 	"strings"
 
-	"bisonai.com/miko/node/pkg/bus"
-	"bisonai.com/miko/node/pkg/db"
-	errorSentinel "bisonai.com/miko/node/pkg/error"
-	"bisonai.com/miko/node/pkg/utils/crossorigin"
+	"bisonai.com/orakl/node/pkg/bus"
+	"bisonai.com/orakl/node/pkg/db"
+	errorSentinel "bisonai.com/orakl/node/pkg/error"
+	"bisonai.com/orakl/node/pkg/utils/crossorigin"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/recover"

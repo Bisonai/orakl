@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"bisonai.com/miko/node/pkg/utils/request"
-	"bisonai.com/miko/node/pkg/websocketfetcher/common"
+	"bisonai.com/orakl/node/pkg/utils/request"
+	"bisonai.com/orakl/node/pkg/websocketfetcher/common"
 	"github.com/rs/zerolog/log"
 )
 

@@ -7,12 +7,12 @@ import (
 	"testing"
 	"time"
 
-	"bisonai.com/miko/node/pkg/admin/tests"
-	"bisonai.com/miko/node/pkg/bus"
-	"bisonai.com/miko/node/pkg/chain/helper"
-	libp2pSetup "bisonai.com/miko/node/pkg/libp2p/setup"
-	"bisonai.com/miko/node/pkg/nodeconfig"
-	"bisonai.com/miko/node/pkg/raft"
+	"bisonai.com/orakl/node/pkg/admin/tests"
+	"bisonai.com/orakl/node/pkg/bus"
+	"bisonai.com/orakl/node/pkg/chain/helper"
+	libp2pSetup "bisonai.com/orakl/node/pkg/libp2p/setup"
+	"bisonai.com/orakl/node/pkg/nodeconfig"
+	"bisonai.com/orakl/node/pkg/raft"
 	"github.com/stretchr/testify/assert"
 )
 

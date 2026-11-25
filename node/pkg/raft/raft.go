@@ -10,8 +10,8 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	errorSentinel "bisonai.com/miko/node/pkg/error"
-	"bisonai.com/miko/node/pkg/metrics"
+	errorSentinel "bisonai.com/orakl/node/pkg/error"
+	"bisonai.com/orakl/node/pkg/metrics"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/peer"

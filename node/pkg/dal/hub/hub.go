@@ -8,9 +8,9 @@ import (
 	"sync"
 	"time"
 
-	"bisonai.com/miko/node/pkg/common/types"
-	"bisonai.com/miko/node/pkg/dal/collector"
-	dalcommon "bisonai.com/miko/node/pkg/dal/common"
+	"bisonai.com/orakl/node/pkg/common/types"
+	"bisonai.com/orakl/node/pkg/dal/collector"
+	dalcommon "bisonai.com/orakl/node/pkg/dal/common"
 	"github.com/rs/zerolog/log"
 	"nhooyr.io/websocket"
 	"nhooyr.io/websocket/wsjson"

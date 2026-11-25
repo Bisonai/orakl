@@ -479,7 +479,7 @@ To run the full set, set the variables the skips name, for example:
 
 ```sh
 REDIS_HOST=localhost REDIS_PORT=6379 \
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/miko-test?search_path=public" \
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/orakl-test?search_path=public" \
 ENCRYPT_PASSWORD=anything CHAIN=test \
 KAIA_PROVIDER_URL=https://public-en-kairos.node.kaia.io \
 ETH_PROVIDER_URL=wss://ethereum-sepolia-rpc.publicnode.com \
@@ -798,7 +798,7 @@ go test ./tests -v
 
 ## Run docker-compose from local environment
 
-- Change api service's docker image into bisonai.com/miko/apis
+- Change api service's docker image into bisonai.com/orakl/apis
 - And if there's `schema={}` in DB connection url in .api.env file update it into keyword `search_path={}`
 
 # How to use DB migration tool
@@ -813,7 +813,7 @@ brew install golang-migrate
 
 ## Migrate commands
 
-- Run commands from bisonai.com/miko/api folder
+- Run commands from bisonai.com/orakl/api folder
 - Write appropriate db connection url for each usecases
 - Be careful on adding `sslmode=disbale`, if it has other option such as `?schema=public` add `&sslmode=disable` else add `?sslmode=disable`
 

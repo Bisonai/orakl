@@ -13,7 +13,7 @@ ARG VERSION
 ARG COMMIT
 ARG BUILD_TIME
 
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o bootbin -ldflags="-w -s -X bisonai.com/miko/node/pkg/utils/buildinfo.Version=${VERSION:-dev} -X bisonai.com/miko/node/pkg/utils/buildinfo.Commit=${COMMIT:-unknown} -X bisonai.com/miko/node/pkg/utils/buildinfo.BuildTime=${BUILD_TIME:-unknown}" ./cmd/boot_api/main.go
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o bootbin -ldflags="-w -s -X bisonai.com/orakl/node/pkg/utils/buildinfo.Version=${VERSION:-dev} -X bisonai.com/orakl/node/pkg/utils/buildinfo.Commit=${COMMIT:-unknown} -X bisonai.com/orakl/node/pkg/utils/buildinfo.BuildTime=${BUILD_TIME:-unknown}" ./cmd/boot_api/main.go
 
 # debian:bookworm-slim
 FROM debian:bookworm-slim

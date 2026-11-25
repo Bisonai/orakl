@@ -7,7 +7,7 @@ package mexc;
 
 import "PublicMiniTickerV3Api.proto";
 
-option go_package = "bisonai.com/miko/node/pkg/websocketfetcher/providers/mexc/pb";
+option go_package = "bisonai.com/orakl/node/pkg/websocketfetcher/providers/mexc/pb";
 
 message PublicMiniTickersV3Api {
   repeated PublicMiniTickerV3Api items = 1;

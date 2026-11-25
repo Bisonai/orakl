@@ -12,9 +12,9 @@ import (
 	"testing"
 	"time"
 
-	"bisonai.com/miko/node/pkg/chain/utils"
-	metricnames "bisonai.com/miko/node/pkg/metrics/names"
-	"bisonai.com/miko/node/pkg/metrics/submission"
+	"bisonai.com/orakl/node/pkg/chain/utils"
+	metricnames "bisonai.com/orakl/node/pkg/metrics/names"
+	"bisonai.com/orakl/node/pkg/metrics/submission"
 	"github.com/kaiachain/kaia/blockchain/types"
 	"github.com/kaiachain/kaia/common"
 	"github.com/kaiachain/kaia/crypto"

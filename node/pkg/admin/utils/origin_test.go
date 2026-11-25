@@ -5,7 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"bisonai.com/miko/node/pkg/utils/crossorigin"
+	"bisonai.com/orakl/node/pkg/utils/crossorigin"
 	"github.com/gofiber/fiber/v2"
 )
 

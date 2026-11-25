@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	errorSentinel "bisonai.com/miko/node/pkg/error"
-	"bisonai.com/miko/node/pkg/raft"
+	errorSentinel "bisonai.com/orakl/node/pkg/error"
+	"bisonai.com/orakl/node/pkg/raft"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

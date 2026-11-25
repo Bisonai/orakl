@@ -3,8 +3,8 @@ package chainreader
 import (
 	"context"
 
-	"bisonai.com/miko/node/pkg/chain/eth_client"
-	"bisonai.com/miko/node/pkg/chain/utils"
+	"bisonai.com/orakl/node/pkg/chain/eth_client"
+	"bisonai.com/orakl/node/pkg/chain/utils"
 )
 
 // use eth_client for blockchain interaction

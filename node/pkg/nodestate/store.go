@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"time"
 
-	"bisonai.com/miko/node/pkg/chain/utils"
-	"bisonai.com/miko/node/pkg/utils/sqlitedb"
+	"bisonai.com/orakl/node/pkg/chain/utils"
+	"bisonai.com/orakl/node/pkg/utils/sqlitedb"
 )
 
 // EnvPath is the env var holding the SQLite file path.

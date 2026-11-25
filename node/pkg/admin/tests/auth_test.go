@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"bisonai.com/miko/node/pkg/admin/utils"
-	"bisonai.com/miko/node/pkg/bus"
+	"bisonai.com/orakl/node/pkg/admin/utils"
+	"bisonai.com/orakl/node/pkg/bus"
 	"github.com/gofiber/fiber/v2"
 	"github.com/stretchr/testify/assert"
 )

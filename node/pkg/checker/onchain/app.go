@@ -13,9 +13,9 @@ import (
 	"sync"
 	"time"
 
-	"bisonai.com/miko/node/pkg/chain/utils"
-	"bisonai.com/miko/node/pkg/utils/configfetch"
-	"bisonai.com/miko/node/pkg/utils/configreload"
+	"bisonai.com/orakl/node/pkg/chain/utils"
+	"bisonai.com/orakl/node/pkg/utils/configfetch"
+	"bisonai.com/orakl/node/pkg/utils/configreload"
 	kaia "github.com/kaiachain/kaia"
 	"github.com/kaiachain/kaia/accounts/abi"
 	"github.com/kaiachain/kaia/blockchain/types"

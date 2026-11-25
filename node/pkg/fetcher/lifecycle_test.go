@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"bisonai.com/miko/node/pkg/bus"
+	"bisonai.com/orakl/node/pkg/bus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

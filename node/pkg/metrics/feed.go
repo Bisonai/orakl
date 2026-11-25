@@ -14,8 +14,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"bisonai.com/miko/node/pkg/common/types"
-	metricnames "bisonai.com/miko/node/pkg/metrics/names"
+	"bisonai.com/orakl/node/pkg/common/types"
+	metricnames "bisonai.com/orakl/node/pkg/metrics/names"
 	"github.com/prometheus/client_golang/prometheus"
 )
 

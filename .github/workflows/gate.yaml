@@ -55,7 +55,7 @@ jobs:
         image: postgres
         env:
           POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: miko-test
+          POSTGRES_DB: orakl-test
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -69,7 +69,7 @@ jobs:
         image: postgres
         env:
           POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: miko-test
+          POSTGRES_DB: orakl-test
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -87,8 +87,8 @@ jobs:
         ports:
           - 6379:6379
     env:
-      NODE_DB: "postgresql://postgres:postgres@localhost:5432/miko-test?search_path=public"
-      API_DB: "postgresql://postgres:postgres@localhost:5433/miko-test?search_path=public"
+      NODE_DB: "postgresql://postgres:postgres@localhost:5432/orakl-test?search_path=public"
+      API_DB: "postgresql://postgres:postgres@localhost:5433/orakl-test?search_path=public"
       REDIS_HOST: "localhost"
       REDIS_PORT: "6379"
       # Not a secret: test-only key-encryption password, as in node.test.yaml.

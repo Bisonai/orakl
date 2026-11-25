@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"bisonai.com/miko/node/pkg/aggregator"
-	"bisonai.com/miko/node/pkg/raft"
-	"bisonai.com/miko/node/pkg/testutil/cluster"
+	"bisonai.com/orakl/node/pkg/aggregator"
+	"bisonai.com/orakl/node/pkg/raft"
+	"bisonai.com/orakl/node/pkg/testutil/cluster"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

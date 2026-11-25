@@ -1,4 +1,4 @@
-name: "miko delegator test"
+name: "orakl delegator test"
 
 on:
   push:

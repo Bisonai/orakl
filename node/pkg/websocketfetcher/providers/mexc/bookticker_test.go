@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"bisonai.com/miko/node/pkg/websocketfetcher/common"
-	"bisonai.com/miko/node/pkg/websocketfetcher/providers/mexc/pb"
+	"bisonai.com/orakl/node/pkg/websocketfetcher/common"
+	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/mexc/pb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/encoding/protowire"

@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"bisonai.com/miko/node/pkg/raft"
+	"bisonai.com/orakl/node/pkg/raft"
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/assert"

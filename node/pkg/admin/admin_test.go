@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"bisonai.com/miko/node/pkg/admin/utils"
-	"bisonai.com/miko/node/pkg/utils/buildinfo"
+	"bisonai.com/orakl/node/pkg/admin/utils"
+	"bisonai.com/orakl/node/pkg/utils/buildinfo"
 	"github.com/gofiber/fiber/v2"
 )
 

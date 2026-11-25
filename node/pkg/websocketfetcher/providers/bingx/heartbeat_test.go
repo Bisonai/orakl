@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"bisonai.com/miko/node/pkg/wss"
-	"bisonai.com/miko/node/pkg/wss/wsstest"
+	"bisonai.com/orakl/node/pkg/wss"
+	"bisonai.com/orakl/node/pkg/wss/wsstest"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

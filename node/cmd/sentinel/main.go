@@ -12,16 +12,16 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog/log"
 
-	"bisonai.com/miko/node/pkg/checker/balance"
-	"bisonai.com/miko/node/pkg/checker/dal"
-	"bisonai.com/miko/node/pkg/checker/health"
-	"bisonai.com/miko/node/pkg/checker/onchain"
-	"bisonai.com/miko/node/pkg/checker/peers"
-	"bisonai.com/miko/node/pkg/checker/price"
-	"bisonai.com/miko/node/pkg/checker/signer"
-	"bisonai.com/miko/node/pkg/secrets"
-	"bisonai.com/miko/node/pkg/utils/buildinfo"
-	"bisonai.com/miko/node/pkg/utils/loginit"
+	"bisonai.com/orakl/node/pkg/checker/balance"
+	"bisonai.com/orakl/node/pkg/checker/dal"
+	"bisonai.com/orakl/node/pkg/checker/health"
+	"bisonai.com/orakl/node/pkg/checker/onchain"
+	"bisonai.com/orakl/node/pkg/checker/peers"
+	"bisonai.com/orakl/node/pkg/checker/price"
+	"bisonai.com/orakl/node/pkg/checker/signer"
+	"bisonai.com/orakl/node/pkg/secrets"
+	"bisonai.com/orakl/node/pkg/utils/buildinfo"
+	"bisonai.com/orakl/node/pkg/utils/loginit"
 )
 
 func main() {

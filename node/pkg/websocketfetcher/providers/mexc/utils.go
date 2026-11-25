@@ -3,8 +3,8 @@ package mexc
 import (
 	"time"
 
-	"bisonai.com/miko/node/pkg/websocketfetcher/common"
-	"bisonai.com/miko/node/pkg/websocketfetcher/providers/mexc/pb"
+	"bisonai.com/orakl/node/pkg/websocketfetcher/common"
+	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/mexc/pb"
 )
 
 func WrapperToFeedDataList(wrapper *pb.PushDataV3ApiWrapper, feedMap map[string][]int32) ([]*common.FeedData, error) {

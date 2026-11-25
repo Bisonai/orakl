@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	errorSentinel "bisonai.com/miko/node/pkg/error"
+	errorSentinel "bisonai.com/orakl/node/pkg/error"
 	"github.com/kaiachain/kaia/common"
 	"github.com/kaiachain/kaia/crypto"
 )

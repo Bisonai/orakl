@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"bisonai.com/miko/node/pkg/secrets"
+	"bisonai.com/orakl/node/pkg/secrets"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"

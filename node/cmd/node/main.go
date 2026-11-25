@@ -10,20 +10,20 @@ import (
 	"syscall"
 	"time"
 
-	"bisonai.com/miko/node/pkg/admin"
-	adminMetrics "bisonai.com/miko/node/pkg/admin/metrics"
-	adminUtils "bisonai.com/miko/node/pkg/admin/utils"
-	"bisonai.com/miko/node/pkg/aggregator"
-	"bisonai.com/miko/node/pkg/bus"
-	"bisonai.com/miko/node/pkg/checker/ping"
-	"bisonai.com/miko/node/pkg/fetcher"
-	"bisonai.com/miko/node/pkg/libp2p/helper"
-	libp2pSetup "bisonai.com/miko/node/pkg/libp2p/setup"
-	"bisonai.com/miko/node/pkg/nodestate"
-	"bisonai.com/miko/node/pkg/reporter"
-	"bisonai.com/miko/node/pkg/utils/buildinfo"
-	"bisonai.com/miko/node/pkg/utils/loginit"
-	"bisonai.com/miko/node/pkg/utils/retrier"
+	"bisonai.com/orakl/node/pkg/admin"
+	adminMetrics "bisonai.com/orakl/node/pkg/admin/metrics"
+	adminUtils "bisonai.com/orakl/node/pkg/admin/utils"
+	"bisonai.com/orakl/node/pkg/aggregator"
+	"bisonai.com/orakl/node/pkg/bus"
+	"bisonai.com/orakl/node/pkg/checker/ping"
+	"bisonai.com/orakl/node/pkg/fetcher"
+	"bisonai.com/orakl/node/pkg/libp2p/helper"
+	libp2pSetup "bisonai.com/orakl/node/pkg/libp2p/setup"
+	"bisonai.com/orakl/node/pkg/nodestate"
+	"bisonai.com/orakl/node/pkg/reporter"
+	"bisonai.com/orakl/node/pkg/utils/buildinfo"
+	"bisonai.com/orakl/node/pkg/utils/loginit"
+	"bisonai.com/orakl/node/pkg/utils/retrier"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/rs/zerolog/log"
 )
@@ -130,7 +130,7 @@ func main() {
 	}()
 
 	log.Info().Msg("Syncing orakl config")
-	err = admin.SyncMikoConfig(ctx)
+	err = admin.SyncOraklConfig(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to sync orakl config")
 		os.Exit(1)

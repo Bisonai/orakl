@@ -19,7 +19,7 @@ jobs:
         image: postgres
         env:
           POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: miko-test
+          POSTGRES_DB: orakl-test
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -66,13 +66,13 @@ jobs:
 
       - name: Api db migrate
         working-directory: ./node
-        run: migrate -database "postgresql://postgres:postgres@localhost:5432/miko-test?search_path=public&sslmode=disable" -verbose -path ./migrations/api up
+        run: migrate -database "postgresql://postgres:postgres@localhost:5432/orakl-test?search_path=public&sslmode=disable" -verbose -path ./migrations/api up
 
       - name: Run api
         working-directory: ./node
         run: go run ./cmd/api &
         env:
-          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/miko-test?search_path=public"
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/orakl-test?search_path=public"
           ENCRYPT_PASSWORD: "abc123"
           APP_PORT: "3000"
           REDIS_HOST: "localhost"

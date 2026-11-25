@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"bisonai.com/miko/node/pkg/utils/buildinfo"
+	"bisonai.com/orakl/node/pkg/utils/buildinfo"
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	libp2psetup "bisonai.com/miko/node/pkg/libp2p/setup"
-	metricnames "bisonai.com/miko/node/pkg/metrics/names"
+	libp2psetup "bisonai.com/orakl/node/pkg/libp2p/setup"
+	metricnames "bisonai.com/orakl/node/pkg/metrics/names"
 	"github.com/prometheus/client_golang/prometheus"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/stretchr/testify/assert"

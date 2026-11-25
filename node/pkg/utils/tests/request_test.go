@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"bisonai.com/miko/node/pkg/utils/request"
+	"bisonai.com/orakl/node/pkg/utils/request"
 )
 
 type TestResponse struct {

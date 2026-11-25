@@ -17,8 +17,8 @@ import (
 	"testing"
 	"time"
 
-	"bisonai.com/miko/node/pkg/websocketfetcher/common"
-	"bisonai.com/miko/node/pkg/wss/wsstest"
+	"bisonai.com/orakl/node/pkg/websocketfetcher/common"
+	"bisonai.com/orakl/node/pkg/wss/wsstest"
 	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

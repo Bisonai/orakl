@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"bisonai.com/miko/node/pkg/common/types"
-	nodemetrics "bisonai.com/miko/node/pkg/metrics"
+	"bisonai.com/orakl/node/pkg/common/types"
+	nodemetrics "bisonai.com/orakl/node/pkg/metrics"
 	"github.com/gofiber/fiber/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

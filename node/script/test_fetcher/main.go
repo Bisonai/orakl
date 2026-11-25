@@ -4,9 +4,9 @@ import (
 	"context"
 	"sync"
 
-	"bisonai.com/miko/node/pkg/admin"
-	"bisonai.com/miko/node/pkg/bus"
-	"bisonai.com/miko/node/pkg/fetcher"
+	"bisonai.com/orakl/node/pkg/admin"
+	"bisonai.com/orakl/node/pkg/bus"
+	"bisonai.com/orakl/node/pkg/fetcher"
 	"github.com/rs/zerolog/log"
 )
 
@@ -28,7 +28,7 @@ func main() {
 		}
 	}()
 
-	if err := admin.SyncMikoConfig(ctx); err != nil {
+	if err := admin.SyncOraklConfig(ctx); err != nil {
 		log.Error().Err(err).Msg("Failed to sync orakl config")
 		return
 	}

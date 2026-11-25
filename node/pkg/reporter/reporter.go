@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"bisonai.com/miko/node/pkg/chain/utils"
-	errorSentinel "bisonai.com/miko/node/pkg/error"
+	"bisonai.com/orakl/node/pkg/chain/utils"
+	errorSentinel "bisonai.com/orakl/node/pkg/error"
 
 	"github.com/rs/zerolog/log"
 )

@@ -11,7 +11,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"bisonai.com/miko/node/pkg/utils/request"
+	"bisonai.com/orakl/node/pkg/utils/request"
 )
 
 // binanceEndpoint = best bid/ask, not last trade: DAL is order-book mid, and last

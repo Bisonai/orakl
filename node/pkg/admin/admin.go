@@ -5,15 +5,15 @@ import (
 	"fmt"
 	"os"
 
-	"bisonai.com/miko/node/pkg/admin/aggregator"
-	"bisonai.com/miko/node/pkg/admin/config"
-	"bisonai.com/miko/node/pkg/admin/fetcher"
-	"bisonai.com/miko/node/pkg/admin/host"
-	"bisonai.com/miko/node/pkg/admin/metrics"
+	"bisonai.com/orakl/node/pkg/admin/aggregator"
+	"bisonai.com/orakl/node/pkg/admin/config"
+	"bisonai.com/orakl/node/pkg/admin/fetcher"
+	"bisonai.com/orakl/node/pkg/admin/host"
+	"bisonai.com/orakl/node/pkg/admin/metrics"
 
-	"bisonai.com/miko/node/pkg/admin/utils"
-	"bisonai.com/miko/node/pkg/bus"
-	"bisonai.com/miko/node/pkg/utils/buildinfo"
+	"bisonai.com/orakl/node/pkg/admin/utils"
+	"bisonai.com/orakl/node/pkg/bus"
+	"bisonai.com/orakl/node/pkg/utils/buildinfo"
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog/log"
 )
@@ -59,6 +59,6 @@ func registerRoutes(app *fiber.App) {
 	metrics.Routes(v1)
 }
 
-func SyncMikoConfig(ctx context.Context) error {
+func SyncOraklConfig(ctx context.Context) error {
 	return config.InitSyncDb(ctx)
 }

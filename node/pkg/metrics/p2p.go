@@ -6,7 +6,7 @@ package metrics
 // pubsub accepts it for publishing; it may still be dropped or have no peers.
 
 import (
-	metricnames "bisonai.com/miko/node/pkg/metrics/names"
+	metricnames "bisonai.com/orakl/node/pkg/metrics/names"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )

@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"sync"
 
-	"bisonai.com/miko/node/pkg/wss"
+	"bisonai.com/orakl/node/pkg/wss"
 )
 
 // Writer is a wss.ConnWriter that records every frame instead of sending it.

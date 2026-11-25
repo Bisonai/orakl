@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"bisonai.com/miko/node/pkg/dal"
-	"bisonai.com/miko/node/pkg/dal/hub"
-	"bisonai.com/miko/node/pkg/wss"
+	"bisonai.com/orakl/node/pkg/dal"
+	"bisonai.com/orakl/node/pkg/dal/hub"
+	"bisonai.com/orakl/node/pkg/wss"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

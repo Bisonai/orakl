@@ -13,8 +13,8 @@ import (
 	"sync"
 	"time"
 
-	"bisonai.com/miko/node/pkg/dal/utils/keystore"
-	"bisonai.com/miko/node/pkg/utils/sqlitedb"
+	"bisonai.com/orakl/node/pkg/dal/utils/keystore"
+	"bisonai.com/orakl/node/pkg/utils/sqlitedb"
 	"github.com/rs/zerolog/log"
 )
 
