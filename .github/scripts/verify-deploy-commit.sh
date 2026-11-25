@@ -28,7 +28,7 @@ api() {
       return 0
     fi
     echo "gh api failed (try $i/3)" >&2
-    sleep 10
+    if [ "$i" -lt 3 ]; then sleep 10; fi
   done
   return 1
 }
@@ -43,8 +43,8 @@ start=$(date +%s)
 while true; do
   elapsed=$(( $(date +%s) - start ))
   # Latest gate.yaml run for this sha ("<id> <status>"); reruns keep the run id.
-  run=$(api "repos/$repo/actions/runs?head_sha=$sha&per_page=100" \
-    --jq '[.workflow_runs[] | select(.path == ".github/workflows/gate.yaml")] as $all
+  run=$(api "repos/$repo/actions/workflows/gate.yaml/runs?head_sha=$sha&per_page=100" \
+    --jq '.workflow_runs as $all
           | ([$all[] | select(.event == "push")] | if length > 0 then . else $all end)
           | sort_by(.id) | last
           | if . == null then "" else "\(.id) \(.status)" end')
@@ -70,11 +70,11 @@ while true; do
         echo "ok: gate succeeded for $sha ($url)"
         exit 0
       fi
-      echo "::error::gate for $sha concluded '$conclusion' ($url); fix master or rerun gate before tagging"
+      echo "::error::gate for $sha concluded '$conclusion' ($url); fix master, or re-run that gate run, then re-run this workflow"
       exit 1
     fi
     if [ "$elapsed" -ge "$timeout" ]; then
-      echo "::error::gate run $run_id for $sha still '$status' after ${elapsed}s"
+      echo "::error::gate run $run_id for $sha still '$status' after ${elapsed}s; re-run this workflow once it finishes"
       exit 1
     fi
     echo "gate run $run_id for $sha is '$status' (${elapsed}s), waiting"
