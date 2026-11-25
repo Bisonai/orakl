@@ -171,6 +171,12 @@ func TestLateReconnectHandsOverOnce(t *testing.T) {
 
 	time.Sleep(leader.CooldownPeriod) // past a first-election cooldown
 
+	// an outage, not a flap: after ClosePeer alone the reachable leader's host
+	// can dial back within the grace (70-320 ms seen under load, likely
+	// pubsub's dead-peer writer respawn), which rightly elects nothing. With
+	// no addresses neither side can redial until the Connect below.
+	leader.Host.Peerstore().ClearAddrs(follower.Host.ID())
+	follower.Host.Peerstore().ClearAddrs(leader.Host.ID())
 	require.NoError(t, follower.Host.Network().ClosePeer(leader.Host.ID()))
 	require.Eventually(t, func() bool { return follower.GetRole() == Leader }, failoverBound, 10*time.Millisecond,
 		"follower did not take over")
