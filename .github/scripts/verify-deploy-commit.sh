@@ -8,7 +8,7 @@
 # Usage: verify-deploy-commit.sh <sha>
 # Env:   REPO (owner/name, default $GITHUB_REPOSITORY), MASTER_REF (default origin/master),
 #        POLL_INTERVAL (s, default 30), TIMEOUT (s, default 1800),
-#        MISSING_GRACE (s to wait for a gate run to appear, default 120). Needs git + gh.
+#        MISSING_GRACE (s to wait for a gate (push) run to appear, default 120). Needs git + gh.
 # Dry-run locally: git fetch origin master; REPO=Bisonai/orakl .github/scripts/verify-deploy-commit.sh <sha>
 set -euo pipefail
 
@@ -42,12 +42,13 @@ echo "ok: $sha is on master ($master_ref)"
 start=$(date +%s)
 while true; do
   elapsed=$(( $(date +%s) - start ))
-  # Latest gate.yaml run for this sha ("<id> <status>"); reruns keep the run id.
+  # Latest gate.yaml run for this sha ("<id> <status> <event>"); reruns keep the run id.
   run=$(api "repos/$repo/actions/workflows/gate.yaml/runs?head_sha=$sha&per_page=100" \
     --jq '.workflow_runs as $all
           | ([$all[] | select(.event == "push")] | if length > 0 then . else $all end)
           | sort_by(.id) | last
-          | if . == null then "" else "\(.id) \(.status)" end')
+          | if . == null then "" else "\(.id) \(.status) \(.event)" end') \
+    || { echo "::error::GitHub API failed listing gate runs for $sha"; exit 1; }
 
   if [ -z "$run" ]; then
     if [ "$elapsed" -ge "$grace" ]; then
@@ -55,12 +56,15 @@ while true; do
       exit 1
     fi
     echo "no gate run for $sha yet (${elapsed}s), waiting"
+  elif read -r run_id status event <<<"$run" && [ "$event" != push ] && [ "$elapsed" -lt "$grace" ]; then
+    # Only a PR/dispatch run so far; the master push run may not be registered yet.
+    echo "only a '$event' gate run for $sha so far (${elapsed}s), waiting for the push run"
   else
-    read -r run_id status <<<"$run"
     if [ "$status" = completed ]; then
       job=$(api "repos/$repo/actions/runs/$run_id/jobs" \
         --jq '[.jobs[] | select(.name == "gate")] | last
-              | if . == null then "" else "\(.conclusion // "none") \(.html_url)" end')
+              | if . == null then "" else "\(.conclusion // "none") \(.html_url)" end') \
+        || { echo "::error::GitHub API failed reading gate run $run_id jobs"; exit 1; }
       if [ -z "$job" ]; then
         echo "::error::gate run $run_id for $sha has no 'gate' job"
         exit 1
