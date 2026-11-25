@@ -106,7 +106,8 @@ func TestLeaderStopElectsAtOnce(t *testing.T) {
 	assert.Equal(t, survivor.GetHostId(), leader.GetLeader())
 }
 
-// reconnect drops the connection between a and b and dials again at once.
+// reconnect drops the connection between a and b and dials again at once (b
+// may redial first: either way the connection is back within ms).
 func reconnect(ctx context.Context, t *testing.T, a, b *Raft) {
 	t.Helper()
 	require.NoError(t, a.Host.Network().ClosePeer(b.Host.ID()))
