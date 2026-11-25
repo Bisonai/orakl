@@ -125,15 +125,22 @@ func leaveElections(t *testing.T) float64 {
 
 // A connection restored within the grace, as the reconnect worker does, elects
 // nothing, however often it flaps.
+//
+// A reconnected peer is back on the topic within ms but out of the gossipsub
+// mesh until a gossipsub heartbeat (1 s) grafts it again, so each flap loses up
+// to about 1 s of leader heartbeats (1.8 s seen across two flaps). At the
+// default 100 ms heartbeat that is past the 1.5 s minimum to a timeout
+// election; 200 ms makes it 3 s. The grace and the flap spacing scale with it.
 func TestQuickReconnectDoesNotElect(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	nodes := startCluster(ctx, t, 2)
+	nodes := startCluster(ctx, t, 2, func(r *Raft) { r.HeartbeatTimeout = 2 * HEARTBEAT_TIMEOUT })
 	leader := waitForSingleLeader(t, nodes, "no initial leader")
 	follower := otherNode(nodes, leader)
 	term := follower.GetCurrentTerm()
 	before := leaveElections(t)
+	timeouts := electionsStarted(t, "timeout")
 
 	for i := 0; i < 5; i++ {
 		reconnect(ctx, t, follower, leader)
@@ -146,7 +153,8 @@ func TestQuickReconnectDoesNotElect(t *testing.T) {
 	got, ok := singleLeader(nodes)
 	require.True(t, ok, "no single leader")
 	assert.Equal(t, leader.GetHostId(), got.GetHostId(), "leader changed")
-	assert.Equal(t, term, follower.GetCurrentTerm())
+	assert.Equal(t, term, follower.GetCurrentTerm(), "term moved (timeout elections %v)",
+		electionsStarted(t, "timeout")-timeouts)
 }
 
 // A connection back only after the grace hands over once: the old leader finds
