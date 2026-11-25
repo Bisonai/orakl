@@ -1,7 +1,7 @@
 package okx
 
 // rate limits to 3 request / sec
-const URL = "wss://ws.okx.com:8443/ws/v5/public"
+const URL = "wss://ws.okx.com/ws/v5/public"
 
 type Arg struct {
 	Channel string `json:"channel"`
