@@ -106,7 +106,7 @@ func leaveOf(t *testing.T, node *Raft, leader string, ago time.Duration) {
 	id, err := peer.Decode(leader)
 	require.NoError(t, err)
 	node.markDeparted(id, true)
-	node.departed.Store(leader, int64(time.Since(leaderClockEpoch)-ago))
+	node.departed.Store(leader, &departure{at: int64(time.Since(leaderClockEpoch) - ago), wall: time.Now().Add(-ago)})
 }
 
 // lateLeaderMessages handles a heartbeat and a trigger the leader sent before
@@ -136,9 +136,9 @@ func TestRequestVoteGrantedOnceLeaderLeft(t *testing.T) {
 	defer cancel()
 
 	for name, tc := range map[string]struct {
-		leftBeforeFollowed, rejoined bool
-		ago                          func(*Raft) time.Duration // since the leave
-		granted                      bool
+		leftBeforeFollowed, rejoined, sentAfter bool
+		ago                                     func(*Raft) time.Duration // since the leave
+		granted                                 bool
 	}{
 		"just left":            {ago: func(*Raft) time.Duration { return 0 }, granted: true},
 		"left before followed": {leftBeforeFollowed: true, ago: func(*Raft) time.Duration { return 0 }, granted: true},
@@ -148,6 +148,9 @@ func TestRequestVoteGrantedOnceLeaderLeft(t *testing.T) {
 		"rejoined": {rejoined: true, ago: func(*Raft) time.Duration { return 0 }},
 		"relayed": {ago: func(n *Raft) time.Duration {
 			return n.departedBacklog() + n.HeartbeatTimeout
+		}},
+		"relayed, sent after the leave": {sentAfter: true, ago: func(n *Raft) time.Duration {
+			return departedClockSkew + n.HeartbeatTimeout
 		}},
 	} {
 		t.Run(name, func(t *testing.T) {
@@ -164,7 +167,13 @@ func TestRequestVoteGrantedOnceLeaderLeft(t *testing.T) {
 				require.NoError(t, err)
 				node.markDeparted(id, false)
 			}
-			lateLeaderMessages(ctx, t, node, leader, 3)
+			if tc.sentAfter {
+				hb := heartbeatFrom(t, leader, 3)
+				hb.Timestamp = time.Now()
+				require.NoError(t, node.handleMessage(ctx, hb))
+			} else {
+				lateLeaderMessages(ctx, t, node, leader, 3)
+			}
 			require.NoError(t, node.handleMessage(ctx, requestVoteFrom(t, candidate, 4)))
 
 			term, votedFor, _ := voteState(node)
@@ -249,6 +258,36 @@ func TestGoneLeaderHeartbeatHoldsNoTimer(t *testing.T) {
 			}
 		})
 	}
+}
+
+// A departed peer's late heartbeat at a higher term neither deposes a leader
+// nor gets followed (#3012): it led before it left, and its successor's
+// heartbeat decides.
+func TestGoneLeaderHeartbeatIgnored(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	t.Run("leader", func(t *testing.T) {
+		node := newGoneLeaderTestNode(ctx, t)
+		node.CooldownPeriod = 0
+		node.Mutex.Lock()
+		node.campaign(ctx, "test")
+		node.becomeLeader(ctx)
+		node.Mutex.Unlock()
+		require.Equal(t, Leader, node.GetRole())
+		gone := testPeerID(t)
+		leaveOf(t, node, gone, 0)
+		require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, gone, node.GetCurrentTerm()+1)))
+		assert.Equal(t, Leader, node.GetRole())
+	})
+	t.Run("follower", func(t *testing.T) {
+		node := newGoneLeaderTestNode(ctx, t)
+		gone := testPeerID(t)
+		leaveOf(t, node, gone, 0)
+		require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, gone, 3)))
+		assert.Empty(t, node.GetLeader())
+		assert.Zero(t, node.GetCurrentTerm())
+	})
 }
 
 // A follower whose leader only lost its direct link (a peer still relays it)

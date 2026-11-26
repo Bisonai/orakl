@@ -170,7 +170,7 @@ func (r *Raft) handleMessage(ctx context.Context, msg Message) error {
 func (r *Raft) handleFrom(ctx context.Context, msg Message, author string) error {
 	authentic := msg.SentFrom == author
 	if authentic {
-		r.reviveIfHeard(author)
+		r.reviveIfHeard(author, msg.Timestamp)
 	}
 	// heartbeats record in handleHeartbeat, once validated
 	if msg.Type != Heartbeat && authentic {
@@ -210,14 +210,16 @@ func (r *Raft) handleHeartbeat(msg Message, authentic bool) error {
 		r.stampWantHeartbeats(Heartbeat, msg.SentFrom)
 	}
 
+	// a departed leader's late heartbeat is no leader: it doesn't hold off the
+	// election timer, end a candidacy, depose a leader or get followed (#3012)
+	if r.isGone(heartbeatMessage.LeaderID) {
+		return nil
+	}
+
 	r.Mutex.Lock()
 	defer r.Mutex.Unlock()
 
-	// a departed leader's late heartbeat doesn't hold off the election timer
-	gone := r.isGone(heartbeatMessage.LeaderID)
-	if !gone {
-		r.MissedHeartbeats = 0
-	}
+	r.MissedHeartbeats = 0
 
 	currentRole := r.Role
 	currentTerm := r.Term
@@ -227,10 +229,8 @@ func (r *Raft) handleHeartbeat(msg Message, authentic bool) error {
 	// live leader of its own it follows this one, or it would ignore the leader's
 	// heartbeats and keep campaigning against it for as long as it leads. A
 	// leader at a higher term than the one it hears takes over, or a stale one
-	// heard first would hold it off. A late heartbeat of a leader gone from the
-	// topic doesn't end the candidacy for its successor (#3012).
+	// heard first would hold it off.
 	followLower := heartbeatMessage.Term < currentTerm && currentRole != Leader &&
-		!gone &&
 		(!r.hearsLeaderOtherThan(heartbeatMessage.LeaderID) ||
 			heartbeatMessage.Term > r.leaderClock.Load().term)
 
@@ -239,7 +239,7 @@ func (r *Raft) handleHeartbeat(msg Message, authentic bool) error {
 		r.setRole(Follower)
 	}
 
-	if r.Role == Follower && !gone {
+	if r.Role == Follower {
 		r.startElectionTimer()
 	}
 

@@ -76,21 +76,31 @@ func (r *Raft) watchPeerLeaves(ctx context.Context, events *pubsub.TopicEventHan
 	}
 }
 
-// A leader that left the topic is gone (isGone) from its leave on, until it
-// rejoins (PeerJoin) or is heard again past any backlog (reviveIfHeard).
-// Whatever of it still arrives in between was sent before it left: a backlog
-// delivering that late must not hold off the vote for its successor
-// (hearsLeaderOtherThan), end the successor's candidacy (handleHeartbeat) or
-// hold off the election timer, also on a retry after a split vote (#3012).
-// Kept per peer, not on the leader clock, so a leave counts even when this
-// node only follows that leader afterwards, from a late heartbeat. A flap
-// stays harmless: no leave causes an election before the grace, and a rejoin
-// within it clears the leave.
+// A peer that left the topic is gone (isGone) from its leave on, until it
+// rejoins (PeerJoin) or is heard again (reviveIfHeard). Whatever of it still
+// arrives in between was sent before it left: a backlog delivering that late
+// must not hold off the vote for its successor (hearsLeaderOtherThan), be
+// followed, or hold off the election timer (handleHeartbeat), also on a retry
+// after a split vote seconds later (#3012). Kept per peer, not on the leader
+// clock, so a leave counts even when this node would only follow that leader
+// afterwards, from a late heartbeat. A flap costs no election: none comes
+// from a leave before the grace, and a rejoin within it clears the leave.
 
 // departedRetention is how long a departed peer that isn't the leader this
 // node follows is remembered, so peers that never return (a restart takes a
 // new peer ID) don't pile up.
 const departedRetention = 10 * time.Minute
+
+// departedClockSkew is how far a peer's clock may run ahead of this node's: a
+// message it stamped later than its leave plus this was sent after it left.
+const departedClockSkew = time.Second
+
+// departure is when a peer left the topic: ns since leaderClockEpoch, and the
+// wall clock for comparing with its messages' send time.
+type departure struct {
+	at   int64
+	wall time.Time
+}
 
 // markDeparted records a peer's leave of the topic, or forgets it on a join.
 func (r *Raft) markDeparted(id peer.ID, left bool) {
@@ -100,10 +110,10 @@ func (r *Raft) markDeparted(id peer.ID, left bool) {
 		return
 	}
 	now := int64(time.Since(leaderClockEpoch))
-	r.departed.Store(key, now)
+	r.departed.Store(key, &departure{at: now, wall: time.Now()})
 	clock := r.leaderClock.Load()
 	r.departed.Range(func(k, v any) bool {
-		if (clock == nil || k.(string) != clock.id) && time.Duration(now-v.(int64)) > departedRetention {
+		if (clock == nil || k.(string) != clock.id) && time.Duration(now-v.(*departure).at) > departedRetention {
 			r.departed.CompareAndDelete(k, v)
 		}
 		return true
@@ -117,23 +127,27 @@ func (r *Raft) isGone(id string) bool {
 	return gone
 }
 
-// reviveIfHeard forgets a departed peer's leave on a message it signed that
-// arrives past departedBacklog: no backlog lasts that long, so a peer still
-// reaches it and relays it (only the direct link dropped), and it is heard
-// again: a live leader isn't ignored for as long as the link is down.
-func (r *Raft) reviveIfHeard(id string) {
-	leftAt, gone := r.departed.Load(id)
+// reviveIfHeard forgets a departed peer's leave on a message it signed and
+// sent after the leave (by more than departedClockSkew), or that arrives past
+// departedBacklog, longer than a backlog lasts: a peer still reaches it and
+// relays it (only the direct link dropped), so it is heard again and a live
+// leader isn't ignored for as long as the link is down.
+func (r *Raft) reviveIfHeard(id string, sentAt time.Time) {
+	v, gone := r.departed.Load(id)
 	if !gone {
 		return
 	}
-	if time.Duration(int64(time.Since(leaderClockEpoch))-leftAt.(int64)) > r.departedBacklog() {
-		r.departed.CompareAndDelete(id, leftAt)
+	d := v.(*departure)
+	if sentAt.After(d.wall.Add(departedClockSkew)) ||
+		time.Duration(int64(time.Since(leaderClockEpoch))-d.at) > r.departedBacklog() {
+		r.departed.CompareAndDelete(id, v)
 	}
 }
 
 // departedBacklog bounds how late a departed peer's messages are still taken
-// for a backlog: past the election cooldown and a maximum election timeout,
-// the split-vote retry after its leave (#3043) has had its time.
+// for a backlog, whatever their send time: past the election cooldown and a
+// maximum election timeout, the split-vote retry after its leave (#3043) has
+// had its time.
 func (r *Raft) departedBacklog() time.Duration {
 	return r.CooldownPeriod + 2*r.minElectionTimeout()
 }
