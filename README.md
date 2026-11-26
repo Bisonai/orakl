@@ -89,3 +89,16 @@ Contains off-chain code for off-chain aggregation and related services.
 - Audit: Holds contract audit details.
 - Dockerfiles: Includes Dockerfiles for deployment.
 - Sentinel: Internal alarm service for stable service maintenance.
+
+## Releasing
+
+Release tags (`<service>/vX.Y.Z`) are created by the [Release](./.github/workflows/release.yaml) workflow, never pushed by hand. It runs only on `master`, checks the version (X.Y.Z, tag unused, greater than the service's latest tag) and that the `gate` check of the master HEAD commit is green (waits while it runs), then pushes an annotated tag with the orakl-bot App token. The tag push runs [tag+deploy](./.github/workflows/tag+deploy.yaml) (build, kairos deploy, pre-release); promote to mainnet with the `Promote` workflow.
+
+```sh
+# dry run: all checks, prints the tag, pushes nothing
+gh workflow run release.yaml --ref master -f service=node -f version=0.0.53 -f dry_run=true
+# release
+gh workflow run release.yaml --ref master -f service=node -f version=0.0.53 [-f notes="tag message"]
+```
+
+A tag ruleset will restrict `*/v*` tag creation to this workflow, so manual release tags will be rejected.
