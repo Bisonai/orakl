@@ -1,6 +1,6 @@
 # Orakl Node
 
-**Orakl Node for Off-Chain Aggregation**
+**Orakl Node for Offchain Aggregation**
 
 ## Table of Contents
 
@@ -33,7 +33,7 @@
 
 ## Introduction
 
-Off-chain aggregator performs the following steps to regularly submit data into the chain:
+Offchain aggregator performs the following steps to regularly submit data into the chain:
 
 1. Fetch price data and save it into the database.
 2. Send and receive data with other nodes, aggregate all received data, and save aggregated data into the database.
@@ -49,7 +49,7 @@ Modular Monolithic with loose coupling between packages:
 
 - `cmd`: Holds entry points to run basic functionalities.
 - `migrations`: Migration files to initialize PostgreSQL tables.
-- `pkg`: Implementation packages for off-chain aggregator.
+- `pkg`: Implementation packages for offchain aggregator.
 - `script`: Scripts for testing purposes, such as smoke tests or temporary usage.
 - `taskfiles`: Taskfile holding commands to run the application.
 
@@ -75,7 +75,7 @@ Check the source code inside `./pkg` for details:
 
 - **Admin API**: Supports an interface to add entries to the table or control internal applications.
 - **Fetcher**: Continuously retrieves data from the data source for entries declared in the adapters table.
-- **Aggregator**: Sends and receives locally fetched data to/from other off-chain aggregators, storing it in the `global_aggregates` table.
+- **Aggregator**: Sends and receives locally fetched data to/from other offchain aggregators, storing it in the `global_aggregates` table.
 - **Reporter**: Submits all data from `global_aggregates` with the most recent round.
 
 ## Quickstart
@@ -531,7 +531,7 @@ task local:node
 ### Scripts
 
 ```sh
-# Submission test: submit a single tx on chain
+# Submission test: submit a single tx onchain
 task local:script-submission
 
 # Fetcher test: run api + fetcher
@@ -635,7 +635,7 @@ SUBMITTER_ALARM_AMOUNT=25
 # Minimal required balance for fee payer, defaults to 10000
 DELEGATOR_ALARM_AMOUNT=10000
 
-# (required) JSON RPC URL for on-chain calls
+# (required) JSON RPC URL for onchain calls
 JSON_RPC_URL=
 # (required) Orakl API URL to retrieve reporter addresses
 ORAKL_API_URL=

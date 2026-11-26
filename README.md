@@ -1,6 +1,6 @@
 # Orakl Network
 
-This repository is split to [on-chain](contracts) and off-chain oracle implementation.
+This repository is split to [onchain](contracts) and offchain oracle implementation.
 
 You can learn more about the Orakl Network from [documentation](https://orakl-network.gitbook.io).
 
@@ -70,11 +70,11 @@ Includes commands that node operators can use to manage VRF and RR.
 
 ### Contracts
 
-Contains all on-chain contracts for the service and related scripts.
+Contains all onchain contracts for the service and related scripts.
 
 ### Core
 
-Contains off-chain code for VRF and RR.
+Contains offchain code for VRF and RR.
 
 ### Delegator
 
@@ -82,7 +82,7 @@ A service to run fee payer for delegated transactions by push oracles.
 
 ### Node
 
-Contains off-chain code for off-chain aggregation and related services.
+Contains offchain code for offchain aggregation and related services.
 
 ### Others
 
