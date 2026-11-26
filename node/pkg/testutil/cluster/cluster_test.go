@@ -18,8 +18,10 @@ const (
 	settleTimeout = 15 * time.Second
 	// failoverBound is how soon after a leader's stop every feed has a new
 	// leader: the leave grace (~0.6-0.85 s) and an election, with room for a
-	// loaded runner.
-	failoverBound = 3 * time.Second
+	// loaded runner. Both followers can campaign within a message delay of
+	// each other and split the vote (~10% per feed under -race); the retry
+	// then waits out the election cooldown (3 s) and a timer (~4-5 s, #3012).
+	failoverBound = 7 * time.Second
 	// unhealthyBound is how soon an unhealthy leader's feeds have another
 	// leader: a resign on the next tick, then peers time out its heartbeats
 	// (up to 3 election timeouts, ~3 s) and elect, maybe after a split vote
