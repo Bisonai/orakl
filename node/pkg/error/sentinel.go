@@ -225,6 +225,9 @@ var (
 	ErrReducerFindInvalidArgs          = &CustomError{Service: Others, Code: InvalidInputError, Message: "FIND args must be {\"key\": string, \"value\": string|number|bool}"}
 	ErrReducerFindNoMatch              = &CustomError{Service: Others, Code: InternalError, Message: "No element matched FIND"}
 	ErrReducerFindMultipleMatches      = &CustomError{Service: Others, Code: InternalError, Message: "Multiple elements matched FIND"}
+	ErrReducerMeanCastToMapFail        = &CustomError{Service: Others, Code: InternalError, Message: "Failed to cast to map from MEAN"}
+	ErrReducerMeanInvalidArgs          = &CustomError{Service: Others, Code: InvalidInputError, Message: "MEAN args must be a non-empty list of field names"}
+	ErrReducerMeanFieldMissing         = &CustomError{Service: Others, Code: InternalError, Message: "Field missing for MEAN"}
 
 	ErrLogTimestampNotExist = &CustomError{Service: Others, Code: InvalidInputError, Message: "Log timestamp not exist"}
 	ErrLogMsgNotExist       = &CustomError{Service: Others, Code: InvalidInputError, Message: "Log message not exist"}
