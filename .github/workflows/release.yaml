@@ -13,8 +13,8 @@ on:
         description: "Service to release (tag prefix)"
         required: true
         type: choice
-        # services tag+deploy.yaml can build and deploy (dockerfiles/orakl-<service>,
-        # vrf/request-response build orakl-core)
+        # services tag+deploy.yaml can build (dockerfiles/orakl-<service>; vrf and
+        # request-response build orakl-core) and deploy (kairos chart, or skip-missing)
         options:
           - node
           - dal
@@ -43,6 +43,12 @@ on:
 permissions:
   contents: read
   actions: read
+
+# One release per service at a time, so concurrent runs can't push versions out of order.
+# Actions keeps only one pending run per group: a newer dispatch cancels a queued one.
+concurrency:
+  group: release-${{ inputs.service }}
+  cancel-in-progress: false
 
 jobs:
   release:

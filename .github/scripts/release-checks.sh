@@ -3,7 +3,8 @@
 #   1. REF is refs/heads/master (the workflow was dispatched on master)
 #   2. <version> is X.Y.Z and <service>/v<version> matches the tag+deploy.yaml tag pattern
 #   3. tag <service>/v<version> does not exist on the remote
-#   4. <version> is greater than the service's latest remote <service>/v* tag
+#   4. <version> is greater than the service's latest remote <service>/v* tag, and <sha>
+#      contains that tag's commit
 #   5. verify-deploy-commit.sh passes for <sha> (on master, `gate` green; waits for a running gate)
 # 3+4 are re-checked after 5, since the gate wait can be long.
 # On success prints "tag=<tag>" to stdout and, if set, to $GITHUB_OUTPUT.
@@ -28,8 +29,8 @@ if [ "$ref" != refs/heads/master ]; then
 fi
 echo "ok: ref is $ref"
 
-if [[ ! $version =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-  echo "::error::version '$version' is not X.Y.Z (no 'v' prefix, no suffix)"
+if [[ ! $version =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+  echo "::error::version '$version' is not X.Y.Z (no 'v' prefix, no suffix, no leading zeros)"
   exit 1
 fi
 # Same pattern tag+deploy.yaml parses; a tag it can't parse would fail there after the push.
@@ -41,8 +42,9 @@ echo "ok: tag $tag is well-formed"
 
 # Remote is the source of truth (local tags may be stale or missing).
 check_remote_tags() {
-  local remote_tags latest highest
-  remote_tags=$(git ls-remote --tags --refs "$remote" "refs/tags/${service}/v*") \
+  local remote_tags latest highest latest_sha
+  # without --refs: annotated tags also list a peeled "<tag>^{}" line with the commit
+  remote_tags=$(git ls-remote --tags "$remote" "refs/tags/${service}/v*") \
     || { echo "::error::git ls-remote $remote failed"; exit 1; }
   if grep -qxF "refs/tags/$tag" <<<"$(cut -f2 <<<"$remote_tags")"; then
     echo "::error::tag $tag already exists on $remote"
@@ -58,6 +60,14 @@ check_remote_tags() {
       exit 1
     fi
     echo "ok: $version > latest ${service}/v${latest}"
+
+    # A higher version must not tag an older commit (e.g. a re-run keeps its old GITHUB_SHA).
+    latest_sha=$(awk -v t="refs/tags/${service}/v${latest}" '$2 == t "^{}" { p = $1 } $2 == t { l = $1 } END { print (p != "" ? p : l) }' <<<"$remote_tags")
+    if ! git merge-base --is-ancestor "$latest_sha" "$sha" 2>/dev/null; then
+      echo "::error::$sha does not contain latest ${service}/v${latest} ($latest_sha); tag a newer master commit"
+      exit 1
+    fi
+    echo "ok: $sha contains ${service}/v${latest}"
   else
     echo "ok: no previous ${service}/v* tag; $version is the first"
   fi
