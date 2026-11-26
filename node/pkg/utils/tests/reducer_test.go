@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
+	errorSentinel "bisonai.com/orakl/node/pkg/error"
 	"bisonai.com/orakl/node/pkg/utils/reducer"
 	"github.com/stretchr/testify/assert"
 )
@@ -89,4 +90,106 @@ func TestReduceAll(t *testing.T) {
 		t.Fatalf("error reducing: %v", err)
 	}
 	assert.NotEqual(t, result, 0)
+}
+
+// bithumb exrate response shape: the USD entry is picked by key, not position.
+var findSample = `{
+	"status": 200,
+	"data": {
+	  "currencyRateList": [
+		{"currency": "JPY", "rate": 843.15},
+		{"currency": "USD", "rate": 1342.2},
+		{"currency": "EUR", "rate": "1,471.1"},
+		{"currency": "CNY", "id": 4, "rate": 201.4},
+		"not-an-object"
+	  ]
+	}
+  }`
+
+func TestReduceFind(t *testing.T) {
+	var raw interface{}
+	if err := json.Unmarshal([]byte(findSample), &raw); err != nil {
+		t.Fatalf("error unmarshalling sample: %v", err)
+	}
+
+	run := func(reducersJSON string) (float64, error) {
+		var red []reducer.Reducer
+		if err := json.Unmarshal([]byte(reducersJSON), &red); err != nil {
+			t.Fatalf("error unmarshalling reducers: %v", err)
+		}
+		return reducer.Reduce(raw, red)
+	}
+	pipeline := func(findArgs string) string {
+		return `[
+			{"function": "PARSE", "args": ["data", "currencyRateList"]},
+			{"function": "FIND", "args": ` + findArgs + `},
+			{"function": "PARSE", "args": ["rate"]}
+		]`
+	}
+
+	t.Run("string match", func(t *testing.T) {
+		v, err := run(pipeline(`{"key": "currency", "value": "USD"}`))
+		assert.NoError(t, err)
+		assert.Equal(t, 1342.2, v)
+	})
+
+	t.Run("comma string value", func(t *testing.T) {
+		v, err := run(pipeline(`{"key": "currency", "value": "EUR"}`))
+		assert.NoError(t, err)
+		assert.Equal(t, 1471.1, v)
+	})
+
+	t.Run("number match", func(t *testing.T) {
+		v, err := run(pipeline(`{"key": "id", "value": 4}`))
+		assert.NoError(t, err)
+		assert.Equal(t, 201.4, v)
+	})
+
+	t.Run("then DIVFROM", func(t *testing.T) {
+		v, err := run(`[
+			{"function": "PARSE", "args": ["data", "currencyRateList"]},
+			{"function": "FIND", "args": {"key": "currency", "value": "USD"}},
+			{"function": "PARSE", "args": ["rate"]},
+			{"function": "DIVFROM", "args": 1}
+		]`)
+		assert.NoError(t, err)
+		assert.InDelta(t, 1/1342.2, v, 1e-15)
+	})
+
+	t.Run("type must match", func(t *testing.T) {
+		_, err := run(pipeline(`{"key": "id", "value": "4"}`))
+		assert.ErrorIs(t, err, errorSentinel.ErrReducerFindNoMatch)
+	})
+
+	t.Run("no match", func(t *testing.T) {
+		_, err := run(pipeline(`{"key": "currency", "value": "KRW"}`))
+		assert.ErrorIs(t, err, errorSentinel.ErrReducerFindNoMatch)
+	})
+
+	t.Run("multiple matches", func(t *testing.T) {
+		var dup interface{}
+		_ = json.Unmarshal([]byte(`[{"c": "USD", "r": 1}, {"c": "USD", "r": 2}]`), &dup)
+		var red []reducer.Reducer
+		_ = json.Unmarshal([]byte(`[{"function": "FIND", "args": {"key": "c", "value": "USD"}}]`), &red)
+		_, err := reducer.Reduce(dup, red)
+		assert.ErrorIs(t, err, errorSentinel.ErrReducerFindMultipleMatches)
+	})
+
+	t.Run("not a list", func(t *testing.T) {
+		_, err := run(`[{"function": "FIND", "args": {"key": "currency", "value": "USD"}}]`)
+		assert.ErrorIs(t, err, errorSentinel.ErrReducerFindCastToListFail)
+	})
+
+	for name, args := range map[string]string{
+		"args not object": `["currency", "USD"]`,
+		"missing key":     `{"value": "USD"}`,
+		"empty key":       `{"key": "", "value": "USD"}`,
+		"missing value":   `{"key": "currency"}`,
+		"object value":    `{"key": "currency", "value": {"a": 1}}`,
+	} {
+		t.Run("invalid args: "+name, func(t *testing.T) {
+			_, err := run(pipeline(args))
+			assert.ErrorIs(t, err, errorSentinel.ErrReducerFindInvalidArgs)
+		})
+	}
 }
