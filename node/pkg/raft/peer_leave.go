@@ -125,13 +125,18 @@ func (r *Raft) isGone(id string) bool {
 // that arrives past departedBacklog, longer than a backlog lasts: a peer still
 // reaches it and relays it (only the direct link dropped), so it is heard
 // again and a live leader isn't ignored for as long as the link is down.
-// Arrival only: send times come from another node's clock.
+// Arrival only: send times come from another node's clock. A peer listed on
+// the topic again rejoined, though its PeerJoin may not be read yet.
 func (r *Raft) reviveIfHeard(id string) {
 	v, gone := r.departed.Load(id)
 	if !gone {
 		return
 	}
 	if time.Duration(int64(time.Since(leaderClockEpoch))-v.(*departure).at) > r.departedBacklog() {
+		r.departed.CompareAndDelete(id, v)
+		return
+	}
+	if pid, err := peer.Decode(id); err == nil && r.onTopic(pid) {
 		r.departed.CompareAndDelete(id, v)
 	}
 }
