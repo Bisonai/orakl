@@ -30,7 +30,7 @@ on:
         required: true
         type: string
       notes:
-        description: "Annotated tag message (optional)"
+        description: "Annotated tag message only (optional; not the GitHub release notes, which tag+deploy generates)"
         required: false
         type: string
         default: ""
@@ -43,10 +43,6 @@ on:
 permissions:
   contents: read
   actions: read
-
-concurrency:
-  group: release-${{ inputs.service }}
-  cancel-in-progress: false
 
 jobs:
   release:
@@ -86,6 +82,8 @@ jobs:
           owner: ${{ github.repository_owner }}
           repositories: ${{ github.event.repository.name }}
           permission-contents: write
+          # GitHub may refuse an App push of a ref that brings in .github/workflows changes without it
+          permission-workflows: write
 
       - name: Create and push tag
         env:
@@ -108,7 +106,11 @@ jobs:
             echo "## Release ${TAG}"
             echo
             echo "- Commit: [\`${GITHUB_SHA}\`](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/commit/${GITHUB_SHA})"
-            echo "- Message: ${msg}"
+            echo "- Message:"
+            echo
+            echo '```'
+            echo "$msg"
+            echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
           if [ "$DRY_RUN" = true ]; then

@@ -92,7 +92,7 @@ Contains off-chain code for off-chain aggregation and related services.
 
 ## Releasing
 
-Release tags (`<service>/vX.Y.Z`) are created by the [Release](./.github/workflows/release.yaml) workflow, never pushed by hand. It runs only on `master`, checks the version (X.Y.Z, tag unused, greater than the service's latest tag) and that the `gate` check of the master HEAD commit is green (waits while it runs), then pushes an annotated tag with the orakl-bot App token. The tag push runs [tag+deploy](./.github/workflows/tag+deploy.yaml) (build, kairos deploy, pre-release); promote to mainnet with the `Promote` workflow.
+Create release tags (`<service>/vX.Y.Z`) with the [Release](./.github/workflows/release.yaml) workflow, not by hand. It runs only on `master`, checks the version (X.Y.Z, tag unused, greater than the service's latest tag) and that the `gate` check of the master HEAD commit is green (waits while it runs), then pushes an annotated tag with the orakl-bot App token. The tag push runs [tag+deploy](./.github/workflows/tag+deploy.yaml) (build, kairos deploy, pre-release); promote to mainnet with the `Promote` workflow.
 
 ```sh
 # dry run: all checks, prints the tag, pushes nothing
@@ -101,4 +101,4 @@ gh workflow run release.yaml --ref master -f service=node -f version=0.0.53 -f d
 gh workflow run release.yaml --ref master -f service=node -f version=0.0.53 [-f notes="tag message"]
 ```
 
-A tag ruleset will restrict `*/v*` tag creation to this workflow, so manual release tags will be rejected.
+Versions are linear per service (no patch releases on an older line). Until a tag ruleset restricts `*/v*` tag creation to this workflow, manually pushed tags still deploy and skip these version checks; once it exists they are rejected.

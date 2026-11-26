@@ -5,6 +5,7 @@
 #   3. tag <service>/v<version> does not exist on the remote
 #   4. <version> is greater than the service's latest remote <service>/v* tag
 #   5. verify-deploy-commit.sh passes for <sha> (on master, `gate` green; waits for a running gate)
+# 3+4 are re-checked after 5, since the gate wait can be long.
 # On success prints "tag=<tag>" to stdout and, if set, to $GITHUB_OUTPUT.
 #
 # Usage: release-checks.sh <service> <version> <sha>
@@ -39,27 +40,36 @@ fi
 echo "ok: tag $tag is well-formed"
 
 # Remote is the source of truth (local tags may be stale or missing).
-remote_tags=$(git ls-remote --tags --refs "$remote" "refs/tags/${service}/v*") \
-  || { echo "::error::git ls-remote $remote failed"; exit 1; }
-if grep -qxF "refs/tags/$tag" <<<"$(cut -f2 <<<"$remote_tags")"; then
-  echo "::error::tag $tag already exists on $remote"
-  exit 1
-fi
-echo "ok: $tag does not exist on $remote"
-
-latest=$(cut -f2 <<<"$remote_tags" | sed -n "s,^refs/tags/${service}/v\([0-9]*\.[0-9]*\.[0-9]*\)$,\1,p" | sort -V | tail -n1)
-if [ -n "$latest" ]; then
-  highest=$(printf '%s\n%s\n' "$latest" "$version" | sort -V | tail -n1)
-  if [ "$highest" != "$version" ] || [ "$latest" = "$version" ]; then
-    echo "::error::version $version is not greater than latest ${service}/v${latest}"
+check_remote_tags() {
+  local remote_tags latest highest
+  remote_tags=$(git ls-remote --tags --refs "$remote" "refs/tags/${service}/v*") \
+    || { echo "::error::git ls-remote $remote failed"; exit 1; }
+  if grep -qxF "refs/tags/$tag" <<<"$(cut -f2 <<<"$remote_tags")"; then
+    echo "::error::tag $tag already exists on $remote"
     exit 1
   fi
-  echo "ok: $version > latest ${service}/v${latest}"
-else
-  echo "ok: no previous ${service}/v* tag; $version is the first"
-fi
+  echo "ok: $tag does not exist on $remote"
+
+  latest=$(cut -f2 <<<"$remote_tags" | sed -n "s,^refs/tags/${service}/v\([0-9]*\.[0-9]*\.[0-9]*\)$,\1,p" | sort -V | tail -n1)
+  if [ -n "$latest" ]; then
+    highest=$(printf '%s\n%s\n' "$latest" "$version" | sort -V | tail -n1)
+    if [ "$highest" != "$version" ] || [ "$latest" = "$version" ]; then
+      echo "::error::version $version is not greater than latest ${service}/v${latest}"
+      exit 1
+    fi
+    echo "ok: $version > latest ${service}/v${latest}"
+  else
+    echo "ok: no previous ${service}/v* tag; $version is the first"
+  fi
+}
+
+check_remote_tags
 
 "$(dirname "$0")/verify-deploy-commit.sh" "$sha"
+
+# The gate wait can take minutes; re-check so a tag pushed meanwhile is not overtaken.
+echo "re-checking remote tags after gate"
+check_remote_tags
 
 echo "tag=$tag"
 if [ -n "${GITHUB_OUTPUT:-}" ]; then
