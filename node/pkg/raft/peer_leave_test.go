@@ -106,7 +106,8 @@ func TestLeaderStopElectsAtOnce(t *testing.T) {
 	assert.Equal(t, survivor.GetHostId(), leader.GetLeader())
 }
 
-// reconnect drops the connection between a and b and dials again at once.
+// reconnect drops the connection between a and b and dials again at once (b
+// may redial first, 70-320 ms seen: either way back well within the grace).
 func reconnect(ctx context.Context, t *testing.T, a, b *Raft) {
 	t.Helper()
 	require.NoError(t, a.Host.Network().ClosePeer(b.Host.ID()))
@@ -171,10 +172,21 @@ func TestLateReconnectHandsOverOnce(t *testing.T) {
 
 	time.Sleep(leader.CooldownPeriod) // past a first-election cooldown
 
+	// an outage, not a flap: after ClosePeer alone the reachable leader's host
+	// can dial back within the grace (70-320 ms seen under load; which
+	// component dials is unconfirmed, likely pubsub's dead-peer writer
+	// respawn), which rightly elects nothing. With no addresses neither side
+	// can redial until the Connect below.
+	leader.Host.Peerstore().ClearAddrs(follower.Host.ID())
+	follower.Host.Peerstore().ClearAddrs(leader.Host.ID())
 	require.NoError(t, follower.Host.Network().ClosePeer(leader.Host.ID()))
+	require.Empty(t, leader.Host.Peerstore().Addrs(follower.Host.ID()), "leader can still redial")
+	require.Empty(t, follower.Host.Peerstore().Addrs(leader.Host.ID()), "follower can still redial")
 	require.Eventually(t, func() bool { return follower.GetRole() == Leader }, failoverBound, 10*time.Millisecond,
 		"follower did not take over")
-	require.NoError(t, follower.Host.Connect(ctx, peer.AddrInfo{ID: leader.Host.ID(), Addrs: leader.Host.Addrs()}))
+	dialCtx, dialCancel := context.WithTimeout(ctx, testElectionWait) // slow under load
+	defer dialCancel()
+	require.NoError(t, follower.Host.Connect(dialCtx, peer.AddrInfo{ID: leader.Host.ID(), Addrs: leader.Host.Addrs()}))
 
 	require.Eventually(t, func() bool {
 		got, ok := singleLeader(nodes)
