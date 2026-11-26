@@ -1,0 +1,152 @@
+name: Release
+
+# Creates the annotated release tag <service>/v<version> on the dispatched master
+# commit, after checking it (release-checks.sh: master ref, version, tag unused and
+# newer than the latest, `gate` green). The tag is pushed with the orakl-bot App token,
+# so the push triggers tag+deploy.yaml (a GITHUB_TOKEN push would not).
+# Usage: gh workflow run release.yaml -f service=node -f version=0.0.53 [-f dry_run=true]
+
+on:
+  workflow_dispatch:
+    inputs:
+      service:
+        description: "Service to release (tag prefix)"
+        required: true
+        type: choice
+        # services tag+deploy.yaml can build (dockerfiles/orakl-<service>; vrf and
+        # request-response build orakl-core) and deploy (kairos chart, or skip-missing)
+        options:
+          - node
+          - dal
+          - dal-stream
+          - boot-api
+          - sentinel
+          - delegator
+          - api
+          - vrf
+          - request-response
+      version:
+        description: "Version X.Y.Z (no 'v'); must be greater than the service's latest tag"
+        required: true
+        type: string
+      notes:
+        description: "Annotated tag message only (optional; not the GitHub release notes, which tag+deploy generates)"
+        required: false
+        type: string
+        default: ""
+      dry_run:
+        description: "Run all checks and print the tag, but do not push it"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  actions: read
+
+# One release per service at a time, so concurrent runs can't push versions out of order.
+# Actions keeps only one pending run per group: a newer dispatch cancels a queued one.
+concurrency:
+  group: release-${{ inputs.service }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Release ${{ inputs.service }} v${{ inputs.version }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+
+    steps:
+      - name: Refuse non-master ref
+        if: ${{ github.ref != 'refs/heads/master' }}
+        env:
+          REF: ${{ github.ref }}
+        run: |
+          echo "::error::release must run on master (got ref '$REF'); dispatch with --ref master"
+          exit 1
+
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check release
+        id: checks
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SERVICE: ${{ inputs.service }}
+          VERSION: ${{ inputs.version }}
+        run: .github/scripts/release-checks.sh "$SERVICE" "$VERSION" "$GITHUB_SHA"
+
+      # Minted in dry runs too, so a dry run proves the App can get contents:write on this repo.
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: Iv1.c13a65499d8e95e6
+          private-key: ${{ secrets.GH_ORAKL_BOT_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+          permission-contents: write
+          # GitHub may refuse an App push of a ref that brings in .github/workflows changes without it
+          permission-workflows: write
+
+      - name: Create and push tag
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
+          TAG: ${{ steps.checks.outputs.tag }}
+          SERVICE: ${{ inputs.service }}
+          VERSION: ${{ inputs.version }}
+          NOTES: ${{ inputs.notes }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          bot_id=$(gh api "/users/${APP_SLUG}[bot]" --jq .id)
+          git config user.name "${APP_SLUG}[bot]"
+          git config user.email "${bot_id}+${APP_SLUG}[bot]@users.noreply.github.com"
+
+          msg=${NOTES:-"${SERVICE} v${VERSION}"}
+          git tag -a "$TAG" -m "$msg" "$GITHUB_SHA"
+
+          {
+            echo "## Release ${TAG}"
+            echo
+            echo "- Commit: [\`${GITHUB_SHA}\`](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/commit/${GITHUB_SHA})"
+            echo "- Message:"
+            echo
+            # indented code block: no fence for the message to break
+            sed 's/^/        /' <<<"$msg"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$DRY_RUN" = true ]; then
+            echo "dry run: would push annotated tag $TAG -> $GITHUB_SHA"
+            echo "- **Dry run**: tag not pushed" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          url="https://x-access-token:${GH_TOKEN}@${GITHUB_SERVER_URL#https://}/${GITHUB_REPOSITORY}.git"
+          if ! git push "$url" "refs/tags/${TAG}"; then
+            echo "::error::push of $TAG rejected; check the orakl-bot App is installed on ${GITHUB_REPOSITORY} with contents:write and that no tag ruleset blocks it"
+            exit 1
+          fi
+          echo "pushed $TAG -> $GITHUB_SHA"
+
+      - name: Link tag+deploy run
+        if: ${{ !inputs.dry_run }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.checks.outputs.tag }}
+        run: |
+          # best effort: the run can take a few seconds to register
+          for _ in $(seq 1 12); do
+            run_url=$(gh run list -R "$GITHUB_REPOSITORY" --workflow tag+deploy.yaml --branch "$TAG" \
+              --limit 1 --json url --jq '.[0].url // ""' || true)
+            if [ -n "$run_url" ]; then
+              echo "tag+deploy run: $run_url"
+              echo "- tag+deploy run: ${run_url}" >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::warning::no tag+deploy run found for $TAG after 120s; check the Actions tab"
+          echo "- tag+deploy run: not found after 120s (check the Actions tab)" >> "$GITHUB_STEP_SUMMARY"
