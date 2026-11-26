@@ -100,14 +100,19 @@ func TestRequestVoteStickinessCountsLeaderMessages(t *testing.T) {
 	}
 }
 
-// A leader that left the topic isn't heard, though its messages still arrive:
-// a backlog delivers them late, after the leave, and they must not hold off the
-// vote for its successor (#3012). A rejoin restores stickiness.
+// A leader gone from the topic for a grace isn't heard, though its messages
+// still arrive: a backlog delivers them late, after the leave, and they must
+// not hold off the vote for its successor (#3012). Within the grace (a flap)
+// or after a rejoin it stays sticky.
 func TestRequestVoteGrantedOnceLeaderLeft(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	for name, rejoined := range map[string]bool{"left": false, "rejoined": true} {
+	for name, tc := range map[string]struct{ waitGrace, rejoined, granted bool }{
+		"left":         {waitGrace: true, granted: true},
+		"within grace": {},
+		"rejoined":     {waitGrace: true, rejoined: true},
+	} {
 		t.Run(name, func(t *testing.T) {
 			node, _ := newLeaderLoopNode(ctx, t)
 			node.HandleCustomMessage = func(context.Context, Message) error { return nil }
@@ -118,7 +123,10 @@ func TestRequestVoteGrantedOnceLeaderLeft(t *testing.T) {
 			leaderID, err := peer.Decode(leader)
 			require.NoError(t, err)
 			node.markLeaderLeft(leaderID, true)
-			if rejoined {
+			if tc.waitGrace {
+				time.Sleep(node.peerLeaveGrace())
+			}
+			if tc.rejoined {
 				node.markLeaderLeft(leaderID, false)
 			}
 			// sent before the leave, handled after it
@@ -127,12 +135,12 @@ func TestRequestVoteGrantedOnceLeaderLeft(t *testing.T) {
 			require.NoError(t, node.handleMessage(ctx, requestVoteFrom(t, candidate, 4)))
 
 			term, votedFor, _ := voteState(node)
-			if rejoined {
-				assert.Equal(t, 3, term)
-				assert.Empty(t, votedFor)
-			} else {
+			if tc.granted {
 				assert.Equal(t, 4, term)
 				assert.Equal(t, candidate, votedFor)
+			} else {
+				assert.Equal(t, 3, term)
+				assert.Empty(t, votedFor)
 			}
 		})
 	}

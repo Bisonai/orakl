@@ -77,14 +77,30 @@ func (r *Raft) watchPeerLeaves(ctx context.Context, events *pubsub.TopicEventHan
 }
 
 // markLeaderLeft records, if id is the leader this node follows, whether its
-// latest event on the topic is a leave. At once, not after the grace: what
-// still arrives from it was sent before it left, and a backlog delivering that
-// late must not hold off the vote for its successor (hearsLeaderOtherThan,
-// #3012). A rejoin restores stickiness.
+// latest event on the topic is a leave, and when. Once it has been gone a
+// grace, what still arrives from it was sent before it left: a backlog
+// delivering that late must not hold off the vote for its successor
+// (hearsLeaderOtherThan, #3012). A rejoin restores stickiness.
 func (r *Raft) markLeaderLeft(id peer.ID, left bool) {
-	if clock := r.leaderClock.Load(); clock != nil && clock.id == id.String() {
-		clock.left.Store(left)
+	clock := r.leaderClock.Load()
+	if clock == nil || clock.id != id.String() {
+		return
 	}
+	if left {
+		clock.leftAt.Store(int64(time.Since(leaderClockEpoch)))
+	} else {
+		clock.leftAt.Store(0)
+	}
+}
+
+// leaderGone reports whether the leader of clock left the topic at least a
+// grace ago and hasn't rejoined: as long as a leave causes no election, a
+// flapping leader stays sticky too.
+func (r *Raft) leaderGone(clock *leaderClock) bool {
+	if clock.leftAt.Load() == 0 {
+		return false
+	}
+	return since(&clock.leftAt) >= r.peerLeaveGrace()
 }
 
 // peerLeaveGrace is PeerLeaveGrace, or when unset the minimum election timeout

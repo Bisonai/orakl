@@ -349,8 +349,8 @@ func (r *Raft) handleReplyVote(ctx context.Context, msg Message) error {
 // node sends (votes, price data, proofs) don't: a deposed leader still sends
 // them. A leader that goes quiet turns this false before any peer can time out;
 // one whose jobs stop resigns (LeaderJobWatchdog), so it can't hold off an
-// election that is needed for long. A leader that left the topic isn't heard,
-// whatever of its messages is still being handled (#3012).
+// election that is needed for long. A leader gone from the topic for a grace
+// isn't heard, whatever of its messages is still being handled (#3012).
 func (r *Raft) hearsLeaderOtherThan(candidate string) bool {
 	if candidate == r.GetHostId() {
 		return false
@@ -359,7 +359,7 @@ func (r *Raft) hearsLeaderOtherThan(candidate string) bool {
 	if clock == nil || clock.id == candidate {
 		return false
 	}
-	if clock.left.Load() {
+	if r.leaderGone(clock) {
 		return false
 	}
 	return since(&clock.activeAt) < r.minElectionTimeout()

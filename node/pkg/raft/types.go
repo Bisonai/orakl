@@ -165,7 +165,7 @@ type leaderClock struct {
 	// last heartbeat or LeaderMessageTypes message, same unit: leader
 	// stickiness (hearsLeaderOtherThan)
 	activeAt atomic.Int64
-	// its latest event on the topic is a leave (watchPeerLeaves): its
-	// messages still arriving are late, and don't count for stickiness
-	left atomic.Bool
+	// when its latest event on the topic, a leave, came (watchPeerLeaves),
+	// same unit; 0 while it's on the topic
+	leftAt atomic.Int64
 }
