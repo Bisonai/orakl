@@ -1111,7 +1111,7 @@
     }
   },
   "JPY-USD": {
-    "tag": "basic",
+    "tag": "standard",
     "mainnet": {
       "proxy": "0x9eed0595681448866aad64a6de1490c01faa1b6a",
       "feed": "0x5aa7b27a7f74c30333bdfdb6ec1186fc132589c5"
