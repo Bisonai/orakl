@@ -106,7 +106,7 @@ func leaveOf(t *testing.T, node *Raft, leader string, ago time.Duration) {
 	id, err := peer.Decode(leader)
 	require.NoError(t, err)
 	node.markDeparted(id, true)
-	node.departed.Store(leader, &departure{at: int64(time.Since(leaderClockEpoch) - ago), wall: time.Now().Add(-ago)})
+	node.departed.Store(leader, &departure{at: int64(time.Since(leaderClockEpoch) - ago)})
 }
 
 // lateLeaderMessages handles a heartbeat and a trigger the leader sent before
@@ -136,21 +136,18 @@ func TestRequestVoteGrantedOnceLeaderLeft(t *testing.T) {
 	defer cancel()
 
 	for name, tc := range map[string]struct {
-		leftBeforeFollowed, rejoined, sentAfter bool
-		ago                                     func(*Raft) time.Duration // since the leave
-		granted                                 bool
+		leftBeforeFollowed, rejoined bool
+		ago                          func(*Raft) time.Duration // since the leave
+		granted                      bool
 	}{
 		"just left":            {ago: func(*Raft) time.Duration { return 0 }, granted: true},
 		"left before followed": {leftBeforeFollowed: true, ago: func(*Raft) time.Duration { return 0 }, granted: true},
 		"split-vote retry": {ago: func(n *Raft) time.Duration {
-			return n.CooldownPeriod + n.minElectionTimeout()
+			return n.peerLeaveGrace() + n.CooldownPeriod + 2*n.minElectionTimeout()
 		}, granted: true},
 		"rejoined": {rejoined: true, ago: func(*Raft) time.Duration { return 0 }},
 		"relayed": {ago: func(n *Raft) time.Duration {
 			return n.departedBacklog() + n.HeartbeatTimeout
-		}},
-		"relayed, sent after the leave": {sentAfter: true, ago: func(n *Raft) time.Duration {
-			return departedClockSkew + n.HeartbeatTimeout
 		}},
 	} {
 		t.Run(name, func(t *testing.T) {
@@ -167,13 +164,7 @@ func TestRequestVoteGrantedOnceLeaderLeft(t *testing.T) {
 				require.NoError(t, err)
 				node.markDeparted(id, false)
 			}
-			if tc.sentAfter {
-				hb := heartbeatFrom(t, leader, 3)
-				hb.Timestamp = time.Now()
-				require.NoError(t, node.handleMessage(ctx, hb))
-			} else {
-				lateLeaderMessages(ctx, t, node, leader, 3)
-			}
+			lateLeaderMessages(ctx, t, node, leader, 3)
 			require.NoError(t, node.handleMessage(ctx, requestVoteFrom(t, candidate, 4)))
 
 			term, votedFor, _ := voteState(node)

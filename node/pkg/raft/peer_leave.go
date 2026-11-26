@@ -88,18 +88,12 @@ func (r *Raft) watchPeerLeaves(ctx context.Context, events *pubsub.TopicEventHan
 
 // departedRetention is how long a departed peer that isn't the leader this
 // node follows is remembered, so peers that never return (a restart takes a
-// new peer ID) don't pile up.
+// new peer ID) don't pile up; checked on each leave.
 const departedRetention = 10 * time.Minute
 
-// departedClockSkew is how far a peer's clock may run ahead of this node's: a
-// message it stamped later than its leave plus this was sent after it left.
-const departedClockSkew = time.Second
-
-// departure is when a peer left the topic: ns since leaderClockEpoch, and the
-// wall clock for comparing with its messages' send time.
+// departure is when a peer left the topic, ns since leaderClockEpoch.
 type departure struct {
-	at   int64
-	wall time.Time
+	at int64
 }
 
 // markDeparted records a peer's leave of the topic, or forgets it on a join.
@@ -110,7 +104,7 @@ func (r *Raft) markDeparted(id peer.ID, left bool) {
 		return
 	}
 	now := int64(time.Since(leaderClockEpoch))
-	r.departed.Store(key, &departure{at: now, wall: time.Now()})
+	r.departed.Store(key, &departure{at: now})
 	clock := r.leaderClock.Load()
 	r.departed.Range(func(k, v any) bool {
 		if (clock == nil || k.(string) != clock.id) && time.Duration(now-v.(*departure).at) > departedRetention {
@@ -127,29 +121,28 @@ func (r *Raft) isGone(id string) bool {
 	return gone
 }
 
-// reviveIfHeard forgets a departed peer's leave on a message it signed and
-// sent after the leave (by more than departedClockSkew), or that arrives past
-// departedBacklog, longer than a backlog lasts: a peer still reaches it and
-// relays it (only the direct link dropped), so it is heard again and a live
-// leader isn't ignored for as long as the link is down.
-func (r *Raft) reviveIfHeard(id string, sentAt time.Time) {
+// reviveIfHeard forgets a departed peer's leave on a leader message it signed
+// that arrives past departedBacklog, longer than a backlog lasts: a peer still
+// reaches it and relays it (only the direct link dropped), so it is heard
+// again and a live leader isn't ignored for as long as the link is down.
+// Arrival only: send times come from another node's clock.
+func (r *Raft) reviveIfHeard(id string) {
 	v, gone := r.departed.Load(id)
 	if !gone {
 		return
 	}
-	d := v.(*departure)
-	if sentAt.After(d.wall.Add(departedClockSkew)) ||
-		time.Duration(int64(time.Since(leaderClockEpoch))-d.at) > r.departedBacklog() {
+	if time.Duration(int64(time.Since(leaderClockEpoch))-v.(*departure).at) > r.departedBacklog() {
 		r.departed.CompareAndDelete(id, v)
 	}
 }
 
-// departedBacklog bounds how late a departed peer's messages are still taken
-// for a backlog, whatever their send time: past the election cooldown and a
-// maximum election timeout, the split-vote retry after its leave (#3043) has
-// had its time.
+// departedBacklog bounds how late a departed peer's leader messages are still
+// taken for a backlog: the election cooldown plus the longest timer fallback
+// (maxElectionDetection), so a retry after a split vote on its leave (#3043)
+// isn't refused for it. Meanwhile a leader that only lost its direct link is
+// ignored by this node; peers that still hear it keep refusing votes.
 func (r *Raft) departedBacklog() time.Duration {
-	return r.CooldownPeriod + 2*r.minElectionTimeout()
+	return r.CooldownPeriod + r.maxElectionDetection()
 }
 
 // peerLeaveGrace is PeerLeaveGrace, or when unset the minimum election timeout

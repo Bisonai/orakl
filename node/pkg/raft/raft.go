@@ -169,11 +169,11 @@ func (r *Raft) handleMessage(ctx context.Context, msg Message) error {
 // alive by naming it (#2782).
 func (r *Raft) handleFrom(ctx context.Context, msg Message, author string) error {
 	authentic := msg.SentFrom == author
-	if authentic {
-		r.reviveIfHeard(author, msg.Timestamp)
-	}
 	// heartbeats record in handleHeartbeat, once validated
 	if msg.Type != Heartbeat && authentic {
+		if r.LeaderMessageTypes[msg.Type] {
+			r.reviveIfHeard(author)
+		}
 		r.recordLeaderSilence(author, r.LeaderMessageTypes[msg.Type])
 		r.stampWantHeartbeats(msg.Type, author)
 	}
@@ -204,16 +204,20 @@ func (r *Raft) handleHeartbeat(msg Message, authentic bool) error {
 		return errorSentinel.ErrRaftLeaderIdMismatch
 	}
 
+	// a departed leader's late heartbeat is no leader: it doesn't hold off the
+	// election timer, end a candidacy, depose a leader or get followed, nor
+	// stamp its clock (#3012)
+	if authentic {
+		r.reviveIfHeard(msg.SentFrom)
+	}
+	if r.isGone(heartbeatMessage.LeaderID) {
+		return nil
+	}
+
 	// after validating: an invalid heartbeat must not split a real gap in two
 	if authentic {
 		r.recordLeaderSilence(msg.SentFrom, true)
 		r.stampWantHeartbeats(Heartbeat, msg.SentFrom)
-	}
-
-	// a departed leader's late heartbeat is no leader: it doesn't hold off the
-	// election timer, end a candidacy, depose a leader or get followed (#3012)
-	if r.isGone(heartbeatMessage.LeaderID) {
-		return nil
 	}
 
 	r.Mutex.Lock()
