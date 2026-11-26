@@ -94,14 +94,18 @@ func (r *Raft) markLeaderLeft(id peer.ID, left bool) {
 }
 
 // leaderGone reports whether the leader of clock left the topic about a grace
-// ago and hasn't rejoined: as long as a leave causes no election, a flapping
-// leader stays sticky too. A heartbeat interval short of the grace, as peers
-// see the leave a little apart and the first candidate's jitter can be ~0.
+// ago and hasn't rejoined, while its successor is elected: from a heartbeat
+// interval short of the grace (peers see the leave a little apart, and the
+// first candidate's jitter can be ~0) to a minimum election timeout past it
+// (the jitter, with room for the election). Before, a flapping leader stays
+// sticky, as a leave causes no election. After, what still arrives from it is
+// no backlog but relayed by a peer that still reaches it: it is heard again.
 func (r *Raft) leaderGone(clock *leaderClock) bool {
 	if clock == nil || clock.leftAt.Load() == 0 {
 		return false
 	}
-	return since(&clock.leftAt) >= r.peerLeaveGrace()-r.HeartbeatTimeout
+	gone, grace := since(&clock.leftAt), r.peerLeaveGrace()
+	return gone >= max(grace-r.HeartbeatTimeout, grace/2) && gone < grace+r.minElectionTimeout()
 }
 
 // isGoneLeader reports whether id is the leader this node follows and it is

@@ -102,16 +102,21 @@ func TestRequestVoteStickinessCountsLeaderMessages(t *testing.T) {
 
 // A leader gone from the topic for a grace isn't heard, though its messages
 // still arrive: a backlog delivers them late, after the leave, and they must
-// not hold off the vote for its successor (#3012). Within the grace (a flap)
-// or after a rejoin it stays sticky.
+// not hold off the vote for its successor (#3012). Within the grace (a flap),
+// after a rejoin, or once the election had its time (a peer relays the leader's
+// messages) it stays sticky.
 func TestRequestVoteGrantedOnceLeaderLeft(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	for name, tc := range map[string]struct{ waitGrace, rejoined, granted bool }{
-		"left":         {waitGrace: true, granted: true},
+	for name, tc := range map[string]struct {
+		gone              time.Duration // since the leave, in graces
+		rejoined, granted bool
+	}{
+		"left":         {gone: 1, granted: true},
 		"within grace": {},
-		"rejoined":     {waitGrace: true, rejoined: true},
+		"rejoined":     {gone: 1, rejoined: true},
+		"relayed":      {gone: 2},
 	} {
 		t.Run(name, func(t *testing.T) {
 			node, _ := newLeaderLoopNode(ctx, t)
@@ -123,9 +128,7 @@ func TestRequestVoteGrantedOnceLeaderLeft(t *testing.T) {
 			leaderID, err := peer.Decode(leader)
 			require.NoError(t, err)
 			node.markLeaderLeft(leaderID, true)
-			if tc.waitGrace {
-				backdateLeave(node, node.peerLeaveGrace())
-			}
+			backdateLeave(node, tc.gone*node.peerLeaveGrace())
 			if tc.rejoined {
 				node.markLeaderLeft(leaderID, false)
 			}
