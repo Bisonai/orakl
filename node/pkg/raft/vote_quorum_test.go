@@ -124,7 +124,7 @@ func TestRequestVoteGrantedOnceLeaderLeft(t *testing.T) {
 			require.NoError(t, err)
 			node.markLeaderLeft(leaderID, true)
 			if tc.waitGrace {
-				time.Sleep(node.peerLeaveGrace())
+				backdateLeave(node, node.peerLeaveGrace())
 			}
 			if tc.rejoined {
 				node.markLeaderLeft(leaderID, false)
@@ -141,6 +141,45 @@ func TestRequestVoteGrantedOnceLeaderLeft(t *testing.T) {
 			} else {
 				assert.Equal(t, 3, term)
 				assert.Empty(t, votedFor)
+			}
+		})
+	}
+}
+
+// backdateLeave moves the leave of the leader node follows ago into the past.
+func backdateLeave(node *Raft, ago time.Duration) {
+	node.leaderClock.Load().leftAt.Store(int64(time.Since(leaderClockEpoch) - ago))
+}
+
+// A candidate stays one when a late heartbeat of the leader gone from the
+// topic arrives at the lower term (#3012); before the grace it still follows.
+func TestCandidateIgnoresGoneLeaderHeartbeat(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	for name, gone := range map[string]bool{"gone": true, "within grace": false} {
+		t.Run(name, func(t *testing.T) {
+			node, _ := newLeaderLoopNode(ctx, t)
+			leader := testPeerID(t)
+			require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, leader, 3)))
+			leaderID, err := peer.Decode(leader)
+			require.NoError(t, err)
+			node.markLeaderLeft(leaderID, true)
+			if gone {
+				backdateLeave(node, node.peerLeaveGrace())
+			}
+			node.Mutex.Lock()
+			node.campaign(ctx, "test")
+			node.Mutex.Unlock()
+			_, _, role := voteState(node)
+			require.Equal(t, Candidate, role)
+
+			require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, leader, 3)))
+			_, _, role = voteState(node)
+			if gone {
+				assert.Equal(t, Candidate, role)
+			} else {
+				assert.Equal(t, Follower, role)
 			}
 		})
 	}

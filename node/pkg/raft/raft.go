@@ -220,8 +220,10 @@ func (r *Raft) handleHeartbeat(msg Message, authentic bool) error {
 	// live leader of its own it follows this one, or it would ignore the leader's
 	// heartbeats and keep campaigning against it for as long as it leads. A
 	// leader at a higher term than the one it hears takes over, or a stale one
-	// heard first would hold it off.
+	// heard first would hold it off. A late heartbeat of a leader gone from the
+	// topic doesn't end the candidacy for its successor (#3012).
 	followLower := heartbeatMessage.Term < currentTerm && currentRole != Leader &&
+		!r.isGoneLeader(heartbeatMessage.LeaderID) &&
 		(!r.hearsLeaderOtherThan(heartbeatMessage.LeaderID) ||
 			heartbeatMessage.Term > r.leaderClock.Load().term)
 
@@ -880,10 +882,11 @@ func (r *Raft) maxElectionDetection() time.Duration {
 // heartbeat (with its term) or an election does. A deposed leader's late
 // trigger therefore counts only on a follower that hasn't heard of its
 // successor yet, and holds off its election by at most one timer period, as a
-// late heartbeat would. The caller holds Mutex.
+// late heartbeat would. A leader gone from the topic (leaderGone) isn't heard.
+// The caller holds Mutex.
 func (r *Raft) heardLeaderSinceTimerArmed() bool {
 	clock := r.leaderClock.Load()
-	if clock == nil {
+	if clock == nil || r.leaderGone(clock) {
 		return false
 	}
 	// the heartbeat that made it the leader already reset the timer
