@@ -99,9 +99,9 @@ jobs:
     with:
       status: "Success"
       slack-message: "Mainnet *${{ needs.prepare.outputs.app_name }}* promoted to ${{ needs.prepare.outputs.img_tag }}"
-      channel: "miko-notification"
     secrets:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+      SLACK_CHANNEL_ID: ${{ secrets.SLACK_CHANNEL_ID }}
 
   post-slack-failure:
     name: Post slack message for promote failure
@@ -111,6 +111,6 @@ jobs:
     with:
       status: "Failed"
       slack-message: "Mainnet promote of ${{ inputs.tag }} failed"
-      channel: "miko-notification"
     secrets:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+      SLACK_CHANNEL_ID: ${{ secrets.SLACK_CHANNEL_ID }}

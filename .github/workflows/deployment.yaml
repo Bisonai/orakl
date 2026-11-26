@@ -83,9 +83,9 @@ jobs:
     with:
       status: "Success"
       slack-message: "Kairos *${{ inputs.application }}* set to ${{ inputs.image-tag }}"
-      channel: "miko-notification"
     secrets:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+      SLACK_CHANNEL_ID: ${{ secrets.SLACK_CHANNEL_ID }}
 
   post-slack-failure:
     name: Post slack message for tag update failure
@@ -95,6 +95,6 @@ jobs:
     with:
       status: "Failed"
       slack-message: "Kairos *${{ inputs.application }}* deploy of ${{ inputs.image-tag }} failed"
-      channel: "miko-notification"
     secrets:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+      SLACK_CHANNEL_ID: ${{ secrets.SLACK_CHANNEL_ID }}
