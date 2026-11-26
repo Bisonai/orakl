@@ -9,11 +9,10 @@ on:
       status:
         required: true
         type: string
-      channel:
-        required: true
-        type: string
     secrets:
       SLACK_BOT_TOKEN:
+        required: true
+      SLACK_CHANNEL_ID:
         required: true
 
 jobs:
@@ -26,14 +25,21 @@ jobs:
       contents: read
 
     steps:
+      # Channel comes from a secret (masked in logs) and goes into a file, not a step output.
       - name: Set Slack Payload
-        id: set-payload
+        env:
+          CHANNEL: ${{ secrets.SLACK_CHANNEL_ID }}
+          STATUS: ${{ inputs.status }}
+          MESSAGE: ${{ inputs.slack-message }}
         run: |
-          if [ "${{ inputs.status }}" == "Success" ]; then
-            echo "payload={\"channel\":\"${{ inputs.channel }}\",\"text\":\":white_check_mark: ${{ inputs.slack-message }}\",\"attachments\":[{\"color\":\"28a745\",\"fields\":[{\"title\":\"Status\",\"short\":true,\"value\":\"${{ inputs.status }}\"}]}]}" >> $GITHUB_OUTPUT
+          if [ "$STATUS" == "Success" ]; then
+            icon=":white_check_mark:"; color="28a745"
           else
-            echo "payload={\"channel\":\"${{ inputs.channel }}\",\"text\":\":exclamation: ${{ inputs.slack-message }}\",\"attachments\":[{\"color\":\"E96D76\",\"fields\":[{\"title\":\"Status\",\"short\":true,\"value\":\"${{ inputs.status }}\"}]}]}" >> $GITHUB_OUTPUT
+            icon=":exclamation:"; color="E96D76"
           fi
+          jq -n --arg channel "$CHANNEL" --arg text "$icon $MESSAGE" --arg color "$color" --arg status "$STATUS" \
+            '{channel: $channel, text: $text, attachments: [{color: $color, fields: [{title: "Status", short: true, value: $status}]}]}' \
+            > "$RUNNER_TEMP/slack-payload.json"
 
       - name: Post to a Slack channel
         id: slack
@@ -42,4 +48,4 @@ jobs:
           method: chat.postMessage
           token: ${{ secrets.SLACK_BOT_TOKEN }}
           errors: true
-          payload: ${{ steps.set-payload.outputs.payload }}
+          payload-file-path: ${{ runner.temp }}/slack-payload.json
