@@ -221,6 +221,10 @@ var (
 	ErrRequestInvalidMethod            = &CustomError{Service: Others, Code: InvalidInputError, Message: "Invalid method"}
 	ErrCalculatorEmptyArr              = &CustomError{Service: Others, Code: InternalError, Message: "Empty array"}
 	ErrReducerIndexOutOfBounds         = &CustomError{Service: Others, Code: InvalidInputError, Message: "Index out of bounds"}
+	ErrReducerFindCastToListFail       = &CustomError{Service: Others, Code: InternalError, Message: "Failed to cast to list from FIND"}
+	ErrReducerFindInvalidArgs          = &CustomError{Service: Others, Code: InvalidInputError, Message: "FIND args must be {\"key\": string, \"value\": string|number|bool}"}
+	ErrReducerFindNoMatch              = &CustomError{Service: Others, Code: InternalError, Message: "No element matched FIND"}
+	ErrReducerFindMultipleMatches      = &CustomError{Service: Others, Code: InternalError, Message: "Multiple elements matched FIND"}
 
 	ErrLogTimestampNotExist = &CustomError{Service: Others, Code: InvalidInputError, Message: "Log timestamp not exist"}
 	ErrLogMsgNotExist       = &CustomError{Service: Others, Code: InvalidInputError, Message: "Log message not exist"}

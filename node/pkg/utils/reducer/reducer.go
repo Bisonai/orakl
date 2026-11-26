@@ -132,10 +132,60 @@ func reduce(raw interface{}, reducer Reducer) (interface{}, error) {
 			return nil, errorSentinel.ErrReducerDivFromCastToFloatFail
 		}
 		return arg / castedRaw, nil
+	case "FIND":
+		return find(raw, reducer.Args)
 	default:
 		return nil, errorSentinel.ErrReducerUnknownReducerFunc
 	}
 
+}
+
+// find returns the one element of a JSON list whose field args.key equals
+// args.value, e.g. {"key": "currency", "value": "USD"}. It fails when no
+// element or more than one element matches, so a reordered or changed list
+// fails the fetch instead of giving another element's value.
+func find(raw interface{}, args interface{}) (interface{}, error) {
+	list, ok := raw.([]interface{})
+	if !ok {
+		return nil, errorSentinel.ErrReducerFindCastToListFail
+	}
+	argMap, ok := args.(map[string]interface{})
+	if !ok {
+		return nil, errorSentinel.ErrReducerFindInvalidArgs
+	}
+	key, ok := argMap["key"].(string)
+	if !ok || key == "" {
+		return nil, errorSentinel.ErrReducerFindInvalidArgs
+	}
+	// Only scalar values, so the == below never compares uncomparable types.
+	want := argMap["value"]
+	switch want.(type) {
+	case string, float64, bool:
+	default:
+		return nil, errorSentinel.ErrReducerFindInvalidArgs
+	}
+
+	var match interface{}
+	matches := 0
+	for _, elem := range list {
+		elemMap, ok := elem.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		if value, exists := elemMap[key]; exists && value == want {
+			match = elem
+			matches++
+		}
+	}
+
+	switch matches {
+	case 0:
+		return nil, errorSentinel.ErrReducerFindNoMatch
+	case 1:
+		return match, nil
+	default:
+		return nil, errorSentinel.ErrReducerFindMultipleMatches
+	}
 }
 
 // numbers in raw json string are parsed as float64 from golang
