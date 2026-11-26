@@ -134,6 +134,8 @@ func reduce(raw interface{}, reducer Reducer) (interface{}, error) {
 		return arg / castedRaw, nil
 	case "FIND":
 		return find(raw, reducer.Args)
+	case "MEAN":
+		return mean(raw, reducer.Args)
 	default:
 		return nil, errorSentinel.ErrReducerUnknownReducerFunc
 	}
@@ -186,6 +188,39 @@ func find(raw interface{}, args interface{}) (interface{}, error) {
 	default:
 		return nil, errorSentinel.ErrReducerFindMultipleMatches
 	}
+}
+
+// mean returns the average of the named numeric fields of a JSON object,
+// e.g. args ["bid", "ask"] gives the mid price. Fields may be numbers or
+// numeric strings (as tryParseFloat accepts). It fails when any field is
+// missing or not numeric, so a changed response never yields a one-sided value.
+func mean(raw interface{}, args interface{}) (interface{}, error) {
+	obj, ok := raw.(map[string]interface{})
+	if !ok {
+		return nil, errorSentinel.ErrReducerMeanCastToMapFail
+	}
+	fields, ok := args.([]interface{})
+	if !ok || len(fields) == 0 {
+		return nil, errorSentinel.ErrReducerMeanInvalidArgs
+	}
+
+	sum := 0.0
+	for _, f := range fields {
+		name, ok := f.(string)
+		if !ok || name == "" {
+			return nil, errorSentinel.ErrReducerMeanInvalidArgs
+		}
+		value, exists := obj[name]
+		if !exists {
+			return nil, errorSentinel.ErrReducerMeanFieldMissing
+		}
+		v, err := tryParseFloat(value)
+		if err != nil {
+			return nil, err
+		}
+		sum += v
+	}
+	return sum / float64(len(fields)), nil
 }
 
 // numbers in raw json string are parsed as float64 from golang

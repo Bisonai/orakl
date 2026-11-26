@@ -193,3 +193,95 @@ func TestReduceFind(t *testing.T) {
 		})
 	}
 }
+
+// GMO forex ticker shape: bid/ask are strings; MEAN gives the mid price.
+var meanSample = `{
+	"status": 0,
+	"data": [
+	  {"symbol": "EUR_JPY", "bid": "174.441", "ask": "174.446"},
+	  {"symbol": "USD_JPY", "bid": "159.153", "ask": "159.158", "status": "OPEN"},
+	  {"symbol": "NUM", "bid": 1.5, "ask": 2.5, "last": "1,234.5", "nan": "abc", "obj": {"a": 1}}
+	]
+  }`
+
+func TestReduceMean(t *testing.T) {
+	var raw interface{}
+	if err := json.Unmarshal([]byte(meanSample), &raw); err != nil {
+		t.Fatalf("error unmarshalling sample: %v", err)
+	}
+
+	run := func(symbol, meanArgs string, tail ...string) (float64, error) {
+		reducersJSON := `[
+			{"function": "PARSE", "args": ["data"]},
+			{"function": "FIND", "args": {"key": "symbol", "value": "` + symbol + `"}},
+			{"function": "MEAN", "args": ` + meanArgs + `}`
+		for _, r := range tail {
+			reducersJSON += `, ` + r
+		}
+		reducersJSON += `]`
+		var red []reducer.Reducer
+		if err := json.Unmarshal([]byte(reducersJSON), &red); err != nil {
+			t.Fatalf("error unmarshalling reducers: %v", err)
+		}
+		return reducer.Reduce(raw, red)
+	}
+
+	t.Run("string bid/ask mid", func(t *testing.T) {
+		v, err := run("USD_JPY", `["bid", "ask"]`)
+		assert.NoError(t, err)
+		assert.InDelta(t, 159.1555, v, 1e-9)
+	})
+
+	t.Run("mid then DIVFROM", func(t *testing.T) {
+		v, err := run("USD_JPY", `["bid", "ask"]`, `{"function": "DIVFROM", "args": 1}`)
+		assert.NoError(t, err)
+		assert.InDelta(t, 1/159.1555, v, 1e-15)
+	})
+
+	t.Run("number fields", func(t *testing.T) {
+		v, err := run("NUM", `["bid", "ask"]`)
+		assert.NoError(t, err)
+		assert.Equal(t, 2.0, v)
+	})
+
+	t.Run("single field, comma string", func(t *testing.T) {
+		v, err := run("NUM", `["last"]`)
+		assert.NoError(t, err)
+		assert.Equal(t, 1234.5, v)
+	})
+
+	t.Run("missing field", func(t *testing.T) {
+		_, err := run("EUR_JPY", `["bid", "last"]`)
+		assert.ErrorIs(t, err, errorSentinel.ErrReducerMeanFieldMissing)
+	})
+
+	t.Run("non-numeric string", func(t *testing.T) {
+		_, err := run("NUM", `["bid", "nan"]`)
+		assert.ErrorIs(t, err, errorSentinel.ErrReducerCastToFloatFail)
+	})
+
+	t.Run("object field", func(t *testing.T) {
+		_, err := run("NUM", `["obj"]`)
+		assert.ErrorIs(t, err, errorSentinel.ErrReducerCastToFloatFail)
+	})
+
+	t.Run("not an object", func(t *testing.T) {
+		var red []reducer.Reducer
+		_ = json.Unmarshal([]byte(`[{"function": "PARSE", "args": ["data"]}, {"function": "MEAN", "args": ["bid", "ask"]}]`), &red)
+		_, err := reducer.Reduce(raw, red)
+		assert.ErrorIs(t, err, errorSentinel.ErrReducerMeanCastToMapFail)
+	})
+
+	for name, args := range map[string]string{
+		"empty list":  `[]`,
+		"not a list":  `"bid"`,
+		"object args": `{"a": "bid"}`,
+		"non-string":  `["bid", 1]`,
+		"empty name":  `["bid", ""]`,
+	} {
+		t.Run("invalid args: "+name, func(t *testing.T) {
+			_, err := run("USD_JPY", args)
+			assert.ErrorIs(t, err, errorSentinel.ErrReducerMeanInvalidArgs)
+		})
+	}
+}
