@@ -100,6 +100,44 @@ func TestRequestVoteStickinessCountsLeaderMessages(t *testing.T) {
 	}
 }
 
+// A leader that left the topic isn't heard, though its messages still arrive:
+// a backlog delivers them late, after the leave, and they must not hold off the
+// vote for its successor (#3012). A rejoin restores stickiness.
+func TestRequestVoteGrantedOnceLeaderLeft(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	for name, rejoined := range map[string]bool{"left": false, "rejoined": true} {
+		t.Run(name, func(t *testing.T) {
+			node, _ := newLeaderLoopNode(ctx, t)
+			node.HandleCustomMessage = func(context.Context, Message) error { return nil }
+			node.LeaderMessageTypes = map[MessageType]bool{"trigger": true}
+			leader, candidate := testPeerID(t), testPeerID(t)
+			require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, leader, 3)))
+
+			leaderID, err := peer.Decode(leader)
+			require.NoError(t, err)
+			node.markLeaderLeft(leaderID, true)
+			if rejoined {
+				node.markLeaderLeft(leaderID, false)
+			}
+			// sent before the leave, handled after it
+			require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, leader, 3)))
+			require.NoError(t, node.handleMessage(ctx, Message{Type: "trigger", SentFrom: leader}))
+			require.NoError(t, node.handleMessage(ctx, requestVoteFrom(t, candidate, 4)))
+
+			term, votedFor, _ := voteState(node)
+			if rejoined {
+				assert.Equal(t, 3, term)
+				assert.Empty(t, votedFor)
+			} else {
+				assert.Equal(t, 4, term)
+				assert.Equal(t, candidate, votedFor)
+			}
+		})
+	}
+}
+
 // A leader that campaigns has lost its role, so hearing it is no reason to refuse.
 func TestRequestVoteFromHeardLeaderGranted(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)

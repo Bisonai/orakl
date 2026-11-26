@@ -51,6 +51,7 @@ func (r *Raft) watchPeerLeaves(ctx context.Context, events *pubsub.TopicEventHan
 			seen[event.Peer] = count
 		}
 		seq := count.Add(1)
+		r.markLeaderLeft(event.Peer, event.Type == pubsub.PeerLeave)
 		if event.Type == pubsub.PeerJoin {
 			r.wantHeartbeatsFromJoin()
 		}
@@ -72,6 +73,17 @@ func (r *Raft) watchPeerLeaves(ctx context.Context, events *pubsub.TopicEventHan
 				r.handlePeerLeft(ctx, left, leftAt, reason)
 			}
 		})
+	}
+}
+
+// markLeaderLeft records, if id is the leader this node follows, whether its
+// latest event on the topic is a leave. At once, not after the grace: what
+// still arrives from it was sent before it left, and a backlog delivering that
+// late must not hold off the vote for its successor (hearsLeaderOtherThan,
+// #3012). A rejoin restores stickiness.
+func (r *Raft) markLeaderLeft(id peer.ID, left bool) {
+	if clock := r.leaderClock.Load(); clock != nil && clock.id == id.String() {
+		clock.left.Store(left)
 	}
 }
 
