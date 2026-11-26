@@ -114,9 +114,8 @@ jobs:
             echo "- Commit: [\`${GITHUB_SHA}\`](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/commit/${GITHUB_SHA})"
             echo "- Message:"
             echo
-            echo '```'
-            echo "$msg"
-            echo '```'
+            # indented code block: no fence for the message to break
+            sed 's/^/        /' <<<"$msg"
           } >> "$GITHUB_STEP_SUMMARY"
 
           if [ "$DRY_RUN" = true ]; then

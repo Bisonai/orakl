@@ -63,8 +63,12 @@ check_remote_tags() {
 
     # A higher version must not tag an older commit (e.g. a re-run keeps its old GITHUB_SHA).
     latest_sha=$(awk -v t="refs/tags/${service}/v${latest}" '$2 == t "^{}" { p = $1 } $2 == t { l = $1 } END { print (p != "" ? p : l) }' <<<"$remote_tags")
-    if ! git merge-base --is-ancestor "$latest_sha" "$sha" 2>/dev/null; then
-      echo "::error::$sha does not contain latest ${service}/v${latest} ($latest_sha); tag a newer master commit"
+    if ! git cat-file -e "${latest_sha}^{commit}" 2>/dev/null; then
+      echo "::error::commit $latest_sha of latest ${service}/v${latest} is not in the local clone (not on master?); delete that stray tag or fetch it"
+      exit 1
+    fi
+    if ! git merge-base --is-ancestor "$latest_sha" "$sha"; then
+      echo "::error::$sha does not contain latest ${service}/v${latest} ($latest_sha); tag a newer master commit, or delete ${service}/v${latest} if it is a stray non-master tag"
       exit 1
     fi
     echo "ok: $sha contains ${service}/v${latest}"
