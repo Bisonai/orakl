@@ -169,6 +169,9 @@ func (r *Raft) handleMessage(ctx context.Context, msg Message) error {
 // alive by naming it (#2782).
 func (r *Raft) handleFrom(ctx context.Context, msg Message, author string) error {
 	authentic := msg.SentFrom == author
+	if authentic {
+		r.reviveIfHeard(author)
+	}
 	// heartbeats record in handleHeartbeat, once validated
 	if msg.Type != Heartbeat && authentic {
 		r.recordLeaderSilence(author, r.LeaderMessageTypes[msg.Type])
@@ -210,7 +213,11 @@ func (r *Raft) handleHeartbeat(msg Message, authentic bool) error {
 	r.Mutex.Lock()
 	defer r.Mutex.Unlock()
 
-	r.MissedHeartbeats = 0
+	// a departed leader's late heartbeat doesn't hold off the election timer
+	gone := r.isGone(heartbeatMessage.LeaderID)
+	if !gone {
+		r.MissedHeartbeats = 0
+	}
 
 	currentRole := r.Role
 	currentTerm := r.Term
@@ -223,7 +230,7 @@ func (r *Raft) handleHeartbeat(msg Message, authentic bool) error {
 	// heard first would hold it off. A late heartbeat of a leader gone from the
 	// topic doesn't end the candidacy for its successor (#3012).
 	followLower := heartbeatMessage.Term < currentTerm && currentRole != Leader &&
-		!r.isGoneLeader(heartbeatMessage.LeaderID) &&
+		!gone &&
 		(!r.hearsLeaderOtherThan(heartbeatMessage.LeaderID) ||
 			heartbeatMessage.Term > r.leaderClock.Load().term)
 
@@ -232,7 +239,7 @@ func (r *Raft) handleHeartbeat(msg Message, authentic bool) error {
 		r.setRole(Follower)
 	}
 
-	if r.Role == Follower {
+	if r.Role == Follower && !gone {
 		r.startElectionTimer()
 	}
 
@@ -351,7 +358,7 @@ func (r *Raft) handleReplyVote(ctx context.Context, msg Message) error {
 // node sends (votes, price data, proofs) don't: a deposed leader still sends
 // them. A leader that goes quiet turns this false before any peer can time out;
 // one whose jobs stop resigns (LeaderJobWatchdog), so it can't hold off an
-// election that is needed for long. A leader gone from the topic for a grace
+// election that is needed for long. A leader gone from the topic (isGone)
 // isn't heard, whatever of its messages is still being handled (#3012).
 func (r *Raft) hearsLeaderOtherThan(candidate string) bool {
 	if candidate == r.GetHostId() {
@@ -361,7 +368,7 @@ func (r *Raft) hearsLeaderOtherThan(candidate string) bool {
 	if clock == nil || clock.id == candidate {
 		return false
 	}
-	if r.leaderGone(clock) {
+	if r.isGone(clock.id) {
 		return false
 	}
 	return since(&clock.activeAt) < r.minElectionTimeout()
@@ -882,11 +889,11 @@ func (r *Raft) maxElectionDetection() time.Duration {
 // heartbeat (with its term) or an election does. A deposed leader's late
 // trigger therefore counts only on a follower that hasn't heard of its
 // successor yet, and holds off its election by at most one timer period, as a
-// late heartbeat would. A leader gone from the topic (leaderGone) isn't heard.
+// late heartbeat would. A leader gone from the topic (isGone) isn't heard.
 // The caller holds Mutex.
 func (r *Raft) heardLeaderSinceTimerArmed() bool {
 	clock := r.leaderClock.Load()
-	if clock == nil || r.leaderGone(clock) {
+	if clock == nil || r.isGone(clock.id) {
 		return false
 	}
 	// the heartbeat that made it the leader already reset the timer
