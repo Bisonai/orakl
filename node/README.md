@@ -136,6 +136,11 @@ CHAIN=<Your Chain Name>
 # CONFIG_BASE_URL=
 # Optional secondary source tried when the primary fails, defaults to https://raw.githubusercontent.com/Bisonai/orakl-config/master; set empty to disable
 # CONFIG_FALLBACK_URL=
+# Optional: read orakl-config through the GitHub API with a GitHub App token (set all three). Tried first; the two URL defaults above are then dropped, explicitly set URLs are still tried after it. CONFIG_GITHUB_REF defaults to master
+# CONFIG_GITHUB_APP_CLIENT_ID=
+# CONFIG_GITHUB_INSTALLATION_ID=
+# CONFIG_GITHUB_APP_KEY_FILE=/path/to/app.pem
+# CONFIG_GITHUB_REF=
 # Optional reporter/DAL feed config reload interval (Go duration), defaults to 5m; 0 disables polling. SIGHUP also reloads. Only changes are applied; empty bundles or a >50% pair drop are refused (restart to apply)
 # CONFIG_RELOAD_INTERVAL=
 
