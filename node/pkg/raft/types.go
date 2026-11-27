@@ -133,6 +133,9 @@ type Raft struct {
 
 	// peer.ID -> *atomic.Int64, ns since leaderClockEpoch of its last message
 	peerSeen sync.Map
+	// peer ID string -> *departure, its leave, while that is its latest event
+	// on the topic and it isn't heard since (peer_leave.go, isGone)
+	departed sync.Map
 	// term a deferred win recount is pending for (handleReplyVote); under Mutex
 	recountTerm int
 	// when this node last granted its vote to another peer; under Mutex

@@ -100,6 +100,216 @@ func TestRequestVoteStickinessCountsLeaderMessages(t *testing.T) {
 	}
 }
 
+// leaveOf records the leader's leave of the topic on node, ago in the past.
+func leaveOf(t *testing.T, node *Raft, leader string, ago time.Duration) {
+	t.Helper()
+	id, err := peer.Decode(leader)
+	require.NoError(t, err)
+	node.markDeparted(id, true)
+	node.departed.Store(leader, &departure{at: int64(time.Since(leaderClockEpoch) - ago)})
+}
+
+// lateLeaderMessages handles a heartbeat and a trigger the leader sent before
+// it left, delivered after the leave.
+func lateLeaderMessages(ctx context.Context, t *testing.T, node *Raft, leader string, term int) {
+	t.Helper()
+	require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, leader, term)))
+	require.NoError(t, node.handleMessage(ctx, Message{Type: "trigger", SentFrom: leader}))
+}
+
+func newGoneLeaderTestNode(ctx context.Context, t *testing.T) *Raft {
+	t.Helper()
+	node, _ := newLeaderLoopNode(ctx, t)
+	node.HandleCustomMessage = func(context.Context, Message) error { return nil }
+	node.LeaderMessageTypes = map[MessageType]bool{"trigger": true}
+	return node
+}
+
+// A leader gone from the topic isn't heard, though its messages still arrive:
+// a backlog delivers them late, after the leave, and they must not hold off the
+// vote for its successor (#3012). That holds from the leave itself (whenever
+// this node saw it), when this node only follows the leader after its leave,
+// and on a retry after a split vote seconds later. After a rejoin, or once the
+// leader is heard past any backlog (a peer relays it), it is sticky again.
+func TestRequestVoteGrantedOnceLeaderLeft(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	for name, tc := range map[string]struct {
+		leftBeforeFollowed, rejoined bool
+		ago                          func(*Raft) time.Duration // since the leave
+		granted                      bool
+	}{
+		"just left":            {ago: func(*Raft) time.Duration { return 0 }, granted: true},
+		"left before followed": {leftBeforeFollowed: true, ago: func(*Raft) time.Duration { return 0 }, granted: true},
+		"split-vote retry": {ago: func(n *Raft) time.Duration {
+			return n.peerLeaveGrace() + n.CooldownPeriod + 2*n.minElectionTimeout()
+		}, granted: true},
+		"rejoined": {rejoined: true, ago: func(*Raft) time.Duration { return 0 }},
+		"relayed": {ago: func(n *Raft) time.Duration {
+			return n.departedBacklog() + n.HeartbeatTimeout
+		}},
+	} {
+		t.Run(name, func(t *testing.T) {
+			node := newGoneLeaderTestNode(ctx, t)
+			leader, candidate := testPeerID(t), testPeerID(t)
+			if tc.leftBeforeFollowed {
+				leaveOf(t, node, leader, tc.ago(node))
+			} else {
+				require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, leader, 3)))
+				leaveOf(t, node, leader, tc.ago(node))
+			}
+			if tc.rejoined {
+				id, err := peer.Decode(leader)
+				require.NoError(t, err)
+				node.markDeparted(id, false)
+			}
+			lateLeaderMessages(ctx, t, node, leader, 3)
+			require.NoError(t, node.handleMessage(ctx, requestVoteFrom(t, candidate, 4)))
+
+			term, votedFor, _ := voteState(node)
+			if tc.granted {
+				assert.Equal(t, 4, term)
+				assert.Equal(t, candidate, votedFor)
+			} else {
+				assert.Equal(t, 3, term)
+				assert.Empty(t, votedFor)
+			}
+		})
+	}
+}
+
+// A candidate stays one when a late heartbeat of the leader gone from the
+// topic arrives at the lower term (#3012); once that leader is heard past any
+// backlog, the candidate follows it again.
+func TestCandidateIgnoresGoneLeaderHeartbeat(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	for name, relayed := range map[string]bool{"gone": false, "relayed": true} {
+		t.Run(name, func(t *testing.T) {
+			node := newGoneLeaderTestNode(ctx, t)
+			node.CooldownPeriod = 0
+			leader := testPeerID(t)
+			require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, leader, 3)))
+			ago := time.Duration(0)
+			if relayed {
+				ago = node.departedBacklog() + node.HeartbeatTimeout
+			}
+			leaveOf(t, node, leader, ago)
+			node.Mutex.Lock()
+			node.campaign(ctx, "test")
+			node.Mutex.Unlock()
+			_, _, role := voteState(node)
+			require.Equal(t, Candidate, role)
+
+			require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, leader, 3)))
+			_, _, role = voteState(node)
+			if relayed {
+				assert.Equal(t, Follower, role)
+			} else {
+				assert.Equal(t, Candidate, role)
+			}
+		})
+	}
+}
+
+// A late heartbeat of a leader gone from the topic doesn't reset the missed
+// heartbeats or the election timer, so the timer fallback isn't held off by
+// the backlog (#3012).
+func TestGoneLeaderHeartbeatHoldsNoTimer(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	for name, gone := range map[string]bool{"gone": true, "on topic": false} {
+		t.Run(name, func(t *testing.T) {
+			node := newGoneLeaderTestNode(ctx, t)
+			leader := testPeerID(t)
+			require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, leader, 3)))
+			if gone {
+				leaveOf(t, node, leader, 0)
+			}
+			node.Mutex.Lock()
+			node.MissedHeartbeats = MaxMissedHeartbeats
+			armed := node.timerArmedAt
+			node.Mutex.Unlock()
+
+			require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, leader, 3)))
+			node.Mutex.Lock()
+			missed, rearmed := node.MissedHeartbeats, node.timerArmedAt != armed
+			heard := node.heardLeaderSinceTimerArmed()
+			node.Mutex.Unlock()
+			if gone {
+				assert.Equal(t, MaxMissedHeartbeats, missed)
+				assert.False(t, rearmed, "timer re-armed")
+				assert.False(t, heard)
+			} else {
+				assert.Zero(t, missed)
+				assert.True(t, rearmed, "timer not re-armed")
+			}
+		})
+	}
+}
+
+// A departed peer's late heartbeat at a higher term neither deposes a leader
+// nor gets followed (#3012): it led before it left, and its successor's
+// heartbeat decides.
+func TestGoneLeaderHeartbeatIgnored(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	t.Run("leader", func(t *testing.T) {
+		node := newGoneLeaderTestNode(ctx, t)
+		node.CooldownPeriod = 0
+		node.Mutex.Lock()
+		node.campaign(ctx, "test")
+		node.becomeLeader(ctx)
+		node.Mutex.Unlock()
+		require.Equal(t, Leader, node.GetRole())
+		gone := testPeerID(t)
+		leaveOf(t, node, gone, 0)
+		require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, gone, node.GetCurrentTerm()+1)))
+		assert.Equal(t, Leader, node.GetRole())
+	})
+	t.Run("follower", func(t *testing.T) {
+		node := newGoneLeaderTestNode(ctx, t)
+		gone := testPeerID(t)
+		leaveOf(t, node, gone, 0)
+		require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, gone, 3)))
+		assert.Empty(t, node.GetLeader())
+		assert.Zero(t, node.GetCurrentTerm())
+	})
+}
+
+// A follower whose leader only lost its direct link (a peer still relays it)
+// votes for a successor while the leader counts as gone; when that election
+// fails and the leader is heard past any backlog, the follower follows it
+// again and is sticky: it isn't ignored for as long as the link is down.
+func TestRelayedLeaderFollowedAgain(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	node := newGoneLeaderTestNode(ctx, t)
+	leader, candidate, other := testPeerID(t), testPeerID(t), testPeerID(t)
+	require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, leader, 3)))
+	leaveOf(t, node, leader, 0)
+	require.NoError(t, node.handleMessage(ctx, requestVoteFrom(t, candidate, 4)))
+	term, votedFor, _ := voteState(node)
+	require.Equal(t, 4, term)
+	require.Equal(t, candidate, votedFor)
+
+	// the candidate never wins; the leader's heartbeats come relayed
+	leaveOf(t, node, leader, node.departedBacklog()+node.HeartbeatTimeout)
+	require.NoError(t, node.handleMessage(ctx, heartbeatFrom(t, leader, 3)))
+	assert.Equal(t, leader, node.GetLeader())
+	assert.False(t, node.isGone(leader))
+
+	require.NoError(t, node.handleMessage(ctx, requestVoteFrom(t, other, 5)))
+	term, votedFor, _ = voteState(node)
+	assert.Equal(t, 4, term, "vote granted past a relayed leader")
+	assert.Equal(t, candidate, votedFor)
+}
+
 // A leader that campaigns has lost its role, so hearing it is no reason to refuse.
 func TestRequestVoteFromHeardLeaderGranted(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)

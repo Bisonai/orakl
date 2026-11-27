@@ -51,6 +51,7 @@ func (r *Raft) watchPeerLeaves(ctx context.Context, events *pubsub.TopicEventHan
 			seen[event.Peer] = count
 		}
 		seq := count.Add(1)
+		r.markDeparted(event.Peer, event.Type == pubsub.PeerLeave)
 		if event.Type == pubsub.PeerJoin {
 			r.wantHeartbeatsFromJoin()
 		}
@@ -73,6 +74,80 @@ func (r *Raft) watchPeerLeaves(ctx context.Context, events *pubsub.TopicEventHan
 			}
 		})
 	}
+}
+
+// A peer that left the topic is gone (isGone) from its leave on, until it
+// rejoins (PeerJoin) or is heard again (reviveIfHeard). Whatever of it still
+// arrives in between was sent before it left: a backlog delivering that late
+// must not hold off the vote for its successor (hearsLeaderOtherThan), be
+// followed, or hold off the election timer (handleHeartbeat), also on a retry
+// after a split vote seconds later (#3012). Kept per peer, not on the leader
+// clock, so a leave counts even when this node would only follow that leader
+// afterwards, from a late heartbeat. A flap costs no election: none comes
+// from a leave before the grace, and a rejoin within it clears the leave.
+
+// departedRetention is how long a departed peer that isn't the leader this
+// node follows is remembered, so peers that never return (a restart takes a
+// new peer ID) don't pile up; checked on each leave.
+const departedRetention = 10 * time.Minute
+
+// departure is when a peer left the topic, ns since leaderClockEpoch.
+type departure struct {
+	at int64
+}
+
+// markDeparted records a peer's leave of the topic, or forgets it on a join.
+func (r *Raft) markDeparted(id peer.ID, left bool) {
+	key := id.String()
+	if !left {
+		r.departed.Delete(key)
+		return
+	}
+	now := int64(time.Since(leaderClockEpoch))
+	r.departed.Store(key, &departure{at: now})
+	clock := r.leaderClock.Load()
+	r.departed.Range(func(k, v any) bool {
+		if (clock == nil || k.(string) != clock.id) && time.Duration(now-v.(*departure).at) > departedRetention {
+			r.departed.CompareAndDelete(k, v)
+		}
+		return true
+	})
+}
+
+// isGone reports whether the peer left the topic and isn't back (markDeparted,
+// reviveIfHeard).
+func (r *Raft) isGone(id string) bool {
+	_, gone := r.departed.Load(id)
+	return gone
+}
+
+// reviveIfHeard forgets a departed peer's leave on a leader message it signed
+// that arrives past departedBacklog, longer than a backlog lasts: a peer still
+// reaches it and relays it (only the direct link dropped), so it is heard
+// again and a live leader isn't ignored for as long as the link is down.
+// Arrival only: send times come from another node's clock. A peer listed on
+// the topic again rejoined, though its PeerJoin may not be read yet.
+func (r *Raft) reviveIfHeard(id string) {
+	v, gone := r.departed.Load(id)
+	if !gone {
+		return
+	}
+	if time.Duration(int64(time.Since(leaderClockEpoch))-v.(*departure).at) > r.departedBacklog() {
+		r.departed.CompareAndDelete(id, v)
+		return
+	}
+	if pid, err := peer.Decode(id); err == nil && r.onTopic(pid) {
+		r.departed.CompareAndDelete(id, v)
+	}
+}
+
+// departedBacklog bounds how late a departed peer's leader messages are still
+// taken for a backlog: the election cooldown plus the longest timer fallback
+// (maxElectionDetection), so a retry after a split vote on its leave (#3043)
+// isn't refused for it. Meanwhile a leader that only lost its direct link is
+// ignored by this node; peers that still hear it keep refusing votes.
+func (r *Raft) departedBacklog() time.Duration {
+	return r.CooldownPeriod + r.maxElectionDetection()
 }
 
 // peerLeaveGrace is PeerLeaveGrace, or when unset the minimum election timeout
