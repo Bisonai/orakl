@@ -100,7 +100,12 @@ const collect = async () => {
     const result = { tag: toTag(config.feeds.length) };
     for (const chain of Chains) {
       if (entry[chain]) {
-        result[chain] = entry[chain];
+        result[chain] = { ...entry[chain] };
+        // heartbeat: max seconds between onchain updates (config submitInterval)
+        const submitInterval = configs[chain].get(pairName).submitInterval;
+        if (Number.isFinite(submitInterval) && submitInterval > 0) {
+          result[chain].heartbeat = submitInterval / 1000;
+        }
       }
     }
     feeds[pairName] = result;
