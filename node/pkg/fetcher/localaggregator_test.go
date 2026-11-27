@@ -265,3 +265,29 @@ func TestFilterStaleFeeds_IntegrationWithCollectFlow(t *testing.T) {
 		assert.NotEqual(t, int32(12), feed.FeedID, "feed 12 (bitmart stuck) should be excluded")
 	}
 }
+
+func TestApplyDecimalsRoundsToNearest(t *testing.T) {
+	def := &LocalAggregator{Config: Config{Name: "TEST-USD"}}
+	d16 := &LocalAggregator{Config: Config{Name: "TEST-USD", Decimals: intPtr(16)}}
+
+	cases := []struct {
+		name  string
+		agg   *LocalAggregator
+		value float64
+		want  int64
+	}{
+		// float product just below the integer: 131024999.99999999
+		{"float error below integer", def, 1.31025, 131025000},
+		{"exact", def, 1.0963, 109630000},
+		// IDR-USD: 5.44297e-05 * 1e8 = 5442.97 → 5443 (truncation gave 5442)
+		{"rounds up at .97", def, 5.44297e-05, 5443},
+		{"rounds down at .4", def, 5.4424e-05, 5442},
+		{"half rounds away from zero", def, 5.4425e-05, 5443},
+		{"custom decimals", d16, 1.5e-11, 150000},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.want, tc.agg.applyDecimals(tc.value))
+		})
+	}
+}
