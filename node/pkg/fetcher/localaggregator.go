@@ -465,8 +465,11 @@ func (c *LocalAggregator) filterStaleFeeds(feeds []*FeedData) []*FeedData {
 	fresh := make([]*FeedData, 0, len(feeds))
 
 	for _, feed := range feeds {
-		// DEX/HTTP feeds (volume == 0) are not subject to freshness filtering
-		if feed.Volume == 0 {
+		// Event-driven feeds without volume (DEX swaps) can be quiet for long
+		// and are not subject to freshness filtering. Polled HTTP feeds are:
+		// their timestamp only advances on a successful fetch, so a failing
+		// source would otherwise keep voting with its last value.
+		if feed.Volume == 0 && !feed.Polled {
 			fresh = append(fresh, feed)
 			continue
 		}

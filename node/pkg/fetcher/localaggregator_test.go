@@ -291,3 +291,58 @@ func TestApplyDecimalsRoundsToNearest(t *testing.T) {
 		})
 	}
 }
+
+func TestFilterStaleFeeds_PolledHTTPFeedsAreChecked(t *testing.T) {
+	la := newLocalAggregatorWithFreshness(intPtr(60000)) // 60 seconds
+
+	now := time.Now()
+	fresh := now.Add(-15 * time.Second)
+	stale := now.Add(-10 * time.Minute) // e.g. source answering 429 since then
+
+	feeds := []*FeedData{
+		{FeedID: 1, Value: 18370, Volume: 0, Timestamp: &fresh, Polled: true},
+		{FeedID: 2, Value: 18362, Volume: 0, Timestamp: &stale, Polled: true}, // failing HTTP source
+		{FeedID: 3, Value: 18373, Volume: 0, Timestamp: &fresh, Polled: true},
+	}
+
+	result := la.filterStaleFeeds(feeds)
+	assert.Len(t, result, 2, "stale polled HTTP feed must be dropped")
+	for _, feed := range result {
+		assert.NotEqual(t, int32(2), feed.FeedID)
+	}
+}
+
+func TestFilterStaleFeeds_EventDrivenZeroVolumeStillExempt(t *testing.T) {
+	la := newLocalAggregatorWithFreshness(intPtr(60000))
+
+	now := time.Now()
+	fresh := now.Add(-5 * time.Second)
+	quiet := now.Add(-30 * time.Minute) // DEX pool without swaps
+
+	feeds := []*FeedData{
+		{FeedID: 1, Value: 1.00, Volume: 0, Timestamp: &quiet},               // DEX: not polled
+		{FeedID: 2, Value: 1.01, Volume: 0, Timestamp: &fresh, Polled: true}, // HTTP fresh
+		{FeedID: 3, Value: 1.02, Volume: 5, Timestamp: &quiet},               // wss with volume: stale
+	}
+
+	result := la.filterStaleFeeds(feeds)
+	ids := []int32{}
+	for _, f := range result {
+		ids = append(ids, f.FeedID)
+	}
+	assert.ElementsMatch(t, []int32{1, 2}, ids, "DEX feed stays exempt, fresh HTTP kept, stale volume feed dropped")
+}
+
+func TestFilterStaleFeeds_PolledSingleFeedUnchanged(t *testing.T) {
+	la := newLocalAggregatorWithFreshness(intPtr(60000))
+	stale := time.Now().Add(-10 * time.Minute)
+	feeds := []*FeedData{{FeedID: 1, Value: 200, Volume: 0, Timestamp: &stale, Polled: true}}
+	assert.Len(t, la.filterStaleFeeds(feeds), 1, "single-feed configs skip the filter, as before")
+}
+
+func TestFilterStaleFeeds_PolledFlagSurvivesCollectCopies(t *testing.T) {
+	// selectMidPrices / applyPerFeedMultipliers copy FeedData; the flag must survive.
+	fd := &FeedData{FeedID: 1, Value: 1, Timestamp: timePtr(time.Now()), Polled: true}
+	cp := *fd
+	assert.True(t, cp.Polled)
+}

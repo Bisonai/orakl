@@ -138,7 +138,7 @@ func (f *Fetcher) fetch(proxies []Proxy) ([]*FeedData, error) {
 				return
 			}
 			now := time.Now()
-			resultChan <- fetchResult{feedID: feed.ID, feedName: feed.Name, data: &FeedData{FeedID: feed.ID, Value: resultValue, Timestamp: &now, Volume: 0}}
+			resultChan <- fetchResult{feedID: feed.ID, feedName: feed.Name, data: &FeedData{FeedID: feed.ID, Value: resultValue, Timestamp: &now, Volume: 0, Polled: true}}
 		}(feed)
 	}
 
