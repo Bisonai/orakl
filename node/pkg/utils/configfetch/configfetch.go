@@ -5,6 +5,11 @@
 //   - CONFIG_BASE_URL: primary source (default DefaultBaseURL).
 //   - CONFIG_FALLBACK_URL: secondary source, tried after the primary in every
 //     round (default DefaultFallbackURL; set to an empty string to disable).
+//   - CONFIG_GITHUB_APP_CLIENT_ID, CONFIG_GITHUB_INSTALLATION_ID,
+//     CONFIG_GITHUB_APP_KEY_FILE, CONFIG_GITHUB_REF: read through the GitHub
+//     contents API with a GitHub App token (see github.go). That source is tried
+//     first and the URL defaults above are dropped; CONFIG_BASE_URL /
+//     CONFIG_FALLBACK_URL are still tried after it when set explicitly.
 package configfetch
 
 import (
@@ -46,7 +51,49 @@ func FeedsPath(chain string) string {
 
 // URL is the primary-source URL of path (for logs).
 func URL(path string) string {
-	return baseURLs()[0] + path
+	srcs, err := sources()
+	if err != nil {
+		return DefaultBaseURL + path
+	}
+	return srcs[0].url(path)
+}
+
+// source is one place configs are fetched from; app is set for the GitHub
+// App source.
+type source struct {
+	base string
+	app  *githubApp
+}
+
+func (s source) url(path string) string {
+	if s.app != nil {
+		return githubContentsURL(path)
+	}
+	return s.base + path
+}
+
+// sources lists the configured sources in the order they are tried.
+func sources() ([]source, error) {
+	app, err := githubFromEnv()
+	if err != nil {
+		return nil, err
+	}
+	if app == nil {
+		var out []source
+		for _, b := range baseURLs() {
+			out = append(out, source{base: b})
+		}
+		return out, nil
+	}
+	out := []source{{app: app}}
+	seen := map[string]bool{}
+	for _, k := range []string{"CONFIG_BASE_URL", "CONFIG_FALLBACK_URL"} {
+		if b := strings.TrimSuffix(os.Getenv(k), "/"); b != "" && !seen[b] {
+			seen[b] = true
+			out = append(out, source{base: b})
+		}
+	}
+	return out, nil
 }
 
 // Get fetches path and decodes it as JSON into T.
@@ -70,10 +117,16 @@ func Fetch(ctx context.Context, path string) ([]byte, error) {
 	if !strings.HasPrefix(path, "/") {
 		return nil, fmt.Errorf("invalid config path %q", path)
 	}
-	bases := baseURLs()
-	for _, b := range bases {
-		if u, err := url.Parse(b); err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
-			return nil, fmt.Errorf("invalid config base url %q", b)
+	srcs, err := sources()
+	if err != nil {
+		return nil, err
+	}
+	for _, s := range srcs {
+		if s.app != nil {
+			continue
+		}
+		if u, err := url.Parse(s.base); err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+			return nil, fmt.Errorf("invalid config base url %q", s.base)
 		}
 	}
 	wait := backoff
@@ -82,9 +135,9 @@ func Fetch(ctx context.Context, path string) ([]byte, error) {
 	for ; ; round++ {
 		errs = errs[:0]
 		retryable := false
-		for _, base := range bases {
-			endpoint := base + path
-			body, r, err := fetchOnce(ctx, endpoint)
+		for _, src := range srcs {
+			endpoint := src.url(path)
+			body, r, err := fetchOnce(ctx, endpoint, src.app)
 			if err == nil {
 				return body, nil
 			}
@@ -125,13 +178,22 @@ func baseURLs() []string {
 	return bases
 }
 
-// fetchOnce performs a single GET. retryable reports whether the failure is
-// transient.
-func fetchOnce(ctx context.Context, endpoint string) (body []byte, retryable bool, err error) {
-	resp, err := request.RequestRaw(
+// fetchOnce performs a single GET, authenticated with app's token when app is
+// set. retryable reports whether the failure is transient.
+func fetchOnce(ctx context.Context, endpoint string, app *githubApp) (body []byte, retryable bool, err error) {
+	opts := []request.RequestOption{
 		request.WithContext(ctx),
 		request.WithEndpoint(endpoint),
-		request.WithTimeout(timeout))
+		request.WithTimeout(timeout),
+	}
+	if app != nil {
+		headers, r, err := app.headers(ctx)
+		if err != nil {
+			return nil, r, err
+		}
+		opts = append(opts, request.WithHeaders(headers))
+	}
+	resp, err := request.RequestRaw(opts...)
 	if err != nil {
 		return nil, true, err
 	}
@@ -141,6 +203,11 @@ func fetchOnce(ctx context.Context, endpoint string) (body []byte, retryable boo
 		resp.Body.Close()
 	}()
 
+	if app != nil && resp.StatusCode == http.StatusUnauthorized {
+		// Token revoked or expired early: mint a new one next round.
+		app.invalidate()
+		return nil, true, fmt.Errorf("%w: status %d", errorsentinel.ErrRequestStatusNotOk, resp.StatusCode)
+	}
 	if resp.StatusCode != http.StatusOK {
 		return nil, isRetryableStatus(resp.StatusCode), fmt.Errorf("%w: status %d", errorsentinel.ErrRequestStatusNotOk, resp.StatusCode)
 	}
