@@ -60,7 +60,7 @@ node ./script/generate-migration-from-config.cjs --chain test
 
 ### Generated Collected Addresses
 
-Following command collects deployed addresses (`./addresses/{mainnet,kairos}/*.json`) into `feeds.json` (data feeds) and `core.json` (FeedRouter, SubmissionProxy). Stores in ./addresses path. Only pairs listed in the live config (`https://config.orakl.network/<chain>_feeds.json`) are included. Output is keyed by `mainnet`/`kairos`.
+Following command collects deployed addresses (`./addresses/{mainnet,kairos}/*.json`) into `feeds.json` (data feeds) and `core.json` (FeedRouter, SubmissionProxy). Stores in ./addresses path. Only pairs listed in the live config (`https://config.orakl.network/<chain>_feeds.json`) are included. Output is keyed by `mainnet`/`kairos`; each chain entry has `proxy`, `feed` and `heartbeat` (max seconds between onchain updates, from the config `submitInterval`).
 
 ```shell
 node ./script/collect-addresses.cjs
