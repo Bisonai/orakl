@@ -294,11 +294,15 @@ func (c *LocalAggregator) streamLocalAggregate(ctx context.Context, aggregated f
 	return c.bus.Publish(msg)
 }
 
+// applyDecimals scales the aggregate to the feed's integer representation,
+// rounding to the nearest unit. Truncating would bias every value down by up
+// to one unit (0.018% for IDR-USD at 8 decimals) and turn float products such
+// as 1.31025*1e8 = 131024999.99999999 into 131024999.
 func (c *LocalAggregator) applyDecimals(value float64) int64 {
 	if c.Config.Decimals != nil && *c.Config.Decimals != 0 {
-		return int64(value * math.Pow10(*c.Config.Decimals))
+		return int64(math.Round(value * math.Pow10(*c.Config.Decimals)))
 	}
-	return int64(value * math.Pow10(DECIMALS))
+	return int64(math.Round(value * math.Pow10(DECIMALS)))
 }
 
 func (c *LocalAggregator) collect(ctx context.Context) ([]*FeedData, error) {
