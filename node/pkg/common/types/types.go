@@ -52,6 +52,13 @@ type FeedData struct {
 	// Only priceSource "mid" aggregators use it, and only while its mid is
 	// valid; others treat the feed as absent until its first trade.
 	BookOnly bool `db:"-"`
+
+	// Polled marks a value from a polled HTTP source (fetcher.go), stamped
+	// with the time of its last successful fetch. Unlike event-driven
+	// zero-volume feeds (DEX swaps), a polled feed that stops answering keeps
+	// its old value in the map, so the stale filter applies the config's
+	// feedDataFreshness to it even though its Volume is 0.
+	Polled bool `db:"-"`
 }
 
 type LocalAggregate struct {
