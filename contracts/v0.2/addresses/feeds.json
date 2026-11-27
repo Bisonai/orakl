@@ -880,7 +880,7 @@
     }
   },
   "GBP-USD": {
-    "tag": "basic",
+    "tag": "standard",
     "mainnet": {
       "proxy": "0x6a1f0e6bed3cf7abe8d08eafc04ab5db72a75a11",
       "feed": "0x95d6a9e04d97a5cb47ae7671a27ba0ac960d9e4e"
